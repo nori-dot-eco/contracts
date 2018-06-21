@@ -1,0 +1,46 @@
+{
+  "name": "@noridoteco/contracts",
+  "version": "0.0.4",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "@jaycenhorton/eth-gas-reporter": "^0.1.1",
+    "eth-signer": "^0.3.4",
+    "ethereumjs-abi": "^0.6.5",
+    "ethereumjs-testrpc-sc": "^6.1.2",
+    "prettier": "^1.11.1",
+    "solidity-coverage": "^0.5.4"
+  },
+  "scripts": {
+    "lint:sol": "yarn run solium -d .",
+    "lint:sol:fix": "yarn run solium -d . --fix",
+    "testnet:compile": "yarn run lint:sol && truffle compile",
+    "testnet:deploy":
+      "yarn run lint:sol && truffle deploy --network noritestnet",
+    "testnet:migrate":
+      "yarn run lint:sol && truffle migrate --network noritestnet",
+    "test": "yarn run lint:sol && `yarn bin`/truffle test --reset --all",
+    "test:gasreport": "cd gas-reporter && truffle test --reset",
+    "sol:cov":
+      "testrpc-sc --port 8555 --gasLimit 0xfffffffffff --gasPrice 0x01 & $(yarn bin)/solidity-coverage"
+  },
+  "bin": {
+    "nori-geth": "bin/nori-geth.js"
+  },
+  "files": ["build"],
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "babel-preset-stage-3": "^6.17.0",
+    "babel-register": "^6.23.0",
+    "next": "^5.1.0",
+    "sha3": "^1.2.0",
+    "solium": "^1.1.7",
+    "truffle": "^4.1.12",
+    "truffle-contract": "^3.0.1",
+    "truffle-hdwallet-provider": "^0.0.3",
+    "web3": "^0.20.6",
+    "zeppelin-solidity": "^1.4.0"
+  }
+}
