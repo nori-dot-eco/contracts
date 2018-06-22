@@ -67,9 +67,11 @@ workflows:
   test:
     jobs:
       - run-tests
-      - run-coverage:
-          requires:
-            - run-tests
-      - run-gasreport:
-          requires:
-            - run-tests
+
+# Disable these for now
+#      - run-coverage:
+#          requires:
+#            - run-tests
+#      - run-gasreport:
+#          requires:
+#            - run-tests
