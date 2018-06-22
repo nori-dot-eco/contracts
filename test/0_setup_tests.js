@@ -52,8 +52,8 @@ context('Setup test environment', () => {
 
   context('Execute tests', () => {
     TonTokenTests(admin0, unregistered0, unregistered1);
-    // // todo jaycen fix this (broken when removed etsernal storage stuffz)
-    // // ProxyTests();
+    // todo jaycen fix this (broken when removed etsernal storage stuffz)
+    // ProxyTests();
     MultiSigWallet(); // Multisig wallet tests
     MultiAdminTests(); // Multisig admin tests
     RegistryTests(admin0, admin1, unregistered0);

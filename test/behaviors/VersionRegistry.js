@@ -25,7 +25,7 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
             versionName,
           ] = UnstructuredUpgradeableTokenV0.contractName.split('V');
           let tokenProxyImp = await tokenProxy.implementation();
-          let latestImp = await registry.getLatestVersionByContractName(
+          let latestImp = await registry.getVersionForContractName(
             contractName,
             -1
           );
@@ -42,12 +42,12 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
           );
 
           tokenProxyImp = await tokenProxy.implementation();
-          latestImp = await registry.getLatestVersionByContractName(
+          latestImp = await registry.getVersionForContractName(
             contractName,
             -1
           );
           tokenProxyImp = await tokenProxy.implementation();
-          latestImp = await registry.getLatestVersionByContractName(
+          latestImp = await registry.getVersionForContractName(
             contractName,
             -1
           );
@@ -64,12 +64,12 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
           );
 
           tokenProxyImp = await tokenProxy.implementation();
-          latestImp = await registry.getLatestVersionByContractName(
+          latestImp = await registry.getVersionForContractName(
             contractName,
             -1
           );
           tokenProxyImp = await tokenProxy.implementation();
-          latestImp = await registry.getLatestVersionByContractName(
+          latestImp = await registry.getVersionForContractName(
             contractName,
             -1
           );
@@ -127,15 +127,15 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
             );
             const secondTokenSecondImp = await secondTokenProxy.implementation();
 
-            const firstTokenFirstVersion = await registry.getLatestVersionByContractName(
+            const firstTokenFirstVersion = await registry.getVersionForContractName(
               'Nori',
               0
             );
-            const secondTokenFirstVersion = await registry.getLatestVersionByContractName(
+            const secondTokenFirstVersion = await registry.getVersionForContractName(
               secondContractName,
               0
             );
-            const secondTokenSecondVersion = await registry.getLatestVersionByContractName(
+            const secondTokenSecondVersion = await registry.getVersionForContractName(
               secondContractName,
               1
             );

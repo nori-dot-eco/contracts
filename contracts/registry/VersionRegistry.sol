@@ -20,6 +20,8 @@ contract VersionRegistry {
     return proxyContracts[contractName];
   }
 
+  //todo create a function for getting count of versiuons for a particular contract name
+
   function _setVersion(
     string _contractName, 
     address _proxyAddress, 
@@ -33,7 +35,7 @@ contract VersionRegistry {
   }
 
   /// @dev pass -1 to get the latest, or a particular index to get a certain one
-  function getLatestVersionByContractName(string _contractName, int _index) public view returns (string, address, address) {
+  function getVersionForContractName(string _contractName, int _index) public view returns (string, address, address) {
     uint index;
     address latestProxy = getLatestProxyAddr(_contractName);
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));

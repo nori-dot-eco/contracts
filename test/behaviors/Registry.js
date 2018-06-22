@@ -8,11 +8,7 @@ const testContractAtRegistry = (admin, initParams = []) => {
     () => {
       it('should be able to call contract functions', async () => {
         const [, , tokenProxy, registry] = await upgradeToV0(admin);
-        const [
-          ,
-          ,
-          tokenProxyAddr,
-        ] = await registry.getLatestVersionByContractName(
+        const [, , tokenProxyAddr] = await registry.getVersionForContractName(
           'UnstructuredUpgradeableToken',
           -1,
           {
