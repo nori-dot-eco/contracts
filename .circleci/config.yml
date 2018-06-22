@@ -1,0 +1,75 @@
+version: 2
+defaults: &defaults
+  working_directory: ~/repo
+  environment:
+    - NODE_ENV: test
+  docker:
+    - image: circleci/node:9.11
+
+jobs:
+  run-tests:
+    <<: *defaults
+    steps:
+      - checkout
+
+      - restore_cache:
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+
+      - run:
+          name: Install Dependencies
+          command: |
+            if [ ! -d "node_modules" ]; then
+              for i in 1 2; do
+                yarn install --prefer-offline && break || sleep 15;
+              done
+            fi
+
+      - save_cache:
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+          paths:
+            - node_modules
+
+      - run:
+          name: Build Contracts
+          command: ./node_modules/.bin/truffle compile
+
+      - run:
+          name: Run Tests
+          command: yarn run test
+
+
+  run-coverage:
+    <<: *defaults
+    steps:
+      - checkout
+
+      - restore_cache:
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+      - run:
+          name: Generate Contract Coverage
+          command: yarn run sol:cov
+
+  run-gasport:
+    <<: *defaults
+    steps:
+      - checkout
+
+      - restore_cache:
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+
+      - run:
+          name: Run Gas Report
+          command: yarn run test:gasreport
+
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - run-tests
+      - run-coverage:
+          requires:
+            - run-tests
+      - run-gasreport:
+          requires:
+            - run-tests
