@@ -1,4 +1,4 @@
-import { UnstructuredUpgradeableTokenV0 } from '../helpers/artifacts';
+import { UnstructuredUpgradeableTokenV0 } from '../helpers/Artifacts';
 
 import { upgradeToV0 } from './UnstructuredUpgrades';
 

@@ -5,7 +5,7 @@ import {
   EternalStorageProxy,
   UpgradeableTokenV2,
   UpgradeableTokenV3,
-} from '../helpers/artifacts';
+} from '../helpers/Artifacts';
 
 let tokenByProxyV0;
 let proxy; // every upgrade scenario uses this same EternalStorageProxy

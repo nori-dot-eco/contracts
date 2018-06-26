@@ -5,7 +5,7 @@ import {
   UnstructuredUpgradeableTokenV2,
   UnstructuredUpgradeableTokenV3,
   ContractRegistryV0_1_0,
-} from '../helpers/artifacts';
+} from '../helpers/Artifacts';
 import { deployContract, getLogs } from '../helpers/contracts';
 import { upgradeTo } from './UnstructuredUpgrades';
 import { shouldBehaveLikeTonToken } from './UnstructuredTonToken';

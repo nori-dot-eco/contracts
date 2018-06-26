@@ -3,7 +3,7 @@ import {
   ContractRegistryV0_1_0,
   VerifierV0,
   CRCV0,
-} from '../helpers/artifacts';
+} from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
 import { deployUpgradeableCrc } from './Crc';
 

@@ -1,5 +1,5 @@
 /* globals artifacts */
-const Artifacts = require('../test/helpers/artifacts');
+const Artifacts = require('../test/helpers/Artifacts');
 
 const ContractRegistryV0_1_0 = artifacts.require(
   './ContractRegistryV0_1_0.sol'

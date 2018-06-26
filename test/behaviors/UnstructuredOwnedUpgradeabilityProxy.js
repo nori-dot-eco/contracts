@@ -3,7 +3,7 @@ import {
   UnstructuredUpgradeableTokenV0,
   UnstructuredUpgradeableTokenV1,
   ContractRegistryV0_1_0,
-} from '../helpers/artifacts';
+} from '../helpers/Artifacts';
 import {
   getLogs,
   deployContract,

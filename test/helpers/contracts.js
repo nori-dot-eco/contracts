@@ -3,7 +3,7 @@ import {
   UnstructuredOwnedUpgradeabilityProxy,
   TonToken,
   ContractRegistryV0_1_0,
-} from '../helpers/artifacts';
+} from '../helpers/Artifacts';
 
 const { promisify } = require('util');
 

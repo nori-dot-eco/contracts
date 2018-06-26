@@ -4,7 +4,7 @@ import {
   UnstructuredUpgradeableTokenV1,
   UnstructuredUpgradeableTokenV2,
   UnstructuredUpgradeableTokenV3,
-} from './helpers/artifacts';
+} from './helpers/Artifacts';
 
 const UnstructuredUpgradeScenarios = (
   admin,
@@ -104,7 +104,9 @@ const unstructuredVersionScenario = (
   initParams
 ) => {
   context(
-    `UnstructuredUpgradeableTokenV${version} at UnstructuredOwnedUpgradeabilityProxy`,
+    `UnstructuredUpgradeableTokenV${
+      version
+    } at UnstructuredOwnedUpgradeabilityProxy`,
     () => {
       shouldBehaveLikeUnstructuredUpgradeableToken(
         admin,

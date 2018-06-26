@@ -2,7 +2,7 @@
 // import {
 //   UpgradeabilityProxy,
 //   UpgradeabilityStorageTestV0,
-// } from '../helpers/artifacts';
+// } from '../helpers/Artifacts';
 
 // const testProxyFunctions = () => {
 //   let proxy;
