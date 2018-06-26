@@ -67,9 +67,10 @@ workflows:
   test:
     jobs:
       - run-tests
-      - run-coverage:
-          requires:
-            - run-tests
-      - run-gasreport:
-          requires:
-            - run-tests
+# TODO: reenable these once they are working
+#      - run-coverage:
+#          requires:
+#            - run-tests
+#      - run-gasreport:
+#          requires:
+#            - run-tests
