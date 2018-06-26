@@ -49,7 +49,7 @@ jobs:
           name: Generate Contract Coverage
           command: yarn run sol:cov
 
-  run-gasport:
+  run-gasreport:
     <<: *defaults
     steps:
       - checkout
