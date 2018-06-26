@@ -1,5 +1,5 @@
 import { deployUpgradeableParticipantRegistry } from './ParticipantRegistry';
-import { ContractRegistryV0_1_0, ParticipantV0 } from '../helpers/artifacts';
+import { ContractRegistryV0_1_0, ParticipantV0 } from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
 
 const shouldBehaveLikeParticipant = admin => {

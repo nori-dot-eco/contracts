@@ -4,7 +4,7 @@ import {
   ContractRegistryV0_1_0,
   UnstructuredOwnedUpgradeabilityProxy,
   Supplier,
-} from '../helpers/artifacts';
+} from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
 
 const Web3 = require('web3');

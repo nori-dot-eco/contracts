@@ -1,7 +1,7 @@
 import expectThrow from '../helpers/expectThrow';
 import { getLogs, deployContract } from '../helpers/contracts';
 import { upgradeTo } from './Upgrades';
-import { TonToken, ContractRegistryV0_1_0 } from '../helpers/artifacts';
+import { TonToken, ContractRegistryV0_1_0 } from '../helpers/Artifacts';
 
 const shouldBehaveLikeTonToken = (admin, operator, recipient, upgradeable) => {
   let tonToken;

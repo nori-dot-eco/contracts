@@ -4,7 +4,7 @@ import {
   UnstructuredUpgradeableTokenV1,
   UnstructuredUpgradeableTokenV0,
   UnstructuredUpgradeableTokenV2,
-} from '../helpers/artifacts';
+} from '../helpers/Artifacts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
 import { deployUpgradeableContract } from '../helpers/contracts';
 

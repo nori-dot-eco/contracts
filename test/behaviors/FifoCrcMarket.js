@@ -5,7 +5,7 @@ import {
   getLogs,
   deployUpgradeableContract,
 } from '../helpers/contracts';
-import { NoriV0, FifoCrcMarketV0, CRCV0 } from '../helpers/artifacts';
+import { NoriV0, FifoCrcMarketV0, CRCV0 } from '../helpers/Artifacts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
 import { deployUpgradeableCrc } from './Crc';
 
@@ -80,7 +80,9 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
           );
         });
 
-        it(`should mint ${crcToMint} CRCs with a value of ${crcValue}`, async () => {
+        it(`should mint ${crcToMint} CRCs with a value of ${
+          crcValue
+        }`, async () => {
           const mint = () => crc.mint(supplier, '', token(crcValue), '');
           repeat(mint, crcToMint);
           suppliersCrcBal += crcToMint;

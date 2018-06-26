@@ -1,6 +1,6 @@
 import expectThrow from '../helpers/expectThrow';
 import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
-import { ContractRegistryV0_1_0 } from '../helpers/artifacts';
+import { ContractRegistryV0_1_0 } from '../helpers/Artifacts';
 import { deployUpgradeableParticipantRegistry } from './ParticipantRegistry';
 
 const shouldBehaveLikeCrc = (admin, CrcContract, upgradeable = false) => {

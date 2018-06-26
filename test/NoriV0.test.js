@@ -1,4 +1,4 @@
-import { NoriV0 } from './helpers/artifacts';
+import { NoriV0 } from './helpers/Artifacts';
 import { shouldBehaveLikeUnstructuredUpgradeableToken } from './behaviors/UnstructuredUpgradeableToken';
 // NoriV0 should behave like an unstructured upgradeable token
 const NoriV0Tests = (admin, mintRecipient, transferRecipient) => {

@@ -5,7 +5,7 @@ import {
   UnstructuredUpgradeableTokenV3,
   ContractRegistryV0_1_0,
   UnstructuredOwnedUpgradeabilityProxy,
-} from '../helpers/artifacts';
+} from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
 
 let tokenByProxyV0;

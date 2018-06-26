@@ -1,7 +1,7 @@
 import expectThrow from '../helpers/expectThrow';
 import { getLogs } from '../helpers/contracts';
 import { upgradeTo } from './UnstructuredUpgrades';
-import { NoriV0 } from '../helpers/artifacts';
+import { NoriV0 } from '../helpers/Artifacts';
 
 const shouldBehaveLikeTonToken = (
   admin,
