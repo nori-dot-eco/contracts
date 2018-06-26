@@ -12,6 +12,7 @@
     "babel-preset-stage-3": "^6.17.0",
     "babel-register": "^6.23.0",
     "eth-signer": "^0.3.4",
+    "ethereum-ens": "^0.7.4",
     "ethereumjs-abi": "^0.6.5",
     "ethereumjs-testrpc-sc": "^6.1.2",
     "prettier": "^1.11.1",
@@ -34,6 +35,7 @@
     "build"
   ],
   "dependencies": {
+    "truffle-hdwallet-provider": "^0.0.5",
     "zeppelin-solidity": "^1.4.0"
   }
 }
