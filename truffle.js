@@ -2,6 +2,7 @@ require('babel-register')({
   ignore: /node_modules\/(?!zeppelin-solidity)/,
 });
 require('babel-polyfill');
+const HDWalletProvider = require('truffle-hdwallet-provider');
 
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
@@ -25,6 +26,23 @@ module.exports = {
       gas: 4600000,
       port: 8545,
       network_id: '*',
+    },
+    // To get a ropsten node running locally, try the following:
+    // geth --datadir=.ropsten --testnet --syncmode=light --cache 4096 --rpc --maxpeers 76 --lightpeers 50 console attatch
+    ropsten: {
+      network_id: 3,
+      gas: 4000000,
+      provider: () => {
+        if (!process.env.MNEMONIC || !process.env.INFURA_KEY) {
+          throw new Error(
+            'You must set both the MNEMONIC and INFURA_KEY environment variables to use the ropsten network'
+          );
+        }
+        return new HDWalletProvider(
+          process.env.MNEMONIC,
+          `https://ropsten.infura.io/${process.env.INFURA_KEY}`
+        );
+      },
     },
     develop: {
       host: 'localhost',

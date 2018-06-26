@@ -67,8 +67,7 @@ workflows:
   test:
     jobs:
       - run-tests
-
-# Disable these for now
+# TODO: reenable these once they are working
 #      - run-coverage:
 #          requires:
 #            - run-tests
