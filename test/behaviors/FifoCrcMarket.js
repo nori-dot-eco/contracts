@@ -1,10 +1,6 @@
 import expectThrow from '../helpers/expectThrow';
 import token from '../helpers/ether';
-import {
-  repeat,
-  getLogs,
-  deployUpgradeableContract,
-} from '../helpers/contracts';
+import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
 import { NoriV0, FifoCrcMarketV0, CRCV0 } from '../helpers/Artifacts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
 import { deployUpgradeableCrc } from './Crc';
@@ -51,11 +47,11 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
         [contractRegistry.address, [crc.address, noriToken.address], admin],
       ];
       [, fifoCrcMarket] = await deployUpgradeableContract(
+        artifacts,
         null,
         FifoCrcMarketV0,
         contractRegistry,
-        initParams,
-        []
+        initParams
       );
 
       buyersNoriBal = 0;
@@ -83,8 +79,9 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
         it(`should mint ${crcToMint} CRCs with a value of ${
           crcValue
         }`, async () => {
-          const mint = () => crc.mint(supplier, '', token(crcValue), '');
-          repeat(mint, crcToMint);
+          for (let i = 0; i < crcToMint; i++) {
+            crc.mint(supplier, '', token(crcValue), '');
+          }
           suppliersCrcBal += crcToMint;
           assert.equal(
             await crc.balanceOf(supplier),

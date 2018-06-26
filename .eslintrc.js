@@ -14,13 +14,12 @@ module.exports = {
     },
   },
   globals: {
-    artifacts: false,
     contract: false,
     assert: false,
-    web3: false,
   },
   rules: {
     camelcase: 'off',
+    'no-plusplus': 'off',
     'import/no-extraneous-dependencies': [
       'error',
       {

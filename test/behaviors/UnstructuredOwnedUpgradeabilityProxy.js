@@ -4,11 +4,7 @@ import {
   UnstructuredUpgradeableTokenV1,
   ContractRegistryV0_1_0,
 } from '../helpers/Artifacts';
-import {
-  getLogs,
-  deployContract,
-  deployUpgradeableContract,
-} from '../helpers/contracts';
+import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
 
 const testUnstructuredOwnedUpgradeabilityProxyFuncs = (
@@ -24,11 +20,11 @@ const testUnstructuredOwnedUpgradeabilityProxyFuncs = (
     } else {
       contractRegistry = await ContractRegistryV0_1_0.new();
       [, , proxy] = await deployUpgradeableContract(
+        artifacts,
         null,
         ownedUpContract,
         contractRegistry,
         initParams,
-        [],
         { from: admin }
       );
     }
@@ -61,11 +57,11 @@ const testEvents = (
         );
       } else {
         [, tokenByProxyV0, proxy] = await deployUpgradeableContract(
+          artifacts,
           null,
           ownedUpContract,
           contractRegistry,
           initParams,
-          [],
           { from: admin }
         );
       }
@@ -142,11 +138,11 @@ const testUnstructuredOwnedUpgradeabilityProxyInitialState = (
     } else {
       contractRegistry = await ContractRegistryV0_1_0.new();
       [, , proxy] = await deployUpgradeableContract(
+        artifacts,
         null,
         ownedUpContract,
         contractRegistry,
         initParams,
-        [],
         { from: admin }
       );
     }
@@ -177,11 +173,11 @@ const testOnlyProxyOwnerUnstructuredOwnedUpgradeabilityProxyFuncs = (
     } else {
       contractRegistry = await ContractRegistryV0_1_0.new({ from: admin });
       [, contractByProxyV0, proxy] = await deployUpgradeableContract(
+        artifacts,
         null,
         ownedUpContract,
         contractRegistry,
         initParams,
-        [],
         { from: admin }
       );
     }
@@ -288,11 +284,11 @@ const testUnstructuredOwnedUpgradeabilityProxyImplementer = (
     } else if (!tokenByProxyV0) {
       contractRegistry = await ContractRegistryV0_1_0.new();
       [, tokenByProxyV0, proxy] = await deployUpgradeableContract(
+        artifacts,
         proxy || null,
         ownedUpContract,
         contractRegistry,
         initParams,
-        [],
         { from: admin }
       );
     }
@@ -303,7 +299,7 @@ const testUnstructuredOwnedUpgradeabilityProxyImplementer = (
     it('should upgrade to a new version', async () => {
       const v1 = ownedUpContract || UnstructuredUpgradeableTokenV1;
 
-      const upgradeableTokenV1 = await deployContract(v1, [], { from: admin });
+      const upgradeableTokenV1 = await v1.new({ from: admin });
 
       await proxy.upgradeTo(
         UnstructuredUpgradeableTokenV0.contractName.toString(),
@@ -320,7 +316,7 @@ const testUnstructuredOwnedUpgradeabilityProxyImplementer = (
     it('should fail trying to upgrade from a non admin account', async () => {
       const v1 = ownedUpContract || UnstructuredUpgradeableTokenV1;
 
-      const upgradeableTokenV1 = await deployContract(v1, [], { from: admin });
+      const upgradeableTokenV1 = await v1.new({ from: admin });
       await assertRevert(
         proxy.upgradeTo(
           'UnstructuredUpgradeableToken',

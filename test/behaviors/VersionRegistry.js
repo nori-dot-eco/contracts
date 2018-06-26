@@ -33,11 +33,11 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
           assert.equal(versionName, '0');
 
           [, , , , contractName, versionName] = await deployUpgradeableContract(
+            artifacts,
             tokenProxy,
             UnstructuredUpgradeableTokenV1,
             registry,
             null,
-            [],
             { from: admin }
           );
 
@@ -55,11 +55,11 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
           assert.equal(versionName, '1');
 
           [, , , , contractName, versionName] = await deployUpgradeableContract(
+            artifacts,
             tokenProxy,
             UnstructuredUpgradeableTokenV2,
             registry,
             null,
-            [],
             { from: admin }
           );
 
@@ -97,6 +97,7 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
             );
 
             await deployUpgradeableContract(
+              artifacts,
               secondTokenProxy,
               UnstructuredUpgradeableTokenV0,
               registry,
@@ -111,18 +112,17 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
                   admin,
                 ],
               ],
-              [],
               { from: admin }
             );
 
             const secondTokenSecondFirstImp = await secondTokenProxy.implementation();
 
             await deployUpgradeableContract(
+              artifacts,
               secondTokenProxy,
               UnstructuredUpgradeableTokenV1,
               registry,
               null,
-              [],
               { from: admin }
             );
             const secondTokenSecondImp = await secondTokenProxy.implementation();

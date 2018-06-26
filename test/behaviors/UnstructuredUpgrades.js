@@ -39,11 +39,11 @@ const upgradeToV0 = async (
   );
 
   [upgradeableTokenV0, tokenByProxyV0] = await deployUpgradeableContract(
+    artifacts,
     proxy,
     unstructuredUpgradeableContractV0,
     contractRegistry,
     initParams,
-    [],
     { from: admin }
   );
 
@@ -68,11 +68,11 @@ const upgradeToV1 = async admin => {
   await setStateInV0(admin);
 
   const [upgradeableTokenV1, tokenByProxyV1] = await deployUpgradeableContract(
+    artifacts,
     proxy,
     UnstructuredUpgradeableTokenV1,
     contractRegistry,
     null,
-    [],
     { from: admin }
   );
 
@@ -87,11 +87,11 @@ const upgradeToV2 = async admin => {
   const [, tS, proxy] = await upgradeToV1(admin);
 
   const [upgradeableTokenV2, tokenByProxyV2] = await deployUpgradeableContract(
+    artifacts,
     proxy,
     UnstructuredUpgradeableTokenV2,
     contractRegistry,
     null,
-    [],
     { from: admin }
   );
 
@@ -107,11 +107,11 @@ const upgradeToV3 = async admin => {
   const tS = await tokenByProxyV2.totalSupply();
 
   const [upgradeableTokenV3, tokenByProxyV3] = await deployUpgradeableContract(
+    artifacts,
     proxy,
     UnstructuredUpgradeableTokenV3,
     contractRegistry,
     null,
-    [],
     { from: admin }
   );
 
@@ -125,11 +125,11 @@ const rollBackToV2 = async admin => {
   const [, tS, proxy] = await upgradeToV3(admin);
 
   const [upgradeableTokenV4, tokenByProxyV4] = await deployUpgradeableContract(
+    artifacts,
     proxy,
     UnstructuredUpgradeableTokenV2,
     contractRegistry,
     null,
-    [],
     { from: admin }
   );
 

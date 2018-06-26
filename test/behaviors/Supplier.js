@@ -1,4 +1,3 @@
-// import { getLogs } from '../helpers/contracts';
 import expectThrow from '../helpers/expectThrow';
 import {
   ContractRegistryV0_1_0,
@@ -34,11 +33,11 @@ const shouldBehaveLikeSupplier = admin => {
         [contractRegistry.address, participantRegistry.address, admin],
       ];
       [, supplier] = await deployUpgradeableContract(
+        artifacts,
         null,
         SupplierV0,
         contractRegistry,
-        initParams,
-        []
+        initParams
       );
 
       crcAddress = await crc.address;

@@ -6,7 +6,7 @@ import {
   UnstructuredUpgradeableTokenV3,
   ContractRegistryV0_1_0,
 } from '../helpers/Artifacts';
-import { deployContract, getLogs } from '../helpers/contracts';
+import { getLogs } from '../helpers/contracts';
 import { upgradeTo } from './UnstructuredUpgrades';
 import { shouldBehaveLikeTonToken } from './UnstructuredTonToken';
 
@@ -218,9 +218,13 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV1 = (
         const contractRegistry = await ContractRegistryV0_1_0.new({
           from: admin,
         });
-        upgradeableTokenV1 = await deployContract(
-          UnstructuredUpgradeableTokenV1,
-          ['NORI Token V1', 'NORI', 1, 0, contractRegistry.address, admin],
+        upgradeableTokenV1 = UnstructuredUpgradeableTokenV1.new(
+          'NORI Token V1',
+          'NORI',
+          1,
+          0,
+          contractRegistry.address,
+          admin,
           { from: admin }
         );
       }
@@ -275,9 +279,13 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV2 = (
         const contractRegistry = await ContractRegistryV0_1_0.new({
           from: admin,
         });
-        upgradeableTokenV2 = await deployContract(
-          UnstructuredUpgradeableTokenV2,
-          ['NORI Token V2', 'NORI', 1, 0, contractRegistry.address, admin],
+        upgradeableTokenV2 = UnstructuredUpgradeableTokenV2.new(
+          'NORI Token V2',
+          'NORI',
+          1,
+          0,
+          contractRegistry.address,
+          admin,
           { from: admin }
         );
       }
@@ -350,12 +358,9 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV3 = (
       const upgradeToV = upgradeTo(upgradeable);
       [upgradeableTokenV3, v2TotalSupply] = await upgradeToV(admin);
     } else {
-      upgradeableTokenV3 = await deployContract(
-        UnstructuredUpgradeableTokenV3,
-        {
-          from: admin,
-        }
-      );
+      upgradeableTokenV3 = UnstructuredUpgradeableTokenV3.new({
+        from: admin,
+      });
     }
   });
 

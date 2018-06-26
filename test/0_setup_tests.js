@@ -1,5 +1,4 @@
-import {
-  allAccounts,
+const {
   buyer0,
   buyer1,
   supplier0,
@@ -10,7 +9,7 @@ import {
   unregistered1,
   admin0,
   admin1,
-} from './helpers/accounts';
+} = require('./helpers/getNamedAccounts')(web3);
 import TonTokenTests from './TonToken.test';
 import ProxyTests from './Proxy.test';
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
