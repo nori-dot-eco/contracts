@@ -18,11 +18,11 @@ const shouldBehaveLikeParticipant = admin => {
         [contractRegistry.address, participantRegistry.address, admin],
       ];
       [, participant] = await deployUpgradeableContract(
+        artifacts,
         null,
         ParticipantV0,
         contractRegistry,
-        initParams,
-        []
+        initParams
       );
     });
     describe('setParticipantRegistry', () => {

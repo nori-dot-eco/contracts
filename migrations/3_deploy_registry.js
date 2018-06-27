@@ -1,36 +1,33 @@
-/* globals artifacts */
-const Artifacts = require('../test/helpers/Artifacts');
-
+/* globals artifacts web3 */
 const ContractRegistryV0_1_0 = artifacts.require(
   './ContractRegistryV0_1_0.sol'
 );
-const Contracts = require('../test/helpers/contracts');
-const Accounts = require('../test/helpers/accounts');
+const { deployUpgradeableContract } = require('../test/helpers/contracts');
+const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 
-module.exports = (deployer, network, accounts) => {
+module.exports = deployer => {
   deployer.then(async () => {
     // this non upgradeable registry keeps track of all upgraded registries and their versions
     // you can use it to see the full history of registry implementation addresses,
     // but should not be used for anything else (including to get the current registry addr)
     const contractRegistrysRegistry = await ContractRegistryV0_1_0.deployed();
+    const namedAccounts = getNamedAccounts(web3);
 
     // Deploy the registry behind a proxy
-    const [
-      ,
-      registryAtProxy,
-      registryProxy,
-    ] = await Contracts.deployUpgradeableContract(
+    const [, registryAtProxy, registryProxy] = await deployUpgradeableContract(
+      artifacts,
       null,
-      Artifacts.ContractRegistryV0_1_0,
+      artifacts.require('ContractRegistryV0_1_0'),
       contractRegistrysRegistry,
-      [['address'], [Accounts.admin0]],
-      { from: Accounts.admin0 }
+      [['address'], [namedAccounts.admin0]],
+      { from: namedAccounts.admin0 }
     );
 
     // Deploy nori token behind a proxy
-    const [, , noriProxy] = await Contracts.deployUpgradeableContract(
+    const [, , noriProxy] = await deployUpgradeableContract(
+      artifacts,
       null,
-      Artifacts.NoriV0,
+      artifacts.require('NoriV0'),
       registryAtProxy,
       [
         ['string', 'string', 'uint', 'uint', 'address', 'address'],
@@ -40,29 +37,27 @@ module.exports = (deployer, network, accounts) => {
           1,
           0,
           registryAtProxy.address,
-          Accounts.admin0,
+          namedAccounts.admin0,
         ],
       ],
-      { from: Accounts.admin0 }
+      { from: namedAccounts.admin0 }
     );
 
     // Deploy upgradeable ParticipantRegistry
-    const [
-      ,
-      ,
-      participantRegistryProxy,
-    ] = await Contracts.deployUpgradeableContract(
+    const [, , participantRegistryProxy] = await deployUpgradeableContract(
+      artifacts,
       null,
-      Artifacts.ParticipantRegistryV0,
+      artifacts.require('ParticipantRegistryV0'),
       registryAtProxy,
-      [['address', 'address'], [registryAtProxy.address, Accounts.admin0]],
-      { from: Accounts.admin0 }
+      [['address', 'address'], [registryAtProxy.address, namedAccounts.admin0]],
+      { from: namedAccounts.admin0 }
     );
 
     // CRC
-    const [, , crcProxy] = await Contracts.deployUpgradeableContract(
+    const [, , crcProxy] = await deployUpgradeableContract(
+      artifacts,
       null,
-      Artifacts.CRCV0,
+      artifacts.require('CRCV0'),
       registryAtProxy,
       [
         ['string', 'string', 'address', 'address', 'address'],
@@ -71,74 +66,78 @@ module.exports = (deployer, network, accounts) => {
           'CRC',
           registryAtProxy.address,
           participantRegistryProxy.address,
-          Accounts.admin0,
+          namedAccounts.admin0,
         ],
       ],
-      { from: Accounts.admin0 }
+      { from: namedAccounts.admin0 }
     );
 
     // Participant type
-    await Contracts.deployUpgradeableContract(
+    await deployUpgradeableContract(
+      artifacts,
       null,
-      Artifacts.ParticipantV0,
+      artifacts.require('ParticipantV0'),
       registryAtProxy,
       [
         ['address', 'address', 'address'],
         [
           registryAtProxy.address,
           participantRegistryProxy.address,
-          Accounts.admin0,
+          namedAccounts.admin0,
         ],
       ],
-      { from: Accounts.admin0 }
+      { from: namedAccounts.admin0 }
     );
 
     // Supplier participant type
-    await Contracts.deployUpgradeableContract(
+    await deployUpgradeableContract(
+      artifacts,
       null,
-      Artifacts.SupplierV0,
+      artifacts.require('SupplierV0'),
       registryAtProxy,
       [
         ['address', 'address', 'address'],
         [
           registryAtProxy.address,
           participantRegistryProxy.address,
-          Accounts.admin0,
+          namedAccounts.admin0,
         ],
       ],
-      { from: Accounts.admin0 }
+      { from: namedAccounts.admin0 }
     );
 
     // Verifier participant type
-    await Contracts.deployUpgradeableContract(
+    await deployUpgradeableContract(
+      artifacts,
       null,
-      Artifacts.VerifierV0,
+      artifacts.require('VerifierV0'),
       registryAtProxy,
       [
         ['address', 'address', 'address'],
         [
           registryAtProxy.address,
           participantRegistryProxy.address,
-          Accounts.admin0,
+          namedAccounts.admin0,
         ],
       ],
-      { from: Accounts.admin0 }
+      { from: namedAccounts.admin0 }
     );
 
     // FIFO CRC market
-    await Contracts.deployUpgradeableContract(
+    await deployUpgradeableContract(
+      artifacts,
       null, // pass current proxy here (and null the initParams param) this if you want to upgrade without init
-      Artifacts.FifoCrcMarketV0,
+      artifacts.require('FifoCrcMarketV0'),
       registryAtProxy,
       [
         ['address', 'address[]', 'address'],
         [
           registryAtProxy.address,
           [crcProxy.address, noriProxy.address],
-          Accounts.admin0,
+          namedAccounts.admin0,
         ],
       ],
-      { from: Accounts.admin0 }
+      { from: namedAccounts.admin0 }
     );
 
     console.log('REGISTRY PROXY:', registryProxy.address);

@@ -1,5 +1,4 @@
 import expectThrow from '../helpers/expectThrow';
-import { deployContract } from '../helpers/contracts';
 
 const utils = require('../helpers/utils');
 
@@ -9,8 +8,6 @@ const TonToken = artifacts.require('TonToken');
 const TestCalls = artifacts.require('TestCalls');
 const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
 
-const deployToken = (name, symbol, granularity, totalSupply, eip820RegAddr) =>
-  TonToken.new(name, symbol, granularity, totalSupply, eip820RegAddr);
 const deployCalls = () => TestCalls.new();
 
 const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
@@ -23,19 +20,16 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
   beforeEach(async () => {
     contractRegistry = await ContractRegistryV0_1_0.deployed();
     assert.ok(contractRegistry);
-    multisigInstance = await deployContract(
-      MultiSigContract,
-      [
-        [accounts[0], accounts[1]],
-        requiredConfirmations,
-        contractRegistry.address,
-      ],
+    multisigInstance = await MultiSigContract.new(
+      [accounts[0], accounts[1]],
+      requiredConfirmations,
+      contractRegistry.address,
       { from: accounts[0] }
     );
 
     assert.ok(multisigInstance);
 
-    tokenInstance = await deployToken(
+    tokenInstance = await TonToken.new(
       'NORI Token',
       'NORI',
       1,
@@ -62,7 +56,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
   context('EIP820 compatibility', () => {
     describe('toggleTokenReceiver', () => {
       it('should disable IEIP777TokensRecipient interface', async () => {
-        const toggle = !(await multisigInstance.tokenReceiver.call());
+        const toggle = !await multisigInstance.tokenReceiver.call();
         await multisigInstance.toggleTokenReceiver(toggle);
         const tokenReceiver = await multisigInstance.tokenReceiver.call();
         assert.equal(
@@ -72,7 +66,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
         );
       });
       it('should enable IEIP777TokensRecipient interface after disabling', async () => {
-        const toggle = !(await multisigInstance.tokenReceiver.call());
+        const toggle = !await multisigInstance.tokenReceiver.call();
         await multisigInstance.toggleTokenReceiver(toggle);
         let tokenReceiver = await multisigInstance.tokenReceiver.call();
         assert.equal(

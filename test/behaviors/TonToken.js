@@ -1,5 +1,5 @@
 import expectThrow from '../helpers/expectThrow';
-import { getLogs, deployContract } from '../helpers/contracts';
+import { getLogs } from '../helpers/contracts';
 import { upgradeTo } from './Upgrades';
 import { TonToken, ContractRegistryV0_1_0 } from '../helpers/Artifacts';
 
@@ -17,9 +17,12 @@ const shouldBehaveLikeTonToken = (admin, operator, recipient, upgradeable) => {
       assert.equal('Upgradeable NORI Token', name);
     } else {
       contractRegistry = await ContractRegistryV0_1_0.deployed();
-      tonToken = await deployContract(
-        TonToken,
-        ['Ton Token', 'TON', 1, 0, contractRegistry.address],
+      tonToken = await TonToken.new(
+        'Ton Token',
+        'TON',
+        1,
+        0,
+        contractRegistry.address,
         { from: admin }
       );
       const name = await tonToken.name();

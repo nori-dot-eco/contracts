@@ -34,11 +34,11 @@ const shouldBehaveLikeVerifier = admin => {
         [contractRegistry.address, participantRegistry.address, admin],
       ];
       [, verifier] = await deployUpgradeableContract(
+        artifacts,
         null,
         VerifierV0,
         contractRegistry,
-        initParams,
-        []
+        initParams
       );
 
       crcAddress = await crc.address;

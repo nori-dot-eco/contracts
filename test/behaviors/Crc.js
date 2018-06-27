@@ -186,11 +186,11 @@ const deployUpgradeableCrc = async (CrcContract, admin, contractRegistry) => {
     ],
   ];
   const [, crc, proxy] = await deployUpgradeableContract(
+    artifacts,
     null,
     CrcContract,
     contractRegistry,
-    initParams,
-    []
+    initParams
   );
 
   return [participantRegistry, proxy, crc];

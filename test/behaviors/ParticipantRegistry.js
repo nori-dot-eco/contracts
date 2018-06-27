@@ -9,6 +9,27 @@ import { deployUpgradeableContract } from '../helpers/contracts';
 
 const Web3 = require('web3');
 
+const deployUpgradeableParticipantRegistry = async (
+  admin,
+  contractRegistry
+) => {
+  const proxy = await UnstructuredOwnedUpgradeabilityProxy.new(
+    contractRegistry.address
+  );
+  const initParams = [
+    ['address', 'address'],
+    [contractRegistry.address, admin],
+  ];
+  const [, participantRegistry] = await deployUpgradeableContract(
+    artifacts,
+    proxy,
+    ParticipantRegistryV0,
+    contractRegistry,
+    initParams
+  );
+  return [proxy, participantRegistry];
+};
+
 const shouldBehaveLikeParticipantRegistry = admin => {
   contract('ParticipantRegistryV0', () => {
     let participantRegistry;
@@ -53,27 +74,6 @@ const shouldBehaveLikeParticipantRegistry = admin => {
       });
     });
   });
-};
-
-const deployUpgradeableParticipantRegistry = async (
-  admin,
-  contractRegistry
-) => {
-  const proxy = await UnstructuredOwnedUpgradeabilityProxy.new(
-    contractRegistry.address
-  );
-  const initParams = [
-    ['address', 'address'],
-    [contractRegistry.address, admin],
-  ];
-  const [, participantRegistry] = await deployUpgradeableContract(
-    proxy,
-    ParticipantRegistryV0,
-    contractRegistry,
-    initParams,
-    []
-  );
-  return [proxy, participantRegistry];
 };
 
 module.exports = {
