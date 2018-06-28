@@ -1,10 +1,11 @@
+/* globals artifacts */
 import expectThrow from '../helpers/expectThrow';
 
 const utils = require('../helpers/utils');
 
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const web3 = MultiSigWallet.web3;
-const TonToken = artifacts.require('TonToken');
+const NoriV0 = artifacts.require('NoriV0');
 const TestCalls = artifacts.require('TestCalls');
 const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
 
@@ -29,12 +30,14 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
 
     assert.ok(multisigInstance);
 
-    tokenInstance = await TonToken.new(
+    tokenInstance = await NoriV0.new();
+    await tokenInstance.initialize(
       'NORI Token',
       'NORI',
       1,
       0,
-      contractRegistry.address
+      contractRegistry.address,
+      accounts[0]
     );
     assert.ok(tokenInstance);
     callsInstance = await deployCalls();

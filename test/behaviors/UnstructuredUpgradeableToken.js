@@ -1,6 +1,5 @@
 import { assertRevert } from '../helpers/utils';
 import {
-  UnstructuredUpgradeableTokenV0,
   UnstructuredUpgradeableTokenV1,
   UnstructuredUpgradeableTokenV2,
   UnstructuredUpgradeableTokenV3,
@@ -8,7 +7,6 @@ import {
 } from '../helpers/Artifacts';
 import { getLogs } from '../helpers/contracts';
 import { upgradeTo } from './UnstructuredUpgrades';
-import { shouldBehaveLikeTonToken } from './UnstructuredTonToken';
 
 const shouldBehaveLikeUnstructuredUpgradeableToken = (
   admin,
@@ -85,20 +83,6 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV0 = (
       initParams
     );
   });
-
-  context(
-    'Thee UpgradeableToken should be able to do everything the TonToken was able to do',
-    () => {
-      shouldBehaveLikeTonToken(
-        admin,
-        mintRecipient,
-        transferRecipient,
-        contract,
-        initParams,
-        upgradeable
-      );
-    }
-  );
 
   describe('name', () => {
     it('returns the correct name', async () => {

@@ -2,7 +2,6 @@
 
 const EIP820Registry = artifacts.require('EIP820Registry');
 const CRC = artifacts.require('CRC');
-const TonToken = artifacts.require('TonToken');
 const ParticipantRegistry = artifacts.require('ParticipantRegistry');
 const Supplier = artifacts.require('Supplier');
 const Participant = artifacts.require('Participant');
@@ -48,14 +47,6 @@ module.exports = function deploy(deployer, network) {
       'CRC',
       registry.address,
       ParticipantRegistry.address
-    );
-    await deployer.deploy(
-      TonToken,
-      'NORI Token',
-      'NORI',
-      1,
-      0,
-      registry.address
     );
 
     // todo only deploy this  to main net with nori mainnet addresses as owners
