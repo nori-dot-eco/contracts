@@ -1,7 +1,6 @@
 /* globals artifacts web3 */
 
 const EIP820Registry = artifacts.require('EIP820Registry');
-const CRC = artifacts.require('CRC');
 const ParticipantRegistry = artifacts.require('ParticipantRegistry');
 const Supplier = artifacts.require('Supplier');
 const Participant = artifacts.require('Participant');
@@ -40,13 +39,6 @@ module.exports = function deploy(deployer, network) {
       Participant,
       ParticipantRegistry.address,
       registry.address
-    );
-    await deployer.deploy(
-      CRC,
-      'Carbon Removal Certificate',
-      'CRC',
-      registry.address,
-      ParticipantRegistry.address
     );
 
     // todo only deploy this  to main net with nori mainnet addresses as owners

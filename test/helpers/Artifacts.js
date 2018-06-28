@@ -12,7 +12,6 @@ const Artifacts = {};
   'MultiSigWallet',
   'MultiAdmin',
   'CRCV0',
-  'CRC',
   'ParticipantRegistryV0',
   'ParticipantRegistry',
   'Supplier',

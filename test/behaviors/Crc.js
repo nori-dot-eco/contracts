@@ -1,3 +1,4 @@
+/* globals artifacts */
 import expectThrow from '../helpers/expectThrow';
 import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
 import { ContractRegistryV0_1_0 } from '../helpers/Artifacts';

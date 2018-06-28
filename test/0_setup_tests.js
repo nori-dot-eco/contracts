@@ -5,7 +5,6 @@ import MultiAdminTests from './MultiAdmin.test';
 import MultiSigWallet from './MultiSigWallet.test';
 import RegistryTests from './Registry.test';
 import { giveEth } from './helpers/utils';
-import CRCTests from './CRC.test';
 import CRCV0Tests from './CRCV0.test';
 import ParticipantRegistryTests from './ParticipantRegistry.test';
 import ParticipantTests from './Participant.test';
@@ -55,7 +54,6 @@ context('Setup test environment', () => {
     MultiSigWallet(); // Multisig wallet tests
     MultiAdminTests(); // Multisig admin tests
     RegistryTests(admin0, admin1, unregistered0);
-    CRCTests(admin0);
     CRCV0Tests(admin0);
     ParticipantRegistryTests(admin0);
     ParticipantTests(admin0);
