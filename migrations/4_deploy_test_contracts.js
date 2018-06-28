@@ -3,8 +3,6 @@
 const EIP820Registry = artifacts.require('EIP820Registry');
 const CRC = artifacts.require('CRC');
 const TonToken = artifacts.require('TonToken');
-const SelectableCrcMarket = artifacts.require('SelectableCrcMarket');
-const FifoCrcMarket = artifacts.require('FifoCrcMarket');
 const ParticipantRegistry = artifacts.require('ParticipantRegistry');
 const Supplier = artifacts.require('Supplier');
 const Participant = artifacts.require('Participant');
@@ -57,16 +55,6 @@ module.exports = function deploy(deployer, network) {
       'NORI',
       1,
       0,
-      registry.address
-    );
-    await deployer.deploy(
-      SelectableCrcMarket,
-      [CRC.address, TonToken.address],
-      registry.address
-    );
-    await deployer.deploy(
-      FifoCrcMarket,
-      [CRC.address, TonToken.address],
       registry.address
     );
 
