@@ -2,7 +2,7 @@ pragma solidity ^0.4.24;
 
 import "./CommodityLib.sol";
 import "./IMintableCommodity.sol";
-import "../particpant/IParticipant.sol";
+import "../participant/IParticipant.sol";
 import "./BasicCommodity.sol";
 
 
