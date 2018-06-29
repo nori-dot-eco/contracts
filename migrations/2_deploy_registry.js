@@ -10,6 +10,18 @@ module.exports = (deployer, network, accounts) => {
     let registry, adminAccountAddress;
     if (network === 'ropsten') {
       adminAccountAddress = accounts[0];
+      if (
+        ![
+          '0xf1bcd758cb3d46d15afe4faef942adad36380148',
+          '0x2e4d8353d81b7e903c9e031dab3e9749e8ab69bc',
+        ].includes(adminAccountAddress.toLowerCase())
+      ) {
+        throw new Error(
+          `${
+            adminAccountAddress
+          } is not a whitelisted account for deploying to ropsten.`
+        );
+      }
       console.log('Looking up existing registry at nori.test ENS on ropsten');
       const ens = new ENS(web3.currentProvider);
       const registryAddress = await ens.resolver('nori.test').addr();
