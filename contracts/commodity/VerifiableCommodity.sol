@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 import "./BasicCommodity.sol";
 import "./CommodityLib.sol";
 import "./IVerifiableCommodity.sol";
-import "../particpant/IParticipant.sol";
+import "../participant/IParticipant.sol";
 
 
 contract VerifiableCommodity is BasicCommodity, IVerifiableCommodity {
