@@ -4,14 +4,13 @@ import "./BasicCommodity.sol";
 import "./CommodityLib.sol";
 import "./IVerifiableCommodity.sol";
 import "../particpant/IParticipant.sol";
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
 
 
 contract VerifiableCommodity is BasicCommodity, IVerifiableCommodity {
 
   event Verified(uint _commodityId, bytes _verifierData, uint64 _category);
   event InsufficientPermission(address sender, uint256 id, bytes data, uint64 category);
-  
+
   // todo jaycen PRELAUNCH add onlyowner modifier or similar
   /// @notice Modifies `_category` (aka verification level) of a commodity
   function verify(uint256 _commodityId, bytes _verifierData, uint64 _category) public {
@@ -24,15 +23,15 @@ contract VerifiableCommodity is BasicCommodity, IVerifiableCommodity {
       require(IParticipant(recipientImplementation).getParticipantRegistry() == getParticipantRegistry(), "Wrong participant registry");
     } else if (onlyParticipantCallers == true) {
       emit InsufficientPermission(
-        msg.sender, 
-        _commodityId, 
-        _verifierData, 
+        msg.sender,
+        _commodityId,
+        _verifierData,
         _category
       );
       revert("Insufficient permission");
     }
     commodities[_commodityId].category = _category;
-    
+
     //todo jaycen notify supplier? call market to update token release paramaters? maybe needs a similar callOwner with eip820 callRecipient type style
     emit Verified(_commodityId, _verifierData, _category);
   }
