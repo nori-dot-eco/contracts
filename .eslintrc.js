@@ -16,6 +16,8 @@ module.exports = {
   globals: {
     contract: false,
     assert: false,
+    web3: true,
+    artifacts: true,
   },
   rules: {
     camelcase: 'off',
