@@ -19,11 +19,15 @@ const VerifierV0 = artifacts.require('./VerifierV0.sol');
 const ContractRegistryV0_1_0 = artifacts.require(
   './ContractRegistryV0_1_0.sol'
 );
+const RegistrysRegistryV0_1_0 = artifacts.require(
+  './ContractRegistryV0_1_0.sol'
+);
 
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
     await deployer.deploy(EIP820Registry);
     await deployer.deploy(ContractRegistryV0_1_0);
+    await deployer.deploy(RegistrysRegistryV0_1_0);
 
     // Is this needed since CRC and TON construct their own EIP 820 implementers?
     await deployer.deploy(EIP820Implementer, ContractRegistryV0_1_0.address);
