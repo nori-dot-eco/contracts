@@ -1,5 +1,4 @@
 /* globals artifacts web3 */
-// test
 
 const RootRegistryV0_1_0 = artifacts.require('./RootRegistryV0_1_0.sol');
 const { deployUpgradeableContract } = require('../test/helpers/contracts');
