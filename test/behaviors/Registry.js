@@ -7,7 +7,6 @@ import {
 import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
 
-// todo rename to contractregistry.js
 const testContractAtRegistry = (admin, initParams = []) => {
   context(
     'Create a contract object by getting an address from the registry and then calling .at() on it',
