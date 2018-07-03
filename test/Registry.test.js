@@ -1,4 +1,4 @@
-import { testContractAtRegistry } from './behaviors/Registry';
+import { testContractAtRegistry, testEvents } from './behaviors/Registry';
 import { ContractRegistryV0_1_0 } from './helpers/Artifacts';
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
 import { testVersionRegistryFunctions } from './behaviors/VersionRegistry';
@@ -22,6 +22,7 @@ const ContractRegistryTests = (admin0, admin1, nonAdmin) => {
     // todo EIP820 Registry tests
 
     testVersionRegistryFunctions(admin0, nonAdmin);
+    testEvents(admin0);
   });
 };
 

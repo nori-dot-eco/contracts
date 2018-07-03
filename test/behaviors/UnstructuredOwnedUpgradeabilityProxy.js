@@ -37,6 +37,7 @@ const testUnstructuredOwnedUpgradeabilityProxyFuncs = (
   });
 };
 
+// Note: some event tests also exist in behaviors/Registry.js
 const testEvents = (
   admin,
   nonAdmin,
