@@ -90,8 +90,8 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
    */
   function transferProxyOwnership(address newOwner) public onlyProxyOwner {
     require(newOwner != address(0));
-    setUpgradeabilityOwner(newOwner);
     emit ProxyOwnershipTransferred(proxyOwner(), newOwner);
+    setUpgradeabilityOwner(newOwner);
   }
 
   /**
