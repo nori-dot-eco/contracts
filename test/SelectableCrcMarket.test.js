@@ -1,22 +1,19 @@
-import { NoriV0, SelectableCrcMarketV0_1_0 } from './helpers/Artifacts';
+import { NoriV0, SelectableCrcMarketV0_1_0, CRCV0 } from './helpers/Artifacts';
 import { deployUpgradeableCrc } from './behaviors/Crc';
 import { upgradeToV0 } from './behaviors/UnstructuredUpgrades';
 import { deployUpgradeableContract } from './helpers/contracts';
 
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 
-const Crc = artifacts.require('./CRCV0.sol');
-const SelectableCrcMarket = artifacts.require('./SelectableCrcMarket.sol');
-
 const namedAccounts = getNamedAccounts(web3);
 
-let tonToken;
-let crcMarket;
-let crc;
-let tonBalanceAccount0;
-let contractRegistry;
-
 const SelectableCrcMarketTests = () => {
+  let tonToken;
+  let crcMarket;
+  let crc;
+  let tonBalanceAccount0;
+  let contractRegistry;
+
   before(async () => {
     [tonToken, , , contractRegistry] = await upgradeToV0(
       namedAccounts.admin0,
@@ -25,7 +22,7 @@ const SelectableCrcMarketTests = () => {
     );
 
     [, , crc] = await deployUpgradeableCrc(
-      Crc,
+      CRCV0,
       namedAccounts.admin0,
       contractRegistry
     );
