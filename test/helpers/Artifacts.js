@@ -19,7 +19,7 @@ const Artifacts = {};
   'EIP820Implementer',
   'ParticipantV0_1_0',
   'SupplierV0_1_0',
-  'VerifierV0',
+  'VerifierV0_1_0',
   'FifoCrcMarketV0_1_0',
   'RootRegistryV0_1_0',
 ].forEach(contractName => {

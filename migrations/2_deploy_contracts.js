@@ -10,7 +10,7 @@ const MultiSigWallet = artifacts.require('./MultiSigWallet.sol');
 const ParticipantRegistryV0 = artifacts.require('./ParticipantRegistryV0');
 const ParticipantV0_1_0 = artifacts.require('./ParticipantV0_1_0');
 const SupplierV0_1_0 = artifacts.require('./SupplierV0_1_0.sol');
-const VerifierV0 = artifacts.require('./VerifierV0.sol');
+const VerifierV0_1_0 = artifacts.require('./VerifierV0_1_0.sol');
 const ContractRegistryV0_1_0 = artifacts.require(
   './ContractRegistryV0_1_0.sol'
 );
@@ -32,7 +32,7 @@ module.exports = (deployer, network, accounts) => {
 
     await deployer.deploy(SupplierV0_1_0);
 
-    await deployer.deploy(VerifierV0);
+    await deployer.deploy(VerifierV0_1_0);
 
     await deployer.deploy(CRCV0);
     await deployer.deploy(NoriV0);

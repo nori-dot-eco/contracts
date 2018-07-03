@@ -3,15 +3,15 @@ pragma solidity ^0.4.24;
 import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipant.sol";
-import "./ParticipantV0.sol";
+import "./ParticipantV0_1_0.sol";
 
 
-contract SupplierV0_1_0 is ParticipantV0 {
+contract SupplierV0_1_0 is ParticipantV0_1_0 {
   mapping (address => bool) public suppliers;
   mapping(bytes32 =>  mapping(address => bool)) public allowedInterfaces;
   
 
-  constructor() ParticipantV0() public { }
+  constructor() ParticipantV0_1_0() public { }
 
   function initialize(address _eip820RegistryAddr, address _participantRegistry, address _owner) public {
     super.initialize(_eip820RegistryAddr, _participantRegistry, _owner);

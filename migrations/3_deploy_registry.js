@@ -114,7 +114,7 @@ module.exports = deployer => {
     await deployUpgradeableContract(
       artifacts,
       null,
-      artifacts.require('VerifierV0'),
+      artifacts.require('VerifierV0_1_0'),
       registryAtProxy,
       [
         ['address', 'address', 'address'],

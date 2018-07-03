@@ -6,7 +6,7 @@ import "./IParticipant.sol";
 import "./ParticipantV0_1_0.sol";
 
 
-contract VerifierV0 is ParticipantV0_1_0 {
+contract VerifierV0_1_0 is ParticipantV0_1_0 {
   mapping (address => bool) public verifiers;
   mapping(bytes32 =>  mapping(address => bool)) public allowedInterfaces;
   
