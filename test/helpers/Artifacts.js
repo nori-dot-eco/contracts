@@ -18,12 +18,11 @@ const Artifacts = {};
   'ParticipantRegistry',
   'Participant',
   'Verifier',
-  'FifoCrcMarket',
   'EIP820Implementer',
   'ParticipantV0',
   'SupplierV0_1_0',
   'VerifierV0',
-  'FifoCrcMarketV0',
+  'FifoCrcMarketV0_1_0',
   'RootRegistryV0_1_0',
 ].forEach(contractName => {
   Artifacts[contractName] = artifacts.require(contractName);
