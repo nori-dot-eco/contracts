@@ -1,3 +1,4 @@
+/* globals artifacts */
 import expectThrow from '../helpers/expectThrow';
 import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
 import { ContractRegistryV0_1_0 } from '../helpers/Artifacts';
@@ -21,8 +22,8 @@ const shouldBehaveLikeCrc = (admin, CrcContract, upgradeable = false) => {
 
   contract('CRCV0', accounts => {
     beforeEach(async () => {
-      // temporaily using a toggle to allow contract calls from addresses not proxyed through particpant identy contract
-      await crc.toggleParticpantCalling(false, { from: accounts[0] });
+      // temporaily using a toggle to allow contract calls from addresses not proxyed through participant identy contract
+      await crc.toggleParticipantCalling(false, { from: accounts[0] });
     });
 
     describe('Ensure CRC can only transfer once', () => {

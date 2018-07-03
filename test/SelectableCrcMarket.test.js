@@ -46,7 +46,7 @@ const SelectableCrcMarketTests = () => {
   contract('SelectableCrcMarketV0_1_0', accounts => {
     beforeEach(async () => {
       // temporaily using a toggle to allow contract calls from addresses not proxyed through particpant identy contract
-      await crc.toggleParticpantCalling(false, { from: accounts[0] });
+      await crc.toggleParticipantCalling(false, { from: accounts[0] });
     });
     describe('Create a sale, and buy the crc with tokens', () => {
       describe('Mint tokens and crcs', () => {
@@ -98,7 +98,6 @@ const SelectableCrcMarketTests = () => {
             'Tokens mint fail'
           );
           const newOwner = await crc.ownerOf(0);
-
           const firstAccNewBal = await tonToken.balanceOf(accounts[0]);
           const secondAccNewBal = await tonToken.balanceOf(accounts[1]);
           await assert.equal(

@@ -52,8 +52,8 @@ const shouldBehaveLikeSupplier = admin => {
         ['address', 'bytes', 'uint256', 'bytes'],
         [accounts[1], '0x0', 1, '0x0']
       )}`;
-      // temporaily using a toggle to allow contract calls from addresses not proxyed through particpant identy contract
-      await crc.toggleParticpantCalling(true, { from: admin });
+      // temporaily using a toggle to allow contract calls from addresses not proxyed through participant identy contract
+      await crc.toggleParticipantCalling(true, { from: admin });
     });
     describe('toggleSupplier', () => {
       const toggles = [false, true];
