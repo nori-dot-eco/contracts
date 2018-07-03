@@ -14,6 +14,8 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
   * @param newOwner representing the address of the new owner
   */
   event ProxyOwnershipTransferred(address previousOwner, address newOwner);
+  event UpgradeabilityOwnerSet(address upgradeabilityOwner);
+  event RegistryAddrSet(address registryAddress);
 
   // Storage position of the owner of the contract
   bytes32 private constant proxyOwnerPosition = keccak256("org.nori.proxy.owner");
@@ -57,6 +59,7 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
     assembly { //solium-disable-line security/no-inline-assembly
       sstore(position, newProxyOwner)
     }
+    emit UpgradeabilityOwnerSet(newProxyOwner);
   }
 
   /**
@@ -78,6 +81,7 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
     assembly { //solium-disable-line security/no-inline-assembly
       sstore(position, registryAddress)
     }
+    emit RegistryAddrSet(registryAddress);
   }
 
   /**
@@ -86,8 +90,8 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
    */
   function transferProxyOwnership(address newOwner) public onlyProxyOwner {
     require(newOwner != address(0));
-    emit ProxyOwnershipTransferred(proxyOwner(), newOwner);
     setUpgradeabilityOwner(newOwner);
+    emit ProxyOwnershipTransferred(proxyOwner(), newOwner);
   }
 
   /**

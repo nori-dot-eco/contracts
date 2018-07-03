@@ -14,7 +14,8 @@ contract ContractRegistryBase is UnstructuredOwnable, VersionRegistry, EIP820Reg
   event Initialized(address owner);
   
   bool internal _initialized;
-  address proxyAddr;
+  address public proxyAddr;
+  
   /**
    * @dev Throws if called by any account other than the owner unless it has never been initialized.
    */
@@ -45,7 +46,7 @@ contract ContractRegistryBase is UnstructuredOwnable, VersionRegistry, EIP820Reg
     address proxyAddress, 
     string versionName, 
     address newImplementation
-  ) public  {
+  ) public {
     _setVersion(
       contractName, 
       proxyAddress, 

@@ -13,6 +13,7 @@ contract UnstructuredUpgradeabilityProxy is Proxy {
    * @param implementation representing the address of the upgraded implementation
    */
   event Upgraded(string version, address indexed implementation);
+  event ImplementationPositionSet(address indexed impPosition);
 
   // Storage position of the address of the current implementation
   bytes32 private constant implementationPosition = keccak256("org.nori.proxy.implementation");
@@ -42,6 +43,7 @@ contract UnstructuredUpgradeabilityProxy is Proxy {
     assembly { //solium-disable-line security/no-inline-assembly
       sstore(position, newImplementation)
     }
+    emit ImplementationPositionSet(newImplementation);
   }
 
   /**
