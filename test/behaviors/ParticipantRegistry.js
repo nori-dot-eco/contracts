@@ -41,12 +41,18 @@ const shouldBehaveLikeParticipantRegistry = admin => {
         admin,
         contractRegistry
       );
-      supplier = await SupplierV0.new();
-      await supplier.initialize(
-        contractRegistry.address,
-        participantRegistry.address,
-        admin
+      [, supplier] = await deployUpgradeableContract(
+        artifacts,
+        null,
+        SupplierV0,
+        contractRegistry,
+        [
+          ['address', 'address', 'address'],
+          [contractRegistry.address, participantRegistry.address, admin],
+        ],
+        { from: admin }
       );
+
       web3 = await new Web3();
     });
     describe('toggleParticipantType', () => {
