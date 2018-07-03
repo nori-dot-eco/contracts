@@ -5,7 +5,7 @@ import { upgradeToV0 } from './behaviors/UnstructuredUpgrades';
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 
 const Crc = artifacts.require('./CRCV0.sol');
-const SelectableCrcMarket = artifacts.require('./SelectableCrcMarket.sol');
+const SelectableCrcMarketV0 = artifacts.require('SelectableCrcMarketV0');
 
 const namedAccounts = getNamedAccounts(web3);
 
@@ -29,13 +29,13 @@ const SelectableCrcMarketTests = () => {
       contractRegistry
     );
 
-    crcMarket = await SelectableCrcMarket.deployed();
+    crcMarket = await SelectableCrcMarketV0.deployed();
   });
 
-  contract('SelectableCrcMarket', accounts => {
+  contract('SelectableCrcMarketV0', accounts => {
     beforeEach(async () => {
       // temporaily using a toggle to allow contract calls from addresses not proxyed through particpant identy contract
-      await crc.toggleParticpantCalling(false, { from: accounts[0] });
+      await crc.toggleParticipantCalling(false, { from: accounts[0] });
     });
     describe('Create a sale, and buy the crc with tokens', () => {
       describe('Mint tokens and crcs', () => {
