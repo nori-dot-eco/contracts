@@ -6,11 +6,9 @@ const FifoCrcMarketV0_1_0 = artifacts.require('./FifoCrcMarketV0_1_0.sol');
 const EIP820Implementer = artifacts.require('./EIP820Implementer.sol');
 const EIP820Registry = artifacts.require('./EIP820Registry.sol');
 const ParticipantRegistry = artifacts.require('./ParticipantRegistry.sol');
-const Participant = artifacts.require('./Participant.sol');
-const Verifier = artifacts.require('./Verifier.sol');
 const MultiSigWallet = artifacts.require('./MultiSigWallet.sol');
 const ParticipantRegistryV0 = artifacts.require('./ParticipantRegistryV0');
-const ParticipantV0 = artifacts.require('./ParticipantV0');
+const ParticipantV0_1_0 = artifacts.require('./ParticipantV0_1_0');
 const SupplierV0_1_0 = artifacts.require('./SupplierV0_1_0.sol');
 const VerifierV0 = artifacts.require('./VerifierV0.sol');
 const ContractRegistryV0_1_0 = artifacts.require(
@@ -30,22 +28,12 @@ module.exports = (deployer, network, accounts) => {
     await deployer.deploy(ParticipantRegistry, ContractRegistryV0_1_0.address);
 
     await deployer.deploy(ParticipantRegistryV0);
-    await deployer.deploy(ParticipantV0);
+    await deployer.deploy(ParticipantV0_1_0);
 
     await deployer.deploy(SupplierV0_1_0);
 
-    await deployer.deploy(
-      Verifier,
-      ParticipantRegistry.address,
-      ContractRegistryV0_1_0.address
-    );
     await deployer.deploy(VerifierV0);
 
-    await deployer.deploy(
-      Participant,
-      ParticipantRegistry.address,
-      ContractRegistryV0_1_0.address
-    );
     await deployer.deploy(CRCV0);
     await deployer.deploy(NoriV0);
 

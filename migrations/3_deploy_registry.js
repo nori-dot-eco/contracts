@@ -80,7 +80,7 @@ module.exports = deployer => {
     await deployUpgradeableContract(
       artifacts,
       null,
-      artifacts.require('ParticipantV0'),
+      artifacts.require('ParticipantV0_1_0'),
       registryAtProxy,
       [
         ['address', 'address', 'address'],
