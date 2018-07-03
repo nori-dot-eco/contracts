@@ -1,15 +1,3 @@
-const {
-  buyer0,
-  buyer1,
-  supplier0,
-  supplier1,
-  verifier,
-  auditor,
-  unregistered0,
-  unregistered1,
-  admin0,
-  admin1,
-} = require('./helpers/getNamedAccounts')(web3);
 import TonTokenTests from './TonToken.test';
 import ProxyTests from './Proxy.test';
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
@@ -26,6 +14,21 @@ import ParticipantTests from './Participant.test';
 import SupplierTests from './Supplier.test';
 import VerifierTests from './Verifier.test';
 import FifoCrcMarketV0Tests from './FifoCrcMarket.test';
+import { EIP820RegistryTests } from './EIP820.test';
+import { SelectableCrcMarketTests } from './SelectableCrcMarket.test';
+
+const {
+  buyer0,
+  buyer1,
+  supplier0,
+  supplier1,
+  verifier,
+  auditor,
+  unregistered0,
+  unregistered1,
+  admin0,
+  admin1,
+} = require('./helpers/getNamedAccounts')(web3);
 // NOTE: this will become the standard way of testing both scenarios and per-contract functions.
 // The tests will be refactored to fit into here in future PRs
 context('Setup test environment', () => {
@@ -56,6 +59,8 @@ context('Setup test environment', () => {
     MultiSigWallet(); // Multisig wallet tests
     MultiAdminTests(); // Multisig admin tests
     RegistryTests(admin0, admin1, unregistered0);
+    SelectableCrcMarketTests();
+    EIP820RegistryTests();
     CRCTests(admin0);
     CRCV0Tests(admin0);
     ParticipantRegistryTests(admin0);
