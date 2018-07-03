@@ -61,7 +61,7 @@ module.exports = deployer => {
     const [, , crcProxy] = await deployUpgradeableContract(
       artifacts,
       null,
-      artifacts.require('CRCV0'),
+      artifacts.require('CRCV0_1_0'),
       registryAtProxy,
       [
         ['string', 'string', 'address', 'address', 'address'],
