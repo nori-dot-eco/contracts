@@ -1,5 +1,3 @@
-import TonTokenTests from './TonToken.test';
-import ProxyTests from './Proxy.test';
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
 import { UnstructuredUpgradeScenarios } from './UpgradeScenarios.test';
 import NoriV0Tests from './NoriV0.test';
@@ -13,7 +11,6 @@ import ParticipantTests from './Participant.test';
 import SupplierTests from './Supplier.test';
 import VerifierTests from './Verifier.test';
 import FifoCrcMarketV0Tests from './FifoCrcMarket.test';
-import { EIP820RegistryTests } from './EIP820.test';
 import { SelectableCrcMarketTests } from './SelectableCrcMarket.test';
 
 const {
@@ -28,6 +25,7 @@ const {
   admin0,
   admin1,
 } = require('./helpers/getNamedAccounts')(web3);
+
 // NOTE: this will become the standard way of testing both scenarios and per-contract functions.
 // The tests will be refactored to fit into here in future PRs
 context('Setup test environment', () => {
@@ -52,7 +50,6 @@ context('Setup test environment', () => {
   });
 
   context('Execute tests', () => {
-    TonTokenTests(admin0, unregistered0, unregistered1);
     // todo jaycen fix this (broken when removed etsernal storage stuffz)
     // ProxyTests();
     MultiSigWallet(); // Multisig wallet tests
@@ -60,7 +57,6 @@ context('Setup test environment', () => {
     ContractRegistryTests(admin0, admin1, unregistered0);
     RootRegistryTests();
     SelectableCrcMarketTests();
-    EIP820RegistryTests();
     CRCV0Tests(admin0);
     ParticipantRegistryTests(admin0);
     ParticipantTests(admin0);

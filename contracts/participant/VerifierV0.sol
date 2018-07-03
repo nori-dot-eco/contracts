@@ -1,6 +1,5 @@
 pragma solidity ^0.4.24;
 
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipant.sol";
 import "./ParticipantV0.sol";
@@ -9,7 +8,7 @@ import "./ParticipantV0.sol";
 contract VerifierV0 is ParticipantV0 {
   mapping (address => bool) public verifiers;
   mapping(bytes32 =>  mapping(address => bool)) public allowedInterfaces;
-  
+
 
   constructor() ParticipantV0() public { }
 
@@ -34,11 +33,11 @@ contract VerifierV0 is ParticipantV0 {
   }
 
   /// @dev dynamic function (name + params) forwarder
-  /// @dev example: forward(CRC, 0, 'Minting Data Here', ISomeInterface) 
+  /// @dev example: forward(CRC, 0, 'Minting Data Here', ISomeInterface)
   function forward(
-    address destination, 
-    uint value, 
-    bytes data, 
+    address destination,
+    uint value,
+    bytes data,
     string ifaceLabel
   ) public {
     address _ifaceImpAddr = interfaceAddr(destination, ifaceLabel);
@@ -51,7 +50,7 @@ contract VerifierV0 is ParticipantV0 {
     //jaycen todo all events
     //Forwarded(destination, value, data);
   }
-  
+
   function toggleVerifier(address _verifier, bool _toggle) public {
     verifiers[_verifier] = _toggle;
   }
@@ -59,7 +58,7 @@ contract VerifierV0 is ParticipantV0 {
   function toggleParticipantType(bool _toggle) public {
     _toggleParticipantType("Verifier", this, _toggle);
   }
-  
+
   function toggleInterface(string _ifaceLabel, address _ifaceImpAddr, bool _toggle) public {
     address ifaceImpAddr = interfaceAddr(_ifaceImpAddr, _ifaceLabel);
     if (ifaceImpAddr != 0) {

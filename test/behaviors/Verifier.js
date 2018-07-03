@@ -58,12 +58,12 @@ const shouldBehaveLikeVerifier = admin => {
         ['uint256', 'bytes', 'uint64'],
         [1, '0x0', 5]
       )}`;
-      // todojaycen use supplier.forward to mint temporaily using a toggle to allow contract calls from addresses not proxyed through particpant identy contract
-      await crc.toggleParticpantCalling(false, { from: accounts[0] });
+      // todojaycen use supplier.forward to mint temporaily using a toggle to allow contract calls from addresses not proxyed through participant identy contract
+      await crc.toggleParticipantCalling(false, { from: accounts[0] });
       await crc.mint(accounts[0], '0x0', 1, '0x0', { from: accounts[0] });
       await crc.mint(accounts[0], '0x0', 1, '0x0', { from: accounts[0] });
       // disallow non partipant/verifier calls
-      await crc.toggleParticpantCalling(true, { from: accounts[0] });
+      await crc.toggleParticipantCalling(true, { from: accounts[0] });
     });
     describe('toggleVerifier', () => {
       const toggles = [false, true];
