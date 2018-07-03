@@ -2,7 +2,6 @@
 const Artifacts = {};
 [
   'NoriV0',
-  'TonToken',
   'EIP820Registry',
   'Proxy',
   'UnstructuredUpgradeableTokenV0',
@@ -14,14 +13,7 @@ const Artifacts = {};
   'MultiSigWallet',
   'MultiAdmin',
   'CRCV0',
-  'CRC',
   'ParticipantRegistryV0',
-  'ParticipantRegistry',
-  'Supplier',
-  'SelectableCrcMarket',
-  'Participant',
-  'Verifier',
-  'FifoCrcMarket',
   'EIP820Implementer',
   'ParticipantV0',
   'SupplierV0',
