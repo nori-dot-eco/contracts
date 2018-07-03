@@ -51,7 +51,7 @@ module.exports = deployer => {
     const [, , participantRegistryProxy] = await deployUpgradeableContract(
       artifacts,
       null,
-      artifacts.require('ParticipantRegistryV0'),
+      artifacts.require('ParticipantRegistryV0_1_0'),
       registryAtProxy,
       [['address', 'address'], [registryAtProxy.address, namedAccounts.admin0]],
       { from: namedAccounts.admin0 }

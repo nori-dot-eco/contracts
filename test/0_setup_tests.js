@@ -51,8 +51,8 @@ context('Setup test environment', () => {
   });
 
   context('Execute tests', () => {
-    // // todo jaycen fix this (broken when removed etsernal storage stuffz)
-    // // ProxyTests();
+    // todo jaycen fix this (broken when removed etsernal storage stuffz)
+    // ProxyTests();
     MultiSigWallet(); // Multisig wallet tests
     MultiAdminTests(); // Multisig admin tests
     ContractRegistryTests(admin0, admin1, unregistered0);
