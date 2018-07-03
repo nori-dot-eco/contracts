@@ -1,6 +1,7 @@
-import { NoriV0 } from './helpers/Artifacts';
+import { NoriV0, SelectableCrcMarketV0_1_0 } from './helpers/Artifacts';
 import { deployUpgradeableCrc } from './behaviors/Crc';
 import { upgradeToV0 } from './behaviors/UnstructuredUpgrades';
+import { deployUpgradeableContract } from './helpers/contracts';
 
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 
@@ -28,8 +29,21 @@ const SelectableCrcMarketTests = () => {
       namedAccounts.admin0,
       contractRegistry
     );
-
-    crcMarket = await SelectableCrcMarket.deployed();
+    const initParams = [
+      ['address', 'address[]', 'address'],
+      [
+        contractRegistry.address,
+        [crc.address, tonToken.address],
+        namedAccounts.admin0,
+      ],
+    ];
+    [, crcMarket] = await deployUpgradeableContract(
+      artifacts,
+      null,
+      SelectableCrcMarketV0_1_0,
+      contractRegistry,
+      initParams
+    );
   });
 
   contract('SelectableCrcMarket', accounts => {
@@ -87,6 +101,7 @@ const SelectableCrcMarketTests = () => {
             'Tokens mint fail'
           );
           const newOwner = await crc.ownerOf(0);
+
           const firstAccNewBal = await tonToken.balanceOf(accounts[0]);
           const secondAccNewBal = await tonToken.balanceOf(accounts[1]);
           await assert.equal(

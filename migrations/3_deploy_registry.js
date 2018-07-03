@@ -144,6 +144,21 @@ module.exports = deployer => {
       { from: namedAccounts.admin0 }
     );
 
+    await deployUpgradeableContract(
+      artifacts,
+      null,
+      artifacts.require('SelectableCrcMarketV0_1_0'),
+      registryAtProxy,
+      [
+        ['address', 'address[]', 'address'],
+        [
+          registryAtProxy.address,
+          [crcProxy.address, noriProxy.address],
+          namedAccounts.admin0,
+        ],
+      ]
+    );
+
     await deployer.deploy(
       artifacts.require('SelectableCrcMarket'),
       [crcProxy.address, noriProxy.address],
