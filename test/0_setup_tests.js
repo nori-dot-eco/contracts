@@ -11,6 +11,7 @@ import ParticipantTests from './Participant.test';
 import SupplierTests from './Supplier.test';
 import VerifierTests from './Verifier.test';
 import FifoCrcMarketV0Tests from './FifoCrcMarket.test';
+import { SelectableCrcMarketTests } from './SelectableCrcMarket.test';
 
 const {
   buyer0,
@@ -55,6 +56,7 @@ context('Setup test environment', () => {
     MultiAdminTests(); // Multisig admin tests
     ContractRegistryTests(admin0, admin1, unregistered0);
     RootRegistryTests();
+    SelectableCrcMarketTests();
     CRCV0Tests(admin0);
     ParticipantRegistryTests(admin0);
     ParticipantTests(admin0);

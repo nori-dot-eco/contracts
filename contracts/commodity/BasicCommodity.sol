@@ -440,7 +440,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
 
   //TODO (jaycen) PRELAUNCH fix/remove this (if we need it for compatibility reasons  -- disabling for now)
   /** @notice Authorize a third party '_operator' to manage (send) 'msg.sender''s tokens. */
-  function authorizeOperator(address _operator) public pure {
+  function authorizeOperator(address) public pure {
     revert();
   }
 
@@ -448,6 +448,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     require(_unlocked(_tokenId));
     require(_operator != msg.sender);
     approve(_operator, _tokenId);
+    //todo figure out the best approach for all of these preventLockings
     //todo jaycen probably dont need to pass tokenid anymore, would also be good to find a way to pass the commodity struct itself (currently trying such throws a static memory solidity error :( ))
     callOperator(
       _operator,
@@ -457,7 +458,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
       commodities[_tokenId].value,
       "",
       "",
-      true
+      false
     );
     emit AuthorizedOperator(_operator, msg.sender);
   }
@@ -484,11 +485,11 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   //TODO (jaycen) PRELAUNCH fix/remove this (if we need it for compatibility reasons  -- disabling for now)
   /** @notice Send '_value' amount of tokens from the address '_from' to the address '_to'. */
   function operatorSend(
-    address _from,
-    address _to,
-    uint256 _tokenId,
-    bytes _userData,
-    bytes _operatorData
+    address,
+    address,
+    uint256,
+    bytes,
+    bytes
   ) public {
     revert();
   }
