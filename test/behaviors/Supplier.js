@@ -10,7 +10,7 @@ import { deployUpgradeableCrc } from './Crc';
 const lightwallet = require('eth-signer');
 
 const shouldBehaveLikeSupplier = admin => {
-  contract('Supplier', accounts => {
+  contract('SupplierV0', accounts => {
     let crc;
     let supplier;
     let supplierAcc;
