@@ -21,6 +21,7 @@ contract VersionRegistry {
   }
 
   //todo create a function for getting count of versiuons for a particular contract name
+  //todo create a function that gets a contract proxy for a particular version name
 
   function _setVersion(
     string _contractName, 

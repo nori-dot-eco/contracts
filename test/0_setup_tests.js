@@ -5,7 +5,7 @@ import { UnstructuredUpgradeScenarios } from './UpgradeScenarios.test';
 import NoriV0Tests from './NoriV0.test';
 import MultiAdminTests from './MultiAdmin.test';
 import MultiSigWallet from './MultiSigWallet.test';
-import RegistryTests from './Registry.test';
+import { RootRegistryTests, ContractRegistryTests } from './Registry.test';
 import { giveEth } from './helpers/utils';
 import CRCTests from './CRC.test';
 import CRCV0Tests from './CRCV0.test';
@@ -58,7 +58,8 @@ context('Setup test environment', () => {
     // ProxyTests();
     MultiSigWallet(); // Multisig wallet tests
     MultiAdminTests(); // Multisig admin tests
-    RegistryTests(admin0, admin1, unregistered0);
+    ContractRegistryTests(admin0, admin1, unregistered0);
+    RootRegistryTests();
     SelectableCrcMarketTests();
     EIP820RegistryTests();
     CRCTests(admin0);

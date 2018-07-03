@@ -1,23 +1,28 @@
 /* globals artifacts web3 */
-
-const RootRegistryV0_1_0 = artifacts.require('./RootRegistryV0_1_0.sol');
 const { deployUpgradeableContract } = require('../test/helpers/contracts');
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 
 module.exports = deployer => {
   deployer.then(async () => {
+    const namedAccounts = getNamedAccounts(web3);
     // this non upgradeable registry keeps track of all upgraded registries and their versions
     // you can use it to see the full history of registry implementation addresses,
     // but should not be used for anything else (including to get the current registry addr)
-    const rootRegistry = await RootRegistryV0_1_0.deployed();
-    const namedAccounts = getNamedAccounts(web3);
+    const [, rootRegistryAtProxy] = await deployUpgradeableContract(
+      artifacts,
+      null,
+      artifacts.require('RootRegistryV0_1_0'),
+      null,
+      [['address'], [namedAccounts.admin0]],
+      { from: namedAccounts.admin0 }
+    );
 
     // Deploy the registry behind a proxy
     const [, registryAtProxy, registryProxy] = await deployUpgradeableContract(
       artifacts,
       null,
       artifacts.require('ContractRegistryV0_1_0'),
-      rootRegistry,
+      rootRegistryAtProxy,
       [['address'], [namedAccounts.admin0]],
       { from: namedAccounts.admin0 }
     );

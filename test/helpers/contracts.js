@@ -54,12 +54,15 @@ const deployUpgradeableContract = async (
     );
   }
 
-  const upgradeableContractV0 = await contract.at(proxy.address, deployParams);
+  const upgradeableContractAtProxy = await contract.at(
+    proxy.address,
+    deployParams
+  );
   return [
     contractToMakeUpgradeable,
-    upgradeableContractV0,
+    upgradeableContractAtProxy,
     proxy,
-    registry,
+    contractRegistry,
     contractName,
     versionName,
   ];
