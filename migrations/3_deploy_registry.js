@@ -131,7 +131,7 @@ module.exports = deployer => {
     await deployUpgradeableContract(
       artifacts,
       null, // pass current proxy here (and null the initParams param) this if you want to upgrade without init
-      artifacts.require('FifoCrcMarketV0'),
+      artifacts.require('FifoCrcMarketV0_1_0'),
       registryAtProxy,
       [
         ['address', 'address[]', 'address'],

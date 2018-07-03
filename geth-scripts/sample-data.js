@@ -39,16 +39,16 @@ async function withEventLogs(Contracts, func) {
 }
 
 module.exports = async function genSampleData(global) {
-  const { NoriV0, CRCV0, FifoCrcMarket, Supplier, web3 } = global;
+  const { NoriV0, CRCV0, FifoCrcMarketV0_1_0, Supplier, web3 } = global;
   const suppliers = web3.eth.accounts.slice(0, 2);
   const buyers = web3.eth.accounts.slice(2, 4);
 
   const tonToken = await NoriV0.deployed();
   const crc = await CRCV0.deployed();
-  const fifoCrcMarket = await FifoCrcMarket.deployed();
+  const fifoCrcMarket = await FifoCrcMarketV0_1_0.deployed();
   const supplier = await Supplier.deployed();
 
-  withEventLogs([NoriV0, CRCV0, FifoCrcMarket, Supplier], async () => {
+  withEventLogs([NoriV0, CRCV0, FifoCrcMarketV0_1_0, Supplier], async () => {
     console.log('TonToken address:', NoriV0.address);
     await Promise.all(
       web3.eth.accounts.map(async account => {
