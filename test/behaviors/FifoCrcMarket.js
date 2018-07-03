@@ -1,7 +1,7 @@
 import expectThrow from '../helpers/expectThrow';
 import token from '../helpers/ether';
 import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
-import { NoriV0, FifoCrcMarketV0_1_0, CRCV0 } from '../helpers/Artifacts';
+import { NoriV0_1_0, FifoCrcMarketV0_1_0, CRCV0 } from '../helpers/Artifacts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
 import { deployUpgradeableCrc } from './Crc';
 
@@ -30,7 +30,7 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
     before(async () => {
       [noriToken, , , contractRegistry] = await upgradeToV0(
         admin,
-        NoriV0,
+        NoriV0_1_0,
         false
       );
       [participantRegistry, , crc] = await deployUpgradeableCrc(

@@ -5,7 +5,7 @@ const utils = require('../helpers/utils');
 
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const web3 = MultiSigWallet.web3;
-const NoriV0 = artifacts.require('NoriV0');
+const NoriV0_1_0 = artifacts.require('NoriV0_1_0');
 const TestCalls = artifacts.require('TestCalls');
 
 const deployCalls = () => TestCalls.new();
@@ -20,7 +20,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
   beforeEach(async () => {
     [tokenInstance, , , contractRegistry] = await upgradeToV0(
       accounts[0],
-      NoriV0,
+      NoriV0_1_0,
       false
     );
     assert.ok(contractRegistry);
