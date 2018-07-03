@@ -32,7 +32,7 @@
     "testnet:compile": "yarn run lint:sol && truffle compile",
     "testnet:deploy": "yarn run lint:sol && truffle deploy --network noritestnet",
     "testnet:migrate": "yarn run lint:sol && truffle migrate --network noritestnet",
-    "test": "yarn run lint:sol && `yarn bin`/truffle test --reset --all",
+    "test": "yarn run lint:sol && truffle test --reset --all",
     "test:gasreport": "cd gas-reporter && truffle test --reset",
     "sol:cov": "testrpc-sc --port 8555 --gasLimit 0xfffffffffff --gasPrice 0x01 & $(yarn bin)/solidity-coverage"
   },

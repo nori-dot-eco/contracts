@@ -1,6 +1,5 @@
 import { assertRevert } from '../helpers/utils';
 import {
-  UnstructuredUpgradeableTokenV0,
   UnstructuredUpgradeableTokenV1,
   UnstructuredUpgradeableTokenV2,
   UnstructuredUpgradeableTokenV3,

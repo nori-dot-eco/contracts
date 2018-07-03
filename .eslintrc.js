@@ -22,6 +22,8 @@ module.exports = {
   rules: {
     camelcase: 'off',
     'no-plusplus': 'off',
+    'one-var': 'off',
+    'prefer-destructuring': 'off',
     'import/no-extraneous-dependencies': [
       'error',
       {
