@@ -10,6 +10,7 @@ const Artifacts = {};
   'UnstructuredUpgradeableTokenV2',
   'UnstructuredUpgradeableTokenV3',
   'ContractRegistryV0_1_0',
+  'SelectableCrcMarketV0_1_0',
   'MultiSigWallet',
   'MultiAdmin',
   'CRCV0',

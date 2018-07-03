@@ -1,21 +1,19 @@
-import { NoriV0 } from './helpers/Artifacts';
+import { NoriV0, SelectableCrcMarketV0_1_0, CRCV0 } from './helpers/Artifacts';
 import { deployUpgradeableCrc } from './behaviors/Crc';
 import { upgradeToV0 } from './behaviors/UnstructuredUpgrades';
+import { deployUpgradeableContract } from './helpers/contracts';
 
-const getNamedAccounts = require('../test/helpers/getNamedAccounts');
-
-const Crc = artifacts.require('./CRCV0.sol');
-const SelectableCrcMarketV0 = artifacts.require('SelectableCrcMarketV0');
+const getNamedAccounts = require('./helpers/getNamedAccounts');
 
 const namedAccounts = getNamedAccounts(web3);
 
-let tonToken;
-let crcMarket;
-let crc;
-let tonBalanceAccount0;
-let contractRegistry;
-
 const SelectableCrcMarketTests = () => {
+  let tonToken;
+  let crcMarket;
+  let crc;
+  let tonBalanceAccount0;
+  let contractRegistry;
+
   before(async () => {
     [tonToken, , , contractRegistry] = await upgradeToV0(
       namedAccounts.admin0,
@@ -24,15 +22,28 @@ const SelectableCrcMarketTests = () => {
     );
 
     [, , crc] = await deployUpgradeableCrc(
-      Crc,
+      CRCV0,
       namedAccounts.admin0,
       contractRegistry
     );
-
-    crcMarket = await SelectableCrcMarketV0.deployed();
+    const initParams = [
+      ['address', 'address[]', 'address'],
+      [
+        contractRegistry.address,
+        [crc.address, tonToken.address],
+        namedAccounts.admin0,
+      ],
+    ];
+    [, crcMarket] = await deployUpgradeableContract(
+      artifacts,
+      null,
+      SelectableCrcMarketV0_1_0,
+      contractRegistry,
+      initParams
+    );
   });
 
-  contract('SelectableCrcMarketV0', accounts => {
+  contract('SelectableCrcMarketV0_1_0', accounts => {
     beforeEach(async () => {
       // temporaily using a toggle to allow contract calls from addresses not proxyed through particpant identy contract
       await crc.toggleParticipantCalling(false, { from: accounts[0] });
