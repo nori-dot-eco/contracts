@@ -7,7 +7,6 @@ const FifoCrcMarketV0 = artifacts.require('./FifoCrcMarketV0.sol');
 const EIP820Implementer = artifacts.require('./EIP820Implementer.sol');
 const EIP820Registry = artifacts.require('./EIP820Registry.sol');
 const ParticipantRegistry = artifacts.require('./ParticipantRegistry.sol');
-const Supplier = artifacts.require('./Supplier.sol');
 const Participant = artifacts.require('./Participant.sol');
 const Verifier = artifacts.require('./Verifier.sol');
 const MultiSigWallet = artifacts.require('./MultiSigWallet.sol');
@@ -34,11 +33,6 @@ module.exports = (deployer, network, accounts) => {
     await deployer.deploy(ParticipantRegistryV0);
     await deployer.deploy(ParticipantV0);
 
-    await deployer.deploy(
-      Supplier,
-      ParticipantRegistry.address,
-      ContractRegistryV0_1_0.address
-    );
     await deployer.deploy(SupplierV0);
 
     await deployer.deploy(

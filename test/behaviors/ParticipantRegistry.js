@@ -3,7 +3,7 @@ import {
   ParticipantRegistryV0,
   ContractRegistryV0_1_0,
   UnstructuredOwnedUpgradeabilityProxy,
-  Supplier,
+  SupplierV0,
 } from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
 
@@ -41,10 +41,18 @@ const shouldBehaveLikeParticipantRegistry = admin => {
         admin,
         contractRegistry
       );
-      supplier = await Supplier.new(
-        participantRegistry.address,
-        contractRegistry.address
+      [, supplier] = await deployUpgradeableContract(
+        artifacts,
+        null,
+        SupplierV0,
+        contractRegistry,
+        [
+          ['address', 'address', 'address'],
+          [contractRegistry.address, participantRegistry.address, admin],
+        ],
+        { from: admin }
       );
+
       web3 = await new Web3();
     });
     describe('toggleParticipantType', () => {
