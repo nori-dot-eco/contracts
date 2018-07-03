@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 interface IEIP820Implementer {
     /// @notice Contracts that implement an interferce in behalf of another contract must return true

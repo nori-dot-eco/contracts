@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 import "./../EIP777/IEIP777TokensRecipient.sol";
 import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
