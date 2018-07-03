@@ -1,6 +1,5 @@
 pragma solidity ^0.4.24;
 
-import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipant.sol";
 import "./ParticipantV0.sol";
 
