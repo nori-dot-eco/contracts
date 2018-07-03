@@ -31,7 +31,7 @@ module.exports = deployer => {
     const [, , noriProxy] = await deployUpgradeableContract(
       artifacts,
       null,
-      artifacts.require('NoriV0'),
+      artifacts.require('NoriV0_1_0'),
       registryAtProxy,
       [
         ['string', 'string', 'uint', 'uint', 'address', 'address'],

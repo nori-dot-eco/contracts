@@ -1,5 +1,5 @@
 import {
-  NoriV0,
+  NoriV0_1_0,
   UnstructuredOwnedUpgradeabilityProxy,
   UnstructuredUpgradeableTokenV1,
   UnstructuredUpgradeableTokenV0,
@@ -82,7 +82,7 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
         'Upgrade a token at two different proxies which use the same registry',
         () => {
           it('should maintain seperate history for each proxy in the same registry', async () => {
-            [, , tokenProxy, registry] = await upgradeToV0(admin, NoriV0);
+            [, , tokenProxy, registry] = await upgradeToV0(admin, NoriV0_1_0);
             const firstTokenProxy = tokenProxy;
             const firstTokenProxyFirstImp = await firstTokenProxy.implementation();
             const [

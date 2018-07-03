@@ -1,7 +1,7 @@
 /* globals artifacts */
 
 const CRCV0 = artifacts.require('./CRCV0.sol');
-const NoriV0 = artifacts.require('./NoriV0.sol');
+const NoriV0_1_0 = artifacts.require('./NoriV0_1_0.sol');
 const FifoCrcMarketV0_1_0 = artifacts.require('./FifoCrcMarketV0_1_0.sol');
 const EIP820Implementer = artifacts.require('./EIP820Implementer.sol');
 const EIP820Registry = artifacts.require('./EIP820Registry.sol');
@@ -34,7 +34,7 @@ module.exports = (deployer, network, accounts) => {
     await deployer.deploy(VerifierV0_1_0);
 
     await deployer.deploy(CRCV0);
-    await deployer.deploy(NoriV0);
+    await deployer.deploy(NoriV0_1_0);
 
     await deployer.deploy(FifoCrcMarketV0_1_0);
 
