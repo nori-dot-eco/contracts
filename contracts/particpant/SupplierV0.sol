@@ -6,7 +6,7 @@ import "./IParticipant.sol";
 import "./ParticipantV0.sol";
 
 
-contract SupplierV0 is ParticipantV0 {
+contract SupplierV0_1_0 is ParticipantV0 {
   mapping (address => bool) public suppliers;
   mapping(bytes32 =>  mapping(address => bool)) public allowedInterfaces;
   

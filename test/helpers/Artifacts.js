@@ -22,7 +22,7 @@ const Artifacts = {};
   'FifoCrcMarket',
   'EIP820Implementer',
   'ParticipantV0',
-  'SupplierV0',
+  'SupplierV0_1_0',
   'VerifierV0',
   'FifoCrcMarketV0',
   'RootRegistryV0_1_0',
