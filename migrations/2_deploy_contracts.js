@@ -1,7 +1,7 @@
 /* globals artifacts */
 
 const CRCV0 = artifacts.require('./CRCV0.sol');
-const TonToken = artifacts.require('./TonToken.sol');
+const NoriV0 = artifacts.require('./NoriV0.sol');
 const FifoCrcMarket = artifacts.require('./FifoCrcMarket.sol');
 const FifoCrcMarketV0 = artifacts.require('./FifoCrcMarketV0.sol');
 const EIP820Implementer = artifacts.require('./EIP820Implementer.sol');
@@ -48,18 +48,11 @@ module.exports = (deployer, network, accounts) => {
       ContractRegistryV0_1_0.address
     );
     await deployer.deploy(CRCV0);
-    await deployer.deploy(
-      TonToken,
-      'NORI Token',
-      'NORI',
-      1,
-      0,
-      ContractRegistryV0_1_0.address
-    );
+    await deployer.deploy(NoriV0);
 
     await deployer.deploy(
       FifoCrcMarket,
-      [CRCV0.address, TonToken.address],
+      [CRCV0.address, NoriV0.address],
       ContractRegistryV0_1_0.address
     );
     await deployer.deploy(FifoCrcMarketV0);

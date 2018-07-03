@@ -1,12 +1,12 @@
 import expectThrow from '../helpers/expectThrow';
+import { upgradeToV0 } from './UnstructuredUpgrades';
 
 const utils = require('../helpers/utils');
 
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const web3 = MultiSigWallet.web3;
-const TonToken = artifacts.require('TonToken');
+const NoriV0 = artifacts.require('NoriV0');
 const TestCalls = artifacts.require('TestCalls');
-const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
 
 const deployCalls = () => TestCalls.new();
 
@@ -18,7 +18,11 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
   const requiredConfirmations = 2;
 
   beforeEach(async () => {
-    contractRegistry = await ContractRegistryV0_1_0.deployed();
+    [tokenInstance, , , contractRegistry] = await upgradeToV0(
+      accounts[0],
+      NoriV0,
+      false
+    );
     assert.ok(contractRegistry);
     multisigInstance = await MultiSigContract.new(
       [accounts[0], accounts[1]],
@@ -27,18 +31,11 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
       { from: accounts[0] }
     );
 
-    assert.ok(multisigInstance);
-
-    tokenInstance = await TonToken.new(
-      'NORI Token',
-      'NORI',
-      1,
-      0,
-      contractRegistry.address
-    );
-    assert.ok(tokenInstance);
     callsInstance = await deployCalls();
+
     assert.ok(callsInstance);
+    assert.ok(multisigInstance);
+    assert.ok(tokenInstance);
 
     const deposit = 10000000;
 
@@ -56,7 +53,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
   context('EIP820 compatibility', () => {
     describe('toggleTokenReceiver', () => {
       it('should disable IEIP777TokensRecipient interface', async () => {
-        const toggle = !await multisigInstance.tokenReceiver.call();
+        const toggle = !(await multisigInstance.tokenReceiver.call());
         await multisigInstance.toggleTokenReceiver(toggle);
         const tokenReceiver = await multisigInstance.tokenReceiver.call();
         assert.equal(
@@ -66,7 +63,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
         );
       });
       it('should enable IEIP777TokensRecipient interface after disabling', async () => {
-        const toggle = !await multisigInstance.tokenReceiver.call();
+        const toggle = !(await multisigInstance.tokenReceiver.call());
         await multisigInstance.toggleTokenReceiver(toggle);
         let tokenReceiver = await multisigInstance.tokenReceiver.call();
         assert.equal(
