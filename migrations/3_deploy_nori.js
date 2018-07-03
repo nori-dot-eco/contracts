@@ -4,11 +4,12 @@ const { upgradeToContract } = require('../test/helpers/contracts');
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 
 const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
+const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
 const NoriV0 = artifacts.require('NoriV0');
 const ParticipantRegistryV0 = artifacts.require('ParticipantRegistryV0');
 const CRCV0 = artifacts.require('CRCV0');
 const ParticipantV0 = artifacts.require('ParticipantV0');
-const SupplierV0 = artifacts.require('SupplierV0');
+const SupplierV0_1_0 = artifacts.require('SupplierV0_1_0');
 const VerifierV0 = artifacts.require('VerifierV0');
 const FifoCrcMarketV0 = artifacts.require('FifoCrcMarketV0');
 
@@ -23,11 +24,9 @@ module.exports = (deployer, network, accounts) => {
       registry = await ContractRegistryV0_1_0.at(registryAddress);
     } else {
       adminAccountAddress = getNamedAccounts(web3).admin0;
-      const contractRegistrysRegistry = await ContractRegistryV0_1_0.deployed();
+      const rootRegistry = await RootRegistryV0_1_0.deployed();
       registry = ContractRegistryV0_1_0.at(
-        await contractRegistrysRegistry.getLatestProxyAddr.call(
-          'ContractRegistry'
-        )
+        await rootRegistry.getLatestProxyAddr.call('ContractRegistry')
       );
     }
 
@@ -76,7 +75,7 @@ module.exports = (deployer, network, accounts) => {
     );
 
     await upgrade(
-      SupplierV0,
+      SupplierV0_1_0,
       ['address', 'address', 'address'],
       [registry.address, participantRegistry.address, adminAccountAddress]
     );

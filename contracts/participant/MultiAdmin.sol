@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 import "./../EIP777/IEIP777TokensRecipient.sol";
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
+import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 
 
@@ -10,7 +10,7 @@ import "../EIP820/IEIP820Implementer.sol";
 /// This contract is derived from the Gnosis multisig wallet.
 // todo jaycen CAUTION, using eip820 unaudited contracts in multisig inheritance inorder to
 // avoid revert statement otheriwse invoked in the callRecipient function of the tokens mint/send funcs
-contract MultiAdmin is DEPRECATEDEIP820Implementer, IEIP820Implementer {
+contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
 
   /*
     *  Events
@@ -110,11 +110,7 @@ contract MultiAdmin is DEPRECATEDEIP820Implementer, IEIP820Implementer {
   /// @dev Contract constructor sets initial owners and required number of confirmations.
   /// @param _owners List of initial owners.
   /// @param _required Number of required confirmations.
-  constructor(address[] _owners, uint _required, address _eip820RegistryAddr) 
-    public 
-    validRequirement(_owners.length, _required) 
-    DEPRECATEDEIP820Implementer(_eip820RegistryAddr) 
-  {
+  constructor(address[] _owners, uint _required, address _eip820RegistryAddr) public validRequirement(_owners.length, _required) {
 
     for (uint i = 0; i < _owners.length; i++) {
       require(!isOwner[_owners[i]] && _owners[i] != 0);
@@ -122,11 +118,12 @@ contract MultiAdmin is DEPRECATEDEIP820Implementer, IEIP820Implementer {
     }
     owners = _owners;
     required = _required;
+    setIntrospectionRegistry(_eip820RegistryAddr);
 
     toggleTokenReceiver(true);
   }
 
-  function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) public view returns(bytes32) {
+  function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
     return EIP820_ACCEPT_MAGIC;
   }
 

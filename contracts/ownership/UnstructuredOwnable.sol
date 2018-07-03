@@ -12,6 +12,7 @@ contract UnstructuredOwnable {
    * @param newOwner representing the address of the new owner
    */
   event OwnershipTransferred(address previousOwner, address newOwner);
+  event OwnerSet(address newOwner);
 
   // Owner of the contract
   address private _owner;
@@ -44,6 +45,7 @@ contract UnstructuredOwnable {
    */
   function setOwner(address newOwner) internal {
     _owner = newOwner;
+    emit OwnerSet(newOwner);
   }
 
   /**

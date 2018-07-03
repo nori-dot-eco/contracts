@@ -3,7 +3,7 @@ import { UnstructuredUpgradeScenarios } from './UpgradeScenarios.test';
 import NoriV0Tests from './NoriV0.test';
 import MultiAdminTests from './MultiAdmin.test';
 import MultiSigWallet from './MultiSigWallet.test';
-import RegistryTests from './Registry.test';
+import { RootRegistryTests, ContractRegistryTests } from './Registry.test';
 import { giveEth } from './helpers/utils';
 import CRCV0Tests from './CRCV0.test';
 import ParticipantRegistryTests from './ParticipantRegistry.test';
@@ -11,6 +11,7 @@ import ParticipantTests from './Participant.test';
 import SupplierTests from './Supplier.test';
 import VerifierTests from './Verifier.test';
 import FifoCrcMarketV0Tests from './FifoCrcMarket.test';
+import { SelectableCrcMarketTests } from './SelectableCrcMarket.test';
 
 const {
   buyer0,
@@ -53,7 +54,9 @@ context('Setup test environment', () => {
     // ProxyTests();
     MultiSigWallet(); // Multisig wallet tests
     MultiAdminTests(); // Multisig admin tests
-    RegistryTests(admin0, admin1, unregistered0);
+    ContractRegistryTests(admin0, admin1, unregistered0);
+    RootRegistryTests();
+    SelectableCrcMarketTests();
     CRCV0Tests(admin0);
     ParticipantRegistryTests(admin0);
     ParticipantTests(admin0);

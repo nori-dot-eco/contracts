@@ -4,6 +4,7 @@ const { deployUpgradeableContract } = require('../test/helpers/contracts');
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 
 const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
+const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
 
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
@@ -30,7 +31,7 @@ module.exports = (deployer, network, accounts) => {
       adminAccountAddress = getNamedAccounts(web3).admin0;
       let existingRegistry;
       try {
-        existingRegistry = await ContractRegistryV0_1_0.deployed();
+        existingRegistry = await RootRegistryV0_1_0.deployed();
       } catch (e) {
         // this is OK. It just means a registry hasn't been deployed yet
       }
@@ -44,15 +45,13 @@ module.exports = (deployer, network, accounts) => {
           await existingRegistry.getLatestProxyAddr.call('ContractRegistry')
         );
       } else {
-        const contractRegistrysRegistry = await deployer.deploy(
-          ContractRegistryV0_1_0
-        );
+        const rootRegistry = await deployer.deploy(RootRegistryV0_1_0);
         // Deploy the registry behind a proxy
         [, , registry] = await deployUpgradeableContract(
           artifacts,
           null,
           ContractRegistryV0_1_0,
-          contractRegistrysRegistry,
+          rootRegistry,
           [['address'], [adminAccountAddress]],
           { from: adminAccountAddress }
         );

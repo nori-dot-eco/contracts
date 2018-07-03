@@ -5,6 +5,8 @@ pragma solidity ^0.4.24;
 /// @dev keeps track of the latest version of all contracts
 contract VersionRegistry {
 
+  event VersionSet(string contractName, address proxyAddress, string versionName, address newImplementation);
+
   mapping(bytes32 => address) private proxyContracts;
   mapping(bytes32 => mapping(address => Version[])) public versions;
 
@@ -21,6 +23,7 @@ contract VersionRegistry {
   }
 
   //todo create a function for getting count of versiuons for a particular contract name
+  //todo create a function that gets a contract proxy for a particular version name
 
   function _setVersion(
     string _contractName, 
@@ -32,6 +35,12 @@ contract VersionRegistry {
     Version[] storage history = versions[contractName][_proxyAddress];
     history.push(Version(_versionName, _newImplementation));
     proxyContracts[contractName] = _proxyAddress;
+    emit VersionSet(
+      _contractName, 
+      _proxyAddress, 
+      _versionName, 
+      _newImplementation
+    );
   }
 
   /// @dev pass -1 to get the latest, or a particular index to get a certain one

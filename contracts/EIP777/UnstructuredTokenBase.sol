@@ -220,7 +220,7 @@ contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, EIP820Im
       _value, 
       "0x0", 
       "0x0", 
-      true
+      false
     );
     emit AuthorizedOperator(_operator, msg.sender);
   }

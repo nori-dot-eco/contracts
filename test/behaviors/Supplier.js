@@ -1,7 +1,7 @@
 import expectThrow from '../helpers/expectThrow';
 import {
   ContractRegistryV0_1_0,
-  SupplierV0,
+  SupplierV0_1_0,
   CRCV0,
 } from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
@@ -10,7 +10,7 @@ import { deployUpgradeableCrc } from './Crc';
 const lightwallet = require('eth-signer');
 
 const shouldBehaveLikeSupplier = admin => {
-  contract('Supplier', accounts => {
+  contract('SupplierV0_1_0', accounts => {
     let crc;
     let supplier;
     let supplierAcc;
@@ -35,7 +35,7 @@ const shouldBehaveLikeSupplier = admin => {
       [, supplier] = await deployUpgradeableContract(
         artifacts,
         null,
-        SupplierV0,
+        SupplierV0_1_0,
         contractRegistry,
         initParams
       );
