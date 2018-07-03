@@ -1,3 +1,4 @@
+/* globals artifacts */
 const Artifacts = {};
 [
   'NoriV0',
@@ -18,6 +19,7 @@ const Artifacts = {};
   'SupplierV0',
   'VerifierV0',
   'FifoCrcMarketV0',
+  'RootRegistryV0_1_0',
 ].forEach(contractName => {
   Artifacts[contractName] = artifacts.require(contractName);
 });
