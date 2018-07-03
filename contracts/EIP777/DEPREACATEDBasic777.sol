@@ -5,12 +5,12 @@ import "./IEIP777TokensRecipient.sol";
 import "./IEIP777TokensSender.sol";
 import "./IEIP777TokensOperator.sol";
 import "../EIP20/Ierc20.sol";
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
+import "../EIP820/EIP820Implementer.sol";
 import "../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 import "../ownership/Owned.sol";
 
 //todo jaycen this is deprecated by TokenBase.sol , remove after upgrade prs are done
-contract DEPREACATEDBasic777 is Owned, Ierc20, IEIP777, DEPRECATEDEIP820Implementer {
+contract DEPREACATEDBasic777 is Owned, Ierc20, IEIP777, EIP820Implementer {
 
     using SafeMath for uint256;
 
@@ -39,9 +39,8 @@ contract DEPREACATEDBasic777 is Owned, Ierc20, IEIP777, DEPRECATEDEIP820Implemen
         uint256 _granularity,
         uint256 _totalSupply,
         address _eip820RegistryAddr
-    )
-        DEPRECATEDEIP820Implementer (_eip820RegistryAddr) public
-    {
+    ) public {
+        setIntrospectionRegistry(_eip820RegistryAddr);
         mName = _name;
         mSymbol = _symbol;
         mTotalSupply = _totalSupply;

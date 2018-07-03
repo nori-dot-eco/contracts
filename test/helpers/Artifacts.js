@@ -2,7 +2,6 @@
 const Artifacts = {};
 [
   'NoriV0',
-  'TonToken',
   'EIP820Registry',
   'Proxy',
   'UnstructuredUpgradeableTokenV0',

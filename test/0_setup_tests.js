@@ -1,4 +1,3 @@
-import TonTokenTests from './TonToken.test';
 import ProxyTests from './Proxy.test';
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
 import { UnstructuredUpgradeScenarios } from './UpgradeScenarios.test';
@@ -52,9 +51,8 @@ context('Setup test environment', () => {
   });
 
   context('Execute tests', () => {
-    TonTokenTests(admin0, unregistered0, unregistered1);
-    // todo jaycen fix this (broken when removed etsernal storage stuffz)
-    // ProxyTests();
+    // // todo jaycen fix this (broken when removed etsernal storage stuffz)
+    // // ProxyTests();
     MultiSigWallet(); // Multisig wallet tests
     MultiAdminTests(); // Multisig admin tests
     ContractRegistryTests(admin0, admin1, unregistered0);
