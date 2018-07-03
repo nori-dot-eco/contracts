@@ -61,8 +61,8 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
       fifomarketAddr = await fifoCrcMarket.address;
     });
     beforeEach(async () => {
-      // temporaily using a toggle to allow contract calls from addresses not proxyed through particpant identy contract
-      await crc.toggleParticpantCalling(false, { from: accounts[0] });
+      // temporaily using a toggle to allow contract calls from addresses not proxyed through participant identy contract
+      await crc.toggleParticipantCalling(false, { from: accounts[0] });
     });
     describe('Test different possible sale scenarios for CRCs:NORI', () => {
       describe('Mint NORI and CRCs', () => {
