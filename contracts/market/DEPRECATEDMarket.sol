@@ -1,17 +1,18 @@
 pragma solidity ^0.4.18;
 import "./MarketLib.sol";
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
+import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 
 
-contract DEPRECATEDMarket is DEPRECATEDEIP820Implementer, IEIP820Implementer {
+contract DEPRECATEDMarket is EIP820Implementer, IEIP820Implementer {
     MarketLib.Market[] public marketItems;
     bool internal preventTokenReceived = true;
     bool internal preventTokenOperator = true;
     bool internal preventCommodityReceived = true;
     bool internal preventCommodityOperator = true;
 
-    function DEPRECATEDMarket (address[] _marketItems, address _eip820RegistryAddr) DEPRECATEDEIP820Implementer(_eip820RegistryAddr) public {
+    function DEPRECATEDMarket (address[] _marketItems, address _eip820RegistryAddr) public {
+        setIntrospectionRegistry(_eip820RegistryAddr);
         for (uint i = 0;  i < _marketItems.length; i++) {
             _createMarketItem(_marketItems[i]);
         }

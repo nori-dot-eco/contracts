@@ -4,7 +4,6 @@ import "./BasicCommodity.sol";
 import "./CommodityLib.sol";
 import "./IVerifiableCommodity.sol";
 import "../particpant/IParticipant.sol";
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
 
 
 contract VerifiableCommodity is BasicCommodity, IVerifiableCommodity {

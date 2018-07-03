@@ -1,15 +1,16 @@
 pragma solidity ^0.4.18;
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
+import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipantRegistry.sol";
 
 // DEPRECATED : leaving name unchange until upgrades are finished
-contract ParticipantRegistry is DEPRECATEDEIP820Implementer, IEIP820Implementer, IParticipantRegistry {
+contract ParticipantRegistry is EIP820Implementer, IEIP820Implementer, IParticipantRegistry {
     // particpant type at address to enabled
     mapping (bytes32 => mapping(address => bool)) public participantTypes;
     // todo jaycen add per function permission
 
-    function ParticipantRegistry (address _eip820RegistryAddr) DEPRECATEDEIP820Implementer(_eip820RegistryAddr) public { 
+    function ParticipantRegistry (address _eip820RegistryAddr) public { 
+        setIntrospectionRegistry(_eip820RegistryAddr);
         setInterfaceImplementation("IParticipantRegistry", this);
     }
 

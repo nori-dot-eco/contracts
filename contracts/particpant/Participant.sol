@@ -1,14 +1,15 @@
 pragma solidity ^0.4.18;
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
+import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipant.sol";
 import "./IParticipantRegistry.sol";
 
 
-contract Participant is DEPRECATEDEIP820Implementer, IEIP820Implementer, IParticipant {
+contract Participant is EIP820Implementer, IEIP820Implementer, IParticipant {
     IParticipantRegistry public participantRegistry;
 
-    function Participant (address _participantRegistry, address _eip820RegistryAddr) DEPRECATEDEIP820Implementer(_eip820RegistryAddr) public { 
+    function Participant (address _participantRegistry, address _eip820RegistryAddr) public { 
+        setIntrospectionRegistry(_eip820RegistryAddr);
         setParticipantRegistry (_participantRegistry);
         setInterfaceImplementation("IParticipant", this);
     }

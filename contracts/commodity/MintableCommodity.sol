@@ -3,7 +3,6 @@ pragma solidity ^0.4.24;
 import "./CommodityLib.sol";
 import "./IMintableCommodity.sol";
 import "../particpant/IParticipant.sol";
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
 import "./BasicCommodity.sol";
 
 
@@ -58,9 +57,23 @@ contract MintableCommodity is BasicCommodity, IMintableCommodity {
 
     //TODO: make sure this is ok in production (maybe move to a diff func that invokes callrecipient internally)
     _transfer(0, _to, newCRCId);
-    callRecipent(msg.sender, 0x0, _to, newCRCId, "", _operatorData, false);
+    callRecipent(
+      msg.sender, 
+      0x0, 
+      _to, 
+      newCRCId, 
+      "", 
+      _operatorData, 
+      false
+    );
 
-    emit Minted(_to, newCRCId, _value, msg.sender, _operatorData);
+    emit Minted(
+      _to, 
+      newCRCId, 
+      _value, 
+      msg.sender, 
+      _operatorData
+    );
     return uint64(newCRCId);
   }
 

@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
+import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipant.sol";
 import "./ParticipantV0.sol";
@@ -19,7 +19,7 @@ contract VerifierV0 is ParticipantV0 {
     toggleParticipantType(true);
   }
 
-  function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) public view returns(bytes32) {
+  function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
     return EIP820_ACCEPT_MAGIC;
   }
 

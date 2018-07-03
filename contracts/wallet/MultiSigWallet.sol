@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 import "./../EIP777/IEIP777TokensRecipient.sol";
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
+import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 
 
@@ -9,7 +9,7 @@ import "../EIP820/IEIP820Implementer.sol";
 /// @author Jaycen Horton (extednded functionality for eip820)
 // todo jaycen CAUTION, using eip820 unaudited contracts in multisig inheritance inorder to
 // avoid revert statement otheriwse invoked in the callRecipient function of the tokens mint/send funcs
-contract MultiSigWallet is DEPRECATEDEIP820Implementer, IEIP820Implementer {
+contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
 
     /*
      *  Events
@@ -111,16 +111,15 @@ contract MultiSigWallet is DEPRECATEDEIP820Implementer, IEIP820Implementer {
     /// @dev Contract constructor sets initial owners and required number of confirmations.
     /// @param _owners List of initial owners.
     /// @param _required Number of required confirmations.
-    function MultiSigWallet(address[] _owners, uint _required, address _eip820RegistryAddr)
-        public
-        validRequirement(_owners.length, _required) DEPRECATEDEIP820Implementer(_eip820RegistryAddr)
-    {
+    constructor(address[] _owners, uint _required, address _eip820RegistryAddr) public validRequirement(_owners.length, _required) {
+       
         for (uint i = 0; i < _owners.length; i++) {
             require(!isOwner[_owners[i]] && _owners[i] != 0);
             isOwner[_owners[i]] = true;
         }
         owners = _owners;
         required = _required;
+        setIntrospectionRegistry(_eip820RegistryAddr);
 
         toggleTokenReceiver(true);
     }

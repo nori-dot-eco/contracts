@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-import "../EIP820/DEPRECATEDEIP820Implementer.sol";
+import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipant.sol";
 import "./Participant.sol";
