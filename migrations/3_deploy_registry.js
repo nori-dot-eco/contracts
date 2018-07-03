@@ -159,12 +159,6 @@ module.exports = deployer => {
       ]
     );
 
-    await deployer.deploy(
-      artifacts.require('SelectableCrcMarket'),
-      [crcProxy.address, noriProxy.address],
-      registryAtProxy.address
-    );
-
     console.log('REGISTRY PROXY:', registryProxy.address);
   });
 };

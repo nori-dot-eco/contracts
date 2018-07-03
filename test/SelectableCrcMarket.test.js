@@ -43,7 +43,7 @@ const SelectableCrcMarketTests = () => {
     );
   });
 
-  contract('SelectableCrcMarket', accounts => {
+  contract('SelectableCrcMarketV0_1_0', accounts => {
     beforeEach(async () => {
       // temporaily using a toggle to allow contract calls from addresses not proxyed through particpant identy contract
       await crc.toggleParticpantCalling(false, { from: accounts[0] });

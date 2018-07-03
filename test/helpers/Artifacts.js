@@ -18,7 +18,6 @@ const Artifacts = {};
   'ParticipantRegistryV0',
   'ParticipantRegistry',
   'Supplier',
-  'SelectableCrcMarket',
   'Participant',
   'Verifier',
   'FifoCrcMarket',

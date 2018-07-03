@@ -2,7 +2,6 @@
 
 const CRCV0 = artifacts.require('./CRCV0.sol');
 const TonToken = artifacts.require('./TonToken.sol');
-const SelectableCrcMarket = artifacts.require('./SelectableCrcMarket.sol');
 const FifoCrcMarket = artifacts.require('./FifoCrcMarket.sol');
 const FifoCrcMarketV0 = artifacts.require('./FifoCrcMarketV0.sol');
 const EIP820Implementer = artifacts.require('./EIP820Implementer.sol');
