@@ -16,12 +16,10 @@ const shouldBehaveLikeCrc = (admin, CrcContract, upgradeable = false) => {
         admin,
         contractRegistry
       );
-    } else {
-      crc = await CrcContract.deployed();
     }
   });
 
-  contract('CRC', accounts => {
+  contract('CRCV0', accounts => {
     beforeEach(async () => {
       // temporaily using a toggle to allow contract calls from addresses not proxyed through particpant identy contract
       await crc.toggleParticpantCalling(false, { from: accounts[0] });

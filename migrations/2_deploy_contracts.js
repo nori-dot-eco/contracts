@@ -1,6 +1,6 @@
 /* globals artifacts */
 
-const CRC = artifacts.require('./CRC.sol');
+const CRCV0 = artifacts.require('./CRCV0.sol');
 const TonToken = artifacts.require('./TonToken.sol');
 const SelectableCrcMarket = artifacts.require('./SelectableCrcMarket.sol');
 const FifoCrcMarket = artifacts.require('./FifoCrcMarket.sol');
@@ -54,13 +54,7 @@ module.exports = (deployer, network, accounts) => {
       ParticipantRegistry.address,
       ContractRegistryV0_1_0.address
     );
-    await deployer.deploy(
-      CRC,
-      'Carbon Removal Certificate',
-      'CRC',
-      ContractRegistryV0_1_0.address,
-      ParticipantRegistry.address
-    );
+    await deployer.deploy(CRCV0);
     await deployer.deploy(
       TonToken,
       'NORI Token',
@@ -69,14 +63,10 @@ module.exports = (deployer, network, accounts) => {
       0,
       ContractRegistryV0_1_0.address
     );
-    await deployer.deploy(
-      SelectableCrcMarket,
-      [CRC.address, TonToken.address],
-      ContractRegistryV0_1_0.address
-    );
+
     await deployer.deploy(
       FifoCrcMarket,
-      [CRC.address, TonToken.address],
+      [CRCV0.address, TonToken.address],
       ContractRegistryV0_1_0.address
     );
     await deployer.deploy(FifoCrcMarketV0);

@@ -1,17 +1,35 @@
-const TonToken = artifacts.require('./TonToken.sol');
-const Crc = artifacts.require('./CRC.sol');
+import { NoriV0 } from './helpers/Artifacts';
+import { deployUpgradeableCrc } from './behaviors/Crc';
+import { upgradeToV0 } from './behaviors/UnstructuredUpgrades';
+
+const getNamedAccounts = require('../test/helpers/getNamedAccounts');
+
+const Crc = artifacts.require('./CRCV0.sol');
 const SelectableCrcMarket = artifacts.require('./SelectableCrcMarket.sol');
+
+const namedAccounts = getNamedAccounts(web3);
 
 let tonToken;
 let crcMarket;
 let crc;
 let tonBalanceAccount0;
+let contractRegistry;
 
 const SelectableCrcMarketTests = () => {
   before(async () => {
-    tonToken = await TonToken.deployed();
+    [tonToken, , , contractRegistry] = await upgradeToV0(
+      namedAccounts.admin0,
+      NoriV0,
+      false
+    );
+
+    [, , crc] = await deployUpgradeableCrc(
+      Crc,
+      namedAccounts.admin0,
+      contractRegistry
+    );
+
     crcMarket = await SelectableCrcMarket.deployed();
-    crc = await Crc.deployed();
   });
 
   contract('SelectableCrcMarket', accounts => {

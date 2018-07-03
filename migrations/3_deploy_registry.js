@@ -144,6 +144,12 @@ module.exports = deployer => {
       { from: namedAccounts.admin0 }
     );
 
+    await deployer.deploy(
+      artifacts.require('SelectableCrcMarket'),
+      [crcProxy.address, noriProxy.address],
+      registryAtProxy.address
+    );
+
     console.log('REGISTRY PROXY:', registryProxy.address);
   });
 };
