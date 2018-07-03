@@ -3,7 +3,7 @@ import { deployUpgradeableCrc } from './behaviors/Crc';
 import { upgradeToV0 } from './behaviors/UnstructuredUpgrades';
 import { deployUpgradeableContract } from './helpers/contracts';
 
-const getNamedAccounts = require('../test/helpers/getNamedAccounts');
+const getNamedAccounts = require('./helpers/getNamedAccounts');
 
 const namedAccounts = getNamedAccounts(web3);
 
