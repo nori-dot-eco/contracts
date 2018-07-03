@@ -141,7 +141,7 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
             );
 
             assert.equal(firstTokenFirstVersion[1], firstTokenProxyFirstImp);
-            assert.equal(firstTokenFirstVersion[0], '0');
+            assert.equal(firstTokenFirstVersion[0], '0_1_0');
 
             assert.equal(secondTokenFirstVersion[1], secondTokenSecondFirstImp);
             assert.equal(secondTokenFirstVersion[0], '0');
