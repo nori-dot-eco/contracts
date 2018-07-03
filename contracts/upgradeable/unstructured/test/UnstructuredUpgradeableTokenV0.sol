@@ -8,6 +8,5 @@ import "../../../EIP777/UnstructuredTokenBase.sol";
 * @dev Version 0 of a token to show upgradeability using unstructured storage.
 */
 contract UnstructuredUpgradeableTokenV0 is UnstructuredTokenBase {
-  
-  
+  constructor() public UnstructuredTokenBase() { }
 }
