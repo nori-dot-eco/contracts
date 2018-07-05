@@ -11,7 +11,7 @@ const CRCV0 = artifacts.require('CRCV0');
 const ParticipantV0 = artifacts.require('ParticipantV0');
 const SupplierV0_1_0 = artifacts.require('SupplierV0_1_0');
 const VerifierV0 = artifacts.require('VerifierV0');
-const FifoCrcMarketV0 = artifacts.require('FifoCrcMarketV0');
+const FifoCrcMarketV0_1_0 = artifacts.require('FifoCrcMarketV0_1_0');
 
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
@@ -87,7 +87,7 @@ module.exports = (deployer, network, accounts) => {
     );
 
     await upgrade(
-      FifoCrcMarketV0,
+      FifoCrcMarketV0_1_0,
       ['address', 'address[]', 'address'],
       [registry.address, [crc.address, nori.address], adminAccountAddress]
     );
