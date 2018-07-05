@@ -5,13 +5,13 @@ const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 
 const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
 const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
-const NoriV0 = artifacts.require('NoriV0');
+const NoriV0_1_0 = artifacts.require('NoriV0_1_0');
 const ParticipantRegistryV0 = artifacts.require('ParticipantRegistryV0');
-const CRCV0 = artifacts.require('CRCV0');
-const ParticipantV0 = artifacts.require('ParticipantV0');
+const CRCV0_1_0 = artifacts.require('CRCV0_1_0');
+const ParticipantV0_1_0 = artifacts.require('ParticipantV0_1_0');
 const SupplierV0_1_0 = artifacts.require('SupplierV0_1_0');
-const VerifierV0 = artifacts.require('VerifierV0');
-const FifoCrcMarketV0 = artifacts.require('FifoCrcMarketV0');
+const VerifierV0_1_0 = artifacts.require('VerifierV0_1_0');
+const FifoCrcMarketV0_1_0 = artifacts.require('FifoCrcMarketV0_1_0');
 
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
@@ -38,7 +38,7 @@ module.exports = (deployer, network, accounts) => {
     console.log('Deployed Registry Address:', registry.address);
 
     const nori = await upgrade(
-      NoriV0,
+      NoriV0_1_0,
       ['string', 'string', 'uint', 'uint', 'address', 'address'],
       [
         'Upgradeable NORI Token',
@@ -57,7 +57,7 @@ module.exports = (deployer, network, accounts) => {
     );
 
     const crc = await upgrade(
-      CRCV0,
+      CRCV0_1_0,
       ['string', 'string', 'address', 'address', 'address'],
       [
         'Carbon Removal Certificate',
@@ -69,7 +69,7 @@ module.exports = (deployer, network, accounts) => {
     );
 
     await upgrade(
-      ParticipantV0,
+      ParticipantV0_1_0,
       ['address', 'address', 'address'],
       [registry.address, participantRegistry.address, adminAccountAddress]
     );
@@ -81,13 +81,13 @@ module.exports = (deployer, network, accounts) => {
     );
 
     await upgrade(
-      VerifierV0,
+      VerifierV0_1_0,
       ['address', 'address', 'address'],
       [registry.address, participantRegistry.address, adminAccountAddress]
     );
 
     await upgrade(
-      FifoCrcMarketV0,
+      FifoCrcMarketV0_1_0,
       ['address', 'address[]', 'address'],
       [registry.address, [crc.address, nori.address], adminAccountAddress]
     );
