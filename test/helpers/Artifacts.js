@@ -13,7 +13,7 @@ const Artifacts = {};
   'SelectableCrcMarketV0_1_0',
   'MultiSigWallet',
   'MultiAdmin',
-  'CRCV0_1_0',
+  'CRCV0_2_0',
   'ParticipantRegistryV0',
   'EIP820Implementer',
   'ParticipantV0_1_0',

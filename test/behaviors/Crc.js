@@ -20,7 +20,7 @@ const shouldBehaveLikeCrc = (admin, CrcContract, upgradeable = false) => {
     }
   });
 
-  contract('CRCV0_1_0', accounts => {
+  contract('CRCV0_2_0', accounts => {
     beforeEach(async () => {
       // temporaily using a toggle to allow contract calls from addresses not proxyed through participant identy contract
       await crc.toggleParticipantCalling(false, { from: accounts[0] });
@@ -163,6 +163,21 @@ const shouldBehaveLikeCrc = (admin, CrcContract, upgradeable = false) => {
               'Expected tokenHolder event arg to be the owner of the crc'
             );
           });
+        });
+      });
+    });
+    context('After minting a CRC', () => {
+      describe('balanceOf (V0_2_0)', () => {
+        it('should mint 2 CRC bundles valued at a total of 15', async () => {
+          await crc.mint(accounts[5], '0x0', 5, '0x0');
+          await crc.mint(accounts[5], '0x0', 10, '0x0');
+
+          const crcBalanceAccount5 = await crc.balanceOf(accounts[5]);
+          await assert.equal(
+            crcBalanceAccount5.toString(),
+            15,
+            'crc mint fail'
+          );
         });
       });
     });
