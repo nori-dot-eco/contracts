@@ -124,15 +124,29 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     toggleTokenReceiver(true);
   }
 
-  function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) public view returns(bytes32) {
+  function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
     return EIP820_ACCEPT_MAGIC;
   }
 
-  function tokensReceived (address operator, address from, address to, uint256 amount, bytes userData, bytes operatorData) public {
+  function tokensReceived (
+    address operator, 
+    address from, 
+    address to, 
+    uint256 amount, 
+    bytes userData, 
+    bytes operatorData
+  ) public {
     if (!tokenReceiver) {
       revert();
     }
-    emit ReceivedTokens(operator, from, to, amount, userData, operatorData);
+    emit ReceivedTokens(
+      operator, 
+      from, 
+      to, 
+      amount, 
+      userData, 
+      operatorData
+    );
   }
 
   function toggleTokenReceiver(bool _toggle) public {
@@ -258,7 +272,12 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
       Transaction storage txn = transactions[transactionId];
 
       txn.executed = true;
-      if (external_call(txn.destination, txn.value, txn.data.length, txn.data)) {
+      if (external_call(
+        txn.destination, 
+        txn.value, 
+        txn.data.length, 
+        txn.data
+      )) {
         emit Execution(transactionId);
       } else {
         emit ExecutionFailure(transactionId);
@@ -269,9 +288,14 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
 
   // call has been separated into its own function in order to take advantage
   // of the Solidity's code generator to produce a loop that copies tx.data into memory.
-  function external_call(address destination, uint value, uint dataLength, bytes data) private returns (bool) {
+  function external_call(
+    address destination, 
+    uint value, 
+    uint dataLength, 
+    bytes data
+  ) private returns (bool) {
     bool result;
-    assembly {
+    assembly { // solium-disable-line security/no-inline-assembly
       let x := mload(0x40)   // "Allocate" memory for output (0x40 is where "free memory" pointer is stored by convention)
       let d := add(data, 32) // First 32 bytes are the padded length of data, so exclude that
       result := call(
@@ -294,7 +318,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   /// @return Confirmation status.
   function isConfirmed(uint transactionId)
     public
-    constant
+    view
     returns (bool)
   {
     uint count = 0;
@@ -340,7 +364,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   /// @return Number of confirmations.
   function getConfirmationCount(uint transactionId)
     public
-    constant
+    view
     returns (uint count)
   {
     for (uint i = 0; i < owners.length; i++) {
@@ -358,7 +382,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   /// @return Total number of transactions after filters are applied.
   function getTransactionCount(bool pending, bool executed)
     public
-    constant
+    view
     returns (uint count)
   {
     for (uint i = 0; i < transactionCount; i++) {
@@ -372,7 +396,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   /// @return List of owner addresses.
   function getOwners()
     public
-    constant
+    view
     returns (address[])
   {
     return owners;
@@ -383,7 +407,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   /// @return Returns array of owner addresses.
   function getConfirmations(uint transactionId)
     public
-    constant
+    view
     returns (address[] _confirmations)
   {
     address[] memory confirmationsTemp = new address[](owners.length);
@@ -408,9 +432,14 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   /// @param pending Include pending transactions.
   /// @param executed Include executed transactions.
   /// @return Returns array of transaction IDs.
-  function getTransactionIds(uint from, uint to, bool pending, bool executed)
+  function getTransactionIds(
+    uint from, 
+    uint to, 
+    bool pending, 
+    bool executed
+  )
     public
-    constant
+    view
     returns (uint[] _transactionIds)
   {
     uint[] memory transactionIdsTemp = new uint[](transactionCount);
