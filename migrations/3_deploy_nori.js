@@ -5,9 +5,9 @@ const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 
 const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
 const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
-const NoriV0 = artifacts.require('NoriV0');
+const NoriV0_1_0 = artifacts.require('NoriV0_1_0');
 const ParticipantRegistryV0 = artifacts.require('ParticipantRegistryV0');
-const CRCV0 = artifacts.require('CRCV0');
+const CRCV0_1_0 = artifacts.require('CRCV0_1_0');
 const ParticipantV0_1_0 = artifacts.require('ParticipantV0_1_0');
 const SupplierV0_1_0 = artifacts.require('SupplierV0_1_0');
 const VerifierV0_1_0 = artifacts.require('VerifierV0_1_0');
@@ -38,7 +38,7 @@ module.exports = (deployer, network, accounts) => {
     console.log('Deployed Registry Address:', registry.address);
 
     const nori = await upgrade(
-      NoriV0,
+      NoriV0_1_0,
       ['string', 'string', 'uint', 'uint', 'address', 'address'],
       [
         'Upgradeable NORI Token',
@@ -57,7 +57,7 @@ module.exports = (deployer, network, accounts) => {
     );
 
     const crc = await upgrade(
-      CRCV0,
+      CRCV0_1_0,
       ['string', 'string', 'address', 'address', 'address'],
       [
         'Carbon Removal Certificate',

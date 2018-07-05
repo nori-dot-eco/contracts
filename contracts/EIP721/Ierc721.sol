@@ -1,7 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 /// @title Interface for contracts conforming to ERC-721: Non-Fungible Tokens
-/// @author Dieter Shirley <dete@axiomzen.co> (https://github.com/dete)
 interface Ierc721 {
     //TODO PRELAUNCH jaycen check that this matches latest standard
     function totalSupply() public view returns (uint256 total);

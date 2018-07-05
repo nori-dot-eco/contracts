@@ -1,5 +1,5 @@
 pragma solidity ^0.4.24;
-pragma experimental ABIEncoderV2;
+pragma experimental ABIEncoderV2; //solium-disable-line no-experimental
 import "./IEIP820Implementer.sol";
 
 
@@ -53,7 +53,7 @@ contract EIP820Registry {
   ///  Example `web3.utils.sha3('EIP777Token`')`
   /// @return The address of the contract that implements a specific interface
   ///  or 0x0 if `addr` does not implement this interface
-  function getInterfaceImplementer(address addr, bytes32 iHash) constant public returns (address) {
+  function getInterfaceImplementer(address addr, bytes32 iHash) view public returns (address) {
     if (isEIP165Interface(iHash)) {
       bytes4 i165Hash = bytes4(iHash);
       return eip165InterfaceSupported(addr, i165Hash) ? addr : 0;
@@ -82,7 +82,7 @@ contract EIP820Registry {
     return iHash & 0x00000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF == 0;
   }
 
-  function eip165InterfaceSupported(address _contract, bytes4 _interfaceId) constant public returns (bool) {
+  function eip165InterfaceSupported(address _contract, bytes4 _interfaceId) view public returns (bool) {
     if (!eip165Cache[_contract][_interfaceId]) {
       eip165UpdateCache(_contract, _interfaceId);
     }
@@ -94,7 +94,7 @@ contract EIP820Registry {
     eip165Cache[_contract][_interfaceId] = true;
   }
 
-  function eip165InterfaceSupported_NoCache(address _contract, bytes4 _interfaceId) public constant returns (bool) {
+  function eip165InterfaceSupported_NoCache(address _contract, bytes4 _interfaceId) public view returns (bool) {
     uint256 success;
     uint256 result;
 
@@ -115,10 +115,10 @@ contract EIP820Registry {
     return false;
   }
 
-  function noThrowCall(address _contract, bytes4 _interfaceId) constant internal returns (uint256 success, uint256 result) {
+  function noThrowCall(address _contract, bytes4 _interfaceId) view internal returns (uint256 success, uint256 result) {
     bytes4 eip165ID = EIP165ID;
 
-    assembly {
+    assembly { // solium-disable-line security/no-inline-assembly
         let x := mload(0x40)         // Find empty storage location using "free memory pointer"
         mstore(x, eip165ID)        // Place signature at begining of empty storage
         mstore(add(x, 0x04), _interfaceId) // Place first argument directly next to signature
