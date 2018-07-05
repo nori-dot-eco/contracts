@@ -20,7 +20,7 @@ const shouldBehaveLikeCrc = (admin, CrcContract, upgradeable = false) => {
     }
   });
 
-  contract('CRCV0', accounts => {
+  contract('CRCV0_1_0', accounts => {
     beforeEach(async () => {
       // temporaily using a toggle to allow contract calls from addresses not proxyed through participant identy contract
       await crc.toggleParticipantCalling(false, { from: accounts[0] });

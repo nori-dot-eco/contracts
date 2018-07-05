@@ -7,7 +7,7 @@ import "../../../EIP777/UnstructuredTokenBase.sol";
 * @title UnstructuredUpgradeableTokenV0
 * @dev Version 0 of a token to show upgradeability using unstructured storage.
 */
-contract UnstructuredUpgradeableTokenV0 is UnstructuredTokenBase {
+contract UnstructuredUpgradeableTokenV0 is UnstructuredTokenBase { // solium-disable-line no-empty-blocks
   
   
 }
