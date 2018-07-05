@@ -2,7 +2,7 @@ import expectThrow from '../helpers/expectThrow';
 import {
   ContractRegistryV0_1_0,
   VerifierV0_1_0,
-  CRCV0,
+  CRCV0_1_0,
 } from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
 import { deployUpgradeableCrc } from './Crc';
@@ -24,7 +24,7 @@ const shouldBehaveLikeVerifier = admin => {
     before(async () => {
       const contractRegistry = await ContractRegistryV0_1_0.new();
       [participantRegistry, , crc] = await deployUpgradeableCrc(
-        CRCV0,
+        CRCV0_1_0,
         admin,
         contractRegistry
       );
