@@ -1,7 +1,7 @@
 import expectThrow from '../helpers/expectThrow';
 import {
   ContractRegistryV0_1_0,
-  VerifierV0,
+  VerifierV0_1_0,
   CRCV0,
 } from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
@@ -36,7 +36,7 @@ const shouldBehaveLikeVerifier = admin => {
       [, verifier] = await deployUpgradeableContract(
         artifacts,
         null,
-        VerifierV0,
+        VerifierV0_1_0,
         contractRegistry,
         initParams
       );
