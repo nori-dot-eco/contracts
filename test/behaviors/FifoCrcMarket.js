@@ -4,7 +4,7 @@ import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
 import {
   NoriV0_1_0,
   FifoCrcMarketV0_1_0,
-  CRCV0_1_0,
+  CRCV0_2_0,
 } from '../helpers/Artifacts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
 import { deployUpgradeableCrc } from './Crc';
@@ -38,7 +38,7 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
         false
       );
       [participantRegistry, , crc] = await deployUpgradeableCrc(
-        CRCV0_1_0,
+        CRCV0_2_0,
         admin,
         contractRegistry
       );
@@ -84,10 +84,11 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
           for (let i = 0; i < crcToMint; i++) {
             crc.mint(supplier, '', token(crcValue), '');
           }
+
           suppliersCrcBal += crcToMint;
           assert.equal(
             await crc.balanceOf(supplier),
-            suppliersCrcBal,
+            token(suppliersCrcBal),
             'crc mint fail'
           );
         });
@@ -266,10 +267,10 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
         const crcIdToSplit = 3;
         it('should mint a CRC', async () => {
           await crc.mint(supplier, '0x0', token(saleAmount), '0x0');
-          suppliersCrcBal += 1;
+          suppliersCrcBal += saleAmount - crcToMint;
           assert.equal(
             await crc.balanceOf(supplier),
-            suppliersCrcBal,
+            token(suppliersCrcBal),
             'crc mint fail'
           );
         });

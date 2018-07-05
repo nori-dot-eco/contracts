@@ -1,7 +1,7 @@
 import {
   NoriV0_1_0,
   SelectableCrcMarketV0_1_0,
-  CRCV0_1_0,
+  CRCV0_2_0,
 } from './helpers/Artifacts';
 import { deployUpgradeableCrc } from './behaviors/Crc';
 import { upgradeToV0 } from './behaviors/UnstructuredUpgrades';
@@ -26,7 +26,7 @@ const SelectableCrcMarketTests = () => {
     );
 
     [, , crc] = await deployUpgradeableCrc(
-      CRCV0_1_0,
+      CRCV0_2_0,
       namedAccounts.admin0,
       contractRegistry
     );
