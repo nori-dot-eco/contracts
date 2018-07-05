@@ -5,6 +5,7 @@
   "license": "MIT",
   "devDependencies": {
     "@jaycenhorton/eth-gas-reporter": "^0.1.1",
+    "@soldoc/soldoc": "^0.4.3",
     "babel-eslint": "^8.2.5",
     "babel-plugin-dynamic-import-node": "^1.2.0",
     "babel-polyfill": "^6.26.0",
