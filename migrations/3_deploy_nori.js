@@ -6,7 +6,9 @@ const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
 const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
 const NoriV0_1_0 = artifacts.require('NoriV0_1_0');
-const ParticipantRegistryV0 = artifacts.require('ParticipantRegistryV0');
+const ParticipantRegistryV0_1_0 = artifacts.require(
+  'ParticipantRegistryV0_1_0'
+);
 const CRCV0_2_0 = artifacts.require('CRCV0_2_0');
 const ParticipantV0_1_0 = artifacts.require('ParticipantV0_1_0');
 const SupplierV0_1_0 = artifacts.require('SupplierV0_1_0');
@@ -51,7 +53,7 @@ module.exports = (deployer, network, accounts) => {
     );
 
     const participantRegistry = await upgrade(
-      ParticipantRegistryV0,
+      ParticipantRegistryV0_1_0,
       ['address', 'address'],
       [registry.address, adminAccountAddress]
     );

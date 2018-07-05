@@ -14,13 +14,14 @@ const Artifacts = {};
   'MultiSigWallet',
   'MultiAdmin',
   'CRCV0_2_0',
-  'ParticipantRegistryV0',
+  'ParticipantRegistryV0_1_0',
   'EIP820Implementer',
   'ParticipantV0_1_0',
   'SupplierV0_1_0',
   'VerifierV0_1_0',
   'FifoCrcMarketV0_1_0',
   'RootRegistryV0_1_0',
+  'CRCV0_2_0',
 ].forEach(contractName => {
   Artifacts[contractName] = artifacts.require(contractName);
 });
