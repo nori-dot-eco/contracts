@@ -1,4 +1,8 @@
-import { NoriV0, SelectableCrcMarketV0_1_0, CRCV0 } from './helpers/Artifacts';
+import {
+  NoriV0_1_0,
+  SelectableCrcMarketV0_1_0,
+  CRCV0,
+} from './helpers/Artifacts';
 import { deployUpgradeableCrc } from './behaviors/Crc';
 import { upgradeToV0 } from './behaviors/UnstructuredUpgrades';
 import { deployUpgradeableContract } from './helpers/contracts';
@@ -17,7 +21,7 @@ const SelectableCrcMarketTests = () => {
   before(async () => {
     [tonToken, , , contractRegistry] = await upgradeToV0(
       namedAccounts.admin0,
-      NoriV0,
+      NoriV0_1_0,
       false
     );
 

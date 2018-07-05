@@ -5,7 +5,7 @@ const utils = require('../helpers/utils');
 
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const web3 = MultiSigWallet.web3;
-const NoriV0 = artifacts.require('NoriV0');
+const NoriV0_1_0 = artifacts.require('NoriV0_1_0');
 const TestCalls = artifacts.require('TestCalls');
 const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
 
@@ -30,7 +30,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
 
     assert.ok(multisigInstance);
 
-    tokenInstance = await NoriV0.new();
+    tokenInstance = await NoriV0_1_0.new();
     await tokenInstance.initialize(
       'NORI Token',
       'NORI',
@@ -59,7 +59,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
   context('EIP820 compatibility', () => {
     describe('toggleTokenReceiver', () => {
       it('should disable IEIP777TokensRecipient interface', async () => {
-        const toggle = !await multisigInstance.tokenReceiver.call();
+        const toggle = !(await multisigInstance.tokenReceiver.call());
         await multisigInstance.toggleTokenReceiver(toggle);
         const tokenReceiver = await multisigInstance.tokenReceiver.call();
         assert.equal(
@@ -69,7 +69,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
         );
       });
       it('should enable IEIP777TokensRecipient interface after disabling', async () => {
-        const toggle = !await multisigInstance.tokenReceiver.call();
+        const toggle = !(await multisigInstance.tokenReceiver.call());
         await multisigInstance.toggleTokenReceiver(toggle);
         let tokenReceiver = await multisigInstance.tokenReceiver.call();
         assert.equal(

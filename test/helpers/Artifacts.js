@@ -1,7 +1,7 @@
 /* globals artifacts */
 const Artifacts = {};
 [
-  'NoriV0',
+  'NoriV0_1_0',
   'EIP820Registry',
   'Proxy',
   'UnstructuredUpgradeableTokenV0',
