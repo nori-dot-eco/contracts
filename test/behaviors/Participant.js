@@ -1,9 +1,12 @@
 import { deployUpgradeableParticipantRegistry } from './ParticipantRegistry';
-import { ContractRegistryV0_1_0, ParticipantV0 } from '../helpers/Artifacts';
+import {
+  ContractRegistryV0_1_0,
+  ParticipantV0_1_0,
+} from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
 
 const shouldBehaveLikeParticipant = admin => {
-  contract('ParticipantV0', () => {
+  contract('ParticipantV0_1_0', () => {
     let participant;
     let participantRegistry;
     before(async () => {
@@ -20,7 +23,7 @@ const shouldBehaveLikeParticipant = admin => {
       [, participant] = await deployUpgradeableContract(
         artifacts,
         null,
-        ParticipantV0,
+        ParticipantV0_1_0,
         contractRegistry,
         initParams
       );

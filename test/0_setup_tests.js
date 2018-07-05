@@ -12,6 +12,7 @@ import SupplierTests from './Supplier.test';
 import VerifierTests from './Verifier.test';
 import FifoCrcMarketV0Tests from './FifoCrcMarket.test';
 import { SelectableCrcMarketTests } from './SelectableCrcMarket.test';
+import { EIP820RegistryTests } from './EIP820.test';
 
 const {
   buyer0,
@@ -57,6 +58,7 @@ context('Setup test environment', () => {
     ContractRegistryTests(admin0, admin1, unregistered0);
     RootRegistryTests();
     SelectableCrcMarketTests();
+    EIP820RegistryTests();
     CRCV0Tests(admin0);
     ParticipantRegistryTests(admin0);
     ParticipantTests(admin0);

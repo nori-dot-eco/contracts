@@ -4,7 +4,7 @@ import "./../EIP777/IEIP777TokensOperator.sol";
 import "./../commodity/ICommodityOperator.sol";
 
 
-contract FifoCrcMarketV0 is StandardTokenizedCommodityMarket, IEIP777TokensOperator, ICommodityOperator {
+contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP777TokensOperator, ICommodityOperator {
   int[] public commoditiesForSale;
 
   constructor() StandardTokenizedCommodityMarket() public { }
@@ -48,13 +48,13 @@ contract FifoCrcMarketV0 is StandardTokenizedCommodityMarket, IEIP777TokensOpera
     /// @dev erc820 introspection : handler invoked when 
     /// this contract is made an operator for a commodity
   function madeOperatorForCommodity(
-    address operator,  
+    address, // operator,  
     address from,
-    address to,
+    address, // to,
     uint tokenId,
     uint256 value,
     bytes userData,
-    bytes operatorData
+    bytes // operatorData
   ) public {
     if (preventCommodityOperator) {
       revert();
@@ -73,12 +73,12 @@ contract FifoCrcMarketV0 is StandardTokenizedCommodityMarket, IEIP777TokensOpera
   /// @dev erc820 introspection : handler invoked when this contract
   ///  is made an operator for an erc777 token
   function madeOperatorForTokens(
-    address operator,  
+    address, // operator,  
     address from,
-    address to,
+    address, // to,
     uint256 amount,
-    bytes userData,
-    bytes operatorData
+    bytes, // userData,
+    bytes // operatorData
   ) public {
     if (preventTokenOperator) { 
       revert();
