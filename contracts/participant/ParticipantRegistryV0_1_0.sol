@@ -4,7 +4,7 @@ import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipantRegistry.sol";
 import "../ownership/UnstructuredOwnable.sol";
 
-contract ParticipantRegistryV0 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipantRegistry {
+contract ParticipantRegistryV0_1_0 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipantRegistry {
   // particpant type at address to enabled
   mapping (bytes32 => mapping(address => bool)) public participantTypes;
   // todo jaycen add per function permission
@@ -21,7 +21,7 @@ contract ParticipantRegistryV0 is UnstructuredOwnable, EIP820Implementer, IEIP82
     _initialized = true;
   }
 
-  function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) public view returns(bytes32) {
+  function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
     return EIP820_ACCEPT_MAGIC;
   }
 

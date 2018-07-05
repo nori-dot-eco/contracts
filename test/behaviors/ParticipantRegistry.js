@@ -1,6 +1,6 @@
 /* globals artifacts */
 import {
-  ParticipantRegistryV0,
+  ParticipantRegistryV0_1_0,
   ContractRegistryV0_1_0,
   UnstructuredOwnedUpgradeabilityProxy,
   SupplierV0_1_0,
@@ -23,7 +23,7 @@ const deployUpgradeableParticipantRegistry = async (
   const [, participantRegistry] = await deployUpgradeableContract(
     artifacts,
     proxy,
-    ParticipantRegistryV0,
+    ParticipantRegistryV0_1_0,
     contractRegistry,
     initParams
   );
@@ -31,7 +31,7 @@ const deployUpgradeableParticipantRegistry = async (
 };
 
 const shouldBehaveLikeParticipantRegistry = admin => {
-  contract('ParticipantRegistryV0', () => {
+  contract('ParticipantRegistryV0_1_0', () => {
     let participantRegistry;
     let supplier;
     let web3;
