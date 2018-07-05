@@ -6,7 +6,7 @@ import "./IParticipantRegistry.sol";
 import "../ownership/UnstructuredOwnable.sol";
 
 
-contract ParticipantV0 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipant {
+contract ParticipantV0_1_0 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipant {
   IParticipantRegistry public participantRegistry;
   bool internal _initialized;
   
@@ -21,7 +21,7 @@ contract ParticipantV0 is UnstructuredOwnable, EIP820Implementer, IEIP820Impleme
     _initialized = true;
   }
   
-  function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) public view returns(bytes32) {
+  function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
     return EIP820_ACCEPT_MAGIC;
   }
   

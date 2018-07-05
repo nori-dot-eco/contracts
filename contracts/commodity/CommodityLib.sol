@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 
 /// @title Library for commodities. Contains data types and functions for all commodities
