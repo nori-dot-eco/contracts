@@ -205,6 +205,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     require(_owns(msg.sender, _tokenId));
 
     ownershipBundleCount[_tokenHolder] = ownershipBundleCount[_tokenHolder].sub(1);
+    _balances[_tokenHolder] = _balances[_tokenHolder].sub(commodities[_tokenId].value);
 
     emit Burn(_tokenHolder, _tokenId);
 
