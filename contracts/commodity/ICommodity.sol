@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 interface ICommodity {
   function balanceOf(address owner) public view returns (uint256);
+  function bundleBalanceOf(address owner) public view returns (uint256);
   function ownerOf(uint256 tokenId) public view returns (address owner);
   // TODO jaycen do we need an ability to transfer all commodities to a new owner?
   function send(address to, uint256 amount) public;

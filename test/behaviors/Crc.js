@@ -1,26 +1,26 @@
 /* globals artifacts */
 import expectThrow from '../helpers/expectThrow';
-import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
+import { getLogs, deployLatestUpgradeableContract } from '../helpers/contracts';
 import { ContractRegistryV0_1_0 } from '../helpers/Artifacts';
 import { deployUpgradeableParticipantRegistry } from './ParticipantRegistry';
 
-const shouldBehaveLikeCrc = (admin, CrcContract, upgradeable = false) => {
+const shouldBehaveLikeCrc = (admin, upgradeable = false) => {
   let crc;
   let crcBalanceAccount0;
   let crcBalanceAccount1;
+  let versionName;
 
   before(async () => {
     if (upgradeable) {
       const contractRegistry = await ContractRegistryV0_1_0.new();
-      [, , crc] = await deployUpgradeableCrc(
-        CrcContract,
+      [, , crc, versionName] = await deployUpgradeableCrc(
         admin,
         contractRegistry
       );
     }
   });
 
-  contract('CRCV0_2_0', accounts => {
+  contract(`CRCV${versionName}`, accounts => {
     beforeEach(async () => {
       // temporaily using a toggle to allow contract calls from addresses not proxyed through participant identy contract
       await crc.toggleParticipantCalling(false, { from: accounts[0] });
@@ -166,12 +166,13 @@ const shouldBehaveLikeCrc = (admin, CrcContract, upgradeable = false) => {
         });
       });
     });
-    context('After minting a CRC', () => {
-      describe('balanceOf (V0_2_0)', () => {
+    context('After minting 2 CRC bundles', () => {
+      before(async () => {
+        await crc.mint(accounts[5], '0x0', 5, '0x0');
+        await crc.mint(accounts[5], '0x0', 10, '0x0');
+      });
+      describe('balanceOf', () => {
         it('should mint 2 CRC bundles valued at a total of 15', async () => {
-          await crc.mint(accounts[5], '0x0', 5, '0x0');
-          await crc.mint(accounts[5], '0x0', 10, '0x0');
-
           const crcBalanceAccount5 = await crc.balanceOf(accounts[5]);
           await assert.equal(
             crcBalanceAccount5.toString(),
@@ -180,11 +181,23 @@ const shouldBehaveLikeCrc = (admin, CrcContract, upgradeable = false) => {
           );
         });
       });
+      describe('bundleBalanceOf', () => {
+        it('should return a bundle count of 2', async () => {
+          const crcBundleBalanceAccount5 = await crc.bundleBalanceOf(
+            accounts[5]
+          );
+          await assert.equal(
+            crcBundleBalanceAccount5.toString(),
+            2,
+            'crc mint fail'
+          );
+        });
+      });
     });
   });
 };
 
-const deployUpgradeableCrc = async (CrcContract, admin, contractRegistry) => {
+const deployUpgradeableCrc = async (admin, contractRegistry) => {
   const [, participantRegistry] = await deployUpgradeableParticipantRegistry(
     admin,
     contractRegistry
@@ -199,15 +212,15 @@ const deployUpgradeableCrc = async (CrcContract, admin, contractRegistry) => {
       admin,
     ],
   ];
-  const [, crc, proxy] = await deployUpgradeableContract(
+  const [, crc, proxy, , , versionName] = await deployLatestUpgradeableContract(
     artifacts,
     null,
-    CrcContract,
+    'CRC',
     contractRegistry,
     initParams
   );
 
-  return [participantRegistry, proxy, crc];
+  return [participantRegistry, proxy, crc, versionName];
 };
 
 module.exports = { shouldBehaveLikeCrc, deployUpgradeableCrc };

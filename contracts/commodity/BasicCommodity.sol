@@ -41,7 +41,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
 
   // @dev A mapping from owner address to count of commoditys that address owns.
   //  Used internally inside balanceOf() to resolve ownership count.
-  mapping (address => uint256) ownershipTokenCount;
+  mapping (address => uint256) ownershipBundleCount;
 
   /// @dev A mapping from commodity IDs to an address that has been approved to call
   ///  transferFrom(). Each commodity can only have one approved address for transfer
@@ -53,7 +53,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   ///  address for siring at any time. A zero value means no approval is outstanding.
   mapping (uint256 => address) public commodityAllowedToAddress;
 
-  mapping(address => uint) private mBalances;
+  mapping(address => uint) internal _balances;
 
   mapping(address => mapping(address => bool)) private mAuthorized;
   mapping(address => mapping(address => uint256)) private mAllowed;
@@ -128,8 +128,6 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     return commodities.length - 1;
   }
 
-
-
   //todo jaycen onlyowner modifer
   function setParticipantRegistry (address _participantRegistry) public {
     participantRegistry = IParticipantRegistry(_participantRegistry);
@@ -168,14 +166,19 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   function _transfer(address _from, address _to, uint256 _tokenId) internal {
     //require commodity not locked/retired
     require(_unlocked(_tokenId));
-    // since the number of commodities  is capped to 2^32
-    // there is no way to overflow this
-    ownershipTokenCount[_to]++;
-    // transfer ownership
+    
+    // increment bundle count and total balance
+    ownershipBundleCount[_to] = ownershipBundleCount[_to].add(1);
+    _balances[_to] = _balances[_to].add(commodities[_tokenId].value);
+    // transfer ownership of bundle
     commodityIndexToOwner[_tokenId] = _to;
+
     // When creating new commodites _from is 0x0, but we can't account that address.
     if (_from != address(0)) {
-      ownershipTokenCount[_from]--;
+      _balances[_from] = _balances[_to].sub(commodities[_tokenId].value);
+      if(ownershipBundleCount[_from] > 0){
+        ownershipBundleCount[_from] = ownershipBundleCount[_from].sub(1);
+      }
       // clear any previously approved ownership exchange
       delete commodityIndexToApproved[_tokenId];
 
@@ -185,17 +188,23 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     emit Transfer(_from, _to, _tokenId);
   }
 
-  /// @notice Returns the number of crcs owned by a specific address.
+  /// @notice Returns the total value of crcs owned by a specific address.
   /// @param _owner The owner address to check.
   function balanceOf(address _owner) public view returns (uint256 count) {
-    return ownershipTokenCount[_owner];
+    return _balances[_owner];
+  }
+
+  /// @notice Returns the number of crc bundles owned by a specific address.
+  /// @param _owner The owner address to check.
+  function bundleBalanceOf(address _owner) public view returns (uint256 count) {
+    return ownershipBundleCount[_owner];
   }
 
   /** @notice Sample burn function to showcase the use of the 'Burn' event. */
   function burn(address _tokenHolder, uint256 _tokenId) public onlyOwner returns(bool) {
     require(_owns(msg.sender, _tokenId));
 
-    ownershipTokenCount[_tokenHolder] = ownershipTokenCount[_tokenHolder].sub(1);
+    ownershipBundleCount[_tokenHolder] = ownershipBundleCount[_tokenHolder].sub(1);
 
     emit Burn(_tokenHolder, _tokenId);
 
