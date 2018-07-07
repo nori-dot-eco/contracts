@@ -29,7 +29,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     address indexed operator,
     bytes operatorData
   );
-  event Burn(address indexed from, uint256 tokenId);
+  event Burnt(address indexed from, uint256 tokenId);
 
   uint256 internal mTotalSupply;
   IParticipantRegistry public participantRegistry;
@@ -201,13 +201,13 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   }
 
   /** @notice Sample burn function to showcase the use of the 'Burn' event. */
-  function burn(address _tokenHolder, uint256 _tokenId) public onlyOwner returns(bool) {
+  function burn(address _tokenHolder, uint256 _tokenId) public returns(bool) {
     require(_owns(msg.sender, _tokenId));
 
     ownershipBundleCount[_tokenHolder] = ownershipBundleCount[_tokenHolder].sub(1);
     _balances[_tokenHolder] = _balances[_tokenHolder].sub(commodities[_tokenId].value);
 
-    emit Burn(_tokenHolder, _tokenId);
+    emit Burnt(_tokenHolder, _tokenId);
 
     return true;
   }

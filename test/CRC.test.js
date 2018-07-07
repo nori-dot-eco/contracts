@@ -1,6 +1,6 @@
 import { shouldBehaveLikeCrc } from './behaviors/Crc';
 
 const CRCTests = admin => {
-  shouldBehaveLikeCrc(admin, true);
+  shouldBehaveLikeCrc(admin);
 };
 export default CRCTests;
