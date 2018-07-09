@@ -9,7 +9,7 @@ const NoriV0_1_0 = artifacts.require('NoriV0_1_0');
 const ParticipantRegistryV0_1_0 = artifacts.require(
   'ParticipantRegistryV0_1_0'
 );
-const CRCV0_2_0 = artifacts.require('CRCV0_2_0');
+const CRCV0_1_0 = artifacts.require('CRCV0_1_0');
 const ParticipantV0_1_0 = artifacts.require('ParticipantV0_1_0');
 const SupplierV0_1_0 = artifacts.require('SupplierV0_1_0');
 const VerifierV0_1_0 = artifacts.require('VerifierV0_1_0');
@@ -59,7 +59,7 @@ module.exports = (deployer, network, accounts) => {
     );
 
     const crc = await upgrade(
-      CRCV0_2_0,
+      CRCV0_1_0,
       ['string', 'string', 'address', 'address', 'address'],
       [
         'Carbon Removal Certificate',

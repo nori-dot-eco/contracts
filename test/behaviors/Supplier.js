@@ -1,9 +1,5 @@
 import expectThrow from '../helpers/expectThrow';
-import {
-  ContractRegistryV0_1_0,
-  SupplierV0_1_0,
-  CRCV0_2_0,
-} from '../helpers/Artifacts';
+import { ContractRegistryV0_1_0, SupplierV0_1_0 } from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
 import { deployUpgradeableCrc } from './Crc';
 
@@ -23,7 +19,6 @@ const shouldBehaveLikeSupplier = admin => {
     before(async () => {
       const contractRegistry = await ContractRegistryV0_1_0.new();
       [participantRegistry, , crc] = await deployUpgradeableCrc(
-        CRCV0_2_0,
         admin,
         contractRegistry
       );
