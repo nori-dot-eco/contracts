@@ -1,11 +1,7 @@
 import expectThrow from '../helpers/expectThrow';
 import token from '../helpers/ether';
 import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
-import {
-  NoriV0_1_0,
-  FifoCrcMarketV0_1_0,
-  CRCV0_1_0,
-} from '../helpers/Artifacts';
+import { NoriV0_1_0, FifoCrcMarketV0_1_0 } from '../helpers/Artifacts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
 import { deployUpgradeableCrc } from './Crc';
 
@@ -38,7 +34,6 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
         false
       );
       [participantRegistry, , crc] = await deployUpgradeableCrc(
-        CRCV0_1_0,
         admin,
         contractRegistry
       );
@@ -62,7 +57,7 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
       suppliersNoriBal = 0;
       buyersCrcBal = 0;
       suppliersCrcBal = 0;
-      fifomarketAddr = await fifoCrcMarket.address;
+      fifomarketAddr = fifoCrcMarket.address;
     });
     beforeEach(async () => {
       // temporaily using a toggle to allow contract calls from addresses not proxyed through participant identy contract
@@ -71,7 +66,7 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
     describe('Test different possible sale scenarios for CRCs:NORI', () => {
       describe('Mint NORI and CRCs', () => {
         it(`should mint ${noriToMint} NORI`, async () => {
-          noriToken.mint(buyer, token(noriToMint), '0x0');
+          await noriToken.mint(buyer, token(noriToMint), '0x0');
           buyersNoriBal += noriToMint;
           assert.equal(
             await noriToken.balanceOf(buyer),
@@ -81,13 +76,14 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
         });
 
         it(`should mint ${crcToMint} CRCs with a value of ${crcValue}`, async () => {
-          for (let i = 0; i < crcToMint; i++) {
-            crc.mint(supplier, '', token(crcValue), '');
-          }
+          fifoOrder.forEach(async () => {
+            await crc.mint(supplier, '', token(crcValue), '');
+          });
+
           suppliersCrcBal += crcToMint;
           assert.equal(
             await crc.balanceOf(supplier),
-            suppliersCrcBal,
+            token(suppliersCrcBal),
             'crc mint fail'
           );
         });
@@ -98,11 +94,12 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
       } CRC sales by making the market contract an authorized operator`, () => {
         let saleCreatedLogs;
         before(async () => {
-          fifoOrder.forEach(index => {
-            crc.authorizeOperator(fifomarketAddr, index, {
+          fifoOrder.forEach(async index => {
+            await crc.authorizeOperator(fifomarketAddr, index, {
               from: supplier,
             });
           });
+
           saleCreatedLogs = await getLogs(
             fifoCrcMarket.SaleCreated,
             {},
@@ -192,14 +189,19 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
         describe('When the market contract is made an authorized operator of NORI', () => {
           let saleSuccessfulLogs;
           before(async () => {
-            fifoOrder.forEach(() => {
-              noriToken.authorizeOperator(fifomarketAddr, token(crcValue), {
-                from: buyer,
-              });
+            fifoOrder.forEach(async () => {
+              await noriToken.authorizeOperator(
+                fifomarketAddr,
+                token(crcValue),
+                {
+                  from: buyer,
+                }
+              );
               buyersNoriBal -= crcValue;
               suppliersNoriBal += crcValue;
               buyersCrcBal += crcValue;
             });
+
             saleSuccessfulLogs = await getLogs(
               fifoCrcMarket.SaleSuccessful,
               {},
@@ -266,10 +268,11 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
         const crcIdToSplit = 3;
         it('should mint a CRC', async () => {
           await crc.mint(supplier, '0x0', token(saleAmount), '0x0');
-          suppliersCrcBal += 1;
+
+          suppliersCrcBal += saleAmount;
           assert.equal(
             await crc.balanceOf(supplier),
-            suppliersCrcBal,
+            token(suppliersCrcBal),
             'crc mint fail'
           );
         });
@@ -301,7 +304,7 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
           );
           assert.equal(
             await noriToken.balanceOf(buyer),
-            buyersNoriBal,
+            token(buyersNoriBal),
             'Buyer didnt spend tokens'
           );
           assert.equal(

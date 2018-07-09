@@ -5,7 +5,7 @@ import MultiAdminTests from './MultiAdmin.test';
 import MultiSigWallet from './MultiSigWallet.test';
 import { RootRegistryTests, ContractRegistryTests } from './Registry.test';
 import { giveEth } from './helpers/utils';
-import CRCV0Tests from './CRCV0.test';
+import CRCTests from './CRC.test';
 import ParticipantRegistryTests from './ParticipantRegistry.test';
 import ParticipantTests from './Participant.test';
 import SupplierTests from './Supplier.test';
@@ -59,7 +59,7 @@ context('Setup test environment', () => {
     RootRegistryTests();
     SelectableCrcMarketTests();
     EIP820RegistryTests();
-    CRCV0Tests(admin0);
+    CRCTests(admin0);
     ParticipantRegistryTests(admin0);
     ParticipantTests(admin0);
     SupplierTests(admin0);

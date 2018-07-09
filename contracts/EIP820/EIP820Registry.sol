@@ -3,6 +3,16 @@ pragma experimental ABIEncoderV2; //solium-disable-line no-experimental
 import "./IEIP820Implementer.sol";
 
 
+/**
+  @title EIP820Registry - pseudo contract introspection registry.
+    This contract keeps track of all contract interfaces implemented by a given
+    address. This particular contract is what allows contracts to register all of 
+    the interfaces which it can support. It is particular useful for allowing and 
+    disallowing certain types of transactions using "pseudo contract introspection". 
+    Contracts wishing to leverage this type of functionality MUST inherit from the
+    EIP820Implementer contract. More info here [EIP-820](https://github.com/ethereum/EIPs/issues/820)
+  @author @jaycenhorton
+*/
 contract EIP820Registry {
   bytes4 constant INVALIDID = 0xffffffff;
   bytes4 constant EIP165ID = 0x01ffc9a7;

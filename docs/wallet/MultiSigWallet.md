@@ -173,8 +173,8 @@ Returns:
 
 Params:
 
-1. **addr** *of type `address`*
-2. **interfaceHash** *of type `bytes32`*
+1. **param_0** *of type `address`*
+2. **param_1** *of type `bytes32`*
 
 Returns:
 
