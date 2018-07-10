@@ -12,7 +12,7 @@ function getLogs(Event, filter, additionalFilters) {
 
 const deployOrGetRootRegistry = async config => {
   const { network, artifacts, deployer } = config;
-  if (network === 'develop') {
+  if (network === 'develop' || network === 'test') {
     try {
       await artifacts.require('RootRegistryV0_1_0').deployed();
     } catch (e) {

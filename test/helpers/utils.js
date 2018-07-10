@@ -114,7 +114,7 @@ const onlyWhitelisted = async (config, ifWhiteListed) => {
         `${from} is not a whitelisted account for deploying to ropsten.`
       );
     }
-  } else if (network === 'develop') {
+  } else if (network === 'develop' || network === 'test') {
     if (!getNamedAccounts(web3).allAccounts.includes(from.toLowerCase())) {
       throw new Error(
         `${from} is not a whitelisted account for deploying to ${network}.`

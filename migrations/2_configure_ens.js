@@ -40,7 +40,7 @@ const setupDomain = async () => {
 };
 
 module.exports = function deploy(deployer, network) {
-  if (network === 'develop') {
+  if (network === 'develop' || network === 'test') {
     deployer.then(async () => {
       const tld = 'eth';
       await deployFIFSRegistrar(deployer, tld);

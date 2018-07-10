@@ -8,7 +8,7 @@ const getENSDetails = async config => {
   if (network === 'ropstenGeth' || network === 'ropsten') {
     ens = new ENS(web3.currentProvider);
     resolver = ens.resolver('nori.test').addr();
-  } else if (network === 'develop') {
+  } else if (network === 'develop' || network === 'test') {
     try {
       ens = await artifacts.require('./ENSRegistry.sol').deployed();
       resolver = ens.resolver(namehash.hash('nori.eth'));
