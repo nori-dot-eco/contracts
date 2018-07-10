@@ -12,11 +12,12 @@ function getLogs(Event, filter, additionalFilters) {
 
 const deployOrGetRootRegistry = async config => {
   const { network, artifacts, web3, deployer } = config;
-  if (
-    network === 'develop' &&
-    !(await artifacts.require('RootRegistryV0_1_0').deployed())
-  ) {
-    return deployer.deploy(artifacts.require('RootRegistryV0_1_0'));
+  if (network === 'develop') {
+    try {
+      await artifacts.require('RootRegistryV0_1_0').deployed();
+    } catch (e) {
+      return deployer.deploy(artifacts.require('RootRegistryV0_1_0'));
+    }
   }
   const rootRegistry = await ensUtils.getENSDetails(network, artifacts, web3);
   if (rootRegistry) {
