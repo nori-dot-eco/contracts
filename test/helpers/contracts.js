@@ -292,7 +292,6 @@ const upgradeAndTransferToMultiAdmin = async (
   multiAdmin
 ) => {
   const { artifacts } = config;
-  // const rootRegistry = await deployOrGetRootRegistry(config);
   const versionName = await getLatestVersionFromFs(contractName);
   const contract = artifacts.require(`${contractName}V${versionName}`);
 

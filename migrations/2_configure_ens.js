@@ -57,7 +57,7 @@ module.exports = function deploy(deployer, network) {
     });
   } else {
     console.log(
-      `No ENS configuration steps defined for ${network}. Migrations will continue to look for liver deployments`
+      `No ENS configuration steps defined for network: ${network}. Migrations will continue to look for a live deployment`
     );
   }
 };

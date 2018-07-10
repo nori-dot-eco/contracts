@@ -5,8 +5,6 @@ const {
 } = require('../test/helpers/contracts');
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 const utils = require('../test/helpers/utils');
-const prepareMultiSigAndRoot = require('../test/helpers/multisig')
-  .prepareMultiSigAndRoot;
 
 const MultiAdmin = artifacts.require('MultiAdmin');
 
@@ -20,9 +18,14 @@ module.exports = (deployer, network, accounts) => {
       accounts,
       deployer,
     };
+    if (network === 'ropsten' || network === 'ropstenGeth') {
+      adminAccountAddress = accounts[0];
+    } else {
+      adminAccountAddress = getNamedAccounts(web3).admin0;
+    }
+
     try {
       root = await deployOrGetRootRegistry(config);
-
       multiAdmin = MultiAdmin.at(
         await root.getLatestProxyAddr.call('MultiAdmin')
       );
@@ -32,22 +35,6 @@ module.exports = (deployer, network, accounts) => {
       );
     }
 
-    if (network === 'ropsten' || network === 'ropstenGeth') {
-      adminAccountAddress = accounts[0];
-      // const { multiAdminAddr, rootRegistry } = await utils.onlyWhitelisted(
-      //   config,
-      //   prepareMultiSigAndRoot
-      // );
-      if ((await root.owner()) !== multiAdmin.address) {
-        throw new Error(
-          'Root registry owner should be the multisig admin account'
-        );
-      }
-      // todo just return admin during setup?
-    } else {
-      adminAccountAddress = getNamedAccounts(web3).admin0;
-      // Deploy the registry behind a proxy
-    }
     const upgradeRegistry = () =>
       upgradeAndTransferToMultiAdmin(
         config,
@@ -59,7 +46,11 @@ module.exports = (deployer, network, accounts) => {
       );
 
     const { registry } = await utils.onlyWhitelisted(config, upgradeRegistry);
-
+    if ((await root.owner()) !== multiAdmin.address) {
+      throw new Error(
+        'Root registry owner should be the multisig admin account'
+      );
+    }
     console.log('Deployed Contract Registry Address:', registry.address);
   });
 };

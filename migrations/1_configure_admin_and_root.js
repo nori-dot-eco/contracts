@@ -5,8 +5,8 @@ const prepareMultiSigAndRoot = require('../test/helpers/multisig')
 
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
-    // deploy or get the root registry, but only if the connected account has permission
-    // to do so on the detected network
+    // deploy or get the root registry, but only if the connected account has
+    // permission to do so on the detected network
     let multiAdmin, multiSigWallet, rootRegistry;
     try {
       rootRegistry = await artifacts.require('./RootRegistryV0_1_0').deployed();
@@ -14,7 +14,7 @@ module.exports = (deployer, network, accounts) => {
         rootRegistry.getLatestProxyAddr('MultiAdmin'),
         rootRegistry.getLatestProxyAddr('MultiSigWallet'),
       ]);
-      console.log('The multisigs and root were already deployed.');
+      console.log('Multisigs and root were already deployed and configured:');
     } catch (e) {
       console.log('Deploying a fresh everything!');
       ({
