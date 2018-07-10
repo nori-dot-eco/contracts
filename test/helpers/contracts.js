@@ -16,6 +16,9 @@ const deployOrGetRootRegistry = async config => {
     try {
       await artifacts.require('RootRegistryV0_1_0').deployed();
     } catch (e) {
+      console.log(
+        `Setting up new Root Registry as it looks like it has never been deployed on ${network}`
+      );
       return deployer.deploy(artifacts.require('RootRegistryV0_1_0'));
     }
   }
