@@ -27,6 +27,13 @@ contract Market is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer {
     enableCommodityOperator();
     _initialized = true;
   }
+
+  /**
+    @dev returns the current initalization status
+   */
+  function initialized() public view returns(bool) {
+    return _initialized;
+  }
   
   function _createMarketItem (address _marketItem) internal {
     MarketLib.Market memory marketItem = MarketLib.Market({
@@ -36,7 +43,7 @@ contract Market is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer {
   }
   
   // solhint-disable-next-line no-unused-vars
-  function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) public view returns(bytes32) {
+  function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
     return EIP820_ACCEPT_MAGIC;
   }
   
