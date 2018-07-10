@@ -121,7 +121,7 @@ const onlyWhitelisted = async (config, ifWhiteListed) => {
       );
     }
   }
-  return ifWhiteListed(network, artifacts, web3, accounts, deployer);
+  return ifWhiteListed(config);
 };
 
 Object.assign(exports, {
