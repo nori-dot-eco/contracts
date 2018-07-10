@@ -17,6 +17,7 @@
     "eslint-config-airbnb-base": "12.1.0",
     "eslint-config-prettier": "^2.9.0",
     "eslint-plugin-import": "^2.13.0",
+    "eth-ens-namehash": "^2.0.8",
     "eth-signer": "^0.3.4",
     "ethereum-ens": "^0.7.4",
     "ethereumjs-abi": "^0.6.5",

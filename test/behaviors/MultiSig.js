@@ -19,7 +19,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
   const requiredConfirmations = 2;
 
   beforeEach(async () => {
-    contractRegistry = await RootRegistryV0_1_0.deployed();
+    contractRegistry = await RootRegistryV0_1_0.new();
     assert.ok(contractRegistry);
     multisigInstance = await MultiSigContract.new(
       [accounts[0], accounts[1]],
