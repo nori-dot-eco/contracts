@@ -24,7 +24,7 @@ const deployOrGetRootRegistry = async config => {
   }
   const rootRegistry = await ensUtils.getENSDetails(config);
   if (rootRegistry) {
-    console.log('Found existing registry registry at', rootRegistry.address);
+    console.log('Found existing registry at', rootRegistry.address);
   } else {
     throw new Error('No root registry can be found on the network.');
   }
@@ -49,6 +49,7 @@ const getLatestVersion = async (registry, contractName) => {
 
 // deploy an unstructured upgradeable contract and proxy, initialize the contract,
 // then create a contract at the proxy's address.
+// todo deprecate
 const deployUpgradeableContract = async (
   artifacts,
   passedProxy = null,
@@ -139,7 +140,7 @@ const getLatestVersionFromFs = async contractName => {
     });
   });
 };
-
+// todo deprecate
 const deployLatestUpgradeableContract = async (
   artifacts,
   passedProxy = null,
@@ -168,7 +169,7 @@ const deployLatestUpgradeableContract = async (
     deployParams
   );
 };
-
+// todo deprecate
 const upgradeToContract = async (
   artifacts,
   contract,
@@ -226,27 +227,27 @@ const upgradeToContract = async (
 
 const deployOrGetProxy = async (
   config,
-  proxyAddress,
+  existingProxyAddr,
   contractRegistry,
   multiAdmin,
   deployParams
 ) => {
   const { artifacts } = config;
   let proxy = null;
-  if (proxyAddress) {
+  if (existingProxyAddr) {
     proxy = await artifacts
       .require('UnstructuredOwnedUpgradeabilityProxy')
-      .at(proxyAddress);
+      .at(existingProxyAddr);
   } else {
     proxy = await artifacts
       .require('UnstructuredOwnedUpgradeabilityProxy')
       .new(contractRegistry.address, deployParams);
+    await proxy.transferProxyOwnership(multiAdmin.address);
   }
-  await proxy.transferProxyOwnership(multiAdmin.address);
   return proxy;
 };
 
-const initializeFromMultiAdmin = async (
+const initOrUpgradeFromMultiAdmin = async (
   contractToInit,
   contractName,
   versionName,
@@ -291,7 +292,7 @@ const upgradeAndTransferToMultiAdmin = async (
   multiAdmin
 ) => {
   const { artifacts } = config;
-  const rootRegistry = await deployOrGetRootRegistry(config);
+  // const rootRegistry = await deployOrGetRootRegistry(config);
   const versionName = await getLatestVersionFromFs(contractName);
   const contract = artifacts.require(`${contractName}V${versionName}`);
 
@@ -327,7 +328,7 @@ const upgradeAndTransferToMultiAdmin = async (
       multiAdmin,
       deployParams
     );
-    await initializeFromMultiAdmin(
+    await initOrUpgradeFromMultiAdmin(
       contractToMakeUpgradeable,
       contractName,
       versionName,
@@ -345,12 +346,7 @@ const upgradeAndTransferToMultiAdmin = async (
       versionName,
       proxyAddress
     );
-    // return contract.at(proxyAddress);
-    upgradeableContractAtProxy = await contract.at(proxy.address, deployParams);
   }
-  // const contractRegistry =
-  //   registry ||
-  //   (await artifacts.require('ContractRegistryV0_1_0').new(deployParams));
 
   return {
     contractToMakeUpgradeable,

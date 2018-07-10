@@ -32,6 +32,10 @@ module.exports = (deployer, network, accounts) => {
       );
     }
 
+    /**
+     * TO BE COMPLETED
+     */
+
     const upgrade = (contract, argTypes, args) =>
       upgradeToContract(artifacts, contract, registry, argTypes, args, {
         from: adminAccountAddress,

@@ -42,11 +42,22 @@ const setupDomain = async () => {
 module.exports = function deploy(deployer, network) {
   if (network === 'develop' || network === 'test') {
     deployer.then(async () => {
-      const tld = 'eth';
-      await deployFIFSRegistrar(deployer, tld);
-      await setupDomain();
+      try {
+        const ens = await ENS.deployed();
+        const resolver = await ens.resolver(namehash.hash('nori.eth'));
+        console.log(
+          `Looks like ENS is configured and resolving to ${resolver}`
+        );
+      } catch (e) {
+        console.log('Beginning new ENS configuration');
+        const tld = 'eth';
+        await deployFIFSRegistrar(deployer, tld);
+        await setupDomain();
+      }
     });
   } else {
-    console.log(`No ENS configuration steps defined for ${network}`);
+    console.log(
+      `No ENS configuration steps defined for ${network}. Migrations will continue to look for liver deployments`
+    );
   }
 };
