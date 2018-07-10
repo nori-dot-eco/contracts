@@ -6,16 +6,8 @@ const prepareMultiSigAndRoot = async config => {
   const admin1 = accounts[1];
   let multiAdmin, multiSigWallet;
   const rootRegistry = await deployOrGetRootRegistry(config);
-  if (network === 'ropsten' || network === 'ropstenGeth') {
-    try {
-      [multiAdmin, multiSigWallet] = await Promise.all([
-        rootRegistry.getLatestProxyAddr('MultiAdmin'),
-        rootRegistry.getLatestProxyAddr('MultiSigWallet'),
-      ]);
-    } catch (e) {
-      throw new Error('MultiSigs havent been deployed');
-    }
-  } else if (network === 'develop') {
+  // on ropsten we always want to get the multisigs from the root, so only in development do we want to create new ones
+  if (network === 'develop') {
     [multiSigWallet, multiAdmin] = await Promise.all([
       artifacts
         .require('MultiSigWallet')
@@ -24,7 +16,6 @@ const prepareMultiSigAndRoot = async config => {
         .require('MultiAdmin')
         .new([admin0, admin1], 1, rootRegistry.address),
     ]);
-
     await rootRegistry.setVersion(
       'MultiAdmin',
       multiAdmin.address,
@@ -37,16 +28,18 @@ const prepareMultiSigAndRoot = async config => {
       '0_1_0',
       multiSigWallet.address
     );
-
+    await rootRegistry.transferOwnership(multiAdmin.address);
+  }
+  try {
     [multiAdmin, multiSigWallet] = await Promise.all([
       rootRegistry.getLatestProxyAddr('MultiAdmin'),
       rootRegistry.getLatestProxyAddr('MultiSigWallet'),
     ]);
-    await rootRegistry.transferOwnership(multiAdmin);
+  } catch (e) {
+    throw new Error('MultiSigs havent been deployed or set in the root');
   }
-
   if ((await rootRegistry.owner()) !== multiAdmin) {
-    throw new Error('Root registry owner should be the multisig admin account');
+    throw new Error('Danger! Root owner should be the multisig admin account');
   }
   return { multiAdmin, multiSigWallet, rootRegistry };
 };
