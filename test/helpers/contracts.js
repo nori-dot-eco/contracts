@@ -281,8 +281,6 @@ const initOrUpgradeFromMultiAdmin = async (
   await multiAdmin.submitTransaction(proxy.address, 0, upgradeTxData);
 };
 
-const getContractAtRegistry = () => {};
-
 const upgradeAndTransferToMultiAdmin = async (
   config,
   contractName,
@@ -358,7 +356,6 @@ const upgradeAndTransferToMultiAdmin = async (
 };
 
 module.exports = {
-  getContractAtRegistry,
   upgradeAndTransferToMultiAdmin,
   deployUpgradeableContract,
   upgradeToContract,
