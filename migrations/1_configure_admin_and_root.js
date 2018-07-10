@@ -22,8 +22,8 @@ module.exports = (deployer, network, accounts) => {
       prepareMultiSigAndRoot
     );
 
-    console.log('RootRegistry', rootRegistry.address); // 0x21dbe117c36acac1b3bc08a18169d8059fbce1c7
-    console.log('MultiSigWallet:', multiSigAddr); // 0x22c2a0758986817695d9d1a1866aacb775dc3f85
-    console.log('MultiAdmin:', multiAdminAddr); // 0x853a954591da9db7d6bb774bc8feaf7646aa5010
+    console.log('RootRegistry', rootRegistry.address); // ropsten should be: 0x21dbe117c36acac1b3bc08a18169d8059fbce1c7
+    console.log('MultiSigWallet:', multiSigAddr); // ropsten should be: 0x22c2a0758986817695d9d1a1866aacb775dc3f85
+    console.log('MultiAdmin:', multiAdminAddr); // ropsten should be: 0x853a954591da9db7d6bb774bc8feaf7646aa5010
   });
 };
