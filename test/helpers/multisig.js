@@ -6,6 +6,7 @@ const prepareMultiSigAndRoot = async config => {
   const admin1 = accounts[1];
   let multiAdmin, multiSigWallet;
   const rootRegistry = await deployOrGetRootRegistry(config);
+
   // on ropsten we always want to get the multisigs from the root, so only in development do we want to create new ones
   if (network === 'develop' || network === 'test') {
     [multiSigWallet, multiAdmin] = await Promise.all([

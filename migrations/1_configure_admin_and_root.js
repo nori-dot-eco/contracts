@@ -8,8 +8,8 @@ module.exports = (deployer, network, accounts) => {
     // deploy or get the root registry, but only if the connected account has permission
     // to do so on the detected network
     const {
-      multiAdminAddr,
-      multiSigAddr,
+      multiAdmin,
+      multiSigWallet,
       rootRegistry,
     } = await utils.onlyWhitelisted(
       {
@@ -23,7 +23,7 @@ module.exports = (deployer, network, accounts) => {
     );
 
     console.log('RootRegistry', rootRegistry.address); // ropsten should be: 0x21dbe117c36acac1b3bc08a18169d8059fbce1c7
-    console.log('MultiSigWallet:', multiSigAddr); // ropsten should be: 0x22c2a0758986817695d9d1a1866aacb775dc3f85
-    console.log('MultiAdmin:', multiAdminAddr); // ropsten should be: 0x853a954591da9db7d6bb774bc8feaf7646aa5010
+    console.log('MultiSigWallet:', multiSigWallet); // ropsten should be: 0x22c2a0758986817695d9d1a1866aacb775dc3f85
+    console.log('MultiAdmin:', multiAdmin); // ropsten should be: 0x853a954591da9db7d6bb774bc8feaf7646aa5010
   });
 };
