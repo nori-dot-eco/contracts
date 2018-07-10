@@ -1,25 +1,25 @@
 const deployOrGetRootRegistry = require('./contracts').deployOrGetRootRegistry;
 
-const prepareMultiSigAndRoot = async (
-  network,
-  artifacts,
-  web3,
-  accounts,
-  deployer
-) => {
+const prepareMultiSigAndRoot = async config => {
+  const { network, artifacts, web3, accounts, deployer } = config;
   const admin0 = accounts[0];
   const admin1 = accounts[1];
   let multiAdmin, multiSigWallet, rootRegistry;
 
   if (network === 'ropsten' || network === 'ropstenGeth') {
     try {
-      rootRegistry = await deployOrGetRootRegistry(network, artifacts, web3);
+      rootRegistry = await deployOrGetRootRegistry({
+        network,
+        artifacts,
+        web3,
+        deployer,
+      });
       [multiAdmin, multiSigWallet] = await Promise.all([
         rootRegistry.getLatestProxyAddr('MultiAdmin'),
         rootRegistry.getLatestProxyAddr('MultiSigWallet'),
       ]);
     } catch (e) {
-      console.log('MultiSigs havent been deployed');
+      throw new Error('MultiSigs havent been deployed');
     }
   } else if (network === 'develop') {
     rootRegistry = await deployer.deploy(

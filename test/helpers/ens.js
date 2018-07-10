@@ -7,13 +7,15 @@ const getENSDetails = async (network, artifacts, web3) => {
   if (network === 'ropstenGeth' || network === 'ropsten') {
     ens = new ENS(web3.currentProvider);
     resolver = ens.resolver('nori.test').addr();
-  } else {
+  } else if (network === 'develop') {
     try {
       ens = await artifacts.require('./ENSRegistry.sol').deployed();
       resolver = ens.resolver(namehash.hash('nori.eth'));
     } catch (e) {
       console.log('make sure ENS is deployed first');
     }
+  } else {
+    throw new Error(`ENS hasn't been configured for ${network}`);
   }
   return artifacts.require('./RootRegistryV0_1_0.sol').at(await resolver);
 };

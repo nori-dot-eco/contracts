@@ -12,11 +12,13 @@ module.exports = (deployer, network, accounts) => {
       multiSigAddr,
       rootRegistry,
     ] = await utils.onlyWhitelisted(
-      network,
-      artifacts,
-      web3,
-      accounts,
-      deployer,
+      {
+        network,
+        artifacts,
+        web3,
+        accounts,
+        deployer,
+      },
       prepareMultiSigAndRoot
     );
 
