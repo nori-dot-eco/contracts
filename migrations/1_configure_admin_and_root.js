@@ -5,8 +5,8 @@ const prepareMultiSigAndRoot = require('../test/helpers/multisig')
 
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
-    // // deploy or get the root registry, but only if the connected account has permission
-    // // to do so on the detected network
+    // deploy or get the root registry, but only if the connected account has permission
+    // to do so on the detected network
     const [
       multiAdminAddr,
       multiSigAddr,
