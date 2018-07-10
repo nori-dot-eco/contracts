@@ -1,16 +1,11 @@
 const deployOrGetRootRegistry = require('./contracts').deployOrGetRootRegistry;
 
 const prepareMultiSigAndRoot = async config => {
-  const { network, artifacts, web3, accounts, deployer } = config;
+  const { network, artifacts, accounts } = config;
   const admin0 = accounts[0];
   const admin1 = accounts[1];
   let multiAdmin, multiSigWallet;
-  const rootRegistry = await deployOrGetRootRegistry({
-    network,
-    artifacts,
-    web3,
-    deployer,
-  });
+  const rootRegistry = await deployOrGetRootRegistry(config);
   if (network === 'ropsten' || network === 'ropstenGeth') {
     try {
       [multiAdmin, multiSigWallet] = await Promise.all([
@@ -53,7 +48,7 @@ const prepareMultiSigAndRoot = async config => {
   if ((await rootRegistry.owner()) !== multiAdmin) {
     throw new Error('Root registry owner should be the multisig admin account');
   }
-  return [multiAdmin, multiSigWallet, rootRegistry];
+  return { multiAdmin, multiSigWallet, rootRegistry };
 };
 module.exports = {
   prepareMultiSigAndRoot,

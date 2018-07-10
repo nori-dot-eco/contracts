@@ -11,7 +11,7 @@ function getLogs(Event, filter, additionalFilters) {
 }
 
 const deployOrGetRootRegistry = async config => {
-  const { network, artifacts, web3, deployer } = config;
+  const { network, artifacts, deployer } = config;
   if (network === 'develop') {
     try {
       await artifacts.require('RootRegistryV0_1_0').deployed();
@@ -22,7 +22,7 @@ const deployOrGetRootRegistry = async config => {
       return deployer.deploy(artifacts.require('RootRegistryV0_1_0'));
     }
   }
-  const rootRegistry = await ensUtils.getENSDetails(network, artifacts, web3);
+  const rootRegistry = await ensUtils.getENSDetails(config);
   if (rootRegistry) {
     console.log('Found existing registry registry at', rootRegistry.address);
   } else {

@@ -7,11 +7,11 @@ module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
     // deploy or get the root registry, but only if the connected account has permission
     // to do so on the detected network
-    const [
+    const {
       multiAdminAddr,
       multiSigAddr,
       rootRegistry,
-    ] = await utils.onlyWhitelisted(
+    } = await utils.onlyWhitelisted(
       {
         network,
         artifacts,

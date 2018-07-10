@@ -101,7 +101,7 @@ const giveEth = (toAccount, percentage, fromAccounts) => {
 };
 
 const onlyWhitelisted = async (config, ifWhiteListed) => {
-  const { network, artifacts, web3, accounts, deployer } = config;
+  const { network, web3, accounts } = config;
   const from = accounts[0];
   if (network === 'ropstenGeth' || network === 'ropsten') {
     if (
