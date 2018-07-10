@@ -18,7 +18,7 @@ const FifoCrcMarketV0_1_0 = artifacts.require('FifoCrcMarketV0_1_0');
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
     let registry, adminAccountAddress;
-    if (network === 'ropsten') {
+    if (network === 'ropsten' || network === 'ropstenGeth') {
       adminAccountAddress = accounts[0];
       console.log('Looking up existing registry at nori.test ENS on ropsten');
       const ens = new ENS(web3.currentProvider);

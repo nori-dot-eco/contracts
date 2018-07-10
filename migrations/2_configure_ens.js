@@ -32,8 +32,9 @@ const deployFIFSRegistrar = async (deployer, tld) => {
 
 const setupDomain = async () => {
   const ens = await ENS.deployed();
-  const rootRegistry = await RootRegistryV0_1_0.new();
+  const rootRegistry = await RootRegistryV0_1_0.deployed();
   const registrar = await FIFSRegistrar.deployed();
+  // todo do this from multiadmin:
   await registrar.register(web3.sha3('nori'), web3.eth.accounts[0]);
   await ens.setResolver(namehash.hash('nori.eth'), rootRegistry.address);
 };

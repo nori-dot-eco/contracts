@@ -3,7 +3,7 @@ const namehash = require('eth-ens-namehash');
 
 const getENSDetails = async (network, artifacts, web3) => {
   let ens, resolver;
-  console.log(`Looking up existing registry at nori.test ENS on ${network}`);
+  console.log(`Looking for existing registry at ENS on ${network}`);
   if (network === 'ropstenGeth' || network === 'ropsten') {
     ens = new ENS(web3.currentProvider);
     resolver = ens.resolver('nori.test').addr();

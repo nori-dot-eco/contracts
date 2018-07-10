@@ -1,5 +1,6 @@
 import { encodeCall } from '../helpers/utils';
 
+const ensUtils = require('./ens');
 const { promisify } = require('util');
 const glob = require('glob');
 const path = require('path');
@@ -8,6 +9,16 @@ function getLogs(Event, filter, additionalFilters) {
   const query = Event(filter, additionalFilters);
   return promisify(query.get.bind(query))();
 }
+
+const deployOrGetRootRegistry = async (network, artifacts, web3) => {
+  const rootRegistry = await ensUtils.getENSDetails(network, artifacts, web3);
+  if (rootRegistry) {
+    console.log('Found existing registry registry at', rootRegistry.address);
+  } else {
+    throw new Error('No root registry can be found on the network.');
+  }
+  return rootRegistry;
+};
 
 const parseContractName = contractName => {
   const [, name, version] = contractName.match(/^(.*)V([^V]+)$/);
@@ -208,4 +219,5 @@ module.exports = {
   getLogs,
   getLatestVersion,
   deployLatestUpgradeableContract,
+  deployOrGetRootRegistry,
 };

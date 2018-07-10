@@ -1,4 +1,5 @@
 const abi = require('ethereumjs-abi');
+const getNamedAccounts = require('./getNamedAccounts');
 
 function getParamFromTxEvent(
   transaction,
@@ -99,7 +100,39 @@ const giveEth = (toAccount, percentage, fromAccounts) => {
   });
 };
 
+const onlyWhitelisted = async (
+  network,
+  artifacts,
+  web3,
+  accounts,
+  deployer,
+  ifWhiteListed
+) => {
+  const from = accounts[0];
+  if (network === 'ropstenGeth' || network === 'ropsten') {
+    if (
+      ![
+        '0xf1bcd758cb3d46d15afe4faef942adad36380148',
+        '0x2e4d8353d81b7e903c9e031dab3e9749e8ab69bc',
+      ].includes(from.toLowerCase())
+    ) {
+      throw new Error(
+        `${from} is not a whitelisted account for deploying to ropsten.`
+      );
+    }
+  } else if (network === 'develop') {
+    if (!getNamedAccounts(web3).allAccounts.includes(from.toLowerCase())) {
+      throw new Error(
+        `${from} is not a whitelisted account for deploying to ${network}.`
+      );
+    }
+  }
+
+  return ifWhiteListed(network, artifacts, web3, accounts, deployer);
+};
+
 Object.assign(exports, {
+  onlyWhitelisted,
   giveEth,
   sendTx,
   encodeCall,
