@@ -1,63 +1,56 @@
 /* globals artifacts web3 */
-const ENS = require('ethereum-ens');
-const { deployUpgradeableContract } = require('../test/helpers/contracts');
+const {
+  upgradeAndTransferToMultiAdmin,
+  deployOrGetRootRegistry,
+} = require('../test/helpers/contracts');
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
+const utils = require('../test/helpers/utils');
 
-const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
-const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
+const MultiAdmin = artifacts.require('MultiAdmin');
 
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
-    let registry, adminAccountAddress;
-    if (network === 'ropsten') {
+    let root, adminAccountAddress, multiAdmin;
+    const config = {
+      network,
+      artifacts,
+      web3,
+      accounts,
+      deployer,
+    };
+    if (network === 'ropsten' || network === 'ropstenGeth') {
       adminAccountAddress = accounts[0];
-      if (
-        ![
-          '0xf1bcd758cb3d46d15afe4faef942adad36380148',
-          '0x2e4d8353d81b7e903c9e031dab3e9749e8ab69bc',
-        ].includes(adminAccountAddress.toLowerCase())
-      ) {
-        throw new Error(
-          `${
-            adminAccountAddress
-          } is not a whitelisted account for deploying to ropsten.`
-        );
-      }
-      console.log('Looking up existing registry at nori.test ENS on ropsten');
-      const ens = new ENS(web3.currentProvider);
-      const registryAddress = await ens.resolver('nori.test').addr();
-      registry = await ContractRegistryV0_1_0.at(registryAddress);
     } else {
       adminAccountAddress = getNamedAccounts(web3).admin0;
-      let existingRegistry;
-      try {
-        existingRegistry = await RootRegistryV0_1_0.deployed();
-      } catch (e) {
-        // this is OK. It just means a registry hasn't been deployed yet
-      }
-
-      if (existingRegistry) {
-        console.log(
-          'Found existing registry registry at',
-          existingRegistry.address
-        );
-        registry = ContractRegistryV0_1_0.at(
-          await existingRegistry.getLatestProxyAddr.call('ContractRegistry')
-        );
-      } else {
-        const rootRegistry = await deployer.deploy(RootRegistryV0_1_0);
-        // Deploy the registry behind a proxy
-        [, , registry] = await deployUpgradeableContract(
-          artifacts,
-          null,
-          ContractRegistryV0_1_0,
-          rootRegistry,
-          [['address'], [adminAccountAddress]],
-          { from: adminAccountAddress }
-        );
-      }
     }
 
-    console.log('Deployed Registry Address:', registry.address);
+    try {
+      root = await deployOrGetRootRegistry(config);
+      multiAdmin = MultiAdmin.at(
+        await root.getLatestProxyAddr.call('MultiAdmin')
+      );
+    } catch (e) {
+      throw new Error(
+        'Something went wrong. A root registry and admin should have been configured in a previous migration'
+      );
+    }
+
+    const upgradeRegistry = () =>
+      upgradeAndTransferToMultiAdmin(
+        config,
+        'ContractRegistry',
+        root,
+        [['address'], [multiAdmin.address]],
+        { from: adminAccountAddress },
+        multiAdmin
+      );
+
+    const { registry } = await utils.onlyWhitelisted(config, upgradeRegistry);
+    if ((await root.owner()) !== multiAdmin.address) {
+      throw new Error(
+        'Root registry owner should be the multisig admin account'
+      );
+    }
+    console.log('Deployed Contract Registry Address:', registry.address);
   });
 };
