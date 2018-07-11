@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 import "./ENS.sol";
 
 /**
- * @title FIPSRegistrar is a registrar that allocates subdomains to the first person to claim them.
+ * @title FIFSRegistrar is a registrar that allocates subdomains to the first person to claim them.
  */
 contract FIFSRegistrar {
   ENS ens;
