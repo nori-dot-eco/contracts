@@ -44,6 +44,13 @@ module.exports = {
         );
       },
     },
+    // Use this if you want to use a ledger + geth
+    ropstenGeth: {
+      host: 'localhost',
+      port: 8545,
+      network_id: 3,
+      gas: 4000000,
+    },
     develop: {
       host: 'localhost',
       gas: 0xfffffffffff, // <-- Use this high gas value
