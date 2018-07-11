@@ -5,7 +5,9 @@ const prepareMultiSigAndRoot = async config => {
   const admin0 = accounts[0];
   const admin1 = accounts[1];
   let multiAdmin, multiSigWallet;
+
   const rootRegistry = await deployOrGetRootRegistry(config);
+
   // on ropsten we always want to get the multisigs from the root, so only in development do we want to create new ones
   if (network === 'develop' || network === 'test') {
     [multiSigWallet, multiAdmin] = await Promise.all([
@@ -16,6 +18,7 @@ const prepareMultiSigAndRoot = async config => {
         .require('MultiAdmin')
         .new([admin0, admin1], 1, rootRegistry.address),
     ]);
+
     await rootRegistry.setVersion(
       'MultiAdmin',
       multiAdmin.address,
@@ -28,6 +31,7 @@ const prepareMultiSigAndRoot = async config => {
       '0_1_0',
       multiSigWallet.address
     );
+
     await rootRegistry.transferOwnership(multiAdmin.address);
   }
   try {
@@ -41,6 +45,7 @@ const prepareMultiSigAndRoot = async config => {
   if ((await rootRegistry.owner()) !== multiAdmin) {
     throw new Error('Danger! Root owner should be the multisig admin account');
   }
+
   return { multiAdmin, multiSigWallet, rootRegistry };
 };
 module.exports = {

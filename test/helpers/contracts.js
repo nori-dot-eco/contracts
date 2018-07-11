@@ -24,7 +24,7 @@ const deployOrGetRootRegistry = async config => {
   }
   const rootRegistry = await ensUtils.getENSDetails(config);
   if (rootRegistry) {
-    console.log('Found existing registry registry at', rootRegistry.address);
+    console.log('Found existing registry at', rootRegistry.address);
   } else {
     throw new Error('No root registry can be found on the network.');
   }
@@ -49,6 +49,7 @@ const getLatestVersion = async (registry, contractName) => {
 
 // deploy an unstructured upgradeable contract and proxy, initialize the contract,
 // then create a contract at the proxy's address.
+// todo deprecate
 const deployUpgradeableContract = async (
   artifacts,
   passedProxy = null,
@@ -139,7 +140,7 @@ const getLatestVersionFromFs = async contractName => {
     });
   });
 };
-
+// todo deprecate
 const deployLatestUpgradeableContract = async (
   artifacts,
   passedProxy = null,
@@ -168,7 +169,7 @@ const deployLatestUpgradeableContract = async (
     deployParams
   );
 };
-
+// todo deprecate
 const upgradeToContract = async (
   artifacts,
   contract,
@@ -224,7 +225,138 @@ const upgradeToContract = async (
   return contract.at(proxyAddress);
 };
 
+const deployOrGetProxy = async (
+  config,
+  existingProxyAddr,
+  contractRegistry,
+  multiAdmin,
+  deployParams
+) => {
+  const { artifacts } = config;
+  let proxy = null;
+  if (existingProxyAddr) {
+    proxy = await artifacts
+      .require('UnstructuredOwnedUpgradeabilityProxy')
+      .at(existingProxyAddr);
+  } else {
+    proxy = await artifacts
+      .require('UnstructuredOwnedUpgradeabilityProxy')
+      .new(contractRegistry.address, deployParams);
+    await proxy.transferProxyOwnership(multiAdmin.address);
+  }
+  return proxy;
+};
+
+const initOrUpgradeFromMultiAdmin = async (
+  contractToInit,
+  contractName,
+  versionName,
+  proxy,
+  multiAdmin,
+  initializeParams,
+  deployParams
+) => {
+  let upgradeTxData;
+
+  if ((await contractToInit.initialized.call()) === false) {
+    upgradeTxData = proxy.contract.upgradeToAndCall.getData(
+      contractName,
+      versionName,
+      contractToInit.address,
+      encodeCall(
+        'initialize',
+        initializeParams[0], // ex: ['string', 'string', 'uint', 'uint', 'address', 'address'],
+        initializeParams[1] // ex: ['Upgradeable NORI Token', 'NORI', 1, 0, contractRegistry.address, admin]
+      ),
+      deployParams
+    );
+  } else {
+    upgradeTxData = proxy.contract.upgradeTo.getData(
+      contractName,
+      versionName,
+      contractToInit.address,
+      deployParams
+    );
+  }
+  await multiAdmin.submitTransaction(proxy.address, 0, upgradeTxData);
+};
+
+const upgradeAndTransferToMultiAdmin = async (
+  config,
+  contractName,
+  registry,
+  initializeParams,
+  deployParams,
+  multiAdmin
+) => {
+  const { artifacts } = config;
+  const versionName = await getLatestVersionFromFs(contractName);
+  const contract = artifacts.require(`${contractName}V${versionName}`);
+
+  let latestVersionName,
+    proxyAddress,
+    upgradeableContractAtProxy,
+    contractToMakeUpgradeable,
+    proxy;
+  try {
+    [
+      latestVersionName,
+      ,
+      proxyAddress,
+    ] = await registry.getVersionForContractName(contractName, -1);
+  } catch (e) {
+    // doesn't exist yet, but that's OK.
+  }
+
+  if (latestVersionName !== versionName) {
+    console.log(
+      contractName,
+      'is out of date. Deployed Version:',
+      latestVersionName,
+      'New Version:',
+      versionName
+    );
+
+    contractToMakeUpgradeable = await contract.new(deployParams);
+    proxy = await deployOrGetProxy(
+      config,
+      proxyAddress,
+      registry,
+      multiAdmin,
+      deployParams
+    );
+    await initOrUpgradeFromMultiAdmin(
+      contractToMakeUpgradeable,
+      contractName,
+      versionName,
+      proxy,
+      multiAdmin,
+      initializeParams,
+      deployParams
+    );
+
+    upgradeableContractAtProxy = await contract.at(proxy.address, deployParams);
+  } else {
+    console.log(
+      contractName,
+      'already up to date at version',
+      versionName,
+      proxyAddress
+    );
+  }
+
+  return {
+    contractToMakeUpgradeable,
+    upgradeableContractAtProxy,
+    proxy,
+    registry,
+    contractName,
+    versionName,
+  };
+};
+
 module.exports = {
+  upgradeAndTransferToMultiAdmin,
   deployUpgradeableContract,
   upgradeToContract,
   getLogs,
