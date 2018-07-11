@@ -32,20 +32,32 @@ const deployFIFSRegistrar = async (deployer, tld) => {
 
 const setupDomain = async () => {
   const ens = await ENS.deployed();
-  const rootRegistry = await RootRegistryV0_1_0.new();
+  const rootRegistry = await RootRegistryV0_1_0.deployed();
   const registrar = await FIFSRegistrar.deployed();
+  // todo do this from multiadmin:
   await registrar.register(web3.sha3('nori'), web3.eth.accounts[0]);
   await ens.setResolver(namehash.hash('nori.eth'), rootRegistry.address);
 };
 
 module.exports = function deploy(deployer, network) {
-  if (network === 'develop') {
+  if (network === 'develop' || network === 'test') {
     deployer.then(async () => {
-      const tld = 'eth';
-      await deployFIFSRegistrar(deployer, tld);
-      await setupDomain();
+      try {
+        const ens = await ENS.deployed();
+        const resolver = await ens.resolver(namehash.hash('nori.eth'));
+        console.log(
+          `Looks like ENS is configured and resolving to ${resolver}`
+        );
+      } catch (e) {
+        console.log('Beginning new ENS configuration');
+        const tld = 'eth';
+        await deployFIFSRegistrar(deployer, tld);
+        await setupDomain();
+      }
     });
   } else {
-    console.log(`No ENS configuration steps defined for ${network}`);
+    console.log(
+      `No ENS configuration steps defined for network: ${network}. Migrations will continue to look for a live deployment`
+    );
   }
 };

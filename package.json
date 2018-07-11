@@ -22,6 +22,7 @@
     "ethereum-ens": "^0.7.4",
     "ethereumjs-abi": "^0.6.5",
     "ethereumjs-testrpc-sc": "^6.1.2",
+    "glob": "^7.1.2",
     "prettier": "^1.13.6",
     "solidity-coverage": "^0.5.4",
     "solium": "^1.1.7",
