@@ -45,12 +45,15 @@ module.exports = (deployer, network, accounts) => {
         multiAdmin
       );
 
-    const { registry } = await utils.onlyWhitelisted(config, upgradeRegistry);
+    const { proxy } = await utils.onlyWhitelisted(config, upgradeRegistry);
     if ((await root.owner()) !== multiAdmin.address) {
       throw new Error(
         'Root registry owner should be the multisig admin account'
       );
     }
-    console.log('Deployed Contract Registry Address:', registry.address);
+    console.log(
+      'Current Deployed ContractRegistry Proxy Address:',
+      proxy.address || proxy
+    );
   });
 };

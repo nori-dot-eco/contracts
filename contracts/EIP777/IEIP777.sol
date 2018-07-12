@@ -27,6 +27,7 @@ interface IEIP777 {
       bytes userData, 
       bytes operatorData
     ) public;
+    function initialized() public view returns(bool);
 
     event Sent(
       address indexed from,
