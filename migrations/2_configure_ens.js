@@ -1,6 +1,7 @@
 const namehash = require('eth-ens-namehash');
+const ENS = require('ethereum-ens');
 
-const ENS = artifacts.require('./ENSRegistry.sol');
+const ENSRegistry = artifacts.require('./ENSRegistry.sol');
 const FIFSRegistrar = artifacts.require('./FIFSRegistrar.sol');
 const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
 
@@ -19,9 +20,9 @@ function getRootNodeFromTLD(tld) {
  */
 const deployFIFSRegistrar = async (deployer, tld) => {
   const rootNode = getRootNodeFromTLD(tld);
-  await deployer.deploy(ENS);
-  await deployer.deploy(FIFSRegistrar, ENS.address, rootNode.namehash);
-  await ENS.at(ENS.address).setSubnodeOwner(
+  await deployer.deploy(ENSRegistry);
+  await deployer.deploy(FIFSRegistrar, ENSRegistry.address, rootNode.namehash);
+  await ENSRegistry.at(ENSRegistry.address).setSubnodeOwner(
     '0x0',
     rootNode.sha3,
     FIFSRegistrar.address
@@ -31,7 +32,7 @@ const deployFIFSRegistrar = async (deployer, tld) => {
 };
 
 const setupDomain = async () => {
-  const ens = await ENS.deployed();
+  const ens = await ENSRegistry.deployed();
   const rootRegistry = await RootRegistryV0_1_0.deployed();
   const registrar = await FIFSRegistrar.deployed();
   // todo do this from multiadmin:
@@ -40,10 +41,10 @@ const setupDomain = async () => {
 };
 
 module.exports = function deploy(deployer, network) {
-  if (network === 'develop' || network === 'test') {
-    deployer.then(async () => {
+  deployer.then(async () => {
+    if (network === 'develop' || network === 'test') {
       try {
-        const ens = await ENS.deployed();
+        const ens = await ENSRegistry.deployed();
         const resolver = await ens.resolver(namehash.hash('nori.eth'));
         console.log(
           `Looks like ENS is configured and resolving to ${resolver}`
@@ -54,10 +55,14 @@ module.exports = function deploy(deployer, network) {
         await deployFIFSRegistrar(deployer, tld);
         await setupDomain();
       }
-    });
-  } else {
-    console.log(
-      `No ENS configuration steps defined for network: ${network}. Migrations will continue to look for a live deployment`
-    );
-  }
+    } else if (network === 'ropsten' || network === 'ropstenGeth') {
+      const ens = new ENS(web3.currentProvider);
+      const resolver = await ens.resolver('nori.test').addr();
+      console.log(`Looks like ENS is configured and resolving to ${resolver}`);
+    } else {
+      console.log(
+        `No ENS configuration steps defined for network: ${network}. Migrations will continue to look for a live deployment`
+      );
+    }
+  });
 };

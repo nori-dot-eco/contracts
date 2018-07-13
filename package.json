@@ -13,6 +13,7 @@
     "babel-preset-stage-2": "^6.24.1",
     "babel-preset-stage-3": "^6.17.0",
     "babel-register": "^6.23.0",
+    "bluebird": "^3.5.1",
     "eslint": "4.10.0",
     "eslint-config-airbnb-base": "12.1.0",
     "eslint-config-prettier": "^2.9.0",

@@ -17,7 +17,7 @@ contract VerifierV0_1_0 is ParticipantV0_1_0 {
     toggleParticipantType(true);
   }
 
-  function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) public view returns(bytes32) {
+  function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
     return EIP820_ACCEPT_MAGIC;
   }
 

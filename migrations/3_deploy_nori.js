@@ -1,101 +1,115 @@
 /* globals artifacts web3 */
-const ENS = require('ethereum-ens');
-const { upgradeToContract } = require('../test/helpers/contracts');
+const bluebird = require('bluebird');
+const {
+  deployOrGetRootRegistry,
+  upgradeAndTransferToMultiAdmin,
+} = require('../test/helpers/contracts');
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
+const utils = require('../test/helpers/utils');
+const {
+  nori,
+  participantRegistry,
+  crc,
+  participant,
+  supplier,
+  verifier,
+  fifoCrcMarket,
+} = require('../test/helpers/contractConfigs');
 
-const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
-const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
-const NoriV0_1_0 = artifacts.require('NoriV0_1_0');
-const ParticipantRegistryV0_1_0 = artifacts.require(
-  'ParticipantRegistryV0_1_0'
-);
-const CRCV0_1_0 = artifacts.require('CRCV0_1_0');
-const ParticipantV0_1_0 = artifacts.require('ParticipantV0_1_0');
-const SupplierV0_1_0 = artifacts.require('SupplierV0_1_0');
-const VerifierV0_1_0 = artifacts.require('VerifierV0_1_0');
-const FifoCrcMarketV0_1_0 = artifacts.require('FifoCrcMarketV0_1_0');
+const MultiAdmin = artifacts.require('MultiAdmin');
+
+const upgradeAndMigrateContracts = (
+  config,
+  adminAccountAddress,
+  contractsToUpgrade,
+  multiAdmin,
+  registry
+) =>
+  bluebird.mapSeries(contractsToUpgrade, async contractConfig => {
+    const configuredContract = await contractConfig(multiAdmin, registry);
+    const upgrade = () =>
+      upgradeAndTransferToMultiAdmin(
+        config,
+        configuredContract.contractName,
+        registry,
+        [configuredContract.initParamTypes, configuredContract.initParamVals],
+        { from: adminAccountAddress },
+        multiAdmin
+      );
+    return utils.onlyWhitelisted(config, upgrade);
+  });
 
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
-    let registry, adminAccountAddress;
+    let root,
+      registry,
+      adminAccountAddress,
+      multiAdmin,
+      registryVersionName,
+      registryImp,
+      registryProxyAddr,
+      multiSigWallet;
+    const config = {
+      network,
+      artifacts,
+      web3,
+      accounts,
+      deployer,
+    };
+
     if (network === 'ropsten' || network === 'ropstenGeth') {
       adminAccountAddress = accounts[0];
-      console.log('Looking up existing registry at nori.test ENS on ropsten');
-      const ens = new ENS(web3.currentProvider);
-      const registryAddress = await ens.resolver('nori.test').addr();
-      registry = await ContractRegistryV0_1_0.at(registryAddress);
     } else {
       adminAccountAddress = getNamedAccounts(web3).admin0;
-      const rootRegistry = await RootRegistryV0_1_0.deployed();
-      registry = ContractRegistryV0_1_0.at(
-        await rootRegistry.getLatestProxyAddr.call('ContractRegistry')
-      );
     }
 
-    /**
-     * TO BE COMPLETED
-     */
-
-    const upgrade = (contract, argTypes, args) =>
-      upgradeToContract(artifacts, contract, registry, argTypes, args, {
-        from: adminAccountAddress,
-      });
-
-    console.log('Deployed Registry Address:', registry.address);
-
-    const nori = await upgrade(
-      NoriV0_1_0,
-      ['string', 'string', 'uint', 'uint', 'address', 'address'],
+    try {
+      root = await deployOrGetRootRegistry(config);
+      multiAdmin = MultiAdmin.at(
+        await root.getLatestProxyAddr.call('MultiAdmin')
+      );
+      multiSigWallet = await root.getLatestProxyAddr.call('MultiSigWallet');
       [
-        'Upgradeable NORI Token',
-        'NORI',
-        1,
-        0,
-        registry.address,
-        adminAccountAddress,
-      ]
+        registryVersionName,
+        registryImp,
+        registryProxyAddr,
+      ] = await root.getVersionForContractName('ContractRegistry', -1);
+      registry = await artifacts
+        .require(`ContractRegistryV${registryVersionName}`)
+        .at(registryProxyAddr);
+    } catch (e) {
+      throw new Error(
+        'Something went wrong. A root, multiadmin and contract registry should have been configured in a previous migration'
+      );
+    }
+    // Check registry if each contract needs to be upgraded, and if so, do just that
+    const contractsToUpgrade = [
+      nori,
+      participantRegistry,
+      crc,
+      participant,
+      supplier,
+      verifier,
+      fifoCrcMarket,
+    ];
+    const deployedContracts = await upgradeAndMigrateContracts(
+      config,
+      adminAccountAddress,
+      contractsToUpgrade,
+      multiAdmin,
+      registry
     );
 
-    const participantRegistry = await upgrade(
-      ParticipantRegistryV0_1_0,
-      ['address', 'address'],
-      [registry.address, adminAccountAddress]
-    );
-
-    const crc = await upgrade(
-      CRCV0_1_0,
-      ['string', 'string', 'address', 'address', 'address'],
-      [
-        'Carbon Removal Certificate',
-        'CRC',
-        registry.address,
-        participantRegistry.address,
-        adminAccountAddress,
-      ]
-    );
-
-    await upgrade(
-      ParticipantV0_1_0,
-      ['address', 'address', 'address'],
-      [registry.address, participantRegistry.address, adminAccountAddress]
-    );
-
-    await upgrade(
-      SupplierV0_1_0,
-      ['address', 'address', 'address'],
-      [registry.address, participantRegistry.address, adminAccountAddress]
-    );
-
-    await upgrade(
-      VerifierV0_1_0,
-      ['address', 'address', 'address'],
-      [registry.address, participantRegistry.address, adminAccountAddress]
-    );
-
-    await upgrade(
-      FifoCrcMarketV0_1_0,
-      ['address', 'address[]', 'address'],
-      [registry.address, [crc.address, nori.address], adminAccountAddress]
+    utils.printRegistryInfo(
+      multiAdmin,
+      multiSigWallet,
+      {
+        registryVersionName,
+        registry,
+        registryImp,
+      },
+      root,
+      deployedContracts
     );
   });
 };

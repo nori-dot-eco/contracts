@@ -100,7 +100,7 @@ const giveEth = (toAccount, percentage, fromAccounts) => {
   });
 };
 
-const onlyWhitelisted = async (config, ifWhiteListed) => {
+const onlyWhitelisted = (config, ifWhiteListed) => {
   const { network, web3, accounts } = config;
   const from = accounts[0];
   if (network === 'ropstenGeth' || network === 'ropsten') {
@@ -124,6 +124,61 @@ const onlyWhitelisted = async (config, ifWhiteListed) => {
   return ifWhiteListed(config);
 };
 
+const printRegisteredContracts = deployedContracts =>
+  deployedContracts.forEach(
+    async ({
+      proxy,
+      upgradeableContractAtProxy,
+      upgraded,
+      contractName,
+      versionName,
+      contractToMakeUpgradeable,
+    }) => {
+      const spaces = ' '.repeat(
+        'participantregistry  '.length - contractName.length
+      );
+      const preface = '   ->    ';
+
+      console.log(
+        `${preface}${contractName}${spaces}|  Upgraded: ${upgraded}  |  Version: ${versionName}  |  Proxy: ${
+          contractToMakeUpgradeable ? proxy.address : proxy
+        }  |  Implementation: ${
+          contractToMakeUpgradeable
+            ? contractToMakeUpgradeable.address
+            : upgradeableContractAtProxy
+        }`
+      );
+    }
+  );
+
+const printRegistryInfo = (
+  multiAdmin,
+  multiSigWallet,
+  { registryVersionName, registry, registryImp },
+  root,
+  deployedContracts
+) =>
+  setTimeout(() => {
+    const preface = '   ->   ';
+    console.log('\n\n==========\n\n Migration Info:\n');
+    console.log('----------\n\n RootRegistry Info: \n');
+    console.log(` ~ Implmentation: ${root.address} \n`);
+    console.log('   Registered Contracts:\n');
+    console.log(preface, 'MultiAdmin:', multiAdmin.address);
+    console.log(preface, 'MultiSigWallet:', multiSigWallet);
+    console.log(
+      preface,
+      `ContractRegistryV${registryVersionName} (proxy):`,
+      registry.address
+    );
+    console.log(`\n----------\n\n ContractRegistry Info:\n`);
+    console.log(` ~ Implmentation: ${registryImp} \n`);
+    console.log(`   Registered Contracts:\n`);
+
+    printRegisteredContracts(deployedContracts);
+    console.log('\n==========\n');
+  }, 1500);
+
 Object.assign(exports, {
   onlyWhitelisted,
   giveEth,
@@ -134,4 +189,5 @@ Object.assign(exports, {
   increaseTimestamp,
   balanceOf,
   assertThrowsAsynchronously,
+  printRegistryInfo,
 });
