@@ -4,8 +4,7 @@ const prepareMultiSigAndRoot = async (
   { network, artifacts, accounts, deployer, web3 },
   force = false
 ) => {
-  const admin0 = accounts[0];
-  const admin1 = accounts[1];
+  const [admin0, admin1] = accounts;
   let multiAdmin, multiSigWallet;
   const rootRegistry = await deployOrGetRootRegistry(
     { network, artifacts, deployer, web3 },
