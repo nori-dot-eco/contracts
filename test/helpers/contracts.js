@@ -1,7 +1,7 @@
-import { encodeCall } from '../helpers/utils';
+import { encodeCall } from './utils';
 
 const bluebird = require('bluebird');
-const utils = require('../helpers/utils');
+const utils = require('./utils');
 const ensUtils = require('./ens');
 const { promisify } = require('util');
 const glob = require('glob');
