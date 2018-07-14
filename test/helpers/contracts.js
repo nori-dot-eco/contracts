@@ -311,7 +311,7 @@ const initOrUpgradeFromMultiAdmin = async (
 };
 
 const upgradeAndTransferToMultiAdmin = async (
-  { artifacts },
+  artifacts,
   contractName,
   registry,
   initializeParams,
@@ -410,7 +410,7 @@ const upgradeAndMigrateContracts = (
     const configuredContract = await contractConfig(multiAdmin, registry);
     const upgrade = () =>
       upgradeAndTransferToMultiAdmin(
-        config,
+        config.artifacts,
         configuredContract.contractName,
         registry,
         [configuredContract.initParamTypes, configuredContract.initParamVals],

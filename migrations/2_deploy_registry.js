@@ -37,7 +37,7 @@ module.exports = (deployer, network, accounts) => {
 
     const upgradeRegistry = () =>
       upgradeAndTransferToMultiAdmin(
-        config,
+        config.artifacts,
         'ContractRegistry',
         root,
         [['address'], [multiAdmin.address]],
