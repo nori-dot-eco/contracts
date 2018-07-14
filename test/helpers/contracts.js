@@ -16,7 +16,6 @@ const deployOrGetRootRegistry = async (
   { network, artifacts, deployer, web3 },
   force = false
 ) => {
-  // const config = { network, artifacts, deployer, web3 }; // web3 is used in the context of ensutils
   if (force === true) {
     return artifacts.require('RootRegistryV0_1_0').new();
   } else if (network === 'develop' || network === 'test') {
