@@ -2,10 +2,10 @@ import { encodeCall } from './utils';
 
 const { promisify } = require('util');
 const bluebird = require('bluebird');
-const utils = require('./utils');
-const ensUtils = require('./ens');
 const glob = require('glob');
 const path = require('path');
+const utils = require('./utils');
+const ensUtils = require('./ens');
 
 function getLogs(Event, filter, additionalFilters) {
   const query = Event(filter, additionalFilters);
