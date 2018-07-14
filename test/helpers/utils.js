@@ -185,18 +185,22 @@ const printRegistryInfo = (
     console.log('\n==========\n');
   }, 1500);
 
-const setupEnvForTests = async (contracts, config, admin) => {
+const setupEnvForTests = async (
+  contracts,
+  admin,
+  { network, artifacts, accounts, web3 }
+) => {
   const { multiAdmin, rootRegistry } = await prepareMultiSigAndRoot(
-    config,
+    { network, artifacts, accounts, web3 },
     true
   );
   const contractRegistryConfig = await getContractRegistryConfig(
     null,
     rootRegistry
   );
-  // todo use obj destructuring for deployLatestUpgradeableContract
+
   const [, contractRegistry] = await deployLatestUpgradeableContract(
-    config.artifacts,
+    artifacts,
     null,
     contractRegistryConfig.contractName,
     rootRegistry,
@@ -207,7 +211,7 @@ const setupEnvForTests = async (contracts, config, admin) => {
     { from: admin }
   );
   const deployedContracts = await upgradeAndMigrateContracts(
-    config,
+    { network, artifacts, accounts, web3 },
     admin,
     contracts,
     multiAdmin,

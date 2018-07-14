@@ -242,13 +242,12 @@ const upgradeToContract = async (
 };
 
 const deployOrGetProxy = async (
-  config,
+  artifacts,
   existingProxyAddr,
   contractRegistry,
   multiAdmin,
   deployParams
 ) => {
-  const { artifacts } = config;
   let proxy = null;
   if (existingProxyAddr) {
     proxy = await artifacts
@@ -312,14 +311,13 @@ const initOrUpgradeFromMultiAdmin = async (
 };
 
 const upgradeAndTransferToMultiAdmin = async (
-  config,
+  { artifacts },
   contractName,
   registry,
   initializeParams,
   deployParams,
   multiAdmin
 ) => {
-  const { artifacts } = config;
   let latestVersionName,
     proxyAddress,
     upgradeableContractAtProxy,
@@ -351,7 +349,7 @@ const upgradeAndTransferToMultiAdmin = async (
     contractToMakeUpgradeable = await contract.new(deployParams);
     await contractToMakeUpgradeable.transferOwnership(multiAdmin.address);
     proxy = await deployOrGetProxy(
-      config,
+      artifacts,
       proxyAddress,
       registry,
       multiAdmin,
@@ -402,9 +400,9 @@ const upgradeAndTransferToMultiAdmin = async (
 };
 
 const upgradeAndMigrateContracts = (
-  config, // <- pass these in the correct order; they may depend on eachother
+  config,
   adminAccountAddress,
-  contractsToUpgrade,
+  contractsToUpgrade, // <- pass these in the correct order; they may depend on eachother
   multiAdmin,
   registry
 ) =>
