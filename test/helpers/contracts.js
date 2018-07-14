@@ -1,5 +1,7 @@
 import { encodeCall } from '../helpers/utils';
 
+const bluebird = require('bluebird');
+const utils = require('../helpers/utils');
 const ensUtils = require('./ens');
 const { promisify } = require('util');
 const glob = require('glob');
@@ -10,9 +12,14 @@ function getLogs(Event, filter, additionalFilters) {
   return promisify(query.get.bind(query))();
 }
 
-const deployOrGetRootRegistry = async config => {
-  const { network, artifacts, deployer } = config;
-  if (network === 'develop' || network === 'test') {
+const deployOrGetRootRegistry = async (
+  { network, artifacts, deployer, web3 },
+  force = false
+) => {
+  // const config = { network, artifacts, deployer, web3 }; // web3 is used in the context of ensutils
+  if (force === true) {
+    return artifacts.require('RootRegistryV0_1_0').new();
+  } else if (network === 'develop' || network === 'test') {
     try {
       await artifacts.require('RootRegistryV0_1_0').deployed();
     } catch (e) {
@@ -22,7 +29,11 @@ const deployOrGetRootRegistry = async config => {
       return deployer.deploy(artifacts.require('RootRegistryV0_1_0'));
     }
   }
-  const rootRegistry = await ensUtils.getENSDetails(config);
+  const rootRegistry = await ensUtils.getENSDetails({
+    network,
+    artifacts,
+    web3,
+  });
   if (rootRegistry) {
     console.log('Found existing RootRegistry at', rootRegistry.address);
   } else {
@@ -391,6 +402,27 @@ const upgradeAndTransferToMultiAdmin = async (
   };
 };
 
+const upgradeAndMigrateContracts = (
+  config, // <- pass these in the correct order; they may depend on eachother
+  adminAccountAddress,
+  contractsToUpgrade,
+  multiAdmin,
+  registry
+) =>
+  bluebird.mapSeries(contractsToUpgrade, async contractConfig => {
+    const configuredContract = await contractConfig(multiAdmin, registry);
+    const upgrade = () =>
+      upgradeAndTransferToMultiAdmin(
+        config,
+        configuredContract.contractName,
+        registry,
+        [configuredContract.initParamTypes, configuredContract.initParamVals],
+        { from: adminAccountAddress },
+        multiAdmin
+      );
+    return utils.onlyWhitelisted(config, upgrade);
+  });
+
 module.exports = {
   upgradeAndTransferToMultiAdmin,
   deployUpgradeableContract,
@@ -400,4 +432,5 @@ module.exports = {
   deployLatestUpgradeableContract,
   deployOrGetRootRegistry,
   getLatestVersionFromFs,
+  upgradeAndMigrateContracts,
 };

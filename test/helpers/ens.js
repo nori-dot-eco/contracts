@@ -1,8 +1,8 @@
 const ENS = require('ethereum-ens');
 const namehash = require('eth-ens-namehash');
 
-const getENSDetails = async config => {
-  const { network, artifacts, web3 } = config;
+const getENSDetails = async ({ network, artifacts, web3 }) => {
+  // const { network, artifacts, web3 } = config;
   let ens, resolver;
   console.log(`Looking for existing registry at ENS on network: ${network}`);
   if (network === 'ropstenGeth' || network === 'ropsten') {
@@ -13,7 +13,9 @@ const getENSDetails = async config => {
       ens = await artifacts.require('./ENSRegistry.sol').deployed();
       resolver = ens.resolver(namehash.hash('nori.eth'));
     } catch (e) {
-      console.log('make sure ENS is deployed first');
+      console.log(
+        `make sure ENS is deployed on the "${network}" network first`
+      );
     }
   } else {
     throw new Error(`ENS hasn't been configured for network: ${network}`);

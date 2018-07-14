@@ -17,6 +17,15 @@ const participantRegistry = async (multiAdmin, registry) => ({
   initParamVals: [registry.address, multiAdmin.address],
 });
 
+const contractRegistry = async (multiAdmin = null, rootRegistry) => ({
+  contractName: 'ContractRegistry',
+  initParamTypes: ['address'],
+  initParamVals: [
+    (await rootRegistry.getLatestProxyAddr.call('MultiAdmin')) ||
+      multiAdmin.address,
+  ],
+});
+
 const crc = async (multiAdmin, registry) => ({
   contractName: 'CRC',
   initParamTypes: ['string', 'string', 'address', 'address', 'address'],
@@ -73,6 +82,7 @@ const fifoCrcMarket = async (multiAdmin, registry) => ({
 });
 
 module.exports = {
+  contractRegistry,
   nori,
   participantRegistry,
   crc,

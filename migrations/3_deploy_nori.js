@@ -1,8 +1,7 @@
 /* globals artifacts web3 */
-const bluebird = require('bluebird');
 const {
   deployOrGetRootRegistry,
-  upgradeAndTransferToMultiAdmin,
+  upgradeAndMigrateContracts,
 } = require('../test/helpers/contracts');
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 const utils = require('../test/helpers/utils');
@@ -17,27 +16,6 @@ const {
 } = require('../test/helpers/contractConfigs');
 
 const MultiAdmin = artifacts.require('MultiAdmin');
-
-const upgradeAndMigrateContracts = (
-  config,
-  adminAccountAddress,
-  contractsToUpgrade,
-  multiAdmin,
-  registry
-) =>
-  bluebird.mapSeries(contractsToUpgrade, async contractConfig => {
-    const configuredContract = await contractConfig(multiAdmin, registry);
-    const upgrade = () =>
-      upgradeAndTransferToMultiAdmin(
-        config,
-        configuredContract.contractName,
-        registry,
-        [configuredContract.initParamTypes, configuredContract.initParamVals],
-        { from: adminAccountAddress },
-        multiAdmin
-      );
-    return utils.onlyWhitelisted(config, upgrade);
-  });
 
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {

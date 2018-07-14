@@ -1,5 +1,11 @@
 const abi = require('ethereumjs-abi');
 const getNamedAccounts = require('./getNamedAccounts');
+const {
+  deployLatestUpgradeableContract,
+  upgradeAndMigrateContracts,
+} = require('./contracts');
+const prepareMultiSigAndRoot = require('./multisig').prepareMultiSigAndRoot;
+const getContractRegistryConfig = require('./contractConfigs').contractRegistry;
 
 function getParamFromTxEvent(
   transaction,
@@ -179,6 +185,38 @@ const printRegistryInfo = (
     console.log('\n==========\n');
   }, 1500);
 
+const setupEnvForTests = async (contracts, config, admin) => {
+  const { multiAdmin, rootRegistry } = await prepareMultiSigAndRoot(
+    config,
+    true
+  );
+  const contractRegistryConfig = await getContractRegistryConfig(
+    null,
+    rootRegistry
+  );
+  // todo use obj destructuring for deployLatestUpgradeableContract
+  const [, contractRegistry] = await deployLatestUpgradeableContract(
+    config.artifacts,
+    null,
+    contractRegistryConfig.contractName,
+    rootRegistry,
+    [
+      contractRegistryConfig.initParamTypes,
+      contractRegistryConfig.initParamVals,
+    ],
+    { from: admin }
+  );
+  const deployedContracts = await upgradeAndMigrateContracts(
+    config,
+    admin,
+    contracts,
+    multiAdmin,
+    contractRegistry
+  );
+
+  return { deployedContracts, multiAdmin, rootRegistry, contractRegistry };
+};
+
 Object.assign(exports, {
   onlyWhitelisted,
   giveEth,
@@ -190,4 +228,5 @@ Object.assign(exports, {
   balanceOf,
   assertThrowsAsynchronously,
   printRegistryInfo,
+  setupEnvForTests,
 });
