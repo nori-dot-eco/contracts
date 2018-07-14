@@ -1,7 +1,7 @@
 import { encodeCall } from './utils';
 
 const { promisify } = require('util');
-const bluebird = require('bluebird');
+const { mapSeries } = require('bluebird');
 const glob = require('glob');
 const path = require('path');
 const utils = require('./utils');
@@ -406,14 +406,18 @@ const upgradeAndMigrateContracts = (
   multiAdmin,
   registry
 ) =>
-  bluebird.mapSeries(contractsToUpgrade, async contractConfig => {
-    const configuredContract = await contractConfig(multiAdmin, registry);
+  mapSeries(contractsToUpgrade, async contractConfig => {
+    const {
+      contractName,
+      initParamTypes,
+      initParamVals,
+    } = await contractConfig(multiAdmin, registry);
     const upgrade = () =>
       upgradeAndTransferToMultiAdmin(
         config.artifacts,
-        configuredContract.contractName,
+        contractName,
         registry,
-        [configuredContract.initParamTypes, configuredContract.initParamVals],
+        [initParamTypes, initParamVals],
         { from: adminAccountAddress },
         multiAdmin
       );

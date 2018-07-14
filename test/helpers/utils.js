@@ -185,6 +185,8 @@ const printRegistryInfo = (
     console.log('\n==========\n');
   }, 1500);
 
+// Deploy a fresh root, contract registry, multiadmin, and any
+// number of contracts -- for testcase use inside of truffle
 const setupEnvForTests = async (
   contracts,
   admin,
@@ -194,20 +196,18 @@ const setupEnvForTests = async (
     { network, artifacts, accounts, web3 },
     true
   );
-  const contractRegistryConfig = await getContractRegistryConfig(
-    null,
-    rootRegistry
-  );
+  const {
+    contractName,
+    initParamTypes,
+    initParamVals,
+  } = await getContractRegistryConfig(null, rootRegistry);
 
   const [, contractRegistry] = await deployLatestUpgradeableContract(
     artifacts,
     null,
-    contractRegistryConfig.contractName,
+    contractName,
     rootRegistry,
-    [
-      contractRegistryConfig.initParamTypes,
-      contractRegistryConfig.initParamVals,
-    ],
+    [initParamTypes, initParamVals],
     { from: admin }
   );
   const deployedContracts = await upgradeAndMigrateContracts(
