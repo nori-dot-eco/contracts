@@ -2,7 +2,6 @@ const ENS = require('ethereum-ens');
 const namehash = require('eth-ens-namehash');
 
 const getENSDetails = async ({ network, artifacts, web3 }) => {
-  // const { network, artifacts, web3 } = config;
   let ens, resolver;
   console.log(`Looking for existing registry at ENS on network: ${network}`);
   if (network === 'ropstenGeth' || network === 'ropsten') {
