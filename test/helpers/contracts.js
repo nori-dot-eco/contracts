@@ -1,9 +1,9 @@
 import { encodeCall } from './utils';
 
+const { promisify } = require('util');
 const bluebird = require('bluebird');
 const utils = require('./utils');
 const ensUtils = require('./ens');
-const { promisify } = require('util');
 const glob = require('glob');
 const path = require('path');
 

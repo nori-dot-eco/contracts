@@ -1,4 +1,3 @@
-/* globals artifacts web3 */
 const {
   deployOrGetRootRegistry,
   upgradeAndMigrateContracts,
