@@ -1,11 +1,8 @@
 const abi = require('ethereumjs-abi');
 const getNamedAccounts = require('./getNamedAccounts');
-const {
-  deployLatestUpgradeableContract,
-  upgradeAndMigrateContracts,
-} = require('./contracts');
-const prepareMultiSigAndRoot = require('./multisig').prepareMultiSigAndRoot;
-const getContractRegistryConfig = require('./contractConfigs').contractRegistry;
+const { upgradeAndMigrateContracts } = require('./contracts');
+const { prepareMultiSigAndRoot } = require('./multisig');
+const contractRegistryConfig = require('./contractConfigs').contractRegistry;
 
 function getParamFromTxEvent(
   transaction,
@@ -110,12 +107,7 @@ const onlyWhitelisted = (config, ifWhiteListed) => {
   const { network, web3, accounts } = config;
   const from = accounts[0];
   if (network === 'ropstenGeth' || network === 'ropsten') {
-    if (
-      ![
-        '0xf1bcd758cb3d46d15afe4faef942adad36380148',
-        '0x2e4d8353d81b7e903c9e031dab3e9749e8ab69bc',
-      ].includes(from.toLowerCase())
-    ) {
+    if (!getNamedAccounts(web3).ropstenAdmins.includes(from.toLowerCase())) {
       throw new Error(
         `${from} is not a whitelisted account for deploying to ropsten.`
       );
@@ -127,7 +119,7 @@ const onlyWhitelisted = (config, ifWhiteListed) => {
       );
     }
   }
-  return ifWhiteListed(config);
+  return ifWhiteListed ? ifWhiteListed(config) : true;
 };
 
 const printRegisteredContracts = deployedContracts =>
@@ -188,37 +180,28 @@ const printRegistryInfo = (
 // Deploy a fresh root, contract registry, multiadmin, and any
 // number of contracts -- for testcase use inside of truffle
 const setupEnvForTests = async (
-  contracts,
+  contractsToConfigure,
   admin,
   { network, artifacts, accounts, web3 }
 ) => {
+  const config = { network, artifacts, accounts, web3 };
   const { multiAdmin, rootRegistry } = await prepareMultiSigAndRoot(
-    { network, artifacts, accounts, web3 },
+    config,
     true
   );
-  const {
-    contractName,
-    initParamTypes,
-    initParamVals,
-  } = await getContractRegistryConfig(null, rootRegistry);
 
-  const [, contractRegistry] = await deployLatestUpgradeableContract(
-    artifacts,
-    null,
-    contractName,
-    rootRegistry,
-    [initParamTypes, initParamVals],
-    { from: admin }
-  );
-  const deployedContracts = await upgradeAndMigrateContracts(
-    { network, artifacts, accounts, web3 },
+  const [
+    { upgradeableContractAtProxy: registry },
+    ...deployedContracts
+  ] = await upgradeAndMigrateContracts(
+    config,
     admin,
-    contracts,
+    contractsToConfigure,
     multiAdmin,
-    contractRegistry
+    rootRegistry
   );
 
-  return { deployedContracts, multiAdmin, rootRegistry, contractRegistry };
+  return { multiAdmin, rootRegistry, deployedContracts, registry };
 };
 
 Object.assign(exports, {

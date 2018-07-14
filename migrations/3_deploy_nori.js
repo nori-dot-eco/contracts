@@ -74,7 +74,7 @@ module.exports = (deployer, network, accounts) => {
       adminAccountAddress,
       contractsToUpgrade,
       multiAdmin,
-      registry
+      root
     );
 
     utils.printRegistryInfo(
