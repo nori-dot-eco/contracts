@@ -47,7 +47,7 @@ contract SupplierV0_1_0 is ParticipantV0_1_0 {
       require(isAllowed(_ifaceImpAddr, ifaceLabel) == true);
       _forward(destination, value, data);
     } else {
-      revert("Transaction forwarding unsuccesful. Interface nopt supported.");
+      revert("Transaction forwarding unsuccesful. Interface not supported.");
     }
     //jaycen todo all events
     //Forwarded(destination, value, data);
