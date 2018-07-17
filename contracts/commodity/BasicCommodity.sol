@@ -46,11 +46,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// @dev A mapping from commodity IDs to an address that has been approved to call
   ///  transferFrom(). Each commodity can only have one approved address for transfer
   ///  at any time. A zero value means no approval is outstanding.
-  mapping (uint256 => address) public commodityBundleIndexToApproved;
-
-  /// @dev A mapping from operator addresses to an allowance balance which the operator has
-  /// the authority to send on behalf of a particular commodity owner.
-  mapping (address => mapping (address => uint256)) public commodityOperatorAllowances;
+  mapping (uint256 => address) public commodityIndexToApproved;
 
   /// @dev A mapping from commodity IDs to an address that has been approved to split
   ///  this commodity. Each commodity can only have one approved
@@ -156,7 +152,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// @param _claimant the address we are confirming commodity is approved for.
   /// @param _tokenId commodity id, only valid when > 0
   function _approvedFor(address _claimant, uint256 _tokenId) internal view returns (bool) {
-    return commodityBundleIndexToApproved[_tokenId] == _claimant;
+    return commodityIndexToApproved[_tokenId] == _claimant;
   }
 
   /// @dev Checks if a given address is the current owner of a particular commodity.
@@ -173,8 +169,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     return commodities[_tokenId].locked == false;
   }
 
-  /// @dev Assigns ownership of a specific commodity to an address. Currently, you can only
-  /// transfer a single bundle per transaction.
+  /// @dev Assigns ownership of a specific commodity to an address.
   function _transfer(address _from, address _to, uint256 _tokenId) internal {
     //require commodity not locked/retired
     require(_unlocked(_tokenId));
@@ -192,7 +187,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
         ownershipBundleCount[_from] = ownershipBundleCount[_from].sub(1);
       }
       // clear any previously approved ownership exchange
-      delete commodityBundleIndexToApproved[_tokenId];
+      delete commodityIndexToApproved[_tokenId];
 
       //retire commodity
       commodities[_tokenId].locked = true;
@@ -209,24 +204,6 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// @notice Returns the number of crc bundles owned by a specific address.
   /// @param _owner The owner address to check.
   function bundleBalanceOf(address _owner) public view returns (uint256 count) {
-    return ownershipBundleCount[_owner];
-  }
-
-  /// @notice Returns the total operator value of crc allowances for all bundles of
-  ///   a givven address
-  /// @param _operator The _operator address to check allowances of.
-  /// @param _owner The address of one of the commodity owners that the operator
-  ///   has an allowance for.
-  /// @return totalValue The total allowance value of an operator for a given owner
-  function allowanceOf(address _operator, address _owner) public view returns (uint256 totalValue) {
-    // commodityOperatorAllowances commodityAllowedToAddress
-    // todo total allowance balance of all addresses combined?
-    return commodityOperatorAllowances[_operator][_owner];
-  }
-
-  /// @notice Returns the number of crc bundles owned by a specific address.
-  /// @param _owner The owner address to check.
-  function bundleAllowanceOf(address _owner) public view returns (uint256 count) {
     return ownershipBundleCount[_owner];
   }
 
@@ -451,21 +428,19 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     _transfer(msg.sender, _to, _tokenId);
   }
 
+
+
+
+
   /// @dev Marks an address as being approved for transferFrom(), overwriting any previous
   ///  approval. Setting _approved to address(0) clears all transfer approval.
   ///  NOTE: _approve() does NOT send the Approval event. This is intentional because
   ///  _approve() and transferFrom() are used together for putting commodities on auction, and
   ///  there is no value in spamming the log with Approval events in that case.
   function _approve(uint256 _tokenId, address _approved) private {
-    //todo check if we need to deauthorize after send
-    commodityBundleIndexToApproved[_tokenId] = _approved;
-    commodityOperatorAllowances[_approved][msg.sender] = commodityOperatorAllowances[_approved][msg.sender].add(commodities[_tokenId].value);
+    commodityIndexToApproved[_tokenId] = _approved;
   }
-  // todo (jaycen): investigate how we enfoce consuming this as an alternative to authorizeOperator.
-  // it currently exists is to allow for 777 and 721 compat. It is consumed in the lifecycle
-  // of authorizeOperator when listing crcs for sale. Perhaps we can enforce this as an alternative
-  // which does not use erc820, and instead is just used for authorizing third party managers
-  // of crcs
+
   /// @notice Grant another address the right to transfer a specific crc via
   ///  transferFrom(). This is the preferred flow for transfering NFTs to contracts.
   /// @param _to The address to be granted transfer approval. Pass address(0) to
@@ -486,16 +461,6 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     revert();
   }
 
-  // todo(jaycen): we probably want a variation of this function which
-  // only authorizes a specified value of a bundle, and not the entire thing
-  /// @notice Grant another address the right to transfer a specific crc. 
-  /// @param _operator The address of a third party operator who can manage this commodity id
-  /// @param _tokenId the commodity id of which you want to give a third part operator transfer 
-  ///   permissions for
-  /// @dev This is the function used to create a sale in a market contract.
-  ///  In combination with ERC820, it dials a contract address, and if it is 
-  /// listed as the market contract, creates a sale in the context of that contract.
-  /// Note: it can also be used to authorize any third party as a sender of the bundle. 
   function authorizeOperator(address _operator, uint256 _tokenId) public {
     require(_unlocked(_tokenId));
     require(_operator != msg.sender);
@@ -524,7 +489,6 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   }
 
   // TODO jaycen PRELAUNCH do we need this for backward compatibility/third party compatibility (erc20) reasons?
-  // also do we need it in addition to approvedFor? Both exist as a result of combining 777 + 721
   /** @notice Check whether '_operator' is allowed to manage the tokens held by '_tokenHolder'. */
   function isOperatorFor(address _operator, address _tokenHolder) public view returns (bool) {
     return _operator == _tokenHolder || mAuthorized[_operator][_tokenHolder];
