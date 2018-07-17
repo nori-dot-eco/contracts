@@ -286,7 +286,7 @@ const initOrUpgradeFromMultiAdmin = async (
     // doesn't exist yet, but that's OK.
   }
   if (initialized === false) {
-    console.log('Upgrading and initializing...');
+    console.log(contractName, ' is upgrading and initializing...');
     upgradeTxData = proxy.contract.upgradeToAndCall.getData(
       contractName,
       versionName,
@@ -400,29 +400,32 @@ const upgradeAndTransferToMultiAdmin = async (
 };
 
 const upgradeAndMigrateContracts = (
-  config,
+  { network, artifacts, accounts, web3 },
   adminAccountAddress,
   contractsToUpgrade, // <- pass these in the correct order; they may depend on eachother
   multiAdmin,
-  registry
-) =>
-  mapSeries(contractsToUpgrade, async contractConfig => {
-    const {
-      contractName,
-      initParamTypes,
-      initParamVals,
-    } = await contractConfig(multiAdmin, registry);
-    const upgrade = () =>
-      upgradeAndTransferToMultiAdmin(
-        config.artifacts,
+  root
+) => {
+  if (utils.onlyWhitelisted({ network, accounts, web3 })) {
+    return mapSeries(contractsToUpgrade, async contractConfig => {
+      const {
+        contractName,
+        initParamTypes,
+        initParamVals,
+        registry,
+      } = await contractConfig(root, artifacts);
+      return upgradeAndTransferToMultiAdmin(
+        artifacts,
         contractName,
         registry,
         [initParamTypes, initParamVals],
         { from: adminAccountAddress },
         multiAdmin
       );
-    return utils.onlyWhitelisted(config, upgrade);
-  });
+    });
+  }
+  throw new Error('There was an issue upgrading and initializing contracts');
+};
 
 module.exports = {
   upgradeAndTransferToMultiAdmin,

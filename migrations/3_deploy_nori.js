@@ -5,13 +5,13 @@ const {
 const getNamedAccounts = require('../test/helpers/getNamedAccounts');
 const utils = require('../test/helpers/utils');
 const {
-  nori,
-  participantRegistry,
-  crc,
-  participant,
-  supplier,
-  verifier,
-  fifoCrcMarket,
+  noriConfig,
+  participantRegistryConfig,
+  crcConfig,
+  participantConfig,
+  supplierConfig,
+  verifierConfig,
+  fifoCrcMarketConfig,
 } = require('../test/helpers/contractConfigs');
 
 const MultiAdmin = artifacts.require('MultiAdmin');
@@ -61,20 +61,20 @@ module.exports = (deployer, network, accounts) => {
     }
     // Check registry if each contract needs to be upgraded, and if so, do just that
     const contractsToUpgrade = [
-      nori,
-      participantRegistry,
-      crc,
-      participant,
-      supplier,
-      verifier,
-      fifoCrcMarket,
+      noriConfig,
+      participantRegistryConfig,
+      crcConfig,
+      participantConfig,
+      supplierConfig,
+      verifierConfig,
+      fifoCrcMarketConfig,
     ];
     const deployedContracts = await upgradeAndMigrateContracts(
       config,
       adminAccountAddress,
       contractsToUpgrade,
       multiAdmin,
-      registry
+      root
     );
 
     utils.printRegistryInfo(

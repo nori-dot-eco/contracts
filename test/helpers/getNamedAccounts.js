@@ -1,4 +1,8 @@
 module.exports = web3 => {
+  const ropstenAdmin0 = '0xf1bcd758cb3d46d15afe4faef942adad36380148';
+  const ropstenAdmin1 = '0x2e4d8353d81b7e903c9e031dab3e9749e8ab69bc';
+  const ropstenAdmins = [ropstenAdmin0, ropstenAdmin1];
+
   const allAccounts = web3.personal.listAccounts;
 
   const [
@@ -15,6 +19,9 @@ module.exports = web3 => {
   ] = allAccounts;
 
   return {
+    ropstenAdmins,
+    ropstenAdmin0,
+    ropstenAdmin1,
     allAccounts,
     admin0,
     admin1,
