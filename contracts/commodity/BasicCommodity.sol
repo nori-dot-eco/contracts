@@ -496,7 +496,6 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   ///  _approve() and transferFrom() are used together for putting commodities on auction, and
   ///  there is no value in spamming the log with Approval events in that case.
   function _approve(uint256 _tokenId, address _operator) private {
-    //todo check if we need to deauthorize after send
     _cumulativeAllowance[_operator] = _cumulativeAllowance[_operator].add(commodities[_tokenId].value);
     commodityBundleIndexToApproved[_tokenId] = _operator;
     commodityOperatorBundleApprovals[_operator][msg.sender].push(_tokenId);
