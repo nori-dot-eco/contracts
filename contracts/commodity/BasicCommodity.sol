@@ -384,7 +384,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     require(_tokenId >= 0);                  // only send positive amounts
     require(_approvedFor(msg.sender, _tokenId) || _owns(_from, _tokenId)); // ensure sender owns that token
 
-     _transfer(_from, _to, _tokenId);
+    _transfer(_from, _to, _tokenId);
     callRecipent(
       _operator,
       _from,
