@@ -1,8 +1,8 @@
 import { shouldBehaveLikeCrc } from './behaviors/Crc';
-import { testBasicCommodityFunctions } from './behaviors/BasicCommodity';
+// import { testBasicCommodityFunctions } from './behaviors/BasicCommodity';
 
 const CRCTests = admin => {
   shouldBehaveLikeCrc(admin);
-  testBasicCommodityFunctions();
+  // testBasicCommodityFunctions(); // enabled in next pr
 };
 export default CRCTests;
