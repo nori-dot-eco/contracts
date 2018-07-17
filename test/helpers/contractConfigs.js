@@ -1,31 +1,24 @@
 const { getLatestVersionFromFs } = require('./contracts');
 
-const isRegistryOrRoot = async (registry, artifacts) =>
-  (await registry.getLatestProxyAddr.call('ContractRegistry')) !==
+const getRootOrContractRegistry = async (root, artifacts) =>
+  (await root.getLatestProxyAddr.call('ContractRegistry')) !==
   '0x0000000000000000000000000000000000000000'
     ? artifacts
         .require(
           `ContractRegistryV${await getLatestVersionFromFs('ContractRegistry')}`
         )
-        .at(await registry.getLatestProxyAddr.call('ContractRegistry'))
-    : registry;
+        .at(await root.getLatestProxyAddr.call('ContractRegistry'))
+    : root;
 
-const contractRegistry = async (
-  multiAdmin = null,
-  registry = null,
-  artifacts
-) => ({
+const contractRegistryConfig = async (root, artifacts) => ({
   contractName: 'ContractRegistry',
   initParamTypes: ['address'],
-  initParamVals: [
-    multiAdmin.address ||
-      (await registry.getLatestProxyAddr.call('MultiAdmin')),
-  ],
-  proxy: await isRegistryOrRoot(registry, artifacts),
+  initParamVals: [await root.getLatestProxyAddr.call('MultiAdmin')],
+  registry: await getRootOrContractRegistry(root, artifacts),
 });
 
-const nori = async (multiAdmin, registry, artifacts) =>
-  contractRegistry(multiAdmin, registry, artifacts).then(async contractReg => ({
+const noriConfig = async (root, artifacts) =>
+  contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'Nori',
     initParamTypes: ['string', 'string', 'uint', 'uint', 'address', 'address'],
     initParamVals: [
@@ -33,92 +26,101 @@ const nori = async (multiAdmin, registry, artifacts) =>
       'NORI',
       1,
       0,
-      contractReg.proxy.address,
-      multiAdmin.address,
+      contractRegistry.registry.address,
+      await root.getLatestProxyAddr.call('MultiAdmin'),
     ],
-    proxy: await contractReg.proxy,
-  }));
-// todo async?
-const participantRegistry = async (multiAdmin, registry, artifacts) =>
-  contractRegistry(multiAdmin, registry, artifacts).then(async contractReg => ({
-    contractName: 'ParticipantRegistry',
-    initParamTypes: ['address', 'address'],
-    initParamVals: [await contractReg.proxy.address, multiAdmin.address],
-    proxy: await contractReg.proxy,
+    registry: contractRegistry.registry,
   }));
 
-const crc = async (multiAdmin, registry, artifacts) =>
-  contractRegistry(multiAdmin, registry, artifacts).then(async contractReg => ({
+const participantRegistryConfig = async (root, artifacts) =>
+  contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
+    contractName: 'ParticipantRegistry',
+    initParamTypes: ['address', 'address'],
+    initParamVals: [
+      contractRegistry.registry.address,
+      await root.getLatestProxyAddr.call('MultiAdmin'),
+    ],
+    registry: contractRegistry.registry,
+  }));
+
+const crcConfig = async (root, artifacts) =>
+  contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'CRC',
     initParamTypes: ['string', 'string', 'address', 'address', 'address'],
     initParamVals: [
       'Carbon Removal Certificate',
       'CRC',
-      await contractReg.proxy.address,
-      await contractReg.proxy.getLatestProxyAddr.call('ParticipantRegistry'),
-      multiAdmin.address,
+      contractRegistry.registry.address,
+      await contractRegistry.registry.getLatestProxyAddr.call(
+        'ParticipantRegistry'
+      ),
+      await root.getLatestProxyAddr.call('MultiAdmin'),
     ],
-    proxy: await contractReg.proxy,
+    registry: contractRegistry.registry,
   }));
 
-const participant = async (multiAdmin, registry, artifacts) =>
-  contractRegistry(multiAdmin, registry, artifacts).then(async contractReg => ({
+const participantConfig = async (root, artifacts) =>
+  contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'Participant',
     initParamTypes: ['address', 'address', 'address'],
     initParamVals: [
-      contractReg.proxy.address,
-      await contractReg.proxy.getLatestProxyAddr.call('ParticipantRegistry'),
-      multiAdmin.address,
+      contractRegistry.registry.address,
+      await contractRegistry.registry.getLatestProxyAddr.call(
+        'ParticipantRegistry'
+      ),
+      await root.getLatestProxyAddr.call('MultiAdmin'),
     ],
-    proxy: await contractReg.proxy,
+    registry: contractRegistry.registry,
   }));
 
-const supplier = async (multiAdmin, registry, artifacts) =>
-  contractRegistry(multiAdmin, registry, artifacts).then(async contractReg => ({
+const supplierConfig = async (root, artifacts) =>
+  contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'Supplier',
     initParamTypes: ['address', 'address', 'address'],
     initParamVals: [
-      contractReg.proxy.address,
-      await registry.getLatestProxyAddr('ParticipantRegistry'),
-      multiAdmin.address,
+      contractRegistry.registry.address,
+      await contractRegistry.registry.getLatestProxyAddr('ParticipantRegistry'),
+      await root.getLatestProxyAddr.call('MultiAdmin'),
     ],
-    proxy: await contractReg.proxy,
+    registry: contractRegistry.registry,
   }));
 
-const verifier = async (multiAdmin, registry, artifacts) =>
-  contractRegistry(multiAdmin, registry, artifacts).then(async contractReg => ({
+const verifierConfig = async (root, artifacts) =>
+  contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'Verifier',
     initParamTypes: ['address', 'address', 'address'],
     initParamVals: [
-      contractReg.proxy.address,
-      await registry.getLatestProxyAddr.call('ParticipantRegistry'),
-      multiAdmin.address,
+      contractRegistry.registry.address,
+      await contractRegistry.registry.getLatestProxyAddr.call(
+        'ParticipantRegistry'
+      ),
+      await root.getLatestProxyAddr.call('MultiAdmin'),
     ],
-    proxy: await contractReg.proxy,
+    registry: contractRegistry.registry,
   }));
 
-const fifoCrcMarket = async (multiAdmin, registry, artifacts) =>
-  contractRegistry(multiAdmin, registry, artifacts).then(async contractReg => ({
+const fifoCrcMarketConfig = async (root, artifacts) =>
+  contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'FifoCrcMarket',
     initParamTypes: ['address', 'address[]', 'address'],
     initParamVals: [
-      contractReg.proxy.address,
+      contractRegistry.registry.address,
       [
-        await registry.getLatestProxyAddr.call('CRC'),
-        await registry.getLatestProxyAddr.call('Nori'),
+        await contractRegistry.registry.getLatestProxyAddr.call('CRC'),
+        await contractRegistry.registry.getLatestProxyAddr.call('Nori'),
       ],
-      multiAdmin.address,
+      await root.getLatestProxyAddr.call('MultiAdmin'),
     ],
-    proxy: await contractReg.proxy,
+    registry: contractRegistry.registry,
   }));
 
 module.exports = {
-  contractRegistry,
-  nori,
-  participantRegistry,
-  crc,
-  participant,
-  supplier,
-  verifier,
-  fifoCrcMarket,
+  contractRegistryConfig,
+  noriConfig,
+  participantRegistryConfig,
+  crcConfig,
+  participantConfig,
+  supplierConfig,
+  verifierConfig,
+  fifoCrcMarketConfig,
 };

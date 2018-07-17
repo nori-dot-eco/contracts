@@ -2,7 +2,6 @@ const abi = require('ethereumjs-abi');
 const getNamedAccounts = require('./getNamedAccounts');
 const { upgradeAndMigrateContracts } = require('./contracts');
 const { prepareMultiSigAndRoot } = require('./multisig');
-const contractRegistryConfig = require('./contractConfigs').contractRegistry;
 
 function getParamFromTxEvent(
   transaction,
@@ -190,10 +189,7 @@ const setupEnvForTests = async (
     true
   );
 
-  const [
-    { upgradeableContractAtProxy: registry },
-    ...deployedContracts
-  ] = await upgradeAndMigrateContracts(
+  const [...deployedContracts] = await upgradeAndMigrateContracts(
     config,
     admin,
     contractsToConfigure,
@@ -201,7 +197,7 @@ const setupEnvForTests = async (
     rootRegistry
   );
 
-  return { multiAdmin, rootRegistry, deployedContracts, registry };
+  return { multiAdmin, rootRegistry, deployedContracts };
 };
 
 Object.assign(exports, {

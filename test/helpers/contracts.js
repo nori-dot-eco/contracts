@@ -412,12 +412,12 @@ const upgradeAndMigrateContracts = (
         contractName,
         initParamTypes,
         initParamVals,
-        proxy: registryProxy,
-      } = await contractConfig(multiAdmin, root, artifacts);
+        registry,
+      } = await contractConfig(root, artifacts);
       return upgradeAndTransferToMultiAdmin(
         artifacts,
         contractName,
-        registryProxy,
+        registry,
         [initParamTypes, initParamVals],
         { from: adminAccountAddress },
         multiAdmin
