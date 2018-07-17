@@ -521,21 +521,22 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
 
   //TODO (jaycen) PRELAUNCH fix/remove this (if we need it for compatibility reasons  -- disabling for now)
   /** @notice Authorize a third party '_operator' to manage (send) 'msg.sender''s tokens. */
-  function authorizeOperator(address) public pure {
-    revert();
-  }
+  // function authorizeOperator(address) public pure {
+  //   revert();
+  // }
 
   // todo(jaycen): we probably want a variation of this function which
   // only authorizes a specified value of a bundle, and not the entire thing
   /// @notice Grant another address the right to transfer a specific crc. 
   /// @param _operator The address of a third party operator who can manage this commodity id
   /// @param _tokenId the commodity id of which you want to give a third part operator transfer 
+  /// @param _operatorData the commodity id of which you want to give a third part operator transfer 
   ///   permissions for
   /// @dev This is the function used to create a sale in a market contract.
   ///  In combination with ERC820, it dials a contract address, and if it is 
   /// listed as the market contract, creates a sale in the context of that contract.
   /// Note: it can also be used to authorize any third party as a sender of the bundle. 
-  function authorizeOperator(address _operator, uint256 _tokenId) public {
+  function authorizeOperator(address _operator, uint256 _tokenId, bytes _operatorData) public {
     require(_unlocked(_tokenId));
     require(_operator != msg.sender);
     approve(_operator, _tokenId);
@@ -548,17 +549,36 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
       _tokenId,
       commodities[_tokenId].value,
       "",
-      "",
+      _operatorData,
       false
     );
     emit AuthorizedOperator(_operator, msg.sender);
   }
 
   /** @notice Revoke a third party '_operator''s rights to manage (send) 'msg.sender''s tokens. */
-  function revokeOperator(address _operator) public {
+  function revokeOperator(address _operator, uint256 _tokenId, bytes _operatorData) public {
     //todo jaycen call operator to cancel sale on markets
     require(_operator != msg.sender);
-    mAuthorized[_operator][msg.sender] = false;
+    //mAuthorized[_operator][msg.sender] = false; //todo what is this
+   
+    callOperator(
+      _operator,
+      msg.sender,
+      _operator,
+      _tokenId,
+      commodities[_tokenId].value,
+      "",
+      _operatorData,
+      false
+    );
+    address operator = commodityBundleIndexToApproved[_tokenId];
+    for(uint i = 0; i < commodityOperatorBundleApprovals[operator][msg.sender].length; i++){
+      if(commodityOperatorBundleApprovals[operator][msg.sender][i] == _tokenId){
+        _cumulativeAllowance[operator] = _cumulativeAllowance[operator].sub(commodities[_tokenId].value);
+        delete commodityOperatorBundleApprovals[operator][msg.sender][i];
+      }
+    }
+    delete commodityBundleIndexToApproved[_tokenId];
     emit RevokedOperator(_operator, msg.sender);
   }
 

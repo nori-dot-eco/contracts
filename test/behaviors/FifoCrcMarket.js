@@ -4,6 +4,14 @@ import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
 import { NoriV0_1_0, FifoCrcMarketV0_1_0 } from '../helpers/Artifacts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
 import { deployUpgradeableCrc } from './Crc';
+import { encodeCall } from '../helpers/utils';
+
+const createSale = (id, from, value) =>
+  encodeCall(
+    'createSale',
+    ['uint256', 'uint64', 'uint32', 'address', 'uint256', 'bytes'],
+    [id, 1, 2, from, value, '']
+  );
 
 const shouldBehaveLikeFifoCrcMarketV0 = admin => {
   // test state
@@ -95,9 +103,14 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
         let saleCreatedLogs;
         before(async () => {
           fifoOrder.forEach(async index => {
-            await crc.authorizeOperator(fifomarketAddr, index, {
-              from: supplier,
-            });
+            await crc.authorizeOperator(
+              fifomarketAddr,
+              index,
+              createSale(index, supplier, token(crcValue)),
+              {
+                from: supplier,
+              }
+            );
           });
 
           saleCreatedLogs = await getLogs(
@@ -278,9 +291,14 @@ const shouldBehaveLikeFifoCrcMarketV0 = admin => {
         });
         // sell crc
         it(`should create sale with CRC ID ${crcIdToSplit}`, async () => {
-          await crc.authorizeOperator(fifomarketAddr, crcIdToSplit, {
-            from: supplier,
-          });
+          await crc.authorizeOperator(
+            fifomarketAddr,
+            crcIdToSplit,
+            createSale(crcIdToSplit, supplier, token(saleAmount)),
+            {
+              from: supplier,
+            }
+          );
         });
 
         // buy crc

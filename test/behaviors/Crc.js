@@ -63,7 +63,7 @@ const shouldBehaveLikeCrc = admin => {
       });
       it('should fail when trying to authorize a retired crc', async () => {
         await expectThrow(
-          crc.authorizeOperator(accounts[2], 0, {
+          crc.authorizeOperator(accounts[2], 0, '0x0', {
             from: accounts[1],
           })
         );
@@ -129,7 +129,11 @@ const shouldBehaveLikeCrc = admin => {
         describe('when authorizing an operator', () => {
           let authorizedOperatorLogs;
           before(async () => {
-            crc.authorizeOperator(accounts[1], mintedLogs[0].args.commodityId);
+            crc.authorizeOperator(
+              accounts[1],
+              mintedLogs[0].args.commodityId,
+              '0x0'
+            );
             authorizedOperatorLogs = await getLogs(crc.AuthorizedOperator);
           });
 

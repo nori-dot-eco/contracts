@@ -45,29 +45,26 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
       
   } 
 
-    /// @dev erc820 introspection : handler invoked when 
-    /// this contract is made an operator for a commodity
+  /// @dev erc820 introspection : handler invoked when 
+  /// this contract is made an operator for a commodity
   function madeOperatorForCommodity(
     address, // operator,  
-    address from,
+    address, // from,
     address, // to,
-    uint tokenId,
-    uint256 value,
-    bytes userData,
-    bytes // operatorData
+    uint, // tokenId,
+    uint256, // value,
+    bytes, // userData,
+    bytes operatorData
   ) public {
     if (preventCommodityOperator) {
       revert();
     }
-    //todo jaycen can we figure out how to do this passing in a CommodityLib.Commodity struct (I was having solidity errors but it would be ideal -- might be possible using eternal storage, passing hash of struct and then looking up struct values <-- would be VERY cool)
-    createSale(
-      tokenId, 
-      1, 
-      2, 
-      from, 
-      value, 
-      userData
-    );
+    require(_executeCall(address(this), 0, operatorData));
+  }
+  function _executeCall(address to, uint256 value, bytes data) private returns (bool success) {
+    assembly { // solium-disable-line security/no-inline-assembly
+      success := call(gas, to, value, add(data, 0x20), mload(data), 0, 0)
+    }
   }
 
   /// @dev erc820 introspection : handler invoked when this contract
@@ -85,7 +82,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     }
     buy(from, amount);
   }
-
+  //todo only allow from this address (cant make private due to operatorsend data)
   function createSale(
     uint256 _tokenId,
     uint64 _category,
@@ -93,7 +90,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     address _seller,
     uint256 _value,
     bytes _misc
-  ) private {
+  ) public {
     _createSale(
       _tokenId, 
       _category, 
@@ -103,5 +100,19 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
       _misc
     );
     commoditiesForSale.push(int(_tokenId));
+  }
+
+  function removeSale(
+    uint256 _tokenId
+  ) public {
+    _removeSale(
+      _tokenId
+    );
+    for (uint i = 0; i < commoditiesForSale.length; i++ ) {
+      if (uint(commoditiesForSale[i]) == _tokenId) {
+        commoditiesForSale[i] = -1;
+        return;
+      } 
+    }
   }
 }
