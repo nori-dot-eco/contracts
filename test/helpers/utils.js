@@ -1,5 +1,7 @@
 const abi = require('ethereumjs-abi');
 const getNamedAccounts = require('./getNamedAccounts');
+const { upgradeAndMigrateContracts } = require('./contracts');
+const { prepareMultiSigAndRoot } = require('./multisig');
 
 function getParamFromTxEvent(
   transaction,
@@ -104,12 +106,7 @@ const onlyWhitelisted = (config, ifWhiteListed) => {
   const { network, web3, accounts } = config;
   const from = accounts[0];
   if (network === 'ropstenGeth' || network === 'ropsten') {
-    if (
-      ![
-        '0xf1bcd758cb3d46d15afe4faef942adad36380148',
-        '0x2e4d8353d81b7e903c9e031dab3e9749e8ab69bc',
-      ].includes(from.toLowerCase())
-    ) {
+    if (!getNamedAccounts(web3).ropstenAdmins.includes(from.toLowerCase())) {
       throw new Error(
         `${from} is not a whitelisted account for deploying to ropsten.`
       );
@@ -121,7 +118,7 @@ const onlyWhitelisted = (config, ifWhiteListed) => {
       );
     }
   }
-  return ifWhiteListed(config);
+  return ifWhiteListed ? ifWhiteListed(config) : true;
 };
 
 const printRegisteredContracts = deployedContracts =>
@@ -179,6 +176,30 @@ const printRegistryInfo = (
     console.log('\n==========\n');
   }, 1500);
 
+// Deploy a fresh root, contract registry, multiadmin, and any
+// number of contracts -- for testcase use inside of truffle
+const setupEnvForTests = async (
+  contractsToConfigure,
+  admin,
+  { network, artifacts, accounts, web3 }
+) => {
+  const config = { network, artifacts, accounts, web3 };
+  const { multiAdmin, rootRegistry } = await prepareMultiSigAndRoot(
+    config,
+    true
+  );
+
+  const [...deployedContracts] = await upgradeAndMigrateContracts(
+    config,
+    admin,
+    contractsToConfigure,
+    multiAdmin,
+    rootRegistry
+  );
+
+  return { multiAdmin, rootRegistry, deployedContracts };
+};
+
 Object.assign(exports, {
   onlyWhitelisted,
   giveEth,
@@ -190,4 +211,5 @@ Object.assign(exports, {
   balanceOf,
   assertThrowsAsynchronously,
   printRegistryInfo,
+  setupEnvForTests,
 });

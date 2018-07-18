@@ -40,23 +40,23 @@ contract SupplierV0_1_0 is ParticipantV0_1_0 {
     address destination, 
     uint value, 
     bytes data, 
-    string ifaceLabel
+    string ifaceLabel //todo this isnt safe, you can pass any string you want here to bypasss permissions-- look into alt
   ) public {
     address _ifaceImpAddr = interfaceAddr(destination, ifaceLabel);
     if (_ifaceImpAddr != 0) {
       require(isAllowed(_ifaceImpAddr, ifaceLabel) == true);
       _forward(destination, value, data);
     } else {
-      revert("Transaction forwarding unsuccesful");
+      revert("Transaction forwarding unsuccesful. Interface not supported.");
     }
     //jaycen todo all events
     //Forwarded(destination, value, data);
   }
-  
+  //todo onlyowner
   function toggleSupplier(address _supplier, bool _toggle) public {
     suppliers[_supplier] = _toggle;
   }
-
+  //todo onlyowner
   function toggleParticipantType(bool _toggle) public {
     _toggleParticipantType("Supplier", this, _toggle);
   }

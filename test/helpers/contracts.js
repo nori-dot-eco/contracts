@@ -1,18 +1,24 @@
-import { encodeCall } from '../helpers/utils';
+import { encodeCall } from './utils';
 
-const ensUtils = require('./ens');
 const { promisify } = require('util');
+const { mapSeries } = require('bluebird');
 const glob = require('glob');
 const path = require('path');
+const utils = require('./utils');
+const ensUtils = require('./ens');
 
 function getLogs(Event, filter, additionalFilters) {
   const query = Event(filter, additionalFilters);
   return promisify(query.get.bind(query))();
 }
 
-const deployOrGetRootRegistry = async config => {
-  const { network, artifacts, deployer } = config;
-  if (network === 'develop' || network === 'test') {
+const deployOrGetRootRegistry = async (
+  { network, artifacts, deployer, web3 },
+  force = false
+) => {
+  if (force === true) {
+    return artifacts.require('RootRegistryV0_1_0').new();
+  } else if (network === 'develop' || network === 'test') {
     try {
       await artifacts.require('RootRegistryV0_1_0').deployed();
     } catch (e) {
@@ -22,7 +28,11 @@ const deployOrGetRootRegistry = async config => {
       return deployer.deploy(artifacts.require('RootRegistryV0_1_0'));
     }
   }
-  const rootRegistry = await ensUtils.getENSDetails(config);
+  const rootRegistry = await ensUtils.getENSDetails({
+    network,
+    artifacts,
+    web3,
+  });
   if (rootRegistry) {
     console.log('Found existing RootRegistry at', rootRegistry.address);
   } else {
@@ -232,13 +242,12 @@ const upgradeToContract = async (
 };
 
 const deployOrGetProxy = async (
-  config,
+  artifacts,
   existingProxyAddr,
   contractRegistry,
   multiAdmin,
   deployParams
 ) => {
-  const { artifacts } = config;
   let proxy = null;
   if (existingProxyAddr) {
     proxy = await artifacts
@@ -277,7 +286,7 @@ const initOrUpgradeFromMultiAdmin = async (
     // doesn't exist yet, but that's OK.
   }
   if (initialized === false) {
-    console.log('Upgrading and initializing...');
+    console.log(contractName, ' is upgrading and initializing...');
     upgradeTxData = proxy.contract.upgradeToAndCall.getData(
       contractName,
       versionName,
@@ -302,14 +311,13 @@ const initOrUpgradeFromMultiAdmin = async (
 };
 
 const upgradeAndTransferToMultiAdmin = async (
-  config,
+  artifacts,
   contractName,
   registry,
   initializeParams,
   deployParams,
   multiAdmin
 ) => {
-  const { artifacts } = config;
   let latestVersionName,
     proxyAddress,
     upgradeableContractAtProxy,
@@ -341,7 +349,7 @@ const upgradeAndTransferToMultiAdmin = async (
     contractToMakeUpgradeable = await contract.new(deployParams);
     await contractToMakeUpgradeable.transferOwnership(multiAdmin.address);
     proxy = await deployOrGetProxy(
-      config,
+      artifacts,
       proxyAddress,
       registry,
       multiAdmin,
@@ -391,6 +399,34 @@ const upgradeAndTransferToMultiAdmin = async (
   };
 };
 
+const upgradeAndMigrateContracts = (
+  { network, artifacts, accounts, web3 },
+  adminAccountAddress,
+  contractsToUpgrade, // <- pass these in the correct order; they may depend on eachother
+  multiAdmin,
+  root
+) => {
+  if (utils.onlyWhitelisted({ network, accounts, web3 })) {
+    return mapSeries(contractsToUpgrade, async contractConfig => {
+      const {
+        contractName,
+        initParamTypes,
+        initParamVals,
+        registry,
+      } = await contractConfig(root, artifacts);
+      return upgradeAndTransferToMultiAdmin(
+        artifacts,
+        contractName,
+        registry,
+        [initParamTypes, initParamVals],
+        { from: adminAccountAddress },
+        multiAdmin
+      );
+    });
+  }
+  throw new Error('There was an issue upgrading and initializing contracts');
+};
+
 module.exports = {
   upgradeAndTransferToMultiAdmin,
   deployUpgradeableContract,
@@ -400,4 +436,5 @@ module.exports = {
   deployLatestUpgradeableContract,
   deployOrGetRootRegistry,
   getLatestVersionFromFs,
+  upgradeAndMigrateContracts,
 };
