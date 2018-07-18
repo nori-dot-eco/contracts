@@ -59,8 +59,9 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     if (preventCommodityOperator) {
       revert();
     }
-    require(_executeCall(address(this), 0, operatorData));
+    require(_executeCall(address(this), 0, operatorData)); // use operator as to param?
   }
+
   function _executeCall(address to, uint256 value, bytes data) private returns (bool success) {
     assembly { // solium-disable-line security/no-inline-assembly
       success := call(gas, to, value, add(data, 0x20), mload(data), 0, 0)
@@ -82,6 +83,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     }
     buy(from, amount);
   }
+
   //todo only allow from this address (cant make private due to operatorsend data)
   function createSale(
     uint256 _tokenId,
@@ -102,12 +104,9 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     commoditiesForSale.push(int(_tokenId));
   }
 
-  function removeSale(
-    uint256 _tokenId
-  ) public {
-    _removeSale(
-      _tokenId
-    );
+  function removeSale(uint256 _tokenId) public { //todo onlyThisContract modifier
+    _removeSale(_tokenId);
+
     for (uint i = 0; i < commoditiesForSale.length; i++ ) {
       if (uint(commoditiesForSale[i]) == _tokenId) {
         commoditiesForSale[i] = -1;

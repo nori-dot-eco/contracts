@@ -83,6 +83,13 @@ const testFifoSaleBehavior = () => {
 
       describe('revokeOperator', () => {
         it('should cancel the sale in the market', async () => {
+          await assert.equal(
+            await crc.allowanceForAddress(
+              fifoCrcMarket.address,
+              getNamedAccounts(web3).supplier0
+            ),
+            100
+          );
           await crc.revokeOperator(fifoCrcMarket.address, 0, removeSale(0), {
             from: getNamedAccounts(web3).supplier0,
           });
