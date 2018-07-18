@@ -19,13 +19,6 @@ const mint = (to, value) =>
     ['address', 'bytes', 'uint256', 'bytes'],
     [to, '0x0', value, '0x0']
   );
-const createSale = (id, from, value) =>
-  encodeCall(
-    'createSale',
-    ['uint256', 'uint64', 'uint32', 'address', 'uint256', 'bytes'],
-    [id, 1, 2, from, value, '']
-  );
-const removeSale = id => encodeCall('removeSale', ['uint256'], [id]);
 
 const testFifoSaleBehavior = () => {
   contract(`FifoTokenizedCommodityMarket`, accounts => {
@@ -71,14 +64,9 @@ const testFifoSaleBehavior = () => {
             from: getNamedAccounts(web3).supplier0,
           }
         );
-        await crc.authorizeOperator(
-          fifoCrcMarket.address,
-          0,
-          createSale(0, getNamedAccounts(web3).supplier0, 100),
-          {
-            from: getNamedAccounts(web3).supplier0,
-          }
-        );
+        await crc.authorizeOperator(fifoCrcMarket.address, 0, {
+          from: getNamedAccounts(web3).supplier0,
+        });
       });
 
       describe('revokeOperator', () => {
@@ -90,7 +78,7 @@ const testFifoSaleBehavior = () => {
             ),
             100
           );
-          await crc.revokeOperator(fifoCrcMarket.address, 0, removeSale(0), {
+          await crc.revokeOperator(fifoCrcMarket.address, 0, {
             from: getNamedAccounts(web3).supplier0,
           });
           await assert.equal(

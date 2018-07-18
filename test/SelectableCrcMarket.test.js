@@ -73,7 +73,7 @@ const SelectableCrcMarketTests = () => {
       // jaycen todo fix selectable version so more than one with id 0 can be created
       describe('Create a CRC sales via authorizeOperator', () => {
         it('should create sale with CRC ID 0', async () => {
-          await crc.authorizeOperator(crcMarket.address, 0, '0x0', {
+          await crc.authorizeOperator(crcMarket.address, 0, {
             from: accounts[1],
           });
           const isOperator = await crc.isOperatorForOne(crcMarket.address, 0);

@@ -318,9 +318,50 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     bool _preventLocking
   ) internal {
     require(_approvedFor(_operator, _tokenId));
+    require(ownerOf(_tokenId) == msg.sender);
     address recipientImplementation = interfaceAddr(_to, "ICommodityOperator");
     if (recipientImplementation != 0) {
       ICommodityOperator(recipientImplementation).madeOperatorForCommodity(
+        _operator,
+        _from,
+        _to,
+        _tokenId,
+        _value, 
+        _userData,
+        _operatorData
+      );
+    } else if (_preventLocking) {
+      require(isRegularAddress(_to));
+    }
+  }
+
+  /// @notice If the recipient address (_to/_operator param) is listed in the registry as supporting
+  ///   the ICommodityOperator interface, it calls the revokedOperatorForCommodity
+  ///   function.
+  /// @param _operator The _operatorbeing revoked
+  /// @param _from the owner of the commodity
+  /// @param _to the operator address to introspect for ICommodityOperator interface support
+  /// @param _tokenId the commodity index
+  /// @param _value the value of the commodity to revoke allowance for. This is currently unfinished.
+  /// @param _userData the data to pass on behalf of the user. This is currently unsupported.
+  /// @param _operatorData the data to pass on behalf of the operator. This is currently unsupported.
+  /// @param _preventLocking used to prevent sending to contract addresses who are not supported by this commodity 
+  /// @dev This idea behind functions like this come from EIP 820
+  function callRevokedOperator(
+    address _operator,
+    address _from,
+    address _to,
+    uint256 _tokenId,
+    uint256 _value,
+    bytes _userData,
+    bytes _operatorData,
+    bool _preventLocking
+  ) internal {
+    require(_approvedFor(_operator, _tokenId));
+    require(ownerOf(_tokenId) == msg.sender);
+    address recipientImplementation = interfaceAddr(_to, "ICommodityOperator");
+    if (recipientImplementation != 0) {
+      ICommodityOperator(recipientImplementation).revokedOperatorForCommodity(
         _operator,
         _from,
         _to,
@@ -530,13 +571,12 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// @notice Grant another address the right to transfer a specific crc. 
   /// @param _operator The address of a third party operator who can manage this commodity id
   /// @param _tokenId the commodity id of which you want to give a third part operator transfer 
-  /// @param _operatorData the commodity id of which you want to give a third part operator transfer 
   ///   permissions for
   /// @dev This is the function used to create a sale in a market contract.
   ///  In combination with ERC820, it dials a contract address, and if it is 
   /// listed as the market contract, creates a sale in the context of that contract.
   /// Note: it can also be used to authorize any third party as a sender of the bundle. 
-  function authorizeOperator(address _operator, uint256 _tokenId, bytes _operatorData) public {
+  function authorizeOperator(address _operator, uint256 _tokenId) public {
     require(_unlocked(_tokenId));
     require(_operator != msg.sender);
     approve(_operator, _tokenId);
@@ -547,28 +587,27 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
       msg.sender,
       _operator,
       _tokenId,
-      commodities[_tokenId].value,
+      commodities[_tokenId].value, //todo allow for fractional values to be passed by using the split function
       "",
-      _operatorData,
+      "",
       false
     );
     emit AuthorizedOperator(_operator, msg.sender);
   }
 
   /** @notice Revoke a third party '_operator''s rights to manage (send) 'msg.sender''s tokens. */
-  function revokeOperator(address _operator, uint256 _tokenId, bytes _operatorData) public {
+  function revokeOperator(address _operator, uint256 _tokenId) public {
     //todo jaycen call operator to cancel sale on markets
     require(_operator != msg.sender);
     //mAuthorized[_operator][msg.sender] = false; //todo what is this
-   
-    callOperator(
+    callRevokedOperator(
       _operator,
       msg.sender,
       _operator,
       _tokenId,
-      commodities[_tokenId].value,
+      commodities[_tokenId].value, //todo allow for fractional values to be passed by using the split function
       "",
-      _operatorData,
+      "",
       false
     );
     address operator = commodityBundleIndexToApproved[_tokenId];
