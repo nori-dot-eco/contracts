@@ -20,16 +20,6 @@ module.exports = function deploy(deployer, network, accounts) {
     );
     await deployer.deploy(EIP820Registry);
 
-    const crcMarket = await deployer.deploy(SelectableCrcMarketV0_1_0);
-    await crcMarket.initialize(
-      registry.address,
-      [
-        await registry.getLatestProxyAddr.call('CRC'),
-        await registry.getLatestProxyAddr.call('Nori'),
-      ],
-      accounts[0]
-    );
-
     // todo only deploy this  to main net with nori mainnet addresses as owners
     await deployer.deploy(
       MultiSigWallet,

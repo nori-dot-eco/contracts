@@ -63,7 +63,6 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     bytes userData,
     bytes // operatorData
   ) public {
-    //todo add some logic that only allows the CRC contract to call this function
     require(address(commodityContract) == msg.sender);
     if (preventCommodityOperator) {
       revert();
@@ -131,7 +130,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     address _seller,
     uint256 _value,
     bytes _misc
-  ) public {
+  ) private {
     _createSale(
       _tokenId, 
       _category, 
@@ -143,7 +142,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     commoditiesForSale.push(int(_tokenId));
   }
 
-  function removeSale(uint256 _tokenId) public { //todo onlyThisContract modifier
+  function removeSale(uint256 _tokenId) private { //todo onlyThisContract modifier
     _removeSale(_tokenId);
 
     for (uint i = 0; i < commoditiesForSale.length; i++ ) {
