@@ -599,6 +599,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   function revokeOperator(address _operator, uint256 _tokenId) public {
     //todo jaycen call operator to cancel sale on markets
     require(_operator != msg.sender);
+    require(_owns(msg.sender, _tokenId));
     //mAuthorized[_operator][msg.sender] = false; //todo what is this
     callRevokedOperator(
       _operator,

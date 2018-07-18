@@ -106,11 +106,10 @@ const testBasicCommodityFunctions = () => {
           });
         });
         describe('revokeOperator', () => {
-          it('should have an allowance of 100 for supplier0', async () => {
+          it('should have an allowance of 0 for supplier0', async () => {
             await basicCommodity.revokeOperator(
               getNamedAccounts(web3).admin0,
               0,
-              '0x0',
               {
                 from: getNamedAccounts(web3).supplier0,
               }

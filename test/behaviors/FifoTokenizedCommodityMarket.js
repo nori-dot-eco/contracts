@@ -23,7 +23,6 @@ const mint = (to, value) =>
 const testFifoSaleBehavior = () => {
   contract(`FifoTokenizedCommodityMarket`, accounts => {
     beforeEach(async () => {
-      global.console.log = () => {};
       ({
         deployedContracts: [
           ,
