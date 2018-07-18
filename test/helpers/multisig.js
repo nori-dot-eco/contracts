@@ -38,17 +38,22 @@ const prepareMultiSigAndRoot = async (
     await rootRegistry.transferOwnership(multiAdmin.address);
   }
   try {
-    await Promise.all([
+    const [multiAdminAddr, multiSigWalletAddr] = await Promise.all([
       rootRegistry.getLatestProxyAddr('MultiAdmin'),
       rootRegistry.getLatestProxyAddr('MultiSigWallet'),
     ]);
+    multiAdmin = await artifacts.require('MultiAdmin').at(multiAdminAddr);
+    multiSigWallet = await artifacts
+      .require('MultiSigWallet')
+      .at(multiSigWalletAddr);
   } catch (e) {
     throw new Error('MultiSigs havent been deployed or set in the root');
   }
   if ((await rootRegistry.owner()) !== multiAdmin.address) {
     throw new Error(
-      'Danger! Root owner should be the multisig admin account, but it is currently owned by:',
-      await rootRegistry.owner()
+      `Danger! Root owner should be the multisig admin wallet (${
+        multiAdmin.address
+      }), but it is currently owned by: ${await rootRegistry.owner()}`
     );
   }
 
