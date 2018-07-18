@@ -34,7 +34,7 @@ contract MintableCommodity is BasicCommodity, IMintableCommodity {
         _value,
         _misc
       );
-      revert();
+      revert("Only a participant proxy can call this function right now.");
     }
 
     /// NOTE: do NOT use timeRegistered for any kind of verification
