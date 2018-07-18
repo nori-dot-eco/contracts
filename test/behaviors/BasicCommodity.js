@@ -11,7 +11,7 @@ const {
 } = require('../helpers/contractConfigs');
 const getNamedAccounts = require('../helpers/getNamedAccounts');
 
-let { participantRegistry, basicCommodity, supplier } = {};
+let participantRegistry, basicCommodity, supplier;
 
 const mint = (to, value) =>
   encodeCall(
@@ -73,7 +73,6 @@ const testBasicCommodityFunctions = () => {
           await basicCommodity.authorizeOperator(
             getNamedAccounts(web3).admin0,
             0,
-            '0x0',
             {
               from: getNamedAccounts(web3).supplier0,
             }
@@ -93,7 +92,6 @@ const testBasicCommodityFunctions = () => {
             await basicCommodity.authorizeOperator(
               getNamedAccounts(web3).admin0,
               1,
-              '0x0',
               {
                 from: getNamedAccounts(web3).supplier0,
               }

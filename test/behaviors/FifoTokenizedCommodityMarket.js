@@ -11,7 +11,7 @@ const {
 } = require('../helpers/contractConfigs');
 const getNamedAccounts = require('../helpers/getNamedAccounts');
 
-let { participantRegistry, crc, supplier, fifoCrcMarket } = {};
+let participantRegistry, crc, supplier, fifoCrcMarket;
 
 const mint = (to, value) =>
   encodeCall(
@@ -23,6 +23,7 @@ const mint = (to, value) =>
 const testFifoSaleBehavior = () => {
   contract(`FifoTokenizedCommodityMarket`, accounts => {
     beforeEach(async () => {
+      global.console.log = () => {};
       ({
         deployedContracts: [
           ,

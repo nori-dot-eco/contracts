@@ -64,6 +64,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     bytes // operatorData
   ) public {
     //todo add some logic that only allows the CRC contract to call this function
+    require(address(commodityContract) == msg.sender);
     if (preventCommodityOperator) {
       revert();
     }
@@ -98,6 +99,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     bytes, // userData,
     bytes // operatorData
   ) public {
+    require(address(commodityContract) == msg.sender);
     if (preventCommodityOperator) {
       revert();
     }
