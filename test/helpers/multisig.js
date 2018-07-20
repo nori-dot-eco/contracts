@@ -12,7 +12,7 @@ const prepareMultiSigAndRoot = async (
   );
 
   // on ropsten we always want to get the multisigs from the root, so only in development do we want to create new ones
-  if (network === 'develop' || network === 'test') {
+  if (network === 'develop' || network === 'test' || network === 'testrpc') {
     [multiSigWallet, multiAdmin] = await Promise.all([
       artifacts
         .require('MultiSigWallet')

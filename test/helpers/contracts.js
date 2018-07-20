@@ -18,7 +18,11 @@ const deployOrGetRootRegistry = async (
 ) => {
   if (force === true) {
     return artifacts.require('RootRegistryV0_1_0').new();
-  } else if (network === 'develop' || network === 'test') {
+  } else if (
+    network === 'develop' ||
+    network === 'test' ||
+    network === 'testrpc'
+  ) {
     try {
       await artifacts.require('RootRegistryV0_1_0').deployed();
     } catch (e) {

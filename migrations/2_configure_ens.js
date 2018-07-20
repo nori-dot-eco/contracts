@@ -42,7 +42,7 @@ const setupDomain = async () => {
 
 module.exports = function deploy(deployer, network) {
   deployer.then(async () => {
-    if (network === 'develop' || network === 'test') {
+    if (network === 'develop' || network === 'test' || network === 'testrpc') {
       try {
         const ens = await ENSRegistry.deployed();
         const resolver = await ens.resolver(namehash.hash('nori.eth'));

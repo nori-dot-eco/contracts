@@ -7,7 +7,11 @@ const getENSDetails = async ({ network, artifacts, web3 }) => {
   if (network === 'ropstenGeth' || network === 'ropsten') {
     ens = new ENS(web3.currentProvider);
     resolver = ens.resolver('nori.test').addr();
-  } else if (network === 'develop' || network === 'test') {
+  } else if (
+    network === 'develop' ||
+    network === 'test' ||
+    network === 'testrpc'
+  ) {
     try {
       ens = await artifacts.require('./ENSRegistry.sol').deployed();
       resolver = ens.resolver(namehash.hash('nori.eth'));
