@@ -77,6 +77,32 @@ module.exports = (deployer, network, accounts) => {
       root
     );
 
+    const supplierDeployment = deployedContracts.find(
+      ({ contractName }) => contractName === 'Supplier'
+    );
+    const verifierDeployment = deployedContracts.find(
+      ({ contractName }) => contractName === 'Verifier'
+    );
+    const crcDeployment = deployedContracts.find(
+      ({ contractName }) => contractName === 'CRC'
+    );
+    const supplier = artifacts
+      .require(`SupplierV${supplierDeployment.versionName}`)
+      .at(supplierDeployment.proxy.address);
+    await supplier.toggleInterface(
+      'IMintableCommodity',
+      crcDeployment.proxy.address,
+      true
+    );
+    const verifier = artifacts
+      .require(`VerifierV${verifierDeployment.versionName}`)
+      .at(verifierDeployment.proxy.address);
+    await verifier.toggleInterface(
+      'IVerifiableCommodity',
+      crcDeployment.proxy.address,
+      true
+    );
+
     utils.printRegistryInfo(
       multiAdmin,
       multiSigWallet,
