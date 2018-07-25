@@ -11,14 +11,7 @@ const {
 } = require('../helpers/contractConfigs');
 const getNamedAccounts = require('../helpers/getNamedAccounts');
 
-let {
-  multiAdmin,
-  participantRegistry,
-  basicCommodity,
-  deployedContracts,
-  supplier,
-  fifoCrcMarket,
-} = {};
+let participantRegistry, basicCommodity, supplier;
 
 const mint = (to, value) =>
   encodeCall(
@@ -37,9 +30,8 @@ const testBasicCommodityFunctions = () => {
           { upgradeableContractAtProxy: supplier },
           { upgradeableContractAtProxy: basicCommodity },
           ,
-          { upgradeableContractAtProxy: fifoCrcMarket },
+          ,
         ],
-        multiAdmin,
       } = await setupEnvForTests(
         [
           contractRegistryConfig,
@@ -78,7 +70,6 @@ const testBasicCommodityFunctions = () => {
               from: getNamedAccounts(web3).supplier0,
             }
           );
-
           await basicCommodity.authorizeOperator(
             getNamedAccounts(web3).admin0,
             0,
@@ -87,7 +78,51 @@ const testBasicCommodityFunctions = () => {
             }
           );
         });
-
+        describe('authorizeOperator', () => {
+          it('should have an allowance of 100 for supplier0', async () => {
+            await supplier.forward(
+              basicCommodity.address,
+              0,
+              mint(getNamedAccounts(web3).supplier0, 100),
+              'IMintableCommodity',
+              {
+                from: getNamedAccounts(web3).supplier0,
+              }
+            );
+            await basicCommodity.authorizeOperator(
+              getNamedAccounts(web3).admin0,
+              1,
+              {
+                from: getNamedAccounts(web3).supplier0,
+              }
+            );
+            await assert.equal(
+              await basicCommodity.allowanceForAddress(
+                getNamedAccounts(web3).admin0,
+                getNamedAccounts(web3).supplier0
+              ),
+              200
+            );
+          });
+        });
+        describe('revokeOperator', () => {
+          it('should have an allowance of 0 for supplier0', async () => {
+            await basicCommodity.revokeOperator(
+              getNamedAccounts(web3).admin0,
+              0,
+              {
+                from: getNamedAccounts(web3).supplier0,
+              }
+            );
+            await assert.equal(
+              await basicCommodity.allowanceForAddress(
+                getNamedAccounts(web3).admin0,
+                getNamedAccounts(web3).supplier0
+              ),
+              0
+            );
+          });
+        });
         describe('allowanceForAddress', () => {
           it('should have an allowance of 100 for supplier0', async () => {
             await assert.equal(
