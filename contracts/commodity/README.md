@@ -1,6 +1,9 @@
 # Commodity Contracts
 
-[Formal Specification](https://github.com/nori-dot-eco/NIPs/blob/NIP-8-Carbon-Removal-Claim/NIP8_CarbonRemovalClaim.md)
+## Formal Specifications
+
+- [Commodity Interface Standard](https://github.com/nori-dot-eco/NIPs/blob/NIP-4-Commodity-Interface-Standard/NIP-4-Commodity-Interface-Standard.md)
+- [CommodityType](https://github.com/nori-dot-eco/NIPs/blob/NIP-5-CommodityType/NIP-5-CommodityType.md)
 
 ## Background
 
