@@ -1,4 +1,4 @@
-# Ownership Contracts
+# Participant Contracts
 
 ## Formal Specifications
 
