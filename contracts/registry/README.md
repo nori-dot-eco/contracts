@@ -2,7 +2,9 @@
 
 ## Formal Specifications
 
-Incomplete
+_The following image might be out of date; View the latest [here](https://www.lucidchart.com/documents/view/e8debb56-b202-4c22-a219-9abfa6cd3656)._ The following is a high-level overview of the way the upgradeable smart contracts interact with registries:
+
+![uogrades and registries - page 2 2](https://user-images.githubusercontent.com/18407013/43371944-eb9f2a3c-934f-11e8-85c6-a664a1f6076b.png)
 
 ## Background
 
