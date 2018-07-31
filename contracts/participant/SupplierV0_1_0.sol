@@ -9,7 +9,7 @@ import "./ParticipantV0_1_0.sol";
 contract SupplierV0_1_0 is ParticipantV0_1_0 {
   mapping (address => bool) public suppliers;
   mapping(bytes32 =>  mapping(address => bool)) public allowedInterfaces;
-
+  
 
   constructor() ParticipantV0_1_0() public { }
 
@@ -35,11 +35,11 @@ contract SupplierV0_1_0 is ParticipantV0_1_0 {
   }
 
   /// @dev dynamic function (name + params) forwarder
-  /// @dev example: forward(CRC, 0, 'Minting Data Here', ISomeInterface)
+  /// @dev example: forward(CRC, 0, 'Minting Data Here', ISomeInterface) 
   function forward(
-    address destination,
-    uint256 value,
-    bytes data,
+    address destination, 
+    uint value, 
+    bytes data, 
     string ifaceLabel //todo this isnt safe, you can pass any string you want here to bypasss permissions-- look into alt
   ) public {
     address _ifaceImpAddr = interfaceAddr(destination, ifaceLabel);

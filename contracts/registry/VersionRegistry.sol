@@ -26,9 +26,9 @@ contract VersionRegistry {
   //todo create a function that gets a contract proxy for a particular version name
 
   function _setVersion(
-    string _contractName,
-    address _proxyAddress,
-    string _versionName,
+    string _contractName, 
+    address _proxyAddress, 
+    string _versionName, 
     address _newImplementation
   ) internal {
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
@@ -36,16 +36,16 @@ contract VersionRegistry {
     history.push(Version(_versionName, _newImplementation));
     proxyContracts[contractName] = _proxyAddress;
     emit VersionSet(
-      _contractName,
-      _proxyAddress,
-      _versionName,
+      _contractName, 
+      _proxyAddress, 
+      _versionName, 
       _newImplementation
     );
   }
 
   /// @dev pass -1 to get the latest, or a particular index to get a certain one
   function getVersionForContractName(string _contractName, int _index) public view returns (string, address, address) {
-    uint256 index;
+    uint index;
     address latestProxy = getLatestProxyAddr(_contractName);
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
     Version[] storage history = versions[contractName][latestProxy];

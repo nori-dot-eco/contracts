@@ -17,36 +17,36 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /*
     *  Events
     */
-  event Confirmation(address indexed sender, uint256 indexed transactionId);
-  event Revocation(address indexed sender, uint256 indexed transactionId);
-  event Submission(uint256 indexed transactionId);
-  event Execution(uint256 indexed transactionId);
-  event ExecutionFailure(uint256 indexed transactionId);
-  event Deposit(address indexed sender, uint256 value);
+  event Confirmation(address indexed sender, uint indexed transactionId);
+  event Revocation(address indexed sender, uint indexed transactionId);
+  event Submission(uint indexed transactionId);
+  event Execution(uint indexed transactionId);
+  event ExecutionFailure(uint indexed transactionId);
+  event Deposit(address indexed sender, uint value);
   event OwnerAddition(address indexed owner);
   event OwnerRemoval(address indexed owner);
-  event RequirementChange(uint256 required);
+  event RequirementChange(uint required);
   event ReceivedTokens(address operator, address from, address to, uint256 amount, bytes userData, bytes operatorData);
 
   /*
     *  Constants
     */
-  uint256 constant public MAX_OWNER_COUNT = 50;
+  uint constant public MAX_OWNER_COUNT = 50;
 
   /*
     *  Storage
     */
-  mapping (uint256 => Transaction) public transactions;
-  mapping (uint256 => mapping (address => bool)) public confirmations;
+  mapping (uint => Transaction) public transactions;
+  mapping (uint => mapping (address => bool)) public confirmations;
   mapping (address => bool) public isOwner;
   address[] public owners;
-  uint256 public required;
-  uint256 public transactionCount;
+  uint public required;
+  uint public transactionCount;
   bool public tokenReceiver;
 
   struct Transaction {
     address destination;
-    uint256 value;
+    uint value;
     bytes data;
     bool executed;
   }
@@ -69,22 +69,22 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
     _;
   }
 
-  modifier transactionExists(uint256 transactionId) {
+  modifier transactionExists(uint transactionId) {
     require(transactions[transactionId].destination != 0);
     _;
   }
 
-  modifier confirmed(uint256 transactionId, address owner) {
+  modifier confirmed(uint transactionId, address owner) {
     require(confirmations[transactionId][owner]);
     _;
   }
 
-  modifier notConfirmed(uint256 transactionId, address owner) {
+  modifier notConfirmed(uint transactionId, address owner) {
     require(!confirmations[transactionId][owner]);
     _;
   }
 
-  modifier notExecuted(uint256 transactionId) {
+  modifier notExecuted(uint transactionId) {
     require(!transactions[transactionId].executed);
     _;
   }
@@ -94,7 +94,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
     _;
   }
 
-  modifier validRequirement(uint256 ownerCount, uint256 _required) {
+  modifier validRequirement(uint ownerCount, uint _required) {
     require(ownerCount <= MAX_OWNER_COUNT && _required <= ownerCount && _required != 0 && ownerCount != 0);
     _;
   }
@@ -112,9 +112,9 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @dev Contract constructor sets initial owners and required number of confirmations.
   /// @param _owners List of initial owners.
   /// @param _required Number of required confirmations.
-  constructor(address[] _owners, uint256 _required, address _eip820RegistryAddr) public validRequirement(_owners.length, _required) {
+  constructor(address[] _owners, uint _required, address _eip820RegistryAddr) public validRequirement(_owners.length, _required) {
 
-    for (uint256 i = 0; i < _owners.length; i = i.add(1)) {
+    for (uint i = 0; i < _owners.length; i = i.add(1)) {
       require(!isOwner[_owners[i]] && _owners[i] != 0);
       isOwner[_owners[i]] = true;
     }
@@ -177,7 +177,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
       ownerExists(owner)
   {
     isOwner[owner] = false;
-    for (uint256 i = 0; i < owners.length.sub(1); i = i.add(1)) {
+    for (uint i = 0; i < owners.length.sub(1); i = i.add(1)) {
       if (owners[i] == owner) {
         owners[i] = owners[owners.length.sub(1)];
         break;
@@ -201,7 +201,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
     ownerExists(owner)
     ownerDoesNotExist(newOwner)
   {
-    for (uint256 i = 0; i < owners.length; i = i.add(1)) {
+    for (uint i = 0; i < owners.length; i = i.add(1)) {
       if (owners[i] == owner) {
         owners[i] = newOwner;
         break;
@@ -216,7 +216,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
 
   /// @dev Allows to change the number of required confirmations. Transaction has to be sent by wallet.
   /// @param _required Number of required confirmations.
-  function changeRequirement(uint256 _required)
+  function changeRequirement(uint _required)
     public
     onlyWallet
     validRequirement(owners.length, _required)
@@ -230,14 +230,14 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @param value Transaction ether value.
   /// @param data Transaction data payload.
   /// @return Returns transaction ID.
-  function submitTransaction(address destination, uint256 value, bytes data) public returns (uint256 transactionId) {
+  function submitTransaction(address destination, uint value, bytes data) public returns (uint transactionId) {
     transactionId = addTransaction(destination, value, data);
     confirmTransaction(transactionId);
   }
 
   /// @dev Allows an owner to confirm a transaction.
   /// @param transactionId Transaction ID.
-  function confirmTransaction(uint256 transactionId)
+  function confirmTransaction(uint transactionId)
     public
     ownerExists(msg.sender)
     transactionExists(transactionId)
@@ -250,7 +250,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
 
   /// @dev Allows an owner to revoke a confirmation for a transaction.
   /// @param transactionId Transaction ID.
-  function revokeConfirmation(uint256 transactionId)
+  function revokeConfirmation(uint transactionId)
     public
     ownerExists(msg.sender)
     confirmed(transactionId, msg.sender)
@@ -262,7 +262,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
 
   /// @dev Allows anyone to execute a confirmed transaction.
   /// @param transactionId Transaction ID.
-  function executeTransaction(uint256 transactionId)
+  function executeTransaction(uint transactionId)
     public
     ownerExists(msg.sender)
     confirmed(transactionId, msg.sender)
@@ -292,8 +292,8 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   // of the Solidity's code generator to produce a loop that copies tx.data into memory.
   function external_call(
     address destination,
-    uint256 value,
-    uint256 dataLength,
+    uint value,
+    uint dataLength,
     bytes data
   ) private returns (bool) {
     bool result;
@@ -318,9 +318,9 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @dev Returns the confirmation status of a transaction.
   /// @param transactionId Transaction ID.
   /// @return Confirmation status.
-  function isConfirmed(uint256 transactionId) public view returns (bool) {
-    uint256 count = 0;
-    for (uint256 i = 0; i < owners.length; i = i.add(1)) {
+  function isConfirmed(uint transactionId) public view returns (bool) {
+    uint count = 0;
+    for (uint i = 0; i < owners.length; i = i.add(1)) {
       if (confirmations[transactionId][owners[i]]) {
         count = count.add(1);
       }
@@ -338,7 +338,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @param value Transaction ether value.
   /// @param data Transaction data payload.
   /// @return Returns transaction ID.
-  function addTransaction(address destination, uint256 value, bytes data) internal notNull(destination) returns (uint256 transactionId) {
+  function addTransaction(address destination, uint value, bytes data) internal notNull(destination) returns (uint transactionId) {
     transactionId = transactionCount;
     transactions[transactionId] = Transaction({
       destination: destination,
@@ -356,8 +356,8 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @dev Returns number of confirmations of a transaction.
   /// @param transactionId Transaction ID.
   /// @return Number of confirmations.
-  function getConfirmationCount(uint256 transactionId) public view returns (uint256 count) {
-    for (uint256 i = 0; i < owners.length; i = i.add(1)) {
+  function getConfirmationCount(uint transactionId) public view returns (uint count) {
+    for (uint i = 0; i < owners.length; i = i.add(1)) {
       if (confirmations[transactionId][owners[i]]) {
         count = count.add(1);
       }
@@ -368,8 +368,8 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @param pending Include pending transactions.
   /// @param executed Include executed transactions.
   /// @return Total number of transactions after filters are applied.
-  function getTransactionCount(bool pending, bool executed) public view returns (uint256 count) {
-    for (uint256 i = 0; i < transactionCount; i = i.add(1)) {
+  function getTransactionCount(bool pending, bool executed) public view returns (uint count) {
+    for (uint i = 0; i < transactionCount; i = i.add(1)) {
       if (pending && !transactions[i].executed || executed && transactions[i].executed) {
         count = count.add(1);
       }
@@ -385,10 +385,10 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @dev Returns array with owner addresses, which confirmed transaction.
   /// @param transactionId Transaction ID.
   /// @return Returns array of owner addresses.
-  function getConfirmations(uint256 transactionId) public view returns (address[] _confirmations) {
+  function getConfirmations(uint transactionId) public view returns (address[] _confirmations) {
     address[] memory confirmationsTemp = new address[](owners.length);
-    uint256 count = 0;
-    uint256 i;
+    uint count = 0;
+    uint i;
     for (i = 0; i < owners.length; i = i.add(1)) {
       if (confirmations[transactionId][owners[i]]) {
         confirmationsTemp[count] = owners[i];
@@ -409,15 +409,15 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @param executed Include executed transactions.
   /// @return Returns array of transaction IDs.
   function getTransactionIds(
-    uint256 from,
-    uint256 to,
+    uint from,
+    uint to,
     bool pending,
     bool executed
   ) public view returns (uint[] _transactionIds){
 
     uint[] memory transactionIdsTemp = new uint[](transactionCount);
-    uint256 count = 0;
-    uint256 i;
+    uint count = 0;
+    uint i;
     for (i = 0; i < transactionCount; i = i.add(1)) {
       if (pending && !transactions[i].executed || executed && transactions[i].executed) {
         transactionIdsTemp[count] = i;

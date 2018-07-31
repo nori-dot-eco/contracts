@@ -31,7 +31,7 @@ interface ICommodity {
     bytes operatorData
   ) public;
   // todo jaycen decide if this should be part of this interface. part of that task involces figuring out if we should make commodities just inherit the 721 + 777 interfaces, and then create special interfaces for things like splitting
-  function split(uint256 tokenId, address to, uint256 amount) public;
+  function split(uint tokenId, address to, uint256 amount) public;
   /** Events **/
   event Approved(address indexed owner, address indexed approved, uint256 indexed tokenId);
   event Minted(address indexed to, uint256 amount, address indexed operator, bytes operatorData);

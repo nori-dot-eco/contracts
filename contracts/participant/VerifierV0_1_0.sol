@@ -35,7 +35,7 @@ contract VerifierV0_1_0 is ParticipantV0_1_0 {
   /// @dev example: forward(CRC, 0, 'Minting Data Here', ISomeInterface)
   function forward(
     address destination,
-    uint256 value,
+    uint value,
     bytes data,
     string ifaceLabel
   ) public {

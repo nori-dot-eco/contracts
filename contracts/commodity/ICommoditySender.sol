@@ -5,7 +5,7 @@ interface ICommoditySender {
     address operator,
     address from,
     address to,
-    uint256 id,
+    uint id,
     bytes userData,
     bytes operatorData
   ) public;

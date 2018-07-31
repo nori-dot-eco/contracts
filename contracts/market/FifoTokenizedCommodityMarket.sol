@@ -20,7 +20,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
 
   function getEarliestSale() public view returns (uint, uint) {
     if (commoditiesForSale.length >= 0) {
-      for (uint256 i = 0; i < commoditiesForSale.length; i = i.add(1) ) {
+      for (uint i = 0; i < commoditiesForSale.length; i = i.add(1) ) {
         if (commoditiesForSale[i] >= 0) {
           return (uint(commoditiesForSale[i]), i);
         }
@@ -61,7 +61,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     address, // operator,
     address from,
     address, // to,
-    uint256 tokenId,
+    uint tokenId,
     uint256 value,
     bytes userData,
     bytes // operatorData

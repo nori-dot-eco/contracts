@@ -8,7 +8,7 @@ import "../participant/IParticipant.sol";
 
 contract VerifiableCommodity is BasicCommodity, IVerifiableCommodity {
 
-  event Verified(uint256 _commodityId, bytes _verifierData, uint64 _category);
+  event Verified(uint _commodityId, bytes _verifierData, uint64 _category);
   event InsufficientPermission(address sender, uint256 id, bytes data, uint64 category);
 
   // todo jaycen PRELAUNCH add onlyowner modifier or similar
