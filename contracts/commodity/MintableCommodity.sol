@@ -4,9 +4,11 @@ import "./CommodityLib.sol";
 import "./IMintableCommodity.sol";
 import "../participant/IParticipant.sol";
 import "./BasicCommodity.sol";
+import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
 
 contract MintableCommodity is BasicCommodity, IMintableCommodity {
+  using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
 
   event Minted(address indexed to, uint commodityId, uint256 amount, address indexed operator, bytes operatorData);
   event InsufficientPermission(address sender, bytes operatorData, uint256 value, bytes misc);
@@ -48,7 +50,7 @@ contract MintableCommodity is BasicCommodity, IMintableCommodity {
         locked: false,
         misc: bytes(_misc)
     });
-    uint newCRCId = commodities.push(_commodity) - 1;
+    uint newCRCId = commodities.push(_commodity).sub(1);
     require(newCRCId <= 18446744073709551616);
 
     //TODO: make sure this is ok in production (maybe move to a diff func that invokes callrecipient internally)

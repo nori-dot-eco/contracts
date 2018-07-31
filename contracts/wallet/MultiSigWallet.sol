@@ -2,6 +2,7 @@ pragma solidity ^0.4.18;
 import "./../EIP777/IEIP777TokensRecipient.sol";
 import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
+import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
 
 /// @title Multisignature wallet - Allows multiple parties to agree on transactions before execution.
@@ -10,6 +11,7 @@ import "../EIP820/IEIP820Implementer.sol";
 // todo jaycen CAUTION, using eip820 unaudited contracts in multisig inheritance inorder to
 // avoid revert statement otheriwse invoked in the callRecipient function of the tokens mint/send funcs
 contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
+  using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
 
   /*
    *  Events
@@ -113,7 +115,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   /// @param _required Number of required confirmations.
   constructor(address[] _owners, uint _required, address _eip820RegistryAddr) public validRequirement(_owners.length, _required) {
 
-    for (uint i = 0; i < _owners.length; i++) {
+    for (uint i = 0; i < _owners.length; i = i.add(1)) {
       require(!isOwner[_owners[i]] && _owners[i] != 0);
       isOwner[_owners[i]] = true;
     }
@@ -129,22 +131,22 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   }
 
   function tokensReceived (
-    address operator, 
-    address from, 
-    address to, 
-    uint256 amount, 
-    bytes userData, 
+    address operator,
+    address from,
+    address to,
+    uint256 amount,
+    bytes userData,
     bytes operatorData
   ) public {
     if (!tokenReceiver) {
       revert();
     }
     emit ReceivedTokens(
-      operator, 
-      from, 
-      to, 
-      amount, 
-      userData, 
+      operator,
+      from,
+      to,
+      amount,
+      userData,
       operatorData
     );
   }
@@ -161,7 +163,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     onlyWallet
     ownerDoesNotExist(owner)
     notNull(owner)
-    validRequirement(owners.length + 1, required)
+    validRequirement(owners.length.add(1), required)
   {
     isOwner[owner] = true;
     owners.push(owner);
@@ -176,14 +178,14 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     ownerExists(owner)
   {
     isOwner[owner] = false;
-    for (uint i = 0; i < owners.length - 1; i++) {
+    for (uint i = 0; i < owners.length.sub(1); i = i.add(1)) {
       if (owners[i] == owner) {
-        owners[i] = owners[owners.length - 1];
+        owners[i] = owners[owners.length.sub(1)];
         break;
       }
     }
 
-    owners.length -= 1;
+    owners.length = owners.length.sub(1);
     if (required > owners.length)
       changeRequirement(owners.length);
     emit OwnerRemoval(owner);
@@ -198,7 +200,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     ownerExists(owner)
     ownerDoesNotExist(newOwner)
   {
-    for (uint i = 0; i < owners.length; i++) {
+    for (uint i = 0; i < owners.length; i = i.add(1)) {
       if (owners[i] == owner) {
         owners[i] = newOwner;
         break;
@@ -273,9 +275,9 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
 
       txn.executed = true;
       if (external_call(
-        txn.destination, 
-        txn.value, 
-        txn.data.length, 
+        txn.destination,
+        txn.value,
+        txn.data.length,
         txn.data
       )) {
         emit Execution(transactionId);
@@ -289,9 +291,9 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   // call has been separated into its own function in order to take advantage
   // of the Solidity's code generator to produce a loop that copies tx.data into memory.
   function external_call(
-    address destination, 
-    uint value, 
-    uint dataLength, 
+    address destination,
+    uint value,
+    uint dataLength,
     bytes data
   ) private returns (bool) {
     bool result;
@@ -322,9 +324,9 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     returns (bool)
   {
     uint count = 0;
-    for (uint i = 0; i < owners.length; i++) {
+    for (uint i = 0; i < owners.length; i = i.add(1)) {
       if (confirmations[transactionId][owners[i]]) {
-        count += 1;
+        count = count.add(1);
       }
       if (count == required) {
         return true;
@@ -352,7 +354,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
       data: data,
       executed: false
     });
-    transactionCount += 1;
+    transactionCount = transactionCount.add(1);
     emit Submission(transactionId);
   }
 
@@ -367,9 +369,9 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     view
     returns (uint count)
   {
-    for (uint i = 0; i < owners.length; i++) {
+    for (uint i = 0; i < owners.length; i = i.add(1)) {
       if (confirmations[transactionId][owners[i]]) {
-        count += 1;
+        count = count.add(1);
       }
 
     }
@@ -385,9 +387,9 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     view
     returns (uint count)
   {
-    for (uint i = 0; i < transactionCount; i++) {
+    for (uint i = 0; i < transactionCount; i = i.add(1)) {
       if (pending && !transactions[i].executed || executed && transactions[i].executed) {
-        count += 1;
+        count = count.add(1);
       }
     }
   }
@@ -413,15 +415,15 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     address[] memory confirmationsTemp = new address[](owners.length);
     uint count = 0;
     uint i;
-    for (i = 0; i < owners.length; i++) {
+    for (i = 0; i < owners.length; i = i.add(1)) {
       if (confirmations[transactionId][owners[i]]) {
         confirmationsTemp[count] = owners[i];
-        count += 1;
+        count = count.add(1);
       }
     }
 
     _confirmations = new address[](count);
-    for (i = 0; i < count; i++) {
+    for (i = 0; i < count; i = i.add(1)) {
       _confirmations[i] = confirmationsTemp[i];
     }
   }
@@ -433,9 +435,9 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   /// @param executed Include executed transactions.
   /// @return Returns array of transaction IDs.
   function getTransactionIds(
-    uint from, 
-    uint to, 
-    bool pending, 
+    uint from,
+    uint to,
+    bool pending,
     bool executed
   )
     public
@@ -445,16 +447,16 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     uint[] memory transactionIdsTemp = new uint[](transactionCount);
     uint count = 0;
     uint i;
-    for (i = 0; i < transactionCount; i++) {
+    for (i = 0; i < transactionCount; i = i.add(1)) {
       if (pending && !transactions[i].executed || executed && transactions[i].executed) {
         transactionIdsTemp[count] = i;
-        count += 1;
+        count = count.add(1);
       }
     }
 
-    _transactionIds = new uint[](to - from);
-    for (i = from; i < to; i++) {
-      _transactionIds[i - from] = transactionIdsTemp[i];
+    _transactionIds = new uint[](to.sub(from));
+    for (i = from; i < to; i = i.add(1)) {
+      _transactionIds[i.sub(from)] = transactionIdsTemp[i];
     }
   }
 }

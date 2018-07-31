@@ -2,9 +2,12 @@ pragma solidity ^0.4.24;
 import "./StandardTokenizedCommodityMarket.sol";
 import "./../EIP777/IEIP777TokensOperator.sol";
 import "./../commodity/ICommodityOperator.sol";
+import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
 
 contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP777TokensOperator, ICommodityOperator {
+  using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
+
   int[] public commoditiesForSale;
 
   constructor() StandardTokenizedCommodityMarket() public { }
@@ -15,40 +18,40 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
   }
 
 
-  function getEarliestSale() public view returns (uint, uint) {   
-    if (commoditiesForSale.length >= 0) {    
-      for (uint i = 0; i < commoditiesForSale.length; i++ ) {
+  function getEarliestSale() public view returns (uint, uint) {
+    if (commoditiesForSale.length >= 0) {
+      for (uint i = 0; i < commoditiesForSale.length; i = i.add(1) ) {
         if (commoditiesForSale[i] >= 0) {
           return (uint(commoditiesForSale[i]), i);
-        } 
+        }
       }
     }
-    else 
+    else
       revert();
   }
 
   function buy(address _from, uint256 _amount) private {
     var (commodityIndex, saleIndex) = getEarliestSale();
 
-    uint256 newSaleAmmount = _buy(_from, commodityIndex, _amount);
-    if (newSaleAmmount != 0) {
+    uint256 newSaleAmount = _buy(_from, commodityIndex, _amount);
+    if (newSaleAmount != 0) {
       _split(commodityIndex, _from, _amount);
     } else {
       _transfer(
-        _from, 
-        msg.sender, 
-        commodityIndex, 
+        _from,
+        msg.sender,
+        commodityIndex,
         _amount
       );
       commoditiesForSale[saleIndex] = -1;
     }
-      
-  } 
 
-    /// @dev erc820 introspection : handler invoked when 
+  }
+
+    /// @dev erc820 introspection : handler invoked when
     /// this contract is made an operator for a commodity
   function madeOperatorForCommodity(
-    address, // operator,  
+    address, // operator,
     address from,
     address, // to,
     uint tokenId,
@@ -61,11 +64,11 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     }
     //todo jaycen can we figure out how to do this passing in a CommodityLib.Commodity struct (I was having solidity errors but it would be ideal -- might be possible using eternal storage, passing hash of struct and then looking up struct values <-- would be VERY cool)
     createSale(
-      tokenId, 
-      1, 
-      2, 
-      from, 
-      value, 
+      tokenId,
+      1,
+      2,
+      from,
+      value,
       userData
     );
   }
@@ -73,14 +76,14 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
   /// @dev erc820 introspection : handler invoked when this contract
   ///  is made an operator for an erc777 token
   function madeOperatorForTokens(
-    address, // operator,  
+    address, // operator,
     address from,
     address, // to,
     uint256 amount,
     bytes, // userData,
     bytes // operatorData
   ) public {
-    if (preventTokenOperator) { 
+    if (preventTokenOperator) {
       revert();
     }
     buy(from, amount);
@@ -95,11 +98,11 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     bytes _misc
   ) private {
     _createSale(
-      _tokenId, 
-      _category, 
-      _saleType, 
-      _seller, 
-      _value, 
+      _tokenId,
+      _category,
+      _saleType,
+      _seller,
+      _value,
       _misc
     );
     commoditiesForSale.push(int(_tokenId));

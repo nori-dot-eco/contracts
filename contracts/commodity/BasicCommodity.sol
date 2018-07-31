@@ -52,7 +52,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// the authority to send on behalf of a particular commodity owner.
   mapping (address => mapping (address => uint256[])) public commodityOperatorBundleApprovals;
 
-  
+
   /// @dev A mapping from commodity IDs to an address that has been approved to split
   ///  this commodity. Each commodity can only have one approved
   ///  address for siring at any time. A zero value means no approval is outstanding.
@@ -118,9 +118,9 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
 
   function getTotalSupply(uint64 _category) public view returns (uint256) {
     uint256 count;
-    for (uint256 i = 0; i < commodities.length; i++) {
+    for (uint256 i = 0; i < commodities.length; i = i.add(1)) {
       if (commodities[i].category == _category) {
-        count++;
+        count = count.add(1);
       }
     }
     return count;
@@ -135,11 +135,11 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   }
 
   function getTotalSupply() public view returns (uint256) {
-    return commodities.length - 1;
+    return commodities.length.sub(1);
   }
 
   function _totalSupply() internal view returns (uint256) {
-    return commodities.length - 1;
+    return commodities.length.sub(1);
   }
 
   //todo jaycen onlyowner modifer
@@ -182,7 +182,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   function _transfer(address _from, address _to, uint256 _tokenId) internal {
     //require commodity not locked/retired
     require(_unlocked(_tokenId));
-    
+
     // increment bundle count and total balance
     ownershipBundleCount[_to] = ownershipBundleCount[_to].add(1);
     _balances[_to] = _balances[_to].add(commodities[_tokenId].value);
@@ -195,10 +195,10 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
       if(ownershipBundleCount[_from] > 0){
         ownershipBundleCount[_from] = ownershipBundleCount[_from].sub(1);
       }
-      
+
       // clear any previously approved ownership exchange
       address operator = commodityBundleIndexToApproved[_tokenId];
-      for(uint i = 0; i < commodityOperatorBundleApprovals[operator][_from].length; i++){
+      for(uint i = 0; i < commodityOperatorBundleApprovals[operator][_from].length; i = i.add(1)){
         if(commodityOperatorBundleApprovals[operator][_from][i] == _tokenId){
           _cumulativeAllowance[operator] = _cumulativeAllowance[operator].sub(commodities[_tokenId].value);
           delete commodityOperatorBundleApprovals[operator][_from][i];
@@ -236,7 +236,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     if(commodityBundleIndexToApproved[0] == _operator){
       totalAllowance = totalAllowance.add(commodities[0].value);
     }
-    for(uint i = 0; i < commodityOperatorBundleApprovals[_operator][_owner].length; i++){
+    for(uint i = 0; i < commodityOperatorBundleApprovals[_operator][_owner].length; i = i.add(1)){
       if(commodityOperatorBundleApprovals[_operator][_owner][i] != 0){
         totalAllowance = totalAllowance.add(commodities[commodityOperatorBundleApprovals[_operator][_owner][i]].value);
       }
@@ -261,7 +261,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     if(commodityBundleIndexToApproved[0] == _operator){
       totalBundleAllowance = totalBundleAllowance.add(1);
     }
-    for(uint i = 0; i < commodityOperatorBundleApprovals[_operator][_owner].length; i++){
+    for(uint i = 0; i < commodityOperatorBundleApprovals[_operator][_owner].length; i = i.add(1)){
       if(commodityOperatorBundleApprovals[_operator][_owner][i] != 0){
         totalBundleAllowance = totalBundleAllowance.add(1);
       }
@@ -527,14 +527,14 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
 
   // todo(jaycen): we probably want a variation of this function which
   // only authorizes a specified value of a bundle, and not the entire thing
-  /// @notice Grant another address the right to transfer a specific crc. 
+  /// @notice Grant another address the right to transfer a specific crc.
   /// @param _operator The address of a third party operator who can manage this commodity id
-  /// @param _tokenId the commodity id of which you want to give a third part operator transfer 
+  /// @param _tokenId the commodity id of which you want to give a third part operator transfer
   ///   permissions for
   /// @dev This is the function used to create a sale in a market contract.
-  ///  In combination with ERC820, it dials a contract address, and if it is 
+  ///  In combination with ERC820, it dials a contract address, and if it is
   /// listed as the market contract, creates a sale in the context of that contract.
-  /// Note: it can also be used to authorize any third party as a sender of the bundle. 
+  /// Note: it can also be used to authorize any third party as a sender of the bundle.
   function authorizeOperator(address _operator, uint256 _tokenId) public {
     require(_unlocked(_tokenId));
     require(_operator != msg.sender);
