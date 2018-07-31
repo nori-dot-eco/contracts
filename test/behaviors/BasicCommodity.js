@@ -54,6 +54,14 @@ const testBasicCommodityFunctions = () => {
       ));
     });
 
+    context('Tests for commodities behavior in initial state', () => {
+      describe('getTotalSupply', () => {
+        it('should handle a case with no supply', async () => {
+          await assert.equal(await basicCommodity.getTotalSupply(1), 0);
+        });
+      });
+    });
+
     context(
       'Enable the minting and supplier interfaces needed for third party operator scenarios and mint 1 crc',
       () => {
