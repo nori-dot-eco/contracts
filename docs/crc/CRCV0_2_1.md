@@ -1,11 +1,15 @@
-# CRCV0_2_0
+# CRCV0_2_1
 
 
 **Execution cost**: No bound available
 
-**Deployment cost**: less than 2257800 gas
+**Deployment cost**: less than 2760400 gas
 
 **Combined cost**: No bound available
+
+## Constructor
+
+
 
 
 ## Events
@@ -33,7 +37,7 @@ Params:
 1. **newOwner** *of type `address`*
 
 --- 
-### Burnt(address,uint256)
+### Minted(address,uint256,address,bytes)
 
 
 **Execution cost**: No bound available
@@ -41,8 +45,10 @@ Params:
 
 Params:
 
-1. **from** *of type `address`*
+1. **to** *of type `address`*
 2. **amount** *of type `uint256`*
+3. **operator** *of type `address`*
+4. **operatorData** *of type `bytes`*
 
 --- 
 ### Minted(address,uint256,uint256,address,bytes)
@@ -99,7 +105,7 @@ Params:
 2. **tokenHolder** *of type `address`*
 
 --- 
-### Minted(address,uint256,address,bytes)
+### Approved(address,address,uint256)
 
 
 **Execution cost**: No bound available
@@ -107,10 +113,9 @@ Params:
 
 Params:
 
-1. **to** *of type `address`*
-2. **amount** *of type `uint256`*
-3. **operator** *of type `address`*
-4. **operatorData** *of type `bytes`*
+1. **owner** *of type `address`*
+2. **approved** *of type `address`*
+3. **tokenId** *of type `uint256`*
 
 --- 
 ### InsufficientPermission(address,uint256,bytes,uint64)
@@ -127,20 +132,7 @@ Params:
 4. **category** *of type `uint64`*
 
 --- 
-### Approved(address,address,uint256)
-
-
-**Execution cost**: No bound available
-
-
-Params:
-
-1. **owner** *of type `address`*
-2. **approved** *of type `address`*
-3. **tokenId** *of type `uint256`*
-
---- 
-### Burn(address,uint256)
+### Burnt(address,uint256)
 
 
 **Execution cost**: No bound available
@@ -237,22 +229,162 @@ Params:
 
 
 ## Methods
-### owner()
->
-> Tells the address of the owner
+### getCommodityValueByIndex(uint256)
 
 
-**Execution cost**: less than 1018 gas
+**Execution cost**: less than 1231 gas
 
 **Attributes**: constant
 
 
+Params:
+
+1. **_index** *of type `uint256`*
 
 Returns:
 
-> the address of the owner
 
-1. **output_0** *of type `address`*
+1. **output_0** *of type `uint256`*
+
+--- 
+### bundleAllowanceForAddress(address,address)
+>
+>Returns the number of crc bundles owned by a specific address.
+
+
+**Execution cost**: No bound available
+
+**Attributes**: constant
+
+
+Params:
+
+1. **_operator** *of type `address`*
+
+    > The operator address to check.
+
+2. **_owner** *of type `address`*
+
+    > The owner address to check.
+
+
+Returns:
+
+
+1. **count** *of type `uint256`*
+
+--- 
+### approve(address,uint256)
+>
+>Grant another address the right to transfer a specific crc via  transferFrom(). This is the preferred flow for transfering NFTs to contracts.
+>
+> Required for ERC-721 compliance.
+
+
+**Execution cost**: No bound available
+
+
+Params:
+
+1. **_to** *of type `address`*
+
+    > The address to be granted transfer approval. Pass address(0) to  clear all approvals.
+
+2. **_tokenId** *of type `uint256`*
+
+    > The ID of the crc that can be transferred if this call succeeds.
+
+
+
+--- 
+### allowanceForAddress(address,address)
+>
+>Returns the total operator value of crc allowances for all bundles of   a givven address
+
+
+**Execution cost**: No bound available
+
+**Attributes**: constant
+
+
+Params:
+
+1. **_operator** *of type `address`*
+
+    > The _operator address to check allowances of.
+
+2. **_owner** *of type `address`*
+
+    > The address of one of the commodity owners that the operator   has an allowance for.
+
+
+Returns:
+
+> totalValue The total allowance value of an operator for a given owner
+
+1. **totalValue** *of type `uint256`*
+
+--- 
+### balanceOf(address)
+>
+>Returns the total value of crcs owned by a specific address.
+
+
+**Execution cost**: less than 1021 gas
+
+**Attributes**: constant
+
+
+Params:
+
+1. **_owner** *of type `address`*
+
+    > The owner address to check.
+
+
+Returns:
+
+
+1. **count** *of type `uint256`*
+
+--- 
+### authorizeOperator(address,uint256)
+>
+>Grant another address the right to transfer a specific crc.
+>
+> This is the function used to create a sale in a market contract.  In combination with ERC820, it dials a contract address, and if it is listed as the market contract, creates a sale in the context of that contract. Note: it can also be used to authorize any third party as a sender of the bundle.
+
+
+**Execution cost**: No bound available
+
+
+Params:
+
+1. **_operator** *of type `address`*
+
+    > The address of a third party operator who can manage this commodity id
+
+2. **_tokenId** *of type `uint256`*
+
+    > the commodity id of which you want to give a third part operator transfer   permissions for
+
+
+
+--- 
+### send(address,uint256,bytes)
+>
+>Send '_value' amount of tokens to address '_to'. 
+
+
+**Execution cost**: No bound available
+
+
+Params:
+
+1. **_to** *of type `address`*
+2. **_tokenId** *of type `uint256`*
+3. **_userData** *of type `bytes`*
+
 
 --- 
 ### commodities(uint256)
@@ -278,6 +410,29 @@ Returns:
 6. **misc** *of type `bytes`*
 
 --- 
+### bundleBalanceOf(address)
+>
+>Returns the number of crc bundles owned by a specific address.
+
+
+**Execution cost**: less than 1329 gas
+
+**Attributes**: constant
+
+
+Params:
+
+1. **_owner** *of type `address`*
+
+    > The owner address to check.
+
+
+Returns:
+
+
+1. **count** *of type `uint256`*
+
+--- 
 ### burn(address,uint256)
 >
 >Sample burn function to showcase the use of the 'Burn' event. 
@@ -297,103 +452,10 @@ Returns:
 1. **output_0** *of type `bool`*
 
 --- 
-### authorizeOperator(address)
->
->Authorize a third party '_operator' to manage (send) 'msg.sender''s tokens. 
+### participantRegistry()
 
 
-**Execution cost**: less than 711 gas
-
-**Attributes**: constant
-
-
-Params:
-
-1. **param_0** *of type `address`*
-
-
---- 
-### approve(address,uint256)
->
->Grant another address the right to transfer a specific crc via  transferFrom(). This is the preferred flow for transfering NFTs to contracts.
->
-> Required for ERC-721 compliance.
-
-
-**Execution cost**: less than 23112 gas
-
-
-Params:
-
-1. **_to** *of type `address`*
-
-    > The address to be granted transfer approval. Pass address(0) to  clear all approvals.
-
-2. **_tokenId** *of type `uint256`*
-
-    > The ID of the crc that can be transferred if this call succeeds.
-
-
-
---- 
-### balanceOf(address)
->
->Returns the total value of crcs owned by a specific address.
-
-
-**Execution cost**: No bound available
-
-**Attributes**: constant
-
-
-Params:
-
-1. **_owner** *of type `address`*
-
-    > The owner address to check.
-
-
-Returns:
-
-
-1. **totalValue** *of type `uint256`*
-
---- 
-### authorizeOperator(address,uint256)
-
-
-**Execution cost**: No bound available
-
-
-Params:
-
-1. **_operator** *of type `address`*
-2. **_tokenId** *of type `uint256`*
-
-
---- 
-### send(address,uint256,bytes)
->
->Send '_value' amount of tokens to address '_to'. 
-
-
-**Execution cost**: No bound available
-
-
-Params:
-
-1. **_to** *of type `address`*
-2. **_tokenId** *of type `uint256`*
-3. **_userData** *of type `bytes`*
-
-
---- 
-### name()
->
->Return the name of the token 
-
-
-**Execution cost**: No bound available
+**Execution cost**: less than 1172 gas
 
 **Attributes**: constant
 
@@ -402,7 +464,49 @@ Params:
 Returns:
 
 
-1. **output_0** *of type `string`*
+1. **output_0** *of type `address`*
+
+--- 
+### mint(address,bytes,uint256,bytes)
+>
+>Generates `_value` tokens to be assigned to `_tokenHolder`
+
+
+**Execution cost**: No bound available
+
+
+Params:
+
+1. **_to** *of type `address`*
+2. **_operatorData** *of type `bytes`*
+
+    > Data that will be passed to the recipient as a first transfer XXX: DO NOT SHIP TO PRODUCTION -- maybe we can get rid of ownermint if we allow any to creat crc category 0
+
+3. **_value** *of type `uint256`*
+4. **_misc** *of type `bytes`*
+
+Returns:
+
+
+1. **output_0** *of type `uint64`*
+
+--- 
+### commodityBundleIndexToApproved(uint256)
+
+
+**Execution cost**: less than 1574 gas
+
+**Attributes**: constant
+
+
+Params:
+
+1. **param_0** *of type `uint256`*
+
+Returns:
+
+
+1. **output_0** *of type `address`*
 
 --- 
 ### initialize(string,string,address,address,address)
@@ -426,7 +530,7 @@ Params:
 >Check whether '_operator' is allowed to manage the tokens held by '_tokenHolder'. 
 
 
-**Execution cost**: less than 1669 gas
+**Execution cost**: less than 1779 gas
 
 **Attributes**: constant
 
@@ -442,76 +546,7 @@ Returns:
 1. **output_0** *of type `bool`*
 
 --- 
-### getParticipantRegistry()
-
-
-**Execution cost**: less than 1260 gas
-
-**Attributes**: constant
-
-
-
-Returns:
-
-
-1. **output_0** *of type `address`*
-
---- 
 ### commodityIndexToOwner(uint256)
-
-
-**Execution cost**: less than 936 gas
-
-**Attributes**: constant
-
-
-Params:
-
-1. **param_0** *of type `uint256`*
-
-Returns:
-
-
-1. **output_0** *of type `address`*
-
---- 
-### getTotalSupply(uint64)
-
-
-**Execution cost**: No bound available
-
-**Attributes**: constant
-
-
-Params:
-
-1. **_category** *of type `uint64`*
-
-Returns:
-
-
-1. **output_0** *of type `uint256`*
-
---- 
-### commodityAllowedToAddress(uint256)
-
-
-**Execution cost**: less than 980 gas
-
-**Attributes**: constant
-
-
-Params:
-
-1. **param_0** *of type `uint256`*
-
-Returns:
-
-
-1. **output_0** *of type `address`*
-
---- 
-### commodityIndexToApproved(uint256)
 
 
 **Execution cost**: less than 1002 gas
@@ -529,12 +564,62 @@ Returns:
 1. **output_0** *of type `address`*
 
 --- 
+### getParticipantRegistry()
+
+
+**Execution cost**: less than 1370 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
+
+1. **output_0** *of type `address`*
+
+--- 
+### commodityAllowedToAddress(uint256)
+
+
+**Execution cost**: less than 1046 gas
+
+**Attributes**: constant
+
+
+Params:
+
+1. **param_0** *of type `uint256`*
+
+Returns:
+
+
+1. **output_0** *of type `address`*
+
+--- 
+### initialized()
+>
+> returns the current initalization status
+
+
+**Execution cost**: less than 525 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
+
+1. **output_0** *of type `bool`*
+
+--- 
 ### isOperatorForOne(address,uint256)
 >
 >Check whether '_operator' is allowed to manage the tokens held by '_tokenHolder'. 
 
 
-**Execution cost**: less than 1093 gas
+**Execution cost**: less than 1159 gas
 
 **Attributes**: constant
 
@@ -570,17 +655,38 @@ Returns:
 1. **output_0** *of type `uint256`*
 
 --- 
-### getCommodityValueByIndex(uint256)
+### cumulativeAllowanceOf(address)
+>
+>Returns the total operator value of crc allowances for all bundles of   a givven address
 
 
-**Execution cost**: less than 1165 gas
+**Execution cost**: less than 1373 gas
 
 **Attributes**: constant
 
 
 Params:
 
-1. **_index** *of type `uint256`*
+1. **_operator** *of type `address`*
+
+    > The _operator address to check allowances of.   has an allowance for.
+
+
+Returns:
+
+> totalValue The total allowance value of an operator for a given owner
+
+1. **totalValue** *of type `uint256`*
+
+--- 
+### getTotalSupply()
+
+
+**Execution cost**: No bound available
+
+**Attributes**: constant
+
+
 
 Returns:
 
@@ -588,38 +694,37 @@ Returns:
 1. **output_0** *of type `uint256`*
 
 --- 
-### mint(address,bytes,uint256,bytes)
->
->Generates `_value` tokens to be assigned to `_tokenHolder`
+### getTotalSupply(uint64)
 
 
 **Execution cost**: No bound available
 
+**Attributes**: constant
+
 
 Params:
 
-1. **_to** *of type `address`*
-2. **_operatorData** *of type `bytes`*
-
-    > Data that will be passed to the recipient as a first transfer XXX: DO NOT SHIP TO PRODUCTION -- maybe we can get rid of ownermint if we allow any to creat crc category 0
-
-3. **_value** *of type `uint256`*
-4. **_misc** *of type `bytes`*
+1. **_category** *of type `uint64`*
 
 Returns:
 
 
-1. **output_0** *of type `uint64`*
+1. **output_0** *of type `uint256`*
 
 --- 
-### getTotalSupply()
+### commodityOperatorBundleApprovals(address,address,uint256)
 
 
-**Execution cost**: less than 1050 gas
+**Execution cost**: less than 1132 gas
 
 **Attributes**: constant
 
 
+Params:
+
+1. **param_0** *of type `address`*
+2. **param_1** *of type `address`*
+3. **param_2** *of type `uint256`*
 
 Returns:
 
@@ -630,7 +735,7 @@ Returns:
 ### getCommodityCategoryByIndex(uint256)
 
 
-**Execution cost**: less than 1347 gas
+**Execution cost**: less than 1413 gas
 
 **Attributes**: constant
 
@@ -645,24 +750,16 @@ Returns:
 1. **output_0** *of type `uint256`*
 
 --- 
-### ownerOf(uint256)
->
->Returns the address currently assigned ownership of a given Commodity.
+### toggleParticipantCalling(bool)
 
 
-**Execution cost**: less than 942 gas
-
-**Attributes**: constant
+**Execution cost**: less than 21206 gas
 
 
 Params:
 
-1. **_tokenId** *of type `uint256`*
+1. **_toggle** *of type `bool`*
 
-Returns:
-
-
-1. **owner** *of type `address`*
 
 --- 
 ### operatorSendOne(address,address,uint256,bytes,bytes)
@@ -683,21 +780,6 @@ Params:
 
 
 --- 
-### onlyParticipantCallers()
-
-
-**Execution cost**: less than 602 gas
-
-**Attributes**: constant
-
-
-
-Returns:
-
-
-1. **output_0** *of type `bool`*
-
---- 
 ### operatorSend(address,address,uint256,bytes,bytes)
 >
 >Send '_value' amount of tokens from the address '_from' to the address '_to'. 
@@ -714,6 +796,21 @@ Params:
 4. **param_3** *of type `bytes`*
 5. **param_4** *of type `bytes`*
 
+
+--- 
+### onlyParticipantCallers()
+
+
+**Execution cost**: less than 668 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
+
+1. **output_0** *of type `bool`*
 
 --- 
 ### operatorSend(address,address,uint256,bytes,address,bytes,bool)
@@ -734,57 +831,12 @@ Params:
 
 
 --- 
-### transfer(address,uint256)
+### name()
 >
->Transfers a commodity to another address. If transferring to a smart contract be VERY CAREFUL to ensure that it is aware of ERC-721 .
+>Return the name of the token 
 
 
-**Execution cost**: less than 105945 gas
-
-
-Params:
-
-1. **_to** *of type `address`*
-
-    > The address of the recipient, can be a user or contract.
-
-2. **_tokenId** *of type `uint256`*
-
-    > The ID of the commodity to transfer.
-
-
-
---- 
-### setParticipantRegistry(address)
-
-
-**Execution cost**: less than 20654 gas
-
-
-Params:
-
-1. **_participantRegistry** *of type `address`*
-
-
---- 
-### revokeOperator(address)
->
->Revoke a third party '_operator''s rights to manage (send) 'msg.sender''s tokens. 
-
-
-**Execution cost**: less than 23122 gas
-
-
-Params:
-
-1. **_operator** *of type `address`*
-
-
---- 
-### participantRegistry()
-
-
-**Execution cost**: less than 1128 gas
+**Execution cost**: No bound available
 
 **Attributes**: constant
 
@@ -793,7 +845,60 @@ Params:
 Returns:
 
 
+1. **output_0** *of type `string`*
+
+--- 
+### ownerOf(uint256)
+>
+>Returns the address currently assigned ownership of a given Commodity.
+
+
+**Execution cost**: less than 1008 gas
+
+**Attributes**: constant
+
+
+Params:
+
+1. **_tokenId** *of type `uint256`*
+
+Returns:
+
+
+1. **owner** *of type `address`*
+
+--- 
+### owner()
+>
+> Tells the address of the owner
+
+
+**Execution cost**: less than 1084 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
+> the address of the owner
+
 1. **output_0** *of type `address`*
+
+--- 
+### revokeOperator(address,uint256)
+>
+>Revoke a third party '_operator''s rights to manage (send) 'msg.sender''s tokens. 
+
+
+**Execution cost**: No bound available
+
+
+Params:
+
+1. **_operator** *of type `address`*
+2. **_tokenId** *of type `uint256`*
+
 
 --- 
 ### send(address,uint256)
@@ -811,6 +916,18 @@ Params:
 
 
 --- 
+### setParticipantRegistry(address)
+
+
+**Execution cost**: less than 20767 gas
+
+
+Params:
+
+1. **_participantRegistry** *of type `address`*
+
+
+--- 
 ### split(uint256,address,uint256)
 
 
@@ -821,7 +938,7 @@ Params:
 
 1. **_tokenId** *of type `uint256`*
 2. **_to** *of type `address`*
-3. **_ammount** *of type `uint256`*
+3. **_amount** *of type `uint256`*
 
 
 --- 
@@ -842,18 +959,6 @@ Returns:
 1. **output_0** *of type `string`*
 
 --- 
-### toggleParticipantCalling(bool)
-
-
-**Execution cost**: less than 21096 gas
-
-
-Params:
-
-1. **_toggle** *of type `bool`*
-
-
---- 
 ### totalSupply()
 
 
@@ -867,6 +972,27 @@ Returns:
 
 
 1. **output_0** *of type `uint256`*
+
+--- 
+### transfer(address,uint256)
+>
+>Transfers a commodity to another address. If transferring to a smart contract be VERY CAREFUL to ensure that it is aware of ERC-721 .
+
+
+**Execution cost**: No bound available
+
+
+Params:
+
+1. **_to** *of type `address`*
+
+    > The address of the recipient, can be a user or contract.
+
+2. **_tokenId** *of type `uint256`*
+
+    > The ID of the commodity to transfer.
+
+
 
 --- 
 ### transferOwnership(address)
@@ -901,4 +1027,4 @@ Params:
 3. **_category** *of type `uint64`*
 
 
-[Back to the top ↑](#crcv0_2_0)
+[Back to the top ↑](#crcv0_2_1)

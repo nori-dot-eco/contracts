@@ -1,4 +1,4 @@
-import { NoriV0_1_0, SelectableCrcMarketV0_1_0 } from './helpers/Artifacts';
+import { NoriV0_1_0, SelectableCrcMarketV0_1_1 } from './helpers/Artifacts';
 import { deployUpgradeableCrc } from './behaviors/Crc';
 import { upgradeToV0 } from './behaviors/UnstructuredUpgrades';
 import { deployUpgradeableContract } from './helpers/contracts';
@@ -36,13 +36,13 @@ const SelectableCrcMarketTests = () => {
     [, crcMarket] = await deployUpgradeableContract(
       artifacts,
       null,
-      SelectableCrcMarketV0_1_0,
+      SelectableCrcMarketV0_1_1,
       contractRegistry,
       initParams
     );
   });
 
-  contract('SelectableCrcMarketV0_1_0', accounts => {
+  contract('SelectableCrcMarketV0_1_1', accounts => {
     beforeEach(async () => {
       // temporaily using a toggle to allow contract calls from addresses not proxyed through particpant identy contract
       await crc.toggleParticipantCalling(false, { from: accounts[0] });

@@ -163,7 +163,7 @@ const printRegistryInfo = (
     const preface = '   ->   ';
     console.log('\n\n==========\n\n Migration Info:\n');
     console.log('----------\n\n RootRegistry Info: \n');
-    console.log(` ~ Implmentation: ${root.address} \n`);
+    console.log(` ~ Implementation: ${root.address} \n`);
     console.log('   Registered Contracts:\n');
     console.log(preface, 'MultiAdmin:', multiAdmin.address);
     console.log(preface, 'MultiSigWallet:', multiSigWallet);
@@ -173,7 +173,7 @@ const printRegistryInfo = (
       registry.address
     );
     console.log(`\n----------\n\n ContractRegistry Info:\n`);
-    console.log(` ~ Implmentation: ${registryImp} \n`);
+    console.log(` ~ Implementation: ${registryImp} \n`);
     console.log(`   Registered Contracts:\n`);
 
     printRegisteredContracts(deployedContracts);
