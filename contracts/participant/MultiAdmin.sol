@@ -2,7 +2,6 @@ pragma solidity ^0.4.24;
 import "./../EIP777/IEIP777TokensRecipient.sol";
 import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
-import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
 
 /// @title MultiAdmin: Multisignature wallet - Allows multiple parties to agree on transactions before execution.
@@ -12,7 +11,6 @@ import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 // todo jaycen CAUTION, using eip820 unaudited contracts in multisig inheritance inorder to
 // avoid revert statement otheriwse invoked in the callRecipient function of the tokens mint/send funcs
 contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
-  using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
 
   /*
     *  Events
@@ -103,7 +101,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   function() public payable {
     if (msg.value > 0) {
       emit Deposit(msg.sender, msg.value);
-    }
+    }  
   }
 
   /*
@@ -114,7 +112,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @param _required Number of required confirmations.
   constructor(address[] _owners, uint _required, address _eip820RegistryAddr) public validRequirement(_owners.length, _required) {
 
-    for (uint i = 0; i < _owners.length; i = i.add(1)) {
+    for (uint i = 0; i < _owners.length; i++) {
       require(!isOwner[_owners[i]] && _owners[i] != 0);
       isOwner[_owners[i]] = true;
     }
@@ -130,22 +128,22 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   }
 
   function tokensReceived (
-    address operator,
-    address from,
-    address to,
-    uint256 amount,
-    bytes userData,
+    address operator, 
+    address from, 
+    address to, 
+    uint256 amount, 
+    bytes userData, 
     bytes operatorData
   ) public {
     if (!tokenReceiver) {
       revert();
     }
     emit ReceivedTokens(
-      operator,
-      from,
-      to,
-      amount,
-      userData,
+      operator, 
+      from, 
+      to, 
+      amount, 
+      userData, 
       operatorData
     );
   }
@@ -162,7 +160,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
       onlyWallet
       ownerDoesNotExist(owner)
       notNull(owner)
-      validRequirement(owners.length.add(1), required)
+      validRequirement(owners.length + 1, required)
   {
     isOwner[owner] = true;
     owners.push(owner);
@@ -177,18 +175,18 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
       ownerExists(owner)
   {
     isOwner[owner] = false;
-    for (uint i = 0; i < owners.length.sub(1); i = i.add(1)) {
+    for (uint i = 0; i < owners.length - 1; i++) {
       if (owners[i] == owner) {
-        owners[i] = owners[owners.length.sub(1)];
+        owners[i] = owners[owners.length - 1];
         break;
       }
     }
 
-    owners.length = owners.length.sub(1);
+    owners.length -= 1;
     if (required > owners.length) {
       changeRequirement(owners.length);
     }
-
+        
     emit OwnerRemoval(owner);
   }
 
@@ -201,7 +199,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
     ownerExists(owner)
     ownerDoesNotExist(newOwner)
   {
-    for (uint i = 0; i < owners.length; i = i.add(1)) {
+    for (uint i = 0; i < owners.length; i++) {
       if (owners[i] == owner) {
         owners[i] = newOwner;
         break;
@@ -270,13 +268,13 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   {
     if (isConfirmed(transactionId)) {
       Transaction storage txn = transactions[transactionId];
-
+      
       txn.executed = true;
       if (
         external_call(
-          txn.destination,
-          txn.value,
-          txn.data.length,
+          txn.destination, 
+          txn.value, 
+          txn.data.length, 
           txn.data
         )
       ) {
@@ -291,9 +289,9 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   // call has been separated into its own function in order to take advantage
   // of the Solidity's code generator to produce a loop that copies tx.data into memory.
   function external_call(
-    address destination,
-    uint value,
-    uint dataLength,
+    address destination, 
+    uint value, 
+    uint dataLength, 
     bytes data
   ) private returns (bool) {
     bool result;
@@ -320,13 +318,13 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @return Confirmation status.
   function isConfirmed(uint transactionId) public view returns (bool) {
     uint count = 0;
-    for (uint i = 0; i < owners.length; i = i.add(1)) {
+    for (uint i = 0; i < owners.length; i++) {
       if (confirmations[transactionId][owners[i]]) {
-        count = count.add(1);
+        count += 1;
       }
       if (count == required) {
         return true;
-      }
+      }    
     }
   }
 
@@ -346,7 +344,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
       data: data,
       executed: false
     });
-    transactionCount = transactionCount.add(1);
+    transactionCount += 1;
     emit Submission(transactionId);
   }
 
@@ -357,11 +355,11 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @param transactionId Transaction ID.
   /// @return Number of confirmations.
   function getConfirmationCount(uint transactionId) public view returns (uint count) {
-    for (uint i = 0; i < owners.length; i = i.add(1)) {
-      if (confirmations[transactionId][owners[i]]) {
-        count = count.add(1);
+    for (uint i = 0; i < owners.length; i++) {
+      if (confirmations[transactionId][owners[i]]) { 
+        count += 1;
       }
-    }
+    }     
   }
 
   /// @dev Returns total number of transactions after filers are applied.
@@ -369,16 +367,16 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @param executed Include executed transactions.
   /// @return Total number of transactions after filters are applied.
   function getTransactionCount(bool pending, bool executed) public view returns (uint count) {
-    for (uint i = 0; i < transactionCount; i = i.add(1)) {
+    for (uint i = 0; i < transactionCount; i++) {
       if (pending && !transactions[i].executed || executed && transactions[i].executed) {
-        count = count.add(1);
+        count += 1;
       }
-    }
+    }     
   }
 
   /// @dev Returns list of owners.
   /// @return List of owner addresses.
-  function getOwners() public view returns (address[]) {
+  function getOwners() public view returns (address[]) { 
     return owners;
   }
 
@@ -389,17 +387,17 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
     address[] memory confirmationsTemp = new address[](owners.length);
     uint count = 0;
     uint i;
-    for (i = 0; i < owners.length; i = i.add(1)) {
+    for (i = 0; i < owners.length; i++) {
       if (confirmations[transactionId][owners[i]]) {
         confirmationsTemp[count] = owners[i];
-        count = count.add(1);
+        count += 1;
       }
     }
-
+        
     _confirmations = new address[](count);
-    for (i = 0; i < count; i = i.add(1)) {
+    for (i = 0; i < count; i++) {
       _confirmations[i] = confirmationsTemp[i];
-    }
+    } 
   }
 
   /// @dev Returns list of transaction IDs in defined range.
@@ -409,25 +407,25 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @param executed Include executed transactions.
   /// @return Returns array of transaction IDs.
   function getTransactionIds(
-    uint from,
-    uint to,
-    bool pending,
+    uint from, 
+    uint to, 
+    bool pending, 
     bool executed
   ) public view returns (uint[] _transactionIds){
 
     uint[] memory transactionIdsTemp = new uint[](transactionCount);
     uint count = 0;
     uint i;
-    for (i = 0; i < transactionCount; i = i.add(1)) {
+    for (i = 0; i < transactionCount; i++) {
       if (pending && !transactions[i].executed || executed && transactions[i].executed) {
         transactionIdsTemp[count] = i;
-        count = count.add(1);
+        count += 1;
       }
     }
-
-    _transactionIds = new uint[](to.sub(from));
-    for (i = from; i < to; i = i.add(1)) {
-      _transactionIds[i.sub(from)] = transactionIdsTemp[i];
+        
+    _transactionIds = new uint[](to - from);
+    for (i = from; i < to; i++) {
+      _transactionIds[i - from] = transactionIdsTemp[i];
     }
   }
 }
