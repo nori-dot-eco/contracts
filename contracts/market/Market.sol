@@ -20,7 +20,7 @@ contract Market is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer {
 
   function initialize(address _eip820RegistryAddr, address[] _marketItems, address _owner) public {
     require(_initialized != true);
-    for (uint i = 0;  i < _marketItems.length; i = i.add(1)) {
+    for (uint256 i = 0;  i < _marketItems.length; i = i.add(1)) {
       _createMarketItem(_marketItems[i]);
     }
     setOwner(_owner);

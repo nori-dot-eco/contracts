@@ -5,7 +5,7 @@ interface IEIP777TokensSender {
     address operator,
     address from,
     address to,
-    uint amount,
+    uint256 amount,
     bytes userData,
     bytes operatorData
   ) public;

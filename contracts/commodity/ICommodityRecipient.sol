@@ -5,7 +5,7 @@ interface ICommodityRecipient {
     address operator,
     address from,
     address to,
-    uint tokenId,
+    uint256 tokenId,
     bytes userData,
     bytes operatorData
   ) public;

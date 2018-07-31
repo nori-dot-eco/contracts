@@ -5,7 +5,7 @@ interface ICommodityOperator {
     address operator,
     address from,
     address to,
-    uint tokenId,
+    uint256 tokenId,
     uint256 value,
     bytes userData,
     bytes operatorData

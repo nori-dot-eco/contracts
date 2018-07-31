@@ -198,7 +198,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
 
       // clear any previously approved ownership exchange
       address operator = commodityBundleIndexToApproved[_tokenId];
-      for(uint i = 0; i < commodityOperatorBundleApprovals[operator][_from].length; i = i.add(1)){
+      for(uint256 i = 0; i < commodityOperatorBundleApprovals[operator][_from].length; i = i.add(1)){
         if(commodityOperatorBundleApprovals[operator][_from][i] == _tokenId){
           _cumulativeAllowance[operator] = _cumulativeAllowance[operator].sub(commodities[_tokenId].value);
           delete commodityOperatorBundleApprovals[operator][_from][i];
@@ -232,11 +232,11 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// @return totalValue The total allowance value of an operator for a given owner
   function allowanceForAddress(address _operator, address _owner) public view returns (uint256 totalValue) {
     // todo total allowance balance of all addresses combined?
-    uint totalAllowance = 0;
+    uint256 totalAllowance = 0;
     if(commodityBundleIndexToApproved[0] == _operator){
       totalAllowance = totalAllowance.add(commodities[0].value);
     }
-    for(uint i = 0; i < commodityOperatorBundleApprovals[_operator][_owner].length; i = i.add(1)){
+    for(uint256 i = 0; i < commodityOperatorBundleApprovals[_operator][_owner].length; i = i.add(1)){
       if(commodityOperatorBundleApprovals[_operator][_owner][i] != 0){
         totalAllowance = totalAllowance.add(commodities[commodityOperatorBundleApprovals[_operator][_owner][i]].value);
       }
@@ -257,11 +257,11 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// @param _operator The operator address to check.
   /// @param _owner The owner address to check.
   function bundleAllowanceForAddress(address _operator, address _owner) public view returns (uint256 count) {
-    uint totalBundleAllowance = 0;
+    uint256 totalBundleAllowance = 0;
     if(commodityBundleIndexToApproved[0] == _operator){
       totalBundleAllowance = totalBundleAllowance.add(1);
     }
-    for(uint i = 0; i < commodityOperatorBundleApprovals[_operator][_owner].length; i = i.add(1)){
+    for(uint256 i = 0; i < commodityOperatorBundleApprovals[_operator][_owner].length; i = i.add(1)){
       if(commodityOperatorBundleApprovals[_operator][_owner][i] != 0){
         totalBundleAllowance = totalBundleAllowance.add(1);
       }
@@ -410,7 +410,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     if (_addr == 0) {
       return false;
     }
-    uint size;
+    uint256 size;
     assembly { size := extcodesize(_addr) } //solium-disable-line security/no-inline-assembly
     return size == 0;
   }

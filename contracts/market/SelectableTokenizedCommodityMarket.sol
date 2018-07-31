@@ -37,7 +37,7 @@ contract SelectableTokenizedCommodityMarket is StandardTokenizedCommodityMarket,
     address,
     address from,
     address,
-    uint tokenId,
+    uint256 tokenId,
     uint256,
     bytes userData,
     bytes
