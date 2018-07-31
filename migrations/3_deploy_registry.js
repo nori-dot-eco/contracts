@@ -26,7 +26,7 @@ module.exports = (deployer, network, accounts) => {
 
     try {
       root = await deployOrGetRootRegistry(config);
-      multiAdmin = MultiAdmin.at(
+      multiAdmin = await MultiAdmin.at(
         await root.getLatestProxyAddr.call('MultiAdmin')
       );
     } catch (e) {

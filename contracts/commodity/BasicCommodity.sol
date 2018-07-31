@@ -318,9 +318,50 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     bool _preventLocking
   ) internal {
     require(_approvedFor(_operator, _tokenId));
+    require(ownerOf(_tokenId) == msg.sender);
     address recipientImplementation = interfaceAddr(_to, "ICommodityOperator");
     if (recipientImplementation != 0) {
       ICommodityOperator(recipientImplementation).madeOperatorForCommodity(
+        _operator,
+        _from,
+        _to,
+        _tokenId,
+        _value, 
+        _userData,
+        _operatorData
+      );
+    } else if (_preventLocking) {
+      require(isRegularAddress(_to));
+    }
+  }
+
+  /// @notice If the recipient address (_to/_operator param) is listed in the registry as supporting
+  ///   the ICommodityOperator interface, it calls the revokedOperatorForCommodity
+  ///   function.
+  /// @param _operator The _operatorbeing revoked
+  /// @param _from the owner of the commodity
+  /// @param _to the operator address to introspect for ICommodityOperator interface support
+  /// @param _tokenId the commodity index
+  /// @param _value the value of the commodity to revoke allowance for. This is currently unfinished.
+  /// @param _userData the data to pass on behalf of the user. This is currently unsupported.
+  /// @param _operatorData the data to pass on behalf of the operator. This is currently unsupported.
+  /// @param _preventLocking used to prevent sending to contract addresses who are not supported by this commodity 
+  /// @dev This idea behind functions like this come from EIP 820
+  function callRevokedOperator(
+    address _operator,
+    address _from,
+    address _to,
+    uint256 _tokenId,
+    uint256 _value,
+    bytes _userData,
+    bytes _operatorData,
+    bool _preventLocking
+  ) internal {
+    require(_approvedFor(_operator, _tokenId));
+    require(ownerOf(_tokenId) == msg.sender);
+    address recipientImplementation = interfaceAddr(_to, "ICommodityOperator");
+    if (recipientImplementation != 0) {
+      ICommodityOperator(recipientImplementation).revokedOperatorForCommodity(
         _operator,
         _from,
         _to,
@@ -521,9 +562,9 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
 
   //TODO (jaycen) PRELAUNCH fix/remove this (if we need it for compatibility reasons  -- disabling for now)
   /** @notice Authorize a third party '_operator' to manage (send) 'msg.sender''s tokens. */
-  function authorizeOperator(address) public pure {
-    revert();
-  }
+  // function authorizeOperator(address) public pure {
+  //   revert();
+  // }
 
   // todo(jaycen): we probably want a variation of this function which
   // only authorizes a specified value of a bundle, and not the entire thing
@@ -546,7 +587,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
       msg.sender,
       _operator,
       _tokenId,
-      commodities[_tokenId].value,
+      commodities[_tokenId].value, //todo allow for fractional values to be passed by using the split function
       "",
       "",
       false
@@ -555,10 +596,29 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   }
 
   /** @notice Revoke a third party '_operator''s rights to manage (send) 'msg.sender''s tokens. */
-  function revokeOperator(address _operator) public {
+  function revokeOperator(address _operator, uint256 _tokenId) public {
     //todo jaycen call operator to cancel sale on markets
     require(_operator != msg.sender);
-    mAuthorized[_operator][msg.sender] = false;
+    require(_owns(msg.sender, _tokenId));
+    //mAuthorized[_operator][msg.sender] = false; //todo what is this
+    callRevokedOperator(
+      _operator,
+      msg.sender,
+      _operator,
+      _tokenId,
+      commodities[_tokenId].value, //todo allow for fractional values to be passed by using the split function
+      "",
+      "",
+      false
+    );
+    address operator = commodityBundleIndexToApproved[_tokenId];
+    for(uint i = 0; i < commodityOperatorBundleApprovals[operator][msg.sender].length; i++){
+      if(commodityOperatorBundleApprovals[operator][msg.sender][i] == _tokenId){
+        _cumulativeAllowance[operator] = _cumulativeAllowance[operator].sub(commodities[_tokenId].value);
+        delete commodityOperatorBundleApprovals[operator][msg.sender][i];
+      }
+    }
+    delete commodityBundleIndexToApproved[_tokenId];
     emit RevokedOperator(_operator, msg.sender);
   }
 

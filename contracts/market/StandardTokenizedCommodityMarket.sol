@@ -157,6 +157,7 @@ contract StandardTokenizedCommodityMarket is Market {
   /// @dev Removes a sale from the list of open sales.
   /// @param _tokenId - ID of commodity on sale.
   function _removeSale(uint256 _tokenId) internal {
+    require(commodityContract.isOperatorForOne(this, _tokenId));
     delete tokenIdToSell[_tokenId];
   }
 
