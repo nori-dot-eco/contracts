@@ -4,7 +4,7 @@ import "../commodity/VerifiableCommodity.sol";
 
 // This version REPLACES (rather than upgrades) 0_1_0. It changes core
 // functionality in balance and allowance retirevals
-contract CRCV0_2_0 is SplittableCommodity, VerifiableCommodity {
+contract CRCV0_2_1 is SplittableCommodity, VerifiableCommodity {
 
   constructor() public BasicCommodity () { }
 

@@ -5,33 +5,33 @@ import "./../commodity/ICommodityOperator.sol";
 
 
 contract SelectableTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP777TokensOperator, ICommodityOperator {
-    
+
   constructor() StandardTokenizedCommodityMarket() public { }
 
   function initialize(address _eip820RegistryAddr, address[] _marketItems, address _owner) public {
     require(_initialized != true);
     super.initialize(_eip820RegistryAddr, _marketItems, _owner);
   }
-  
+
   function buy(address _from, uint256 _tokenId, uint256 _amount) private {
     // _buy will throw if the bid or funds transfer fails todo jaycen fix static 0 addr
     _buy(_from, _tokenId, _amount);
     _transfer(
       _from,
-      msg.sender, 
-      _tokenId, 
+      msg.sender,
+      _tokenId,
       _amount
     );
     // todo jaycen disable the above two lines and enable the following. Functionality is ok, but it breaks tests
-    // uint256 newSaleAmmount = _buy(_from, _tokenId, _amount);
-    // if (newSaleAmmount != _amount) {
+    // uint256 newSaleAmount = _buy(_from, _tokenId, _amount);
+    // if (newSaleAmount != _amount) {
     //     _split(_tokenId, msg.sender, _amount);
     // } else {
     //     _transfer(_from, msg.sender, _tokenId, _amount);
     // }
-  } 
+  }
 
-  /// @dev erc820 introspection : handler invoked when 
+  /// @dev erc820 introspection : handler invoked when
   /// this contract is made an operator for a commodity
   function madeOperatorForCommodity(
     address,
@@ -41,19 +41,19 @@ contract SelectableTokenizedCommodityMarket is StandardTokenizedCommodityMarket,
     uint256,
     bytes userData,
     bytes
-  )  
-  public 
+  )
+  public
   {
     if (preventCommodityOperator) {
       revert();
     }
     //todo jaycen can we figure out how to do this passing in a CommodityLib.Commodity struct (I was having solidity errors but it would be ideal)
     createSale(
-      tokenId, 
-      1, 
-      1, 
-      from, 
-      1000000000000000000, 
+      tokenId,
+      1,
+      1,
+      from,
+      1000000000000000000,
       userData
     );
   }
@@ -97,7 +97,7 @@ contract SelectableTokenizedCommodityMarket is StandardTokenizedCommodityMarket,
     bytes,
     bytes
   ) public {
-    if (preventTokenOperator) { 
+    if (preventTokenOperator) {
       revert();
     }
     //todo jaycen fix hardcodes (right now its only possiblee to buy a crc with ID 0 in selectable mode)
@@ -113,11 +113,11 @@ contract SelectableTokenizedCommodityMarket is StandardTokenizedCommodityMarket,
     bytes _misc
   ) public {
     _createSale(
-      _tokenId, 
-      _category, 
-      _saleType, 
-      _seller, 
-      _value, 
+      _tokenId,
+      _category,
+      _saleType,
+      _seller,
+      _value,
       _misc
     );
   }

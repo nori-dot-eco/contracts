@@ -4,8 +4,8 @@ const EIP820Registry = artifacts.require('EIP820Registry');
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
 const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
-const SelectableCrcMarketV0_1_0 = artifacts.require(
-  'SelectableCrcMarketV0_1_0'
+const SelectableCrcMarketV0_1_1 = artifacts.require(
+  'SelectableCrcMarketV0_1_1'
 );
 
 module.exports = function deploy(deployer, network, accounts) {
@@ -20,7 +20,7 @@ module.exports = function deploy(deployer, network, accounts) {
     );
     await deployer.deploy(EIP820Registry);
 
-    const crcMarket = await deployer.deploy(SelectableCrcMarketV0_1_0);
+    const crcMarket = await deployer.deploy(SelectableCrcMarketV0_1_1);
     await crcMarket.initialize(
       registry.address,
       [

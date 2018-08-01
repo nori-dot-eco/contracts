@@ -28,7 +28,7 @@ library CommodityLib {
     uint64 parentId;
 
     // The value stored in this particular commodity token (I have upped this from 64 to 256 since erc20 allows
-    // 256 supply and we need sales of commodities to be able to represent that ammount. todo jaycen I think
+    // 256 supply and we need sales of commodities to be able to represent that amount. todo jaycen I think
     // There exists a solidity trick where putting struct attributes of the same type next to each other to reduce gas
     uint256 value;
 
