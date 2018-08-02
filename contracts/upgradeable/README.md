@@ -155,9 +155,17 @@ await multiAdmin.submitTransaction(proxy.address, 0, upgradeTxData);
 
 #### ContractRegistry
 
+See ContractRegistry README
+
 #### RootRegistry
 
+See ContractRegistry README
+
+
 #### ENS
+
+See ContractRegistry README
+
 
 ### How Upgrades Interact with the Registries
 
