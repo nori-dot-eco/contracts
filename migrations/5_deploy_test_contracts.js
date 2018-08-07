@@ -22,11 +22,7 @@ module.exports = function deploy(deployer, network, accounts) {
     await deployer.deploy(EIP820Registry);
 
     const crcMarket = await deployer.deploy(
-      await artifacts.require(
-        `./SelectableCrcMarketV${await getLatestVersionFromFs(
-          'SelectableCrcMarket'
-        )}`
-      )
+      await artifacts.require(`./SelectableCrcMarketV0_1_0`)
     );
     await crcMarket.initialize(
       registry.address,

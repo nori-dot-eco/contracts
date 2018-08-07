@@ -36,13 +36,13 @@ contract MintableCommodity is BasicCommodity, IMintableCommodity {
         "When using a participant proxy, you can only call the mint function with a participant defined in the current ParticipantRegistry contract"
       );
     } else if (onlyParticipantCallers == true) {
-        emit InsufficientPermission(
-          msg.sender,
-          _operatorData,
-          _value,
-          _misc
-        );
-        revert("Only a supplier participant proxy can mint when 'onlyParticipantCallers' is true");
+      emit InsufficientPermission(
+        msg.sender,
+        _operatorData,
+        _value,
+        _misc
+      );
+      revert("Only a supplier participant proxy can mint when 'onlyParticipantCallers' is true");
     }
 
     /// NOTE: do NOT use timeRegistered for any kind of verification
