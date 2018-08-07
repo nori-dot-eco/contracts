@@ -1,6 +1,8 @@
 import expectThrow from '../helpers/expectThrow';
-import { ContractRegistryV0_1_0, VerifierV0_1_0 } from '../helpers/Artifacts';
-import { deployUpgradeableContract } from '../helpers/contracts';
+import {
+  deployUpgradeableContract,
+  getLatestVersionFromFs,
+} from '../helpers/contracts';
 import { deployUpgradeableCrc } from './Crc';
 
 const lightwallet = require('eth-signer');
@@ -18,7 +20,13 @@ const shouldBehaveLikeVerifier = admin => {
     let participantRegistry;
 
     before(async () => {
-      const contractRegistry = await ContractRegistryV0_1_0.new();
+      const contractRegistry = await artifacts
+        .require(
+          `./ContractRegistryV${await getLatestVersionFromFs(
+            'ContractRegistry'
+          )}`
+        )
+        .new();
       [participantRegistry, , crc] = await deployUpgradeableCrc(
         admin,
         contractRegistry
@@ -31,7 +39,9 @@ const shouldBehaveLikeVerifier = admin => {
       [, verifier] = await deployUpgradeableContract(
         artifacts,
         null,
-        VerifierV0_1_0,
+        await artifacts.require(
+          `./VerifierV${await getLatestVersionFromFs('Verifier')}`
+        ),
         contractRegistry,
         initParams
       );

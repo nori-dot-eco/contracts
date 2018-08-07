@@ -1,4 +1,5 @@
 /* globals artifacts web3 */
+/* eslint-disable no-unused-expressions */
 const {
   upgradeAndTransferToMultiAdmin,
   deployOrGetRootRegistry,
@@ -51,9 +52,10 @@ module.exports = (deployer, network, accounts) => {
         'Root registry owner should be the multisig admin account'
       );
     }
-    console.log(
-      'Current Deployed ContractRegistry Proxy Address:',
-      proxy.address || proxy
-    );
+    process.env.MIGRATION &&
+      console.log(
+        'Current Deployed ContractRegistry Proxy Address:',
+        proxy.address || proxy
+      );
   });
 };

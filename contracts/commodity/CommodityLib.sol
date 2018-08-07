@@ -25,7 +25,7 @@ library CommodityLib {
 
     // The ID of the parent of this commodity (e.g. the commodity id before it was split
     // set to 0 for brand new commodities which have never been split
-    uint64 parentId;
+    uint256 parentId;
 
     // The value stored in this particular commodity token (I have upped this from 64 to 256 since erc20 allows
     // 256 supply and we need sales of commodities to be able to represent that amount. todo jaycen I think

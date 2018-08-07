@@ -1,13 +1,12 @@
 /* globals artifacts web3 */
 import {
-  RootRegistryV0_1_0,
-  ContractRegistryV0_1_0,
   UnstructuredUpgradeableTokenV1,
   UnstructuredUpgradeableTokenV0,
 } from '../helpers/Artifacts';
 
 const { deployUpgradeableContract } = require('../helpers/contracts');
 const getNamedAccounts = require('../helpers/getNamedAccounts');
+const { getLatestVersionFromFs } = require('../helpers/contracts');
 
 const namedAccounts = getNamedAccounts(web3);
 
@@ -24,7 +23,9 @@ const setupTests = async () => {
   [, rootRegistryAtProxy] = await deployUpgradeableContract(
     artifacts,
     null,
-    RootRegistryV0_1_0,
+    artifacts.require(
+      `./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`
+    ),
     null,
     [['address'], [namedAccounts.admin0]],
     { from: namedAccounts.admin0 }
@@ -33,7 +34,9 @@ const setupTests = async () => {
   [, registryAtProxyV0, registryProxy] = await deployUpgradeableContract(
     artifacts,
     null,
-    ContractRegistryV0_1_0,
+    await artifacts.require(
+      `./ContractRegistryV${await getLatestVersionFromFs('ContractRegistry')}`
+    ),
     rootRegistryAtProxy,
     [['address'], [namedAccounts.admin0]],
     { from: namedAccounts.admin0 }
@@ -132,7 +135,11 @@ const shouldBehaveLikeRootRegistry = () => {
         [, registryAtProxyV0] = await deployUpgradeableContract(
           artifacts,
           registryProxy,
-          ContractRegistryV0_1_0,
+          await artifacts.require(
+            `./ContractRegistryV${await getLatestVersionFromFs(
+              'ContractRegistry'
+            )}`
+          ),
           rootRegistryAtProxy,
           null,
           { from: namedAccounts.admin0 }
@@ -188,7 +195,13 @@ const testRegistryUpgradeAndHistoryPreservation = () => {
           'ContractRegistry',
           0
         );
-        registryV0AtRoot = await ContractRegistryV0_1_0.at(registryV0Proxy);
+        registryV0AtRoot = await artifacts
+          .require(
+            `./ContractRegistryV${await getLatestVersionFromFs(
+              'ContractRegistry'
+            )}`
+          )
+          .at(registryV0Proxy);
 
         [, , tokenProxy] = await deployUpgradeableContract(
           artifacts,
@@ -213,7 +226,11 @@ const testRegistryUpgradeAndHistoryPreservation = () => {
         await deployUpgradeableContract(
           artifacts,
           registryProxy,
-          ContractRegistryV0_1_0,
+          await artifacts.require(
+            `./ContractRegistryV${await getLatestVersionFromFs(
+              'ContractRegistry'
+            )}`
+          ),
           rootRegistryAtProxy,
           null,
           { from: namedAccounts.admin0 }
@@ -228,7 +245,13 @@ const testRegistryUpgradeAndHistoryPreservation = () => {
           1
         );
 
-        registryV1AtRoot = await ContractRegistryV0_1_0.at(registryV1Proxy);
+        registryV1AtRoot = await artifacts
+          .require(
+            `./ContractRegistryV${await getLatestVersionFromFs(
+              'ContractRegistry'
+            )}`
+          )
+          .at(registryV1Proxy);
         await deployUpgradeableContract(
           artifacts,
           tokenProxy,

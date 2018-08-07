@@ -1,13 +1,12 @@
 /* globals artifacts */
 import expectThrow from '../helpers/expectThrow';
 
+const { getLatestVersionFromFs } = require('../helpers/contracts');
 const utils = require('../helpers/utils');
 
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 const web3 = MultiSigWallet.web3;
-const NoriV0_1_0 = artifacts.require('NoriV0_1_0');
 const TestCalls = artifacts.require('TestCalls');
-const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
 
 const deployCalls = () => TestCalls.new();
 
@@ -19,7 +18,9 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
   const requiredConfirmations = 2;
 
   beforeEach(async () => {
-    contractRegistry = await RootRegistryV0_1_0.new();
+    contractRegistry = await artifacts
+      .require(`./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`)
+      .new();
     assert.ok(contractRegistry);
     multisigInstance = await MultiSigContract.new(
       [accounts[0], accounts[1]],
@@ -30,7 +31,9 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
 
     assert.ok(multisigInstance);
 
-    tokenInstance = await NoriV0_1_0.new();
+    tokenInstance =  await artifacts
+      .require(`./NoriV${await getLatestVersionFromFs('Nori')}`)
+      .new();
     await tokenInstance.initialize(
       'NORI Token',
       'NORI',

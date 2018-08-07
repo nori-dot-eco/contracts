@@ -1,7 +1,8 @@
+import { getLatestVersionFromFs } from '../test/helpers/contracts';
+
 const Web3 = require('web3');
 
 const EIP820Registry = artifacts.require('./EIP820Registry.sol');
-const FifoCrcMarketV0_1_1 = artifacts.require('./FifoCrcMarketV0_1_1.sol');
 
 let registry;
 let fifoCrcMarket;
@@ -9,7 +10,11 @@ let web3;
 const EIP820RegistryTests = () => {
   before(async () => {
     registry = await EIP820Registry.new();
-    fifoCrcMarket = await FifoCrcMarketV0_1_1.new();
+    fifoCrcMarket = await artifacts
+      .require(
+        `./FifoCrcMarketV${await getLatestVersionFromFs('FifoCrcMarket')}`
+      )
+      .new();
     web3 = await new Web3();
   });
   // todo jaycen i dont think these tests are accurate (see multisig 820 tests for better examples?)

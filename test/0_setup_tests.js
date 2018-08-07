@@ -64,7 +64,7 @@ context('Setup test environment', () => {
     ParticipantTests(admin0);
     SupplierTests(admin0);
     VerifierTests(admin0);
-    FifoCrcMarketV0Tests(admin0);
+    FifoCrcMarketV0Tests();
     // Unstructured upgrade tests
     UnstructuredOwnedUpgradeabilityProxyTests(admin0, admin1);
   });

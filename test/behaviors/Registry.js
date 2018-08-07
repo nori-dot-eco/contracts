@@ -1,11 +1,11 @@
 import {
   UnstructuredUpgradeableTokenV0,
-  ContractRegistryV0_1_0,
-  RootRegistryV0_1_0,
   UnstructuredOwnedUpgradeabilityProxy,
 } from '../helpers/Artifacts';
 import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
+
+const { getLatestVersionFromFs } = require('../helpers/contracts');
 
 const testContractAtRegistry = (admin, initParams = []) => {
   context(
@@ -55,7 +55,9 @@ const testEvents = admin => {
       ] = await deployUpgradeableContract(
         artifacts,
         null,
-        RootRegistryV0_1_0,
+        artifacts.require(
+          `./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`
+        ),
         null,
         [['address'], [admin]],
         { from: admin }
@@ -75,7 +77,11 @@ const testEvents = admin => {
       [, registryAtProxyV0, registryProxy] = await deployUpgradeableContract(
         artifacts,
         contractRegistryProxy,
-        ContractRegistryV0_1_0,
+        await artifacts.require(
+          `./ContractRegistryV${await getLatestVersionFromFs(
+            'ContractRegistry'
+          )}`
+        ),
         rootRegistryAtProxy,
         [['address'], [admin]],
         { from: admin }
@@ -110,11 +116,12 @@ const testEvents = admin => {
           'Expected VersionSet Event "proxyAddress" arg to be the registryAtProxyV0 address'
         );
       });
-      it("should include an 'versionName' arg", () => {
+      it("should include an 'versionName' arg", async () => {
+        const latestVersion = await getLatestVersionFromFs('ContractRegistry');
         assert.equal(
           versionSetLogs[0].args.versionName.toString(),
-          '0_1_0',
-          'Expected VersionSet Event "versionName" arg to be 0_1_0'
+          `${latestVersion}`,
+          `Expected VersionSet Event "versionName" arg to be ${latestVersion}`
         );
       });
       it("should include an 'newImplementation' arg", () => {

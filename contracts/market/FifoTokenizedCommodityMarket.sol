@@ -30,15 +30,15 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
       revert();
   }
 
-  function buy(address _from, uint256 _amount) private {
+  function buy(address _buyer, uint256 _amount) private {
     var (commodityIndex, saleIndex) = getEarliestSale();
 
-    uint256 newSaleAmount = _buy(_from, commodityIndex, _amount);
+    uint256 newSaleAmount = _buy(_buyer, commodityIndex, _amount);
     if (newSaleAmount != 0) {
-      _split(commodityIndex, _from, _amount);
+      _split(commodityIndex, _buyer, _amount);
     } else {
       _transfer(
-        _from,
+        _buyer,
         msg.sender,
         commodityIndex,
         _amount
@@ -48,14 +48,14 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
 
   }
 
-  /// @notice This function is called by the CRC contract when this contract 
+  /// @notice This function is called by the CRC contract when this contract
   /// is given authorization to send a particular commodity. When such happens,
   /// a sale for the CRC is created and added to the bottom of the FIFO queue
   /// @param tokenId the crc to remove from the FIFO sale queue
   /// @param from the owner of the crc, and the sale proceed recipient
   /// @param value the number of crcs in a bundle to list for sale
   /// @param userData data passed by the user
-  /// @dev this function uses erc820 introspection : handler invoked when 
+  /// @dev this function uses erc820 introspection : handler invoked when
   /// this contract is made an operator for a commodity
   function madeOperatorForCommodity(
     address, // operator,
@@ -82,18 +82,18 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     );
   }
 
-  /// @notice This function is called by the CRC contract when this contract 
+  /// @notice This function is called by the CRC contract when this contract
   /// has lost authorization for a particular commodity. Since authorizations are
-  /// what create the sale listings, is the market later loses authorization, 
+  /// what create the sale listings, is the market later loses authorization,
   /// then it needs to remove the sale from the queue (failure to do so would result in the
-  /// market not being able to distribute CRCs to the buyer). Since there is also no way to 
+  /// market not being able to distribute CRCs to the buyer). Since there is also no way to
   /// Modify the queue, it is adamant that the CRC is removed from
-  /// the queue or the result will be a broken market. 
-  /// @dev this function uses erc820 introspection : handler invoked when 
+  /// the queue or the result will be a broken market.
+  /// @dev this function uses erc820 introspection : handler invoked when
   /// this contract is revoked an operator for a commodity
   /// @param tokenId the crc to remove from the FIFO sale queue
   function revokedOperatorForCommodity(
-    address, // operator,  
+    address, // operator,
     address, // from,
     address, // to,
     uint tokenId,
@@ -113,7 +113,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
   ///  is made an operator for an erc777 token
   function madeOperatorForTokens(
     address, // operator,
-    address from,
+    address buyer,
     address, // to,
     uint256 amount,
     bytes, // userData,
@@ -122,7 +122,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     if (preventTokenOperator) {
       revert();
     }
-    buy(from, amount);
+    buy(buyer, amount);
   }
 
   //todo only allow from this address (cant make private due to operatorsend data)
@@ -152,7 +152,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
       if (uint(commoditiesForSale[i]) == _tokenId) {
         commoditiesForSale[i] = -1;
         return;
-      } 
+      }
     }
   }
 }

@@ -2,9 +2,12 @@ import { assertRevert, encodeCall } from '../helpers/utils';
 import {
   UnstructuredUpgradeableTokenV0,
   UnstructuredUpgradeableTokenV1,
-  ContractRegistryV0_1_0,
 } from '../helpers/Artifacts';
-import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
+import {
+  getLogs,
+  deployUpgradeableContract,
+  getLatestVersionFromFs,
+} from '../helpers/contracts';
 import { upgradeToV0 } from './UnstructuredUpgrades';
 
 const testUnstructuredOwnedUpgradeabilityProxyFuncs = (
@@ -18,7 +21,13 @@ const testUnstructuredOwnedUpgradeabilityProxyFuncs = (
     if (initParams.length === 0) {
       [, , proxy] = await upgradeToV0(admin, UnstructuredUpgradeableTokenV0);
     } else {
-      contractRegistry = await ContractRegistryV0_1_0.new();
+      contractRegistry = await artifacts
+        .require(
+          `./ContractRegistryV${await getLatestVersionFromFs(
+            'ContractRegistry'
+          )}`
+        )
+        .new();
       [, , proxy] = await deployUpgradeableContract(
         artifacts,
         null,
@@ -137,7 +146,13 @@ const testUnstructuredOwnedUpgradeabilityProxyInitialState = (
         UnstructuredUpgradeableTokenV0
       );
     } else {
-      contractRegistry = await ContractRegistryV0_1_0.new();
+      contractRegistry = await artifacts
+        .require(
+          `./ContractRegistryV${await getLatestVersionFromFs(
+            'ContractRegistry'
+          )}`
+        )
+        .new();
       [, , proxy] = await deployUpgradeableContract(
         artifacts,
         null,
@@ -172,7 +187,13 @@ const testOnlyProxyOwnerUnstructuredOwnedUpgradeabilityProxyFuncs = (
         UnstructuredUpgradeableTokenV0
       );
     } else {
-      contractRegistry = await ContractRegistryV0_1_0.new({ from: admin });
+      contractRegistry = await artifacts
+        .require(
+          `./ContractRegistryV${await getLatestVersionFromFs(
+            'ContractRegistry'
+          )}`
+        )
+        .new({ from: admin });
       [, contractByProxyV0, proxy] = await deployUpgradeableContract(
         artifacts,
         null,
@@ -212,7 +233,13 @@ const testOnlyProxyOwnerUnstructuredOwnedUpgradeabilityProxyFuncs = (
   describe('upgradeToAndCall', () => {
     let funcCallData;
     beforeEach(async () => {
-      contractRegistry = await ContractRegistryV0_1_0.new({ from: admin });
+      contractRegistry = await artifacts
+        .require(
+          `./ContractRegistryV${await getLatestVersionFromFs(
+            'ContractRegistry'
+          )}`
+        )
+        .new({ from: admin });
       funcCallData = encodeCall(
         'initialize',
         ['string', 'string', 'uint', 'uint', 'address', 'address'],
@@ -283,7 +310,13 @@ const testUnstructuredOwnedUpgradeabilityProxyImplementer = (
         UnstructuredUpgradeableTokenV0
       );
     } else if (!tokenByProxyV0) {
-      contractRegistry = await ContractRegistryV0_1_0.new();
+      contractRegistry = await artifacts
+        .require(
+          `./ContractRegistryV${await getLatestVersionFromFs(
+            'ContractRegistry'
+          )}`
+        )
+        .new();
       [, tokenByProxyV0, proxy] = await deployUpgradeableContract(
         artifacts,
         proxy || null,

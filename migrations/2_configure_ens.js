@@ -1,9 +1,10 @@
+/* eslint-disable no-unused-expressions */
 const namehash = require('eth-ens-namehash');
 const ENS = require('ethereum-ens');
+const { getLatestVersionFromFs } = require('../test/helpers/contracts');
 
 const ENSRegistry = artifacts.require('./ENSRegistry.sol');
 const FIFSRegistrar = artifacts.require('./FIFSRegistrar.sol');
-const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
 
 /**
  * Calculate root node hashes given the top level domain(tld)
@@ -33,7 +34,9 @@ const deployFIFSRegistrar = async (deployer, tld) => {
 
 const setupDomain = async () => {
   const ens = await ENSRegistry.deployed();
-  const rootRegistry = await RootRegistryV0_1_0.deployed();
+  const rootRegistry = await artifacts
+    .require(`./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`)
+    .deployed();
   const registrar = await FIFSRegistrar.deployed();
   // todo do this from multiadmin:
   await registrar.register(web3.sha3('nori'), web3.eth.accounts[0]);
@@ -46,11 +49,12 @@ module.exports = function deploy(deployer, network) {
       try {
         const ens = await ENSRegistry.deployed();
         const resolver = await ens.resolver(namehash.hash('nori.eth'));
-        console.log(
-          `Looks like ENS is configured and resolving to ${resolver}`
-        );
+        process.env.MIGRATION &&
+          console.log(
+            `Looks like ENS is configured and resolving to ${resolver}`
+          );
       } catch (e) {
-        console.log('Beginning new ENS configuration');
+        process.env.MIGRATION && console.log('Beginning new ENS configuration');
         const tld = 'eth';
         await deployFIFSRegistrar(deployer, tld);
         await setupDomain();
@@ -58,11 +62,15 @@ module.exports = function deploy(deployer, network) {
     } else if (network === 'ropsten' || network === 'ropstenGeth') {
       const ens = new ENS(web3.currentProvider);
       const resolver = await ens.resolver('nori.test').addr();
-      console.log(`Looks like ENS is configured and resolving to ${resolver}`);
+      process.env.MIGRATION &&
+        console.log(
+          `Looks like ENS is configured and resolving to ${resolver}`
+        );
     } else {
-      console.log(
-        `No ENS configuration steps defined for network: ${network}. Migrations will continue to look for a live deployment`
-      );
+      process.env.MIGRATION &&
+        console.log(
+          `No ENS configuration steps defined for network: ${network}. Migrations will continue to look for a live deployment`
+        );
     }
   });
 };

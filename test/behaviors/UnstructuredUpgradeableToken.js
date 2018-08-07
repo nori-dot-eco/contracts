@@ -3,9 +3,8 @@ import {
   UnstructuredUpgradeableTokenV1,
   UnstructuredUpgradeableTokenV2,
   UnstructuredUpgradeableTokenV3,
-  ContractRegistryV0_1_0,
 } from '../helpers/Artifacts';
-import { getLogs } from '../helpers/contracts';
+import { getLogs, getLatestVersionFromFs } from '../helpers/contracts';
 import { upgradeTo } from './UnstructuredUpgrades';
 import { shouldBehaveLikeTonToken } from './UnstructuredTonToken';
 
@@ -214,9 +213,15 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV1 = (
         const upgradeToV = upgradeTo(upgradeable);
         [upgradeableTokenV1, ,] = await upgradeToV(admin);
       } else {
-        const contractRegistry = await ContractRegistryV0_1_0.new({
-          from: admin,
-        });
+        const contractRegistry = await artifacts
+          .require(
+            `./ContractRegistryV${await getLatestVersionFromFs(
+              'ContractRegistry'
+            )}`
+          )
+          .new({
+            from: admin,
+          });
         upgradeableTokenV1 = UnstructuredUpgradeableTokenV1.new(
           'NORI Token V1',
           'NORI',
@@ -275,9 +280,15 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV2 = (
         const upgradeToV = upgradeTo(upgradeable, contract);
         [upgradeableTokenV2, ,] = await upgradeToV(admin);
       } else {
-        const contractRegistry = await ContractRegistryV0_1_0.new({
-          from: admin,
-        });
+        const contractRegistry = await artifacts
+          .require(
+            `./ContractRegistryV${await getLatestVersionFromFs(
+              'ContractRegistry'
+            )}`
+          )
+          .new({
+            from: admin,
+          });
         upgradeableTokenV2 = UnstructuredUpgradeableTokenV2.new(
           'NORI Token V2',
           'NORI',

@@ -1,26 +1,29 @@
 /* globals artifacts web3 */
+const { getLatestVersionFromFs } = require('../test/helpers/contracts');
 
 const EIP820Registry = artifacts.require('EIP820Registry');
 const MultiSigWallet = artifacts.require('MultiSigWallet');
-const ContractRegistryV0_1_0 = artifacts.require('ContractRegistryV0_1_0');
-const RootRegistryV0_1_0 = artifacts.require('RootRegistryV0_1_0');
-const SelectableCrcMarketV0_1_1 = artifacts.require(
-  'SelectableCrcMarketV0_1_1'
-);
 
 module.exports = function deploy(deployer, network, accounts) {
   deployer.then(async () => {
     // yeah we won't be using this...
+    // What exactly is this being used for?
     if (network !== 'test') {
       return;
     }
-    const rootRegistry = await RootRegistryV0_1_0.deployed();
-    const registry = ContractRegistryV0_1_0.at(
-      await rootRegistry.getLatestProxyAddr.call('ContractRegistry')
-    );
+    const rootRegistry = await artifacts
+      .require(`./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`)
+      .deployed();
+    const registry = await artifacts
+      .require(
+        `./ContractRegistryV${await getLatestVersionFromFs('ContractRegistry')}`
+      )
+      .at(await rootRegistry.getLatestProxyAddr.call('ContractRegistry'));
     await deployer.deploy(EIP820Registry);
 
-    const crcMarket = await deployer.deploy(SelectableCrcMarketV0_1_1);
+    const crcMarket = await deployer.deploy(
+      artifacts.require(`./SelectableCrcMarketV0_1_0`)
+    );
     await crcMarket.initialize(
       registry.address,
       [

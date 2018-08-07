@@ -181,7 +181,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// transfer a single bundle per transaction.
   function _transfer(address _from, address _to, uint256 _tokenId) internal {
     //require commodity not locked/retired
-    require(_unlocked(_tokenId));
+    require(_unlocked(_tokenId), "You cannot transfer a locked/retired commodity");
 
     // increment bundle count and total balance
     ownershipBundleCount[_to] = ownershipBundleCount[_to].add(1);
@@ -191,7 +191,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
 
     // When creating new commodites _from is 0x0, but we can't account that address.
     if (_from != address(0)) {
-      _balances[_from] = _balances[_to].sub(commodities[_tokenId].value);
+      _balances[_from] = _balances[_from].sub(commodities[_tokenId].value);
       if(ownershipBundleCount[_from] > 0){
         ownershipBundleCount[_from] = ownershipBundleCount[_from].sub(1);
       }
@@ -326,7 +326,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
         _from,
         _to,
         _tokenId,
-        _value, 
+        _value,
         _userData,
         _operatorData
       );
@@ -345,7 +345,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// @param _value the value of the commodity to revoke allowance for. This is currently unfinished.
   /// @param _userData the data to pass on behalf of the user. This is currently unsupported.
   /// @param _operatorData the data to pass on behalf of the operator. This is currently unsupported.
-  /// @param _preventLocking used to prevent sending to contract addresses who are not supported by this commodity 
+  /// @param _preventLocking used to prevent sending to contract addresses who are not supported by this commodity
   /// @dev This idea behind functions like this come from EIP 820
   function callRevokedOperator(
     address _operator,

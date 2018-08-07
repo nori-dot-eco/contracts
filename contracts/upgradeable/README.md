@@ -67,7 +67,7 @@ function upgradeTo(string contractName, string versionName, address implementati
     _upgradeTo(implementation);
     //todo register interface lookup using eip820 -- not including this now as implications are unknown
     address registry = registryAddr();
-    IVersionRegistry(registry).setVersion(
+    IContractRegistry(registry).setVersion(
       contractName,
       address(this),
       versionName,
@@ -161,11 +161,9 @@ See ContractRegistry README
 
 See ContractRegistry README
 
-
 #### ENS
 
 See ContractRegistry README
-
 
 ### How Upgrades Interact with the Registries
 

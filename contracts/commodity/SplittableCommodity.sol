@@ -1,32 +1,55 @@
 pragma solidity ^0.4.24;
 
 import "./MintableCommodity.sol";
+import "../participant/ISupplier.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
 contract SplittableCommodity is MintableCommodity {
-  using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
+  using SafeMath for uint256;
 
   event Split(address indexed to, uint256 amount, uint64 parentId, address indexed operator, bytes operatorData);
 
-  //todo jaycen implement a version where owner is splitting vs market is splitting
-  //todo jaycen, maybe if we dont store data for misc in the new commodity and instead rely on front end to retrieve based on parentid to save gas
   function split(uint _tokenId, address _to, uint256 _amount) public {
-    commodities[_tokenId].value =  commodities[_tokenId].value.sub(_amount);
-    uint64 newCommodityIndex = mint(
-      _to,
-      "",
-      _amount,
-      ""
+    address supplierProxy = IContractRegistry(eip820Registry).getLatestProxyAddr("Supplier");
+    require(
+      msg.sender == IContractRegistry(eip820Registry).getLatestProxyAddr("FifoCrcMarket") ||
+      ISupplier(supplierProxy).isAllowed(this, "IMintableCommodity"),
+      "Splitting can only be done when both the ISplittableCommodity interface is enabled and is called by a supplier or the FifoCrcMarket is used."
     );
-    //todo jaycen check that this 64uint conversion is ok
-    commodities[newCommodityIndex].misc = commodities[_tokenId].misc;
-    //todo jaycen somehow move this into the mint/transfer scope so that locking happens only in one place
-    commodities[newCommodityIndex].locked = true;
+
+    commodities[_tokenId].value = commodities[_tokenId].value.sub(_amount);
+
+    CommodityLib.Commodity memory _commodity = CommodityLib.Commodity({
+        category: uint64(1),
+        timeRegistered: uint64(now), // solium-disable-line
+        parentId: _tokenId,
+        value: _amount,
+        locked: false,
+        misc: commodities[_tokenId].misc
+    });
+    uint newCRCId = commodities.push(_commodity).sub(1);
+    require(newCRCId <= 18446744073709551616);
+
+    if(msg.sender == IContractRegistry(eip820Registry).getLatestProxyAddr("FifoCrcMarket")) {
+      _transfer(ownerOf(_tokenId), _to, newCRCId);
+    } else {
+      _transfer(msg.sender, _to, newCRCId);
+    }
+
+    callRecipent(
+      msg.sender,
+      0x0,
+      _to,
+      newCRCId,
+      "",
+      "",
+      false
+    );
 
     emit Split(
       _to,
       _amount,
-      newCommodityIndex,
+      uint64(newCRCId),
       msg.sender,
       ""
     );
