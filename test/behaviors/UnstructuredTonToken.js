@@ -1,7 +1,6 @@
 import expectThrow from '../helpers/expectThrow';
-import { getLogs } from '../helpers/contracts';
+import { getLogs, getLatestVersionFromFs } from '../helpers/contracts';
 import { upgradeTo } from './UnstructuredUpgrades';
-import { NoriV0_1_0 } from '../helpers/Artifacts';
 
 const shouldBehaveLikeTonToken = (
   admin,
@@ -19,7 +18,14 @@ const shouldBehaveLikeTonToken = (
     const upgradeToV = upgradeTo(upgradeable);
     [tonToken, initialSupply] =
       upgradeable === 0
-        ? await upgradeToV(admin, contract || NoriV0_1_0, initParams)
+        ? await upgradeToV(
+            admin,
+            contract ||
+              (await artifacts.require(
+                `./NoriV${await getLatestVersionFromFs('Nori')}`
+              )),
+            initParams
+          )
         : await upgradeToV(admin);
     const name = await tonToken.name();
     assert.equal('Upgradeable NORI Token', name);

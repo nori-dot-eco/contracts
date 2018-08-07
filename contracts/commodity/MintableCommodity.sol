@@ -5,6 +5,7 @@ import "./IMintableCommodity.sol";
 import "../participant/IParticipant.sol";
 import "./BasicCommodity.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
+import "../registry/IContractRegistry.sol";
 
 
 contract MintableCommodity is BasicCommodity, IMintableCommodity {
@@ -24,19 +25,24 @@ contract MintableCommodity is BasicCommodity, IMintableCommodity {
     uint256 _value,
     bytes _misc
   ) public returns(uint64) {
+
     //todo jaycen is this safe? Can someone somehow return teh same participant address and spoof that the msg is coming from a defined address?
-    address recipientImplementation = interfaceAddr(msg.sender, "IParticipant");
-    if (recipientImplementation != 0) {
+    //todo replace the following if else logic with the require logic that exists in the split function. This is needed only so that current tests don't break
+    address participantProxy = interfaceAddr(msg.sender, "IParticipant");
+    if (participantProxy != 0) {
       //todo jaycen can we accomplish the same thing using 820? by defining IParticipantRegistry in the 820reg?
-      require(IParticipant(recipientImplementation).getParticipantRegistry() == getParticipantRegistry());
-    } else if (onlyParticipantCallers == true) {
-      emit InsufficientPermission(
-        msg.sender,
-        _operatorData,
-        _value,
-        _misc
+      require(
+        IParticipant(participantProxy).getParticipantRegistry() == getParticipantRegistry(),
+        "When using a participant proxy, you can only call the mint function with a participant defined in the current ParticipantRegistry contract"
       );
-      revert("Only a participant proxy can call this function right now.");
+    } else if (onlyParticipantCallers == true) {
+        emit InsufficientPermission(
+          msg.sender,
+          _operatorData,
+          _value,
+          _misc
+        );
+        revert("Only a supplier participant proxy can mint when 'onlyParticipantCallers' is true");
     }
 
     /// NOTE: do NOT use timeRegistered for any kind of verification

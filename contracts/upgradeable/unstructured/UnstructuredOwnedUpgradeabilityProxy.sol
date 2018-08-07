@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "./UnstructuredUpgradeabilityProxy.sol";
-import "../../registry/IVersionRegistry.sol";
+import "../../registry/IContractRegistry.sol";
 
 /**
  * @title UnstructuredOwnedUpgradeabilityProxy
@@ -23,7 +23,7 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
   //Storage position of the registry to keep track of versions
   //todo is it the case that adding this second reserved slot messes with storage elsewhere?
   bytes32 private constant registryAddrPosition = keccak256("org.nori.registry.address");
-  
+
   /**
   * @dev the constructor sets the original owner of the contract to the sender account.
   */
@@ -102,10 +102,10 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
     _upgradeTo(implementation);
     //todo register interface lookup using eip820 -- not including this now as implications are unknown
     address registry = registryAddr();
-    IVersionRegistry(registry).setVersion(
-      contractName, 
-      address(this), 
-      versionName, 
+    IContractRegistry(registry).setVersion(
+      contractName,
+      address(this),
+      versionName,
       implementation
     );
     //todo require version name doesnt exits
@@ -120,9 +120,9 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
    * signature of the implementation to be called with the needed payload
    */
   function upgradeToAndCall(
-    string contractName, 
-    string versionName, 
-    address implementation, 
+    string contractName,
+    string versionName,
+    address implementation,
     bytes data
   ) payable public onlyProxyOwner {
     upgradeTo(contractName, versionName, implementation);

@@ -173,18 +173,19 @@ contract StandardTokenizedCommodityMarket is Market {
 
   /// @dev Transfers an commodity owned by this contract to another address.
   ///  Returns true if the transfer succeeds.
-  /// @param _from - owner of the commodity to transfer from (via operator sending).
+  /// @param _buyer - owner of the commodity to transfer from (via operator sending).
   /// @param _tokenId - ID of token to transfer.
   function _transfer(
-    address _from,
+    address _buyer,
     address, //to
     uint256 _tokenId,
     uint256 // amount
   ) internal {
+    address seller = commodityContract.ownerOf(_tokenId);
     // it will throw if transfer fails
     commodityContract.operatorSendOne(
-      msg.sender,
-      _from,
+      seller,
+      _buyer,
       _tokenId,
       "0x0",
       "0x0"

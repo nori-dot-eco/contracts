@@ -1,20 +1,25 @@
 import { testContractAtRegistry, testEvents } from './behaviors/Registry';
-import { ContractRegistryV0_1_0 } from './helpers/Artifacts';
+import { ContractRegistryV0_2_0 } from './helpers/Artifacts';
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
 import { testVersionRegistryFunctions } from './behaviors/VersionRegistry';
 import {
   shouldBehaveLikeRootRegistry,
   testRegistryUpgradeAndHistoryPreservation,
 } from './behaviors/RootRegistry';
+import { getLatestVersionFromFs } from './helpers/contracts';
 
 const ContractRegistryTests = (admin0, admin1, nonAdmin) => {
-  contract('ContractRegistryV0_1_0', () => {
-    context('Test Registry upgradeability', () => {
+  contract('ContractRegistry', () => {
+    context('Test Registry upgradeability', async () => {
       UnstructuredOwnedUpgradeabilityProxyTests(
         admin0,
         nonAdmin,
         [['address'], [admin0]],
-        ContractRegistryV0_1_0
+        await artifacts.require(
+          `./ContractRegistryV${await getLatestVersionFromFs(
+            'ContractRegistry'
+          )}`
+        )
       );
     });
     testContractAtRegistry(admin0, [['address'], [admin0]]);
@@ -27,7 +32,7 @@ const ContractRegistryTests = (admin0, admin1, nonAdmin) => {
 };
 
 const RootRegistryTests = () => {
-  contract('RootRegistryV0_1_0', () => {
+  contract('RootRegistry', () => {
     context('Test Contract Registry upgradeability', () => {
       // upgradeability tests
       shouldBehaveLikeRootRegistry();

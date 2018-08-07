@@ -1,11 +1,9 @@
 /* globals artifacts */
+import { UnstructuredOwnedUpgradeabilityProxy } from '../helpers/Artifacts';
 import {
-  ParticipantRegistryV0_1_0,
-  ContractRegistryV0_1_0,
-  UnstructuredOwnedUpgradeabilityProxy,
-  SupplierV0_1_0,
-} from '../helpers/Artifacts';
-import { deployUpgradeableContract } from '../helpers/contracts';
+  deployUpgradeableContract,
+  getLatestVersionFromFs,
+} from '../helpers/contracts';
 
 const Web3 = require('web3');
 
@@ -23,7 +21,11 @@ const deployUpgradeableParticipantRegistry = async (
   const [, participantRegistry] = await deployUpgradeableContract(
     artifacts,
     proxy,
-    ParticipantRegistryV0_1_0,
+    await artifacts.require(
+      `./ParticipantRegistryV${await getLatestVersionFromFs(
+        'ParticipantRegistry'
+      )}`
+    ),
     contractRegistry,
     initParams
   );
@@ -31,12 +33,18 @@ const deployUpgradeableParticipantRegistry = async (
 };
 
 const shouldBehaveLikeParticipantRegistry = admin => {
-  contract('ParticipantRegistryV0_1_0', () => {
+  contract('ParticipantRegistry', () => {
     let participantRegistry;
     let supplier;
     let web3;
     before(async () => {
-      const contractRegistry = await ContractRegistryV0_1_0.new();
+      const contractRegistry = await artifacts
+        .require(
+          `./ContractRegistryV${await getLatestVersionFromFs(
+            'ContractRegistry'
+          )}`
+        )
+        .new();
       [, participantRegistry] = await deployUpgradeableParticipantRegistry(
         admin,
         contractRegistry
@@ -44,7 +52,9 @@ const shouldBehaveLikeParticipantRegistry = admin => {
       [, supplier] = await deployUpgradeableContract(
         artifacts,
         null,
-        SupplierV0_1_0,
+        await artifacts.require(
+          `./SupplierV${await getLatestVersionFromFs('Supplier')}`
+        ),
         contractRegistry,
         [
           ['address', 'address', 'address'],

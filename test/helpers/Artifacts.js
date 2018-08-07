@@ -1,7 +1,7 @@
 /* globals artifacts */
 const Artifacts = {};
 [
-  'NoriV0_1_0',
+  'NoriV0_1_1',
   'EIP820Registry',
   'Proxy',
   'UnstructuredUpgradeableTokenV0',
@@ -9,18 +9,15 @@ const Artifacts = {};
   'UnstructuredUpgradeableTokenV1',
   'UnstructuredUpgradeableTokenV2',
   'UnstructuredUpgradeableTokenV3',
-  'ContractRegistryV0_1_0',
-  'SelectableCrcMarketV0_1_1',
+  'ContractRegistryV0_2_0',
   'MultiSigWallet',
   'MultiAdmin',
-  'CRCV0_2_1',
-  'ParticipantRegistryV0_1_0',
+  'CRCV0_2_2',
+  'ParticipantRegistryV0_1_1',
   'EIP820Implementer',
-  'ParticipantV0_1_0',
-  'SupplierV0_1_0',
-  'VerifierV0_1_0',
-  'FifoCrcMarketV0_1_1',
-  'RootRegistryV0_1_0',
+  'FifoCrcMarketV0_1_2',
+  'RootRegistryV0_2_0',
+  'SelectableCrcMarketV0_1_0',
 ].forEach(contractName => {
   Artifacts[contractName] = artifacts.require(contractName);
 });

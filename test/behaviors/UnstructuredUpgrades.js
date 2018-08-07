@@ -3,21 +3,25 @@ import {
   UnstructuredUpgradeableTokenV1,
   UnstructuredUpgradeableTokenV2,
   UnstructuredUpgradeableTokenV3,
-  ContractRegistryV0_1_0,
   UnstructuredOwnedUpgradeabilityProxy,
 } from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
+
+const { getLatestVersionFromFs } = require('../helpers/contracts');
 
 let tokenByProxyV0;
 let proxy; // every upgrade scenario uses this same UnstructuredOwnedUpgradeabilityProxy
 let contractRegistry;
 let upgradeableTokenV0;
+
 const upgradeToV0 = async (
   admin,
   unstructuredUpgradeableContractV0 = UnstructuredUpgradeableTokenV0,
   initParams
 ) => {
-  contractRegistry = await ContractRegistryV0_1_0.new({ from: admin });
+  contractRegistry = await artifacts
+    .require(`./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`)
+    .new({ from: admin });
   const [
     contractName,
     versionName,

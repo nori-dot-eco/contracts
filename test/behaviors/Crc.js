@@ -1,7 +1,10 @@
 /* globals artifacts */
 import expectThrow from '../helpers/expectThrow';
-import { getLogs, deployLatestUpgradeableContract } from '../helpers/contracts';
-import { ContractRegistryV0_1_0 } from '../helpers/Artifacts';
+import {
+  getLogs,
+  deployLatestUpgradeableContract,
+  getLatestVersionFromFs,
+} from '../helpers/contracts';
 import { deployUpgradeableParticipantRegistry } from './ParticipantRegistry';
 
 const shouldBehaveLikeCrc = admin => {
@@ -11,7 +14,11 @@ const shouldBehaveLikeCrc = admin => {
   let versionName;
 
   before(async () => {
-    const contractRegistry = await ContractRegistryV0_1_0.new();
+    const contractRegistry = await artifacts
+      .require(
+        `./ContractRegistryV${await getLatestVersionFromFs('ContractRegistry')}`
+      )
+      .new();
     [, , crc, versionName] = await deployUpgradeableCrc(
       admin,
       contractRegistry

@@ -12,24 +12,71 @@ function getLogs(Event, filter, additionalFilters) {
   return promisify(query.get.bind(query))();
 }
 
+const parseContractName = contractName => {
+  const [, name, version] = contractName.match(/^(.*)V([^V]+)$/);
+  return [name, version];
+};
+
+const getLatestVersionFromFs = async contractName => {
+  const dir = path.join(__dirname, '../../contracts/');
+  let latestVersion = '0_0_0';
+  return new Promise(res => {
+    glob(`${dir}/**/?(${contractName}?(V[0-9]*)).sol`, {}, (er, files) => {
+      files.forEach(file => {
+        const [latestMajor, latestMinor, latestPatch] = latestVersion.split(
+          '_'
+        );
+        let [, versionToCompare] = parseContractName(file);
+        versionToCompare = versionToCompare.split('.')[0];
+        const [major, minor, patch] = versionToCompare.split('_');
+        if (parseInt(major, 10) > parseInt(latestMajor, 10)) {
+          latestVersion = versionToCompare;
+        } else if (
+          parseInt(major, 10) === parseInt(latestMajor, 10) &&
+          parseInt(minor, 10) > parseInt(latestMinor, 10)
+        ) {
+          latestVersion = versionToCompare;
+        } else if (
+          parseInt(major, 10) === parseInt(latestMajor, 10) &&
+          parseInt(minor, 10) === parseInt(latestMinor, 10) &&
+          parseInt(patch, 10) > parseInt(latestPatch, 10)
+        ) {
+          latestVersion = versionToCompare;
+        }
+      });
+      res(latestVersion);
+    });
+  });
+};
 const deployOrGetRootRegistry = async (
   { network, artifacts, deployer, web3 },
   force = false
 ) => {
   if (force === true) {
-    return artifacts.require('RootRegistryV0_1_0').new();
+    return artifacts
+      .require(`./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`)
+      .new();
   } else if (
     network === 'develop' ||
     network === 'test' ||
     network === 'testrpc'
   ) {
     try {
-      await artifacts.require('RootRegistryV0_1_0').deployed();
+      await artifacts
+        .require(
+          `./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`
+        )
+        .deployed();
     } catch (e) {
-      console.log(
-        `Setting up new Root Registry as it looks like it has never been deployed on ${network}`
+      process.env.MIGRATION &&
+        console.log(
+          `Setting up new Root Registry as it looks like it has never been deployed on ${network}`
+        );
+      return deployer.deploy(
+        artifacts.require(
+          `./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`
+        )
       );
-      return deployer.deploy(artifacts.require('RootRegistryV0_1_0'));
     }
   }
   const rootRegistry = await ensUtils.getENSDetails({
@@ -38,16 +85,12 @@ const deployOrGetRootRegistry = async (
     web3,
   });
   if (rootRegistry) {
-    console.log('Found existing RootRegistry at', rootRegistry.address);
+    process.env.MIGRATION &&
+      console.log('Found existing RootRegistry at', rootRegistry.address);
   } else {
     throw new Error('No root registry can be found on the network.');
   }
   return rootRegistry;
-};
-
-const parseContractName = contractName => {
-  const [, name, version] = contractName.match(/^(.*)V([^V]+)$/);
-  return [name, version];
 };
 
 const getLatestVersion = async (registry, contractName) => {
@@ -75,7 +118,9 @@ const deployUpgradeableContract = async (
   const [contractName, versionName] = parseContractName(contract.contractName);
   const contractRegistry =
     registry ||
-    (await artifacts.require('ContractRegistryV0_1_0').new(deployParams));
+    (await artifacts
+      .require(`./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`)
+      .new(deployParams));
   // use a proxy already existing in the testrpc or deploy a new one
   // (useful for testing multi upgrade scenarios)
   const proxy =
@@ -123,37 +168,6 @@ const deployUpgradeableContract = async (
   ];
 };
 
-const getLatestVersionFromFs = async contractName => {
-  const dir = path.join(__dirname, '../../contracts/');
-  let latestVersion = '0_0_0';
-  return new Promise(res => {
-    glob(`${dir}/**/?(${contractName}?(V[0-9]*)).sol`, {}, (er, files) => {
-      files.forEach(file => {
-        const [latestMajor, latestMinor, latestPatch] = latestVersion.split(
-          '_'
-        );
-        let [, versionToCompare] = parseContractName(file);
-        versionToCompare = versionToCompare.split('.')[0];
-        const [major, minor, patch] = versionToCompare.split('_');
-        if (parseInt(major, 10) > parseInt(latestMajor, 10)) {
-          latestVersion = versionToCompare;
-        } else if (
-          parseInt(major, 10) === parseInt(latestMajor, 10) &&
-          parseInt(minor, 10) > parseInt(latestMinor, 10)
-        ) {
-          latestVersion = versionToCompare;
-        } else if (
-          parseInt(major, 10) === parseInt(latestMajor, 10) &&
-          parseInt(minor, 10) === parseInt(latestMinor, 10) &&
-          parseInt(patch, 10) > parseInt(latestPatch, 10)
-        ) {
-          latestVersion = versionToCompare;
-        }
-      });
-      res(latestVersion);
-    });
-  });
-};
 // todo deprecate
 const deployLatestUpgradeableContract = async (
   artifacts,
@@ -206,13 +220,14 @@ const upgradeToContract = async (
   }
 
   if (latestVersionName !== versionName) {
-    console.log(
-      contractName,
-      'is out of date. Deployed Version:',
-      latestVersionName,
-      'New Version:',
-      versionName
-    );
+    process.env.MIGRATION &&
+      console.log(
+        contractName,
+        'is out of date. Deployed Version:',
+        latestVersionName,
+        'New Version:',
+        versionName
+      );
 
     let existingProxy = null;
     if (proxyAddress) {
@@ -227,21 +242,23 @@ const upgradeToContract = async (
       [initializeParamTypes, initializeParamValues],
       deployParams
     );
-    console.log(
-      contractName,
-      'updated to',
-      versionName,
-      'using proxy addr:',
-      newProxy.address
-    );
+    process.env.MIGRATION &&
+      console.log(
+        contractName,
+        'updated to',
+        versionName,
+        'using proxy addr:',
+        newProxy.address
+      );
     return newProxy;
   }
-  console.log(
-    contractName,
-    'already up to date at version',
-    versionName,
-    proxyAddress
-  );
+  process.env.MIGRATION &&
+    console.log(
+      contractName,
+      'already up to date at version',
+      versionName,
+      proxyAddress
+    );
   return contract.at(proxyAddress);
 };
 
@@ -290,7 +307,8 @@ const initOrUpgradeFromMultiAdmin = async (
     // doesn't exist yet, but that's OK.
   }
   if (initialized === false) {
-    console.log(contractName, ' is upgrading and initializing...');
+    process.env.MIGRATION &&
+      console.log(contractName, ' is upgrading and initializing...');
     upgradeTxData = proxy.contract.upgradeToAndCall.getData(
       contractName,
       versionName,
@@ -303,7 +321,7 @@ const initOrUpgradeFromMultiAdmin = async (
       deployParams
     );
   } else {
-    console.log('Upgrading without initializing...');
+    process.env.MIGRATION && console.log('Upgrading without initializing...');
     upgradeTxData = proxy.contract.upgradeTo.getData(
       contractName,
       versionName,
@@ -337,18 +355,20 @@ const upgradeAndTransferToMultiAdmin = async (
       proxyAddress,
     ] = await registry.getVersionForContractName(contractName, -1);
   } catch (e) {
-    console.log(`No prior proxy or version found for ${contractName}`);
+    process.env.MIGRATION &&
+      console.log(`No prior proxy or version found for ${contractName}`);
   }
 
   if (latestVersionName !== versionName) {
-    console.log(
-      'UPGRADE REQUIREMENT DETECTED:',
-      contractName,
-      'is out of date. Deployed Version:',
-      latestVersionName,
-      'New Version:',
-      versionName
-    );
+    process.env.MIGRATION &&
+      console.log(
+        'UPGRADE REQUIREMENT DETECTED:',
+        contractName,
+        'is out of date. Deployed Version:',
+        latestVersionName,
+        'New Version:',
+        versionName
+      );
 
     contractToMakeUpgradeable = await contract.new(deployParams);
     await contractToMakeUpgradeable.transferOwnership(multiAdmin.address);
@@ -373,24 +393,26 @@ const upgradeAndTransferToMultiAdmin = async (
     );
 
     upgraded = true;
-    console.log(
-      `${contractName} Upgrade succesful!`,
-      `Implementation:${contractToMakeUpgradeable.address}`,
-      `Version: ${versionName}`,
-      `Proxy: ${proxy.address}`
-    );
+    process.env.MIGRATION &&
+      console.log(
+        `${contractName} Upgrade succesful!`,
+        `Implementation:${contractToMakeUpgradeable.address}`,
+        `Version: ${versionName}`,
+        `Proxy: ${proxy.address}`
+      );
   } else {
     [
       versionName,
       upgradeableContractAtProxy,
       proxy,
     ] = await registry.getVersionForContractName(contractName, -1);
-    console.log(
-      contractName,
-      'already up to date. Using version',
-      versionName,
-      proxyAddress
-    );
+    process.env.MIGRATION &&
+      console.log(
+        contractName,
+        'already up to date. Using version',
+        versionName,
+        proxyAddress
+      );
   }
   return {
     contractToMakeUpgradeable,
