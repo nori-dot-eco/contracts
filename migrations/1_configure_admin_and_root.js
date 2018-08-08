@@ -39,7 +39,7 @@ module.exports = (deployer, network, accounts) => {
         prepareMultiSigAndRoot
       ));
     }
-    process.env.MIGRATION && console.log('RootRegistry', rootRegistry.address); // ropsten should be: 0x0b188c9717a4bee329ad8e5f34701fb53c1d25eb
+    process.env.MIGRATION && console.log('RootRegistry', rootRegistry.address); // ropsten should be: 0x4dcff1a5c3c85bf232505b9007eb2a679e4ee582
     process.env.MIGRATION &&
       console.log('MultiSigWallet:', multiSigWallet.address); // ropsten should be: 0x22c2a0758986817695d9d1a1866aacb775dc3f85
     process.env.MIGRATION && console.log('MultiAdmin:', multiAdmin.address); // ropsten should be: 0x853a954591da9db7d6bb774bc8feaf7646aa5010
