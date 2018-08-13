@@ -1,14 +1,13 @@
 pragma solidity ^0.4.24;
 import "./StandardTokenizedCommodityMarket.sol";
+import "./FifoQueue.sol";
 import "./../EIP777/IEIP777TokensOperator.sol";
 import "./../commodity/ICommodityOperator.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
 
-contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP777TokensOperator, ICommodityOperator {
+contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP777TokensOperator, ICommodityOperator, FifoQueue {
   using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
-
-  int[] public commoditiesForSale;
 
   constructor() StandardTokenizedCommodityMarket() public { }
 
@@ -18,32 +17,25 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
   }
 
 
-  function getEarliestSale() public view returns (uint, uint) {
-    if (commoditiesForSale.length >= 0) {
-      for (uint i = 0; i < commoditiesForSale.length; i = i.add(1) ) {
-        if (commoditiesForSale[i] >= 0) {
-          return (uint(commoditiesForSale[i]), i);
-        }
-      }
-    }
-    else
-      revert();
+  function getEarliestSale() public view returns (uint) {
+    uint256 tokenId = peek();
+    return tokenId;
   }
 
   function buy(address _buyer, uint256 _amount) private {
-    var (commodityIndex, saleIndex) = getEarliestSale();
+    uint256 tokenId = getEarliestSale();
 
-    uint256 newSaleAmount = _buy(_buyer, commodityIndex, _amount);
+    uint256 newSaleAmount = _buy(_buyer, tokenId, _amount);
     if (newSaleAmount != 0) {
-      _split(commodityIndex, _buyer, _amount);
+      _split(tokenId, _buyer, _amount);
     } else {
       _transfer(
         _buyer,
         msg.sender,
-        commodityIndex,
+        tokenId,
         _amount
       );
-      commoditiesForSale[saleIndex] = -1;
+      remove(tokenId);
     }
 
   }
@@ -142,17 +134,11 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
       _value,
       _misc
     );
-    commoditiesForSale.push(int(_tokenId));
+    push(_tokenId);
   }
 
   function removeSale(uint256 _tokenId) private { //todo onlyThisContract modifier
     _removeSale(_tokenId);
-
-    for (uint i = 0; i < commoditiesForSale.length; i++ ) {
-      if (uint(commoditiesForSale[i]) == _tokenId) {
-        commoditiesForSale[i] = -1;
-        return;
-      }
-    }
+    remove(_tokenId);
   }
 }
