@@ -14,10 +14,12 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
   function initialize(address _eip820RegistryAddr, address[] _marketItems, address _owner) public {
     require(_initialized != true);
     super.initialize(_eip820RegistryAddr, _marketItems, _owner);
+    first = 1;
+    last = 0;
   }
 
 
-  function getEarliestSale() public view returns (uint) {
+  function getEarliestSale() public returns (uint) {
     uint256 tokenId = peek();
     return tokenId;
   }
