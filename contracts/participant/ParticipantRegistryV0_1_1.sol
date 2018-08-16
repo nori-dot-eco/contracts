@@ -5,7 +5,7 @@ import "./IParticipantRegistry.sol";
 import "../ownership/UnstructuredOwnable.sol";
 
 contract ParticipantRegistryV0_1_1 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipantRegistry {
-  // particpant type at address to enabled
+  // participant type at address to enabled
   mapping (bytes32 => mapping(address => bool)) public participantTypes;
   // todo jaycen add per function permission
 
@@ -14,7 +14,7 @@ contract ParticipantRegistryV0_1_1 is UnstructuredOwnable, EIP820Implementer, IE
   constructor () public { }
 
   function initialize(address _eip820RegistryAddr, address owner) public {
-    require(_initialized != true);
+    require(_initialized != true, "You can only initialize this contract once");
     setOwner(owner);
     setIntrospectionRegistry(_eip820RegistryAddr);
     setInterfaceImplementation("IParticipantRegistry", this);

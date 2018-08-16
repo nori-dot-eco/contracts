@@ -4,11 +4,11 @@ import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 
 
-/// @title Multisignature wallet - Allows multiple parties to agree on transactions before execution.
+/// @title MultiSignature wallet - Allows multiple parties to agree on transactions before execution.
 /// @author Stefan George - <stefan.george@consensys.net>
-/// @author Jaycen Horton (extednded functionality for eip820)
-// todo jaycen CAUTION, using eip820 unaudited contracts in multisig inheritance inorder to
-// avoid revert statement otheriwse invoked in the callRecipient function of the tokens mint/send funcs
+/// @author Jaycen Horton (extended functionality for eip820)
+// todo jaycen CAUTION, using eip820 un-audited contracts in multi-sig inheritance in order to
+// avoid revert statement otherwise invoked in the callRecipient function of the tokens mint/send funcs
 contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
 
   /*
@@ -52,47 +52,50 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
    *  Modifiers
    */
   modifier onlyWallet() {
-    require(msg.sender == address(this));
+    require(msg.sender == address(this), "Only the wallet can call this function");
     _;
   }
 
   modifier ownerDoesNotExist(address owner) {
-    require(!isOwner[owner]);
+    require(!isOwner[owner], "Owner already exists");
     _;
   }
 
   modifier ownerExists(address owner) {
-    require(isOwner[owner]);
+    require(isOwner[owner], "The owner must exist");
     _;
   }
 
   modifier transactionExists(uint transactionId) {
-    require(transactions[transactionId].destination != 0);
+    require(transactions[transactionId].destination != 0, "The transaction must exist");
     _;
   }
 
   modifier confirmed(uint transactionId, address owner) {
-    require(confirmations[transactionId][owner]);
+    require(confirmations[transactionId][owner], "The confirmation must exist");
     _;
   }
 
   modifier notConfirmed(uint transactionId, address owner) {
-    require(!confirmations[transactionId][owner]);
+    require(!confirmations[transactionId][owner], "The confirmation must not be confirmed");
     _;
   }
 
   modifier notExecuted(uint transactionId) {
-    require(!transactions[transactionId].executed);
+    require(!transactions[transactionId].executed, "The transaction must not have been executed");
     _;
   }
 
   modifier notNull(address _address) {
-    require(_address != 0);
+    require(_address != 0, "The address cannot be 0");
     _;
   }
 
   modifier validRequirement(uint ownerCount, uint _required) {
-    require(ownerCount <= MAX_OWNER_COUNT && _required <= ownerCount && _required != 0 && ownerCount != 0);
+    require(
+      ownerCount <= MAX_OWNER_COUNT && _required <= ownerCount && _required != 0 && ownerCount != 0,
+      "Invalid requirement count"
+    );
     _;
   }
 
@@ -114,7 +117,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   constructor(address[] _owners, uint _required, address _eip820RegistryAddr) public validRequirement(_owners.length, _required) {
 
     for (uint i = 0; i < _owners.length; i++) {
-      require(!isOwner[_owners[i]] && _owners[i] != 0);
+      require(!isOwner[_owners[i]] && _owners[i] != 0, "You cannot add a 0 address or already existing owner");
       isOwner[_owners[i]] = true;
     }
     owners = _owners;
@@ -129,22 +132,22 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   }
 
   function tokensReceived (
-    address operator, 
-    address from, 
-    address to, 
-    uint256 amount, 
-    bytes userData, 
+    address operator,
+    address from,
+    address to,
+    uint256 amount,
+    bytes userData,
     bytes operatorData
   ) public {
     if (!tokenReceiver) {
-      revert();
+      revert("This contract does not currently support receiving tokens");
     }
     emit ReceivedTokens(
-      operator, 
-      from, 
-      to, 
-      amount, 
-      userData, 
+      operator,
+      from,
+      to,
+      amount,
+      userData,
       operatorData
     );
   }
@@ -273,9 +276,9 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
 
       txn.executed = true;
       if (external_call(
-        txn.destination, 
-        txn.value, 
-        txn.data.length, 
+        txn.destination,
+        txn.value,
+        txn.data.length,
         txn.data
       )) {
         emit Execution(transactionId);
@@ -289,9 +292,9 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   // call has been separated into its own function in order to take advantage
   // of the Solidity's code generator to produce a loop that copies tx.data into memory.
   function external_call(
-    address destination, 
-    uint value, 
-    uint dataLength, 
+    address destination,
+    uint value,
+    uint dataLength,
     bytes data
   ) private returns (bool) {
     bool result;
@@ -433,9 +436,9 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   /// @param executed Include executed transactions.
   /// @return Returns array of transaction IDs.
   function getTransactionIds(
-    uint from, 
-    uint to, 
-    bool pending, 
+    uint from,
+    uint to,
+    bool pending,
     bool executed
   )
     public

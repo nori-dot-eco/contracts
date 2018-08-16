@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.24;
 
 
 /// @title Contract for testing low-level calls issued from the multisig wallet
@@ -20,24 +20,24 @@ contract TestCalls {
     _;
   }
 
-  function TestCalls() setMsgFields public {
-    // This constructor will be used to test the creation via multisig wallet
+  constructor() public setMsgFields {
+    // This constructor will be used to test the creation via multi-sig wallet
   }
 
-  function receive1uint(uint a) setMsgFields payable public {
+  function receive1uint(uint a) public setMsgFields payable {
     uint1 = a;
   }
 
-  function receive2uints(uint a, uint b) setMsgFields payable public {
+  function receive2uints(uint a, uint b) public setMsgFields payable {
     uint1 = a;
     uint2 = b;
   }
 
-  function receive1bytes(bytes c) setMsgFields payable public {
+  function receive1bytes(bytes c) public setMsgFields payable {
     byteArray1 = c;
   }
 
-  function nonPayable() setMsgFields public {
+  function nonPayable() public setMsgFields {
   }
 
 }

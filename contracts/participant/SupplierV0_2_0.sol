@@ -26,11 +26,20 @@ contract SupplierV0_2_0 is ParticipantV0_2_0, ISupplier {
 
   function isAllowed(address _ifaceImpAddr, string ifaceLabel) public returns (bool) {
     // supplier participant is enabled
-    require(_isAllowed(this, "Supplier"));
+    require(
+      _isAllowed(this, "Supplier"),
+      "The supplier identity is not currently allowed to be used"
+    );
     // sender is defined in suppliers
-    require(suppliers[msg.sender] == true);
+    require(
+      suppliers[msg.sender] == true,
+      "You must be a white-listed supplier to use this identity"
+    );
     // that the permission for the requested interface is enabled
-    require(allowedInterfaces[keccak256(abi.encodePacked(ifaceLabel))][_ifaceImpAddr]);
+    require(
+      allowedInterfaces[keccak256(abi.encodePacked(ifaceLabel))][_ifaceImpAddr],
+      "The specified interface is not currently allowed to be used"
+    );
     return true;
   }
 
@@ -44,29 +53,32 @@ contract SupplierV0_2_0 is ParticipantV0_2_0, ISupplier {
   ) public {
     address _ifaceImpAddr = interfaceAddr(destination, ifaceLabel);
     if (_ifaceImpAddr != 0) {
-      require(isAllowed(_ifaceImpAddr, ifaceLabel) == true);
+      require(
+        isAllowed(_ifaceImpAddr, ifaceLabel) == true,
+        "The specified interface is not currently allowed to be used"
+      );
       _forward(destination, value, data);
     } else {
-      revert("Transaction forwarding unsuccesful. Interface not supported.");
+      revert("Transaction forwarding unsuccessful. Interface not supported.");
     }
     //jaycen todo all events
     //Forwarded(destination, value, data);
   }
-  //todo onlyowner
+  //todo onlyOwner
   function toggleSupplier(address _supplier, bool _toggle) public {
     suppliers[_supplier] = _toggle;
   }
-  //todo onlyowner
+  //todo onlyOwner
   function toggleParticipantType(bool _toggle) public {
     _toggleParticipantType("Supplier", this, _toggle);
   }
-  //todo onlyowner
+  //todo onlyOwner
   function toggleInterface(string _ifaceLabel, address _ifaceImpAddr, bool _toggle) public {
     address ifaceImpAddr = interfaceAddr(_ifaceImpAddr, _ifaceLabel);
     if (ifaceImpAddr != 0) {
       allowedInterfaces[keccak256(abi.encodePacked(_ifaceLabel))][ifaceImpAddr] = _toggle;
     } else {
-      revert();
+      revert("You cannot toggle an interface for the 0 addres");
     }
   }
 }

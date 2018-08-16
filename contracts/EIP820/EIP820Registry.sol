@@ -6,9 +6,9 @@ import "./IEIP820Implementer.sol";
 /**
   @title EIP820Registry - pseudo contract introspection registry.
     This contract keeps track of all contract interfaces implemented by a given
-    address. This particular contract is what allows contracts to register all of 
-    the interfaces which it can support. It is particular useful for allowing and 
-    disallowing certain types of transactions using "pseudo contract introspection". 
+    address. This particular contract is what allows contracts to register all of
+    the interfaces which it can support. It is particular useful for allowing and
+    disallowing certain types of transactions using "pseudo contract introspection".
     Contracts wishing to leverage this type of functionality MUST inherit from the
     EIP820Implementer contract. More info here [EIP-820](https://github.com/ethereum/EIPs/issues/820)
   @author @jaycenhorton
@@ -22,7 +22,7 @@ contract EIP820Registry {
   event ManagerChanged(address indexed addr, address indexed newManager);
 
   modifier canManage(address addr) {
-    require(getManager(addr) == msg.sender);
+    require(getManager(addr) == msg.sender, "Only a manager can use this function");
     _;
   }
 
@@ -32,9 +32,9 @@ contract EIP820Registry {
 
 
   /// @notice Query the hash of an interface given a name
-  /// @param interfaceName Name of the interfce
+  /// @param interfaceName Name of the interface
   function interfaceHash(string interfaceName) public pure returns(bytes32) {
-    return keccak256(interfaceName);
+    return keccak256(abi.encodePacked(interfaceName));
   }
 
   /// @notice GetManager
@@ -63,7 +63,7 @@ contract EIP820Registry {
   ///  Example `web3.utils.sha3('EIP777Token`')`
   /// @return The address of the contract that implements a specific interface
   ///  or 0x0 if `addr` does not implement this interface
-  function getInterfaceImplementer(address addr, bytes32 iHash) view public returns (address) {
+  function getInterfaceImplementer(address addr, bytes32 iHash) public view returns (address) {
     if (isEIP165Interface(iHash)) {
       bytes4 i165Hash = bytes4(iHash);
       return eip165InterfaceSupported(addr, i165Hash) ? addr : 0;
@@ -77,9 +77,12 @@ contract EIP820Registry {
   /// @param iHash SHA3 of the name of the interface as a string
   ///  For example `web3.utils.sha3('Ieip777')` for the Ieip777
   function setInterfaceImplementer(address addr, bytes32 iHash, address implementer) public canManage(addr) {
-    require(!isEIP165Interface(iHash));
+    require(!isEIP165Interface(iHash), "You can only set the interface implementer what it is not an EIP165 interface");
     if ((implementer != 0) && (implementer!=msg.sender)) {
-      require(IEIP820Implementer(implementer).canImplementInterfaceForAddress(addr, iHash) == EIP820_ACCEPT_MAGIC);
+      require(
+        IEIP820Implementer(implementer).canImplementInterfaceForAddress(addr, iHash) == EIP820_ACCEPT_MAGIC,
+        "You can only set an implementer if the address can implement the specified interface"
+      );
     }
     interfaces[addr][iHash] = implementer;
     emit InterfaceImplementerSet(addr, iHash, implementer);
@@ -92,7 +95,7 @@ contract EIP820Registry {
     return iHash & 0x00000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF == 0;
   }
 
-  function eip165InterfaceSupported(address _contract, bytes4 _interfaceId) view public returns (bool) {
+  function eip165InterfaceSupported(address _contract, bytes4 _interfaceId) public view returns (bool) {
     if (!eip165Cache[_contract][_interfaceId]) {
       eip165UpdateCache(_contract, _interfaceId);
     }
@@ -125,12 +128,12 @@ contract EIP820Registry {
     return false;
   }
 
-  function noThrowCall(address _contract, bytes4 _interfaceId) view internal returns (uint256 success, uint256 result) {
+  function noThrowCall(address _contract, bytes4 _interfaceId) internal view returns (uint256 success, uint256 result) {
     bytes4 eip165ID = EIP165ID;
 
     assembly { // solium-disable-line security/no-inline-assembly
         let x := mload(0x40)         // Find empty storage location using "free memory pointer"
-        mstore(x, eip165ID)        // Place signature at begining of empty storage
+        mstore(x, eip165ID)        // Place signature at beginning of empty storage
         mstore(add(x, 0x04), _interfaceId) // Place first argument directly next to signature
 
         success := staticcall(

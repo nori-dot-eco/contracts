@@ -28,7 +28,7 @@ contract SplittableCommodity is MintableCommodity {
         misc: commodities[_tokenId].misc
     });
     uint newCRCId = commodities.push(_commodity).sub(1);
-    require(newCRCId <= 18446744073709551616);
+    require(newCRCId <= 18446744073709551616, "You can only split a commodity if it is within a valid index range");
 
     if(msg.sender == IContractRegistry(eip820Registry).getLatestProxyAddr("FifoCrcMarket")) {
       _transfer(ownerOf(_tokenId), _to, newCRCId);
@@ -36,7 +36,7 @@ contract SplittableCommodity is MintableCommodity {
       _transfer(msg.sender, _to, newCRCId);
     }
 
-    callRecipent(
+    callRecipient(
       msg.sender,
       0x0,
       _to,

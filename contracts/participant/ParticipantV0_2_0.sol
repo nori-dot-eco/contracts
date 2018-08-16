@@ -13,7 +13,7 @@ contract ParticipantV0_2_0 is UnstructuredOwnable, EIP820Implementer, IEIP820Imp
   constructor () public { }
 
   function initialize(address _eip820RegistryAddr, address _participantRegistry, address _owner) public {
-    require(_initialized != true);
+    require(_initialized != true, "You can only initialize this contract once");
     setOwner(_owner);
     setIntrospectionRegistry(_eip820RegistryAddr);
     setParticipantRegistry (_participantRegistry);
@@ -22,7 +22,7 @@ contract ParticipantV0_2_0 is UnstructuredOwnable, EIP820Implementer, IEIP820Imp
   }
 
   /**
-    @dev returns the current initalization status
+    @dev returns the current initialization status
   */
   function initialized() public view returns(bool) {
     return _initialized;
@@ -45,7 +45,7 @@ contract ParticipantV0_2_0 is UnstructuredOwnable, EIP820Implementer, IEIP820Imp
   }
 
   function _forward(address destination, uint value, bytes data) internal {
-    require(_executeCall(destination, value, data));
+    require(_executeCall(destination, value, data), "'executeCall' failed");
   }
 
   function _executeCall(address to, uint256 value, bytes data) private returns (bool success) {

@@ -24,11 +24,17 @@ contract VerifierV0_2_0 is ParticipantV0_2_0, IVerifier {
 
   function isAllowed(address _ifaceImpAddr, string ifaceLabel) public returns (bool) {
     // verifier participant is enabled
-    require(_isAllowed(this, "Verifier"));
+    require(
+      _isAllowed(this, "Verifier"),
+      "The verifier is not currently allowed to be used"
+    );
     // sender is defined in verifiers
-    require(verifiers[msg.sender] == true);
+    require(verifiers[msg.sender] == true, "You are not a white-listed verifier");
     // that the permission for the requested interface is enabled
-    require(allowedInterfaces[keccak256(abi.encodePacked(ifaceLabel))][_ifaceImpAddr]);
+    require(
+      allowedInterfaces[keccak256(abi.encodePacked(ifaceLabel))][_ifaceImpAddr],
+      "The specified interface is not currently allowed"
+    );
     return true;
   }
 
@@ -42,10 +48,10 @@ contract VerifierV0_2_0 is ParticipantV0_2_0, IVerifier {
   ) public {
     address _ifaceImpAddr = interfaceAddr(destination, ifaceLabel);
     if (_ifaceImpAddr != 0) {
-      require(isAllowed(_ifaceImpAddr, ifaceLabel) == true);
+      require(isAllowed(_ifaceImpAddr, ifaceLabel) == true, "The specified interface is not currently allowed");
       _forward(destination, value, data);
     } else {
-      revert();
+      revert("Forwarding failed");
     }
     //jaycen todo all events
     //Forwarded(destination, value, data);
@@ -64,7 +70,7 @@ contract VerifierV0_2_0 is ParticipantV0_2_0, IVerifier {
     if (ifaceImpAddr != 0) {
       allowedInterfaces[keccak256(abi.encodePacked(_ifaceLabel))][ifaceImpAddr] = _toggle;
     } else {
-      revert();
+      revert("You cannot toggle a 0 address interface");
     }
   }
 }

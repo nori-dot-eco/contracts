@@ -78,7 +78,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     address _participantRegistry,
     address _owner
   ) public {
-    require(!_initialized);
+    require(!_initialized, "You can only initialize a contract once");
     mName = _name;
     mSymbol = _symbol;
     setParticipantRegistry(_participantRegistry);
@@ -245,7 +245,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   }
 
   /// @notice Returns the total operator value of crc allowances for all bundles of
-  ///   a givven address
+  ///   a given address
   /// @param _operator The _operator address to check allowances of.
   ///   has an allowance for.
   /// @return totalValue The total allowance value of an operator for a given owner
@@ -271,7 +271,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
 
   /** @notice Sample burn function to showcase the use of the 'Burn' event. */
   function burn(address _tokenHolder, uint256 _tokenId) public returns(bool) {
-    require(_owns(msg.sender, _tokenId));
+    require(_owns(msg.sender, _tokenId), "Only the commodity owner can burn a commodity");
 
     ownershipBundleCount[_tokenHolder] = ownershipBundleCount[_tokenHolder].sub(1);
     _balances[_tokenHolder] = _balances[_tokenHolder].sub(commodities[_tokenId].value);
@@ -282,7 +282,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   }
 
   /** @dev Notify a recipient of received tokens. */
-  function callRecipent(
+  function callRecipient(
     address _operator,
     address _from,
     address _to,
@@ -291,7 +291,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     bytes _operatorData,
     bool _preventLocking
   ) internal {
-    require(_owns(_to, _tokenId));
+    require(_owns(_to, _tokenId), "Only a commodity owner can use 'callRecipient'");
     address recipientImplementation = interfaceAddr(_to, "ICommodityRecipient");
     if (recipientImplementation != 0) {
       ICommodityRecipient(recipientImplementation).commodityReceived(
@@ -303,7 +303,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
         _operatorData
       );
     } else if (_preventLocking) {
-      require(isRegularAddress(_to));
+      require(isRegularAddress(_to), "The recipient contract does not support this commodity");
     }
   }
 
@@ -317,8 +317,11 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     bytes _operatorData,
     bool _preventLocking
   ) internal {
-    require(_approvedFor(_operator, _tokenId));
-    require(ownerOf(_tokenId) == msg.sender);
+    require(
+      _approvedFor(_operator, _tokenId),
+      "Only an approved address can use 'callOperator'"
+    ); //todo is this needed? Seems weird to require owner + authorized
+    require(ownerOf(_tokenId) == msg.sender, "Only the owner can use 'callOperator'");
     address recipientImplementation = interfaceAddr(_to, "ICommodityOperator");
     if (recipientImplementation != 0) {
       ICommodityOperator(recipientImplementation).madeOperatorForCommodity(
@@ -331,14 +334,14 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
         _operatorData
       );
     } else if (_preventLocking) {
-      require(isRegularAddress(_to));
+      require(isRegularAddress(_to), "The recipient contract does not support being an operator of this commodity");
     }
   }
 
   /// @notice If the recipient address (_to/_operator param) is listed in the registry as supporting
   ///   the ICommodityOperator interface, it calls the revokedOperatorForCommodity
   ///   function.
-  /// @param _operator The _operatorbeing revoked
+  /// @param _operator The _operator being revoked
   /// @param _from the owner of the commodity
   /// @param _to the operator address to introspect for ICommodityOperator interface support
   /// @param _tokenId the commodity index
@@ -357,8 +360,11 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     bytes _operatorData,
     bool _preventLocking
   ) internal {
-    require(_approvedFor(_operator, _tokenId));
-    require(ownerOf(_tokenId) == msg.sender);
+    require(
+      _approvedFor(_operator, _tokenId),
+      "Only an approved address can use 'callRevokedOperator'"
+    ); //todo is this needed? Seems weird to require owner + authorized
+    require(ownerOf(_tokenId) == msg.sender, "Only an owner of this commodity can use 'callRevokedOperator'");
     address recipientImplementation = interfaceAddr(_to, "ICommodityOperator");
     if (recipientImplementation != 0) {
       ICommodityOperator(recipientImplementation).revokedOperatorForCommodity(
@@ -371,7 +377,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
         _operatorData
       );
     } else if (_preventLocking) {
-      require(isRegularAddress(_to));
+      require(isRegularAddress(_to), "The recipient contract does not support revocation of this commodity");
     }
   }
 
@@ -384,7 +390,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     bytes _operatorData,
     bool _preventLocking
   ) internal {
-    require(_approvedFor(_operator, _tokenId));
+    require(_approvedFor(_operator, _tokenId), "Only an approved address can use 'callSender'");
     address recipientImplementation = interfaceAddr(_to, "ICommoditySender");
     if (recipientImplementation != 0) {
       ICommoditySender(recipientImplementation).commodityToSend(
@@ -396,7 +402,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
         _operatorData
       );
     } else if (_preventLocking) {
-      require(isRegularAddress(_to));
+      require(isRegularAddress(_to), "The recipient contract does not support sending of commodities");
     }
   }
 
@@ -421,12 +427,15 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
       false
     );
 
-    require(_to != address(0));              // forbid sending to 0x0 (=burning)
-    require(_tokenId >= 0);                  // only send positive amounts
-    require(_approvedFor(msg.sender, _tokenId) || _owns(_from, _tokenId)); // ensure sender owns that token
+    require(_to != address(0), "You can not send to the burn address (0x0)");              // forbid sending to 0x0 (=burning)
+    require(_tokenId >= 0, "You can only send a valid commodity (>=0)");                  // only send positive amounts
+    require(
+      _approvedFor(msg.sender, _tokenId) || _owns(_from, _tokenId),
+      "Only an approved operator can send this commodity"
+    ); // ensure sender owns that token
 
     _transfer(_from, _to, _tokenId);
-    callRecipent(
+    callRecipient(
       _operator,
       _from,
       _to,
@@ -460,7 +469,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   function ownerOf(uint256 _tokenId) public view returns (address owner) {
     owner = commodityIndexToOwner[_tokenId];
 
-    require(owner != address(0));
+    require(owner != address(0), "The owner cannot be the 0 address");
   }
 
   /** @notice Send '_value' amount of tokens to address '_to'. */
@@ -500,9 +509,12 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     bool _preventLocking
   ) public {
     // Safety check to prevent against an unexpected 0x0 default.
-    require(_to != address(0));
-    require(!_owns(msg.sender, _tokenId) && _approvedFor(msg.sender, _tokenId));
-    callRecipent(
+    require(_to != address(0), "You cannot send to the 0 address (0x0)");
+    require(
+      !_owns(msg.sender, _tokenId) && _approvedFor(msg.sender, _tokenId), //todo: do we want to allow an owner to operatorSend?
+      "Only an approved operator can send the commodity on the owner's behalf"
+    );
+    callRecipient(
       _operator,
       _from,
       _to,
@@ -522,10 +534,10 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// @param _tokenId The ID of the commodity to transfer.
   function transfer(address _to, uint256 _tokenId) public {
     // Safety check to prevent against an unexpected 0x0 default.
-    require(_to != address(0));
-    require(_tokenId >= 0);
+    require(_to != address(0), "You cannot transfer to the burn address");
+    require(_tokenId >= 0, "You can only transfer a valid commodity ID (>=0)");
     // You can only send your own commodity
-    require(_owns(msg.sender, _tokenId));
+    require(_owns(msg.sender, _tokenId), "Only the owner of a commodity can use the 'transfer' function");
 
     // Reassign ownership, clear pending approvals, emit Transfer event.
     _transfer(msg.sender, _to, _tokenId);
@@ -541,20 +553,20 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     commodityBundleIndexToApproved[_tokenId] = _operator;
     commodityOperatorBundleApprovals[_operator][msg.sender].push(_tokenId);
   }
-  // todo (jaycen): investigate how we enfoce consuming this as an alternative to authorizeOperator.
-  // it currently exists is to allow for 777 and 721 compat. It is consumed in the lifecycle
+  // todo (jaycen): investigate how we enforce consuming this as an alternative to authorizeOperator.
+  // it currently exists is to allow for 777 and 721 compatible. It is consumed in the lifecycle
   // of authorizeOperator when listing crcs for sale. Perhaps we can enforce this as an alternative
   // which does not use erc820, and instead is just used for authorizing third party managers
   // of crcs
   /// @notice Grant another address the right to transfer a specific crc via
-  ///  transferFrom(). This is the preferred flow for transfering NFTs to contracts.
+  ///  transferFrom(). This is the preferred flow for transferring NFTs to contracts.
   /// @param _to The address to be granted transfer approval. Pass address(0) to
   ///  clear all approvals.
   /// @param _tokenId The ID of the crc that can be transferred if this call succeeds.
   /// @dev Required for ERC-721 compliance.
   function approve(address _to, uint256 _tokenId) public {
     // Only an owner can grant transfer approval.
-    require(_owns(msg.sender, _tokenId));
+    require(_owns(msg.sender, _tokenId), "Only the owner of a commodity can approve another address");
     // Register the approval (replacing any previous approval).
     _approve(_tokenId, _to);
     emit Approval(msg.sender, _to, _tokenId);
@@ -577,11 +589,11 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /// listed as the market contract, creates a sale in the context of that contract.
   /// Note: it can also be used to authorize any third party as a sender of the bundle.
   function authorizeOperator(address _operator, uint256 _tokenId) public {
-    require(_unlocked(_tokenId));
-    require(_operator != msg.sender);
+    require(_unlocked(_tokenId), "You cannot authorize an operator for a locked commodity");
+    require(_operator != msg.sender, "You cannot authorize yourself as an operator");
     approve(_operator, _tokenId);
-    //todo figure out the best approach for all of these preventLockings
-    //todo jaycen probably dont need to pass tokenid anymore, would also be good to find a way to pass the commodity struct itself (currently trying such throws a static memory solidity error :( ))
+    //todo figure out the best approach for all of these preventLocking calls
+    //todo jaycen probably dont need to pass tokenId anymore, would also be good to find a way to pass the commodity struct itself (currently trying such throws a static memory solidity error :( ))
     callOperator(
       _operator,
       msg.sender,
@@ -598,8 +610,8 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   /** @notice Revoke a third party '_operator''s rights to manage (send) 'msg.sender''s tokens. */
   function revokeOperator(address _operator, uint256 _tokenId) public {
     //todo jaycen call operator to cancel sale on markets
-    require(_operator != msg.sender);
-    require(_owns(msg.sender, _tokenId));
+    require(_operator != msg.sender, "You cannot revoke yourself as an operator");
+    require(_owns(msg.sender, _tokenId), "Only the owner of the commodity can revoke an operator");
     //mAuthorized[_operator][msg.sender] = false; //todo what is this
     callRevokedOperator(
       _operator,
@@ -643,7 +655,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     bytes,
     bytes
   ) public {
-    revert();
+    revert("This is a deprecated function");
   }
 
   /** @notice Send '_value' amount of tokens from the address '_from' to the address '_to'. */
@@ -654,7 +666,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     bytes _userData,
     bytes _operatorData
   ) public {
-    require(isOperatorForOne(msg.sender, _tokenId));
+    require(isOperatorForOne(msg.sender, _tokenId), "Only an operator can 'operatorSend' a commodity bundle");
     doSend(
       _from,
       _to,

@@ -4,12 +4,12 @@ import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 
 
-/// @title MultiAdmin: Multisignature wallet - Allows multiple parties to agree on transactions before execution.
+/// @title MultiAdmin: MultiSignature wallet - Allows multiple parties to agree on transactions before execution.
 /// It should be the only address which can upgrade contracts, routes in the contract registry, etc. It is to be controlled
 /// by the Nori Developers.
-/// This contract is derived from the Gnosis multisig wallet.
-// todo jaycen CAUTION, using eip820 unaudited contracts in multisig inheritance inorder to
-// avoid revert statement otheriwse invoked in the callRecipient function of the tokens mint/send funcs
+/// This contract is derived from the Gnosis multi-sig wallet.
+// todo jaycen CAUTION, using eip820 un-audited contracts in multi-sig inheritance in order to
+// avoid revert statement otherwise invoked in the callRecipient function of the tokens mint/send funcs
 contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
 
   /*
@@ -53,47 +53,50 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   *  Modifiers
   */
   modifier onlyWallet() {
-    require(msg.sender == address(this));
+    require(msg.sender == address(this), "Only the wallet can call this function");
     _;
   }
 
   modifier ownerDoesNotExist(address owner) {
-    require(!isOwner[owner]);
+    require(!isOwner[owner], "Owner already exists");
     _;
   }
 
   modifier ownerExists(address owner) {
-    require(isOwner[owner]);
+    require(isOwner[owner], "The owner must exist");
     _;
   }
 
   modifier transactionExists(uint transactionId) {
-    require(transactions[transactionId].destination != 0);
+    require(transactions[transactionId].destination != 0, "The transaction must exist");
     _;
   }
 
   modifier confirmed(uint transactionId, address owner) {
-    require(confirmations[transactionId][owner]);
+    require(confirmations[transactionId][owner], "The confirmation must exist");
     _;
   }
 
   modifier notConfirmed(uint transactionId, address owner) {
-    require(!confirmations[transactionId][owner]);
+    require(!confirmations[transactionId][owner], "The confirmation must not be confirmed");
     _;
   }
 
   modifier notExecuted(uint transactionId) {
-    require(!transactions[transactionId].executed);
+    require(!transactions[transactionId].executed, "The transaction must not have been executed");
     _;
   }
 
   modifier notNull(address _address) {
-    require(_address != 0);
+    require(_address != 0, "The address cannot be 0");
     _;
   }
 
   modifier validRequirement(uint ownerCount, uint _required) {
-    require(ownerCount <= MAX_OWNER_COUNT && _required <= ownerCount && _required != 0 && ownerCount != 0);
+    require(
+      ownerCount <= MAX_OWNER_COUNT && _required <= ownerCount && _required != 0 && ownerCount != 0,
+      "Invalid requirement count"
+    );
     _;
   }
 
@@ -101,7 +104,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   function() public payable {
     if (msg.value > 0) {
       emit Deposit(msg.sender, msg.value);
-    }  
+    }
   }
 
   /*
@@ -113,7 +116,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   constructor(address[] _owners, uint _required, address _eip820RegistryAddr) public validRequirement(_owners.length, _required) {
 
     for (uint i = 0; i < _owners.length; i++) {
-      require(!isOwner[_owners[i]] && _owners[i] != 0);
+      require(!isOwner[_owners[i]] && _owners[i] != 0, "You cannot add a 0 address or already existing owner");
       isOwner[_owners[i]] = true;
     }
     owners = _owners;
@@ -128,22 +131,22 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   }
 
   function tokensReceived (
-    address operator, 
-    address from, 
-    address to, 
-    uint256 amount, 
-    bytes userData, 
+    address operator,
+    address from,
+    address to,
+    uint256 amount,
+    bytes userData,
     bytes operatorData
   ) public {
     if (!tokenReceiver) {
-      revert();
+      revert("The MultiAdmin is not currently able to receive tokens");
     }
     emit ReceivedTokens(
-      operator, 
-      from, 
-      to, 
-      amount, 
-      userData, 
+      operator,
+      from,
+      to,
+      amount,
+      userData,
       operatorData
     );
   }
@@ -186,7 +189,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
     if (required > owners.length) {
       changeRequirement(owners.length);
     }
-        
+
     emit OwnerRemoval(owner);
   }
 
@@ -268,13 +271,13 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   {
     if (isConfirmed(transactionId)) {
       Transaction storage txn = transactions[transactionId];
-      
+
       txn.executed = true;
       if (
         external_call(
-          txn.destination, 
-          txn.value, 
-          txn.data.length, 
+          txn.destination,
+          txn.value,
+          txn.data.length,
           txn.data
         )
       ) {
@@ -289,9 +292,9 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   // call has been separated into its own function in order to take advantage
   // of the Solidity's code generator to produce a loop that copies tx.data into memory.
   function external_call(
-    address destination, 
-    uint value, 
-    uint dataLength, 
+    address destination,
+    uint value,
+    uint dataLength,
     bytes data
   ) private returns (bool) {
     bool result;
@@ -324,7 +327,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
       }
       if (count == required) {
         return true;
-      }    
+      }
     }
   }
 
@@ -356,10 +359,10 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @return Number of confirmations.
   function getConfirmationCount(uint transactionId) public view returns (uint count) {
     for (uint i = 0; i < owners.length; i++) {
-      if (confirmations[transactionId][owners[i]]) { 
+      if (confirmations[transactionId][owners[i]]) {
         count += 1;
       }
-    }     
+    }
   }
 
   /// @dev Returns total number of transactions after filers are applied.
@@ -371,12 +374,12 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
       if (pending && !transactions[i].executed || executed && transactions[i].executed) {
         count += 1;
       }
-    }     
+    }
   }
 
   /// @dev Returns list of owners.
   /// @return List of owner addresses.
-  function getOwners() public view returns (address[]) { 
+  function getOwners() public view returns (address[]) {
     return owners;
   }
 
@@ -393,11 +396,11 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
         count += 1;
       }
     }
-        
+
     _confirmations = new address[](count);
     for (i = 0; i < count; i++) {
       _confirmations[i] = confirmationsTemp[i];
-    } 
+    }
   }
 
   /// @dev Returns list of transaction IDs in defined range.
@@ -407,9 +410,9 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
   /// @param executed Include executed transactions.
   /// @return Returns array of transaction IDs.
   function getTransactionIds(
-    uint from, 
-    uint to, 
-    bool pending, 
+    uint from,
+    uint to,
+    bool pending,
     bool executed
   ) public view returns (uint[] _transactionIds){
 
@@ -422,7 +425,7 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
         count += 1;
       }
     }
-        
+
     _transactionIds = new uint[](to - from);
     for (i = from; i < to; i++) {
       _transactionIds[i - from] = transactionIdsTemp[i];

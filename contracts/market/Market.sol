@@ -19,7 +19,7 @@ contract Market is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer {
   constructor() public { }
 
   function initialize(address _eip820RegistryAddr, address[] _marketItems, address _owner) public {
-    require(_initialized != true);
+    require(_initialized != true, "You can only initialize the contract once");
     for (uint i = 0;  i < _marketItems.length; i = i.add(1)) {
       _createMarketItem(_marketItems[i]);
     }
@@ -31,7 +31,7 @@ contract Market is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer {
   }
 
   /**
-    @dev returns the current initalization status
+    @dev returns the current initialization status
    */
   function initialized() public view returns(bool) {
     return _initialized;
@@ -44,7 +44,7 @@ contract Market is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer {
     marketItems.push(marketItem);
   }
 
-  // solhint-disable-next-line no-unused-vars
+  // solium-disable-next-line no-unused-vars
   function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
     return EIP820_ACCEPT_MAGIC;
   }

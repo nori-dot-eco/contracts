@@ -52,7 +52,10 @@ contract UnstructuredUpgradeabilityProxy is Proxy {
    */
   function _upgradeTo(address newImplementation) internal {
     address currentImplementation = implementation();
-    require(currentImplementation != newImplementation);
+    require(
+      currentImplementation != newImplementation,
+      "You cannot upgrade using the same implementation address"
+    ); //todo also require upgrade version changed
     setImplementation(newImplementation);
   }
 }

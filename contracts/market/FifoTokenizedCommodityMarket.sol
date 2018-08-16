@@ -1,41 +1,49 @@
 pragma solidity ^0.4.24;
 import "./StandardTokenizedCommodityMarket.sol";
-import "./FifoQueue.sol";
 import "./../EIP777/IEIP777TokensOperator.sol";
 import "./../commodity/ICommodityOperator.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
 
-contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP777TokensOperator, ICommodityOperator, FifoQueue {
+contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP777TokensOperator, ICommodityOperator {
   using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
+
+  int[] public commoditiesForSale;
 
   constructor() StandardTokenizedCommodityMarket() public { }
 
   function initialize(address _eip820RegistryAddr, address[] _marketItems, address _owner) public {
-    require(_initialized != true);
+    require(_initialized != true, "You can only initialize this contract once");
     super.initialize(_eip820RegistryAddr, _marketItems, _owner);
   }
 
 
-  function getEarliestSale() public view returns (uint) {
-    uint256 tokenId = peek();
-    return tokenId;
+  function getEarliestSale() public view returns (uint, uint) {
+    if (commoditiesForSale.length >= 0) {
+      for (uint i = 0; i < commoditiesForSale.length; i = i.add(1) ){
+        if (commoditiesForSale[i] >= 0) {
+          return (uint(commoditiesForSale[i]), i);
+        }
+      }
+    }
+    else
+      revert("Invalid sale index");
   }
 
   function buy(address _buyer, uint256 _amount) private {
-    uint256 tokenId = getEarliestSale();
+    var (commodityIndex, saleIndex) = getEarliestSale();
 
-    uint256 newSaleAmount = _buy(_buyer, tokenId, _amount);
+    uint256 newSaleAmount = _buy(_buyer, commodityIndex, _amount);
     if (newSaleAmount != 0) {
-      _split(tokenId, _buyer, _amount);
+      _split(commodityIndex, _buyer, _amount);
     } else {
       _transfer(
         _buyer,
         msg.sender,
-        tokenId,
+        commodityIndex,
         _amount
       );
-      remove(tokenId);
+      commoditiesForSale[saleIndex] = -1;
     }
 
   }
@@ -58,9 +66,12 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     bytes userData,
     bytes // operatorData
   ) public {
-    require(address(commodityContract) == msg.sender);
+    require(
+      address(commodityContract) == msg.sender,
+      "Only the commodity contract can invoke 'madeOperatorForCommodity'"
+    );
     if (preventCommodityOperator) {
-      revert();
+      revert("This contract does not currently allow being made the operator of commodities");
     }
     //todo create the ability to list a new sale of a fractional value of the CRC by using the split function
     //todo jaycen can we figure out how to do this passing in a CommodityLib.Commodity struct (I was having solidity errors but it would be ideal -- might be possible using eternal storage, passing hash of struct and then looking up struct values <-- would be VERY cool)
@@ -93,9 +104,12 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     bytes, // userData,
     bytes // operatorData
   ) public {
-    require(address(commodityContract) == msg.sender);
+    require(
+      address(commodityContract) == msg.sender,
+      "Only the commodity contract can invoke 'revokedOperatorForCommodity'"
+    );
     if (preventCommodityOperator) {
-      revert();
+      revert("This contract does not currently allow being revoked the operator of commodities");
     }
     //todo jaycen can we figure out how to do this passing in a CommodityLib.Commodity struct (I was having solidity errors but it would be ideal -- might be possible using eternal storage, passing hash of struct and then looking up struct values <-- would be VERY cool)
     removeSale(tokenId);
@@ -112,7 +126,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     bytes // operatorData
   ) public {
     if (preventTokenOperator) {
-      revert();
+      revert("This contract does not currently allow being made the operator of tokens");
     }
     buy(buyer, amount);
   }
@@ -134,11 +148,16 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
       _value,
       _misc
     );
-    push(_tokenId);
+    commoditiesForSale.push(int(_tokenId));
   }
 
   function removeSale(uint256 _tokenId) private { //todo onlyThisContract modifier
     _removeSale(_tokenId);
-    remove(_tokenId);
+    for (uint i = 0; i < commoditiesForSale.length; i++ ) {
+      if (uint(commoditiesForSale[i]) == _tokenId) {
+        commoditiesForSale[i] = -1;
+        return;
+      }
+    }
   }
 }

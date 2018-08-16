@@ -26,8 +26,8 @@
     "glob": "^7.1.2",
     "prettier": "^1.13.6",
     "solidity-coverage": "^0.5.4",
-    "solium": "^1.1.7",
-    "truffle": "^4.1.12",
+    "solium": "^1.1.8",
+    "truffle": "^4.1.14",
     "web3": "^0.20.6"
   },
   "scripts": {

@@ -57,11 +57,11 @@ contract MintableCommodity is BasicCommodity, IMintableCommodity {
         misc: bytes(_misc)
     });
     uint newCRCId = commodities.push(_commodity).sub(1);
-    require(newCRCId <= 18446744073709551616);
+    require(newCRCId <= 18446744073709551616, "You can only mint a commodity in a valid index range");
 
     //TODO: make sure this is ok in production (maybe move to a diff func that invokes callrecipient internally)
     _transfer(0, _to, newCRCId);
-    callRecipent(
+    callRecipient(
       msg.sender,
       0x0,
       _to,

@@ -36,7 +36,7 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
   * @dev Throws if called by any account other than the owner.
   */
   modifier onlyProxyOwner() {
-    require(msg.sender == proxyOwner());
+    require(msg.sender == proxyOwner(), "Only the proxy owner can use this function");
     _;
   }
 
@@ -74,7 +74,7 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
   }
 
   /**
-   * @dev Sets the address of the regisrty
+   * @dev Sets the address of the registry
    */
   function setRegistryAddr(address registryAddress) internal {
     bytes32 position = registryAddrPosition;
@@ -89,7 +89,7 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
    * @param newOwner The address to transfer ownership to.
    */
   function transferProxyOwnership(address newOwner) public onlyProxyOwner {
-    require(newOwner != address(0));
+    require(newOwner != address(0), "You can not give the 0 address ownership");
     emit ProxyOwnershipTransferred(proxyOwner(), newOwner);
     setUpgradeabilityOwner(newOwner);
   }
@@ -124,8 +124,8 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
     string versionName,
     address implementation,
     bytes data
-  ) payable public onlyProxyOwner {
+  ) public payable onlyProxyOwner {
     upgradeTo(contractName, versionName, implementation);
-    require(address(this).call.value(msg.value)(data)); //solium-disable-line security/no-call-value
+    require(address(this).call.value(msg.value)(data), "Upgrading and calling did not succeed"); //solium-disable-line security/no-call-value
   }
 }
