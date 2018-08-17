@@ -2,15 +2,15 @@ pragma solidity ^0.4.24;
 
 import "./IParticipant.sol";
 import "./IVerifier.sol";
-import "./ParticipantV0_2_0.sol";
+import "./ParticipantV0_2_1.sol";
 
 
-contract VerifierV0_2_0 is ParticipantV0_2_0, IVerifier {
+contract VerifierV0_2_1 is ParticipantV0_2_1, IVerifier {
   mapping (address => bool) public verifiers;
   mapping(bytes32 =>  mapping(address => bool)) public allowedInterfaces;
 
 
-  constructor() ParticipantV0_2_0() public { }
+  constructor() ParticipantV0_2_1() public { }
 
   function initialize(address _eip820RegistryAddr, address _participantRegistry, address _owner) public {
     super.initialize(_eip820RegistryAddr, _participantRegistry, _owner);

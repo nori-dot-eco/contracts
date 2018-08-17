@@ -4,14 +4,14 @@ import "../EIP820/EIP820Implementer.sol";
 import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipant.sol";
 import "./ISupplier.sol";
-import "./ParticipantV0_2_0.sol";
+import "./ParticipantV0_2_1.sol";
 
-contract SupplierV0_2_0 is ParticipantV0_2_0, ISupplier {
+contract SupplierV0_2_1 is ParticipantV0_2_1, ISupplier {
   mapping (address => bool) public suppliers;
   mapping(bytes32 =>  mapping(address => bool)) public allowedInterfaces;
 
 
-  constructor() ParticipantV0_2_0() public { }
+  constructor() ParticipantV0_2_1() public { }
 
   function initialize(address _eip820RegistryAddr, address _participantRegistry, address _owner) public {
     super.initialize(_eip820RegistryAddr, _participantRegistry, _owner);

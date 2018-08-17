@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 import "./ContractRegistryBase.sol";
 
-
+// Note, this contract contains updates since 0_2_0 migration that need to be migrated at some point (jaycen-reason-strings)
 /// @title RootRegistryV0_2_0
 /// @dev keeps track of the latest version of the registry
 ///  this registry keeps track of all upgraded registries and their versions

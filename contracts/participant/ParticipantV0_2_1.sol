@@ -6,7 +6,7 @@ import "./IParticipantRegistry.sol";
 import "../ownership/UnstructuredOwnable.sol";
 
 
-contract ParticipantV0_2_0 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipant {
+contract ParticipantV0_2_1 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipant {
   IParticipantRegistry public participantRegistry;
   bool internal _initialized;
 

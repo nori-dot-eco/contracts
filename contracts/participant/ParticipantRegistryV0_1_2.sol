@@ -4,7 +4,7 @@ import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipantRegistry.sol";
 import "../ownership/UnstructuredOwnable.sol";
 
-contract ParticipantRegistryV0_1_1 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipantRegistry {
+contract ParticipantRegistryV0_1_2 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipantRegistry {
   // participant type at address to enabled
   mapping (bytes32 => mapping(address => bool)) public participantTypes;
   // todo jaycen add per function permission
