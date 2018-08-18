@@ -1,4 +1,4 @@
-import { NoriV0_1_1 } from './helpers/Artifacts';
+import { NoriV0_1_2 } from './helpers/Artifacts';
 import { shouldBehaveLikeUnstructuredUpgradeableToken } from './behaviors/UnstructuredUpgradeableToken';
 // NoriV0_1_1 should behave like an unstructured upgradeable token
 const NoriV0Tests = (admin, mintRecipient, transferRecipient) => {
@@ -7,7 +7,7 @@ const NoriV0Tests = (admin, mintRecipient, transferRecipient) => {
       admin,
       mintRecipient,
       transferRecipient,
-      NoriV0_1_1,
+      NoriV0_1_2,
       [
         ['string', 'string', 'uint', 'uint', 'address', 'address'],
         ['Upgradeable NORI Token', 'NORI', 1, 0, 0, admin],

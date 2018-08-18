@@ -1,7 +1,7 @@
 /* globals artifacts */
 const Artifacts = {};
 [
-  'NoriV0_1_1',
+  'NoriV0_1_2',
   'EIP820Registry',
   'Proxy',
   'UnstructuredUpgradeableTokenV0',
@@ -9,13 +9,13 @@ const Artifacts = {};
   'UnstructuredUpgradeableTokenV1',
   'UnstructuredUpgradeableTokenV2',
   'UnstructuredUpgradeableTokenV3',
-  'ContractRegistryV0_2_0',
+  'ContractRegistryV0_2_1',
   'MultiSigWallet',
   'MultiAdmin',
-  'CRCV0_2_2',
-  'ParticipantRegistryV0_1_1',
+  'CRCV0_2_3',
+  'ParticipantRegistryV0_1_2',
   'EIP820Implementer',
-  'FifoCrcMarketV0_1_2',
+  'FifoCrcMarketV0_1_3',
   'RootRegistryV0_2_0',
   'SelectableCrcMarketV0_1_0',
 ].forEach(contractName => {

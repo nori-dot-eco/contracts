@@ -1,5 +1,4 @@
 import { testContractAtRegistry, testEvents } from './behaviors/Registry';
-import { ContractRegistryV0_2_0 } from './helpers/Artifacts';
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
 import { testVersionRegistryFunctions } from './behaviors/VersionRegistry';
 import {
