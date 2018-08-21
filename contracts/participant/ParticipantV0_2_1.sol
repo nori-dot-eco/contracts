@@ -1,12 +1,14 @@
 pragma solidity ^0.4.24;
-import "../EIP820/EIP820Implementer.sol";
-import "../EIP820/IEIP820Implementer.sol";
+//import "../EIP820/EIP820Implementer.sol";
+import "../../../../EIP/eip820/contracts/ERC820Implementer.sol";
+//import "../EIP820/IEIP820Implementer.sol";
+import "../../../../EIP/eip820/contracts/ERC820ImplementerInterface.sol";
 import "./IParticipant.sol";
 import "./IParticipantRegistry.sol";
 import "../ownership/UnstructuredOwnable.sol";
 
 
-contract ParticipantV0_2_1 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipant {
+contract ParticipantV0_2_1 is UnstructuredOwnable, ERC820Implementer, ERC820ImplementerInterface, IParticipant {
   IParticipantRegistry public participantRegistry;
   bool internal _initialized;
 
@@ -15,7 +17,8 @@ contract ParticipantV0_2_1 is UnstructuredOwnable, EIP820Implementer, IEIP820Imp
   function initialize(address _eip820RegistryAddr, address _participantRegistry, address _owner) public {
     require(_initialized != true, "You can only initialize this contract once");
     setOwner(_owner);
-    setIntrospectionRegistry(_eip820RegistryAddr);
+    // setIntrospectionRegistry(_eip820RegistryAddr);
+    erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     setParticipantRegistry (_participantRegistry);
     setInterfaceImplementation("IParticipant", this);
     _initialized = true;
@@ -29,7 +32,7 @@ contract ParticipantV0_2_1 is UnstructuredOwnable, EIP820Implementer, IEIP820Imp
   }
 
   function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
-    return EIP820_ACCEPT_MAGIC;
+    return ERC820_ACCEPT_MAGIC;
   }
 
   function setParticipantRegistry (address _participantRegistry) public {

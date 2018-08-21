@@ -3,15 +3,16 @@ pragma solidity ^0.4.24;
 import "./ICommodityRecipient.sol";
 import "./ICommodityOperator.sol";
 import "./ICommoditySender.sol";
-import "../EIP820/EIP820Implementer.sol";
+//import "../EIP820/EIP820Implementer.sol";
+import "../../../../EIP/eip820/contracts/ERC820Implementer.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 import "../ownership/UnstructuredOwnable.sol";
 import "./ICommodity.sol";
 import "../participant/IParticipantRegistry.sol";
 import "../commodity/CommodityLib.sol";
+import "../registry/IContractRegistry.sol";
 
-
-contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
+contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
   using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
 
   /*** EVENTS ***/
@@ -67,6 +68,7 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
   bool private _initialized;
   string private mName;
   string private mSymbol;
+  IContractRegistry public contractRegistry;
 
 
   constructor () public { }
@@ -83,11 +85,18 @@ contract BasicCommodity is UnstructuredOwnable, EIP820Implementer, ICommodity {
     mSymbol = _symbol;
     setParticipantRegistry(_participantRegistry);
     setOwner(_owner);
-    setIntrospectionRegistry(_eip820RegistryAddr);
+    setContractRegistry(_eip820RegistryAddr);
+    erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     setInterfaceImplementation("ICommodity", this);
     setInterfaceImplementation("IMintableCommodity", this);
     setInterfaceImplementation("IVerifiableCommodity", this);
     toggleParticipantCalling(true);
+  }
+
+
+  // todo onlyowner
+  function setContractRegistry(address _contractRegistryAddr) public {
+    contractRegistry = IContractRegistry(_contractRegistryAddr);
   }
 
   /**

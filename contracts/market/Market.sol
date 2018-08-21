@@ -1,12 +1,14 @@
 pragma solidity ^0.4.24;
 import "./MarketLib.sol";
-import "../EIP820/EIP820Implementer.sol";
-import "../EIP820/IEIP820Implementer.sol";
+// import "../EIP820/EIP820Implementer.sol";
+import "../../../../EIP/eip820/contracts/ERC820Implementer.sol";
+//import "../EIP820/IEIP820Implementer.sol";
+import "../../../../EIP/eip820/contracts/ERC820ImplementerInterface.sol";
 import "../ownership/UnstructuredOwnable.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
 
-contract Market is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer {
+contract Market is UnstructuredOwnable, ERC820Implementer, ERC820ImplementerInterface {
   using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
 
   MarketLib.Market[] public marketItems;
@@ -24,7 +26,8 @@ contract Market is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer {
       _createMarketItem(_marketItems[i]);
     }
     setOwner(_owner);
-    setIntrospectionRegistry(_eip820RegistryAddr);
+    // setIntrospectionRegistry(_eip820RegistryAddr);
+    erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     enableEIP777TokensOperator();
     enableCommodityOperator();
     _initialized = true;
@@ -46,7 +49,7 @@ contract Market is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer {
 
   // solium-disable-next-line no-unused-vars
   function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
-    return EIP820_ACCEPT_MAGIC;
+    return ERC820_ACCEPT_MAGIC;
   }
 
   function enableEIP777TokensOperator() public {

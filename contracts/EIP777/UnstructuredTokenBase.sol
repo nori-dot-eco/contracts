@@ -5,9 +5,10 @@ import "../EIP777/IEIP777TokensRecipient.sol";
 import "../EIP777/IEIP777TokensSender.sol";
 import "../EIP777/IEIP777TokensOperator.sol";
 import "../EIP20/Ierc20.sol";
-import "../EIP820/EIP820Implementer.sol";
+//import "../EIP820/EIP820Implementer.sol";
 import "../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 import "../ownership/UnstructuredOwnable.sol";
+import "../../../../EIP/eip820/contracts/ERC820Implementer.sol";
 
 
 /**
@@ -17,7 +18,7 @@ import "../ownership/UnstructuredOwnable.sol";
 *   that use a proxy/dispatch (DELEGATECALL) variation that allows for
 *   storage changes over time. IE, you can define new vars in new versions
 */
-contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, EIP820Implementer {
+contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, ERC820Implementer {
 
   using SafeMath for uint256;
 
@@ -25,7 +26,7 @@ contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, EIP820Im
   string private mSymbol;
   uint256 private mGranularity;
   uint256 private mTotalSupply;
-  bool internal _initialized;
+  bool private _initialized;
 
   bool private mErc20compatible;
 
@@ -43,6 +44,23 @@ contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, EIP820Im
 
 
   constructor () public { }
+  // constructor(
+  //       string _name,
+  //       string _symbol,
+  //       uint256 _granularity
+  //   )
+  //       public
+  //   {
+  //       mName = _name;
+  //       mSymbol = _symbol;
+  //       mTotalSupply = 0;
+  //       mErc20compatible = true;
+  //       require(_granularity >= 1);
+  //       mGranularity = _granularity;
+
+  //       // setInterfaceImplementation("ERC20Token", this);
+  //       // setInterfaceImplementation("ERC777Token", this);
+  //   }
 
   function initialize(
     string _name,
@@ -62,10 +80,10 @@ contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, EIP820Im
 
     setOwner(_owner);
 
-    setIntrospectionRegistry(_eip820RegistryAddr);
+    // setIntrospectionRegistry(_eip820RegistryAddr);
+    erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     setInterfaceImplementation("IEIP777", this);
     setInterfaceImplementation("Ierc20", this);
-
     _initialized = true;
   }
 

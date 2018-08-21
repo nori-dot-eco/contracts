@@ -1,7 +1,10 @@
 pragma solidity ^0.4.18;
 import "./../EIP777/IEIP777TokensRecipient.sol";
-import "../EIP820/EIP820Implementer.sol";
-import "../EIP820/IEIP820Implementer.sol";
+// import "../EIP820/EIP820Implementer.sol";
+import "../../../../EIP/eip820/contracts/ERC820Implementer.sol";
+// import "../EIP820/IEIP820Implementer.sol";
+import "../../../../EIP/eip820/contracts/ERC820ImplementerInterface.sol";
+
 
 
 /// @title MultiSignature wallet - Allows multiple parties to agree on transactions before execution.
@@ -9,7 +12,7 @@ import "../EIP820/IEIP820Implementer.sol";
 /// @author Jaycen Horton (extended functionality for eip820)
 // todo jaycen CAUTION, using eip820 un-audited contracts in multi-sig inheritance in order to
 // avoid revert statement otherwise invoked in the callRecipient function of the tokens mint/send funcs
-contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
+contract MultiSigWallet is ERC820Implementer, ERC820ImplementerInterface {
 
   /*
    *  Events
@@ -122,13 +125,12 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     }
     owners = _owners;
     required = _required;
-    setIntrospectionRegistry(_eip820RegistryAddr);
-
+    //setIntrospectionRegistry(_eip820RegistryAddr);
     toggleTokenReceiver(true);
   }
 
   function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
-    return EIP820_ACCEPT_MAGIC;
+    return ERC820_ACCEPT_MAGIC;
   }
 
   function tokensReceived (

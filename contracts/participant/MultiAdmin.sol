@@ -1,7 +1,9 @@
 pragma solidity ^0.4.24;
 import "./../EIP777/IEIP777TokensRecipient.sol";
-import "../EIP820/EIP820Implementer.sol";
-import "../EIP820/IEIP820Implementer.sol";
+//import "../EIP820/EIP820Implementer.sol";
+import "../../../../EIP/eip820/contracts/ERC820Implementer.sol";
+//import "../EIP820/IEIP820Implementer.sol";
+import "../../../../EIP/eip820/contracts/ERC820ImplementerInterface.sol";
 
 
 /// @title MultiAdmin: MultiSignature wallet - Allows multiple parties to agree on transactions before execution.
@@ -10,7 +12,7 @@ import "../EIP820/IEIP820Implementer.sol";
 /// This contract is derived from the Gnosis multi-sig wallet.
 // todo jaycen CAUTION, using eip820 un-audited contracts in multi-sig inheritance in order to
 // avoid revert statement otherwise invoked in the callRecipient function of the tokens mint/send funcs
-contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
+contract MultiAdmin is ERC820Implementer, ERC820ImplementerInterface {
 
   /*
     *  Events
@@ -121,13 +123,13 @@ contract MultiAdmin is EIP820Implementer, IEIP820Implementer {
     }
     owners = _owners;
     required = _required;
-    setIntrospectionRegistry(_eip820RegistryAddr);
-
+    //setIntrospectionRegistry(_eip820RegistryAddr);
+    erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     toggleTokenReceiver(true);
   }
 
   function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
-    return EIP820_ACCEPT_MAGIC;
+    return ERC820_ACCEPT_MAGIC;
   }
 
   function tokensReceived (

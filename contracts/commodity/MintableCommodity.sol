@@ -5,7 +5,6 @@ import "./IMintableCommodity.sol";
 import "../participant/IParticipant.sol";
 import "./BasicCommodity.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
-import "../registry/IContractRegistry.sol";
 
 
 contract MintableCommodity is BasicCommodity, IMintableCommodity {
