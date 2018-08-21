@@ -12,6 +12,8 @@ To generate a new version of the docs:
 
 ## Development/Contributing
 
+After cloning, you may also need to do: `git submodule init`.
+
 External contributors: simply create a feature branch, complete your development, and submit the pull request against master. CircleCI will take care if integration tests, etc.
 
 Note: The `contracts/contrib` folder contains a submodule (and will contain more: ie `contracts/contrib/EIP/eip820`) for EIPs and other contract repositories. We use these to contribute to official standards. When developing, make sure you grab the latest version of that submodule.
