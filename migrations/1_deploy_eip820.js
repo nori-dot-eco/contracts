@@ -1,10 +1,10 @@
 /* eslint-disable no-unused-expressions */
-const generateDeployTx = require('../../../EIP/eip820/js/deployment')
+const generateDeployTx = require('../contracts/contrib/EIP/eip820/js/deployment')
   .generateDeployTx;
 const {
   ERC820RegistryAbi,
   ERC820RegistryByteCode,
-} = require('../../../EIP/eip820/build/ERC820Registry.sol.js');
+} = require('../contracts/contrib/EIP/eip820/build/ERC820Registry.sol.js');
 const contract = require('truffle-contract');
 
 module.exports = (deployer, network, accounts) => {

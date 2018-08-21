@@ -1,9 +1,9 @@
 pragma solidity ^0.4.24;
 import "./../EIP777/IEIP777TokensRecipient.sol";
 //import "../EIP820/EIP820Implementer.sol";
-import "../../../../EIP/eip820/contracts/ERC820Implementer.sol";
+import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
 //import "../EIP820/IEIP820Implementer.sol";
-import "../../../../EIP/eip820/contracts/ERC820ImplementerInterface.sol";
+import "../contrib/EIP/eip820/contracts/ERC820ImplementerInterface.sol";
 
 
 /// @title MultiAdmin: MultiSignature wallet - Allows multiple parties to agree on transactions before execution.

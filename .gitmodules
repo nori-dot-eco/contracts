@@ -1,0 +1,3 @@
+[submodule "contracts/contrib/EIP/eip820"]
+	path = contracts/contrib/EIP/eip820
+	url = git@github.com:nori-dot-eco/eip820.git

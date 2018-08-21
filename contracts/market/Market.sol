@@ -1,9 +1,9 @@
 pragma solidity ^0.4.24;
 import "./MarketLib.sol";
 // import "../EIP820/EIP820Implementer.sol";
-import "../../../../EIP/eip820/contracts/ERC820Implementer.sol";
+import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
 //import "../EIP820/IEIP820Implementer.sol";
-import "../../../../EIP/eip820/contracts/ERC820ImplementerInterface.sol";
+import "../contrib/EIP/eip820/contracts/ERC820ImplementerInterface.sol";
 import "../ownership/UnstructuredOwnable.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
