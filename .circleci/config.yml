@@ -11,6 +11,11 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - run:
+          name: Initialize submodules
+          command: |
+            git submodule init
+            git submodule update
 
       - restore_cache:
           key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
@@ -37,7 +42,6 @@ jobs:
           name: Run Tests
           command: yarn run test
 
-
   run-coverage:
     <<: *defaults
     steps:
@@ -60,7 +64,6 @@ jobs:
       - run:
           name: Run Gas Report
           command: yarn run test:gasreport
-
 
 workflows:
   version: 2
