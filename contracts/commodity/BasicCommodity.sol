@@ -85,7 +85,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     mSymbol = _symbol;
     setParticipantRegistry(_participantRegistry);
     setOwner(_owner);
-    setContractRegistry(_eip820RegistryAddr);
+    setContractRegistry(_eip820RegistryAddr); //todo: get this from ENS or ERC820 somehow
     erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     setInterfaceImplementation("ICommodity", this);
     setInterfaceImplementation("IMintableCommodity", this);
