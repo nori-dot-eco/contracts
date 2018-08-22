@@ -1,13 +1,10 @@
 pragma solidity ^0.4.24;
-import "../EIP820/EIP820Registry.sol";
-import "../EIP820/IEIP820Registry.sol";
 import "../ownership/UnstructuredOwnable.sol";
 import "./IContractRegistry.sol";
 
-
 /// @title ContractRegistryBase
 /// @dev defines the base registry function sets for future versions to inherit from
-contract ContractRegistryBase is UnstructuredOwnable, EIP820Registry, IContractRegistry {
+contract ContractRegistryBase is UnstructuredOwnable, IContractRegistry {
   //todo does UnstructuredOwnable inheritance position matter? --^
 
   event Initialized(address owner);

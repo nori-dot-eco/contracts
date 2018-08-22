@@ -1,7 +1,8 @@
 pragma solidity ^0.4.18;
 import "./../EIP777/IEIP777TokensRecipient.sol";
-import "../EIP820/EIP820Implementer.sol";
-import "../EIP820/IEIP820Implementer.sol";
+import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
+import "../contrib/EIP/eip820/contracts/ERC820ImplementerInterface.sol";
+import "../registry/IContractRegistry.sol";
 
 
 /// @title MultiSignature wallet - Allows multiple parties to agree on transactions before execution.
@@ -9,7 +10,7 @@ import "../EIP820/IEIP820Implementer.sol";
 /// @author Jaycen Horton (extended functionality for eip820)
 // todo jaycen CAUTION, using eip820 un-audited contracts in multi-sig inheritance in order to
 // avoid revert statement otherwise invoked in the callRecipient function of the tokens mint/send funcs
-contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
+contract MultiSigWallet is ERC820Implementer, ERC820ImplementerInterface {
 
   /*
    *  Events
@@ -47,6 +48,8 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     bytes data;
     bool executed;
   }
+
+  IContractRegistry public contractRegistry;
 
   /*
    *  Modifiers
@@ -114,7 +117,7 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
   /// @dev Contract constructor sets initial owners and required number of confirmations.
   /// @param _owners List of initial owners.
   /// @param _required Number of required confirmations.
-  constructor(address[] _owners, uint _required, address _eip820RegistryAddr) public validRequirement(_owners.length, _required) {
+  constructor(address[] _owners, uint _required, address _contractRegistryAddr) public validRequirement(_owners.length, _required) {
 
     for (uint i = 0; i < _owners.length; i++) {
       require(!isOwner[_owners[i]] && _owners[i] != 0, "You cannot add a 0 address or already existing owner");
@@ -122,13 +125,14 @@ contract MultiSigWallet is EIP820Implementer, IEIP820Implementer {
     }
     owners = _owners;
     required = _required;
-    setIntrospectionRegistry(_eip820RegistryAddr);
-
+    // Todo WARNING only enable the following two lines on main net if the standard is final
+    contractRegistry = IContractRegistry(_contractRegistryAddr);
+    erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     toggleTokenReceiver(true);
   }
 
   function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
-    return EIP820_ACCEPT_MAGIC;
+    return ERC820_ACCEPT_MAGIC;
   }
 
   function tokensReceived (

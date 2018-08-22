@@ -19,7 +19,7 @@ contract VerifierV0_2_1 is ParticipantV0_2_1, IVerifier {
   }
 
   function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
-    return EIP820_ACCEPT_MAGIC;
+    return ERC820_ACCEPT_MAGIC;
   }
 
   function isAllowed(address _ifaceImpAddr, string ifaceLabel) public returns (bool) {

@@ -1,35 +1,46 @@
 pragma solidity ^0.4.24;
-import "../EIP820/EIP820Implementer.sol";
-import "../EIP820/IEIP820Implementer.sol";
+import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
+import "../contrib/EIP/eip820/contracts/ERC820ImplementerInterface.sol";
 import "./IParticipantRegistry.sol";
 import "../ownership/UnstructuredOwnable.sol";
+import "../registry/IContractRegistry.sol";
 
-contract ParticipantRegistryV0_1_2 is UnstructuredOwnable, EIP820Implementer, IEIP820Implementer, IParticipantRegistry {
+contract ParticipantRegistryV0_1_2 is UnstructuredOwnable, ERC820Implementer, ERC820ImplementerInterface, IParticipantRegistry {
   // participant type at address to enabled
   mapping (bytes32 => mapping(address => bool)) public participantTypes;
   // todo jaycen add per function permission
 
   bool internal _initialized;
+  IContractRegistry public contractRegistry;
 
   constructor () public { }
 
-  function initialize(address _eip820RegistryAddr, address owner) public {
+  function initialize(address _contractRegistryAddr, address owner) public {
+    //todo emit initialize info
     require(_initialized != true, "You can only initialize this contract once");
     setOwner(owner);
-    setIntrospectionRegistry(_eip820RegistryAddr);
+    contractRegistry = IContractRegistry(_contractRegistryAddr); //todo: get this from ENS or ERC820 somehow
+    erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     setInterfaceImplementation("IParticipantRegistry", this);
     _initialized = true;
   }
 
   /**
-    @dev returns the current initalization status
+    @notice Sets the contract registry address
+  */
+  function setContractRegistry(address _contractRegistryAddr) public onlyOwner {
+    contractRegistry = IContractRegistry(_contractRegistryAddr);
+  }
+
+  /**
+    @dev returns the current initialization status
   */
   function initialized() public view returns(bool) {
     return _initialized;
   }
 
   function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
-    return EIP820_ACCEPT_MAGIC;
+    return ERC820_ACCEPT_MAGIC;
   }
 
   function isAllowed(address _ifaceImpAddr, string ifaceLabel) public returns (bool) {

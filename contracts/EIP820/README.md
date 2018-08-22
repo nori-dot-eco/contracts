@@ -1,5 +1,7 @@
 # ERC 820: Pseudo-introspection using a registry contract
 
+## Note: EIP 820 code has been moved to a sub module inside of `contrib/EIP/eip820`. This Readme is for information on EIP 820 as applies to our repository.
+
 ## Formal Specifications
 
 - [ERC-820](https://github.com/ethereum/EIPs/issues/820)

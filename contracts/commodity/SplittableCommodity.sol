@@ -10,9 +10,9 @@ contract SplittableCommodity is MintableCommodity {
   event Split(address indexed to, uint256 amount, uint64 parentId, address indexed operator, bytes operatorData);
 
   function split(uint _tokenId, address _to, uint256 _amount) public {
-    address supplierProxy = IContractRegistry(eip820Registry).getLatestProxyAddr("Supplier");
+    address supplierProxy = IContractRegistry(contractRegistry).getLatestProxyAddr("Supplier");
     require(
-      msg.sender == IContractRegistry(eip820Registry).getLatestProxyAddr("FifoCrcMarket") ||
+      msg.sender == IContractRegistry(contractRegistry).getLatestProxyAddr("FifoCrcMarket") ||
       ISupplier(supplierProxy).isAllowed(this, "IMintableCommodity"),
       "Splitting can only be done when both the ISplittableCommodity interface is enabled and is called by a supplier or the FifoCrcMarket is used."
     );
@@ -30,7 +30,7 @@ contract SplittableCommodity is MintableCommodity {
     uint newCRCId = commodities.push(_commodity).sub(1);
     require(newCRCId <= 18446744073709551616, "You can only split a commodity if it is within a valid index range");
 
-    if(msg.sender == IContractRegistry(eip820Registry).getLatestProxyAddr("FifoCrcMarket")) {
+    if(msg.sender == IContractRegistry(contractRegistry).getLatestProxyAddr("FifoCrcMarket")) {
       _transfer(ownerOf(_tokenId), _to, newCRCId);
     } else {
       _transfer(msg.sender, _to, newCRCId);

@@ -1,10 +1,9 @@
 pragma solidity ^0.4.24;
 
-import "../EIP820/EIP820Implementer.sol";
-import "../EIP820/IEIP820Implementer.sol";
 import "./IParticipant.sol";
 import "./ISupplier.sol";
 import "./ParticipantV0_2_1.sol";
+
 
 contract SupplierV0_2_1 is ParticipantV0_2_1, ISupplier {
   mapping (address => bool) public suppliers;
@@ -21,7 +20,7 @@ contract SupplierV0_2_1 is ParticipantV0_2_1, ISupplier {
 
 
   function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
-    return EIP820_ACCEPT_MAGIC;
+    return ERC820_ACCEPT_MAGIC;
   }
 
   function isAllowed(address _ifaceImpAddr, string ifaceLabel) public returns (bool) {
