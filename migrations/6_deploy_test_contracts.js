@@ -1,7 +1,6 @@
 /* globals artifacts web3 */
 const { getLatestVersionFromFs } = require('../test/helpers/contracts');
 
-const EIP820Registry = artifacts.require('EIP820Registry');
 const MultiSigWallet = artifacts.require('MultiSigWallet');
 
 module.exports = function deploy(deployer, network, accounts) {
@@ -19,7 +18,6 @@ module.exports = function deploy(deployer, network, accounts) {
         `./ContractRegistryV${await getLatestVersionFromFs('ContractRegistry')}`
       )
       .at(await rootRegistry.getLatestProxyAddr.call('ContractRegistry'));
-    await deployer.deploy(EIP820Registry);
 
     const crcMarket = await deployer.deploy(
       artifacts.require(`./SelectableCrcMarketV0_1_0`)
