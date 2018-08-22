@@ -1,9 +1,6 @@
 pragma solidity ^0.4.24;
-//import "../EIP820/EIP820Registry.sol";
-//import "../EIP820/IEIP820Registry.sol";
 import "../ownership/UnstructuredOwnable.sol";
 import "./IContractRegistry.sol";
-
 
 /// @title ContractRegistryBase
 /// @dev defines the base registry function sets for future versions to inherit from

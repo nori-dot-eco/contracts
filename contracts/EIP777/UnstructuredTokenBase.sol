@@ -8,7 +8,7 @@ import "../EIP20/Ierc20.sol";
 import "../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 import "../ownership/UnstructuredOwnable.sol";
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
-
+import "../registry/IContractRegistry.sol";
 
 /**
 * @title UnstructuredTokenBase
@@ -32,6 +32,7 @@ contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, ERC820Im
   mapping(address => uint) private mBalances;
   mapping(address => mapping(address => bool)) private mAuthorized;
   mapping(address => mapping(address => uint256)) private mAllowed;
+  IContractRegistry public contractRegistry;
 
   ///  @notice This modifier is applied to erc20 obsolete methods that are
   ///  implemented only to maintain backwards compatibility. When the erc20
@@ -43,30 +44,13 @@ contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, ERC820Im
 
 
   constructor () public { }
-  // constructor(
-  //       string _name,
-  //       string _symbol,
-  //       uint256 _granularity
-  //   )
-  //       public
-  //   {
-  //       mName = _name;
-  //       mSymbol = _symbol;
-  //       mTotalSupply = 0;
-  //       mErc20compatible = true;
-  //       require(_granularity >= 1);
-  //       mGranularity = _granularity;
-
-  //       // setInterfaceImplementation("ERC20Token", this);
-  //       // setInterfaceImplementation("ERC777Token", this);
-  //   }
 
   function initialize(
     string _name,
     string _symbol,
     uint256 _granularity,
     uint256 _totalSupply,
-    address _eip820RegistryAddr,
+    address _contractRegistryAddr,
     address _owner
   ) public {
     require(!_initialized, "You can only initialize this contract once.");
@@ -79,7 +63,7 @@ contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, ERC820Im
 
     setOwner(_owner);
 
-    // setIntrospectionRegistry(_eip820RegistryAddr);
+    contractRegistry = IContractRegistry(_contractRegistryAddr); //todo: get this from ENS or ERC820 somehow
     erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     setInterfaceImplementation("IEIP777", this);
     setInterfaceImplementation("Ierc20", this);
@@ -87,7 +71,14 @@ contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, ERC820Im
   }
 
   /**
-    @dev returns the current initalization status
+    @notice Sets the contract registry address
+  */
+  function setContractRegistry(address _contractRegistryAddr) public onlyOwner {
+    contractRegistry = IContractRegistry(_contractRegistryAddr);
+  }
+
+  /**
+    @dev returns the current initialization status
   */
   function initialized() public view returns(bool) {
     return _initialized;

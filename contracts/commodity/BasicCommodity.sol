@@ -75,7 +75,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
   function initialize(
     string _name,
     string _symbol,
-    address _eip820RegistryAddr,
+    address _contractRegistryAddr,
     address _participantRegistry,
     address _owner
   ) public {
@@ -84,7 +84,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     mSymbol = _symbol;
     setParticipantRegistry(_participantRegistry);
     setOwner(_owner);
-    setContractRegistry(_eip820RegistryAddr); //todo: get this from ENS or ERC820 somehow
+    contractRegistry = IContractRegistry(_contractRegistryAddr); //todo: get this from ENS or ERC820 somehow
     erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     setInterfaceImplementation("ICommodity", this);
     setInterfaceImplementation("IMintableCommodity", this);
@@ -92,14 +92,15 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     toggleParticipantCalling(true);
   }
 
-
-  // todo onlyowner
-  function setContractRegistry(address _contractRegistryAddr) public {
+  /**
+    @notice Sets the contract registry address
+  */
+  function setContractRegistry(address _contractRegistryAddr) public onlyOwner {
     contractRegistry = IContractRegistry(_contractRegistryAddr);
   }
 
   /**
-    @dev returns the current initalization status
+    @dev returns the current initialization status
   */
   function initialized() public view returns(bool) {
     return _initialized;
@@ -107,10 +108,10 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
 
   /** @notice Return the name of the token */
   function name() public view returns (string) { return mName; }
+
   /** @notice Return the symbol of the token */
   function symbol() public view returns(string) { return mSymbol; }
 
-    //todo jaycen not sure this file is even needed, maybe just combine it into storage.
   /// @notice Returns the total number of crcs currently in existence. todo jaycen can this be uint64 and also should this instead return .value of all comms?
   function getTotalSupplyByCategory(uint64 _category) public view returns (uint256) {
     return getTotalSupply(_category);

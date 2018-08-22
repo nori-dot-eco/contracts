@@ -4,22 +4,30 @@ import "../contrib/EIP/eip820/contracts/ERC820ImplementerInterface.sol";
 import "./IParticipant.sol";
 import "./IParticipantRegistry.sol";
 import "../ownership/UnstructuredOwnable.sol";
-
+import "../registry/IContractRegistry.sol";
 
 contract ParticipantV0_2_1 is UnstructuredOwnable, ERC820Implementer, ERC820ImplementerInterface, IParticipant {
   IParticipantRegistry public participantRegistry;
   bool internal _initialized;
+  IContractRegistry public contractRegistry;
 
   constructor () public { }
 
-  function initialize(address _eip820RegistryAddr, address _participantRegistry, address _owner) public {
+  function initialize(address _contractRegistryAddr, address _participantRegistry, address _owner) public {
     require(_initialized != true, "You can only initialize this contract once");
     setOwner(_owner);
-    // setIntrospectionRegistry(_eip820RegistryAddr);
+    contractRegistry = IContractRegistry(_contractRegistryAddr); //todo: get this from ENS or ERC820 somehow
     erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
-    setParticipantRegistry (_participantRegistry);
+    setParticipantRegistry (_participantRegistry); //todo get this from the contract registry or erc820
     setInterfaceImplementation("IParticipant", this);
     _initialized = true;
+  }
+
+  /**
+    @notice Sets the contract registry address
+  */
+  function setContractRegistry(address _contractRegistryAddr) public onlyOwner {
+    contractRegistry = IContractRegistry(_contractRegistryAddr);
   }
 
   /**
