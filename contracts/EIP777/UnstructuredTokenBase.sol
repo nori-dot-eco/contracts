@@ -5,7 +5,6 @@ import "../EIP777/IEIP777TokensRecipient.sol";
 import "../EIP777/IEIP777TokensSender.sol";
 import "../EIP777/IEIP777TokensOperator.sol";
 import "../EIP20/Ierc20.sol";
-//import "../EIP820/EIP820Implementer.sol";
 import "../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 import "../ownership/UnstructuredOwnable.sol";
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
