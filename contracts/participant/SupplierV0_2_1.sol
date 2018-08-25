@@ -14,7 +14,7 @@ contract SupplierV0_2_1 is ParticipantV0_2_1, ISupplier {
 
   function initialize(address _eip820RegistryAddr, address _participantRegistry, address _owner) public {
     super.initialize(_eip820RegistryAddr, _participantRegistry, _owner);
-    toggleParticipantType(true);
+    participantRegistry.toggleParticipantType("Supplier", this, true);
     setInterfaceImplementation("ISupplier", this);
   }
 
@@ -48,8 +48,8 @@ contract SupplierV0_2_1 is ParticipantV0_2_1, ISupplier {
     address destination,
     uint value,
     bytes data,
-    string ifaceLabel //todo this isnt safe, you can pass any string you want here to bypasss permissions-- look into alt
-  ) public {
+    string ifaceLabel //todo this isn't safe, you can pass any string you want here to bypasss permissions-- look into alt
+  ) public whenNotPaused {
     address _ifaceImpAddr = interfaceAddr(destination, ifaceLabel);
     if (_ifaceImpAddr != 0) {
       require(
@@ -64,20 +64,22 @@ contract SupplierV0_2_1 is ParticipantV0_2_1, ISupplier {
     //Forwarded(destination, value, data);
   }
   //todo onlyOwner
-  function toggleSupplier(address _supplier, bool _toggle) public {
+  function toggleSupplier(address _supplier, bool _toggle) public onlyOwner {
     suppliers[_supplier] = _toggle;
   }
+
   //todo onlyOwner
-  function toggleParticipantType(bool _toggle) public {
+  function toggleParticipantType(bool _toggle) public onlyOwner {
     _toggleParticipantType("Supplier", this, _toggle);
   }
-  //todo onlyOwner
-  function toggleInterface(string _ifaceLabel, address _ifaceImpAddr, bool _toggle) public {
+
+  // todo onlyOwner
+  function toggleInterface(string _ifaceLabel, address _ifaceImpAddr, bool _toggle) public onlyOwner {
     address ifaceImpAddr = interfaceAddr(_ifaceImpAddr, _ifaceLabel);
     if (ifaceImpAddr != 0) {
       allowedInterfaces[keccak256(abi.encodePacked(_ifaceLabel))][ifaceImpAddr] = _toggle;
     } else {
-      revert("You cannot toggle an interface for the 0 addres");
+      revert("You cannot toggle an interface for the 0 address");
     }
   }
 }

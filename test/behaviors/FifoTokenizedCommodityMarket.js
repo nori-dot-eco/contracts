@@ -1,5 +1,9 @@
 /* globals network */
-import { setupEnvForTests, encodeCall } from '../helpers/utils';
+import {
+  setupEnvForTests,
+  encodeCall,
+  callFunctionAsMultiAdmin,
+} from '../helpers/utils';
 import expectThrow from '../helpers/expectThrow';
 
 const { getLogs } = require('../helpers/contracts');
@@ -13,7 +17,7 @@ const {
 } = require('../helpers/contractConfigs');
 const getNamedAccounts = require('../helpers/getNamedAccounts');
 
-let participantRegistry, crc, supplier, fifoCrcMarket, nori;
+let participantRegistry, crc, supplier, fifoCrcMarket, nori, multiAdmin;
 
 const mint = (to, value) =>
   encodeCall(
@@ -26,6 +30,7 @@ const testFifoSaleBehavior = () => {
   contract(`FifoTokenizedCommodityMarket`, accounts => {
     beforeEach(async () => {
       ({
+        multiAdmin,
         deployedContracts: [
           ,
           { upgradeableContractAtProxy: participantRegistry },
@@ -46,13 +51,28 @@ const testFifoSaleBehavior = () => {
         getNamedAccounts(web3).admin0,
         { network, artifacts, accounts, web3 }
       ));
-      await participantRegistry.toggleParticipantType(
-        'Supplier',
-        supplier.address,
-        true
+
+      await callFunctionAsMultiAdmin(
+        multiAdmin,
+        participantRegistry,
+        0,
+        'toggleParticipantType',
+        ['Supplier', supplier.address, true]
       );
-      await supplier.toggleSupplier(getNamedAccounts(web3).supplier0, true);
-      await supplier.toggleInterface('IMintableCommodity', crc.address, true);
+      await callFunctionAsMultiAdmin(
+        multiAdmin,
+        supplier,
+        0,
+        'toggleSupplier',
+        [getNamedAccounts(web3).supplier0, true]
+      );
+      await callFunctionAsMultiAdmin(
+        multiAdmin,
+        supplier,
+        0,
+        'toggleInterface',
+        ['IMintableCommodity', crc.address, true]
+      );
     });
 
     context('Create a sale using authorizeOperator', () => {
@@ -95,7 +115,7 @@ const testFifoSaleBehavior = () => {
     });
 
     context(
-      'Create a CRC sale from asupplier account, then purchase part of that CRC using a buyer account',
+      'Create a CRC sale from a supplier account, then purchase part of that CRC using a buyer account',
       () => {
         beforeEach(async () => {
           await nori.mint(getNamedAccounts(web3).buyer0, web3.toWei('100'), '');
@@ -272,7 +292,7 @@ const testFifoSaleBehavior = () => {
       });
     });
 
-    describe('SaleSuccesfull (event)', () => {
+    describe('SaleSuccessful (event)', () => {
       let saleSuccessfulLogs, event;
       beforeEach(async () => {
         await supplier.forward(

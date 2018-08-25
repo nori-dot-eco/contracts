@@ -13,7 +13,7 @@ contract SelectableTokenizedCommodityMarket is StandardTokenizedCommodityMarket,
     super.initialize(_eip820RegistryAddr, _marketItems, _owner);
   }
 
-  function buy(address _from, uint256 _tokenId, uint256 _amount) private {
+  function buy(address _from, uint256 _tokenId, uint256 _amount) private whenNotPaused {
     // _buy will throw if the bid or funds transfer fails todo jaycen fix static 0 addr
     _buy(_from, _tokenId, _amount);
     _transfer(
@@ -42,7 +42,7 @@ contract SelectableTokenizedCommodityMarket is StandardTokenizedCommodityMarket,
     bytes userData,
     bytes
   )
-  public
+  public whenNotPaused
   {
     require(
       address(commodityContract) == msg.sender,
@@ -81,7 +81,7 @@ contract SelectableTokenizedCommodityMarket is StandardTokenizedCommodityMarket,
     uint256, // value,
     bytes, // userData,
     bytes // operatorData
-  ) public {
+  ) public whenNotPaused {
     require(
       address(commodityContract) == msg.sender,
       "Only the commodity contract can use 'revokedOperatorForCommodity'"
@@ -103,7 +103,7 @@ contract SelectableTokenizedCommodityMarket is StandardTokenizedCommodityMarket,
     uint256 amount,
     bytes,
     bytes
-  ) public {
+  ) public whenNotPaused {
     require(
       address(tokenContract) == msg.sender,
       "Only the commodity contract can use 'madeOperatorForTokens'"
@@ -122,7 +122,7 @@ contract SelectableTokenizedCommodityMarket is StandardTokenizedCommodityMarket,
     address _seller,
     uint256 _value,
     bytes _misc
-  ) public {
+  ) public whenNotPaused {
     _createSale(
       _tokenId,
       _category,

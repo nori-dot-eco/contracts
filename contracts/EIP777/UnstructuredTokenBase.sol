@@ -6,7 +6,7 @@ import "../EIP777/IEIP777TokensSender.sol";
 import "../EIP777/IEIP777TokensOperator.sol";
 import "../EIP20/Ierc20.sol";
 import "../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
-import "../ownership/UnstructuredOwnable.sol";
+import "../../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol";
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
 import "../registry/IContractRegistry.sol";
 
@@ -17,7 +17,7 @@ import "../registry/IContractRegistry.sol";
 *   that use a proxy/dispatch (DELEGATECALL) variation that allows for
 *   storage changes over time. IE, you can define new vars in new versions
 */
-contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, ERC820Implementer {
+contract UnstructuredTokenBase is Ownable, Ierc20, IEIP777, ERC820Implementer {
 
   using SafeMath for uint256;
 
@@ -61,7 +61,7 @@ contract UnstructuredTokenBase is UnstructuredOwnable, Ierc20, IEIP777, ERC820Im
     require(_granularity >= 1, "Token granularity must be >= 1");
     mGranularity = _granularity;
 
-    setOwner(_owner);
+    owner = _owner;
 
     contractRegistry = IContractRegistry(_contractRegistryAddr); //todo: get this from ENS or ERC820 somehow
     erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);

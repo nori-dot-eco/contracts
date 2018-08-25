@@ -33,7 +33,7 @@ contract PausableToken is UnstructuredTokenBase {
   /**
    * @dev called by the owner to pause, triggers stopped state
    */
-  function pause() public onlyOwner whenNotPaused {
+  function pause() public onlyOwner {
     paused = true;
     emit Pause();
   }
@@ -41,24 +41,24 @@ contract PausableToken is UnstructuredTokenBase {
   /**
    * @dev called by the owner to unpause, returns to normal state
    */
-  function unpause() public onlyOwner whenPaused {
+  function unpause() public onlyOwner {
     paused = false;
     emit Unpause();
   }
 
-  function setContractRegistry(address _contractRegistryAddr) public onlyOwner whenNotPaused {
+  function setContractRegistry(address _contractRegistryAddr) public onlyOwner {
     super.setContractRegistry(_contractRegistryAddr);
   }
 
   /// @notice Disables the ERC-20 interface. This function can only be called
   ///  by the owner.
-  function disableERC20() public onlyOwner whenNotPaused {
+  function disableERC20() public onlyOwner {
     super.disableERC20();
   }
 
   /// @notice Re enables the ERC-20 interface. This function can only be called
   ///  by the owner.
-  function enableERC20() public onlyOwner whenNotPaused {
+  function enableERC20() public onlyOwner {
     super.enableERC20();
   }
 
@@ -172,7 +172,7 @@ contract PausableToken is UnstructuredTokenBase {
   ///  Sample burn function to showcase the use of the `Burnt` event.
   /// @param _tokenHolder The address that will lose the tokens
   /// @param _value The quantity of tokens to burn
-  function burn(address _tokenHolder, uint256 _value) public onlyOwner whenNotPaused {
+  function burn(address _tokenHolder, uint256 _value) public onlyOwner {
     super.burn(_tokenHolder, _value);
   }
 

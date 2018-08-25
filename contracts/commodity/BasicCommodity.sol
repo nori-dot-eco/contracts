@@ -5,13 +5,13 @@ import "./ICommodityOperator.sol";
 import "./ICommoditySender.sol";
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
-import "../ownership/UnstructuredOwnable.sol";
+import "../lifecycle/Pausable.sol";
 import "./ICommodity.sol";
 import "../participant/IParticipantRegistry.sol";
 import "../commodity/CommodityLib.sol";
 import "../registry/IContractRegistry.sol";
 
-contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
+contract BasicCommodity is Pausable, ERC820Implementer, ICommodity {
   using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
 
   /*** EVENTS ***/
@@ -78,18 +78,18 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     address _contractRegistryAddr,
     address _participantRegistry,
     address _owner
-  ) public {
+  ) public whenNotPaused {
     require(!_initialized, "You can only initialize a contract once");
     mName = _name;
     mSymbol = _symbol;
-    setParticipantRegistry(_participantRegistry);
-    setOwner(_owner);
+    participantRegistry = IParticipantRegistry(_participantRegistry);
+    owner = _owner;
     contractRegistry = IContractRegistry(_contractRegistryAddr); //todo: get this from ENS or ERC820 somehow
     erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     setInterfaceImplementation("ICommodity", this);
     setInterfaceImplementation("IMintableCommodity", this);
     setInterfaceImplementation("IVerifiableCommodity", this);
-    toggleParticipantCalling(true);
+    onlyParticipantCallers = true;
   }
 
   /**
@@ -151,17 +151,16 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     return commodities.length.sub(1);
   }
 
-  //todo jaycen onlyowner modifer
-  function setParticipantRegistry (address _participantRegistry) public {
+  function setParticipantRegistry (address _participantRegistry) public onlyOwner {
     participantRegistry = IParticipantRegistry(_participantRegistry);
   }
 
   function getParticipantRegistry() public view returns(address) {
     return participantRegistry;
   }
-  //todo onlyOwner
+
   //todo jaycen adding this for now to allow how minting currently works, should look into removing later, at the very least, add onlyOwner modifer and DO NOT LAUNCH
-  function toggleParticipantCalling(bool _toggle) public {
+  function toggleParticipantCalling(bool _toggle) public onlyOwner {
     onlyParticipantCallers = _toggle;
   }
 
@@ -188,7 +187,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
 
   /// @dev Assigns ownership of a specific commodity to an address. Currently, you can only
   /// transfer a single bundle per transaction.
-  function _transfer(address _from, address _to, uint256 _tokenId) internal {
+  function _transfer(address _from, address _to, uint256 _tokenId) internal whenNotPaused {
     //require commodity not locked/retired
     require(_unlocked(_tokenId), "You cannot transfer a locked/retired commodity");
 
@@ -198,7 +197,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     // transfer ownership of bundle
     commodityIndexToOwner[_tokenId] = _to;
 
-    // When creating new commodites _from is 0x0, but we can't account that address.
+    // When creating new commodities _from is 0x0, but we can't account that address.
     if (_from != address(0)) {
       _balances[_from] = _balances[_from].sub(commodities[_tokenId].value);
       if(ownershipBundleCount[_from] > 0){
@@ -279,7 +278,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
   }
 
   /** @notice Sample burn function to showcase the use of the 'Burn' event. */
-  function burn(address _tokenHolder, uint256 _tokenId) public returns(bool) {
+  function burn(address _tokenHolder, uint256 _tokenId) public whenNotPaused returns(bool)  {
     require(_owns(msg.sender, _tokenId), "Only the commodity owner can burn a commodity");
 
     ownershipBundleCount[_tokenHolder] = ownershipBundleCount[_tokenHolder].sub(1);
@@ -299,7 +298,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     bytes _userData,
     bytes _operatorData,
     bool _preventLocking
-  ) internal {
+  ) internal whenNotPaused {
     require(_owns(_to, _tokenId), "Only a commodity owner can use 'callRecipient'");
     address recipientImplementation = interfaceAddr(_to, "ICommodityRecipient");
     if (recipientImplementation != 0) {
@@ -325,7 +324,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     bytes _userData,
     bytes _operatorData,
     bool _preventLocking
-  ) internal {
+  ) internal whenNotPaused {
     require(
       _approvedFor(_operator, _tokenId),
       "Only an approved address can use 'callOperator'"
@@ -368,7 +367,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     bytes _userData,
     bytes _operatorData,
     bool _preventLocking
-  ) internal {
+  ) internal whenNotPaused {
     require(
       _approvedFor(_operator, _tokenId),
       "Only an approved address can use 'callRevokedOperator'"
@@ -398,7 +397,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     bytes _userData,
     bytes _operatorData,
     bool _preventLocking
-  ) internal {
+  ) internal whenNotPaused {
     require(_approvedFor(_operator, _tokenId), "Only an approved address can use 'callSender'");
     address recipientImplementation = interfaceAddr(_to, "ICommoditySender");
     if (recipientImplementation != 0) {
@@ -424,7 +423,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     address _operator,
     bytes _operatorData,
     bool _preventLocking
-  ) internal {
+  ) internal whenNotPaused {
     // TODO (jaycen) PRELAUNCH do we need an operator AND sender caller? Refer to latest erc721 --
     callSender(
       _operator,
@@ -482,7 +481,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
   }
 
   /** @notice Send '_value' amount of tokens to address '_to'. */
-  function send(address _to, uint256 _tokenId) public {
+  function send(address _to, uint256 _tokenId) public whenNotPaused {
     doSend(
       msg.sender,
       _to,
@@ -495,7 +494,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
   }
 
   /** @notice Send '_value' amount of tokens to address '_to'. */
-  function send(address _to, uint256 _tokenId, bytes _userData) public {
+  function send(address _to, uint256 _tokenId, bytes _userData) public whenNotPaused {
     doSend(
       msg.sender,
       _to,
@@ -516,7 +515,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     address _operator,
     bytes _operatorData,
     bool _preventLocking
-  ) public {
+  ) public whenNotPaused {
     // Safety check to prevent against an unexpected 0x0 default.
     require(_to != address(0), "You cannot send to the 0 address (0x0)");
     require(
@@ -541,7 +540,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
   /// contract be VERY CAREFUL to ensure that it is aware of ERC-721 .
   /// @param _to The address of the recipient, can be a user or contract.
   /// @param _tokenId The ID of the commodity to transfer.
-  function transfer(address _to, uint256 _tokenId) public {
+  function transfer(address _to, uint256 _tokenId) public whenNotPaused {
     // Safety check to prevent against an unexpected 0x0 default.
     require(_to != address(0), "You cannot transfer to the burn address");
     require(_tokenId >= 0, "You can only transfer a valid commodity ID (>=0)");
@@ -557,7 +556,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
   ///  NOTE: _approve() does NOT send the Approval event. This is intentional because
   ///  _approve() and transferFrom() are used together for putting commodities on auction, and
   ///  there is no value in spamming the log with Approval events in that case.
-  function _approve(uint256 _tokenId, address _operator) private {
+  function _approve(uint256 _tokenId, address _operator) private whenNotPaused {
     _cumulativeAllowance[_operator] = _cumulativeAllowance[_operator].add(commodities[_tokenId].value);
     commodityBundleIndexToApproved[_tokenId] = _operator;
     commodityOperatorBundleApprovals[_operator][msg.sender].push(_tokenId);
@@ -573,7 +572,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
   ///  clear all approvals.
   /// @param _tokenId The ID of the crc that can be transferred if this call succeeds.
   /// @dev Required for ERC-721 compliance.
-  function approve(address _to, uint256 _tokenId) public {
+  function approve(address _to, uint256 _tokenId) public whenNotPaused {
     // Only an owner can grant transfer approval.
     require(_owns(msg.sender, _tokenId), "Only the owner of a commodity can approve another address");
     // Register the approval (replacing any previous approval).
@@ -597,7 +596,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
   ///  In combination with ERC820, it dials a contract address, and if it is
   /// listed as the market contract, creates a sale in the context of that contract.
   /// Note: it can also be used to authorize any third party as a sender of the bundle.
-  function authorizeOperator(address _operator, uint256 _tokenId) public {
+  function authorizeOperator(address _operator, uint256 _tokenId) public whenNotPaused {
     require(_unlocked(_tokenId), "You cannot authorize an operator for a locked commodity");
     require(_operator != msg.sender, "You cannot authorize yourself as an operator");
     approve(_operator, _tokenId);
@@ -617,7 +616,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
   }
 
   /** @notice Revoke a third party '_operator''s rights to manage (send) 'msg.sender''s tokens. */
-  function revokeOperator(address _operator, uint256 _tokenId) public {
+  function revokeOperator(address _operator, uint256 _tokenId) public whenNotPaused {
     //todo jaycen call operator to cancel sale on markets
     require(_operator != msg.sender, "You cannot revoke yourself as an operator");
     require(_owns(msg.sender, _tokenId), "Only the owner of the commodity can revoke an operator");
@@ -663,7 +662,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     uint256,
     bytes,
     bytes
-  ) public {
+  ) public whenNotPaused {
     revert("This is a deprecated function");
   }
 
@@ -674,7 +673,7 @@ contract BasicCommodity is UnstructuredOwnable, ERC820Implementer, ICommodity {
     uint256 _tokenId,
     bytes _userData,
     bytes _operatorData
-  ) public {
+  ) public whenNotPaused {
     require(isOperatorForOne(msg.sender, _tokenId), "Only an operator can 'operatorSend' a commodity bundle");
     doSend(
       _from,
