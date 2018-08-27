@@ -3,10 +3,10 @@ import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
 import "../contrib/EIP/eip820/contracts/ERC820ImplementerInterface.sol";
 import "./IParticipant.sol";
 import "./IParticipantRegistry.sol";
-import "../ownership/UnstructuredOwnable.sol";
+import "../lifecycle/Pausable.sol";
 import "../registry/IContractRegistry.sol";
 
-contract ParticipantV0_2_1 is UnstructuredOwnable, ERC820Implementer, ERC820ImplementerInterface, IParticipant {
+contract ParticipantV0_2_1 is Pausable, ERC820Implementer, ERC820ImplementerInterface, IParticipant {
   IParticipantRegistry public participantRegistry;
   bool internal _initialized;
   IContractRegistry public contractRegistry;
@@ -15,10 +15,10 @@ contract ParticipantV0_2_1 is UnstructuredOwnable, ERC820Implementer, ERC820Impl
 
   function initialize(address _contractRegistryAddr, address _participantRegistry, address _owner) public {
     require(_initialized != true, "You can only initialize this contract once");
-    setOwner(_owner);
+    owner = _owner;
     contractRegistry = IContractRegistry(_contractRegistryAddr); //todo: get this from ENS or ERC820 somehow
     erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
-    setParticipantRegistry (_participantRegistry); //todo get this from the contract registry or erc820
+    participantRegistry = IParticipantRegistry(_participantRegistry); //todo get this from the contract registry or erc820
     setInterfaceImplementation("IParticipant", this);
     _initialized = true;
   }
@@ -41,11 +41,11 @@ contract ParticipantV0_2_1 is UnstructuredOwnable, ERC820Implementer, ERC820Impl
     return ERC820_ACCEPT_MAGIC;
   }
 
-  function setParticipantRegistry (address _participantRegistry) public {
+  function setParticipantRegistry (address _participantRegistry) public onlyOwner {
     participantRegistry = IParticipantRegistry(_participantRegistry);
   }
 
-  function getParticipantRegistry() public returns(address) {
+  function getParticipantRegistry() public view returns(address) {
     return participantRegistry;
   }
 
@@ -53,17 +53,17 @@ contract ParticipantV0_2_1 is UnstructuredOwnable, ERC820Implementer, ERC820Impl
     return participantRegistry.isAllowed(_ifaceImpAddr, ifaceLabel);
   }
 
-  function _forward(address destination, uint value, bytes data) internal {
+  function _forward(address destination, uint value, bytes data) internal whenNotPaused {
     require(_executeCall(destination, value, data), "'executeCall' failed");
   }
 
-  function _executeCall(address to, uint256 value, bytes data) private returns (bool success) {
+  function _executeCall(address to, uint256 value, bytes data) private whenNotPaused returns (bool success) {
     assembly { // solium-disable-line security/no-inline-assembly
       success := call(gas, to, value, add(data, 0x20), mload(data), 0, 0)
     }
   }
 
-  function _toggleParticipantType(string _participantType, address _participantTypeAddr, bool _toggle) internal {
+  function _toggleParticipantType(string _participantType, address _participantTypeAddr, bool _toggle) internal onlyOwner {
     participantRegistry.toggleParticipantType(_participantType, _participantTypeAddr, _toggle);
   }
 

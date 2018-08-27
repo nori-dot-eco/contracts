@@ -204,7 +204,19 @@ const setupEnvForTests = async (
   return { multiAdmin, rootRegistry, deployedContracts };
 };
 
+const callFunctionAsMultiAdmin = async (
+  multiAdmin,
+  contractToCall,
+  value,
+  funcName,
+  funcParams
+) => {
+  const func = contractToCall.contract[funcName].getData(...funcParams);
+  await multiAdmin.submitTransaction(contractToCall.address, value, func);
+};
+
 Object.assign(exports, {
+  callFunctionAsMultiAdmin,
   onlyWhitelisted,
   giveEth,
   sendTx,

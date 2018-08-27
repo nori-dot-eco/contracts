@@ -425,10 +425,22 @@ const upgradeAndTransferToMultiAdmin = async (
   };
 };
 
+// Takes an array contractsToUpgrade, and returns an array of objects containing:
+// {
+//   contractToMakeUpgradeable,
+//   upgradeableContractAtProxy,
+//   proxy,
+//   registry,
+//   contractName,
+//   versionName,
+//   upgraded,
+// }
+// Note: the array returned will be in the same order as it was passed in so that it can
+// be easily destructured
 const upgradeAndMigrateContracts = (
   { network, artifacts, accounts, web3 },
   adminAccountAddress,
-  contractsToUpgrade, // <- pass these in the correct order; they may depend on eachother
+  contractsToUpgrade, // <- pass these in the correct order; e.g. contract index 2 may require contract index 1 to be deployed first
   multiAdmin,
   root
 ) => {

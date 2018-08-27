@@ -65,7 +65,7 @@ const shouldBehaveLikeSupplier = admin => {
       toggles.forEach(toggle => {
         it('should enable supplier account', async () => {
           await supplier.toggleSupplier(supplierAcc, toggle, {
-            from: supplierAcc,
+            from: admin,
           });
           assert.equal(
             await supplier.suppliers.call([supplierAcc], { from: supplierAcc }),
@@ -79,11 +79,11 @@ const shouldBehaveLikeSupplier = admin => {
     describe('forward', () => {
       it('should mint 1 CRC using supplier forwarding proxy', async () => {
         await supplier.toggleInterface('IMintableCommodity', crcAddress, true, {
-          from: supplierAcc,
+          from: admin,
         });
 
         await supplier.toggleSupplier(supplierAcc, true, {
-          from: supplierAcc,
+          from: admin,
         });
         await supplier.forward(crcAddress, 0, mint, 'IMintableCommodity', {
           from: supplierAcc,
@@ -93,10 +93,10 @@ const shouldBehaveLikeSupplier = admin => {
       });
       it('should fail minting 1 CRC using a non supplier account via forwarding proxy', async () => {
         await supplier.toggleInterface('IMintableCommodity', crcAddress, true, {
-          from: supplierAcc,
+          from: admin,
         });
         await supplier.toggleSupplier(accounts[1], false, {
-          from: supplierAcc,
+          from: admin,
         });
 
         await expectThrow(
@@ -120,7 +120,7 @@ const shouldBehaveLikeSupplier = admin => {
       toggles.forEach(toggle => {
         it('should disable the supplier participant type and fail when minting', async () => {
           await supplier.toggleParticipantType(toggle, {
-            from: supplierAcc,
+            from: admin,
           });
           toggle === false
             ? await expectThrow(
@@ -145,17 +145,17 @@ const shouldBehaveLikeSupplier = admin => {
       toggles.forEach(toggle => {
         it('should set valid permissions and not fail', async () => {
           await supplier.toggleParticipantType(toggle[0], {
-            from: supplierAcc,
+            from: admin,
           });
           await supplier.toggleSupplier(supplierAcc, toggle[1], {
-            from: supplierAcc,
+            from: admin,
           });
           await supplier.toggleInterface(
             'IMintableCommodity',
             crcAddress,
             toggle[2],
             {
-              from: supplierAcc,
+              from: admin,
             }
           );
           await supplier.isAllowed(crcAddress, 'IMintableCommodity', {
@@ -173,17 +173,17 @@ const shouldBehaveLikeSupplier = admin => {
       toggles.forEach(toggle => {
         it('should set invalid permissions and fail', async () => {
           await supplier.toggleParticipantType(toggle[0], {
-            from: supplierAcc,
+            from: admin,
           });
           await supplier.toggleSupplier(supplierAcc, toggle[1], {
-            from: supplierAcc,
+            from: admin,
           });
           await supplier.toggleInterface(
             'IMintableCommodity',
             crcAddress,
             toggle[2],
             {
-              from: supplierAcc,
+              from: admin,
             }
           );
           await expectThrow(

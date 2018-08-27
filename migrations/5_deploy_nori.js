@@ -86,27 +86,36 @@ module.exports = (deployer, network, accounts) => {
     const crcDeployment = deployedContracts.find(
       ({ contractName }) => contractName === 'CRC'
     );
+
+    // Supplier interface permissions:
     const supplier = artifacts
       .require(`SupplierV${supplierDeployment.versionName}`)
       .at(supplierDeployment.proxy.address);
-    await supplier.toggleInterface(
-      'IMintableCommodity',
-      crcDeployment.proxy.address,
-      true
+    await utils.callFunctionAsMultiAdmin(
+      multiAdmin,
+      supplier,
+      0,
+      'toggleInterface',
+      ['IMintableCommodity', crcDeployment.proxy.address, true]
     );
-    await supplier.toggleInterface(
-      'ICommodity',
-      crcDeployment.proxy.address,
-      true
+    await utils.callFunctionAsMultiAdmin(
+      multiAdmin,
+      supplier,
+      0,
+      'toggleInterface',
+      ['ICommodity', crcDeployment.proxy.address, true]
     );
 
+    // Verifier interface permissions:
     const verifier = artifacts
       .require(`VerifierV${verifierDeployment.versionName}`)
       .at(verifierDeployment.proxy.address);
-    await verifier.toggleInterface(
-      'IVerifiableCommodity',
-      crcDeployment.proxy.address,
-      true
+    await utils.callFunctionAsMultiAdmin(
+      multiAdmin,
+      verifier,
+      0,
+      'toggleInterface',
+      ['IVerifiableCommodity', crcDeployment.proxy.address, true]
     );
 
     utils.printRegistryInfo(

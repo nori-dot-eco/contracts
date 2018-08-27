@@ -38,7 +38,6 @@ const testEvents = admin => {
   let registryAtProxyV0;
   let registryProxy;
   let rootRegistryAtProxy;
-  let ownerLogs;
   let registrySetLogs;
   let upOwnerSetLogs;
   let contractRegistryProxy;
@@ -91,7 +90,6 @@ const testEvents = admin => {
       versionSetLogs = await getLogs(rootRegistryAtProxy.VersionSet);
 
       initLogs = await getLogs(registryAtProxyV0.Initialized);
-      ownerLogs = await getLogs(registryAtProxyV0.OwnerSet);
     });
 
     describe('VersionSet event', () => {
@@ -152,22 +150,6 @@ const testEvents = admin => {
       context(
         'Events triggered because of initialization but not a core part of Registry',
         () => {
-          describe('OwnerSet event', () => {
-            it('should put a OwnerSet event into the logs', () => {
-              assert.equal(
-                ownerLogs.length,
-                1,
-                'Expected one OwnerSet event to have been sent'
-              );
-            });
-            it("should include an 'newOwner' arg", () => {
-              assert.equal(
-                ownerLogs[0].args.newOwner,
-                admin,
-                'Expected OwnerSet Event "newOwner" arg to be the admin account'
-              );
-            });
-          });
           describe('ImplementationPositionSet event', () => {
             it('should put a ImplementationPositionSet event into the logs', () => {
               assert.equal(

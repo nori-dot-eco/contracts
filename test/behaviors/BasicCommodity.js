@@ -1,5 +1,9 @@
 /* globals network */
-import { setupEnvForTests, encodeCall } from '../helpers/utils';
+import {
+  setupEnvForTests,
+  encodeCall,
+  callFunctionAsMultiAdmin,
+} from '../helpers/utils';
 
 const {
   crcConfig,
@@ -11,7 +15,7 @@ const {
 } = require('../helpers/contractConfigs');
 const getNamedAccounts = require('../helpers/getNamedAccounts');
 
-let participantRegistry, basicCommodity, supplier;
+let participantRegistry, basicCommodity, supplier, multiAdmin;
 
 const mint = (to, value) =>
   encodeCall(
@@ -24,6 +28,7 @@ const testBasicCommodityFunctions = () => {
   contract(`BasicCommodity`, accounts => {
     beforeEach(async () => {
       ({
+        multiAdmin,
         deployedContracts: [
           ,
           { upgradeableContractAtProxy: participantRegistry },
@@ -58,17 +63,28 @@ const testBasicCommodityFunctions = () => {
       'Enable the minting and supplier interfaces needed for third party operator scenarios and mint 1 crc',
       () => {
         beforeEach(async () => {
-          await participantRegistry.toggleParticipantType(
-            'Supplier',
-            supplier.address,
-            true
+          await callFunctionAsMultiAdmin(
+            multiAdmin,
+            participantRegistry,
+            0,
+            'toggleParticipantType',
+            ['Supplier', supplier.address, true]
           );
-          await supplier.toggleSupplier(getNamedAccounts(web3).supplier0, true);
-          await supplier.toggleInterface(
-            'IMintableCommodity',
-            basicCommodity.address,
-            true
+          await callFunctionAsMultiAdmin(
+            multiAdmin,
+            supplier,
+            0,
+            'toggleSupplier',
+            [getNamedAccounts(web3).supplier0, true]
           );
+          await callFunctionAsMultiAdmin(
+            multiAdmin,
+            supplier,
+            0,
+            'toggleInterface',
+            ['IMintableCommodity', basicCommodity.address, true]
+          );
+
           await supplier.forward(
             basicCommodity.address,
             0,
