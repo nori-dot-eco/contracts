@@ -51,10 +51,10 @@ context('Setup test environment', () => {
   });
 
   context('Execute tests', () => {
-    // todo jaycen fix this (broken when removed etsernal storage stuffz)
+    // todo jaycen fix this (broken when removed eternal storage stuff)
     // ProxyTests();
-    MultiSigWallet(); // Multisig wallet tests
-    MultiAdminTests(); // Multisig admin tests
+    MultiSigWallet(); // MultiSig wallet tests
+    MultiAdminTests(); // MultiSig admin tests
     ContractRegistryTests(admin0, admin1, unregistered0);
     RootRegistryTests();
     SelectableCrcMarketTests();

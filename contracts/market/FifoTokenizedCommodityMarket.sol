@@ -30,7 +30,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
       revert("Invalid sale index");
   }
 
-  function buy(address _buyer, uint256 _amount) private {
+  function buy(address _buyer, uint256 _amount) private whenNotPaused {
     var (commodityIndex, saleIndex) = getEarliestSale();
 
     uint256 newSaleAmount = _buy(_buyer, commodityIndex, _amount);
@@ -65,7 +65,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     uint256 value,
     bytes userData,
     bytes // operatorData
-  ) public {
+  ) public whenNotPaused {
     require(
       address(commodityContract) == msg.sender,
       "Only the commodity contract can invoke 'madeOperatorForCommodity'"
@@ -103,7 +103,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     uint256, // value,
     bytes, // userData,
     bytes // operatorData
-  ) public {
+  ) public whenNotPaused {
     require(
       address(commodityContract) == msg.sender,
       "Only the commodity contract can invoke 'revokedOperatorForCommodity'"
@@ -124,7 +124,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     uint256 amount,
     bytes, // userData,
     bytes // operatorData
-  ) public {
+  ) public whenNotPaused {
     if (preventTokenOperator) {
       revert("This contract does not currently allow being made the operator of tokens");
     }
@@ -139,7 +139,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     address _seller,
     uint256 _value,
     bytes _misc
-  ) private {
+  ) private whenNotPaused {
     _createSale(
       _tokenId,
       _category,
@@ -151,7 +151,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
     commoditiesForSale.push(int(_tokenId));
   }
 
-  function removeSale(uint256 _tokenId) private { //todo onlyThisContract modifier
+  function removeSale(uint256 _tokenId) private whenNotPaused { //todo onlyThisContract modifier
     _removeSale(_tokenId);
     for (uint i = 0; i < commoditiesForSale.length; i++ ) {
       if (uint(commoditiesForSale[i]) == _tokenId) {

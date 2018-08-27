@@ -13,19 +13,16 @@ contract MintableCommodity is BasicCommodity, IMintableCommodity {
   event Minted(address indexed to, uint commodityId, uint256 amount, address indexed operator, bytes operatorData);
   event InsufficientPermission(address sender, bytes operatorData, uint256 value, bytes misc);
 
-  //todo jaycen PRELAUNCH add onlyowner modifier or similar
   // todo jaycen, does the fact that this now returns data mess up compatibility with 721/777?
   /// @notice Generates `_value` tokens to be assigned to `_tokenHolder`
   /// @param _operatorData Data that will be passed to the recipient as a first transfer
-  /// XXX: DO NOT SHIP TO PRODUCTION -- maybe we can get rid of ownermint if we allow any to creat crc category 0
   function mint(
     address _to,
     bytes _operatorData,
     uint256 _value,
     bytes _misc
-  ) public returns(uint64) {
+  ) public whenNotPaused returns(uint64) {
 
-    //todo jaycen is this safe? Can someone somehow return teh same participant address and spoof that the msg is coming from a defined address?
     //todo replace the following if else logic with the require logic that exists in the split function. This is needed only so that current tests don't break
     address participantProxy = interfaceAddr(msg.sender, "IParticipant");
     if (participantProxy != 0) {

@@ -15,7 +15,7 @@ contract VerifierV0_2_1 is ParticipantV0_2_1, IVerifier {
   function initialize(address _eip820RegistryAddr, address _participantRegistry, address _owner) public {
     super.initialize(_eip820RegistryAddr, _participantRegistry, _owner);
     setInterfaceImplementation("IVerifier", this);
-    toggleParticipantType(true);
+    participantRegistry.toggleParticipantType("Verifier", this, true);
   }
 
   function canImplementInterfaceForAddress(address, bytes32) public view returns(bytes32) {
@@ -45,7 +45,7 @@ contract VerifierV0_2_1 is ParticipantV0_2_1, IVerifier {
     uint value,
     bytes data,
     string ifaceLabel
-  ) public {
+  ) public whenNotPaused {
     address _ifaceImpAddr = interfaceAddr(destination, ifaceLabel);
     if (_ifaceImpAddr != 0) {
       require(isAllowed(_ifaceImpAddr, ifaceLabel) == true, "The specified interface is not currently allowed");
@@ -57,15 +57,15 @@ contract VerifierV0_2_1 is ParticipantV0_2_1, IVerifier {
     //Forwarded(destination, value, data);
   }
 
-  function toggleVerifier(address _verifier, bool _toggle) public {
+  function toggleVerifier(address _verifier, bool _toggle) public onlyOwner {
     verifiers[_verifier] = _toggle;
   }
 
-  function toggleParticipantType(bool _toggle) public {
+  function toggleParticipantType(bool _toggle) public onlyOwner {
     _toggleParticipantType("Verifier", this, _toggle);
   }
 
-  function toggleInterface(string _ifaceLabel, address _ifaceImpAddr, bool _toggle) public {
+  function toggleInterface(string _ifaceLabel, address _ifaceImpAddr, bool _toggle) public onlyOwner {
     address ifaceImpAddr = interfaceAddr(_ifaceImpAddr, _ifaceLabel);
     if (ifaceImpAddr != 0) {
       allowedInterfaces[keccak256(abi.encodePacked(_ifaceLabel))][ifaceImpAddr] = _toggle;

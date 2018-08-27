@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
-import "../ownership/UnstructuredOwnable.sol";
+import "../lifecycle/Pausable.sol";
 import "./IContractRegistry.sol";
 
 /// @title ContractRegistryBase
 /// @dev defines the base registry function sets for future versions to inherit from
-contract ContractRegistryBase is UnstructuredOwnable, IContractRegistry {
+contract ContractRegistryBase is Pausable, IContractRegistry {
   //todo does UnstructuredOwnable inheritance position matter? --^
 
   event Initialized(address owner);
@@ -20,10 +20,10 @@ contract ContractRegistryBase is UnstructuredOwnable, IContractRegistry {
   }
 
   //todo onlyowner?
-  function initialize(address owner) public {
+  function initialize(address _owner) public {
     require(_initialized != true, "You can only initialize this contract once.");
     //todo register interfaces using eip820
-    setOwner(owner);
+    owner = _owner;
     _initialized = true;
     emit Initialized(owner);
   }
@@ -42,7 +42,7 @@ contract ContractRegistryBase is UnstructuredOwnable, IContractRegistry {
     address proxyAddress,
     string versionName,
     address newImplementation
-  ) public {
+  ) public whenNotPaused {
     _setVersion(
       contractName,
       proxyAddress,
@@ -66,7 +66,7 @@ contract ContractRegistryBase is UnstructuredOwnable, IContractRegistry {
     address _proxyAddress,
     string _versionName,
     address _newImplementation
-  ) internal {
+  ) internal whenNotPaused {
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
     Version[] storage history = versions[contractName][_proxyAddress];
     history.push(Version(_versionName, _newImplementation));

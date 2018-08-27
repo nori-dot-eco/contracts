@@ -1,11 +1,11 @@
 pragma solidity ^0.4.24;
-import "../EIP777/UnstructuredTokenBase.sol";
+import "./PausableToken.sol";
 
 
 /// @dev NoriV0_1_2 is a EIP777 token that uses unstructured storage for upgradeability
-contract NoriV0_1_2 is UnstructuredTokenBase {
+contract NoriV0_1_2 is PausableToken {
 
-  constructor() UnstructuredTokenBase() public {
+  constructor() PausableToken() public {
     /*Delegate constructor*/
   }
 }
