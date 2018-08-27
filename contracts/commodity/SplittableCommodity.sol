@@ -9,7 +9,7 @@ contract SplittableCommodity is MintableCommodity {
 
   event Split(address indexed to, uint256 amount, uint64 parentId, address indexed operator, bytes operatorData);
 
-  function split(uint _tokenId, address _to, uint256 _amount) public {
+  function split(uint _tokenId, address _to, uint256 _amount) public whenNotPaused {
     address supplierProxy = IContractRegistry(contractRegistry).getLatestProxyAddr("Supplier");
     require(
       msg.sender == IContractRegistry(contractRegistry).getLatestProxyAddr("FifoCrcMarket") ||
