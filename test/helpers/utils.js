@@ -136,7 +136,7 @@ const printRegisteredContracts = deployedContracts =>
       contractToMakeUpgradeable,
     }) => {
       const spaces = ' '.repeat(
-        'participantregistry  '.length - contractName.length
+        'ParticipantRegistry  '.length - contractName.length
       );
       const preface = '   ->    ';
 
@@ -180,8 +180,8 @@ const printRegistryInfo = (
     console.log('\n==========\n');
   }, 1500);
 
-// Deploy a fresh root, contract registry, multiadmin, and any
-// number of contracts -- for testcase use inside of truffle
+// Deploy a fresh root, contract registry, multiAdmin, and any
+// number of contracts -- for test-case use inside of truffle
 const setupEnvForTests = async (
   contractsToConfigure,
   admin,

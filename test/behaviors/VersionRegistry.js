@@ -1,142 +1,173 @@
-import {
-  UnstructuredOwnedUpgradeabilityProxy,
-  UnstructuredUpgradeableTokenV1,
-  UnstructuredUpgradeableTokenV0,
-  UnstructuredUpgradeableTokenV2,
-} from '../helpers/Artifacts';
-import { upgradeToV0 } from './UnstructuredUpgrades';
-import {
-  deployUpgradeableContract,
-  getLatestVersionFromFs,
-} from '../helpers/contracts';
+/* globals network */
+import { setupEnvForTests } from '../helpers/utils';
+
+const {
+  contractRegistryConfig,
+  unstructuredUpgradeableTokenV0Config,
+  unstructuredUpgradeableTokenV1Config,
+  unstructuredUpgradeableTokenV2Config,
+  noriConfig,
+} = require('../helpers/contractConfigs');
+const getNamedAccounts = require('../helpers/getNamedAccounts');
 
 const testVersionRegistryFunctions = (admin, nonAdmin) => {
   contract('ContractRegistry', () => {
-    let registry;
-    let tokenProxy;
-
+    let contractRegistry,
+      tokenV1Proxy,
+      versionName0,
+      versionName1,
+      tokenV0Proxy,
+      tokenV0Imp,
+      tokenV1Imp,
+      versionName2,
+      tokenV2Imp,
+      noriImp;
     beforeEach(async () => {
-      [, , tokenProxy, registry] = await upgradeToV0(admin);
+      ({
+        deployedContracts: [
+          { upgradeableContractAtProxy: contractRegistry },
+          {
+            contractToMakeUpgradeable: tokenV0Imp,
+            versionName: versionName0,
+            proxy: tokenV0Proxy,
+          },
+          {
+            contractToMakeUpgradeable: tokenV1Imp,
+            versionName: versionName1,
+            proxy: tokenV1Proxy,
+          },
+          { contractToMakeUpgradeable: tokenV2Imp, versionName: versionName2 },
+          { contractToMakeUpgradeable: noriImp },
+        ],
+      } = await setupEnvForTests(
+        [
+          contractRegistryConfig,
+          unstructuredUpgradeableTokenV0Config,
+          unstructuredUpgradeableTokenV1Config,
+          unstructuredUpgradeableTokenV2Config,
+          noriConfig,
+        ],
+        getNamedAccounts(web3).admin0,
+        {
+          network,
+          artifacts,
+          accounts: getNamedAccounts(web3).allAccounts,
+          web3,
+        }
+      ));
     });
     context('Upgrade a token at a single proxy', () => {
       it('should maintain history for all versions', async () => {
-        let [
-          contractName,
-          versionName,
-        ] = UnstructuredUpgradeableTokenV0.contractName.split('V');
-        let tokenProxyImp = await tokenProxy.implementation();
-        let latestImp = await registry.getVersionForContractName(
-          contractName,
-          -1
+        const firstImp = await contractRegistry.getVersionForContractName(
+          'UnstructuredUpgradeableToken',
+          1
         );
-        assert.equal(latestImp[1], tokenProxyImp);
-        assert.equal(versionName, '0');
-
-        [, , , , contractName, versionName] = await deployUpgradeableContract(
-          artifacts,
-          tokenProxy,
-          UnstructuredUpgradeableTokenV1,
-          registry,
-          null,
-          { from: admin }
+        const secondImp = await contractRegistry.getVersionForContractName(
+          'UnstructuredUpgradeableToken',
+          2
         );
-
-        tokenProxyImp = await tokenProxy.implementation();
-        latestImp = await registry.getVersionForContractName(contractName, -1);
-        tokenProxyImp = await tokenProxy.implementation();
-        latestImp = await registry.getVersionForContractName(contractName, -1);
-        assert.equal(latestImp[1], tokenProxyImp);
-        assert.equal(versionName, '1');
-
-        [, , , , contractName, versionName] = await deployUpgradeableContract(
-          artifacts,
-          tokenProxy,
-          UnstructuredUpgradeableTokenV2,
-          registry,
-          null,
-          { from: admin }
+        const thirdImp = await contractRegistry.getVersionForContractName(
+          'UnstructuredUpgradeableToken',
+          3
         );
-
-        tokenProxyImp = await tokenProxy.implementation();
-        latestImp = await registry.getVersionForContractName(contractName, -1);
-        tokenProxyImp = await tokenProxy.implementation();
-        latestImp = await registry.getVersionForContractName(contractName, -1);
-        assert.equal(latestImp[1], tokenProxyImp);
-        assert.equal(versionName, '2');
+        assert.equal(
+          firstImp[1],
+          tokenV0Imp.address,
+          'Expected the first implementation to be the V0 implementation'
+        );
+        assert.equal(
+          firstImp[2],
+          tokenV0Proxy.address,
+          'Expected the first implementation to be the V0 proxy'
+        );
+        assert.equal(
+          firstImp[0],
+          versionName0,
+          'Expected the first version to be 0_1_0'
+        );
+        assert.equal(
+          secondImp[1],
+          tokenV1Imp.address,
+          'Expected the second implementation to be the V1 implementation'
+        );
+        assert.equal(
+          secondImp[2],
+          tokenV1Proxy.address,
+          'Expected the first implementation to be the V1 proxy'
+        );
+        assert.equal(
+          secondImp[0],
+          versionName1,
+          'Expected the second version to be 0_2_0'
+        );
+        assert.equal(
+          thirdImp[1],
+          tokenV2Imp.address,
+          'Expected the third implementation to be the V2 implementation'
+        );
+        assert.equal(
+          thirdImp[0],
+          versionName2,
+          'Expected the third version to be 0_3_0'
+        );
       });
     });
 
     context(
       'Upgrade a token at two different proxies which use the same registry',
       () => {
-        it('should maintain seperate history for each proxy in the same registry', async () => {
-          [, , tokenProxy, registry] = await upgradeToV0(
-            admin,
-            await artifacts.require(
-              `./NoriV${await getLatestVersionFromFs('Nori')}`
-            )
-          );
-          const firstTokenProxy = tokenProxy;
-          const firstTokenProxyFirstImp = await firstTokenProxy.implementation();
-          const [
-            secondContractName,
-          ] = UnstructuredUpgradeableTokenV0.contractName.split('V');
-
-          const secondTokenProxy = await UnstructuredOwnedUpgradeabilityProxy.new(
-            registry.address,
-            {
-              from: admin,
-            }
-          );
-
-          await deployUpgradeableContract(
-            artifacts,
-            secondTokenProxy,
-            UnstructuredUpgradeableTokenV0,
-            registry,
-            [
-              ['string', 'string', 'uint', 'uint', 'address', 'address'],
-              ['Upgradeable NORI Token', 'NORI', 1, 0, registry.address, admin],
-            ],
-            { from: admin }
-          );
-
-          const secondTokenSecondFirstImp = await secondTokenProxy.implementation();
-
-          await deployUpgradeableContract(
-            artifacts,
-            secondTokenProxy,
-            UnstructuredUpgradeableTokenV1,
-            registry,
-            null,
-            { from: admin }
-          );
-          const secondTokenSecondImp = await secondTokenProxy.implementation();
-
-          const firstTokenFirstVersion = await registry.getVersionForContractName(
-            'Nori',
-            0
-          );
-          const secondTokenFirstVersion = await registry.getVersionForContractName(
-            secondContractName,
-            0
-          );
-          const secondTokenSecondVersion = await registry.getVersionForContractName(
-            secondContractName,
+        it('should maintain separate history for each contract proxy in the same registry', async () => {
+          const firstImp = await contractRegistry.getVersionForContractName(
+            'UnstructuredUpgradeableToken',
             1
           );
-
-          assert.equal(firstTokenFirstVersion[1], firstTokenProxyFirstImp);
-          assert.equal(
-            firstTokenFirstVersion[0],
-            await getLatestVersionFromFs('Nori')
+          const secondImp = await contractRegistry.getVersionForContractName(
+            'UnstructuredUpgradeableToken',
+            2
           );
-
-          assert.equal(secondTokenFirstVersion[1], secondTokenSecondFirstImp);
-          assert.equal(secondTokenFirstVersion[0], '0');
-          assert.equal(secondTokenSecondVersion[1], secondTokenSecondImp);
-          assert.equal(secondTokenSecondVersion[0], '1');
-          assert.equal(secondTokenSecondVersion[1], secondTokenSecondImp);
+          const thirdImp = await contractRegistry.getVersionForContractName(
+            'UnstructuredUpgradeableToken',
+            3
+          );
+          assert.equal(
+            firstImp[1],
+            tokenV0Imp.address,
+            'Expected the first implementation to be the V0 implementation'
+          );
+          assert.equal(
+            firstImp[0],
+            versionName0,
+            'Expected the first version to be 0_1_0'
+          );
+          assert.equal(
+            secondImp[1],
+            tokenV1Imp.address,
+            'Expected the second implementation to be the V1 implementation'
+          );
+          assert.equal(
+            secondImp[0],
+            versionName1,
+            'Expected the second version to be 0_2_0'
+          );
+          assert.equal(
+            thirdImp[1],
+            tokenV2Imp.address,
+            'Expected the third implementation to be the V2 implementation'
+          );
+          assert.equal(
+            thirdImp[0],
+            versionName2,
+            'Expected the third version to be 0_3_0'
+          );
+          const currentNoriImp = await contractRegistry.getVersionForContractName(
+            'Nori',
+            -1
+          );
+          assert.equal(
+            currentNoriImp[1],
+            noriImp.address,
+            'Expected the current nori implementation to be the nori address'
+          );
         });
       }
     );

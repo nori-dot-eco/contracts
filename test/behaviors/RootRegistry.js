@@ -1,7 +1,7 @@
 /* globals artifacts web3 */
 import {
-  UnstructuredUpgradeableTokenV1,
-  UnstructuredUpgradeableTokenV0,
+  UnstructuredUpgradeableTokenV0_2_0,
+  UnstructuredUpgradeableTokenV0_1_0,
 } from '../helpers/Artifacts';
 
 const { deployUpgradeableContract } = require('../helpers/contracts');
@@ -44,7 +44,7 @@ const setupTests = async () => {
   [, , tokenProxy] = await deployUpgradeableContract(
     artifacts,
     null,
-    UnstructuredUpgradeableTokenV0,
+    UnstructuredUpgradeableTokenV0_1_0,
     registryAtProxyV0,
     [
       ['string', 'string', 'uint', 'uint', 'address', 'address'],
@@ -87,7 +87,7 @@ const shouldBehaveLikeRootRegistry = () => {
         await deployUpgradeableContract(
           artifacts,
           tokenProxy,
-          UnstructuredUpgradeableTokenV1,
+          UnstructuredUpgradeableTokenV0_2_0,
           registryAtProxyV0,
           null,
           { from: namedAccounts.admin0 }
@@ -97,7 +97,7 @@ const shouldBehaveLikeRootRegistry = () => {
         it('should hold the first version of the token', async () => {
           const [, tokenV0] = await registryAtProxyV0.getVersionForContractName(
             'UnstructuredUpgradeableToken',
-            0
+            1
           );
           assert.equal(
             tokenProxyImpV0,
@@ -108,11 +108,11 @@ const shouldBehaveLikeRootRegistry = () => {
         it('should hold the second version of the token', async () => {
           const [, tokenV0] = await registryAtProxyV0.getVersionForContractName(
             'UnstructuredUpgradeableToken',
-            0
+            1
           );
           const [, tokenV1] = await registryAtProxyV0.getVersionForContractName(
             'UnstructuredUpgradeableToken',
-            1
+            2
           );
           tokenProxyImpV1 = await tokenProxy.implementation();
           assert.equal(
@@ -153,7 +153,7 @@ const shouldBehaveLikeRootRegistry = () => {
             registryV0,
           ] = await rootRegistryAtProxy.getVersionForContractName(
             'ContractRegistry',
-            0
+            1
           );
           assert.equal(
             registryProxyImpV0,
@@ -167,7 +167,7 @@ const shouldBehaveLikeRootRegistry = () => {
             registryV1,
           ] = await rootRegistryAtProxy.getVersionForContractName(
             'ContractRegistry',
-            1
+            2
           );
           assert.equal(
             registryProxyImpV1,
@@ -183,7 +183,7 @@ const shouldBehaveLikeRootRegistry = () => {
 // the following works because we are using the same registry proxy from the original deployed registry :)
 const testRegistryUpgradeAndHistoryPreservation = () => {
   context(
-    'upgrade the a contract at the first registry, then upgrade the registrty and verify that you can lookup the old versions in the second registry',
+    'upgrade the a contract at the first registry, then upgrade the registry and verify that you can lookup the old versions in the second registry',
     () => {
       beforeEach(async () => {
         await setupTests();
@@ -206,7 +206,7 @@ const testRegistryUpgradeAndHistoryPreservation = () => {
         [, , tokenProxy] = await deployUpgradeableContract(
           artifacts,
           null,
-          UnstructuredUpgradeableTokenV0,
+          UnstructuredUpgradeableTokenV0_1_0,
           registryV0AtRoot,
           [
             ['string', 'string', 'uint', 'uint', 'address', 'address'],
@@ -255,7 +255,7 @@ const testRegistryUpgradeAndHistoryPreservation = () => {
         await deployUpgradeableContract(
           artifacts,
           tokenProxy,
-          UnstructuredUpgradeableTokenV1,
+          UnstructuredUpgradeableTokenV0_2_0,
           registryV1AtRoot,
           null,
           { from: namedAccounts.admin0 }
@@ -266,7 +266,7 @@ const testRegistryUpgradeAndHistoryPreservation = () => {
         it('should hold the first implementation of the token in the first registry', async () => {
           const [, tokenV0] = await registryV0AtRoot.getVersionForContractName(
             'UnstructuredUpgradeableToken',
-            0
+            1
           );
           assert.equal(
             tokenProxyImpV0,
@@ -277,7 +277,7 @@ const testRegistryUpgradeAndHistoryPreservation = () => {
         it('should hold the second implementation of the token in the second registry', async () => {
           const [, tokenV1] = await registryV1AtRoot.getVersionForContractName(
             'UnstructuredUpgradeableToken',
-            1
+            2
           );
           assert.equal(
             tokenProxyImpV1,

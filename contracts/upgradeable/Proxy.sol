@@ -1,20 +1,23 @@
 pragma solidity ^0.4.24;
 
 /**
- * @title Proxy
- * @dev Gives the possibility to delegate any call to a foreign implementation.
+ * @title Proxy: Gives the possibility to delegate any function
+ *        call to a foreign implementation.
+ * @dev All state changes happen within the context of this contract. The
+ *      implementation contract only provides logic to be performed within
+ *      this contract's state.
  */
 contract Proxy {
 
   /**
-  * @dev Tells the address of the implementation where every call will be delegated.
+  * @notice Tells the address of the implementation where every call will be delegated.
   * @return address of the implementation to which it will be delegated
   */
   function implementation() public view returns (address);
 
   /**
-  * @dev Fallback function allowing to perform a delegatecall to the given implementation.
-  * This function will return whatever the implementation call returns
+  * @notice Fallback function allowing to perform a delegatecall to the given implementation.
+  * @dev This function will return whatever the implementation call returns
   */
   function () public payable {
     address _impl = implementation();

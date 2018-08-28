@@ -1,29 +1,41 @@
-import {
-  UnstructuredUpgradeableTokenV0,
-  UnstructuredOwnedUpgradeabilityProxy,
-} from '../helpers/Artifacts';
-import { getLogs, deployUpgradeableContract } from '../helpers/contracts';
-import { upgradeToV0 } from './UnstructuredUpgrades';
+/* globals network */
+import { getLogs } from '../helpers/contracts';
+import { setupEnvForTests } from '../helpers/utils';
 
+const {
+  contractRegistryConfig,
+  noriConfig,
+} = require('../helpers/contractConfigs');
+const getNamedAccounts = require('../helpers/getNamedAccounts');
 const { getLatestVersionFromFs } = require('../helpers/contracts');
 
-const testContractAtRegistry = (admin, initParams = []) => {
+const testContractAtRegistry = (admin, initParams = [], allAccounts) => {
+  let contractRegistry, nori;
   context(
     'Create a contract object by getting an address from the registry and then calling .at() on it',
     () => {
+      beforeEach(async () => {
+        ({
+          deployedContracts: [
+            { upgradeableContractAtProxy: contractRegistry },
+            { upgradeableContractAtProxy: nori },
+          ],
+        } = await setupEnvForTests(
+          [contractRegistryConfig, noriConfig],
+          getNamedAccounts(web3).admin0,
+          { network, artifacts, accounts: allAccounts, web3 }
+        ));
+      });
       it('should be able to call contract functions', async () => {
-        const [, , tokenProxy, registry] = await upgradeToV0(admin);
-        const [, , tokenProxyAddr] = await registry.getVersionForContractName(
-          'UnstructuredUpgradeableToken',
-          -1,
-          {
-            from: admin,
-          }
-        );
-        assert.equal(tokenProxy.address, tokenProxyAddr);
-        const tokenAtRegistry = await UnstructuredUpgradeableTokenV0.at(
-          tokenProxyAddr
-        );
+        const [
+          ,
+          ,
+          tokenProxyAddr,
+        ] = await contractRegistry.getVersionForContractName('Nori', -1);
+        assert.equal(nori.address, tokenProxyAddr);
+        const tokenAtRegistry = await artifacts
+          .require(`./NoriV${await getLatestVersionFromFs('Nori')}`)
+          .at(tokenProxyAddr);
         const name = await tokenAtRegistry.name();
         assert.equal(name, 'Upgradeable NORI Token');
       });
@@ -31,102 +43,87 @@ const testContractAtRegistry = (admin, initParams = []) => {
   );
 };
 
-const testEvents = admin => {
-  let versionSetLogs;
-  let initLogs;
-  let regImp;
-  let registryAtProxyV0;
-  let registryProxy;
-  let rootRegistryAtProxy;
-  let registrySetLogs;
-  let upOwnerSetLogs;
-  let contractRegistryProxy;
-  let implementationPositionSetLogs;
-  let rootProxy;
-  let rootImp;
+const testEvents = (admin, allAccounts) => {
+  let contractRegistry,
+    implementationPositionSetLogs,
+    upOwnerSetLogs,
+    initLogs,
+    versionSetLogs,
+    registrySetLogs,
+    multiAdmin,
+    rootRegistry,
+    registryProxy,
+    registryImp;
 
   context('Upgrade a contract', () => {
     beforeEach(async () => {
-      [
-        rootImp,
-        rootRegistryAtProxy,
-        rootProxy,
-      ] = await deployUpgradeableContract(
-        artifacts,
-        null,
-        artifacts.require(
-          `./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`
-        ),
-        null,
-        [['address'], [admin]],
-        { from: admin }
-      );
+      ({
+        multiAdmin,
+        rootRegistry,
+        deployedContracts: [
+          {
+            proxy: registryProxy,
+            upgradeableContractAtProxy: contractRegistry,
+            contractToMakeUpgradeable: registryImp,
+          },
+        ],
+      } = await setupEnvForTests(
+        [contractRegistryConfig],
+        getNamedAccounts(web3).admin0,
+        { network, artifacts, accounts: allAccounts, web3 }
+      ));
+
+      versionSetLogs = await getLogs(rootRegistry.VersionSet);
+      initLogs = await getLogs(contractRegistry.Initialized);
       implementationPositionSetLogs = await getLogs(
-        rootProxy.ImplementationPositionSet
-      );
-      contractRegistryProxy = await UnstructuredOwnedUpgradeabilityProxy.new(
-        rootRegistryAtProxy.address
+        registryProxy.ImplementationPositionSet
       );
       upOwnerSetLogs = await getLogs(
-        contractRegistryProxy.UpgradeabilityOwnerSet
+        registryProxy.UpgradeabilityOwnerSet,
+        {},
+        { fromBlock: 0, toBlock: 'latest' }
       );
-
-      registrySetLogs = await getLogs(contractRegistryProxy.RegistryAddrSet);
-
-      [, registryAtProxyV0, registryProxy] = await deployUpgradeableContract(
-        artifacts,
-        contractRegistryProxy,
-        await artifacts.require(
-          `./ContractRegistryV${await getLatestVersionFromFs(
-            'ContractRegistry'
-          )}`
-        ),
-        rootRegistryAtProxy,
-        [['address'], [admin]],
-        { from: admin }
+      registrySetLogs = await getLogs(
+        registryProxy.RegistryAddrSet,
+        {},
+        { fromBlock: 0, toBlock: 'latest' }
       );
-
-      regImp = await registryProxy.implementation();
-      versionSetLogs = await getLogs(rootRegistryAtProxy.VersionSet);
-
-      initLogs = await getLogs(registryAtProxyV0.Initialized);
     });
 
     describe('VersionSet event', () => {
-      it('should put a VersionSet event into the logs', () => {
+      it('should put a VersionSet event into the logs', async () => {
+        const {
+          contractName,
+          proxyAddress,
+          newImplementation,
+          versionName,
+        } = versionSetLogs[0].args;
         assert.equal(
           versionSetLogs.length,
           1,
           'Expected one VersionSet event to have been sent'
         );
-      });
-      it("should include a 'contractName' arg", () => {
         assert.equal(
-          versionSetLogs[0].args.contractName,
+          contractName,
           'ContractRegistry',
-          'Expected VersionSet Event "contractName" arg to be ContractRegistry'
+          'Expected VersionSet Event "contractName" arg to be Nori'
         );
-      });
-      it("should include an 'proxyAddress' arg", () => {
         assert.equal(
-          versionSetLogs[0].args.proxyAddress.toString(),
-          registryAtProxyV0.address,
-          'Expected VersionSet Event "proxyAddress" arg to be the registryAtProxyV0 address'
+          proxyAddress.toString(),
+          contractRegistry.address,
+          'Expected VersionSet Event "proxyAddress" arg to be the nori proxy address'
         );
-      });
-      it("should include an 'versionName' arg", async () => {
-        const latestVersion = await getLatestVersionFromFs('ContractRegistry');
         assert.equal(
-          versionSetLogs[0].args.versionName.toString(),
-          `${latestVersion}`,
-          `Expected VersionSet Event "versionName" arg to be ${latestVersion}`
+          versionName.toString(),
+          `${await getLatestVersionFromFs('ContractRegistry')}`,
+          `Expected VersionSet Event "versionName" arg to be ${await getLatestVersionFromFs(
+            'ContractRegistry'
+          )}`
         );
-      });
-      it("should include an 'newImplementation' arg", () => {
         assert.equal(
-          versionSetLogs[0].args.newImplementation.toString(),
-          regImp,
-          'Expected VersionSet Event "newImplementation" arg to be the registry proxys newest implementation'
+          newImplementation.toString(),
+          await registryProxy.implementation.call(),
+          "Expected VersionSet Event 'newImplementation' arg to be the registry proxy's newest implementation"
         );
       });
     });
@@ -138,68 +135,59 @@ const testEvents = admin => {
             1,
             'Expected one Initialized event to have been sent'
           );
-        });
-        it("should include an 'owner' arg", () => {
           assert.equal(
             initLogs[0].args.owner,
-            admin,
+            multiAdmin.address,
             'Expected Initialized Event "newImplementation" arg to be the admin account'
+          );
+          context(
+            'Events triggered because of initialization but not a core part of Registry',
+            () => {
+              describe('ImplementationPositionSet event', () => {
+                assert.equal(
+                  implementationPositionSetLogs.length,
+                  1,
+                  'Expected one ImplementationPositionSet event to have been sent'
+                );
+                assert.equal(
+                  implementationPositionSetLogs[0].args.impPosition,
+                  registryImp.address,
+                  'Expected ImplementationPositionSet Event "impPosition" arg to be the contract registry implementation address'
+                );
+              });
+              describe('RegistryAddrSet event', () => {
+                assert.equal(
+                  registrySetLogs.length,
+                  1,
+                  'Expected one RegistryAddrSet event to have been sent'
+                );
+                assert.equal(
+                  registrySetLogs[0].args.registryAddress,
+                  rootRegistry.address,
+                  'Expected RegistryAddrSet Event "registryAddress" arg to be the root registry address'
+                );
+              });
+              describe('SetUpgradeabilityOwner event', () => {
+                assert.equal(
+                  upOwnerSetLogs.length,
+                  2,
+                  'Expected one SetUpgradeabilityOwner event to have been sent'
+                );
+                assert.equal(
+                  upOwnerSetLogs[0].args.upgradeabilityOwner,
+                  admin,
+                  'Expected SetUpgradeabilityOwner Event "upgradeabilityOwner" arg to be the admin'
+                );
+                assert.equal(
+                  upOwnerSetLogs[1].args.upgradeabilityOwner,
+                  multiAdmin.address,
+                  'Expected SetUpgradeabilityOwner Event "upgradeabilityOwner" arg to be the admin'
+                );
+              });
+            }
           );
         });
       });
-      context(
-        'Events triggered because of initialization but not a core part of Registry',
-        () => {
-          describe('ImplementationPositionSet event', () => {
-            it('should put a ImplementationPositionSet event into the logs', () => {
-              assert.equal(
-                implementationPositionSetLogs.length,
-                1,
-                'Expected one ImplementationPositionSet event to have been sent'
-              );
-            });
-            it("should include an 'impPosition' arg", () => {
-              assert.equal(
-                implementationPositionSetLogs[0].args.impPosition,
-                rootImp.address,
-                'Expected ImplementationPositionSet Event "impPosition" arg to be the root registry implementation address'
-              );
-            });
-          });
-          describe('RegistryAddrSet event', () => {
-            it('should put a RegistryAddrSet event into the logs', () => {
-              assert.equal(
-                registrySetLogs.length,
-                1,
-                'Expected one RegistryAddrSet event to have been sent'
-              );
-            });
-            it("should include an 'registryAddress' arg", () => {
-              assert.equal(
-                registrySetLogs[0].args.registryAddress,
-                rootRegistryAtProxy.address,
-                'Expected RegistryAddrSet Event "registryAddress" arg to be the registry address'
-              );
-            });
-          });
-          describe('SetUpgradeabilityOwner event', () => {
-            it('should put a SetUpgradeabilityOwner event into the logs', () => {
-              assert.equal(
-                upOwnerSetLogs.length,
-                1,
-                'Expected one SetUpgradeabilityOwner event to have been sent'
-              );
-            });
-            it("should include an 'upgradeabilityOwner' arg", () => {
-              assert.equal(
-                upOwnerSetLogs[0].args.upgradeabilityOwner,
-                admin,
-                'Expected SetUpgradeabilityOwner Event "upgradeabilityOwner" arg to be the admin'
-              );
-            });
-          });
-        }
-      );
     });
   });
 };

@@ -25,6 +25,7 @@ const {
   unregistered1,
   admin0,
   admin1,
+  allAccounts,
 } = require('./helpers/getNamedAccounts')(web3);
 
 // NOTE: this will become the standard way of testing both scenarios and per-contract functions.
@@ -55,7 +56,7 @@ context('Setup test environment', () => {
     // ProxyTests();
     MultiSigWallet(); // MultiSig wallet tests
     MultiAdminTests(); // MultiSig admin tests
-    ContractRegistryTests(admin0, admin1, unregistered0);
+    ContractRegistryTests(admin0, admin1, unregistered0, allAccounts);
     RootRegistryTests();
     SelectableCrcMarketTests();
     EIP820RegistryTests();

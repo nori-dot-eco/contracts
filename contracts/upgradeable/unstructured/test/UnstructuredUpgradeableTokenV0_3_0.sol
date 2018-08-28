@@ -1,14 +1,14 @@
 pragma solidity ^0.4.24;
 
-import "./UnstructuredUpgradeableTokenV1.sol";
+import "./UnstructuredUpgradeableTokenV0_2_0.sol";
 
 
 /**
-* @title UnstructuredUpgradeableTokenV2
+* @title UnstructuredUpgradeableTokenV0_3_0
 * @dev Version 2 of a token to show upgradeability using unstructured storage.
 */
-contract UnstructuredUpgradeableTokenV2 is UnstructuredUpgradeableTokenV1 {
-  
+contract UnstructuredUpgradeableTokenV0_3_0 is UnstructuredUpgradeableTokenV0_2_0 {
+
   event NewStateAdded(string newStateVariable);
 
   function addNewState() public {
@@ -22,5 +22,5 @@ contract UnstructuredUpgradeableTokenV2 is UnstructuredUpgradeableTokenV1 {
     return "V1 func of same name has been deprecated";
   }
 
- 
+
 }

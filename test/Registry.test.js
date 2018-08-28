@@ -7,7 +7,7 @@ import {
 } from './behaviors/RootRegistry';
 import { getLatestVersionFromFs } from './helpers/contracts';
 
-const ContractRegistryTests = (admin0, admin1, nonAdmin) => {
+const ContractRegistryTests = (admin0, admin1, nonAdmin, allAccounts) => {
   contract('ContractRegistry', () => {
     context('Test Registry upgradeability', async () => {
       UnstructuredOwnedUpgradeabilityProxyTests(
@@ -21,12 +21,10 @@ const ContractRegistryTests = (admin0, admin1, nonAdmin) => {
         )
       );
     });
-    testContractAtRegistry(admin0, [['address'], [admin0]]);
-
+    testContractAtRegistry(admin0, [['address'], [admin0]], allAccounts);
     // todo EIP820 Registry tests
-
     testVersionRegistryFunctions(admin0, nonAdmin);
-    testEvents(admin0);
+    testEvents(admin0, allAccounts);
   });
 };
 

@@ -2,75 +2,202 @@ pragma solidity ^0.4.24;
 import "../lifecycle/Pausable.sol";
 import "./IContractRegistry.sol";
 
-/// @title ContractRegistryBase
-/// @dev defines the base registry function sets for future versions to inherit from
+/**
+  @title ContractRegistryBase: this contract defines the base registry
+         function sets for setting and retrieving upgrade info and the
+         current proxy addresses.
+*/
 contract ContractRegistryBase is Pausable, IContractRegistry {
-  //todo does UnstructuredOwnable inheritance position matter? --^
+  //todo does Pausable inheritance position matter? --^
 
+  /**
+  * @notice Used to broadcast that this contract has been initialized
+  * @param owner representing the address of the contract owner
+  */
   event Initialized(address owner);
-  event VersionSet(string contractName, address proxyAddress, string versionName, address newImplementation);
+  /**
+  * @notice Used to broadcast that a new contract version has been set
+  * @param contractName representing the name of the contract which received a
+  *        new version
+  * @param proxyAddress the proxy which maintains the contract's state
+  * @param versionName the name of the version set (using SemVer 2.0)
+  */
+  event VersionSet(string contractName, address indexed proxyAddress, string versionName, address newImplementation);
 
   bool private _initialized;
-  address public proxyAddr;
-  mapping(bytes32 => address) private proxyContracts;
+  //address public proxyAddr;
+  mapping(bytes32 => address) private contractNameToProxy;
+  mapping(address => bytes32) private proxyToContractName;
   mapping(bytes32 => mapping(address => Version[])) public versions;
   struct Version {
+    uint256 index;
     string versionName;
+    address previousProxyContract;
     address implementation;
   }
 
+  /**
+    @notice Throws if called by any account other than the owner or proxy
+    @param _contractName The name of the contract used to look up the
+           current proxy address for
+  */
+  modifier onlyProxy(string _contractName) {
+    require(
+      msg.sender == getLatestProxyAddr(_contractName),
+      "Only the proxy can call this function"
+    );
+    _;
+  }
+
   //todo onlyowner?
+  /**
+    @notice The contract initializer
+    @dev Always use this function to set the contract state after constructing since when using
+         an upgradeable proxy mechanism, state set inside the constructor will not persist to the
+         proxy.
+    @param _owner The owner of the contract
+  */
   function initialize(address _owner) public {
     require(_initialized != true, "You can only initialize this contract once.");
     //todo register interfaces using eip820
     owner = _owner;
     _initialized = true;
-    emit Initialized(owner);
+    emit Initialized(_owner);
   }
 
   /**
-    @dev returns the current initalization status
+    @notice returns the current initialization status
+    @return a boolean state representing wether or not the contract
+            has been initialized yet
   */
   function initialized() public view returns(bool) {
     return _initialized;
   }
 
+  /**
+    @notice Gets the address of the latest proxy contract of a particular name
+    @param _contractName String name of a contract (ie Registry)
+    @return the address of the latest proxy for the provided contract name
+  */
+  function getLatestProxyAddr(string _contractName) public view returns (address) {
+    bytes32 contractName = keccak256(abi.encodePacked(_contractName));
+    return contractNameToProxy[contractName];
+  }
 
-  //todo BEFORE LAUNCH: onlyOwner! <-- needs to be the addr of the proxy as thats the one who sends the tx
+  /**
+    @notice  Gets the number of Versions for a particular ContractName at a particular proxy address
+    @param _contractName String name of a contract (i.e. CRC)
+    @param _proxyAddress The address os a particular Proxy used by the given contract name
+    @return the count of version existing for the provided contract name and proxy
+  */
+  function getVersionCountForContract(string _contractName, address _proxyAddress) public view returns(uint) {
+    bytes32 contractName = keccak256(abi.encodePacked(_contractName));
+    Version[] storage history = versions[contractName][_proxyAddress];
+    return history.length;
+  }
+
+  /**
+    @notice Gets a contract version info for a particular contract name and proxy using the version name
+    @dev This function will loop through the entire history of a particular contract starting with the earliest proxy history.
+    @param _contractName String name of a contract (i.e. CRC)
+    @param _versionName The name of a particular version you are looking for (using SemVer 2.0, i.e. '0.2.0')
+    @return The index at which the given contract exists, the name of the version, the logic implementation, and the address
+            of the proxy used by this versions parent
+  */
+  function getContractInfoForVersion(string _contractName, string _versionName) public view returns (uint256, string, address, address) {
+    address latestProxy = getLatestProxyAddr(_contractName);
+    bytes32 contractName = keccak256(abi.encodePacked(_contractName));
+    Version[] storage history = versions[contractName][latestProxy];
+
+    for(uint256 proxyIndex = 0; proxyIndex < history.length; proxyIndex++) {
+      for(uint256 impIndex = 0; impIndex < history.length; impIndex++) {
+        if(keccak256(abi.encodePacked(history[impIndex].versionName)) == keccak256(abi.encodePacked(_versionName))) {
+          Version storage latest = history[impIndex];
+          return (latest.index, latest.versionName, latest.implementation, latest.previousProxyContract);
+        }
+      }
+    }
+  }
+
+  /**
+    @notice Sets a version for a particular contract by assigning a contract name an associated
+            proxy, version name (using SemVer 2.0) and its logic implementation
+    @dev This function can only be used by a particular contract's proxy.
+    @param _contractName String name of a contract (ie Registry)
+    @param _proxyAddress the Proxy contract's address
+    @param _versionName the version name (which MUST be incremented each time new logic is set) using SemVer 2.0
+    @param _newImplementation the contract containing the logic of the proposed contract name
+  */
   function setVersion(
-    string contractName,
-    address proxyAddress,
-    string versionName,
-    address newImplementation
-  ) public whenNotPaused {
+    string _contractName,
+    address _proxyAddress,
+    string _versionName,
+    address _newImplementation
+  ) public onlyProxy(_contractName) {
     _setVersion(
-      contractName,
-      proxyAddress,
-      versionName,
-      newImplementation
+      _contractName,
+      _proxyAddress,
+      _versionName,
+      _newImplementation
     );
   }
 
-  /// @notice Gets the address of the latest proxt contract of a particular name
-  /// @param _contractName String name of a contract (ie Registry)
-  function getLatestProxyAddr(string _contractName) public view returns (address) {
-    bytes32 contractName = keccak256(abi.encodePacked(_contractName));
-    return proxyContracts[contractName];
+  /**
+    @notice Sets a version for a particular contract by assigning a contract name an associated
+            proxy, version name (using SemVer 2.0) and its logic implementation
+    @dev This function can only be used by the admin.
+    @param _contractName String name of a contract (ie Registry)
+    @param _proxyAddress the Proxy contract's address
+    @param _versionName the version name (which MUST be incremented each time new logic is set) using SemVer 2.0
+    @param _newImplementation the contract containing the logic of the proposed contract name
+  */
+  function setVersionAsAdmin(
+    string _contractName,
+    address _proxyAddress,
+    string _versionName,
+    address _newImplementation
+  ) public onlyOwner {
+    _setVersion(
+      _contractName,
+      _proxyAddress,
+      _versionName,
+      _newImplementation
+    );
   }
 
-  //todo create a function for getting count of versiuons for a particular contract name
-  //todo create a function that gets a contract proxy for a particular version name
-
+   /**
+    @notice This function is used privately by setVersionAsAdmin and setVersion
+    @dev This function can only be used by the admin.
+    @param _contractName String name of a contract (ie Registry)
+    @param _proxyAddress the Proxy contract's address
+    @param _versionName the version name (which MUST be incremented each time new logic is set) using SemVer 2.0
+    @param _newImplementation the contract containing the logic of the proposed contract name
+  */
   function _setVersion(
     string _contractName,
     address _proxyAddress,
     string _versionName,
     address _newImplementation
-  ) internal whenNotPaused {
+  ) private {
+    require(
+      bytes(_versionName).length > 0,
+      "You must use a and a non-empty string as the version name"
+    );
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
+    require(
+      proxyToContractName[_proxyAddress] == contractName || proxyToContractName[_proxyAddress] == "",
+      "You can only re-use proxy addresses if the proposed contact uses the same contract name"
+    );
     Version[] storage history = versions[contractName][_proxyAddress];
-    history.push(Version(_versionName, _newImplementation));
-    proxyContracts[contractName] = _proxyAddress;
+    history.push(
+      Version(
+        history.length,
+        _versionName,
+        contractNameToProxy[contractName],
+        _newImplementation
+      )
+    );
+    contractNameToProxy[contractName] = _proxyAddress;
     emit VersionSet(
       _contractName,
       _proxyAddress,
@@ -79,14 +206,24 @@ contract ContractRegistryBase is Pausable, IContractRegistry {
     );
   }
 
-  /// @dev pass -1 to get the latest, or a particular index to get a certain one
+  /**
+    @notice Sets a version for a particular contract by assigning a contract name an associated
+            proxy, version name (using SemVer 2.0) and its logic implementation
+    @param _contractName String name of a contract (ie Registry)
+    @param _index the proxy contract's positional index inside of 'versions'.
+           Pass -1 to get the latest proxy's history (in most cases, you should default to this),
+           or a particular index to get the particular history for a given index. Note:
+           The first index (0) is only used pre-initialization and is not a valid version (0_0_0)
+           nor implementation address (0x0). If you want the earliest index, pass: _index = 1
+    @return The version name, the logic implementation, and the latest proxy address
+  */
   function getVersionForContractName(string _contractName, int _index) public view returns (string, address, address) {
     uint index;
     address latestProxy = getLatestProxyAddr(_contractName);
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
     Version[] storage history = versions[contractName][latestProxy];
     if(_index < 0) {
-      index = history.length-1;
+      index = history.length-1; //todo safe math
     }
     else {
       index = uint(_index);

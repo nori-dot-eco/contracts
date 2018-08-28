@@ -21,6 +21,7 @@ contract UnstructuredTokenBase is Ownable, Ierc20, IEIP777, ERC820Implementer {
 
   using SafeMath for uint256;
 
+  event Initialized(address owner);
   string private mName;
   string private mSymbol;
   uint256 private mGranularity;
@@ -68,6 +69,7 @@ contract UnstructuredTokenBase is Ownable, Ierc20, IEIP777, ERC820Implementer {
     setInterfaceImplementation("IEIP777", this);
     setInterfaceImplementation("Ierc20", this);
     _initialized = true;
+    emit Initialized(_owner); //todo fix this
   }
 
   /**

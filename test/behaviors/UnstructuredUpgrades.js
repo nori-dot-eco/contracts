@@ -1,8 +1,8 @@
 import {
-  UnstructuredUpgradeableTokenV0,
-  UnstructuredUpgradeableTokenV1,
-  UnstructuredUpgradeableTokenV2,
-  UnstructuredUpgradeableTokenV3,
+  UnstructuredUpgradeableTokenV0_1_0,
+  UnstructuredUpgradeableTokenV0_2_0,
+  UnstructuredUpgradeableTokenV0_3_0,
+  UnstructuredUpgradeableTokenV0_4_0,
   UnstructuredOwnedUpgradeabilityProxy,
 } from '../helpers/Artifacts';
 import { deployUpgradeableContract } from '../helpers/contracts';
@@ -16,7 +16,7 @@ let upgradeableTokenV0;
 
 const upgradeToV0 = async (
   admin,
-  unstructuredUpgradeableContractV0 = UnstructuredUpgradeableTokenV0,
+  unstructuredUpgradeableContractV0 = UnstructuredUpgradeableTokenV0_1_0,
   initParams
 ) => {
   contractRegistry = await artifacts
@@ -74,7 +74,7 @@ const upgradeToV1 = async admin => {
   const [upgradeableTokenV1, tokenByProxyV1] = await deployUpgradeableContract(
     artifacts,
     proxy,
-    UnstructuredUpgradeableTokenV1,
+    UnstructuredUpgradeableTokenV0_2_0,
     contractRegistry,
     null,
     { from: admin }
@@ -93,7 +93,7 @@ const upgradeToV2 = async admin => {
   const [upgradeableTokenV2, tokenByProxyV2] = await deployUpgradeableContract(
     artifacts,
     proxy,
-    UnstructuredUpgradeableTokenV2,
+    UnstructuredUpgradeableTokenV0_3_0,
     contractRegistry,
     null,
     { from: admin }
@@ -113,7 +113,7 @@ const upgradeToV3 = async admin => {
   const [upgradeableTokenV3, tokenByProxyV3] = await deployUpgradeableContract(
     artifacts,
     proxy,
-    UnstructuredUpgradeableTokenV3,
+    UnstructuredUpgradeableTokenV0_4_0,
     contractRegistry,
     null,
     { from: admin }
@@ -131,7 +131,7 @@ const rollBackToV2 = async admin => {
   const [upgradeableTokenV4, tokenByProxyV4] = await deployUpgradeableContract(
     artifacts,
     proxy,
-    UnstructuredUpgradeableTokenV2,
+    UnstructuredUpgradeableTokenV0_3_0,
     contractRegistry,
     null,
     { from: admin }
