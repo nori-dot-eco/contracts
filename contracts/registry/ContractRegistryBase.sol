@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 import "../lifecycle/Pausable.sol";
 import "./IContractRegistry.sol";
+import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
 /**
   @title ContractRegistryBase: this contract defines the base registry
@@ -9,6 +10,8 @@ import "./IContractRegistry.sol";
 */
 contract ContractRegistryBase is Pausable, IContractRegistry {
   //todo does Pausable inheritance position matter? --^
+
+  using SafeMath for uint256;
 
   /**
   * @notice Used to broadcast that this contract has been initialized
@@ -25,15 +28,18 @@ contract ContractRegistryBase is Pausable, IContractRegistry {
   event VersionSet(string contractName, address indexed proxyAddress, string versionName, address newImplementation);
 
   bool private _initialized;
-  //address public proxyAddr;
-  mapping(bytes32 => address) private contractNameToProxy;
-  mapping(address => bytes32) private proxyToContractName;
+  uint256 public registeredContractCount;
+  mapping(bytes32 => address) private contractNameHashToProxy;
+  mapping(address => ContractNameAndHash) private proxyToContractName;
   mapping(bytes32 => mapping(address => Version[])) public versions;
   struct Version {
     uint256 index;
     string versionName;
-    address previousProxyContract;
     address implementation;
+  }
+  struct ContractNameAndHash {
+    string name;
+    bytes32 nameHash;
   }
 
   /**
@@ -81,7 +87,16 @@ contract ContractRegistryBase is Pausable, IContractRegistry {
   */
   function getLatestProxyAddr(string _contractName) public view returns (address) {
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
-    return contractNameToProxy[contractName];
+    return contractNameHashToProxy[contractName];
+  }
+
+  /**
+    @notice Gets a contract name and contract name's hash at a given proxy address
+    @param _proxyAddress The address of a particular proxy
+    @return the contract name and name hash in use at the given proxy address
+  */
+  function getContractNameAndHashAtProxy(address _proxyAddress) public view returns (string, bytes32) {
+    return (proxyToContractName[_proxyAddress].name, proxyToContractName[_proxyAddress].nameHash);
   }
 
   /**
@@ -104,7 +119,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry {
     @return The index at which the given contract exists, the name of the version, the logic implementation, and the address
             of the proxy used by this versions parent
   */
-  function getContractInfoForVersion(string _contractName, string _versionName) public view returns (uint256, string, address, address) {
+  function getContractInfoForVersion(string _contractName, string _versionName) public view returns (uint256, string, address) {
     address latestProxy = getLatestProxyAddr(_contractName);
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
     Version[] storage history = versions[contractName][latestProxy];
@@ -113,7 +128,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry {
       for(uint256 impIndex = 0; impIndex < history.length; impIndex++) {
         if(keccak256(abi.encodePacked(history[impIndex].versionName)) == keccak256(abi.encodePacked(_versionName))) {
           Version storage latest = history[impIndex];
-          return (latest.index, latest.versionName, latest.implementation, latest.previousProxyContract);
+          return (latest.index, latest.versionName, latest.implementation);
         }
       }
     }
@@ -183,21 +198,24 @@ contract ContractRegistryBase is Pausable, IContractRegistry {
       bytes(_versionName).length > 0,
       "You must use a and a non-empty string as the version name"
     );
-    bytes32 contractName = keccak256(abi.encodePacked(_contractName));
+    bytes32 contractNameHash = keccak256(abi.encodePacked(_contractName));
     require(
-      proxyToContractName[_proxyAddress] == contractName || proxyToContractName[_proxyAddress] == "",
+      proxyToContractName[_proxyAddress].nameHash == contractNameHash || proxyToContractName[_proxyAddress].nameHash == "",
       "You can only re-use proxy addresses if the proposed contact uses the same contract name"
     );
-    Version[] storage history = versions[contractName][_proxyAddress];
+    Version[] storage history = versions[contractNameHash][_proxyAddress];
     history.push(
       Version(
         history.length,
         _versionName,
-        contractNameToProxy[contractName],
         _newImplementation
       )
     );
-    contractNameToProxy[contractName] = _proxyAddress;
+    if (contractNameHashToProxy[contractNameHash] != _proxyAddress){
+      registeredContractCount.add(1);
+    }
+    contractNameHashToProxy[contractNameHash] = _proxyAddress;
+    proxyToContractName[_proxyAddress] = ContractNameAndHash(_contractName, contractNameHash);
     emit VersionSet(
       _contractName,
       _proxyAddress,
