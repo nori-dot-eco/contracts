@@ -1,10 +1,10 @@
 # MultiAdmin
-> MultiAdmin: Multisignature wallet - Allows multiple parties to agree on transactions before execution. It should be the only address which can upgrade contracts, routes in the contract registry, etc. It is to be controlled by the Nori Developers. This contract is derived from the Gnosis multisig wallet.
+> MultiAdmin: MultiSignature wallet - Allows multiple parties to agree on transactions before execution. It should be the only address which can upgrade contracts, routes in the contract registry, etc. It is to be controlled by the Nori Developers. This contract is derived from the Gnosis multi-sig wallet.
 
 
 **Execution cost**: No bound available
 
-**Deployment cost**: less than 1274600 gas
+**Deployment cost**: less than 1690200 gas
 
 **Combined cost**: No bound available
 
@@ -16,7 +16,7 @@ Params:
 
 1. **_owners** *of type `address[]`*
 2. **_required** *of type `uint256`*
-3. **_eip820RegistryAddr** *of type `address`*
+3. **_contractRegistryAddr** *of type `address`*
 
 ## Events
 ### Confirmation(address,uint256)
@@ -139,32 +139,53 @@ Params:
 ## Fallback
 
 
-**Execution cost**: less than 2077 gas
+**Execution cost**: less than 2099 gas
 
 **Attributes**: payable
 
 
 
 ## Methods
-### tokenReceiver()
+### getTransactionIds(uint256,uint256,bool,bool)
+>
+> Returns list of transaction IDs in defined range.
 
 
-**Execution cost**: less than 660 gas
+**Execution cost**: No bound available
 
 **Attributes**: constant
 
 
+Params:
+
+1. **from** *of type `uint256`*
+
+    > Index start position of transaction array.
+
+2. **to** *of type `uint256`*
+
+    > Index end position of transaction array.
+
+3. **pending** *of type `bool`*
+
+    > Include pending transactions.
+
+4. **executed** *of type `bool`*
+
+    > Include executed transactions.
+
 
 Returns:
 
+> Returns array of transaction IDs.
 
-1. **output_0** *of type `bool`*
+1. **_transactionIds** *of type `uint256[]`*
 
 --- 
 ### canImplementInterfaceForAddress(address,bytes32)
 
 
-**Execution cost**: less than 884 gas
+**Execution cost**: less than 1179 gas
 
 **Attributes**: constant
 
@@ -183,7 +204,7 @@ Returns:
 ### MAX_OWNER_COUNT()
 
 
-**Execution cost**: less than 602 gas
+**Execution cost**: less than 624 gas
 
 **Attributes**: constant
 
@@ -200,7 +221,7 @@ Returns:
 > Allows to add a new owner. Transaction has to be sent by wallet.
 
 
-**Execution cost**: less than 63389 gas
+**Execution cost**: No bound available
 
 
 Params:
@@ -387,7 +408,7 @@ Returns:
 > Allows to change the number of required confirmations. Transaction has to be sent by wallet.
 
 
-**Execution cost**: less than 21918 gas
+**Execution cost**: No bound available
 
 
 Params:
@@ -397,42 +418,6 @@ Params:
     > Number of required confirmations.
 
 
-
---- 
-### getTransactionIds(uint256,uint256,bool,bool)
->
-> Returns list of transaction IDs in defined range.
-
-
-**Execution cost**: No bound available
-
-**Attributes**: constant
-
-
-Params:
-
-1. **from** *of type `uint256`*
-
-    > Index start position of transaction array.
-
-2. **to** *of type `uint256`*
-
-    > Index end position of transaction array.
-
-3. **pending** *of type `bool`*
-
-    > Include pending transactions.
-
-4. **executed** *of type `bool`*
-
-    > Include executed transactions.
-
-
-Returns:
-
-> Returns array of transaction IDs.
-
-1. **_transactionIds** *of type `uint256[]`*
 
 --- 
 ### confirmations(uint256,address)
@@ -454,17 +439,14 @@ Returns:
 1. **output_0** *of type `bool`*
 
 --- 
-### owners(uint256)
+### contractRegistry()
 
 
-**Execution cost**: less than 859 gas
+**Execution cost**: less than 856 gas
 
 **Attributes**: constant
 
 
-Params:
-
-1. **param_0** *of type `uint256`*
 
 Returns:
 
@@ -487,6 +469,24 @@ Params:
     > Address of owner.
 
 
+
+--- 
+### owners(uint256)
+
+
+**Execution cost**: less than 859 gas
+
+**Attributes**: constant
+
+
+Params:
+
+1. **param_0** *of type `uint256`*
+
+Returns:
+
+
+1. **output_0** *of type `address`*
 
 --- 
 ### replaceOwner(address,address)
@@ -513,7 +513,7 @@ Params:
 ### required()
 
 
-**Execution cost**: less than 824 gas
+**Execution cost**: less than 846 gas
 
 **Attributes**: constant
 
@@ -530,7 +530,7 @@ Returns:
 > Allows an owner to revoke a confirmation for a transaction.
 
 
-**Execution cost**: less than 23064 gas
+**Execution cost**: No bound available
 
 
 Params:
@@ -584,6 +584,21 @@ Params:
 
 
 --- 
+### tokenReceiver()
+
+
+**Execution cost**: less than 660 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
+
+1. **output_0** *of type `bool`*
+
+--- 
 ### tokensReceived(address,address,address,uint256,bytes,bytes)
 
 
@@ -604,7 +619,7 @@ Params:
 ### transactionCount()
 
 
-**Execution cost**: less than 714 gas
+**Execution cost**: less than 736 gas
 
 **Attributes**: constant
 

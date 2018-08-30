@@ -1,11 +1,11 @@
 # StandardTokenizedCommodityMarket
 
 
-**Execution cost**: No bound available
+**Execution cost**: less than 81926 gas
 
-**Deployment cost**: less than 400800 gas
+**Deployment cost**: less than 715000 gas
 
-**Combined cost**: No bound available
+**Combined cost**: less than 796926 gas
 
 ## Constructor
 
@@ -24,7 +24,7 @@ Params:
 1. **sender** *of type `address`*
 
 --- 
-### OwnerSet(address)
+### OwnershipRenounced(address)
 
 
 **Execution cost**: No bound available
@@ -32,7 +32,7 @@ Params:
 
 Params:
 
-1. **newOwner** *of type `address`*
+1. **previousOwner** *of type `address`*
 
 --- 
 ### OwnershipTransferred(address,address)
@@ -45,6 +45,14 @@ Params:
 
 1. **previousOwner** *of type `address`*
 2. **newOwner** *of type `address`*
+
+--- 
+### Pause()
+
+
+**Execution cost**: No bound available
+
+
 
 --- 
 ### SaleCreated(uint256,uint64,uint32,address,uint256,bytes,uint64)
@@ -76,12 +84,20 @@ Params:
 2. **value** *of type `uint256`*
 3. **buyer** *of type `address`*
 
+--- 
+### Unpause()
+
+
+**Execution cost**: No bound available
+
+
+
 
 ## Methods
 ### commodityContract()
 
 
-**Execution cost**: less than 658 gas
+**Execution cost**: less than 735 gas
 
 **Attributes**: constant
 
@@ -93,47 +109,27 @@ Returns:
 1. **output_0** *of type `address`*
 
 --- 
-### enableCommodityOperator()
+### initialized()
+>
+> returns the current initialization status
 
 
-**Execution cost**: No bound available
-
-
-
-
---- 
-### canImplementInterfaceForAddress(address,bytes32)
-
-
-**Execution cost**: less than 532 gas
+**Execution cost**: less than 407 gas
 
 **Attributes**: constant
 
 
-Params:
-
-1. **addr** *of type `address`*
-2. **interfaceHash** *of type `bytes32`*
 
 Returns:
 
 
-1. **output_0** *of type `bytes32`*
-
---- 
-### enableEIP777TokensOperator()
-
-
-**Execution cost**: No bound available
-
-
-
+1. **output_0** *of type `bool`*
 
 --- 
 ### getSalePrice(uint256)
 
 
-**Execution cost**: less than 682 gas
+**Execution cost**: less than 814 gas
 
 **Attributes**: constant
 
@@ -148,22 +144,32 @@ Returns:
 1. **output_0** *of type `uint256`*
 
 --- 
-### getSaleSeller(uint256)
+### enableEIP777TokensOperator()
 
 
-**Execution cost**: less than 714 gas
+**Execution cost**: No bound available
+
+
+
+
+--- 
+### canImplementInterfaceForAddress(address,bytes32)
+
+
+**Execution cost**: less than 937 gas
 
 **Attributes**: constant
 
 
 Params:
 
-1. **_tokenId** *of type `uint256`*
+1. **param_0** *of type `address`*
+2. **param_1** *of type `bytes32`*
 
 Returns:
 
 
-1. **output_0** *of type `address`*
+1. **output_0** *of type `bytes32`*
 
 --- 
 ### initialize(address,address[],address)
@@ -180,10 +186,52 @@ Params:
 
 
 --- 
+### contractRegistry()
+
+
+**Execution cost**: less than 812 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
+
+1. **output_0** *of type `address`*
+
+--- 
+### getSaleSeller(uint256)
+
+
+**Execution cost**: less than 780 gas
+
+**Attributes**: constant
+
+
+Params:
+
+1. **_tokenId** *of type `uint256`*
+
+Returns:
+
+
+1. **output_0** *of type `address`*
+
+--- 
+### enableCommodityOperator()
+
+
+**Execution cost**: No bound available
+
+
+
+
+--- 
 ### marketItems(uint256)
 
 
-**Execution cost**: less than 881 gas
+**Execution cost**: less than 925 gas
 
 **Attributes**: constant
 
@@ -199,11 +247,9 @@ Returns:
 
 --- 
 ### owner()
->
-> Tells the address of the owner
 
 
-**Execution cost**: less than 669 gas
+**Execution cost**: less than 779 gas
 
 **Attributes**: constant
 
@@ -211,15 +257,67 @@ Returns:
 
 Returns:
 
-> the address of the owner
 
 1. **output_0** *of type `address`*
+
+--- 
+### pause()
+>
+> called by the owner to pause, triggers stopped state
+
+
+**Execution cost**: less than 21999 gas
+
+
+
+
+--- 
+### paused()
+
+
+**Execution cost**: less than 602 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
+
+1. **output_0** *of type `bool`*
+
+--- 
+### renounceOwnership()
+>
+>Renouncing to ownership will leave the contract without an owner. It will not be possible to call the functions with the `onlyOwner` modifier anymore.
+>
+> Allows the current owner to relinquish control of the contract.
+
+
+**Execution cost**: less than 22248 gas
+
+
+
+
+--- 
+### setContractRegistry(address)
+>
+>Sets the contract registry address
+
+
+**Execution cost**: less than 21207 gas
+
+
+Params:
+
+1. **_contractRegistryAddr** *of type `address`*
+
 
 --- 
 ### tokenContract()
 
 
-**Execution cost**: less than 603 gas
+**Execution cost**: less than 647 gas
 
 **Attributes**: constant
 
@@ -236,14 +334,25 @@ Returns:
 > Allows the current owner to transfer control of the contract to a newOwner.
 
 
-**Execution cost**: No bound available
+**Execution cost**: less than 23090 gas
 
 
 Params:
 
-1. **newOwner** *of type `address`*
+1. **_newOwner** *of type `address`*
 
     > The address to transfer ownership to.
+
+
+
+--- 
+### unpause()
+>
+> called by the owner to unpause, returns to normal state
+
+
+**Execution cost**: less than 21757 gas
+
 
 
 

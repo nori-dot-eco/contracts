@@ -1,6 +1,6 @@
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
 import { UnstructuredUpgradeScenarios } from './UpgradeScenarios.test';
-import NoriV0Tests from './NoriV0.test';
+import NoriUpgradeTests from './Nori.test';
 import MultiAdminTests from './MultiAdmin.test';
 import MultiSigWallet from './MultiSigWallet.test';
 import { RootRegistryTests, ContractRegistryTests } from './Registry.test';
@@ -72,6 +72,6 @@ context('Setup test environment', () => {
 
   context('Upgrade Scenarios', () => {
     UnstructuredUpgradeScenarios(admin0, admin1, unregistered0);
-    NoriV0Tests(admin0, admin1, unregistered0);
+    NoriUpgradeTests(admin0, admin1, unregistered0);
   });
 });

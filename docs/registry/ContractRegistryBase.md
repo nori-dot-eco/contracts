@@ -1,12 +1,12 @@
 # ContractRegistryBase
-> ContractRegistryBase
+> ContractRegistryBase: this contract defines the base registry function sets for setting and retrieving upgrade info and the current proxy addresses.
 
 
-**Execution cost**: No bound available
+**Execution cost**: less than 42290 gas
 
-**Deployment cost**: less than 1032600 gas
+**Deployment cost**: less than 1647200 gas
 
-**Combined cost**: No bound available
+**Combined cost**: less than 1689490 gas
 
 
 ## Events
@@ -21,7 +21,7 @@ Params:
 1. **owner** *of type `address`*
 
 --- 
-### InterfaceImplementerSet(address,bytes32,address)
+### OwnershipRenounced(address)
 
 
 **Execution cost**: No bound available
@@ -29,32 +29,7 @@ Params:
 
 Params:
 
-1. **addr** *of type `address`*
-2. **interfaceHash** *of type `bytes32`*
-3. **implementer** *of type `address`*
-
---- 
-### ManagerChanged(address,address)
-
-
-**Execution cost**: No bound available
-
-
-Params:
-
-1. **addr** *of type `address`*
-2. **newManager** *of type `address`*
-
---- 
-### OwnerSet(address)
-
-
-**Execution cost**: No bound available
-
-
-Params:
-
-1. **newOwner** *of type `address`*
+1. **previousOwner** *of type `address`*
 
 --- 
 ### OwnershipTransferred(address,address)
@@ -67,6 +42,22 @@ Params:
 
 1. **previousOwner** *of type `address`*
 2. **newOwner** *of type `address`*
+
+--- 
+### Pause()
+
+
+**Execution cost**: No bound available
+
+
+
+--- 
+### Unpause()
+
+
+**Execution cost**: No bound available
+
+
 
 --- 
 ### VersionSet(string,address,string,address)
@@ -84,12 +75,92 @@ Params:
 
 
 ## Methods
-### owner()
+### renounceOwnership()
 >
-> Tells the address of the owner
+>Renouncing to ownership will leave the contract without an owner. It will not be possible to call the functions with the `onlyOwner` modifier anymore.
+>
+> Allows the current owner to relinquish control of the contract.
 
 
-**Execution cost**: less than 714 gas
+**Execution cost**: less than 22270 gas
+
+
+
+
+--- 
+### getContractNameAndHashAtProxy(address)
+>
+>Gets a contract name and contract name's hash at a given proxy address
+
+
+**Execution cost**: No bound available
+
+**Attributes**: constant
+
+
+Params:
+
+1. **_proxyAddress** *of type `address`*
+
+    > The address of a particular proxy
+
+
+Returns:
+
+> the contract name and name hash in use at the given proxy address
+
+1. **output_0** *of type `string`*
+2. **output_1** *of type `bytes32`*
+
+--- 
+### getContractInfoForVersion(string,string)
+>
+>Gets a contract version info for a particular contract name and proxy using the version name
+>
+> This function will loop through the entire history of a particular contract starting with the earliest proxy history.
+
+
+**Execution cost**: No bound available
+
+**Attributes**: constant
+
+
+Params:
+
+1. **_contractName** *of type `string`*
+
+    > String name of a contract (i.e. CRC)
+
+2. **_versionName** *of type `string`*
+
+    > The name of a particular version you are looking for (using SemVer 2.0, i.e. '0.2.0')
+
+
+Returns:
+
+> The index at which the given contract exists, the name of the version, the logic implementation, and the address of the proxy used by this versions parent
+
+1. **output_0** *of type `uint256`*
+2. **output_1** *of type `string`*
+3. **output_2** *of type `address`*
+4. **output_3** *of type `address`*
+
+--- 
+### pause()
+>
+> called by the owner to pause, triggers stopped state
+
+
+**Execution cost**: less than 21999 gas
+
+
+
+
+--- 
+### registeredContractCount()
+
+
+**Execution cost**: less than 859 gas
 
 **Attributes**: constant
 
@@ -97,49 +168,30 @@ Params:
 
 Returns:
 
-> the address of the owner
 
-1. **output_0** *of type `address`*
-
---- 
-### setInterfaceImplementer(address,bytes32,address)
->
->Sets the contract that will handle a specific interface; only  the address itself or a `manager` defined for that address can set it
-
-
-**Execution cost**: No bound available
-
-
-Params:
-
-1. **addr** *of type `address`*
-
-    > Address that you want to define the interface for
-
-2. **iHash** *of type `bytes32`*
-
-    > SHA3 of the name of the interface as a string  For example `web3.utils.sha3('Ieip777')` for the Ieip777
-
-3. **implementer** *of type `address`*
-
+1. **output_0** *of type `uint256`*
 
 --- 
-### eip165UpdateCache(address,bytes4)
+### paused()
 
 
-**Execution cost**: No bound available
+**Execution cost**: less than 681 gas
+
+**Attributes**: constant
 
 
-Params:
 
-1. **_contract** *of type `address`*
-2. **_interfaceId** *of type `bytes4`*
+Returns:
 
+
+1. **output_0** *of type `bool`*
 
 --- 
 ### getLatestProxyAddr(string)
 >
->Gets the address of the latest proxt contract of a particular name
+>Gets the address of the latest proxy contract of a particular name.
+>
+> Internally invokes _getLatestProxyAddr
 
 
 **Execution cost**: No bound available
@@ -156,74 +208,33 @@ Params:
 
 Returns:
 
+> the address of the latest proxy for the provided contract name
 
 1. **output_0** *of type `address`*
 
 --- 
-### interfaceHash(string)
+### initialize(address)
 >
->Query the hash of an interface given a name
+>The contract initializer
+>
+> Always use this function to set the contract state after constructing since when using an upgradeable proxy mechanism, state set inside the constructor will not persist to the proxy.
 
 
 **Execution cost**: No bound available
 
-**Attributes**: constant
-
 
 Params:
 
-1. **interfaceName** *of type `string`*
+1. **_owner** *of type `address`*
 
-    > Name of the interfce
-
-
-Returns:
+    > The owner of the contract
 
 
-1. **output_0** *of type `bytes32`*
-
---- 
-### eip165InterfaceSupported_NoCache(address,bytes4)
-
-
-**Execution cost**: No bound available
-
-**Attributes**: constant
-
-
-Params:
-
-1. **_contract** *of type `address`*
-2. **_interfaceId** *of type `bytes4`*
-
-Returns:
-
-
-1. **output_0** *of type `bool`*
-
---- 
-### eip165InterfaceSupported(address,bytes4)
-
-
-**Execution cost**: No bound available
-
-**Attributes**: constant
-
-
-Params:
-
-1. **_contract** *of type `address`*
-2. **_interfaceId** *of type `bytes4`*
-
-Returns:
-
-
-1. **output_0** *of type `bool`*
 
 --- 
 ### getVersionForContractName(string,int256)
 >
-> pass -1 to get the latest, or a particular index to get a certain one
+>Sets a version for a particular contract by assigning a contract name an associated proxy, version name (using SemVer 2.0) and its logic implementation
 
 
 **Execution cost**: No bound available
@@ -234,40 +245,29 @@ Returns:
 Params:
 
 1. **_contractName** *of type `string`*
+
+    > String name of a contract (ie Registry)
+
 2. **_index** *of type `int256`*
+
+    > the proxy contract's positional index inside of 'versions'. Pass -1 to get the latest proxy's history (in most cases, you should default to this), or a particular index to get the particular history for a given index. Note: The first index (0) is only used pre-initialization and is not a valid version (0_0_0) nor implementation address (0x0). If you want the earliest index, pass: _index = 1
+
 
 Returns:
 
+> The version name, the logic implementation, and the latest proxy address
 
 1. **output_0** *of type `string`*
 2. **output_1** *of type `address`*
 3. **output_2** *of type `address`*
 
 --- 
-### getManager(address)
+### initialized()
 >
->GetManager
+>returns the current initialization status
 
 
-**Execution cost**: less than 1102 gas
-
-**Attributes**: constant
-
-
-Params:
-
-1. **addr** *of type `address`*
-
-Returns:
-
-
-1. **output_0** *of type `address`*
-
---- 
-### proxyAddr()
-
-
-**Execution cost**: less than 746 gas
+**Execution cost**: less than 616 gas
 
 **Attributes**: constant
 
@@ -275,13 +275,14 @@ Returns:
 
 Returns:
 
+> a boolean state representing wether or not the contract has been initialized yet
 
-1. **output_0** *of type `address`*
+1. **output_0** *of type `bool`*
 
 --- 
-### getInterfaceImplementer(address,bytes32)
+### getVersionHistoryForContractName(string)
 >
->Query if an address implements an interface and thru which contract
+>Returns the entire history for a given contract name
 
 
 **Execution cost**: No bound available
@@ -291,56 +292,66 @@ Returns:
 
 Params:
 
-1. **addr** *of type `address`*
+1. **_contractName** *of type `string`*
 
-    > Address that is being queried for the implementation of an interface
-
-2. **iHash** *of type `bytes32`*
-
-    > SHA3 of the name of the interface as a string  Example `web3.utils.sha3('EIP777Token`')`
+    > String name of a contract (i.e. CRC)
 
 
 Returns:
 
-> The address of the contract that implements a specific interface  or 0x0 if `addr` does not implement this interface
+> Will return the history as the Version struct within an array
+
+1. **output_0** *of type `tuple[]`*
+
+--- 
+### owner()
+
+
+**Execution cost**: less than 877 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
 
 1. **output_0** *of type `address`*
 
 --- 
-### initialize(address)
-
-
-**Execution cost**: less than 43465 gas
-
-
-Params:
-
-1. **owner** *of type `address`*
-
-
---- 
-### setManager(address,address)
+### getVersionCountForContract(string,address)
 >
->Sets an external `manager` that will be able to call `setInterfaceImplementer()`  on behalf of the address.
+>Gets the number of Versions for a particular ContractName at a particular proxy address
 
 
-**Execution cost**: less than 23255 gas
+**Execution cost**: No bound available
+
+**Attributes**: constant
 
 
 Params:
 
-1. **addr** *of type `address`*
+1. **_contractName** *of type `string`*
 
-    > Address that you are defining the manager for.
+    > String name of a contract (i.e. CRC)
 
-2. **newManager** *of type `address`*
+2. **_proxyAddress** *of type `address`*
 
-    > The address of the manager for the `addr` that will replace  the old one.  Set to 0x0 if you want to remove the manager.
+    > The address os a particular Proxy used by the given contract name
 
 
+Returns:
+
+> the count of version existing for the provided contract name and proxy
+
+1. **output_0** *of type `uint256`*
 
 --- 
 ### setVersion(string,address,string,address)
+>
+>Sets a version for a particular contract by assigning a contract name an associated proxy, version name (using SemVer 2.0) and its logic implementation
+>
+> This function can only be used by a particular contract's proxy.
 
 
 **Execution cost**: No bound available
@@ -348,10 +359,53 @@ Params:
 
 Params:
 
-1. **contractName** *of type `string`*
-2. **proxyAddress** *of type `address`*
-3. **versionName** *of type `string`*
-4. **newImplementation** *of type `address`*
+1. **_contractName** *of type `string`*
+
+    > String name of a contract (ie Registry)
+
+2. **_proxyAddress** *of type `address`*
+
+    > the Proxy contract's address
+
+3. **_versionName** *of type `string`*
+
+    > the version name (which MUST be incremented each time new logic is set) using SemVer 2.0
+
+4. **_newImplementation** *of type `address`*
+
+    > the contract containing the logic of the proposed contract name
+
+
+
+--- 
+### setVersionAsAdmin(string,address,string,address)
+>
+>Sets a version for a particular contract by assigning a contract name an associated proxy, version name (using SemVer 2.0) and its logic implementation
+>
+> This function can only be used by the admin. Additionally, it is not recomended to ever use this function unless you truly understand the implications it has inside the proxy contract and this registry alike. In most cases, the only appropriate time to use this function is during the very first registration of a contract at a proxy. In all other cases, the `setVersion` function should be called directly from the proxy's `upgradeTo` or `upgradeToAndCall` function (both of which will not work until this function was used during the FIRST deployment/registration of the proxy).
+
+
+**Execution cost**: No bound available
+
+
+Params:
+
+1. **_contractName** *of type `string`*
+
+    > String name of a contract (ie Registry)
+
+2. **_proxyAddress** *of type `address`*
+
+    > the Proxy contract's address
+
+3. **_versionName** *of type `string`*
+
+    > the version name (which MUST be incremented each time new logic is set) using SemVer 2.0
+
+4. **_newImplementation** *of type `address`*
+
+    > the contract containing the logic of the proposed contract name
+
 
 
 --- 
@@ -360,14 +414,25 @@ Params:
 > Allows the current owner to transfer control of the contract to a newOwner.
 
 
-**Execution cost**: No bound available
+**Execution cost**: less than 23269 gas
 
 
 Params:
 
-1. **newOwner** *of type `address`*
+1. **_newOwner** *of type `address`*
 
     > The address to transfer ownership to.
+
+
+
+--- 
+### unpause()
+>
+> called by the owner to unpause, returns to normal state
+
+
+**Execution cost**: less than 21779 gas
+
 
 
 
@@ -389,7 +454,8 @@ Params:
 Returns:
 
 
-1. **versionName** *of type `string`*
-2. **implementation** *of type `address`*
+1. **index** *of type `uint256`*
+2. **versionName** *of type `string`*
+3. **implementation** *of type `address`*
 
 [Back to the top ↑](#contractregistrybase)

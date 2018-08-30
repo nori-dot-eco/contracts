@@ -4,7 +4,7 @@
 
 **Execution cost**: No bound available
 
-**Deployment cost**: less than 91200 gas
+**Deployment cost**: less than 145600 gas
 
 **Combined cost**: No bound available
 

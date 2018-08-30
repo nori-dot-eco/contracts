@@ -1,19 +1,19 @@
 /* globals artifacts */
 const Artifacts = {};
 [
-  'NoriV0_1_2',
+  'NoriV0_2_0',
   'Proxy',
   'UnstructuredUpgradeableTokenV0_1_0',
   'UnstructuredOwnedUpgradeabilityProxy',
   'UnstructuredUpgradeableTokenV0_2_0',
   'UnstructuredUpgradeableTokenV0_3_0',
   'UnstructuredUpgradeableTokenV0_4_0',
-  'ContractRegistryV0_2_1',
+  'ContractRegistryV0_3_0',
   'MultiSigWallet',
   'MultiAdmin',
-  'CRCV0_2_3',
-  'ParticipantRegistryV0_1_2',
-  'FifoCrcMarketV0_1_3',
+  'CRCV0_3_0',
+  'ParticipantRegistryV0_2_0',
+  'FifoCrcMarketV0_2_0',
   'RootRegistryV0_2_0',
   'SelectableCrcMarketV0_1_0',
 ].forEach(contractName => {

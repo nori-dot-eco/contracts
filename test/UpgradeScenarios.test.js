@@ -1,9 +1,9 @@
 import { shouldBehaveLikeUnstructuredUpgradeableToken } from './behaviors/UnstructuredUpgradeableToken';
 import {
-  UnstructuredUpgradeableTokenV0,
-  UnstructuredUpgradeableTokenV1,
-  UnstructuredUpgradeableTokenV2,
-  UnstructuredUpgradeableTokenV3,
+  UnstructuredUpgradeableTokenV0_1_0,
+  UnstructuredUpgradeableTokenV0_2_0,
+  UnstructuredUpgradeableTokenV0_3_0,
+  UnstructuredUpgradeableTokenV0_4_0,
 } from './helpers/Artifacts';
 
 const UnstructuredUpgradeScenarios = (
@@ -21,7 +21,7 @@ const UnstructuredUpgradeScenarios = (
             admin,
             mintRecipient,
             transferRecipient,
-            UnstructuredUpgradeableTokenV0,
+            UnstructuredUpgradeableTokenV0_1_0,
             0,
             [
               ['string', 'string', 'uint', 'uint', 'address', 'address'],
@@ -37,7 +37,7 @@ const UnstructuredUpgradeScenarios = (
             admin,
             mintRecipient,
             transferRecipient,
-            UnstructuredUpgradeableTokenV1,
+            UnstructuredUpgradeableTokenV0_2_0,
             1,
             [
               ['string', 'string', 'uint', 'uint', 'address', 'address'],
@@ -53,7 +53,7 @@ const UnstructuredUpgradeScenarios = (
             admin,
             mintRecipient,
             transferRecipient,
-            UnstructuredUpgradeableTokenV2,
+            UnstructuredUpgradeableTokenV0_3_0,
             2,
             [
               ['string', 'string', 'uint', 'uint', 'address', 'address'],
@@ -70,7 +70,7 @@ const UnstructuredUpgradeScenarios = (
             admin,
             mintRecipient,
             transferRecipient,
-            UnstructuredUpgradeableTokenV3,
+            UnstructuredUpgradeableTokenV0_4_0,
             3,
             [
               ['string', 'string', 'uint', 'uint', 'address', 'address'],
@@ -86,7 +86,7 @@ const UnstructuredUpgradeScenarios = (
             admin,
             mintRecipient,
             transferRecipient,
-            UnstructuredUpgradeableTokenV2,
+            UnstructuredUpgradeableTokenV0_3_0,
             4
           );
         }
@@ -104,9 +104,7 @@ const unstructuredVersionScenario = (
   initParams
 ) => {
   context(
-    `UnstructuredUpgradeableTokenV${
-      version
-    } at UnstructuredOwnedUpgradeabilityProxy`,
+    `UnstructuredUpgradeableTokenV${version} at UnstructuredOwnedUpgradeabilityProxy`,
     () => {
       shouldBehaveLikeUnstructuredUpgradeableToken(
         admin,

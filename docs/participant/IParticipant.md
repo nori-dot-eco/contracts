@@ -16,6 +16,8 @@
 
 **Execution cost**: No bound available
 
+**Attributes**: constant
+
 
 
 Returns:
