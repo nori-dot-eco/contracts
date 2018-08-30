@@ -2,14 +2,15 @@ pragma solidity ^0.4.24;
 import "../lifecycle/Pausable.sol";
 import "./IContractRegistry.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
+import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
 
 /**
   @title ContractRegistryBase: this contract defines the base registry
          function sets for setting and retrieving upgrade info and the
          current proxy addresses.
 */
-contract ContractRegistryBase is Pausable, IContractRegistry {
-  //todo does Pausable inheritance position matter? --^
+contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer {
+  //todo does Pausable inheritance position matter for upgrades (in that, do variables need to be laid out in a particular order in upgraded versions)? --^
 
   using SafeMath for uint256;
 
@@ -65,7 +66,6 @@ contract ContractRegistryBase is Pausable, IContractRegistry {
   */
   function initialize(address _owner) public {
     require(_initialized != true, "You can only initialize this contract once.");
-    //todo register interfaces using eip820
     owner = _owner;
     _initialized = true;
     emit Initialized(_owner);
@@ -123,9 +123,8 @@ contract ContractRegistryBase is Pausable, IContractRegistry {
     address latestProxy = getLatestProxyAddr(_contractName);
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
     Version[] storage history = versions[contractName][latestProxy];
-
-    for(uint256 proxyIndex = 0; proxyIndex < history.length; proxyIndex++) {
-      for(uint256 impIndex = 0; impIndex < history.length; impIndex++) {
+    for(uint256 proxyIndex = 0; proxyIndex < history.length; proxyIndex.add(1)) {
+      for(uint256 impIndex = 0; impIndex < history.length; impIndex.add(1)) {
         if(keccak256(abi.encodePacked(history[impIndex].versionName)) == keccak256(abi.encodePacked(_versionName))) {
           Version storage latest = history[impIndex];
           return (latest.index, latest.versionName, latest.implementation);
@@ -180,7 +179,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry {
     );
   }
 
-   /**
+  /**
     @notice This function is used privately by setVersionAsAdmin and setVersion
     @dev This function can only be used by the admin.
     @param _contractName String name of a contract (ie Registry)
@@ -241,7 +240,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry {
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
     Version[] storage history = versions[contractName][latestProxy];
     if(_index < 0) {
-      index = history.length-1; //todo safe math
+      index = history.length.sub(1);
     }
     else {
       index = uint(_index);
