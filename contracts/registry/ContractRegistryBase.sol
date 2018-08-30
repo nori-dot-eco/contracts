@@ -1,8 +1,11 @@
 pragma solidity ^0.4.24;
+pragma experimental ABIEncoderV2; //solium-disable-line
+
 import "../lifecycle/Pausable.sol";
 import "./IContractRegistry.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
+
 
 /**
   @title ContractRegistryBase: this contract defines the base registry
@@ -67,6 +70,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
   function initialize(address _owner) public {
     require(_initialized != true, "You can only initialize this contract once.");
     owner = _owner;
+    registeredContractCount = 0;
     _initialized = true;
     emit Initialized(_owner);
   }
@@ -119,18 +123,27 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
     @return The index at which the given contract exists, the name of the version, the logic implementation, and the address
             of the proxy used by this versions parent
   */
-  function getContractInfoForVersion(string _contractName, string _versionName) public view returns (uint256, string, address) {
+  function getContractInfoForVersion(string _contractName, string _versionName) public view returns (uint256, string, address, address) {
     address latestProxy = getLatestProxyAddr(_contractName);
-    bytes32 contractName = keccak256(abi.encodePacked(_contractName));
-    Version[] storage history = versions[contractName][latestProxy];
-    for(uint256 proxyIndex = 0; proxyIndex < history.length; proxyIndex.add(1)) {
-      for(uint256 impIndex = 0; impIndex < history.length; impIndex.add(1)) {
-        if(keccak256(abi.encodePacked(history[impIndex].versionName)) == keccak256(abi.encodePacked(_versionName))) {
-          Version storage latest = history[impIndex];
-          return (latest.index, latest.versionName, latest.implementation);
-        }
+    bytes32 contractNameHash = keccak256(abi.encodePacked(_contractName));
+    Version[] storage history = versions[contractNameHash][latestProxy];
+    for(uint256 i = 0; i < history.length; i = i.add(1)) {
+      if(keccak256(abi.encodePacked(history[i].versionName)) == keccak256(abi.encodePacked(_versionName))) {
+        Version storage latest = history[i];
+        return (latest.index, latest.versionName, latest.implementation, latestProxy);
       }
     }
+  }
+
+  /**
+    @notice Returns the entire history for a given contract name
+    @param _contractName String name of a contract (i.e. CRC)
+    @return Will return the history as the Version struct within an array
+  */
+  function getVersionHistoryForContractName(string _contractName) public view returns(Version[]){
+    address latestProxy = getLatestProxyAddr(_contractName);
+    bytes32 contractNameHash = keccak256(abi.encodePacked(_contractName));
+    return versions[contractNameHash][latestProxy];
   }
 
   /**
@@ -148,6 +161,18 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
     string _versionName,
     address _newImplementation
   ) public onlyProxy(_contractName) {
+    require(
+      _proxyAddress != address(0),
+      "You cannot use the 0 address for the proxy"
+    );
+    require(
+      _newImplementation != address(0),
+      "You cannot use the 0 address for the implementation"
+    );
+    require(
+      bytes(_contractName).length > 0,
+      "You must use a non-empty string as the contract name"
+    );
     _setVersion(
       _contractName,
       _proxyAddress,
@@ -201,7 +226,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
   ) private {
     require(
       bytes(_versionName).length > 0,
-      "You must use a and a non-empty string as the version name"
+      "You must use a non-empty string as the version name"
     );
     bytes32 contractNameHash = keccak256(abi.encodePacked(_contractName));
     require(
@@ -216,8 +241,8 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
         _newImplementation
       )
     );
-    if (contractNameHashToProxy[contractNameHash] != _proxyAddress){
-      registeredContractCount.add(1);
+    if (contractNameHashToProxy[contractNameHash] != _proxyAddress) {
+      registeredContractCount = registeredContractCount.add(1);
     }
     contractNameHashToProxy[contractNameHash] = _proxyAddress;
     proxyToContractName[_proxyAddress] = ContractNameAndHash(_contractName, contractNameHash);
