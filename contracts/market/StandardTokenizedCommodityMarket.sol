@@ -22,23 +22,22 @@ contract StandardTokenizedCommodityMarket is Market {
 
   constructor() Market() public { }
 
+  // todo onlyOwner for all initialize funcs
   function initialize(address _eip820RegistryAddr, address[] _marketItems, address _owner) public {
     super.initialize(_eip820RegistryAddr, _marketItems, _owner);
-    setCommodityContract(_marketItems[0]);
-    setTokenContract(_marketItems[1]);
-    enableEIP777TokensOperator();
-    enableCommodityOperator();
+    commodityContract = ICommodity(_marketItems[0]);
+    tokenContract = IEIP777(_marketItems[1]);
   }
 
-  function setCommodityContract (address _commodityContract) internal {
+  function setCommodityContract (address _commodityContract) internal onlyOwner {
     commodityContract = ICommodity(_commodityContract);
   }
 
-  function setTokenContract (address _tokenContract) internal {
+  function setTokenContract (address _tokenContract) internal onlyOwner {
     tokenContract = IEIP777(_tokenContract);
   }
 
-  function _addSale(uint256 _tokenId, MarketLib.Sale _sale) private {
+  function _addSale(uint256 _tokenId, MarketLib.Sale _sale) private whenNotPaused {
 
     tokenIdToSell[_tokenId] = _sale;
 
@@ -53,9 +52,9 @@ contract StandardTokenizedCommodityMarket is Market {
     );
   }
 
-  /// @dev transfers buyers token to seller
-  /// Does NOT transfer sllers commodity (token) to buyer
-  function _buy(address _buyer, uint256 _tokenId, uint256 _amount) internal returns (uint256) {
+  /// @dev transfers buyers token to seller.
+  /// Does NOT transfer sellers commodity (token) to buyer
+  function _buy(address _buyer, uint256 _tokenId, uint256 _amount) internal whenNotPaused returns (uint256) {
     // Get a reference to the sale struct
     MarketLib.Sale storage sale = tokenIdToSell[_tokenId];
 
@@ -63,12 +62,15 @@ contract StandardTokenizedCommodityMarket is Market {
     // (Because of how Ethereum mappings work, we can't just count
     // on the lookup above failing. An invalid _tokenId will just
     // return an sale object that is all zeros.)
-    require(_isOnSale(sale));
+    require(_isOnSale(sale), "You can only buy a commodity that is currently on sale");
 
-    require(_buyer != sale.seller);
+    require(_buyer != sale.seller, "You cannot buy your own commodity");
 
     // Check that the incoming amount is < or equal to the commodity value
-    require(_amount <= sale.value);
+    require(
+      _amount <= sale.value,
+      "You can only purchase a value of the current commodity that is <= its bundle value"
+    );
 
     // Grab a reference to the seller before the sale struct
     // gets deleted.
@@ -76,13 +78,13 @@ contract StandardTokenizedCommodityMarket is Market {
 
     if (_amount == sale.value) {
     // The bid is good! Remove the sale before sending the fees
-    // to the sender so we can't have a reentrancy attack.
+    // to the sender so we can't have a re-entrancy attack.
       _removeSale(_tokenId);
     } else if (_amount < sale.value && _amount > 0) {
       //todo jaycen make sure that failing half way through and send of tokens failing reverts the sale to original value
       sale.value = _updateSale(_tokenId, _amount);
     } else {
-      revert();
+      revert("Invalid value specification");
     }
 
     // Transfer proceeds to seller (if there are any!)
@@ -96,9 +98,9 @@ contract StandardTokenizedCommodityMarket is Market {
 
       // NOTE: Doing a transfer() in the middle of a complex
       // method like this is generally discouraged because of
-      // reentrancy attacks and DoS attacks if the seller is
+      // re-entrancy attacks and DoS attacks if the seller is
       // a contract with an invalid fallback function. We explicitly
-      // guard against reentrancy attacks by removing the sale
+      // guard against re-entrancy attacks by removing the sale
       // before calling transfer(), and the only thing the seller
       // can DoS is the sale of their own commodity! (And if it's an
       // accident, they can call cancelSale(). )
@@ -124,10 +126,10 @@ contract StandardTokenizedCommodityMarket is Market {
     address _seller,
     uint256 _value,
     bytes _misc
-  ) internal {
+  ) internal whenNotPaused {
     // todo jaycen PRELAUNCH before launch ensure selling by authorize operator
     // introduces no risk and escrow is definitely not needed
-    require(commodityContract.isOperatorForOne(this, _tokenId));
+    require(commodityContract.isOperatorForOne(this, _tokenId), "The market is not currently an operator for this commodity");
     MarketLib.Sale memory sale = MarketLib.Sale(
       uint256(_tokenId),
       uint64(_category),
@@ -153,18 +155,18 @@ contract StandardTokenizedCommodityMarket is Market {
     return (commodityContract.ownerOf(_tokenId) == _claimant);
   }
 
-  // todo jaycen via revokeOperator -- also do we need something similar if someone trys to auth tokens when no crc sales are available? Not sure ive tested for this
+  // todo jaycen via revokeOperator -- also do we need something similar if someone tries to auth tokens when no crc sales are available? Not sure ive tested for this
   /// @dev Removes a sale from the list of open sales.
   /// @param _tokenId - ID of commodity on sale.
-  function _removeSale(uint256 _tokenId) internal {
-    require(commodityContract.isOperatorForOne(this, _tokenId));
+  function _removeSale(uint256 _tokenId) internal whenNotPaused {
+    require(commodityContract.isOperatorForOne(this, _tokenId), "The market is not currently the operator for this value of tokens");
     delete tokenIdToSell[_tokenId];
   }
 
   // todo jaycen via revokeOperator
   /// @dev Removes a sale from the list of open sales.
   /// @param _tokenId - ID of commodity on sale.
-  function _updateSale(uint256 _tokenId, uint256 _amount) internal returns (uint256) {
+  function _updateSale(uint256 _tokenId, uint256 _amount) internal whenNotPaused returns (uint256) {
     //todo jaycen only allow this to be called when the market invokes it (require it is less than original and > 0)
     uint256 newSaleValue = tokenIdToSell[_tokenId].value.sub(_amount);
     tokenIdToSell[_tokenId].value = newSaleValue;
@@ -180,7 +182,7 @@ contract StandardTokenizedCommodityMarket is Market {
     address, //to
     uint256 _tokenId,
     uint256 // amount
-  ) internal {
+  ) internal whenNotPaused {
     address seller = commodityContract.ownerOf(_tokenId);
     // it will throw if transfer fails
     commodityContract.operatorSendOne(
@@ -192,7 +194,7 @@ contract StandardTokenizedCommodityMarket is Market {
     );
   }
 
-  function _split(uint256 _tokenId, address _to, uint256 _amount) internal {
+  function _split(uint256 _tokenId, address _to, uint256 _amount) internal whenNotPaused {
     commodityContract.split(_tokenId, _to, _amount);
   }
   //todo jaycen can we remove these and just fetch tokenIdToSell?

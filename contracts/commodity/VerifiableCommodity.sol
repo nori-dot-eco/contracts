@@ -11,9 +11,8 @@ contract VerifiableCommodity is BasicCommodity, IVerifiableCommodity {
   event Verified(uint _commodityId, bytes _verifierData, uint64 _category);
   event InsufficientPermission(address sender, uint256 id, bytes data, uint64 category);
 
-  // todo jaycen PRELAUNCH add onlyowner modifier or similar
   /// @notice Modifies `_category` (aka verification level) of a commodity
-  function verify(uint256 _commodityId, bytes _verifierData, uint64 _category) public {
+  function verify(uint256 _commodityId, bytes _verifierData, uint64 _category) public whenNotPaused {
     //todo jaycen bounds check verification category <-- can probably be 0-100 + some misc others for flexibility
     //todo jaycen is this safe? Can someone somehow return teh same participant address and spoof that the msg is coming from a defined address?
     //todo jaycen should this be participant or verifier
@@ -32,7 +31,6 @@ contract VerifiableCommodity is BasicCommodity, IVerifiableCommodity {
     }
     commodities[_commodityId].category = _category;
 
-    //todo jaycen notify supplier? call market to update token release paramaters? maybe needs a similar callOwner with eip820 callRecipient type style
     emit Verified(_commodityId, _verifierData, _category);
   }
 }

@@ -2,11 +2,11 @@
 > UnstructuredTokenBase
 
 
-**Execution cost**: No bound available
+**Execution cost**: less than 42727 gas
 
-**Deployment cost**: less than 1444400 gas
+**Deployment cost**: less than 2021600 gas
 
-**Combined cost**: No bound available
+**Combined cost**: less than 2064327 gas
 
 ## Constructor
 
@@ -51,6 +51,22 @@ Params:
 2. **amount** *of type `uint256`*
 
 --- 
+### Initialized(string,string,uint256,uint256,address,address)
+
+
+**Execution cost**: No bound available
+
+
+Params:
+
+1. **name** *of type `string`*
+2. **symbol** *of type `string`*
+3. **granularity** *of type `uint256`*
+4. **totalSupply** *of type `uint256`*
+5. **contractRegistryAddr** *of type `address`*
+6. **owner** *of type `address`*
+
+--- 
 ### Minted(address,uint256,address,bytes)
 
 
@@ -65,7 +81,7 @@ Params:
 4. **operatorData** *of type `bytes`*
 
 --- 
-### OwnerSet(address)
+### OwnershipRenounced(address)
 
 
 **Execution cost**: No bound available
@@ -73,7 +89,7 @@ Params:
 
 Params:
 
-1. **newOwner** *of type `address`*
+1. **previousOwner** *of type `address`*
 
 --- 
 ### OwnershipTransferred(address,address)
@@ -176,7 +192,7 @@ Returns:
 >ERC20 backwards compatible approve.  `msg.sender` approves `_spender` to spend `_value` tokens on its behalf.
 
 
-**Execution cost**: less than 22689 gas
+**Execution cost**: No bound available
 
 
 Params:
@@ -197,6 +213,23 @@ Returns:
 1. **success** *of type `bool`*
 
 --- 
+### initialized()
+>
+> returns the current initialization status
+
+
+**Execution cost**: less than 525 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
+
+1. **output_0** *of type `bool`*
+
+--- 
 ### disableERC20()
 >
 >Disables the ERC-20 interface. This function can only be called  by the owner.
@@ -213,7 +246,7 @@ Returns:
 >ERC20 backwards compatible allowance.  This function makes it easy to read the `allowed[]` map
 
 
-**Execution cost**: less than 1459 gas
+**Execution cost**: No bound available
 
 **Attributes**: constant
 
@@ -241,7 +274,7 @@ Returns:
 >For Backwards compatibility
 
 
-**Execution cost**: less than 614 gas
+**Execution cost**: No bound available
 
 **Attributes**: constant
 
@@ -275,7 +308,7 @@ Params:
 ### granularity()
 
 
-**Execution cost**: less than 601 gas
+**Execution cost**: less than 623 gas
 
 **Attributes**: constant
 
@@ -293,7 +326,7 @@ Returns:
 >Check whether the `_operator` address is allowed to manage the tokens held by `_tokenHolder` address.
 
 
-**Execution cost**: less than 1385 gas
+**Execution cost**: less than 1451 gas
 
 **Attributes**: constant
 
@@ -321,7 +354,7 @@ Returns:
 >Return the account balance of some account
 
 
-**Execution cost**: less than 867 gas
+**Execution cost**: less than 889 gas
 
 **Attributes**: constant
 
@@ -340,6 +373,21 @@ Returns:
 1. **output_0** *of type `uint256`*
 
 --- 
+### contractRegistry()
+
+
+**Execution cost**: less than 1040 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
+
+1. **output_0** *of type `address`*
+
+--- 
 ### initialize(string,string,uint256,uint256,address,address)
 
 
@@ -352,7 +400,7 @@ Params:
 2. **_symbol** *of type `string`*
 3. **_granularity** *of type `uint256`*
 4. **_totalSupply** *of type `uint256`*
-5. **_eip820RegistryAddr** *of type `address`*
+5. **_contractRegistryAddr** *of type `address`*
 6. **_owner** *of type `address`*
 
 
@@ -394,7 +442,7 @@ Params:
 >Authorize a third party `_operator` to manage (send) `msg.sender`'s tokens.
 
 
-**Execution cost**: less than 22622 gas
+**Execution cost**: less than 22666 gas
 
 
 Params:
@@ -439,12 +487,41 @@ Params:
 
 
 --- 
+### setContractRegistry(address)
+>
+>Sets the contract registry address
+
+
+**Execution cost**: less than 21501 gas
+
+
+Params:
+
+1. **_contractRegistryAddr** *of type `address`*
+
+
+--- 
+### owner()
+
+
+**Execution cost**: less than 886 gas
+
+**Attributes**: constant
+
+
+
+Returns:
+
+
+1. **output_0** *of type `address`*
+
+--- 
 ### revokeOperator(address)
 >
 >Revoke a third party `_operator`'s rights to manage (send) `msg.sender`'s tokens.
 
 
-**Execution cost**: less than 27987 gas
+**Execution cost**: less than 28053 gas
 
 
 Params:
@@ -456,54 +533,15 @@ Params:
 
 
 --- 
-### owner()
+### renounceOwnership()
 >
-> Tells the address of the owner
-
-
-**Execution cost**: less than 842 gas
-
-**Attributes**: constant
-
-
-
-Returns:
-
-> the address of the owner
-
-1. **output_0** *of type `address`*
-
---- 
-### operatorSend(address,address,address,uint256,bytes,bytes)
+>Renouncing to ownership will leave the contract without an owner. It will not be possible to call the functions with the `onlyOwner` modifier anymore.
 >
->Send `_value` amount of tokens on behalf of the address `from` to the address `to`.
+> Allows the current owner to relinquish control of the contract.
 
 
-**Execution cost**: No bound available
+**Execution cost**: less than 22377 gas
 
-
-Params:
-
-1. **_operator** *of type `address`*
-2. **_from** *of type `address`*
-
-    > The address holding the tokens being sent
-
-3. **_to** *of type `address`*
-
-    > The address of the recipient
-
-4. **_value** *of type `uint256`*
-
-    > The amount of tokens to be sent
-
-5. **_userData** *of type `bytes`*
-
-    > Data generated by the user to be sent to the recipient
-
-6. **_operatorData** *of type `bytes`*
-
-    > Data generated by the operator to be sent to the recipient
 
 
 
@@ -551,6 +589,40 @@ Params:
 
 
 --- 
+### operatorSend(address,address,address,uint256,bytes,bytes)
+>
+>Send `_value` amount of tokens on behalf of the address `from` to the address `to`.
+
+
+**Execution cost**: No bound available
+
+
+Params:
+
+1. **_operator** *of type `address`*
+2. **_from** *of type `address`*
+
+    > The address holding the tokens being sent
+
+3. **_to** *of type `address`*
+
+    > The address of the recipient
+
+4. **_value** *of type `uint256`*
+
+    > The amount of tokens to be sent
+
+5. **_userData** *of type `bytes`*
+
+    > Data generated by the user to be sent to the recipient
+
+6. **_operatorData** *of type `bytes`*
+
+    > Data generated by the operator to be sent to the recipient
+
+
+
+--- 
 ### symbol()
 
 
@@ -570,7 +642,7 @@ Returns:
 ### totalSupply()
 
 
-**Execution cost**: less than 513 gas
+**Execution cost**: less than 535 gas
 
 **Attributes**: constant
 
@@ -644,12 +716,12 @@ Returns:
 > Allows the current owner to transfer control of the contract to a newOwner.
 
 
-**Execution cost**: No bound available
+**Execution cost**: less than 23373 gas
 
 
 Params:
 
-1. **newOwner** *of type `address`*
+1. **_newOwner** *of type `address`*
 
     > The address to transfer ownership to.
 

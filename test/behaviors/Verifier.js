@@ -64,21 +64,21 @@ const shouldBehaveLikeVerifier = admin => {
         [1, '0x0', 5]
       )}`;
       // todojaycen use supplier.forward to mint temporaily using a toggle to allow contract calls from addresses not proxyed through participant identy contract
-      await crc.toggleParticipantCalling(false, { from: accounts[0] });
-      await crc.mint(accounts[0], '0x0', 1, '0x0', { from: accounts[0] });
-      await crc.mint(accounts[0], '0x0', 1, '0x0', { from: accounts[0] });
+      await crc.toggleParticipantCalling(false, { from: admin });
+      await crc.mint(accounts[0], '0x0', 1, '0x0');
+      await crc.mint(accounts[0], '0x0', 1, '0x0');
       // disallow non partipant/verifier calls
-      await crc.toggleParticipantCalling(true, { from: accounts[0] });
+      await crc.toggleParticipantCalling(true, { from: admin });
     });
     describe('toggleVerifier', () => {
       const toggles = [false, true];
       toggles.forEach(toggle => {
         it('should enable verifier account', async () => {
           await verifier.toggleVerifier(verifierAcc, toggle, {
-            from: verifierAcc,
+            from: admin,
           });
           assert.equal(
-            await verifier.verifiers.call([verifierAcc], { from: verifierAcc }),
+            await verifier.verifiers.call([verifierAcc]),
             toggle,
             'did not toggle account permission'
           );
@@ -93,12 +93,12 @@ const shouldBehaveLikeVerifier = admin => {
           crcAddress,
           true,
           {
-            from: verifierAcc,
+            from: admin,
           }
         );
 
         await verifier.toggleVerifier(verifierAcc, true, {
-          from: verifierAcc,
+          from: admin,
         });
         await verifier.forward(crcAddress, 0, verify, 'IVerifiableCommodity', {
           from: verifierAcc,
@@ -112,11 +112,11 @@ const shouldBehaveLikeVerifier = admin => {
           crcAddress,
           true,
           {
-            from: verifierAcc,
+            from: admin,
           }
         );
         await verifier.toggleVerifier(accounts[1], false, {
-          from: verifierAcc,
+          from: admin,
         });
 
         await expectThrow(
@@ -144,7 +144,7 @@ const shouldBehaveLikeVerifier = admin => {
       toggles.forEach(toggle => {
         it('should disable the verifier participant type and fail when verifying', async () => {
           await verifier.toggleParticipantType(toggle, {
-            from: verifierAcc,
+            from: admin,
           });
           !toggle
             ? await expectThrow(
@@ -175,17 +175,17 @@ const shouldBehaveLikeVerifier = admin => {
       toggles.forEach(toggle => {
         it('should set all requisite permissions to true', async () => {
           await verifier.toggleParticipantType(toggle[0], {
-            from: verifierAcc,
+            from: admin,
           });
           await verifier.toggleVerifier(verifierAcc, toggle[1], {
-            from: verifierAcc,
+            from: admin,
           });
           await verifier.toggleInterface(
             'IVerifiableCommodity',
             crcAddress,
             toggle[2],
             {
-              from: verifierAcc,
+              from: admin,
             }
           );
           await verifier.isAllowed(crcAddress, 'IVerifiableCommodity', {
@@ -203,17 +203,17 @@ const shouldBehaveLikeVerifier = admin => {
       toggles.forEach(toggle => {
         it('should set all requisite permissions to false', async () => {
           await verifier.toggleParticipantType(toggle[0], {
-            from: verifierAcc,
+            from: admin,
           });
           await verifier.toggleVerifier(verifierAcc, toggle[1], {
-            from: verifierAcc,
+            from: admin,
           });
           await verifier.toggleInterface(
             'IVerifiableCommodity',
             crcAddress,
             toggle[2],
             {
-              from: verifierAcc,
+              from: admin,
             }
           );
           await expectThrow(

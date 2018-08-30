@@ -1,12 +1,12 @@
 # UnstructuredUpgradeabilityProxy
-> UnstructuredUpgradeabilityProxy
+> UnstructuredUpgradeabilityProxy: This contract represents a proxy where       the implementation address to which it will delegate can be upgraded
 
 
-**Execution cost**: less than 111 gas
+**Execution cost**: less than 135 gas
 
-**Deployment cost**: less than 59600 gas
+**Deployment cost**: less than 88600 gas
 
-**Combined cost**: less than 59711 gas
+**Combined cost**: less than 88735 gas
 
 ## Constructor
 
@@ -48,7 +48,7 @@ Params:
 ## Methods
 ### implementation()
 >
-> Tells the address of the current implementation
+>Tells the address of the current implementation
 
 
 **Execution cost**: less than 471 gas
@@ -61,6 +61,6 @@ Returns:
 
 > address of the current implementation
 
-1. **impl** *of type `address`*
+1. **_impl** *of type `address`*
 
 [Back to the top ↑](#unstructuredupgradeabilityproxy)

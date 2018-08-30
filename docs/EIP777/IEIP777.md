@@ -76,19 +76,16 @@ Params:
 
 
 ## Methods
-### symbol()
+### authorizeOperator(address)
 
 
 **Execution cost**: No bound available
 
-**Attributes**: constant
 
+Params:
 
+1. **operator** *of type `address`*
 
-Returns:
-
-
-1. **output_0** *of type `string`*
 
 --- 
 ### name()
@@ -106,6 +103,25 @@ Returns:
 1. **output_0** *of type `string`*
 
 --- 
+### isOperatorFor(address,address)
+
+
+**Execution cost**: No bound available
+
+**Attributes**: constant
+
+
+Params:
+
+1. **operator** *of type `address`*
+2. **tokenHolder** *of type `address`*
+
+Returns:
+
+
+1. **output_0** *of type `bool`*
+
+--- 
 ### granularity()
 
 
@@ -121,7 +137,7 @@ Returns:
 1. **output_0** *of type `uint256`*
 
 --- 
-### isOperatorFor(address,address)
+### initialized()
 
 
 **Execution cost**: No bound available
@@ -129,10 +145,6 @@ Returns:
 **Attributes**: constant
 
 
-Params:
-
-1. **operator** *of type `address`*
-2. **tokenHolder** *of type `address`*
 
 Returns:
 
@@ -156,18 +168,6 @@ Returns:
 
 
 1. **output_0** *of type `uint256`*
-
---- 
-### authorizeOperator(address)
-
-
-**Execution cost**: No bound available
-
-
-Params:
-
-1. **operator** *of type `address`*
-
 
 --- 
 ### operatorSend(address,address,uint256,bytes,bytes)
@@ -240,6 +240,21 @@ Params:
 1. **to** *of type `address`*
 2. **amount** *of type `uint256`*
 
+
+--- 
+### symbol()
+
+
+**Execution cost**: No bound available
+
+**Attributes**: constant
+
+
+
+Returns:
+
+
+1. **output_0** *of type `string`*
 
 --- 
 ### totalSupply()

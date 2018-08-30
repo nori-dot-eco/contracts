@@ -1,27 +1,30 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 /**
- * @title Proxy
- * @dev Gives the possibility to delegate any call to a foreign implementation.
+ * @title Proxy: Gives the possibility to delegate any function
+ *        call to a foreign implementation.
+ * @dev All state changes happen within the context of this contract. The
+ *      implementation contract only provides logic to be performed within
+ *      this contract's state.
  */
 contract Proxy {
 
   /**
-  * @dev Tells the address of the implementation where every call will be delegated.
+  * @notice Tells the address of the implementation where every call will be delegated.
   * @return address of the implementation to which it will be delegated
   */
   function implementation() public view returns (address);
 
   /**
-  * @dev Fallback function allowing to perform a delegatecall to the given implementation.
-  * This function will return whatever the implementation call returns
+  * @notice Fallback function allowing to perform a delegatecall to the given implementation.
+  * @dev This function will return whatever the implementation call returns
   */
-  function () payable public {
+  function () public payable {
     address _impl = implementation();
-    require(_impl != address(0));
+    require(_impl != address(0), "Implementation cannot be the 0 address");
 
     // solium-disable-next-line security/no-inline-assembly
-    assembly { 
+    assembly {
       let ptr := mload(0x40)
       calldatacopy(ptr, 0, calldatasize)
       let result := delegatecall(gas, _impl, ptr, calldatasize, 0, 0)

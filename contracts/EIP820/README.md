@@ -1,5 +1,29 @@
 # ERC 820: Pseudo-introspection using a registry contract
 
+### Note: EIP 820 code has been moved to a sub module inside of `contrib/EIP/eip820`. This Readme is for information on EIP 820 as applies to our repository.
+
+## Modifying EIP820 contracts
+
+0. `git checkout -b update-submodule`
+1. `cd contracts/contrib/EIP/eip820/`
+1. `git checkout -b branch-name`
+1. make your changes, and run the test script _inside this folder_
+1. `git add .`
+1. `git commit -m "this is a message about the changes"`
+1. `git push origin branch-name`
+1. Open a pull request [here](https://github.com/nori-dot-eco/eip820) from `branch-name` to `master`
+1. After changes are accepted, merge the branch
+1. cd back into the root directory of the nori contracts repository
+1. run `git status` and verify that you see that the contrib folder contains updates
+1. add and commit the contrib folder
+1. push the contracts repository to origin and open a pull request from `update-submodule` to `master`
+1. After changes are accepted, merge the branch
+1. `cd contracts/contrib/EIP/eip820/` verify that your current branch commit is the same as [the updated master branch you made in step 7](https://github.com/nori-dot-eco/eip820)
+
+#### Contributing those changes
+
+When appropriate, you should also contribute your changes directly to the official standard. To do so, just make a new PR from `master` to `contrib` in OUR version of the github repository, and then make a PR from the `contrib` branch in our repository, to the official repository.
+
 ## Formal Specifications
 
 - [ERC-820](https://github.com/ethereum/EIPs/issues/820)

@@ -58,7 +58,7 @@ module.exports = async function genSampleData(global) {
     );
 
     console.log('Toggling participant type');
-    await supplier.toggleParticipantType(true);
+    await supplier.toggleParticipantType(true); // todo: might need to fix this to use multiadmin to toggle?
     console.log('Toggline interface');
     await supplier.toggleInterface('IMintableCommodity', crc.address, true);
 

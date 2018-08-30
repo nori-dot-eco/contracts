@@ -21,7 +21,7 @@ contract UnstructuredOwnable {
    * @dev Throws if called by any account other than the owner.
    */
   modifier onlyOwner() {
-    require(msg.sender == owner());
+    require(msg.sender == owner(), "Only the owner can use this function.");
     _;
   }
 
@@ -53,7 +53,7 @@ contract UnstructuredOwnable {
    * @param newOwner The address to transfer ownership to.
    */
   function transferOwnership(address newOwner) public onlyOwner {
-    require(newOwner != address(0));
+    require(newOwner != address(0), "You cannot set the 0 address as the owner");
     emit OwnershipTransferred(owner(), newOwner);
     setOwner(newOwner);
   }

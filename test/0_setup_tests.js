@@ -1,6 +1,6 @@
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
 import { UnstructuredUpgradeScenarios } from './UpgradeScenarios.test';
-import NoriV0Tests from './NoriV0.test';
+import NoriUpgradeTests from './Nori.test';
 import MultiAdminTests from './MultiAdmin.test';
 import MultiSigWallet from './MultiSigWallet.test';
 import { RootRegistryTests, ContractRegistryTests } from './Registry.test';
@@ -25,6 +25,7 @@ const {
   unregistered1,
   admin0,
   admin1,
+  allAccounts,
 } = require('./helpers/getNamedAccounts')(web3);
 
 // NOTE: this will become the standard way of testing both scenarios and per-contract functions.
@@ -47,15 +48,15 @@ context('Setup test environment', () => {
     // Cant find a standard way to set the default balance of an account, and some tests
     // are complex + long and require a large balance, this gives the first account
     // some additional funds to prevent running out of ether.
-    giveEth(admin0, 0.15);
+    giveEth(admin0, 0.25);
   });
 
   context('Execute tests', () => {
-    // todo jaycen fix this (broken when removed etsernal storage stuffz)
+    // todo jaycen fix this (broken when removed eternal storage stuff)
     // ProxyTests();
-    MultiSigWallet(); // Multisig wallet tests
-    MultiAdminTests(); // Multisig admin tests
-    ContractRegistryTests(admin0, admin1, unregistered0);
+    MultiSigWallet(); // MultiSig wallet tests
+    MultiAdminTests(); // MultiSig admin tests
+    ContractRegistryTests(admin0, admin1, unregistered0, allAccounts);
     RootRegistryTests();
     SelectableCrcMarketTests();
     EIP820RegistryTests();
@@ -71,6 +72,6 @@ context('Setup test environment', () => {
 
   context('Upgrade Scenarios', () => {
     UnstructuredUpgradeScenarios(admin0, admin1, unregistered0);
-    NoriV0Tests(admin0, admin1, unregistered0);
+    NoriUpgradeTests(admin0, admin1, unregistered0);
   });
 });

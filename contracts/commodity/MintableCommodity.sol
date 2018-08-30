@@ -5,7 +5,6 @@ import "./IMintableCommodity.sol";
 import "../participant/IParticipant.sol";
 import "./BasicCommodity.sol";
 import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
-import "../registry/IContractRegistry.sol";
 
 
 contract MintableCommodity is BasicCommodity, IMintableCommodity {
@@ -14,19 +13,16 @@ contract MintableCommodity is BasicCommodity, IMintableCommodity {
   event Minted(address indexed to, uint commodityId, uint256 amount, address indexed operator, bytes operatorData);
   event InsufficientPermission(address sender, bytes operatorData, uint256 value, bytes misc);
 
-  //todo jaycen PRELAUNCH add onlyowner modifier or similar
   // todo jaycen, does the fact that this now returns data mess up compatibility with 721/777?
   /// @notice Generates `_value` tokens to be assigned to `_tokenHolder`
   /// @param _operatorData Data that will be passed to the recipient as a first transfer
-  /// XXX: DO NOT SHIP TO PRODUCTION -- maybe we can get rid of ownermint if we allow any to creat crc category 0
   function mint(
     address _to,
     bytes _operatorData,
     uint256 _value,
     bytes _misc
-  ) public returns(uint64) {
+  ) public whenNotPaused returns(uint64) {
 
-    //todo jaycen is this safe? Can someone somehow return teh same participant address and spoof that the msg is coming from a defined address?
     //todo replace the following if else logic with the require logic that exists in the split function. This is needed only so that current tests don't break
     address participantProxy = interfaceAddr(msg.sender, "IParticipant");
     if (participantProxy != 0) {
@@ -57,11 +53,11 @@ contract MintableCommodity is BasicCommodity, IMintableCommodity {
         misc: bytes(_misc)
     });
     uint newCRCId = commodities.push(_commodity).sub(1);
-    require(newCRCId <= 18446744073709551616);
+    require(newCRCId <= 18446744073709551616, "You can only mint a commodity in a valid index range");
 
     //TODO: make sure this is ok in production (maybe move to a diff func that invokes callrecipient internally)
     _transfer(0, _to, newCRCId);
-    callRecipent(
+    callRecipient(
       msg.sender,
       0x0,
       _to,

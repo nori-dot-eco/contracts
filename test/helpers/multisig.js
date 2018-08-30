@@ -11,7 +11,7 @@ const prepareMultiSigAndRoot = async (
     force
   );
 
-  // on ropsten we always want to get the multisigs from the root, so only in development do we want to create new ones
+  // on ropsten we always want to get the MultiSigs from the root, so only in development do we want to create new ones
   if (network === 'develop' || network === 'test' || network === 'testrpc') {
     [multiSigWallet, multiAdmin] = await Promise.all([
       artifacts
@@ -22,13 +22,13 @@ const prepareMultiSigAndRoot = async (
         .new([admin0, admin1], 1, rootRegistry.address),
     ]);
 
-    await rootRegistry.setVersion(
+    await rootRegistry.setVersionAsAdmin(
       'MultiAdmin',
       multiAdmin.address,
       '0_1_0',
       multiAdmin.address
     );
-    await rootRegistry.setVersion(
+    await rootRegistry.setVersionAsAdmin(
       'MultiSigWallet',
       multiSigWallet.address,
       '0_1_0',
@@ -47,11 +47,11 @@ const prepareMultiSigAndRoot = async (
       .require('MultiSigWallet')
       .at(multiSigWalletAddr);
   } catch (e) {
-    throw new Error('MultiSigs havent been deployed or set in the root');
+    throw new Error("MultiSigs haven't been deployed or set in the root");
   }
   if ((await rootRegistry.owner()) !== multiAdmin.address) {
     throw new Error(
-      `Danger! Root owner should be the multisig admin wallet (${
+      `Danger! Root owner should be the MultiAdmin contract (${
         multiAdmin.address
       }), but it is currently owned by: ${await rootRegistry.owner()}`
     );

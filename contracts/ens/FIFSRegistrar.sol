@@ -11,7 +11,7 @@ contract FIFSRegistrar {
 
   modifier only_owner(bytes32 subnode) {
     address currentOwner = ens.owner(keccak256(abi.encodePacked(rootNode, subnode)));
-    require(currentOwner == 0 || currentOwner == msg.sender);
+    require(currentOwner == 0 || currentOwner == msg.sender, "Only the owner can call this function");
     _;
   }
 

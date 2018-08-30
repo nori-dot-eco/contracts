@@ -1,44 +1,7 @@
-import { getLatestVersionFromFs } from '../test/helpers/contracts';
-
-const Web3 = require('web3');
-
-const EIP820Registry = artifacts.require('./EIP820Registry.sol');
-
-let registry;
-let fifoCrcMarket;
-let web3;
 const EIP820RegistryTests = () => {
-  before(async () => {
-    registry = await EIP820Registry.new();
-    fifoCrcMarket = await artifacts
-      .require(
-        `./FifoCrcMarketV${await getLatestVersionFromFs('FifoCrcMarket')}`
-      )
-      .new();
-    web3 = await new Web3();
-  });
-  // todo jaycen i dont think these tests are accurate (see multisig 820 tests for better examples?)
-  contract('EIP820Registry', accounts => {
-    describe('Check if FifoCrcMarket can implement ERC820', () => {
-      it('should return a valid matching address', async () => {
-        const interfaceHash = await registry.interfaceHash(
-          'EIP777TokensRecipient'
-        );
-        assert.equal(interfaceHash, web3.sha3('EIP777TokensRecipient'));
-        await registry.setInterfaceImplementer(
-          accounts[0],
-          interfaceHash,
-          fifoCrcMarket.address,
-          { from: accounts[0] }
-        );
-        const rImplementer = await registry.getInterfaceImplementer(
-          accounts[0],
-          interfaceHash
-        );
-        assert.equal(rImplementer, fifoCrcMarket.address);
-      });
-    });
-  });
+  // Unless the tests for 820 are specific
+  // to Nori, these tests should exist inside
+  // the contracts/contrib/EIP/eip820 test folder
 };
 
 module.exports = {

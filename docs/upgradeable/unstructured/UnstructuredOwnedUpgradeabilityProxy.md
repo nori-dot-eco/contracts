@@ -1,10 +1,10 @@
 # UnstructuredOwnedUpgradeabilityProxy
-> UnstructuredOwnedUpgradeabilityProxy
+> UnstructuredOwnedUpgradeabilityProxy: This contract combines an upgradeability proxy       with basic authorization control functionalities
 
 
 **Execution cost**: No bound available
 
-**Deployment cost**: less than 408400 gas
+**Deployment cost**: less than 608800 gas
 
 **Combined cost**: No bound available
 
@@ -14,7 +14,7 @@
 
 Params:
 
-1. **registryAddr** *of type `address`*
+1. **_registryAddr** *of type `address`*
 
 ## Events
 ### ImplementationPositionSet(address)
@@ -83,12 +83,29 @@ Params:
 
 
 ## Methods
+### changeRegistry(address)
+>
+>Sets the address of the registry via the owner
+
+
+**Execution cost**: No bound available
+
+
+Params:
+
+1. **_registryAddress** *of type `address`*
+
+    > The contract registry's address
+
+
+
+--- 
 ### implementation()
 >
-> Tells the address of the current implementation
+>Tells the address of the current implementation
 
 
-**Execution cost**: less than 628 gas
+**Execution cost**: less than 650 gas
 
 **Attributes**: constant
 
@@ -98,12 +115,12 @@ Returns:
 
 > address of the current implementation
 
-1. **impl** *of type `address`*
+1. **_impl** *of type `address`*
 
 --- 
 ### proxyOwner()
 >
-> Tells the address of the owner
+>Tells the address of the owner
 
 
 **Execution cost**: less than 540 gas
@@ -116,15 +133,15 @@ Returns:
 
 > the address of the owner
 
-1. **owner** *of type `address`*
+1. **_owner** *of type `address`*
 
 --- 
 ### registryAddr()
 >
-> Tells the address of the registry
+>Tells the address of the registry
 
 
-**Execution cost**: less than 606 gas
+**Execution cost**: less than 628 gas
 
 **Attributes**: constant
 
@@ -134,12 +151,12 @@ Returns:
 
 > the address of the registry
 
-1. **registry** *of type `address`*
+1. **_registry** *of type `address`*
 
 --- 
 ### transferProxyOwnership(address)
 >
-> Allows the current owner to transfer control of the contract to a newOwner.
+>Allows the current owner to transfer control of the contract to a newOwner.
 
 
 **Execution cost**: No bound available
@@ -147,7 +164,7 @@ Returns:
 
 Params:
 
-1. **newOwner** *of type `address`*
+1. **_newOwner** *of type `address`*
 
     > The address to transfer ownership to.
 
@@ -156,7 +173,7 @@ Params:
 --- 
 ### upgradeTo(string,string,address)
 >
-> Allows the proxy owner to upgrade the current version of the proxy.
+>Allows the proxy owner to upgrade the current version of the proxy.
 
 
 **Execution cost**: No bound available
@@ -164,9 +181,15 @@ Params:
 
 Params:
 
-1. **contractName** *of type `string`*
-2. **versionName** *of type `string`*
-3. **implementation** *of type `address`*
+1. **_contractName** *of type `string`*
+
+    > The contract's name which is being upgraded
+
+2. **_versionName** *of type `string`*
+
+    > The version to upgrade to (using SemVer2.0)
+
+3. **_implementation** *of type `address`*
 
     > representing the address of the new implementation to be set.
 
@@ -175,7 +198,7 @@ Params:
 --- 
 ### upgradeToAndCall(string,string,address,bytes)
 >
-> Allows the proxy owner to upgrade the current version of the proxy and call the new implementation to initialize whatever is needed through a low level call.
+>Allows the proxy owner to upgrade the current version of the proxy and call the new implementation to initialize whatever is needed through a low level call.
 
 
 **Execution cost**: No bound available
@@ -185,15 +208,21 @@ Params:
 
 Params:
 
-1. **contractName** *of type `string`*
-2. **versionName** *of type `string`*
-3. **implementation** *of type `address`*
+1. **_contractName** *of type `string`*
+
+    > The contract's name in the registry to upgrade
+
+2. **_versionName** *of type `string`*
+
+    > The version to upgrade to (using SemVer2.0)
+
+3. **_implementation** *of type `address`*
 
     > representing the address of the new implementation to be set.
 
-4. **data** *of type `bytes`*
+4. **_data** *of type `bytes`*
 
-    > represents the msg.data to bet sent in the low level call. This parameter may include the function signature of the implementation to be called with the needed payload
+    > represents the msg.data to bet sent in the low level call. This parameter may include the function       signature of the implementation to be called with the needed payload
 
 
 

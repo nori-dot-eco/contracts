@@ -1,7 +1,7 @@
 import { assertRevert, encodeCall } from '../helpers/utils';
 import {
-  UnstructuredUpgradeableTokenV0,
-  UnstructuredUpgradeableTokenV1,
+  UnstructuredUpgradeableTokenV0_1_0,
+  UnstructuredUpgradeableTokenV0_2_0,
 } from '../helpers/Artifacts';
 import {
   getLogs,
@@ -19,7 +19,10 @@ const testUnstructuredOwnedUpgradeabilityProxyFuncs = (
   let contractRegistry;
   beforeEach(async () => {
     if (initParams.length === 0) {
-      [, , proxy] = await upgradeToV0(admin, UnstructuredUpgradeableTokenV0);
+      [, , proxy] = await upgradeToV0(
+        admin,
+        UnstructuredUpgradeableTokenV0_1_0
+      );
     } else {
       contractRegistry = await artifacts
         .require(
@@ -58,15 +61,25 @@ const testEvents = (
   let upgradedLogs;
   let tokenByProxyV0;
   let contractRegistry;
-  context('After transfering ownership', () => {
+  let contractName;
+  context('After transferring ownership', () => {
     before(async () => {
       if (initParams.length === 0) {
-        [tokenByProxyV0, , proxy, contractRegistry] = await upgradeToV0(
-          admin,
-          UnstructuredUpgradeableTokenV0
-        );
+        [
+          tokenByProxyV0,
+          ,
+          proxy,
+          contractRegistry,
+          contractName,
+        ] = await upgradeToV0(admin, UnstructuredUpgradeableTokenV0_1_0);
       } else {
-        [, tokenByProxyV0, proxy] = await deployUpgradeableContract(
+        [
+          ,
+          tokenByProxyV0,
+          proxy,
+          ,
+          contractName,
+        ] = await deployUpgradeableContract(
           artifacts,
           null,
           ownedUpContract,
@@ -76,7 +89,7 @@ const testEvents = (
         );
       }
       await proxy.upgradeTo(
-        UnstructuredUpgradeableTokenV0.contractName,
+        contractName,
         '1.0.0-alpha',
         tokenByProxyV0.address,
         {
@@ -143,7 +156,7 @@ const testUnstructuredOwnedUpgradeabilityProxyInitialState = (
     if (initParams.length === 0) {
       [, , proxy, contractRegistry] = await upgradeToV0(
         admin,
-        UnstructuredUpgradeableTokenV0
+        UnstructuredUpgradeableTokenV0_1_0
       );
     } else {
       contractRegistry = await artifacts
@@ -180,12 +193,16 @@ const testOnlyProxyOwnerUnstructuredOwnedUpgradeabilityProxyFuncs = (
   let proxy;
   let contractByProxyV0;
   let contractRegistry;
+  let contractName;
   beforeEach(async () => {
     if (initParams.length === 0) {
-      [contractByProxyV0, , proxy, contractRegistry] = await upgradeToV0(
-        admin,
-        UnstructuredUpgradeableTokenV0
-      );
+      [
+        contractByProxyV0,
+        ,
+        proxy,
+        contractRegistry,
+        contractName,
+      ] = await upgradeToV0(admin, UnstructuredUpgradeableTokenV0_1_0);
     } else {
       contractRegistry = await artifacts
         .require(
@@ -194,7 +211,13 @@ const testOnlyProxyOwnerUnstructuredOwnedUpgradeabilityProxyFuncs = (
           )}`
         )
         .new({ from: admin });
-      [, contractByProxyV0, proxy] = await deployUpgradeableContract(
+      [
+        ,
+        contractByProxyV0,
+        proxy,
+        ,
+        contractName,
+      ] = await deployUpgradeableContract(
         artifacts,
         null,
         ownedUpContract,
@@ -207,7 +230,7 @@ const testOnlyProxyOwnerUnstructuredOwnedUpgradeabilityProxyFuncs = (
   describe('upgradeTo', () => {
     it('should be able to upgrade the proxy', async () => {
       await proxy.upgradeTo(
-        UnstructuredUpgradeableTokenV0.contractName.toString(),
+        contractName,
         '1.0.0-alpha',
         contractByProxyV0.address,
         {
@@ -220,7 +243,7 @@ const testOnlyProxyOwnerUnstructuredOwnedUpgradeabilityProxyFuncs = (
     it('should not be able to upgrade the proxy from a non admin account', async () => {
       await assertRevert(
         proxy.upgradeTo(
-          UnstructuredUpgradeableTokenV0.contractName.toString(),
+          contractName,
           '1.0.0-alpha',
           contractByProxyV0.address,
           {
@@ -254,15 +277,15 @@ const testOnlyProxyOwnerUnstructuredOwnedUpgradeabilityProxyFuncs = (
       );
     });
     it('should be able to upgradeToAndCall the proxy', async () => {
-      await upgradeToV0(admin, UnstructuredUpgradeableTokenV0);
+      await upgradeToV0(admin, UnstructuredUpgradeableTokenV0_1_0);
     });
     it('should not be able to upgradeToAndCall the proxy from a non admin account', async () => {
-      const upgradeableTokenV1 = await UnstructuredUpgradeableTokenV1.new({
+      const upgradeableTokenV1 = await UnstructuredUpgradeableTokenV0_2_0.new({
         from: admin,
       });
       await assertRevert(
         proxy.upgradeToAndCall(
-          UnstructuredUpgradeableTokenV0.contractName.toString(),
+          contractName,
           '1.0.0-alpha',
           upgradeableTokenV1.address,
           funcCallData,
@@ -303,12 +326,16 @@ const testUnstructuredOwnedUpgradeabilityProxyImplementer = (
   let proxy;
   let tokenByProxyV0;
   let contractRegistry;
+  let contractName;
   beforeEach(async () => {
     if (initParams.length === 0) {
-      [tokenByProxyV0, , proxy, contractRegistry] = await upgradeToV0(
-        admin,
-        UnstructuredUpgradeableTokenV0
-      );
+      [
+        tokenByProxyV0,
+        ,
+        proxy,
+        contractRegistry,
+        contractName,
+      ] = await upgradeToV0(admin, UnstructuredUpgradeableTokenV0_1_0);
     } else if (!tokenByProxyV0) {
       contractRegistry = await artifacts
         .require(
@@ -317,7 +344,13 @@ const testUnstructuredOwnedUpgradeabilityProxyImplementer = (
           )}`
         )
         .new();
-      [, tokenByProxyV0, proxy] = await deployUpgradeableContract(
+      [
+        ,
+        tokenByProxyV0,
+        proxy,
+        ,
+        contractName,
+      ] = await deployUpgradeableContract(
         artifacts,
         proxy || null,
         ownedUpContract,
@@ -331,12 +364,12 @@ const testUnstructuredOwnedUpgradeabilityProxyImplementer = (
 
   describe('upgradeTo', () => {
     it('should upgrade to a new version', async () => {
-      const v1 = ownedUpContract || UnstructuredUpgradeableTokenV1;
+      const v1 = ownedUpContract || UnstructuredUpgradeableTokenV0_2_0;
 
       const upgradeableTokenV1 = await v1.new({ from: admin });
 
       await proxy.upgradeTo(
-        UnstructuredUpgradeableTokenV0.contractName.toString(),
+        contractName,
         '1.0.0-alpha',
         upgradeableTokenV1.address,
         {
@@ -348,12 +381,12 @@ const testUnstructuredOwnedUpgradeabilityProxyImplementer = (
     });
 
     it('should fail trying to upgrade from a non admin account', async () => {
-      const v1 = ownedUpContract || UnstructuredUpgradeableTokenV1;
+      const v1 = ownedUpContract || UnstructuredUpgradeableTokenV0_2_0;
 
       const upgradeableTokenV1 = await v1.new({ from: admin });
       await assertRevert(
         proxy.upgradeTo(
-          'UnstructuredUpgradeableToken',
+          contractName,
           '1.0.0-alpha',
           upgradeableTokenV1.address,
           {
@@ -366,12 +399,9 @@ const testUnstructuredOwnedUpgradeabilityProxyImplementer = (
     it('should fail upgrading to the same implementation', async () => {
       const implementation = await proxy.implementation({ from: admin });
       await assertRevert(
-        proxy.upgradeTo(
-          'UnstructuredUpgradeableToken',
-          '1.0.0-alpha',
-          implementation,
-          { from: admin }
-        )
+        proxy.upgradeTo(contractName, '1.0.0-alpha', implementation, {
+          from: admin,
+        })
       );
     });
   });

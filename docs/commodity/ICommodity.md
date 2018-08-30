@@ -89,7 +89,7 @@ Params:
 
 
 ## Methods
-### balanceOf(address)
+### isOperatorForOne(address,uint256)
 
 
 **Execution cost**: No bound available
@@ -99,12 +99,13 @@ Params:
 
 Params:
 
-1. **owner** *of type `address`*
+1. **operator** *of type `address`*
+2. **tokenId** *of type `uint256`*
 
 Returns:
 
 
-1. **output_0** *of type `uint256`*
+1. **output_0** *of type `bool`*
 
 --- 
 ### approve(address,uint256)
@@ -133,7 +134,7 @@ Params:
 
 
 --- 
-### isOperatorForOne(address,uint256)
+### balanceOf(address)
 
 
 **Execution cost**: No bound available
@@ -143,13 +144,30 @@ Params:
 
 Params:
 
-1. **operator** *of type `address`*
-2. **tokenId** *of type `uint256`*
+1. **owner** *of type `address`*
 
 Returns:
 
 
-1. **output_0** *of type `bool`*
+1. **output_0** *of type `uint256`*
+
+--- 
+### bundleBalanceOf(address)
+
+
+**Execution cost**: No bound available
+
+**Attributes**: constant
+
+
+Params:
+
+1. **owner** *of type `address`*
+
+Returns:
+
+
+1. **output_0** *of type `uint256`*
 
 --- 
 ### operatorSend(address,address,uint256,bytes,bytes)
@@ -202,7 +220,7 @@ Returns:
 1. **owner** *of type `address`*
 
 --- 
-### revokeOperator(address)
+### revokeOperator(address,uint256)
 
 
 **Execution cost**: No bound available
@@ -211,6 +229,7 @@ Returns:
 Params:
 
 1. **operator** *of type `address`*
+2. **tokenId** *of type `uint256`*
 
 
 --- 
@@ -251,7 +270,7 @@ Params:
 
 1. **tokenId** *of type `uint256`*
 2. **to** *of type `address`*
-3. **ammount** *of type `uint256`*
+3. **amount** *of type `uint256`*
 
 
 [Back to the top ↑](#icommodity)
