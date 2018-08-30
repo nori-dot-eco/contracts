@@ -48,7 +48,7 @@ context('Setup test environment', () => {
     // Cant find a standard way to set the default balance of an account, and some tests
     // are complex + long and require a large balance, this gives the first account
     // some additional funds to prevent running out of ether.
-    giveEth(admin0, 0.15);
+    giveEth(admin0, 0.25);
   });
 
   context('Execute tests', () => {
