@@ -4,18 +4,28 @@ import "./UnstructuredUpgradeabilityProxy.sol";
 import "../../registry/IContractRegistry.sol";
 
 /**
- * @title UnstructuredOwnedUpgradeabilityProxy
- * @dev This contract combines an upgradeability proxy with basic authorization control functionalities
+ * @title UnstructuredOwnedUpgradeabilityProxy: This contract combines an upgradeability proxy
+ *        with basic authorization control functionalities
  */
 contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy {
   /**
-  * @dev Event to show ownership has been transferred
+  * @notice Event to show ownership has been transferred
   * @param previousOwner representing the address of the previous owner
   * @param newOwner representing the address of the new owner
   */
-  event ProxyOwnershipTransferred(address previousOwner, address newOwner);
-  event UpgradeabilityOwnerSet(address upgradeabilityOwner);
-  event RegistryAddrSet(address registryAddress);
+  event ProxyOwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+  /**
+  * @notice Event to show the account which can be used to upgrade the proxy
+  * @param upgradeabilityOwner representing the address of the proxy owner who maintains
+  *        the ability to upgrade
+  */
+  event UpgradeabilityOwnerSet(address indexed upgradeabilityOwner);
+  /**
+  * @notice Event to show the contract or root registry address that was set
+  * @param registryAddress representing the address of the root or contract registry
+  *        used to keep track of version info
+  */
+  event RegistryAddrSet(address indexed registryAddress);
 
   // Storage position of the owner of the contract
   bytes32 private constant proxyOwnerPosition = keccak256("org.nori.proxy.owner");
@@ -25,11 +35,13 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
   bytes32 private constant registryAddrPosition = keccak256("org.nori.registry.address");
 
   /**
-  * @dev the constructor sets the original owner of the contract to the sender account.
+  * @notice the constructor sets the original owner of the contract to the sender account.
+  * @param _registryAddr the contract or root registry address which is used to look up
+  *         version info by contract name
   */
-  constructor (address registryAddr) public {
+  constructor (address _registryAddr) public {
     setUpgradeabilityOwner(msg.sender);
-    setRegistryAddr(registryAddr);
+    setRegistryAddr(_registryAddr);
   }
 
   /**
@@ -41,91 +53,107 @@ contract UnstructuredOwnedUpgradeabilityProxy is UnstructuredUpgradeabilityProxy
   }
 
   /**
-   * @dev Tells the address of the owner
+   * @notice Tells the address of the owner
    * @return the address of the owner
    */
-  function proxyOwner() public view returns (address owner) {
+  function proxyOwner() public view returns (address _owner) {
     bytes32 position = proxyOwnerPosition;
     assembly { //solium-disable-line security/no-inline-assembly
-      owner := sload(position)
+      _owner := sload(position)
     }
   }
 
   /**
-   * @dev Sets the address of the owner
+   * @notice Sets the address of the proxy owner
+   * @dev We use the MultiAdmin address in all live scenarios
+   * @param _newProxyOwner the account which will own the proxy
    */
-  function setUpgradeabilityOwner(address newProxyOwner) internal {
+  function setUpgradeabilityOwner(address _newProxyOwner) internal {
     bytes32 position = proxyOwnerPosition;
     assembly { //solium-disable-line security/no-inline-assembly
-      sstore(position, newProxyOwner)
+      sstore(position, _newProxyOwner)
     }
-    emit UpgradeabilityOwnerSet(newProxyOwner);
+    emit UpgradeabilityOwnerSet(_newProxyOwner);
   }
 
   /**
-   * @dev Tells the address of the registry
+   * @notice Tells the address of the registry
    * @return the address of the registry
    */
-  function registryAddr() public view returns (address registry) {
+  function registryAddr() public view returns (address _registry) {
     bytes32 position = registryAddrPosition;
     assembly { //solium-disable-line security/no-inline-assembly
-      registry := sload(position)
+      _registry := sload(position)
     }
   }
 
   /**
-   * @dev Sets the address of the registry
+   * @notice Sets the address of the registry
+   * @param _registryAddress The contract registry's address
    */
-  function setRegistryAddr(address registryAddress) internal {
+  function setRegistryAddr(address _registryAddress) internal {
     bytes32 position = registryAddrPosition;
     assembly { //solium-disable-line security/no-inline-assembly
-      sstore(position, registryAddress)
+      sstore(position, _registryAddress)
     }
-    emit RegistryAddrSet(registryAddress);
+    emit RegistryAddrSet(_registryAddress);
   }
 
   /**
-   * @dev Allows the current owner to transfer control of the contract to a newOwner.
-   * @param newOwner The address to transfer ownership to.
+   * @notice Sets the address of the registry via the owner
+   * @param _registryAddress The contract registry's address
    */
-  function transferProxyOwnership(address newOwner) public onlyProxyOwner {
-    require(newOwner != address(0), "You can not give the 0 address ownership");
-    emit ProxyOwnershipTransferred(proxyOwner(), newOwner);
-    setUpgradeabilityOwner(newOwner);
+  function changeRegistry(address _registryAddress) public onlyProxyOwner {
+    setRegistryAddr(_registryAddress);
   }
 
   /**
-   * @dev Allows the proxy owner to upgrade the current version of the proxy.
-   * @param implementation representing the address of the new implementation to be set.
+   * @notice Allows the current owner to transfer control of the contract to a newOwner.
+   * @param _newOwner The address to transfer ownership to.
    */
-  function upgradeTo(string contractName, string versionName, address implementation) public onlyProxyOwner {
-    _upgradeTo(implementation);
+  function transferProxyOwnership(address _newOwner) public onlyProxyOwner {
+    require(_newOwner != address(0), "You can not give the 0 address ownership");
+    emit ProxyOwnershipTransferred(proxyOwner(), _newOwner);
+    setUpgradeabilityOwner(_newOwner);
+  }
+
+  /**
+   * @notice Allows the proxy owner to upgrade the current version of the proxy.
+   * @param _contractName The contract's name which is being upgraded
+   * @param _versionName The version to upgrade to (using SemVer2.0)
+   * @param _implementation representing the address of the new implementation to be set.
+   */
+  function upgradeTo(string _contractName, string _versionName, address _implementation) public onlyProxyOwner {
+    _upgradeTo(_implementation);
     //todo register interface lookup using eip820 -- not including this now as implications are unknown
     address registry = registryAddr();
     IContractRegistry(registry).setVersion(
-      contractName,
+      _contractName,
       address(this),
-      versionName,
-      implementation
+      _versionName,
+      _implementation
     );
-    //todo require version name doesnt exits
-    emit Upgraded(versionName, implementation);
+    //todo require version name doesn't exits
+    //todo contractName param
+    emit Upgraded(_versionName, _implementation);
   }
 
   /**
-   * @dev Allows the proxy owner to upgrade the current version of the proxy and call the new implementation
+   * @notice Allows the proxy owner to upgrade the current version of the proxy and call the new implementation
    * to initialize whatever is needed through a low level call.
-   * @param implementation representing the address of the new implementation to be set.
-   * @param data represents the msg.data to bet sent in the low level call. This parameter may include the function
-   * signature of the implementation to be called with the needed payload
+   * @param _contractName The contract's name in the registry to upgrade
+   * @param _versionName The version to upgrade to (using SemVer2.0)
+   * @param _implementation representing the address of the new implementation to be set.
+   * @param _data represents the msg.data to bet sent in the low level call. This parameter may include the function
+   *        signature of the implementation to be called with the needed payload
    */
   function upgradeToAndCall(
-    string contractName,
-    string versionName,
-    address implementation,
-    bytes data
+    string _contractName,
+    string _versionName,
+    address _implementation,
+    bytes _data
   ) public payable onlyProxyOwner {
-    upgradeTo(contractName, versionName, implementation);
-    require(address(this).call.value(msg.value)(data), "Upgrading and calling did not succeed"); //solium-disable-line security/no-call-value
+    upgradeTo(_contractName, _versionName, _implementation);
+    require(address(this).call.value(msg.value)(_data), "Upgrading and calling did not succeed"); //solium-disable-line security/no-call-value
   }
 }

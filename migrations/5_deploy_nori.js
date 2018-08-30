@@ -56,7 +56,7 @@ module.exports = (deployer, network, accounts) => {
         .at(registryProxyAddr);
     } catch (e) {
       throw new Error(
-        'Something went wrong. A root, multiadmin and contract registry should have been configured in a previous migration'
+        'Something went wrong. A root, MultiAdmin and contract registry should have been configured in a previous migration'
       );
     }
     // Check registry if each contract needs to be upgraded, and if so, do just that
@@ -125,6 +125,7 @@ module.exports = (deployer, network, accounts) => {
         registryVersionName,
         registry,
         registryImp,
+        registryProxyAddr,
       },
       root,
       deployedContracts

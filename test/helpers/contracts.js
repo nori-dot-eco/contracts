@@ -1,5 +1,3 @@
-import { encodeCall } from './utils';
-
 const { promisify } = require('util');
 const { mapSeries } = require('bluebird');
 const glob = require('glob');
@@ -132,7 +130,14 @@ const deployUpgradeableContract = async (
   const contractToMakeUpgradeable = await contract.new(deployParams);
 
   if (initializeParams) {
-    const initializeData = encodeCall(
+    await contractRegistry.setVersionAsAdmin(
+      contractName,
+      proxy.address,
+      '0_0_0',
+      0,
+      deployParams
+    );
+    const initializeData = utils.encodeCall(
       'initialize',
       initializeParams[0], // ex: ['string', 'string', 'uint', 'uint', 'address', 'address'],
       initializeParams[1] // ex: ['Upgradeable NORI Token', 'NORI', 1, 0, contractRegistry.address, admin]
@@ -197,80 +202,17 @@ const deployLatestUpgradeableContract = async (
     deployParams
   );
 };
-// todo deprecate
-const upgradeToContract = async (
-  artifacts,
-  contract,
-  registry,
-  initializeParamTypes,
-  initializeParamValues,
-  deployParams
-) => {
-  const [contractName, versionName] = parseContractName(contract.contractName);
-
-  let latestVersionName, proxyAddress;
-  try {
-    [
-      latestVersionName,
-      ,
-      proxyAddress,
-    ] = await registry.getVersionForContractName(contractName, -1);
-  } catch (e) {
-    // doesn't exist yet, but that's OK.
-  }
-
-  if (latestVersionName !== versionName) {
-    process.env.MIGRATION &&
-      console.log(
-        contractName,
-        'is out of date. Deployed Version:',
-        latestVersionName,
-        'New Version:',
-        versionName
-      );
-
-    let existingProxy = null;
-    if (proxyAddress) {
-      existingProxy = contract.at(proxyAddress);
-    }
-
-    const [, , newProxy] = await deployUpgradeableContract(
-      artifacts,
-      existingProxy,
-      contract,
-      registry,
-      [initializeParamTypes, initializeParamValues],
-      deployParams
-    );
-    process.env.MIGRATION &&
-      console.log(
-        contractName,
-        'updated to',
-        versionName,
-        'using proxy addr:',
-        newProxy.address
-      );
-    return newProxy;
-  }
-  process.env.MIGRATION &&
-    console.log(
-      contractName,
-      'already up to date at version',
-      versionName,
-      proxyAddress
-    );
-  return contract.at(proxyAddress);
-};
 
 const deployOrGetProxy = async (
   artifacts,
   existingProxyAddr,
   contractRegistry,
   multiAdmin,
-  deployParams
+  deployParams,
+  force
 ) => {
   let proxy = null;
-  if (existingProxyAddr) {
+  if (existingProxyAddr && !force) {
     proxy = await artifacts
       .require('UnstructuredOwnedUpgradeabilityProxy')
       .at(existingProxyAddr);
@@ -285,6 +227,9 @@ const deployOrGetProxy = async (
       'Proxies need to be owned by the MultiAdmin. Transfer proxy to MultiAdmin first'
     );
   }
+  if (proxy === null) {
+    throw new Error('Failed to create proxy');
+  }
   return proxy;
 };
 
@@ -296,24 +241,40 @@ const initOrUpgradeFromMultiAdmin = async (
   proxy,
   multiAdmin,
   initializeParams,
-  deployParams
+  deployParams,
+  registry,
+  force = false
 ) => {
   let upgradeTxData,
+    currentProxy = false,
     initialized = false;
 
   try {
     initialized = await upgradeableContractAtProxy.initialized.call();
+    currentProxy = await registry.getLatestProxyAddr.call(contractName);
   } catch (e) {
     // doesn't exist yet, but that's OK.
   }
-  if (initialized === false) {
+
+  if ((!initialized && !currentProxy) || force) {
     process.env.MIGRATION &&
-      console.log(contractName, ' is upgrading and initializing...');
+      console.log(contractName, 'is upgrading and initializing...');
+
+    const setProxyData = registry.contract.setVersionAsAdmin.getData(
+      contractName,
+      proxy.address,
+      '0_0_0',
+      0,
+      deployParams
+    );
+
+    await multiAdmin.submitTransaction(registry.address, 0, setProxyData);
+
     upgradeTxData = proxy.contract.upgradeToAndCall.getData(
       contractName,
       versionName,
       contractToInit.address,
-      encodeCall(
+      utils.encodeCall(
         'initialize',
         initializeParams[0], // ex: ['string', 'string', 'uint', 'uint', 'address', 'address'],
         initializeParams[1] // ex: ['Upgradeable NORI Token', 'NORI', 1, 0, contractRegistry.address, admin]
@@ -338,7 +299,9 @@ const upgradeAndTransferToMultiAdmin = async (
   registry,
   initializeParams,
   deployParams,
-  multiAdmin
+  multiAdmin,
+  version = null,
+  force = false
 ) => {
   let latestVersionName,
     proxyAddress,
@@ -346,7 +309,8 @@ const upgradeAndTransferToMultiAdmin = async (
     contractToMakeUpgradeable,
     proxy,
     upgraded = false,
-    versionName = await getLatestVersionFromFs(contractName);
+    versionName =
+      version === null ? await getLatestVersionFromFs(contractName) : version;
   const contract = artifacts.require(`${contractName}V${versionName}`);
   try {
     [
@@ -359,47 +323,54 @@ const upgradeAndTransferToMultiAdmin = async (
       console.log(`No prior proxy or version found for ${contractName}`);
   }
 
-  if (latestVersionName !== versionName) {
-    process.env.MIGRATION &&
-      console.log(
-        'UPGRADE REQUIREMENT DETECTED:',
+  if (latestVersionName !== versionName || force) {
+    try {
+      process.env.MIGRATION &&
+        console.log(
+          'UPGRADE REQUIREMENT DETECTED:',
+          contractName,
+          'is out of date. Deployed Version:',
+          latestVersionName,
+          'New Version:',
+          versionName
+        );
+
+      contractToMakeUpgradeable = await contract.new(deployParams);
+      await contractToMakeUpgradeable.transferOwnership(multiAdmin.address);
+      proxy = await deployOrGetProxy(
+        artifacts,
+        proxyAddress,
+        registry,
+        multiAdmin,
+        deployParams,
+        force
+      );
+
+      upgradeableContractAtProxy = await contract.at(proxy.address);
+      await initOrUpgradeFromMultiAdmin(
+        upgradeableContractAtProxy,
+        contractToMakeUpgradeable,
         contractName,
-        'is out of date. Deployed Version:',
-        latestVersionName,
-        'New Version:',
-        versionName
+        versionName,
+        proxy,
+        multiAdmin,
+        initializeParams,
+        deployParams,
+        registry,
+        force
       );
 
-    contractToMakeUpgradeable = await contract.new(deployParams);
-    await contractToMakeUpgradeable.transferOwnership(multiAdmin.address);
-    proxy = await deployOrGetProxy(
-      artifacts,
-      proxyAddress,
-      registry,
-      multiAdmin,
-      deployParams
-    );
-
-    upgradeableContractAtProxy = await contract.at(proxy.address);
-    await initOrUpgradeFromMultiAdmin(
-      upgradeableContractAtProxy,
-      contractToMakeUpgradeable,
-      contractName,
-      versionName,
-      proxy,
-      multiAdmin,
-      initializeParams,
-      deployParams
-    );
-
-    upgraded = true;
-    process.env.MIGRATION &&
-      console.log(
-        `${contractName} Upgrade succesful!`,
-        `Implementation:${contractToMakeUpgradeable.address}`,
-        `Version: ${versionName}`,
-        `Proxy: ${proxy.address}`
-      );
+      upgraded = true;
+      process.env.MIGRATION &&
+        console.log(
+          `${contractName} Upgrade succesful!`,
+          `Implementation:${contractToMakeUpgradeable.address}`,
+          `Version: ${versionName}`,
+          `Proxy: ${proxy.address}`
+        );
+    } catch (e) {
+      throw new Error('Upgrade and initialization process has failed!');
+    }
   } else {
     [
       versionName,
@@ -451,6 +422,7 @@ const upgradeAndMigrateContracts = (
         initParamTypes,
         initParamVals,
         registry,
+        versionName,
       } = await contractConfig(root, artifacts);
       return upgradeAndTransferToMultiAdmin(
         artifacts,
@@ -458,7 +430,8 @@ const upgradeAndMigrateContracts = (
         registry,
         [initParamTypes, initParamVals],
         { from: adminAccountAddress },
-        multiAdmin
+        multiAdmin,
+        versionName || null
       );
     });
   }
@@ -468,7 +441,6 @@ const upgradeAndMigrateContracts = (
 module.exports = {
   upgradeAndTransferToMultiAdmin,
   deployUpgradeableContract,
-  upgradeToContract,
   getLogs,
   getLatestVersion,
   deployLatestUpgradeableContract,

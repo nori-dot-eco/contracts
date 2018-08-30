@@ -1,13 +1,13 @@
 pragma solidity ^0.4.24;
 
-import "./UnstructuredUpgradeableTokenV0.sol";
+import "./UnstructuredUpgradeableTokenV0_1_0.sol";
 
 
 /**
-* @title UnstructuredUpgradeableTokenV1
+* @title UnstructuredUpgradeableTokenV0_2_0
 * @dev Version 0 of a token to show upgradeability using unstructured storage.
 */
-contract UnstructuredUpgradeableTokenV1 is UnstructuredUpgradeableTokenV0 {
+contract UnstructuredUpgradeableTokenV0_2_0 is UnstructuredUpgradeableTokenV0_1_0 {
 
   string public newStateVariable;
 

@@ -47,10 +47,8 @@ module.exports = (deployer, network, accounts) => {
       );
 
     const { proxy } = await utils.onlyWhitelisted(config, upgradeRegistry);
-    if ((await root.owner()) !== multiAdmin.address) {
-      throw new Error(
-        'Root registry owner should be the multisig admin account'
-      );
+    if ((await root.owner.call()) !== multiAdmin.address) {
+      throw new Error('Root registry owner should be the MultiAdmin contract');
     }
     process.env.MIGRATION &&
       console.log(
