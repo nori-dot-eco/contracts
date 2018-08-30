@@ -159,7 +159,13 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
   /**
     @notice Sets a version for a particular contract by assigning a contract name an associated
             proxy, version name (using SemVer 2.0) and its logic implementation
-    @dev This function can only be used by the admin.
+    @dev This function can only be used by the admin. Additionally, it is not recomended
+         to ever use this function unless you truly understand the implications it has inside the proxy contract
+         and this registry alike. In most cases, the only appropriate time to use this function
+         is during the very first registration of a contract at a proxy. In all other cases, the
+         `setVersion` function should be called directly from the proxy's `upgradeTo` or `upgradeToAndCall`
+         function (both of which will not work until this function was used during the FIRST deployment/registration
+         of the proxy).
     @param _contractName String name of a contract (ie Registry)
     @param _proxyAddress the Proxy contract's address
     @param _versionName the version name (which MUST be incremented each time new logic is set) using SemVer 2.0

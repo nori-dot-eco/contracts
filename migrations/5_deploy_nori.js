@@ -125,6 +125,7 @@ module.exports = (deployer, network, accounts) => {
         registryVersionName,
         registry,
         registryImp,
+        registryProxyAddr,
       },
       root,
       deployedContracts

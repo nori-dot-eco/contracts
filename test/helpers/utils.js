@@ -77,6 +77,16 @@ async function assertRevert(promise) {
   }
 }
 
+async function assertFail(promise) {
+  try {
+    await promise;
+    assert.fail('Expected assert.fail() not received');
+  } catch (error) {
+    const failFound = error.message.search('assert.fail') >= 0;
+    assert(failFound, `Expected "assert.fail", got ${error} instead`);
+  }
+}
+
 function encodeCall(name, _arguments, values) {
   const methodId = abi.methodID(name, _arguments).toString('hex');
   const params = abi.rawEncode(_arguments, values).toString('hex');
@@ -155,7 +165,7 @@ const printRegisteredContracts = deployedContracts =>
 const printRegistryInfo = (
   multiAdmin,
   multiSigWallet,
-  { registryVersionName, registry, registryImp },
+  { registryVersionName, registry, registryImp, registryProxyAddr },
   root,
   deployedContracts
 ) =>
@@ -174,6 +184,7 @@ const printRegistryInfo = (
     );
     console.log(`\n----------\n\n ContractRegistry Info:\n`);
     console.log(` ~ Implementation: ${registryImp} \n`);
+    console.log(` ~ Proxy: ${registryProxyAddr} \n`);
     console.log(`   Registered Contracts:\n`);
 
     printRegisteredContracts(deployedContracts);
@@ -221,6 +232,7 @@ Object.assign(exports, {
   giveEth,
   sendTx,
   encodeCall,
+  assertFail,
   assertRevert,
   getParamFromTxEvent,
   increaseTimestamp,

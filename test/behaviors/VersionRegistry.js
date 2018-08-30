@@ -1,6 +1,7 @@
 /* globals network */
-import { setupEnvForTests } from '../helpers/utils';
+import { setupEnvForTests, assertRevert, assertFail } from '../helpers/utils';
 
+const { getLogs } = require('../helpers/contracts');
 const {
   contractRegistryConfig,
   unstructuredUpgradeableTokenV0Config,
@@ -21,9 +22,11 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
       tokenV1Imp,
       versionName2,
       tokenV2Imp,
-      noriImp;
+      noriImp,
+      multiAdmin;
     beforeEach(async () => {
       ({
+        multiAdmin,
         deployedContracts: [
           { upgradeableContractAtProxy: contractRegistry },
           {
@@ -110,6 +113,108 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
           versionName2,
           'Expected the third version to be 0_3_0'
         );
+      });
+    });
+
+    context('Test functions', () => {
+      describe('initialize(multiAdmin.address)', () => {
+        it('should have initialized during setUpEnvForTests', async () => {
+          const initialized = await contractRegistry.initialized.call();
+          const initLogs = await getLogs(
+            contractRegistry.Initialized,
+            {},
+            {
+              fromBlock: 0,
+              toBlock: 'latest',
+            }
+          );
+          assert.equal(
+            initLogs.length,
+            1,
+            'Expected one Initialized event to have been emitted'
+          );
+          assert.equal(
+            initLogs[0].args.owner,
+            multiAdmin.address,
+            `Expected Initialized Event "owner" arg to be ${
+              multiAdmin.address
+            }, was ${initLogs[0].args.owner} instead`
+          );
+          assert.equal(
+            initialized,
+            true,
+            'The contract registry did not initialize'
+          );
+          const reInit = contractRegistry.contract.initialize.getData(
+            multiAdmin.address
+          );
+          await assertFail(
+            multiAdmin.submitTransaction(contractRegistry.address, 0, reInit)
+          );
+        });
+      });
+      describe('setVersionAsAdmin', () => {
+        it('should be able to set the version as the admin', async () => {
+          const setVersionAsAdmin = contractRegistry.contract.setVersionAsAdmin.getData(
+            'UnstructuredUpgradeableToken',
+            tokenV0Proxy.address,
+            '0_4_0',
+            tokenV0Imp.address
+          );
+          await multiAdmin.submitTransaction(
+            tokenV0Proxy.address,
+            0,
+            setVersionAsAdmin
+          );
+        });
+      });
+      describe('getLatestProxyAddr', () => {
+        it('should get the token proxy', async () => {
+          const latestProxyAddress = await contractRegistry.getLatestProxyAddr.call(
+            'UnstructuredUpgradeableToken'
+          );
+          assert.equal(
+            tokenV0Proxy.address,
+            latestProxyAddress,
+            'Wrong proxy address returned from getLatestProxyAddress'
+          );
+        });
+      });
+      describe('getContractNameAndHashAtProxy', () => {
+        it('should get the token proxy', async () => {
+          const [
+            tokenName,
+            tokenNameHash,
+          ] = await contractRegistry.getContractNameAndHashAtProxy.call(
+            tokenV0Proxy.address
+          );
+          assert.equal(
+            tokenName,
+            'UnstructuredUpgradeableToken',
+            'Wrong contract name returned'
+          );
+          assert.equal(
+            tokenNameHash,
+            web3.sha3('UnstructuredUpgradeableToken'),
+            'Wrong contract name hash returned'
+          );
+        });
+      });
+    });
+
+    context('Test modifiers', () => {
+      describe('onlyProxy', () => {
+        // The reverse of the following (where a proxy is the caller) is inherently passing if it has gotten this far
+        it('should not let a user call a function with the onlyProxy modifier', async () => {
+          await assertRevert(
+            contractRegistry.setVersion(
+              'UnstructuredUpgradeableToken',
+              tokenV0Proxy.address,
+              '0_4_0',
+              tokenV0Imp.address
+            )
+          );
+        });
       });
     });
 
