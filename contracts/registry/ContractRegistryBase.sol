@@ -59,7 +59,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
     _;
   }
 
-  //todo onlyowner?
+  //todo onlyOwner: Depends on Trello ticket #514: deploy contracts from MultiAdmin
   /**
     @notice The contract initializer
     @dev Always use this function to set the contract state after constructing since when using

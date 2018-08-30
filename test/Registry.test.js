@@ -1,6 +1,6 @@
 import { testContractAtRegistry, testEvents } from './behaviors/Registry';
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
-import { testVersionRegistryFunctions } from './behaviors/VersionRegistry';
+import { testContractRegistryBaseFunctions } from './behaviors/ContractRegistryBase';
 import {
   shouldBehaveLikeRootRegistry,
   testRegistryUpgradeAndHistoryPreservation,
@@ -23,7 +23,7 @@ const ContractRegistryTests = (admin0, admin1, nonAdmin, allAccounts) => {
     });
     testContractAtRegistry(admin0, [['address'], [admin0]], allAccounts);
     // todo EIP820 Registry tests
-    testVersionRegistryFunctions(admin0, nonAdmin);
+    testContractRegistryBaseFunctions();
     testEvents(admin0, allAccounts);
   });
 };

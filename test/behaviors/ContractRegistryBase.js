@@ -11,7 +11,7 @@ const {
 } = require('../helpers/contractConfigs');
 const getNamedAccounts = require('../helpers/getNamedAccounts');
 
-const testVersionRegistryFunctions = (admin, nonAdmin) => {
+const testContractRegistryBaseFunctions = () => {
   contract('ContractRegistry', () => {
     let contractRegistry,
       tokenV1Proxy,
@@ -395,4 +395,4 @@ const testVersionRegistryFunctions = (admin, nonAdmin) => {
   });
 };
 
-module.exports = { testVersionRegistryFunctions };
+module.exports = { testContractRegistryBaseFunctions };
