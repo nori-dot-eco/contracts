@@ -53,7 +53,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
   */
   modifier onlyProxy(string _contractName) {
     require(
-      msg.sender == getLatestProxyAddr(_contractName),
+      msg.sender == _getLatestProxyAddr(_contractName),
       "Only the proxy can call this function"
     );
     _;
@@ -80,16 +80,26 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
     @return a boolean state representing wether or not the contract
             has been initialized yet
   */
-  function initialized() public view returns(bool) {
+  function initialized() external view returns(bool) {
     return _initialized;
   }
 
   /**
-    @notice Gets the address of the latest proxy contract of a particular name
+    @notice Gets the address of the latest proxy contract of a particular name.
+    @dev Internally invokes _getLatestProxyAddr
     @param _contractName String name of a contract (ie Registry)
     @return the address of the latest proxy for the provided contract name
   */
-  function getLatestProxyAddr(string _contractName) public view returns (address) {
+  function getLatestProxyAddr(string _contractName) external view returns (address) {
+    return _getLatestProxyAddr(_contractName);
+  }
+
+  /**
+    @notice Used privately to get the address of the latest proxy contract of a particular name
+    @param _contractName String name of a contract (ie Registry)
+    @return the address of the latest proxy for the provided contract name
+  */
+  function _getLatestProxyAddr(string _contractName) private view returns (address) {
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
     return contractNameHashToProxy[contractName];
   }
@@ -99,7 +109,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
     @param _proxyAddress The address of a particular proxy
     @return the contract name and name hash in use at the given proxy address
   */
-  function getContractNameAndHashAtProxy(address _proxyAddress) public view returns (string, bytes32) {
+  function getContractNameAndHashAtProxy(address _proxyAddress) external view returns (string, bytes32) {
     return (proxyToContractName[_proxyAddress].name, proxyToContractName[_proxyAddress].nameHash);
   }
 
@@ -109,7 +119,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
     @param _proxyAddress The address os a particular Proxy used by the given contract name
     @return the count of version existing for the provided contract name and proxy
   */
-  function getVersionCountForContract(string _contractName, address _proxyAddress) public view returns(uint) {
+  function getVersionCountForContract(string _contractName, address _proxyAddress) external view returns(uint) {
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
     Version[] storage history = versions[contractName][_proxyAddress];
     return history.length;
@@ -123,8 +133,8 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
     @return The index at which the given contract exists, the name of the version, the logic implementation, and the address
             of the proxy used by this versions parent
   */
-  function getContractInfoForVersion(string _contractName, string _versionName) public view returns (uint256, string, address, address) {
-    address latestProxy = getLatestProxyAddr(_contractName);
+  function getContractInfoForVersion(string _contractName, string _versionName) external view returns (uint256, string, address, address) {
+    address latestProxy = _getLatestProxyAddr(_contractName);
     bytes32 contractNameHash = keccak256(abi.encodePacked(_contractName));
     Version[] storage history = versions[contractNameHash][latestProxy];
     for(uint256 i = 0; i < history.length; i = i.add(1)) {
@@ -140,8 +150,8 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
     @param _contractName String name of a contract (i.e. CRC)
     @return Will return the history as the Version struct within an array
   */
-  function getVersionHistoryForContractName(string _contractName) public view returns(Version[]){
-    address latestProxy = getLatestProxyAddr(_contractName);
+  function getVersionHistoryForContractName(string _contractName) external view returns(Version[]){
+    address latestProxy = _getLatestProxyAddr(_contractName);
     bytes32 contractNameHash = keccak256(abi.encodePacked(_contractName));
     return versions[contractNameHash][latestProxy];
   }
@@ -160,7 +170,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
     address _proxyAddress,
     string _versionName,
     address _newImplementation
-  ) public onlyProxy(_contractName) {
+  ) external onlyProxy(_contractName) {
     require(
       _proxyAddress != address(0),
       "You cannot use the 0 address for the proxy"
@@ -201,7 +211,7 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
     address _proxyAddress,
     string _versionName,
     address _newImplementation
-  ) public onlyOwner {
+  ) external onlyOwner {
     _setVersion(
       _contractName,
       _proxyAddress,
@@ -265,9 +275,9 @@ contract ContractRegistryBase is Pausable, IContractRegistry, ERC820Implementer 
            nor implementation address (0x0). If you want the earliest index, pass: _index = 1
     @return The version name, the logic implementation, and the latest proxy address
   */
-  function getVersionForContractName(string _contractName, int _index) public view returns (string, address, address) {
+  function getVersionForContractName(string _contractName, int _index) external view returns (string, address, address) {
     uint index;
-    address latestProxy = getLatestProxyAddr(_contractName);
+    address latestProxy = _getLatestProxyAddr(_contractName);
     bytes32 contractName = keccak256(abi.encodePacked(_contractName));
     Version[] storage history = versions[contractName][latestProxy];
     if(_index < 0) {
