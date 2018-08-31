@@ -23,7 +23,8 @@ module.exports = {
     },
     testrpc: {
       host: 'localhost',
-      gas: 4600000,
+      gas: 0xfffffffffff, // <-- Use this high gas value
+      gasPrice: 0x01, // <-- Use this low gas price
       port: 8545,
       network_id: '*',
     },
