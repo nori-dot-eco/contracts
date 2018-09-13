@@ -3,13 +3,14 @@ require('babel-register')({
 });
 require('babel-polyfill');
 const HDWalletProvider = require('truffle-hdwallet-provider');
+const localHost = process.env.HOST || 'localhost';
 
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
   // to customize your Truffle configuration!
   networks: {
     noritestnet: {
-      host: 'localhost',
+      host: localHost,
       port: 8545,
       gas: 4600000,
       network_id: 23061,
@@ -22,7 +23,7 @@ module.exports = {
       network_id: '*',
     },
     testrpc: {
-      host: 'localhost',
+      host: localHost,
       gas: 0xfffffffffff, // <-- Use this high gas value
       gasPrice: 0x01, // <-- Use this low gas price
       port: 8545,
@@ -47,20 +48,20 @@ module.exports = {
     },
     // Use this if you want to use a ledger + geth
     ropstenGeth: {
-      host: 'localhost',
+      host: localHost,
       port: 8545,
       network_id: 3,
       gas: 6219725,
     },
     develop: {
-      host: 'localhost',
+      host: localHost,
       gas: 0xfffffffffff, // <-- Use this high gas value
       gasPrice: 0x01, // <-- Use this low gas price
       port: 9545,
       network_id: '*',
     },
     coverage: {
-      host: 'localhost',
+      host: localHost,
       network_id: '*',
       port: 8555, // <-- If you change this, also set the port option in .solcover.js.
       gas: 0xfffffffffff, // <-- Use this high gas value

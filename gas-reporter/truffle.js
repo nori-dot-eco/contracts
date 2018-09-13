@@ -3,6 +3,8 @@ require('babel-register')({
 });
 require('babel-polyfill');
 
+const localHost = process.env.HOST || 'localhost';
+
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
   // to customize your Truffle configuration!
@@ -14,7 +16,7 @@ module.exports = {
   test_directory: '../test',
   networks: {
     testrpc: {
-      host: 'localhost',
+      host: localHost,
       gas: 4600000,
       port: 8545,
       network_id: '*',
