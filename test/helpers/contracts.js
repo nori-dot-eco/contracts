@@ -261,7 +261,8 @@ const initOrUpgradeFromMultiAdmin = async (
 
   if (
     (!initialized &&
-      currentProxy === '0x0000000000000000000000000000000000000000') ||
+      (currentProxy === '0x0000000000000000000000000000000000000000' ||
+        !currentProxy)) ||
     force
   ) {
     process.env.MIGRATION &&
