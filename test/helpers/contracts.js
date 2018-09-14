@@ -51,7 +51,11 @@ const deployOrGetRootRegistry = async (
   force = false
 ) => {
   let rootRegistry;
-  if (
+  if (force === true) {
+    return artifacts
+      .require(`./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`)
+      .new();
+  } else if (
     network === 'develop' ||
     network === 'test' ||
     network === 'testrpc' ||
