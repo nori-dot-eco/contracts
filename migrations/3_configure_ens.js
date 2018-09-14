@@ -43,7 +43,7 @@ const setupDomain = async () => {
   await ens.setResolver(namehash.hash('nori.eth'), rootRegistry.address);
 };
 
-module.exports = function deploy(deployer, network) {
+module.exports = function deploy(deployer, network, accounts) {
   deployer.then(async () => {
     if (network === 'develop' || network === 'test' || network === 'testrpc') {
       try {
@@ -61,11 +61,35 @@ module.exports = function deploy(deployer, network) {
       }
     } else if (network === 'ropsten' || network === 'ropstenGeth') {
       const ens = new ENS(web3.currentProvider);
-      const resolver = await ens.resolver('nori.test').addr();
-      process.env.MIGRATION &&
-        console.log(
-          `Looks like ENS is configured and resolving to ${resolver}`
+      try {
+        if (process.env.NUKE) {
+          const rootRegistry = await artifacts
+            .require(
+              `./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`
+            )
+            .deployed();
+          await ens
+            .resolver('nori.test')
+            .setAddr(rootRegistry.address, { from: accounts[0] });
+          if (rootRegistry.address !== (await ens.resolver('nori.test').addr()))
+            throw new Error(
+              'Something went wrong. ENS must resolve to the root registry'
+            );
+          console.log(
+            `ENS is now configured to resolve to ${rootRegistry.address}`
+          );
+        } else {
+          const resolver = await ens.resolver('nori.test').addr();
+          process.env.MIGRATION &&
+            console.log(
+              `Looks like ENS is configured and resolving to ${resolver}`
+            );
+        }
+      } catch (e) {
+        throw new Error(
+          'Something went wrong trying to register the new root in ENS'
         );
+      }
     } else {
       process.env.MIGRATION &&
         console.log(
