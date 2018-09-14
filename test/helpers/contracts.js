@@ -50,17 +50,15 @@ const deployOrGetRootRegistry = async (
   { network, artifacts, deployer, web3 },
   force = false
 ) => {
-  if (force === true) {
-    return artifacts
-      .require(`./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`)
-      .new();
-  } else if (
+  let rootRegistry;
+  if (
     network === 'develop' ||
     network === 'test' ||
-    network === 'testrpc'
+    network === 'testrpc' ||
+    process.env.NUKE
   ) {
     try {
-      await artifacts
+      rootRegistry = await artifacts
         .require(
           `./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`
         )
@@ -70,24 +68,29 @@ const deployOrGetRootRegistry = async (
         console.log(
           `Setting up new Root Registry as it looks like it has never been deployed on ${network}`
         );
-      return deployer.deploy(
+      rootRegistry = await deployer.deploy(
         artifacts.require(
           `./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`
         )
       );
     }
-  }
-  const rootRegistry = await ensUtils.getENSDetails({
-    network,
-    artifacts,
-    web3,
-  });
-  if (rootRegistry) {
-    process.env.MIGRATION &&
-      console.log('Found existing RootRegistry at', rootRegistry.address);
-  } else {
-    throw new Error('No root registry can be found on the network.');
-  }
+  } else if (
+    (network === 'ropstenGeth' || network === 'ropsten') &&
+    !process.env.NUKE
+  ) {
+    rootRegistry = await ensUtils.getENSDetails({
+      network,
+      artifacts,
+      web3,
+    });
+    if (rootRegistry) {
+      process.env.MIGRATION &&
+        console.log('Found existing RootRegistry at', rootRegistry.address);
+    } else {
+      throw new Error('No root registry can be found on the network.');
+    }
+  } else throw new Error('There is no configuration for that network');
+
   return rootRegistry;
 };
 
@@ -256,7 +259,11 @@ const initOrUpgradeFromMultiAdmin = async (
     // doesn't exist yet, but that's OK.
   }
 
-  if ((!initialized && !currentProxy) || force) {
+  if (
+    (!initialized &&
+      currentProxy === '0x0000000000000000000000000000000000000000') ||
+    force
+  ) {
     process.env.MIGRATION &&
       console.log(contractName, 'is upgrading and initializing...');
 

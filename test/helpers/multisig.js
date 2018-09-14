@@ -10,9 +10,13 @@ const prepareMultiSigAndRoot = async (
     { network, artifacts, deployer, web3 },
     force
   );
-
   // on ropsten we always want to get the MultiSigs from the root, so only in development do we want to create new ones
-  if (network === 'develop' || network === 'test' || network === 'testrpc') {
+  if (
+    network === 'develop' ||
+    network === 'test' ||
+    network === 'testrpc' ||
+    process.env.NUKE
+  ) {
     [multiSigWallet, multiAdmin] = await Promise.all([
       artifacts
         .require('MultiSigWallet')
@@ -21,7 +25,6 @@ const prepareMultiSigAndRoot = async (
         .require('MultiAdmin')
         .new([admin0, admin1], 1, rootRegistry.address),
     ]);
-
     await rootRegistry.setVersionAsAdmin(
       'MultiAdmin',
       multiAdmin.address,
@@ -34,7 +37,6 @@ const prepareMultiSigAndRoot = async (
       '0_1_0',
       multiSigWallet.address
     );
-
     await rootRegistry.transferOwnership(multiAdmin.address);
   }
   try {
@@ -56,7 +58,6 @@ const prepareMultiSigAndRoot = async (
       }), but it is currently owned by: ${await rootRegistry.owner()}`
     );
   }
-
   return { multiAdmin, multiSigWallet, rootRegistry };
 };
 module.exports = {

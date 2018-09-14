@@ -3,6 +3,7 @@ require('babel-register')({
 });
 require('babel-polyfill');
 const HDWalletProvider = require('truffle-hdwallet-provider');
+
 const localHost = process.env.HOST || 'localhost';
 
 module.exports = {
@@ -12,14 +13,14 @@ module.exports = {
     noritestnet: {
       host: localHost,
       port: 8545,
-      gas: 4600000,
+      gas: 0xfffffffffff,
       network_id: 23061,
       from: '0x1d75abdf70d84e3bec66d3ce60145dddca3bcc06',
     },
     ganache: {
       host: '35.226.55.14',
       port: 80,
-      gas: 4600000,
+      gas: 0xfffffffffff,
       network_id: '*',
     },
     testrpc: {
