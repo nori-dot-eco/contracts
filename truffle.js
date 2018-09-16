@@ -20,7 +20,7 @@ module.exports = {
     ganache: {
       host: '35.226.55.14',
       port: 80,
-      gas: 0xfffffffffff,
+      gas: 8000000, // current ropsten gas limit: 8,000,000
       network_id: '*',
     },
     testrpc: {
