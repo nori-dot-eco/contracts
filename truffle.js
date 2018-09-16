@@ -20,12 +20,12 @@ module.exports = {
     ganache: {
       host: '35.226.55.14',
       port: 80,
-      gas: 7900000, // current ropsten gas limit: 8,000,000
+      gas: 6500000, // current ropsten gas limit: 8,000,000
       network_id: '*',
     },
     testrpc: {
       host: localHost,
-      gas: 7900000, // <-- Use this high gas value
+      gas: 6500000, // <-- Use this high gas value
       gasPrice: 0x01, // <-- Use this low gas price
       port: 8545,
       network_id: '*',
