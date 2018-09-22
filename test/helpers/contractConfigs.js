@@ -118,7 +118,7 @@ const fifoCrcMarketConfig = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'FifoCrcMarket',
     versionName: await getLatestVersionFromFs('FifoCrcMarket'),
-    initParamTypes: ['address', 'address[]', 'address'],
+    initParamTypes: ['address', 'address[]', 'address', 'address'],
     initParamVals: [
       contractRegistry.registry.address,
       [
@@ -126,6 +126,9 @@ const fifoCrcMarketConfig = async (root, artifacts) =>
         await contractRegistry.registry.getLatestProxyAddr.call('Nori'),
       ],
       await root.getLatestProxyAddr.call('MultiAdmin'),
+      await contractRegistry.registry.getLatestProxyAddr.call(
+        'RiskMitigationAccount'
+      ),
     ],
     registry: contractRegistry.registry,
   }));
@@ -164,6 +167,15 @@ const unstructuredUpgradeableTokenV2Config = async (root, artifacts) =>
     registry: contractRegistry.registry,
   }));
 
+const riskMitigationAccountConfig = async (root, artifacts) =>
+  contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
+    contractName: 'RiskMitigationAccount',
+    versionName: await getLatestVersionFromFs('RiskMitigationAccount'),
+    initParamTypes: ['address'],
+    initParamVals: [await root.getLatestProxyAddr.call('MultiAdmin')],
+    registry: contractRegistry.registry,
+  }));
+
 module.exports = {
   contractRegistryConfig,
   noriConfig,
@@ -176,4 +188,5 @@ module.exports = {
   unstructuredUpgradeableTokenV0Config,
   unstructuredUpgradeableTokenV1Config,
   unstructuredUpgradeableTokenV2Config,
+  riskMitigationAccountConfig,
 };

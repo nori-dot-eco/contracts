@@ -19,17 +19,17 @@ module.exports = function deploy(deployer, network, accounts) {
       )
       .at(await rootRegistry.getLatestProxyAddr.call('ContractRegistry'));
 
-    const crcMarket = await deployer.deploy(
-      artifacts.require(`./SelectableCrcMarketV0_1_0`)
-    );
-    await crcMarket.initialize(
-      registry.address,
-      [
-        await registry.getLatestProxyAddr.call('CRC'),
-        await registry.getLatestProxyAddr.call('Nori'),
-      ],
-      accounts[0]
-    );
+    // const crcMarket = await deployer.deploy(
+    //   artifacts.require(`./SelectableCrcMarketV0_1_0`)
+    // );
+    // await crcMarket.initialize(
+    //   registry.address,
+    //   [
+    //     await registry.getLatestProxyAddr.call('CRC'),
+    //     await registry.getLatestProxyAddr.call('Nori'),
+    //   ],
+    //   accounts[0]
+    // );
 
     // todo only deploy this  to main net with nori mainnet addresses as owners
     await deployer.deploy(

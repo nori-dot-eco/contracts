@@ -12,9 +12,19 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
 
   constructor() StandardTokenizedCommodityMarket() public { }
 
-  function initialize(address _eip820RegistryAddr, address[] _marketItems, address _owner) public {
+  function initialize(
+    address _eip820RegistryAddr,
+    address[] _marketItems,
+    address _owner,
+    address _riskMitigationAccount
+  ) public {
     require(_initialized != true, "You can only initialize this contract once");
-    super.initialize(_eip820RegistryAddr, _marketItems, _owner);
+    super.initialize(
+      _eip820RegistryAddr,
+      _marketItems,
+      _owner,
+      _riskMitigationAccount
+    );
   }
 
 
@@ -31,7 +41,7 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
   }
 
   function buy(address _buyer, uint256 _amount) private whenNotPaused {
-    var (commodityIndex, saleIndex) = getEarliestSale();
+    (uint commodityIndex, uint saleIndex) = getEarliestSale();
 
     uint256 newSaleAmount = _buy(_buyer, commodityIndex, _amount);
     if (newSaleAmount != 0) {

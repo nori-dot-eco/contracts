@@ -13,6 +13,8 @@ contract StandardTokenizedCommodityMarket is Market {
   ICommodity public commodityContract;
   /// @dev Reference to contract tracking token ownership
   IEIP777 public tokenContract;
+  /// @dev Reference to contract storing restricted token balances
+  address public riskMitigationAccount;
 
   mapping (uint256 => MarketLib.Sale) tokenIdToSell;
 
@@ -22,11 +24,17 @@ contract StandardTokenizedCommodityMarket is Market {
 
   constructor() Market() public { }
 
-  // todo onlyOwner for all initialize funcs
-  function initialize(address _eip820RegistryAddr, address[] _marketItems, address _owner) public {
+  // todo onlyOwner for all initialize functions
+  function initialize(
+    address _eip820RegistryAddr,
+    address[] _marketItems,
+    address _owner,
+    address _riskMitigationAccount
+  ) public {
     super.initialize(_eip820RegistryAddr, _marketItems, _owner);
     commodityContract = ICommodity(_marketItems[0]);
     tokenContract = IEIP777(_marketItems[1]);
+    riskMitigationAccount = _riskMitigationAccount; //todo get this from contractReg
   }
 
   function setCommodityContract (address _commodityContract) internal onlyOwner {
@@ -89,6 +97,10 @@ contract StandardTokenizedCommodityMarket is Market {
 
     // Transfer proceeds to seller (if there are any!)
     if (_amount > 0) {
+      uint256 commodityVerificationScore = commodityContract.getCommodityCategoryByIndex(_tokenId);
+      uint256 unrestrictedTokens = _amount.mul(commodityVerificationScore).div(100);
+      uint256 restrictedTokens = _amount.sub(unrestrictedTokens);
+
       // todo jaycen
       //  Calculate the seller's cut.
       // (NOTE: _computeCut() is guaranteed to return a
@@ -108,7 +120,15 @@ contract StandardTokenizedCommodityMarket is Market {
         this,
         _buyer,
         seller,
-        _amount,
+        unrestrictedTokens,
+        "0x0",
+        "0x0"
+      );
+      tokenContract.operatorSend(
+        this,
+        _buyer,
+        riskMitigationAccount,
+        restrictedTokens,
         "0x0",
         "0x0"
       );

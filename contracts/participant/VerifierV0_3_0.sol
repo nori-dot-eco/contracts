@@ -39,7 +39,7 @@ contract VerifierV0_3_0 is ParticipantV0_3_0, IVerifier {
   }
 
   /// @dev dynamic function (name + params) forwarder
-  /// @dev example: forward(CRC, 0, 'Minting Data Here', ISomeInterface)
+  /// example: forward(CRC, 0, 'Minting Data Here', ISomeInterface)
   function forward(
     address destination,
     uint value,

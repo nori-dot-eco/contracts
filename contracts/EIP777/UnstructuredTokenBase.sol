@@ -239,6 +239,7 @@ contract UnstructuredTokenBase is Ownable, Ierc20, IEIP777, ERC820Implementer {
     mAuthorized[_operator][msg.sender] = true;
     emit AuthorizedOperator(_operator, msg.sender);
   }
+
   /// @notice Authorize a third party `_operator` to manage [only some] (send) `msg.sender`'s tokens.
   /// @param _operator The operator that wants to be Authorized
   function authorizeOperator(address _operator, uint256 _value) public {
@@ -292,7 +293,7 @@ contract UnstructuredTokenBase is Ownable, Ierc20, IEIP777, ERC820Implementer {
     bytes _userData,
     bytes _operatorData
   ) public {
-    //todo jaycen for somereason the following two lines werent included in the 777
+    // todo jaycen for some reason the following two lines we aren't included in the 777
     // the spec seems to not like wanting to spend allowances, look into why
     require(_value <= mAllowed[_from][msg.sender], "An operator can only send a value that is <= their current allowance");
     mAllowed[_from][msg.sender] = mAllowed[_from][msg.sender].sub(_value);

@@ -12,6 +12,7 @@ const {
   supplierConfig,
   verifierConfig,
   fifoCrcMarketConfig,
+  riskMitigationAccountConfig,
 } = require('../test/helpers/contractConfigs');
 
 const MultiAdmin = artifacts.require('MultiAdmin');
@@ -67,6 +68,7 @@ module.exports = (deployer, network, accounts) => {
       participantConfig,
       supplierConfig,
       verifierConfig,
+      riskMitigationAccountConfig,
       fifoCrcMarketConfig,
     ];
     const deployedContracts = await upgradeAndMigrateContracts(
@@ -87,6 +89,7 @@ module.exports = (deployer, network, accounts) => {
       ({ contractName }) => contractName === 'CRC'
     );
 
+    // todo: add these to the initialize functions instead
     // Supplier interface permissions:
     const supplier = artifacts
       .require(`SupplierV${supplierDeployment.versionName}`)

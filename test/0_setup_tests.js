@@ -10,19 +10,19 @@ import ParticipantRegistryTests from './ParticipantRegistry.test';
 import ParticipantTests from './Participant.test';
 import SupplierTests from './Supplier.test';
 import VerifierTests from './Verifier.test';
-import FifoCrcMarketV0Tests from './FifoCrcMarket.test';
-import { SelectableCrcMarketTests } from './SelectableCrcMarket.test';
+import FifoCrcMarketTests from './FifoCrcMarket.test';
 import { EIP820RegistryTests } from './EIP820.test';
+import RiskMitigationAccountTests from './RiskMitigationAccount.test';
 
 const {
   buyer0,
   buyer1,
   supplier0,
   supplier1,
-  verifier,
+  verifier0,
+  verifier1,
   auditor,
   unregistered0,
-  unregistered1,
   admin0,
   admin1,
   allAccounts,
@@ -40,10 +40,10 @@ context('Setup test environment', () => {
       supplier1: ${supplier1}
       buyer0: ${buyer0}
       buyer1: ${buyer1}
-      verifier: ${verifier}
+      verifier0: ${verifier0}
+      verifier1: ${verifier1}
       auditor: ${auditor}
       unregistered0: ${unregistered0}
-      unregistered1: ${unregistered1}
     `);
     // Cant find a standard way to set the default balance of an account, and some tests
     // are complex + long and require a large balance, this gives the first account
@@ -58,16 +58,16 @@ context('Setup test environment', () => {
     MultiAdminTests(); // MultiSig admin tests
     ContractRegistryTests(admin0, admin1, unregistered0, allAccounts);
     RootRegistryTests();
-    SelectableCrcMarketTests();
     EIP820RegistryTests();
     CRCTests(admin0);
     ParticipantRegistryTests(admin0);
     ParticipantTests(admin0);
     SupplierTests(admin0);
     VerifierTests(admin0);
-    FifoCrcMarketV0Tests();
+    FifoCrcMarketTests();
     // Unstructured upgrade tests
     UnstructuredOwnedUpgradeabilityProxyTests(admin0, admin1);
+    RiskMitigationAccountTests();
   });
 
   context('Upgrade Scenarios', () => {

@@ -14,7 +14,7 @@ contract VerifiableCommodity is BasicCommodity, IVerifiableCommodity {
   /// @notice Modifies `_category` (aka verification level) of a commodity
   function verify(uint256 _commodityId, bytes _verifierData, uint64 _category) public whenNotPaused {
     //todo jaycen bounds check verification category <-- can probably be 0-100 + some misc others for flexibility
-    //todo jaycen is this safe? Can someone somehow return teh same participant address and spoof that the msg is coming from a defined address?
+    //todo jaycen is this safe? Can someone somehow return the same participant address and spoof that the msg is coming from a defined address?
     //todo jaycen should this be participant or verifier
     address recipientImplementation = interfaceAddr(msg.sender, "IParticipant");
     if (recipientImplementation != 0) {
