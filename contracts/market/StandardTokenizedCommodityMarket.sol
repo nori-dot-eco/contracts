@@ -116,6 +116,8 @@ contract StandardTokenizedCommodityMarket is Market {
       // before calling transfer(), and the only thing the seller
       // can DoS is the sale of their own commodity! (And if it's an
       // accident, they can call cancelSale(). )
+      bytes memory sellerAsBytes = toBytes(seller);
+
       tokenContract.operatorSend(
         this,
         _buyer,
@@ -130,13 +132,22 @@ contract StandardTokenizedCommodityMarket is Market {
         riskMitigationAccount,
         restrictedTokens,
         "0x0",
-        "0x0"
+        sellerAsBytes
       );
     }
 
     emit SaleSuccessful(_tokenId, _amount, _buyer);
 
     return sale.value;
+  }
+
+  function toBytes(address a) public returns (bytes b){
+    assembly { //solium-disable-line security/no-inline-assembly
+      let m := mload(0x40)
+      mstore(add(m, 20), xor(0x140000000000000000000000000000000000000000, a))
+      mstore(0x40, add(m, 52))
+      b := m
+    }
   }
 
   function _createSale(

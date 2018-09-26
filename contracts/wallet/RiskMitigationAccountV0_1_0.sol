@@ -89,13 +89,20 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
     address  _to,
     uint256 _amount,
     bytes, // userData,
-    bytes // operatorData
+    bytes operatorData
   ) public {
-    emit TokensReceived(_to, _amount);
+    address supplier = bytesToAddress(operatorData);
+    emit TokensReceived(supplier, _amount);
     if (preventTokenReceipt) {
       revert("This contract does not currently allow being made the recipient of tokens");
     }
-    deposit(_to, _amount);
+    deposit(supplier, _amount);
   }
+
+  function bytesToAddress(bytes bys) private pure returns (address addr) {
+    assembly { //solium-disable-line
+      addr := mload(add(bys,20))
+    }
+}
 
 }

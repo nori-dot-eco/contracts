@@ -154,7 +154,7 @@ const shouldBehaveLikeARiskMitigationAccount = () => {
         describe('getRestrictedBalance', () => {
           it('should return a restricted NORI balance of 50', async () => {
             const restrictedBalance = await riskMitigationAccount.getRestrictedBalance.call(
-              riskMitigationAccount.address
+              supplier0
             );
             const unrestrictedBalance = await nori.balanceOf(supplier0);
             const buyerBalance = await nori.balanceOf(buyer0);
