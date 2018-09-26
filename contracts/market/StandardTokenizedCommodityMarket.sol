@@ -13,6 +13,8 @@ contract StandardTokenizedCommodityMarket is Market {
   ICommodity public commodityContract;
   /// @dev Reference to contract tracking token ownership
   IEIP777 public tokenContract;
+  /// @dev Reference to contract storing restricted token balances
+  address public riskMitigationAccount;
 
   mapping (uint256 => MarketLib.Sale) tokenIdToSell;
 
@@ -22,11 +24,17 @@ contract StandardTokenizedCommodityMarket is Market {
 
   constructor() Market() public { }
 
-  // todo onlyOwner for all initialize funcs
-  function initialize(address _eip820RegistryAddr, address[] _marketItems, address _owner) public {
-    super.initialize(_eip820RegistryAddr, _marketItems, _owner);
+  // todo onlyOwner for all initialize functions
+  function initialize(
+    address _contractRegistry,
+    address[] _marketItems,
+    address _owner,
+    address _riskMitigationAccount
+  ) public {
+    super.initialize(_contractRegistry, _marketItems, _owner);
     commodityContract = ICommodity(_marketItems[0]);
     tokenContract = IEIP777(_marketItems[1]);
+    riskMitigationAccount = _riskMitigationAccount; //todo get this from contractReg
   }
 
   function setCommodityContract (address _commodityContract) internal onlyOwner {
@@ -77,8 +85,8 @@ contract StandardTokenizedCommodityMarket is Market {
     address seller = sale.seller;
 
     if (_amount == sale.value) {
-    // The bid is good! Remove the sale before sending the fees
-    // to the sender so we can't have a re-entrancy attack.
+      // The bid is good! Remove the sale before sending the fees
+      // to the sender so we can't have a re-entrancy attack.
       _removeSale(_tokenId);
     } else if (_amount < sale.value && _amount > 0) {
       //todo jaycen make sure that failing half way through and send of tokens failing reverts the sale to original value
@@ -89,6 +97,10 @@ contract StandardTokenizedCommodityMarket is Market {
 
     // Transfer proceeds to seller (if there are any!)
     if (_amount > 0) {
+      uint256 commodityVerificationScore = commodityContract.getCommodityCategoryByIndex(_tokenId);
+      uint256 unrestrictedTokens = _amount.mul(commodityVerificationScore).div(100);
+      uint256 restrictedTokens = _amount.sub(unrestrictedTokens);
+
       // todo jaycen
       //  Calculate the seller's cut.
       // (NOTE: _computeCut() is guaranteed to return a
@@ -104,19 +116,50 @@ contract StandardTokenizedCommodityMarket is Market {
       // before calling transfer(), and the only thing the seller
       // can DoS is the sale of their own commodity! (And if it's an
       // accident, they can call cancelSale(). )
+
+      // convert the seller address to bytes so operatorSend can use it
+      bytes memory sellerAsBytes = addressToBytes(seller);
+      //send the unrestricted tokens to the supplier
       tokenContract.operatorSend(
         this,
         _buyer,
         seller,
-        _amount,
+        unrestrictedTokens,
         "0x0",
         "0x0"
       );
+      if(restrictedTokens > 0){
+        //send the restricted tokens to the risk mitigation account
+        tokenContract.operatorSend(
+          this,
+          _buyer,
+          riskMitigationAccount,
+          restrictedTokens,
+          "0x0",
+          sellerAsBytes
+        );
+      }
+
     }
 
     emit SaleSuccessful(_tokenId, _amount, _buyer);
 
     return sale.value;
+  }
+
+  /**
+    @notice This functionconverts a bytes formatted address back into an address
+    @param _address the seller address
+    @dev since we can't use the seller in the `to` param of the `operatorSend` function
+      we need to use this function first to encode the supplier address as bytes
+  */
+  function addressToBytes(address _address) private pure returns (bytes b) {
+    assembly { //solium-disable-line security/no-inline-assembly
+      let m := mload(0x40)
+      mstore(add(m, 20), xor(0x140000000000000000000000000000000000000000, _address))
+      mstore(0x40, add(m, 52))
+      b := m
+    }
   }
 
   function _createSale(

@@ -12,12 +12,26 @@ const {
   participantRegistryConfig,
   contractRegistryConfig,
   supplierConfig,
+  verifierConfig,
   fifoCrcMarketConfig,
   noriConfig,
+  riskMitigationAccountConfig,
 } = require('../helpers/contractConfigs');
-const getNamedAccounts = require('../helpers/getNamedAccounts');
 
-let participantRegistry, crc, supplier, fifoCrcMarket, nori, multiAdmin;
+let participantRegistry,
+  crc,
+  supplier,
+  fifoCrcMarket,
+  verifier,
+  nori,
+  multiAdmin;
+const {
+  buyer0,
+  buyer1,
+  supplier0,
+  verifier0,
+  admin0,
+} = require('../helpers/getNamedAccounts')(web3);
 
 const mint = (to, value) =>
   encodeCall(
@@ -26,6 +40,9 @@ const mint = (to, value) =>
     [to, '0x0', value, '0x0']
   );
 
+const verify = (crcId, score) =>
+  encodeCall('verify', ['uint256', 'bytes', 'uint64'], [crcId, '0x0', score]);
+
 const testFifoSaleBehavior = () => {
   contract(`FifoTokenizedCommodityMarket`, accounts => {
     beforeEach(async () => {
@@ -33,10 +50,14 @@ const testFifoSaleBehavior = () => {
         multiAdmin,
         deployedContracts: [
           ,
+          // contractRegistry
           { upgradeableContractAtProxy: participantRegistry },
           { upgradeableContractAtProxy: supplier },
+          { upgradeableContractAtProxy: verifier },
           { upgradeableContractAtProxy: crc },
           { upgradeableContractAtProxy: nori },
+          ,
+          // riskMitigationAccount
           { upgradeableContractAtProxy: fifoCrcMarket },
         ],
       } = await setupEnvForTests(
@@ -44,14 +65,16 @@ const testFifoSaleBehavior = () => {
           contractRegistryConfig,
           participantRegistryConfig,
           supplierConfig,
+          verifierConfig,
           crcConfig,
           noriConfig,
+          riskMitigationAccountConfig,
           fifoCrcMarketConfig,
         ],
-        getNamedAccounts(web3).admin0,
+        admin0,
         { network, artifacts, accounts, web3 }
       ));
-
+      // enable supplier functionality
       await callFunctionAsMultiAdmin(
         multiAdmin,
         participantRegistry,
@@ -64,7 +87,7 @@ const testFifoSaleBehavior = () => {
         supplier,
         0,
         'toggleSupplier',
-        [getNamedAccounts(web3).supplier0, true]
+        [supplier0, true]
       );
       await callFunctionAsMultiAdmin(
         multiAdmin,
@@ -73,41 +96,69 @@ const testFifoSaleBehavior = () => {
         'toggleInterface',
         ['IMintableCommodity', crc.address, true]
       );
+      // enable verifier functionality
+      await callFunctionAsMultiAdmin(
+        multiAdmin,
+        participantRegistry,
+        0,
+        'toggleParticipantType',
+        ['Verifier', verifier.address, true]
+      );
+      await callFunctionAsMultiAdmin(
+        multiAdmin,
+        verifier,
+        0,
+        'toggleVerifier',
+        [verifier0, true]
+      );
+      await callFunctionAsMultiAdmin(
+        multiAdmin,
+        verifier,
+        0,
+        'toggleInterface',
+        ['IVerifiableCommodity', crc.address, true]
+      );
     });
 
     context('Create a sale using authorizeOperator', () => {
       beforeEach(async () => {
+        // mint crc[0] with a value of 100 using supplier0's account
         await supplier.forward(
           crc.address,
           0,
-          mint(getNamedAccounts(web3).supplier0, 100),
+          mint(supplier0, 100),
           'IMintableCommodity',
           {
-            from: getNamedAccounts(web3).supplier0,
+            from: supplier0,
           }
         );
+        // verify crc[0] with a 100% rating using verifier0's account
+        await verifier.forward(
+          crc.address,
+          0,
+          verify(0, 100),
+          'IVerifiableCommodity',
+          {
+            from: verifier0,
+          }
+        );
+        // list crc[0] for sale
         await crc.authorizeOperator(fifoCrcMarket.address, 0, {
-          from: getNamedAccounts(web3).supplier0,
+          from: supplier0,
         });
       });
 
       describe('revokeOperator', () => {
         it('should cancel the sale in the market', async () => {
-          await assert.equal(
-            await crc.allowanceForAddress(
-              fifoCrcMarket.address,
-              getNamedAccounts(web3).supplier0
-            ),
+          assert.equal(
+            await crc.allowanceForAddress(fifoCrcMarket.address, supplier0),
             100
           );
           await crc.revokeOperator(fifoCrcMarket.address, 0, {
-            from: getNamedAccounts(web3).supplier0,
+            from: supplier0,
           });
-          await assert.equal(
-            await crc.allowanceForAddress(
-              fifoCrcMarket.address,
-              getNamedAccounts(web3).supplier0
-            ),
+          assert.equal(
+            await crc.allowanceForAddress(fifoCrcMarket.address, supplier0),
             0
           );
         });
@@ -118,20 +169,20 @@ const testFifoSaleBehavior = () => {
       'Create a CRC sale from a supplier account, then purchase part of that CRC using a buyer account',
       () => {
         beforeEach(async () => {
-          await nori.mint(getNamedAccounts(web3).buyer0, web3.toWei('100'), '');
-          await nori.mint(getNamedAccounts(web3).buyer1, web3.toWei('100'), '');
+          await nori.mint(buyer0, web3.toWei('100'), '');
+          await nori.mint(buyer1, web3.toWei('100'), '');
 
           await supplier.forward(
             crc.address,
             0,
-            mint(getNamedAccounts(web3).supplier0, web3.toWei('100')),
+            mint(supplier0, web3.toWei('100')),
             'IMintableCommodity',
             {
-              from: getNamedAccounts(web3).supplier0,
+              from: supplier0,
             }
           );
           await crc.authorizeOperator(fifoCrcMarket.address, 0, {
-            from: getNamedAccounts(web3).supplier0,
+            from: supplier0,
           });
         });
 
@@ -140,21 +191,15 @@ const testFifoSaleBehavior = () => {
             fifoCrcMarket.address,
             web3.toWei('50'),
             {
-              from: getNamedAccounts(web3).buyer0,
+              from: buyer0,
             }
           );
 
-          await assert.equal(
-            await crc.allowanceForAddress(
-              fifoCrcMarket.address,
-              getNamedAccounts(web3).supplier0
-            ),
+          assert.equal(
+            await crc.allowanceForAddress(fifoCrcMarket.address, supplier0),
             web3.toWei('50')
           );
-          await assert.equal(
-            await crc.balanceOf(getNamedAccounts(web3).buyer0),
-            web3.toWei('50')
-          );
+          assert.equal(await crc.balanceOf(buyer0), web3.toWei('50'));
         });
 
         it('should split the CRC by using the market contract when the buyer0 purchases only part of the listed sale. Buyer1 should be able to buy the remainder in two purchases', async () => {
@@ -162,46 +207,34 @@ const testFifoSaleBehavior = () => {
             fifoCrcMarket.address,
             web3.toWei('50'),
             {
-              from: getNamedAccounts(web3).buyer0,
+              from: buyer0,
             }
           );
           await nori.authorizeOperator(
             fifoCrcMarket.address,
             web3.toWei('25'),
             {
-              from: getNamedAccounts(web3).buyer1,
+              from: buyer1,
             }
           );
           await nori.authorizeOperator(
             fifoCrcMarket.address,
             web3.toWei('25'),
             {
-              from: getNamedAccounts(web3).buyer1,
+              from: buyer1,
             }
           );
-          await assert.equal(
-            await crc.allowanceForAddress(
-              fifoCrcMarket.address,
-              getNamedAccounts(web3).supplier0
-            ),
+          assert.equal(
+            await crc.allowanceForAddress(fifoCrcMarket.address, supplier0),
             0
           );
 
-          await assert.equal(
-            await crc.balanceOf(getNamedAccounts(web3).supplier0),
-            0
-          );
-          await assert.equal(
-            await crc.balanceOf(getNamedAccounts(web3).buyer0),
-            web3.toWei('50')
-          );
-          await assert.equal(
-            await crc.balanceOf(getNamedAccounts(web3).buyer1),
-            web3.toWei('50')
-          );
-          assert.equal(await crc.ownerOf(0), getNamedAccounts(web3).buyer1);
-          assert.equal(await crc.ownerOf(1), getNamedAccounts(web3).buyer0);
-          assert.equal(await crc.ownerOf(2), getNamedAccounts(web3).buyer1);
+          assert.equal(await crc.balanceOf(supplier0), 0);
+          assert.equal(await crc.balanceOf(buyer0), web3.toWei('50'));
+          assert.equal(await crc.balanceOf(buyer1), web3.toWei('50'));
+          assert.equal(await crc.ownerOf(0), buyer1);
+          assert.equal(await crc.ownerOf(1), buyer0);
+          assert.equal(await crc.ownerOf(2), buyer1);
         });
       }
     );
@@ -213,14 +246,14 @@ const testFifoSaleBehavior = () => {
         await supplier.forward(
           crc.address,
           0,
-          mint(getNamedAccounts(web3).supplier0, web3.toWei('1')),
+          mint(supplier0, web3.toWei('1')),
           'IMintableCommodity',
           {
-            from: getNamedAccounts(web3).supplier0,
+            from: supplier0,
           }
         );
         await crc.authorizeOperator(fifoCrcMarket.address, 0, {
-          from: getNamedAccounts(web3).supplier0,
+          from: supplier0,
         });
 
         saleCreatedLogs = await getLogs(
@@ -262,7 +295,7 @@ const testFifoSaleBehavior = () => {
       it('should have a "seller" arg', () => {
         assert.equal(
           event.args.seller,
-          getNamedAccounts(web3).supplier0,
+          supplier0,
           'SaleCreated event has incorrect "seller" value'
         );
       });
@@ -298,18 +331,18 @@ const testFifoSaleBehavior = () => {
         await supplier.forward(
           crc.address,
           0,
-          mint(getNamedAccounts(web3).supplier0, web3.toWei('50')),
+          mint(supplier0, web3.toWei('50')),
           'IMintableCommodity',
           {
-            from: getNamedAccounts(web3).supplier0,
+            from: supplier0,
           }
         );
         await crc.authorizeOperator(fifoCrcMarket.address, 0, {
-          from: getNamedAccounts(web3).supplier0,
+          from: supplier0,
         });
-        await nori.mint(getNamedAccounts(web3).buyer0, web3.toWei('1'), '');
+        await nori.mint(buyer0, web3.toWei('1'), '');
         await nori.authorizeOperator(fifoCrcMarket.address, web3.toWei('1'), {
-          from: getNamedAccounts(web3).buyer0,
+          from: buyer0,
         });
 
         saleSuccessfulLogs = await getLogs(
@@ -325,7 +358,7 @@ const testFifoSaleBehavior = () => {
 
       it('should transfer listed CRCs from supplier to buyer and NORI from buyer to supplier', async () => {
         assert.equal(
-          getNamedAccounts(web3).buyer0,
+          buyer0,
           await crc.ownerOf(1),
           'First account doesnt own the crc'
         );
@@ -356,7 +389,7 @@ const testFifoSaleBehavior = () => {
       it('should have a "buyer" arg', () => {
         assert.equal(
           event.args.buyer,
-          getNamedAccounts(web3).buyer0,
+          buyer0,
           'Incorrect value for "buyer" arg'
         );
       });
@@ -364,22 +397,22 @@ const testFifoSaleBehavior = () => {
 
     context('Make sure you cant buy your own crcs', () => {
       it('should fail trying to buy your own crc', async () => {
-        await nori.mint(getNamedAccounts(web3).supplier0, web3.toWei('1'), '');
+        await nori.mint(supplier0, web3.toWei('1'), '');
         await supplier.forward(
           crc.address,
           0,
-          mint(getNamedAccounts(web3).supplier0, web3.toWei('1')),
+          mint(supplier0, web3.toWei('1')),
           'IMintableCommodity',
           {
-            from: getNamedAccounts(web3).supplier0,
+            from: supplier0,
           }
         );
         await crc.authorizeOperator(fifoCrcMarket.address, 0, {
-          from: getNamedAccounts(web3).supplier0,
+          from: supplier0,
         });
         await expectThrow(
           nori.authorizeOperator(fifoCrcMarket.address, web3.toWei('1'), {
-            from: getNamedAccounts(web3).supplier0,
+            from: supplier0,
           })
         );
       });

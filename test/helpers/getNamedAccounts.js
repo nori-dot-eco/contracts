@@ -12,10 +12,10 @@ module.exports = web3 => {
     supplier1, // : 0x821aea9a577a9b44299b9c15c88cf3087f3b5544
     buyer0, // : 0x0d1d4e623d10f9fba5db95830f7d3839406c6af2
     buyer1, // : 0x2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e
-    verifier, // : 0x2191ef87e392377ec08e7c08eb105ef5448eced5
-    auditor, // : 0x0f4f2ac550a1b4e2280d04c21cea7ebd822934b5
-    unregistered0, // : 0x6330a553fc93768f612722bb8c2ec78ac90b3bbc
-    unregistered1, // : 0x5aeda56215b167893e80b4fe645ba6d5bab767de
+    verifier0, // : 0x2191ef87e392377ec08e7c08eb105ef5448eced5
+    verifier1, // : 0x0f4f2ac550a1b4e2280d04c21cea7ebd822934b5
+    auditor, // : 0x6330a553fc93768f612722bb8c2ec78ac90b3bbc
+    unregistered0, // : 0x5aeda56215b167893e80b4fe645ba6d5bab767de
   ] = allAccounts;
 
   return {
@@ -29,9 +29,9 @@ module.exports = web3 => {
     supplier1,
     buyer0,
     buyer1,
-    verifier,
+    verifier0,
+    verifier1,
     auditor,
     unregistered0,
-    unregistered1,
   };
 };

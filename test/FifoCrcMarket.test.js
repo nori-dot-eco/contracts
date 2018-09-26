@@ -1,6 +1,6 @@
 import { testFifoSaleBehavior } from './behaviors/FifoTokenizedCommodityMarket';
 
-const FifoCrcMarketV0Tests = () => {
+const FifoCrcMarketTests = () => {
   testFifoSaleBehavior();
 };
-export default FifoCrcMarketV0Tests;
+export default FifoCrcMarketTests;
