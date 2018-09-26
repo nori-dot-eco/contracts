@@ -17,7 +17,6 @@ const {
   noriConfig,
   riskMitigationAccountConfig,
 } = require('../helpers/contractConfigs');
-// const getNamedAccounts = require('../helpers/getNamedAccounts');
 
 let participantRegistry,
   crc,
@@ -56,8 +55,9 @@ const testFifoSaleBehavior = () => {
           { upgradeableContractAtProxy: supplier },
           { upgradeableContractAtProxy: verifier },
           { upgradeableContractAtProxy: crc },
-          { upgradeableContractAtProxy: nori }, // riskMitigationAccount
+          { upgradeableContractAtProxy: nori },
           ,
+          // riskMitigationAccount
           { upgradeableContractAtProxy: fifoCrcMarket },
         ],
       } = await setupEnvForTests(
@@ -150,14 +150,14 @@ const testFifoSaleBehavior = () => {
 
       describe('revokeOperator', () => {
         it('should cancel the sale in the market', async () => {
-          await assert.equal(
+          assert.equal(
             await crc.allowanceForAddress(fifoCrcMarket.address, supplier0),
             100
           );
           await crc.revokeOperator(fifoCrcMarket.address, 0, {
             from: supplier0,
           });
-          await assert.equal(
+          assert.equal(
             await crc.allowanceForAddress(fifoCrcMarket.address, supplier0),
             0
           );
@@ -195,11 +195,11 @@ const testFifoSaleBehavior = () => {
             }
           );
 
-          await assert.equal(
+          assert.equal(
             await crc.allowanceForAddress(fifoCrcMarket.address, supplier0),
             web3.toWei('50')
           );
-          await assert.equal(await crc.balanceOf(buyer0), web3.toWei('50'));
+          assert.equal(await crc.balanceOf(buyer0), web3.toWei('50'));
         });
 
         it('should split the CRC by using the market contract when the buyer0 purchases only part of the listed sale. Buyer1 should be able to buy the remainder in two purchases', async () => {
@@ -224,14 +224,14 @@ const testFifoSaleBehavior = () => {
               from: buyer1,
             }
           );
-          await assert.equal(
+          assert.equal(
             await crc.allowanceForAddress(fifoCrcMarket.address, supplier0),
             0
           );
 
-          await assert.equal(await crc.balanceOf(supplier0), 0);
-          await assert.equal(await crc.balanceOf(buyer0), web3.toWei('50'));
-          await assert.equal(await crc.balanceOf(buyer1), web3.toWei('50'));
+          assert.equal(await crc.balanceOf(supplier0), 0);
+          assert.equal(await crc.balanceOf(buyer0), web3.toWei('50'));
+          assert.equal(await crc.balanceOf(buyer1), web3.toWei('50'));
           assert.equal(await crc.ownerOf(0), buyer1);
           assert.equal(await crc.ownerOf(1), buyer0);
           assert.equal(await crc.ownerOf(2), buyer1);

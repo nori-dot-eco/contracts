@@ -26,12 +26,12 @@ contract StandardTokenizedCommodityMarket is Market {
 
   // todo onlyOwner for all initialize functions
   function initialize(
-    address _eip820RegistryAddr,
+    address _contractRegistry,
     address[] _marketItems,
     address _owner,
     address _riskMitigationAccount
   ) public {
-    super.initialize(_eip820RegistryAddr, _marketItems, _owner);
+    super.initialize(_contractRegistry, _marketItems, _owner);
     commodityContract = ICommodity(_marketItems[0]);
     tokenContract = IEIP777(_marketItems[1]);
     riskMitigationAccount = _riskMitigationAccount; //todo get this from contractReg
@@ -117,6 +117,8 @@ contract StandardTokenizedCommodityMarket is Market {
       // can DoS is the sale of their own commodity! (And if it's an
       // accident, they can call cancelSale(). )
 
+      // convert the seller address to bytes so operatorSend can use it
+      bytes memory sellerAsBytes = addressToBytes(seller);
       //send the unrestricted tokens to the supplier
       tokenContract.operatorSend(
         this,
@@ -126,8 +128,6 @@ contract StandardTokenizedCommodityMarket is Market {
         "0x0",
         "0x0"
       );
-      // convert the seller address to bytes so operatorSend can use it
-      bytes memory sellerAsBytes = addressToBytes(seller);
       //send the restricted tokens to the risk mitigation account
       tokenContract.operatorSend(
         this,
@@ -150,7 +150,7 @@ contract StandardTokenizedCommodityMarket is Market {
     @dev since we can't use the seller in the `to` param of the `operatorSend` function
       we need to use this function first to encode the supplier address as bytes
   */
-  function addressToBytes(address _address) public returns (bytes b) {
+  function addressToBytes(address _address) private pure returns (bytes b) {
     assembly { //solium-disable-line security/no-inline-assembly
       let m := mload(0x40)
       mstore(add(m, 20), xor(0x140000000000000000000000000000000000000000, _address))

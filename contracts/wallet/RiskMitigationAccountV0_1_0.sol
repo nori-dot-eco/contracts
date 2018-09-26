@@ -38,8 +38,7 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
     setInterfaceImplementation("IRiskMitigationAccount", this);
     setInterfaceImplementation("IEIP777TokensRecipient", this);
     preventTokenReceipt = false;
-    //todo get this from contract registry instead
-    tokenContract = IEIP777(_tokenContract);
+    tokenContract = IEIP777(_tokenContract); //todo get this from contract registry instead
     _initialized = true;
   }
 
@@ -67,20 +66,20 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
     restrictedBalances[_addressToRestrictTokensFor] = restrictedBalances[_addressToRestrictTokensFor].add(_amount);
   }
 
+  /**
+    @notice This function withdraws a supplier's restricted tokens
+  */
   function withdraw() public {
     // todo implement whatever is needed to check if they can truly withdraw their restricted tokens
-    // tokenContract.operatorSend(
-    //   this,
-    //   address(this),
-    //   msg.sender,
-    //   restrictedBalances[msg.sender],
-    //   "",
-    //   ""
-    // );
-    tokenContract.send( //solium-disable-line
-      msg.sender,
-      50
+    require(
+      restrictedBalances[msg.sender] != 0,
+      "You can only withdraw an amount when you have a restricted balance of tokens"
     );
+    tokenContract.send( //solium-disable-line security/no-send
+      msg.sender,
+      restrictedBalances[msg.sender]
+    );
+    restrictedBalances[msg.sender] = restrictedBalances[msg.sender].sub(restrictedBalances[msg.sender]);
   }
 
   /**

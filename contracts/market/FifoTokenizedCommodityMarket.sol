@@ -13,14 +13,14 @@ contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP7
   constructor() StandardTokenizedCommodityMarket() public { }
 
   function initialize(
-    address _eip820RegistryAddr,
+    address _contractRegistry,
     address[] _marketItems,
     address _owner,
     address _riskMitigationAccount
   ) public {
     require(_initialized != true, "You can only initialize this contract once");
     super.initialize(
-      _eip820RegistryAddr,
+      _contractRegistry,
       _marketItems,
       _owner,
       _riskMitigationAccount

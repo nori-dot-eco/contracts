@@ -171,12 +171,12 @@ const riskMitigationAccountConfig = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'RiskMitigationAccount',
     versionName: await getLatestVersionFromFs('RiskMitigationAccount'),
+    registry: contractRegistry.registry,
     initParamTypes: ['address', 'address'],
     initParamVals: [
       await root.getLatestProxyAddr.call('MultiAdmin'),
-      await root.getLatestProxyAddr.call('Nori'),
+      await contractRegistry.registry.getLatestProxyAddr.call('Nori'),
     ],
-    registry: contractRegistry.registry,
   }));
 
 module.exports = {
