@@ -85,8 +85,8 @@ contract StandardTokenizedCommodityMarket is Market {
     address seller = sale.seller;
 
     if (_amount == sale.value) {
-    // The bid is good! Remove the sale before sending the fees
-    // to the sender so we can't have a re-entrancy attack.
+      // The bid is good! Remove the sale before sending the fees
+      // to the sender so we can't have a re-entrancy attack.
       _removeSale(_tokenId);
     } else if (_amount < sale.value && _amount > 0) {
       //todo jaycen make sure that failing half way through and send of tokens failing reverts the sale to original value
@@ -128,15 +128,18 @@ contract StandardTokenizedCommodityMarket is Market {
         "0x0",
         "0x0"
       );
-      //send the restricted tokens to the risk mitigation account
-      tokenContract.operatorSend(
-        this,
-        _buyer,
-        riskMitigationAccount,
-        restrictedTokens,
-        "0x0",
-        sellerAsBytes
-      );
+      if(restrictedTokens > 0){
+        //send the restricted tokens to the risk mitigation account
+        tokenContract.operatorSend(
+          this,
+          _buyer,
+          riskMitigationAccount,
+          restrictedTokens,
+          "0x0",
+          sellerAsBytes
+        );
+      }
+
     }
 
     emit SaleSuccessful(_tokenId, _amount, _buyer);
