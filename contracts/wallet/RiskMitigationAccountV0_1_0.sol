@@ -4,6 +4,7 @@ import "./IRiskMitigationAccount.sol";
 import "../lifecycle/Pausable.sol";
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
 import "../EIP777/IEIP777TokensRecipient.sol";
+import "./../EIP777/IEIP777.sol";
 
 
 /**
@@ -14,6 +15,7 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
 
   using SafeMath for uint256;
 
+  IEIP777 public tokenContract;
   bool private _initialized;
   bool public preventTokenReceipt;
   address public market;
@@ -29,13 +31,15 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
     is persisted in the proxy instead of the implementation
     @param _owner the owner of the contract (i.e., `MultiAdmin.address`)
   */
-  function initialize(address _owner) public {
+  function initialize(address _owner, address _tokenContract) public {
     require(!_initialized, "You can only initialize a contract once");
     owner = _owner;
     erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     setInterfaceImplementation("IRiskMitigationAccount", this);
     setInterfaceImplementation("IEIP777TokensRecipient", this);
     preventTokenReceipt = false;
+    //todo get this from contract registry instead
+    tokenContract = IEIP777(_tokenContract);
     _initialized = true;
   }
 
@@ -63,6 +67,22 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
     restrictedBalances[_addressToRestrictTokensFor] = restrictedBalances[_addressToRestrictTokensFor].add(_amount);
   }
 
+  function withdraw() public {
+    // todo implement whatever is needed to check if they can truly withdraw their restricted tokens
+    // tokenContract.operatorSend(
+    //   this,
+    //   address(this),
+    //   msg.sender,
+    //   restrictedBalances[msg.sender],
+    //   "",
+    //   ""
+    // );
+    tokenContract.send( //solium-disable-line
+      msg.sender,
+      50
+    );
+  }
+
   /**
     @notice This function returns the restricted token balance for a given address
     @dev This function is invoked when the token contract invokes `tokensReceived`, by way of
@@ -78,31 +98,38 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
     @notice This function is called by the token contract by way of
     a previous user-invoked call of `token.doSend` which can be done using a function such as
     `token.operatorSend`
-    @param _to the supplier address
     @param _amount the amount of tokens
+    @param _operatorData the supplier address in bytes format
     @dev this function uses erc820 introspection. It is invoked when
     this contract is made an operator for a commodity
   */
   function tokensReceived(
     address, // operator,
     address, // from,
-    address  _to,
+    address, //  _to,
     uint256 _amount,
     bytes, // userData,
-    bytes operatorData
+    bytes _operatorData
   ) public {
-    address supplier = bytesToAddress(operatorData);
-    emit TokensReceived(supplier, _amount);
     if (preventTokenReceipt) {
       revert("This contract does not currently allow being made the recipient of tokens");
     }
+    // convert the supplier address from bytes back to an address
+    address supplier = bytesToAddress(_operatorData);
+    emit TokensReceived(supplier, _amount);
     deposit(supplier, _amount);
   }
 
+  /**
+    @notice This functionconverts a bytes formatted address back into an address
+    @param bys the bytes formatted address
+    @dev since we don't have access to the seller from the _to param of `tokensReceived`,
+      we need to use this function first to decode the `operatorData` param
+  */
   function bytesToAddress(bytes bys) private pure returns (address addr) {
-    assembly { //solium-disable-line
+    assembly { // solium-disable-line security/no-inline-assembly
       addr := mload(add(bys,20))
     }
-}
+  }
 
 }

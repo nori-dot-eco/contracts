@@ -116,8 +116,8 @@ contract StandardTokenizedCommodityMarket is Market {
       // before calling transfer(), and the only thing the seller
       // can DoS is the sale of their own commodity! (And if it's an
       // accident, they can call cancelSale(). )
-      bytes memory sellerAsBytes = toBytes(seller);
 
+      //send the unrestricted tokens to the supplier
       tokenContract.operatorSend(
         this,
         _buyer,
@@ -126,6 +126,9 @@ contract StandardTokenizedCommodityMarket is Market {
         "0x0",
         "0x0"
       );
+      // convert the seller address to bytes so operatorSend can use it
+      bytes memory sellerAsBytes = addressToBytes(seller);
+      //send the restricted tokens to the risk mitigation account
       tokenContract.operatorSend(
         this,
         _buyer,
@@ -141,10 +144,16 @@ contract StandardTokenizedCommodityMarket is Market {
     return sale.value;
   }
 
-  function toBytes(address a) public returns (bytes b){
+  /**
+    @notice This functionconverts a bytes formatted address back into an address
+    @param _address the seller address
+    @dev since we can't use the seller in the `to` param of the `operatorSend` function
+      we need to use this function first to encode the supplier address as bytes
+  */
+  function addressToBytes(address _address) public returns (bytes b) {
     assembly { //solium-disable-line security/no-inline-assembly
       let m := mload(0x40)
-      mstore(add(m, 20), xor(0x140000000000000000000000000000000000000000, a))
+      mstore(add(m, 20), xor(0x140000000000000000000000000000000000000000, _address))
       mstore(0x40, add(m, 52))
       b := m
     }

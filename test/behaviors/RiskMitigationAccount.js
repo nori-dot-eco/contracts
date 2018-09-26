@@ -154,7 +154,7 @@ const shouldBehaveLikeARiskMitigationAccount = () => {
         describe('getRestrictedBalance', () => {
           it('should return a restricted NORI balance of 50', async () => {
             const restrictedBalance = await riskMitigationAccount.getRestrictedBalance.call(
-              supplier0
+              riskMitigationAccount.address
             );
             const unrestrictedBalance = await nori.balanceOf(supplier0);
             const buyerBalance = await nori.balanceOf(buyer0);
@@ -178,6 +178,28 @@ const shouldBehaveLikeARiskMitigationAccount = () => {
             );
           });
         });
+        // describe('withdraw', () => {
+        //   it('should withdraw the remaining tokens', async () => {
+        //     await riskMitigationAccount.withdraw({ from: supplier0 });
+        //     // const restrictedBalance = await riskMitigationAccount.getRestrictedBalance.call(
+        //     //   riskMitigationAccount.address
+        //     // );
+        //     const unrestrictedBalance = await nori.balanceOf(supplier0);
+
+        //     // assert.equal(
+        //     //   restrictedBalance,
+        //     //   web3.toWei('0'),
+        //     //   `expected a restricted NORI balance of 0, but got
+        //     //   ${restrictedBalance.toString()}`
+        //     // );
+        //     assert.equal(
+        //       unrestrictedBalance,
+        //       web3.toWei('100'),
+        //       `expected an unrestricted NORI balance of 100, but got
+        //       ${unrestrictedBalance.toString()}`
+        //     );
+        //   });
+        // });
       }
     );
   });
