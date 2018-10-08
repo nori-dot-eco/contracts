@@ -1,3 +1,11 @@
+# Pre-reqs:
+
+When using VSCode, add the following to your user settings (`ctrl + ,`)
+
+```
+"solidity.packageDefaultDependenciesContractsDirectory": ""
+```
+
 # Contracts
 
 The Ethereum smart contracts that power nori.com
