@@ -15,7 +15,7 @@ jobs:
           name: Initialize submodules
           command: |
             git submodule init
-            git submodule update
+            git submodule update --init --recursive
 
       - restore_cache:
           key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
