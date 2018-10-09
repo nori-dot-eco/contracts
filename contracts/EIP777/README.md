@@ -8,7 +8,7 @@ These contracts have been moved to a respective submodule so as to allow for eas
 
 ## Background
 
-The NORI implementation of the ERC 777 advanced token standard extends the basic functionality to allow for a few more types of introspection-invoked transactions (ie `madeOperatorForTokens` which uses contract introspection to see if a receiving contract has the requisited function implemntation to support being made an operator of the NORI token).
+The NORI implementation of the ERC 777 advanced token standard extends the basic functionality to allow for a few more types of introspection-invoked transactions (ie `madeOperatorForTokens` which uses contract introspection to see if a receiving contract has the requested function implementation to support being made an operator of the NORI token).
 
 ## Purpose
 
