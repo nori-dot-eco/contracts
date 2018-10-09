@@ -37,8 +37,6 @@ jobs:
           key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
-            paths:
-            - node_modules
             - ~/.cache
 
       - restore_cache:
