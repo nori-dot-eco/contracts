@@ -7,7 +7,7 @@ defaults: &defaults
     - image: circleci/node:9.11
 
 jobs:
-  run-unit-tests:
+  setup-contract-tests:
     <<: *defaults
     steps:
       - checkout
@@ -37,7 +37,9 @@ jobs:
       - run:
           name: Build Contracts
           command: ./node_modules/.bin/truffle compile
-
+  run-unit-tests:
+    <<: *defaults
+    steps:
       - run:
           name: Run Unit Tests
           command: UNIT=true yarn run test
@@ -45,34 +47,6 @@ jobs:
   run-upgrade-tests:
     <<: *defaults
     steps:
-      - checkout
-      - run:
-          name: Initialize submodules
-          command: |
-            git submodule init
-            git submodule update --init --recursive
-
-      - restore_cache:
-          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Install Dependencies
-          command: |
-            if [ ! -d "node_modules" ]; then
-              for i in 1 2; do
-                yarn install --prefer-offline && break || sleep 15;
-              done
-            fi
-
-      - save_cache:
-          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
-          paths:
-            - node_modules
-
-      - run:
-          name: Build Contracts
-          command: ./node_modules/.bin/truffle compile
-
       - run:
           name: Run Upgrade Tests
           command: UPGRADES=true yarn run test
@@ -104,8 +78,13 @@ workflows:
   version: 2
   test:
     jobs:
-      - run-unit-tests
-      - run-upgrade-tests
+      - setup-contract-tests
+      - run-unit-tests:
+          requires:
+            - setup-contract-tests
+      - run-upgrade-tests:
+          requires:
+            - setup-contract-tests
 # TODO: reenable these once they are working
 #      - run-coverage:
 #          requires:
