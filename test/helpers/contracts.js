@@ -118,7 +118,8 @@ const deployUpgradeableContract = async (
   contract,
   registry,
   initializeParams,
-  deployParams = {}
+  deployParams = {},
+  constructorParams = null
 ) => {
   const [contractName, versionName] = parseContractName(contract.contractName);
   const contractRegistry =
@@ -134,7 +135,9 @@ const deployUpgradeableContract = async (
       .require('UnstructuredOwnedUpgradeabilityProxy')
       .new(contractRegistry.address, deployParams));
 
-  const contractToMakeUpgradeable = await contract.new(deployParams);
+  const contractToMakeUpgradeable = constructorParams
+    ? await contract.new(...constructorParams, deployParams)
+    : await contract.new(deployParams);
 
   if (initializeParams) {
     await contractRegistry.setVersionAsAdmin(
@@ -281,7 +284,6 @@ const initOrUpgradeFromMultiAdmin = async (
     );
 
     await multiAdmin.submitTransaction(registry.address, 0, setProxyData);
-
     upgradeTxData = proxy.contract.upgradeToAndCall.getData(
       contractName,
       versionName,
@@ -312,6 +314,7 @@ const upgradeAndTransferToMultiAdmin = async (
   initializeParams,
   deployParams,
   multiAdmin,
+  constructorParams = null,
   version = null,
   force = false
 ) => {
@@ -347,7 +350,9 @@ const upgradeAndTransferToMultiAdmin = async (
           versionName
         );
 
-      contractToMakeUpgradeable = await contract.new(deployParams);
+      contractToMakeUpgradeable = constructorParams
+        ? await contract.new(...constructorParams, deployParams)
+        : await contract.new(deployParams);
       await contractToMakeUpgradeable.transferOwnership(multiAdmin.address);
       proxy = await deployOrGetProxy(
         artifacts,
@@ -357,7 +362,6 @@ const upgradeAndTransferToMultiAdmin = async (
         deployParams,
         force
       );
-
       upgradeableContractAtProxy = await contract.at(proxy.address);
       await initOrUpgradeFromMultiAdmin(
         upgradeableContractAtProxy,
@@ -431,6 +435,7 @@ const upgradeAndMigrateContracts = (
     return mapSeries(contractsToUpgrade, async contractConfig => {
       const {
         contractName,
+        constructorParams,
         initParamTypes,
         initParamVals,
         registry,
@@ -443,6 +448,7 @@ const upgradeAndMigrateContracts = (
         [initParamTypes, initParamVals],
         { from: adminAccountAddress },
         multiAdmin,
+        constructorParams,
         versionName || null
       );
     });
