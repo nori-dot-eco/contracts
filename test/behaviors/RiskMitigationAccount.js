@@ -42,7 +42,7 @@ const verify = (crcId, score) =>
   encodeCall('verify', ['uint256', 'bytes', 'uint64'], [crcId, '0x0', score]);
 
 const shouldBehaveLikeARiskMitigationAccount = () => {
-  contract(`FifoTokenizedCommodityMarket`, accounts => {
+  contract(`RiskMitigationAccount`, accounts => {
     beforeEach(async () => {
       ({
         multiAdmin,
@@ -141,11 +141,20 @@ const shouldBehaveLikeARiskMitigationAccount = () => {
         from: supplier0,
       });
       // mint 100 NORI tokens
-      await nori.mint(buyer0, web3.toWei('100'), '');
+      await callFunctionAsMultiAdmin(multiAdmin, nori, 0, 'mint', [
+        buyer0,
+        web3.toWei('100'),
+        '0x0',
+      ]);
       // purchase the crc[0] for sale using the buyer's account
-      await nori.authorizeOperator(fifoCrcMarket.address, web3.toWei('100'), {
-        from: buyer0,
-      });
+      await nori.approveAndCall(
+        fifoCrcMarket.address,
+        web3.toWei('100'),
+        '0x0',
+        {
+          from: buyer0,
+        }
+      );
     });
 
     context(

@@ -1,3 +1,4 @@
+/* eslint no-console: "off" */
 import UnstructuredOwnedUpgradeabilityProxyTests from './UnstructuredOwnedUpgradeabilityProxy.test';
 import { UnstructuredUpgradeScenarios } from './UpgradeScenarios.test';
 import NoriUpgradeTests from './Nori.test';
@@ -69,7 +70,8 @@ context('Setup test environment', () => {
     UnstructuredOwnedUpgradeabilityProxyTests(admin0, admin1);
     RiskMitigationAccountTests();
   });
-
+  // These are complex and lengthy tests that simply prove upgradeability
+  // If you're looking to speed up local test time, comment these suckers out
   context('Upgrade Scenarios', () => {
     UnstructuredUpgradeScenarios(admin0, admin1, unregistered0);
     NoriUpgradeTests(admin0, admin1, unregistered0);

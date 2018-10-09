@@ -1,4 +1,5 @@
 import expectThrow from '../helpers/expectThrow';
+import { assertFail } from '../helpers/utils';
 import { getLogs, getLatestVersionFromFs } from '../helpers/contracts';
 import { upgradeTo } from './UnstructuredUpgrades';
 
@@ -8,7 +9,13 @@ const shouldBehaveLikeTonToken = (
   recipient,
   contract,
   initParams,
-  upgradeable
+  upgradeable,
+  constructorParams = [
+    'UnstructuredUpgradeableToken',
+    '',
+    1,
+    [0x0000000000000000000000000000000000000000],
+  ]
 ) => {
   let tonToken;
   let initialSupply;
@@ -24,7 +31,8 @@ const shouldBehaveLikeTonToken = (
               (await artifacts.require(
                 `./NoriV${await getLatestVersionFromFs('Nori')}`
               )),
-            initParams
+            initParams,
+            constructorParams
           )
         : await upgradeToV(admin);
     const name = await tonToken.name();
@@ -84,7 +92,7 @@ const shouldBehaveLikeTonToken = (
     });
     context('When the account has a balance', () => {
       beforeEach(async () => {
-        await tonToken.mint(admin, 1, '0x0');
+        await tonToken.mint(admin, 1, '0x0', { from: admin });
       });
       it('should get the balance of an account', async () => {
         const adminBal = await tonToken.balanceOf(admin);
@@ -98,7 +106,7 @@ const shouldBehaveLikeTonToken = (
   });
   describe('transfer', () => {
     beforeEach(async () => {
-      await tonToken.mint(admin, 1, '0x0');
+      await tonToken.mint(admin, 1, '0x0', { from: admin });
     });
     it('should transfer 1 token', async () => {
       await tonToken.transfer(recipient, 1);
@@ -113,7 +121,7 @@ const shouldBehaveLikeTonToken = (
     });
     describe('requireMultiple', () => {
       it('should not be able to transfer less than the granularity 1 token', async () => {
-        await expectThrow(tonToken.transfer(recipient, 0.1));
+        await assertFail(tonToken.transfer(recipient, 0.1));
       });
     });
   });
@@ -170,17 +178,11 @@ const shouldBehaveLikeTonToken = (
         beforeEach(async () => {
           await tonToken.mint(admin, 1, '0x0', { from: admin });
           await tonToken.enableERC20({ from: admin });
-          await tonToken.authorizeOperator(operator, 1, { from: admin });
+          await tonToken.authorizeOperator(operator, { from: admin });
         });
         describe('isOperatorFor', () => {
-          it('should approve 1 token giving the operator 1 allowance', async () => {
+          it('should approve 1 token giving the operator approval', async () => {
             const isOperator = await tonToken.isOperatorFor(operator, admin);
-            const operatorAllowance = await tonToken.allowance(admin, operator);
-            await assert.equal(
-              operatorAllowance,
-              1,
-              'Wrong operator allowance'
-            );
             const adminBal = await tonToken.balanceOf(admin);
             await assert.equal(
               adminBal,
@@ -228,13 +230,13 @@ const shouldBehaveLikeTonToken = (
     });
     describe('revokeOperator', () => {
       beforeEach(async () => {
-        await tonToken.mint(admin, 1, '0x0');
-        await tonToken.authorizeOperator(operator, 1, { from: admin });
+        await tonToken.mint(admin, 1, '0x0', { from: admin });
+        await tonToken.authorizeOperator(operator, { from: admin });
       });
       it('should revoke operator, removing allowance', async () => {
         await tonToken.revokeOperator(operator, { from: admin });
-        const operatorAllowance = await tonToken.allowance(admin, operator);
-        await assert.equal(operatorAllowance, 0, 'Wrong operator allowance');
+        const operatorAllowance = await tonToken.isOperatorFor(operator, admin);
+        await assert.equal(operatorAllowance, false, 'Wrong operator approval');
       });
       it('should revoke operator, removing authorization', async () => {
         await tonToken.revokeOperator(operator, { from: admin });
@@ -246,7 +248,7 @@ const shouldBehaveLikeTonToken = (
 
   describe('send', () => {
     beforeEach(async () => {
-      await tonToken.mint(admin, 1, '0x0');
+      await tonToken.mint(admin, 1, '0x0', { from: admin });
     });
     it('should send 1 token', async () => {
       await tonToken.contract.send(recipient, 1, '0x0', {
@@ -265,11 +267,13 @@ const shouldBehaveLikeTonToken = (
 
   describe('mint', () => {
     it('should fail when minting less than the specified granularity', async () => {
-      await expectThrow(tonToken.mint(admin, granularity / 2, '0x0'));
+      await assertFail(
+        tonToken.mint(admin, granularity / 2, '0x0', { from: admin })
+      );
     });
 
     it('should not fail when minting a valid granularity', async () => {
-      await tonToken.mint(admin, 1, '0x0');
+      await tonToken.mint(admin, 1, '0x0', { from: admin });
       const mintRecipientBal = await tonToken.balanceOf(admin);
       await assert.equal(
         mintRecipientBal,
@@ -281,7 +285,7 @@ const shouldBehaveLikeTonToken = (
     context('After minting a token', () => {
       let mintedLogs;
       before(async () => {
-        tonToken.mint(admin, 1, '0x0');
+        tonToken.mint(admin, 1, '0x0', { from: admin });
         mintedLogs = await getLogs(tonToken.Minted);
       });
 
@@ -338,23 +342,23 @@ const shouldBehaveLikeTonToken = (
   });
 
   context('Burn a token after minting a token', () => {
-    let burntLogs;
+    let burnedLogs;
     let mintRecipientBal;
     beforeEach(async () => {
-      await tonToken.mint(admin, 3, '0x0');
+      await tonToken.mint(admin, 3, '0x0', { from: admin });
       mintRecipientBal = await tonToken.balanceOf(admin);
       assert.equal(
         mintRecipientBal,
         initialSupply > 0 ? initialSupply + 3 : 3,
         'minting failed'
       );
-      await tonToken.burn(admin, 1);
-      burntLogs = await getLogs(tonToken.Burnt);
+      await tonToken.burn(1, '', { from: admin });
+      burnedLogs = await getLogs(tonToken.Burned);
     });
     describe('burn', () => {
       it('should burn a token', async () => {
-        await tonToken.burn(admin, 1);
-        burntLogs = await getLogs(tonToken.Burnt);
+        await tonToken.burn(1, '', { from: admin });
+        burnedLogs = await getLogs(tonToken.Burned);
         mintRecipientBal = await tonToken.balanceOf(admin);
         assert.equal(
           mintRecipientBal,
@@ -364,27 +368,27 @@ const shouldBehaveLikeTonToken = (
       });
     });
     context('After burning a token', () => {
-      describe('Burnt (event)', () => {
-        it('should put a Burnt event into the logs', () => {
+      describe('Burned (event)', () => {
+        it('should put a Burned event into the logs', () => {
           assert.equal(
-            burntLogs.length,
+            burnedLogs.length,
             1,
-            'Expected one Burnt event to have been sent'
+            'Expected one Burned event to have been sent'
           );
         });
         it("should include a 'from' arg", () => {
           assert.equal(
-            burntLogs[0].args.from,
+            burnedLogs[0].args.from,
             admin,
-            'Expected Burnt Event "from" arg to be the sender'
+            'Expected Burned Event "from" arg to be the sender'
           );
         });
 
         it("should include an 'amount' arg", () => {
           assert.equal(
-            burntLogs[0].args.amount.toString(),
+            burnedLogs[0].args.amount.toString(),
             1,
-            'Expected Burnt Event "amount" arg to be the amount burned'
+            'Expected Burned Event "amount" arg to be the amount burned'
           );
         });
       });

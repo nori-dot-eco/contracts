@@ -17,7 +17,13 @@ let upgradeableTokenV0;
 const upgradeToV0 = async (
   admin,
   unstructuredUpgradeableContractV0 = UnstructuredUpgradeableTokenV0_1_0,
-  initParams
+  initParams,
+  constructorParams = [
+    'UnstructuredUpgradeableToken',
+    '',
+    1,
+    [0x0000000000000000000000000000000000000000],
+  ]
 ) => {
   contractRegistry = await artifacts
     .require(`./RootRegistryV${await getLatestVersionFromFs('RootRegistry')}`)
@@ -48,7 +54,8 @@ const upgradeToV0 = async (
     unstructuredUpgradeableContractV0,
     contractRegistry,
     initParams,
-    { from: admin }
+    { from: admin },
+    constructorParams
   );
 
   const impAddr = await proxy.implementation();
@@ -77,7 +84,13 @@ const upgradeToV1 = async admin => {
     UnstructuredUpgradeableTokenV0_2_0,
     contractRegistry,
     null,
-    { from: admin }
+    { from: admin },
+    [
+      'UnstructuredUpgradeableToken',
+      '',
+      1,
+      [0x0000000000000000000000000000000000000000],
+    ]
   );
 
   const impAddr = await proxy.implementation();
@@ -96,7 +109,13 @@ const upgradeToV2 = async admin => {
     UnstructuredUpgradeableTokenV0_3_0,
     contractRegistry,
     null,
-    { from: admin }
+    { from: admin },
+    [
+      'UnstructuredUpgradeableToken',
+      '',
+      1,
+      [0x0000000000000000000000000000000000000000],
+    ]
   );
 
   const impAddr = await proxy.implementation();
@@ -116,7 +135,13 @@ const upgradeToV3 = async admin => {
     UnstructuredUpgradeableTokenV0_4_0,
     contractRegistry,
     null,
-    { from: admin }
+    { from: admin },
+    [
+      'UnstructuredUpgradeableToken',
+      '',
+      1,
+      [0x0000000000000000000000000000000000000000],
+    ]
   );
 
   const impAddr = await proxy.implementation();
@@ -134,7 +159,13 @@ const rollBackToV2 = async admin => {
     UnstructuredUpgradeableTokenV0_3_0,
     contractRegistry,
     null,
-    { from: admin }
+    { from: admin },
+    [
+      'UnstructuredUpgradeableToken',
+      '',
+      1,
+      [0x0000000000000000000000000000000000000000],
+    ]
   );
 
   const impAddr = await proxy.implementation();

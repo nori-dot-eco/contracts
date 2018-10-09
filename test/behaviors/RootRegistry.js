@@ -57,7 +57,8 @@ const setupTests = async () => {
         namedAccounts.admin0,
       ],
     ],
-    { from: namedAccounts.admin0 }
+    { from: namedAccounts.admin0 },
+    ['', '', 1, [0x0000000000000000000000000000000000000000]]
   );
   tokenProxyImpV0 = await tokenProxy.implementation();
 };
@@ -90,7 +91,8 @@ const shouldBehaveLikeRootRegistry = () => {
           UnstructuredUpgradeableTokenV0_2_0,
           registryAtProxyV0,
           null,
-          { from: namedAccounts.admin0 }
+          { from: namedAccounts.admin0 },
+          ['', '', 1, [0x0000000000000000000000000000000000000000]]
         );
       });
       describe('getVersionForContractName', () => {
@@ -219,7 +221,8 @@ const testRegistryUpgradeAndHistoryPreservation = () => {
               namedAccounts.admin0,
             ],
           ],
-          { from: namedAccounts.admin0 }
+          { from: namedAccounts.admin0 },
+          ['', '', 1, [0x0000000000000000000000000000000000000000]]
         );
         tokenProxyImpV0 = await tokenProxy.implementation();
 

@@ -10,7 +10,8 @@ const UnstructuredOwnedUpgradeabilityProxyTests = (
   admin,
   proposedAdmin,
   initParams,
-  ownedUpContract = false
+  ownedUpContract = false,
+  constructorParams = null
 ) => {
   contract(
     ownedUpContract
@@ -20,12 +21,14 @@ const UnstructuredOwnedUpgradeabilityProxyTests = (
       testUnstructuredOwnedUpgradeabilityProxyInitialState(
         admin,
         ownedUpContract,
-        initParams
+        initParams,
+        constructorParams
       );
       testUnstructuredOwnedUpgradeabilityProxyFuncs(
         admin,
         ownedUpContract,
-        initParams
+        initParams,
+        constructorParams
       );
       testOnlyProxyOwnerUnstructuredOwnedUpgradeabilityProxyFuncs(
         admin,

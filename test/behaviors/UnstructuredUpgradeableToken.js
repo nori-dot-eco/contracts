@@ -14,7 +14,13 @@ const shouldBehaveLikeUnstructuredUpgradeableToken = (
   transferRecipient,
   contract,
   initParams,
-  upgradeable
+  upgradeable,
+  constructorParams = [
+    'UnstructuredUpgradeableToken',
+    '',
+    1,
+    [0x0000000000000000000000000000000000000000],
+  ]
 ) => {
   if (upgradeable === 0 || !upgradeable) {
     shouldBehaveLikeUnstructuredUpgradeableTokenV0(
@@ -23,7 +29,8 @@ const shouldBehaveLikeUnstructuredUpgradeableToken = (
       transferRecipient,
       contract,
       initParams,
-      upgradeable
+      upgradeable,
+      constructorParams
     );
   } else if (upgradeable === 1) {
     shouldBehaveLikeUnstructuredUpgradeableTokenV1(
@@ -32,7 +39,8 @@ const shouldBehaveLikeUnstructuredUpgradeableToken = (
       transferRecipient,
       contract,
       initParams,
-      upgradeable
+      upgradeable,
+      constructorParams
     );
   } else if (upgradeable === 2) {
     shouldBehaveLikeUnstructuredUpgradeableTokenV2(
@@ -41,7 +49,8 @@ const shouldBehaveLikeUnstructuredUpgradeableToken = (
       transferRecipient,
       contract,
       initParams,
-      upgradeable
+      upgradeable,
+      constructorParams
     );
   } else if (upgradeable === 3) {
     shouldBehaveLikeUnstructuredUpgradeableTokenV3(
@@ -50,7 +59,8 @@ const shouldBehaveLikeUnstructuredUpgradeableToken = (
       transferRecipient,
       contract,
       initParams,
-      upgradeable
+      upgradeable,
+      constructorParams
     );
   } else if (upgradeable === 4) {
     shouldBehaveLikeUnstructuredUpgradeableTokenV4(
@@ -59,7 +69,8 @@ const shouldBehaveLikeUnstructuredUpgradeableToken = (
       transferRecipient,
       contract,
       initParams,
-      upgradeable
+      upgradeable,
+      constructorParams
     );
   }
 };
@@ -70,7 +81,13 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV0 = (
   transferRecipient,
   contract,
   initParams,
-  upgradeable
+  upgradeable,
+  constructorParams = [
+    'UnstructuredUpgradeableToken',
+    '',
+    1,
+    [0x0000000000000000000000000000000000000000],
+  ]
 ) => {
   let upgradeableTokenV0;
   let initialSupply;
@@ -80,7 +97,8 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV0 = (
     [upgradeableTokenV0, initialSupply] = await upgradeToV(
       admin,
       contract,
-      initParams
+      initParams,
+      constructorParams
     );
   });
 
@@ -93,7 +111,8 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV0 = (
         transferRecipient,
         contract,
         initParams,
-        upgradeable
+        upgradeable,
+        constructorParams
       );
     }
   );
@@ -401,7 +420,7 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV3 = (
   });
 };
 
-// this test goes through a scennario which upgrades the token from v0-v1-v2-v3
+// this test goes through a scenario which upgrades the token from v0-v1-v2-v3
 // and in v3 since v2 was not inherited, access to state is lost.
 // However, v4 rolls back to V2 and recovers state
 const shouldBehaveLikeUnstructuredUpgradeableTokenV4 = (
@@ -420,9 +439,9 @@ const shouldBehaveLikeUnstructuredUpgradeableTokenV4 = (
   });
 
   context(
-    'Recover state from V2 after losing acces to it in an upgrade to V3',
+    'Recover state from V2 after losing access to it in an upgrade to V3',
     () => {
-      it('should return a total supply equiv to the state which was set in v2 before upgrding to version which overwrote its access', async () => {
+      it('should return a total supply equiv to the state which was set in v2 before upgrading to version which overwrote its access', async () => {
         const v4TotalSupply = await upgradeableTokenV4.totalSupply();
         assert.equal(v4TotalSupply.toNumber(), v2TotalSupply.toNumber());
       });

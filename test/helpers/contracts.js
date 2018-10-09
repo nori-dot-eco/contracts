@@ -1,3 +1,4 @@
+/* eslint no-console: "off" */
 const { promisify } = require('util');
 const { mapSeries } = require('bluebird');
 const glob = require('glob');
@@ -134,7 +135,7 @@ const deployUpgradeableContract = async (
     (await artifacts
       .require('UnstructuredOwnedUpgradeabilityProxy')
       .new(contractRegistry.address, deployParams));
-
+  console.log(contractName, constructorParams);
   const contractToMakeUpgradeable = constructorParams
     ? await contract.new(...constructorParams, deployParams)
     : await contract.new(deployParams);

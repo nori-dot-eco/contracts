@@ -31,9 +31,9 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
 
     assert.ok(multisigInstance);
 
-    tokenInstance =  await artifacts
+    tokenInstance = await artifacts
       .require(`./NoriV${await getLatestVersionFromFs('Nori')}`)
-      .new();
+      .new('', '', 1, [0x0000000000000000000000000000000000000000]);
     await tokenInstance.initialize(
       'NORI Token',
       'NORI',
@@ -61,7 +61,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
 
   context('EIP820 compatibility', () => {
     describe('toggleTokenReceiver', () => {
-      it('should disable IEIP777TokensRecipient interface', async () => {
+      it('should disable ERC777TokensRecipient interface', async () => {
         const toggle = !(await multisigInstance.tokenReceiver.call());
         await multisigInstance.toggleTokenReceiver(toggle);
         const tokenReceiver = await multisigInstance.tokenReceiver.call();
@@ -71,7 +71,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
           `setting token receiver functionality to ${toggle} failed`
         );
       });
-      it('should enable IEIP777TokensRecipient interface after disabling', async () => {
+      it('should enable ERC777TokensRecipient interface after disabling', async () => {
         const toggle = !(await multisigInstance.tokenReceiver.call());
         await multisigInstance.toggleTokenReceiver(toggle);
         let tokenReceiver = await multisigInstance.tokenReceiver.call();
@@ -91,7 +91,7 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
     });
 
     describe('tokensReceived', () => {
-      it('should disable IEIP777TokensRecipient interface then fail receiving tokens', async () => {
+      it('should disable ERC777TokensRecipient interface then fail receiving tokens', async () => {
         const toggle = await multisigInstance.tokenReceiver.call();
         await multisigInstance.toggleTokenReceiver(!toggle);
         await expectThrow(
@@ -314,13 +314,13 @@ const shouldBehaveLikeMultiSigWallet = (MultiSigContract, accounts) => {
         );
         // Check that transaction has been executed
         assert.ok(transactionId.equals(executedTransactionId));
-        // Check that the transfer has actually occured
+        // Check that the transfer has actually occurred
         assert.equal(1000000, await tokenInstance.balanceOf(accounts[1]));
       });
     }
   );
   describe('Disallow token transfers when receiving multiple confirmations from a single multisig owner', () => {
-    it('should fail transfering tokens', async () => {
+    it('should fail transferring tokens', async () => {
       // Encode transfer call for the multisig
       const transferEncoded = tokenInstance.contract.send.getData(
         accounts[1],
