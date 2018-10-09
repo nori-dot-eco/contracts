@@ -1,14 +1,14 @@
 pragma solidity ^0.4.24;
 
-import "../EIP777/IEIP777.sol";
-import "../EIP777/IEIP777TokensRecipient.sol";
-import "../EIP777/IEIP777TokensSender.sol";
-import "../EIP777/IEIP777TokensOperator.sol";
-import "../EIP20/Ierc20.sol";
+import "../../../EIP777/IEIP777.sol";
+import "../../../EIP777/IEIP777TokensRecipient.sol";
+import "../../../EIP777/IEIP777TokensSender.sol";
+import "../../../EIP777/IEIP777TokensOperator.sol";
+import "../../../EIP20/Ierc20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
-import "../registry/IContractRegistry.sol";
+import "../../../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
+import "../../../registry/IContractRegistry.sol";
 
 /**
 * @title UnstructuredTokenBase

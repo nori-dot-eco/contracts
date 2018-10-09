@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "../../../EIP777/UnstructuredTokenBase.sol";
+import "./UnstructuredTokenBase.sol";
 
 
 /**
