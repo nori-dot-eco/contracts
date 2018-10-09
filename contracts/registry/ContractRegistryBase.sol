@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2; //solium-disable-line
 
 import "../lifecycle/Pausable.sol";
 import "./IContractRegistry.sol";
-import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
+import "openzeppelin-solidity/contracts//math/SafeMath.sol";
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
 
 
