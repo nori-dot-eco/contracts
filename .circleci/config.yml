@@ -19,7 +19,6 @@ jobs:
 
       - restore_cache:
           key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
-
       - run:
           name: Install Dependencies
           command: |
@@ -28,18 +27,35 @@ jobs:
                 yarn install --prefer-offline && break || sleep 15;
               done
             fi
-
       - save_cache:
           key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
 
+      - restore_cache:
+          key: v1-contracts_build-{{ .Revision }}
       - run:
           name: Build Contracts
           command: ./node_modules/.bin/truffle compile
+      - save_cache:
+          key: v1-contracts_build-{{ .Revision }}
+          paths:
+            - '@noridoteco/contracts/build'
+
   run-unit-tests:
     <<: *defaults
     steps:
+      - run:
+          name: Setup Environment
+          command: |
+            echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
+            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+
+      - restore_cache:
+          key: v1-contracts_build-{{ .Revision }}
+      - restore_cache:
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+
       - run:
           name: Run Unit Tests
           command: UNIT=true yarn run test
@@ -56,8 +72,17 @@ jobs:
     steps:
       - checkout
 
+      - run:
+          name: Setup Environment
+          command: |
+            echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
+            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+
       - restore_cache:
-          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v1-contracts_build-{{ .Revision }}
+      - restore_cache:
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+
       - run:
           name: Generate Contract Coverage
           command: yarn run sol:cov
