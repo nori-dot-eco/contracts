@@ -379,7 +379,7 @@ const upgradeAndTransferToMultiAdmin = async (
       upgraded = true;
       process.env.MIGRATION &&
         console.log(
-          `${contractName} Upgrade succesful!`,
+          `${contractName} Upgrade successful!`,
           `Implementation:${contractToMakeUpgradeable.address}`,
           `Version: ${versionName}`,
           `Proxy: ${proxy.address}`
