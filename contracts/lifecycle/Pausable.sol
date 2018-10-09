@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
 
-import "../../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 // Note: This was take directly from the open-zeppelin solidity contracts.
 // The only difference is the inclusion of a "reason string" in the require statement
