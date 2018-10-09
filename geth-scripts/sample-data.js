@@ -58,8 +58,8 @@ module.exports = async function genSampleData(global) {
     );
 
     console.log('Toggling participant type');
-    await supplier.toggleParticipantType(true); // todo: might need to fix this to use multiadmin to toggle?
-    console.log('Toggline interface');
+    await supplier.toggleParticipantType(true); // todo: might need to fix this to use MultiAdmin to toggle?
+    console.log('Toggling interface');
     await supplier.toggleInterface('IMintableCommodity', crc.address, true);
 
     await Promise.all(
@@ -71,7 +71,7 @@ module.exports = async function genSampleData(global) {
     );
 
     console.log('Toggling crc participant calling');
-    await crc.toggleParticpantCalling(true);
+    await crc.toggleParticipantCalling(true);
 
     await Promise.all(
       suppliers.map(async account => {
