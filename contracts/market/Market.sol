@@ -2,7 +2,7 @@ pragma solidity ^0.4.24;
 import "./MarketLib.sol";
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
 import "../contrib/EIP/eip820/contracts/ERC820ImplementerInterface.sol";
-import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
+import "openzeppelin-solidity/contracts//math/SafeMath.sol";
 import "../lifecycle/Pausable.sol";
 import "../registry/IContractRegistry.sol";
 
@@ -29,7 +29,7 @@ contract Market is Pausable, ERC820Implementer, ERC820ImplementerInterface {
     contractRegistry = IContractRegistry(_contractRegistryAddr); //todo: get this from ENS or ERC820 somehow
     erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     preventTokenOperator = false;
-    setInterfaceImplementation("IEIP777TokensOperator", this);
+    setInterfaceImplementation("ERC777TokensOperator", this);
     preventCommodityOperator = false;
     setInterfaceImplementation("ICommodityOperator", this);
     _initialized = true;
@@ -63,7 +63,7 @@ contract Market is Pausable, ERC820Implementer, ERC820ImplementerInterface {
 
   function enableEIP777TokensOperator() public onlyOwner {
     preventTokenOperator = false;
-    setInterfaceImplementation("IEIP777TokensOperator", this);
+    setInterfaceImplementation("ERC777TokensOperator", this);
   }
 
   function enableCommodityOperator() public onlyOwner {
