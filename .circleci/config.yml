@@ -35,7 +35,7 @@ jobs:
               git checkout yarn.lock
             fi
       - save_cache:
-          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
             - ~/.cache
@@ -114,7 +114,7 @@ jobs:
       - checkout
 
       - restore_cache:
-          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
 
       - run:
           name: Run Gas Report
