@@ -135,7 +135,6 @@ const deployUpgradeableContract = async (
     (await artifacts
       .require('UnstructuredOwnedUpgradeabilityProxy')
       .new(contractRegistry.address, deployParams));
-  console.log(contractName, constructorParams);
   const contractToMakeUpgradeable = constructorParams
     ? await contract.new(...constructorParams, deployParams)
     : await contract.new(deployParams);
