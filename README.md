@@ -1,9 +1,15 @@
 # Pre-reqs:
 
+Until the Solidity extension for VSCode supports soliumrc.json files, you'll need both extensions:
+
+- [Solidity](https://github.com/juanfranblanco/vscode-solidity)
+- [Solidity Extended](https://github.com/beaugunderson/vscode-solidity-extended)
+
 When using VSCode, add the following to your user settings (`ctrl + ,`)
 
 ```
-"solidity.packageDefaultDependenciesContractsDirectory": ""
+"solidity.packageDefaultDependenciesContractsDirectory": "",
+"solidity.linter": "",
 ```
 
 # Contracts
