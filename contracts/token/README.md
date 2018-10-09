@@ -10,7 +10,7 @@ The NORI token is an implementation of the [ERC-777 Advanced Token Standard](htt
 
 ## Purpose
 
-The NORI token is used to purchase Carbon Removal Certifcates.
+The NORI token is used to purchase Carbon Removal Certificates.
 
 ## Key features
 
@@ -18,11 +18,11 @@ Since the NORI token uses the ERC 777 standard it can be used in several fancy w
 
 - contract introspection via [ERC-820](https://github.com/ethereum/EIPs/issues/820)
 
-This feature allows us to register which contracts support which interfaces. As such, when you sionallyend a token to an address, you can lookup whether the receiving address supports the interface that function is trying to consume. If it does, it can "dial out" to the receiving address and have it execute a function from within its context (note this changes `msg.sender` from the tx sender to the token contract itself, so the receiving address things it was the token contract, and not the token owner, who is executing this "dialed" function).
+This feature allows us to register which contracts support which interfaces. As such, when you register a token to an address, you can lookup whether the receiving address supports the interface that function is trying to consume. If it does, it can "dial out" to the receiving address and have it execute a function from within its context (note this changes `msg.sender` from the tx sender to the token contract itself, so the receiving address things it was the token contract, and not the token owner, who is executing this "dialed" function).
 
-Additonally you can use this to prevent tokens being sent to unknown addresses, or just decline token sending in certain scenarios.
+Additionally you can use this to prevent tokens being sent to unknown addresses, or just decline token sending in certain scenarios.
 
-An example of this being consumed is in the `authorizeOperator` function which in turn calls the `callOperator` function which in turn dials the `madeOperatorForTokens` function in the market contracts, which in turn calls the `buy` function in the market to initate a CRC purchase.
+An example of this being consumed is in the `authorizeOperator` function which in turn calls the `callOperator` function which in turn dials the `madeOperatorForTokens` function in the market contracts, which in turn calls the `buy` function in the market to initiate a CRC purchase.
 
 Currently, it is through this key feature that we are "atomically swapping" one NORI token for one CRC in a CRC bundle listed for sale.
 
@@ -84,7 +84,7 @@ function _executeCall(address to, uint256 value, bytes data) private returns (bo
 }
 ```
 
-Futher notes on this feature here:
+Further notes on this feature here:
 
 - https://github.com/nori-dot-eco/contracts/pull/57/commits/b2db4287b074d8ebc70b3898050cc818ad679683
 - https://github.com/nori-dot-eco/contracts/pull/57/commits/22411d6e4bf2c81ee325e07320b6eac8c8bf2d0c

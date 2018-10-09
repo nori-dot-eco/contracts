@@ -1,6 +1,6 @@
 # Pre-reqs:
 
-Until the Solidity extension for VSCode supports soliumrc.json files, you'll need both extensions:
+Until the Solidity extension for VSCode supports `.soliumrc.json` files, you'll need both extensions:
 
 - [Solidity](https://github.com/juanfranblanco/vscode-solidity)
 - [Solidity Extended](https://github.com/beaugunderson/vscode-solidity-extended)
