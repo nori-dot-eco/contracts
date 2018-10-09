@@ -37,6 +37,9 @@ jobs:
           key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
+            paths:
+            - node_modules
+            - ~/.cache
 
       - restore_cache:
           key: v1-contracts_build-{{ .Revision }}
@@ -46,7 +49,7 @@ jobs:
       - save_cache:
           key: v1-contracts_build-{{ .Revision }}
           paths:
-            - '@noridoteco/contracts/build'
+            - 'contracts/build'
 
   run-unit-tests:
     <<: *defaults
