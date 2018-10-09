@@ -54,7 +54,7 @@ jobs:
       - restore_cache:
           key: v1-contracts_build-{{ .Revision }}
       - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
 
       - run:
           name: Run Unit Tests
@@ -72,7 +72,7 @@ jobs:
       - restore_cache:
           key: v1-contracts_build-{{ .Revision }}
       - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
 
       - run:
           name: Run Upgrade Tests
@@ -92,7 +92,7 @@ jobs:
       - restore_cache:
           key: v1-contracts_build-{{ .Revision }}
       - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
 
       - run:
           name: Generate Contract Coverage
