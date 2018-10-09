@@ -9,6 +9,6 @@ import "./ContractRegistryBase.sol";
 */
 contract RootRegistryV0_2_0 is ContractRegistryBase {
 
-  constructor() public ContractRegistryBase() {}
+  constructor() public ContractRegistryBase() { }
 
 }
