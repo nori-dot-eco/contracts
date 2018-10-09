@@ -261,7 +261,13 @@ const testRegistryUpgradeAndHistoryPreservation = () => {
           UnstructuredUpgradeableTokenV0_2_0,
           registryV1AtRoot,
           null,
-          { from: namedAccounts.admin0 }
+          { from: namedAccounts.admin0 },
+          [
+            'UnstructuredUpgradeableToken',
+            '',
+            1,
+            [0x0000000000000000000000000000000000000000],
+          ]
         );
         tokenProxyImpV1 = await tokenProxy.implementation();
       });
