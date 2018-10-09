@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "../contrib/EIP/eip777/contracts/ERC777ERC20BaseToken.sol";
-import "zeppelin-solidity/contracts/lifecycle/Pausable.sol";
+import "../lifecycle/Pausable.sol";
 
 /// @dev Adds a Pausable modifier override to all functions that modify state
 contract PausableToken is ERC777ERC20BaseToken, Pausable {
