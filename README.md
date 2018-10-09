@@ -12,6 +12,13 @@ When using VSCode, add the following to your user settings (`ctrl + ,`)
 "solidity.linter": "",
 ```
 
+#### Initialize and update the submodules
+
+```
+git submodule init
+git submodule update --init --recursive
+```
+
 # Contracts
 
 The Ethereum smart contracts that power nori.com
