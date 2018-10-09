@@ -16,6 +16,13 @@ contract UnstructuredUpgradeableTokenV0_4_0  {
   uint256 public mTotalSupply;
   mapping(address => uint256) private mBalances;
 
+  constructor(
+    string, // _name,
+    string, // _symbol,
+    uint256, // _granularity,
+    address[] // _defaultOperators
+  ) public {  }
+
   function theOnlyFunction() public pure returns(string) {
     //rather, the only one that will return anything that is not just garbage
     // likely pointing to the wrong storage loc
