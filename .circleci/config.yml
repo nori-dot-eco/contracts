@@ -24,7 +24,7 @@ jobs:
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
 
       - restore_cache:
-          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
       - run:
           name: Install Dependencies
           command: |
@@ -32,6 +32,7 @@ jobs:
               for i in 1 2; do
                 yarn install --prefer-offline && break || sleep 15;
               done
+              git checkout yarn.lock
             fi
       - save_cache:
           key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
@@ -61,7 +62,7 @@ jobs:
       - restore_cache:
           key: v1-contracts_build-{{ .Revision }}
       - restore_cache:
-          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
 
       - run:
           name: Run Unit Tests
@@ -79,7 +80,7 @@ jobs:
       - restore_cache:
           key: v1-contracts_build-{{ .Revision }}
       - restore_cache:
-          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
 
       - run:
           name: Run Upgrade Tests
@@ -99,7 +100,7 @@ jobs:
       - restore_cache:
           key: v1-contracts_build-{{ .Revision }}
       - restore_cache:
-          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
 
       - run:
           name: Generate Contract Coverage
