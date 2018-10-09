@@ -67,4 +67,8 @@ contract UpgradeableToken is PausableToken, ERC820Implementer {
     contractRegistry = IContractRegistry(_contractRegistryAddr);
   }
 
+  function initialized() public view returns(bool){
+    return _initialized;
+  }
+
 }

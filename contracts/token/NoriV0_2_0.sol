@@ -40,7 +40,7 @@ contract NoriV0_2_0 is UpgradeableToken {
       _amount,
       _operatorData);
     if (mErc20compatible) {
-      Transfer(
+      emit Transfer(
         0x0,
         _tokenHolder,
         _amount);
@@ -60,4 +60,5 @@ contract NoriV0_2_0 is UpgradeableToken {
     mErc20compatible = true;
     setInterfaceImplementation("ERC20Token", this);
   }
+
 }
