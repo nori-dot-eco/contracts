@@ -52,28 +52,55 @@ context('Setup test environment', () => {
     giveEth(admin0, 0.25);
   });
 
-  context('Execute tests', () => {
-    // todo jaycen fix this (broken when removed eternal storage stuff)
-    // ProxyTests();
-    MultiSigWallet(); // MultiSig wallet tests
-    MultiAdminTests(); // MultiSig admin tests
-    ContractRegistryTests(admin0, admin1, unregistered0, allAccounts);
-    RootRegistryTests();
-    EIP820RegistryTests();
-    CRCTests(admin0);
-    ParticipantRegistryTests(admin0);
-    ParticipantTests(admin0);
-    SupplierTests(admin0);
-    VerifierTests(admin0);
-    FifoCrcMarketTests();
-    // Unstructured upgrade tests
-    UnstructuredOwnedUpgradeabilityProxyTests(admin0, admin1);
-    RiskMitigationAccountTests();
-  });
-  // These are complex and lengthy tests that simply prove upgradeability
-  // If you're looking to speed up local test time, comment these suckers out
-  context('Upgrade Scenarios', () => {
-    UnstructuredUpgradeScenarios(admin0, admin1, unregistered0);
-    NoriUpgradeTests(admin0, admin1, unregistered0);
-  });
+  if (process.env.UNIT) {
+    context('Execute tests', () => {
+      // todo jaycen fix this (broken when removed eternal storage stuff)
+      // ProxyTests();
+      MultiSigWallet(); // MultiSig wallet tests
+      MultiAdminTests(); // MultiSig admin tests
+      ContractRegistryTests(admin0, admin1, unregistered0, allAccounts);
+      RootRegistryTests();
+      EIP820RegistryTests();
+      CRCTests(admin0);
+      ParticipantRegistryTests(admin0);
+      ParticipantTests(admin0);
+      SupplierTests(admin0);
+      VerifierTests(admin0);
+      FifoCrcMarketTests();
+      // Unstructured upgrade tests
+      UnstructuredOwnedUpgradeabilityProxyTests(admin0, admin1);
+      RiskMitigationAccountTests();
+    });
+  } else if (process.env.UPGRADES) {
+    // These are complex and lengthy tests that simply prove upgradeability
+    // If you're looking to speed up local test time, comment these suckers out
+    context('Upgrade Scenarios', () => {
+      UnstructuredUpgradeScenarios(admin0, admin1, unregistered0);
+      NoriUpgradeTests(admin0, admin1, unregistered0);
+    });
+  } else {
+    // run all tests if nothing is specified (so that standard `truffle test` works)
+    context('Execute tests', () => {
+      // todo jaycen fix this (broken when removed eternal storage stuff)
+      // ProxyTests();
+      MultiSigWallet(); // MultiSig wallet tests
+      MultiAdminTests(); // MultiSig admin tests
+      ContractRegistryTests(admin0, admin1, unregistered0, allAccounts);
+      RootRegistryTests();
+      EIP820RegistryTests();
+      CRCTests(admin0);
+      ParticipantRegistryTests(admin0);
+      ParticipantTests(admin0);
+      SupplierTests(admin0);
+      VerifierTests(admin0);
+      FifoCrcMarketTests();
+      // Unstructured upgrade tests
+      UnstructuredOwnedUpgradeabilityProxyTests(admin0, admin1);
+      RiskMitigationAccountTests();
+    });
+    context('Upgrade Scenarios', () => {
+      UnstructuredUpgradeScenarios(admin0, admin1, unregistered0);
+      NoriUpgradeTests(admin0, admin1, unregistered0);
+    });
+  }
 });
