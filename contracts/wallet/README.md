@@ -12,7 +12,7 @@ This contract was adapted from the official Gnosis multisig wallet [here](https:
 
 The MultiSigWallet is intended to store company Ether and Tokens and is registered in the RootRegistry.
 
-Current implementation on Ropsten: `0x22c2a0758986817695d9d1a1866aacb775dc3f85`
+Current implementation on Ropsten: `0xf554e6f58f798e55b43b4c110ab8c2897d61b991`
 
 ## Key features
 

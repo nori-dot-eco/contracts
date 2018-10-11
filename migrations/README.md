@@ -54,7 +54,7 @@ This will print the current Root Registry address if everything went right.
 
 ### Pro tips:
 
-Sometimes ropsten has slow blocktimes. In this case, you'll want to have a miner started. To do so, you can run two parallel terminals with two parallel geth instances.
+Sometimes ropsten has slow block times. In this case, you'll want to have a miner started. To do so, you can run two parallel terminals with two parallel geth instances.
 
 #### start the light version this way
 
