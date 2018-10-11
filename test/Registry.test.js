@@ -9,20 +9,7 @@ import { getLatestVersionFromFs } from './helpers/contracts';
 
 const ContractRegistryTests = (admin0, admin1, nonAdmin, allAccounts) => {
   contract('ContractRegistry', () => {
-    context('Test Registry upgradeability', async () => {
-      UnstructuredOwnedUpgradeabilityProxyTests(
-        admin0,
-        nonAdmin,
-        [['address'], [admin0]],
-        await artifacts.require(
-          `./ContractRegistryV${await getLatestVersionFromFs(
-            'ContractRegistry'
-          )}`
-        )
-      );
-    });
     testContractAtRegistry(admin0, [['address'], [admin0]], allAccounts);
-    // todo EIP820 Registry tests
     testContractRegistryBaseFunctions();
     testEvents(admin0, allAccounts);
   });

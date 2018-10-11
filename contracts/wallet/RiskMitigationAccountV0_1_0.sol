@@ -1,21 +1,21 @@
 pragma solidity ^0.4.24;
-import "../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./IRiskMitigationAccount.sol";
 import "../lifecycle/Pausable.sol";
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
-import "../EIP777/IEIP777TokensRecipient.sol";
-import "./../EIP777/IEIP777.sol";
+import "../contrib/EIP/eip777/contracts/ERC777TokensRecipient.sol";
+import "../contrib/EIP/eip777/contracts/ERC777Token.sol";
 
 
 /**
   @title A Risk Mitigation Account holds restricted NORI tokens for suppliers until they are able
   to provide future proof that they should receive the full balance from a <100% scored CRC
 */
-contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820Implementer, IEIP777TokensRecipient {
+contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820Implementer, ERC777TokensRecipient {
 
   using SafeMath for uint256;
 
-  IEIP777 public tokenContract;
+  ERC777Token public tokenContract;
   bool private _initialized;
   bool public preventTokenReceipt;
   address public market;
@@ -36,9 +36,9 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
     owner = _owner;
     erc820Registry = ERC820Registry(0xa691627805d5FAE718381ED95E04d00E20a1fea6);
     setInterfaceImplementation("IRiskMitigationAccount", this);
-    setInterfaceImplementation("IEIP777TokensRecipient", this);
+    setInterfaceImplementation("ERC777TokensRecipient", this);
     preventTokenReceipt = false;
-    tokenContract = IEIP777(_tokenContract); //todo get this from contract registry instead
+    tokenContract = ERC777Token(_tokenContract); //todo get this from contract registry instead
     _initialized = true;
   }
 
@@ -62,14 +62,14 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
     @param _addressToRestrictTokensFor the supplier address to restrict tokens for
     @param _amount the amount of tokens to restrict
   */
-  function deposit(address _addressToRestrictTokensFor, uint256 _amount) private {
+  function deposit(address _addressToRestrictTokensFor, uint256 _amount) private whenNotPaused {
     restrictedBalances[_addressToRestrictTokensFor] = restrictedBalances[_addressToRestrictTokensFor].add(_amount);
   }
 
   /**
     @notice This function withdraws a supplier's restricted tokens
   */
-  function withdraw() public {
+  function withdraw() public whenNotPaused {
     // todo implement whatever is needed to check if they can truly withdraw their restricted tokens
     require(
       restrictedBalances[msg.sender] != 0,
@@ -77,7 +77,8 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
     );
     tokenContract.send( //solium-disable-line security/no-send
       msg.sender,
-      restrictedBalances[msg.sender]
+      restrictedBalances[msg.sender],
+      "0x0"
     );
     restrictedBalances[msg.sender] = restrictedBalances[msg.sender].sub(restrictedBalances[msg.sender]);
   }
@@ -109,7 +110,7 @@ contract RiskMitigationAccountV0_1_0 is IRiskMitigationAccount, Pausable, ERC820
     uint256 _amount,
     bytes, // userData,
     bytes _operatorData
-  ) public {
+  ) public whenNotPaused {
     if (preventTokenReceipt) {
       revert("This contract does not currently allow being made the recipient of tokens");
     }

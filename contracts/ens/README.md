@@ -11,7 +11,7 @@ These contracts were taken from the [official ENS repository](https://github.com
 Domains by environment:
 
 - Production (mainnet): `norimarket.eth`. This is owned, but not currently configured.
-- Staging (ropsten): `nori.test`. This is owned by the MultiAdmin wallet, and is currently resolving to the RootRegistry at address `0x4dcff1a5c3c85bf232505b9007eb2a679e4ee582`
+- Staging (ropsten): `nori.test`. This is owned by the MultiAdmin wallet, and is currently resolving to the RootRegistry at address `0x9d9403c9a3217f13a672fc36b204edb10d321110`
 - Development (truffle/ganache development): `nori.eth` will be registered at a different ENS deployment each time you restart your truffle environment
 - Testing (test): a new ens deployment will be created and torn down for each test (in most cases) and `nori.eth` will be used to resolve the latest RootRegistry.
 

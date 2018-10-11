@@ -2,7 +2,6 @@ pragma solidity ^0.4.24;
 
 import "./MintableCommodity.sol";
 import "../participant/ISupplier.sol";
-import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
 
 contract SplittableCommodity is MintableCommodity {
   using SafeMath for uint256;

@@ -1,5 +1,4 @@
-pragma solidity ^0.4.18;
-import "./../EIP777/IEIP777TokensRecipient.sol";
+pragma solidity ^0.4.24;
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
 import "../contrib/EIP/eip820/contracts/ERC820ImplementerInterface.sol";
 import "../registry/IContractRegistry.sol";
@@ -155,10 +154,10 @@ contract MultiSigWallet is ERC820Implementer, ERC820ImplementerInterface {
       operatorData
     );
   }
-
+  //todo onlyowners
   function toggleTokenReceiver(bool _toggle) public {
     tokenReceiver = _toggle;
-    setInterfaceImplementation("IEIP777TokensRecipient", this);
+    setInterfaceImplementation("ERC777TokensRecipient", this);
   }
 
   /// @dev Allows to add a new owner. Transaction has to be sent by wallet.

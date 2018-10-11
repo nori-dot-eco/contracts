@@ -4,21 +4,21 @@
 
 ## Modifying EIP820 contracts
 
-0. `git checkout -b update-submodule`
-1. `cd contracts/contrib/EIP/eip820/`
-1. `git checkout -b branch-name`
-1. make your changes, and run the test script _inside this folder_
-1. `git add .`
-1. `git commit -m "this is a message about the changes"`
-1. `git push origin branch-name`
-1. Open a pull request [here](https://github.com/nori-dot-eco/eip820) from `branch-name` to `master`
-1. After changes are accepted, merge the branch
-1. cd back into the root directory of the nori contracts repository
-1. run `git status` and verify that you see that the contrib folder contains updates
-1. add and commit the contrib folder
-1. push the contracts repository to origin and open a pull request from `update-submodule` to `master`
-1. After changes are accepted, merge the branch
-1. `cd contracts/contrib/EIP/eip820/` verify that your current branch commit is the same as [the updated master branch you made in step 7](https://github.com/nori-dot-eco/eip820)
+0.  `git checkout -b update-submodule`
+1.  `cd contracts/contrib/EIP/eip820/`
+1.  `git checkout -b branch-name`
+1.  make your changes, and run the test script _inside this folder_
+1.  `git add .`
+1.  `git commit -m "this is a message about the changes"`
+1.  `git push origin branch-name`
+1.  Open a pull request [here](https://github.com/nori-dot-eco/eip820) from `branch-name` to `master`
+1.  After changes are accepted, merge the branch
+1.  cd back into the root directory of the nori contracts repository
+1.  run `git status` and verify that you see that the contrib folder contains updates
+1.  add and commit the contrib folder
+1.  push the contracts repository to origin and open a pull request from `update-submodule` to `master`
+1.  After changes are accepted, merge the branch
+1.  `cd contracts/contrib/EIP/eip820/` verify that your current branch commit is the same as [the updated master branch you made in step 7](https://github.com/nori-dot-eco/eip820)
 
 #### Contributing those changes
 
@@ -53,7 +53,7 @@ This particular contract is what allows contracts to register all of the interfa
 
 This base contract should be inherited by all contracts. When inheriting from this contract, an `EIP820Registry` contract is assigned to keep track of all the interfaces which it can support.
 
-For example, an ERC20 token would inherit from this contract and then register the IERC20 (or IEIP20) interface in the registry. By doing so it is saying "hey, I support all of the ERC 20 functions, so if a contract sends a transaction to me, it will have a good time". A calling contract can then, upon receiving a transaction that is intended for a different final destination, can look up which interfaces that destination supports. If it is supported, the contract will dial the final address and invoke the desired functionality. If the interface is said to not be supported, then the transaction can revert -- preventing loss of funds or enabling only certain senders to submit tokens to it.
+For example, an ERC20 token would inherit from this contract and then register the IERC20 (or ERC20Token) interface in the registry. By doing so it is saying "hey, I support all of the ERC 20 functions, so if a contract sends a transaction to me, it will have a good time". A calling contract can then, upon receiving a transaction that is intended for a different final destination, can look up which interfaces that destination supports. If it is supported, the contract will dial the final address and invoke the desired functionality. If the interface is said to not be supported, then the transaction can revert -- preventing loss of funds or enabling only certain senders to submit tokens to it.
 
 #### Key features
 

@@ -11,6 +11,13 @@ contract UnstructuredUpgradeableTokenV0_3_0 is UnstructuredUpgradeableTokenV0_2_
 
   event NewStateAdded(string newStateVariable);
 
+  constructor(
+    string _name,
+    string _symbol,
+    uint256 _granularity,
+    address[] _defaultOperators
+  ) public UnstructuredUpgradeableTokenV0_2_0(_name, _symbol, _granularity, _defaultOperators) { owner = msg.sender; }
+
   function addNewState() public {
     super.addNewState();
     emit NewStateAdded("newStateVariable");

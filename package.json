@@ -27,7 +27,9 @@
     "ethereumjs-tx": "^1.3.7",
     "ethereumjs-util": "^5.2.0",
     "glob": "^7.1.2",
+    "openzeppelin-solidity": "^1.12.0",
     "prettier": "^1.13.6",
+    "solc": "^0.4.25",
     "solidity-coverage": "^0.5.4",
     "solium": "^1.1.8",
     "truffle": "^4.1.14",
@@ -41,7 +43,7 @@
     "testnet:deploy": "yarn run lint:sol && truffle deploy --network noritestnet",
     "testnet:migrate": "yarn run lint:sol && truffle migrate --network noritestnet",
     "ropsten:migrate": "yarn run solium -d . && `yarn bin`/truffle migrate --network ropstenGeth",
-    "test": "yarn run lint:sol && truffle test --reset --compile-all",
+    "test": "yarn run lint:sol && truffle test",
     "test:verbose": "yarn run lint:sol && MIGRATION=true `yarn bin`/truffle test --reset --compile-all",
     "test:gasreport": "cd gas-reporter && truffle test --reset --compile-all",
     "sol:cov": "testrpc-sc --port 8555 --gasLimit 0xfffffffffff --gasPrice 0x01 & $(yarn bin)/solidity-coverage",
@@ -51,7 +53,7 @@
     "build"
   ],
   "dependencies": {
-    "truffle-hdwallet-provider": "^0.0.5",
-    "zeppelin-solidity": "^1.4.0"
+    "eip820": "https://github.com/nori-dot-eco/eip820.git",
+    "truffle-hdwallet-provider": "^0.0.5"
   }
 }

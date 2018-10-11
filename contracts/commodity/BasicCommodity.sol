@@ -4,7 +4,7 @@ import "./ICommodityRecipient.sol";
 import "./ICommodityOperator.sol";
 import "./ICommoditySender.sol";
 import "../contrib/EIP/eip820/contracts/ERC820Implementer.sol";
-import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "../lifecycle/Pausable.sol";
 import "./ICommodity.sol";
 import "../participant/IParticipantRegistry.sol";

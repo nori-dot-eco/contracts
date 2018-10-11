@@ -12,7 +12,8 @@ const NoriUpgradeTests = (admin, mintRecipient, transferRecipient) => {
         ['string', 'string', 'uint', 'uint', 'address', 'address'],
         ['Upgradeable NORI Token', 'NORI', 1, 0, 0, admin],
       ],
-      0
+      0,
+      ['', '', 1, [0x0000000000000000000000000000000000000000]]
     );
   });
 };

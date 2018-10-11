@@ -1,11 +1,11 @@
 pragma solidity ^0.4.24;
 import "./StandardTokenizedCommodityMarket.sol";
-import "./../EIP777/IEIP777TokensOperator.sol";
+import "../contrib/EIP/eip777/contracts/ERC777TokensOperator.sol";
 import "./../commodity/ICommodityOperator.sol";
-import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
+import "openzeppelin-solidity/contracts//math/SafeMath.sol";
 
 
-contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, IEIP777TokensOperator, ICommodityOperator {
+contract FifoTokenizedCommodityMarket is StandardTokenizedCommodityMarket, ERC777TokensOperator, ICommodityOperator {
   using SafeMath for uint256; //todo jaycen PRELAUNCH - make sure we use this EVERYWHERE its needed
 
   int[] public commoditiesForSale;

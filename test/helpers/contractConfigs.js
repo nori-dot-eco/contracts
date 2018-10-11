@@ -12,15 +12,18 @@ const getRootOrContractRegistry = async (root, artifacts) =>
           )
           .at(await root.getLatestProxyAddr.call('ContractRegistry')),
         versionName: await getLatestVersionFromFs('RootRegistry'),
+        constructorParams: null,
       }
     : {
         registry: root,
         versionName: await getLatestVersionFromFs('ContractRegistry'),
+        constructorParams: null,
       };
 
 const contractRegistryConfig = async (root, artifacts) => ({
   contractName: 'ContractRegistry',
   versionName: (await getRootOrContractRegistry(root, artifacts)).versionName,
+  constructorParams: null,
   initParamTypes: ['address'],
   initParamVals: [await root.getLatestProxyAddr.call('MultiAdmin')],
   registry: (await getRootOrContractRegistry(root, artifacts)).registry,
@@ -30,6 +33,12 @@ const noriConfig = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'Nori',
     versionName: await getLatestVersionFromFs('Nori'),
+    constructorParams: [
+      '',
+      '',
+      1,
+      [0x0000000000000000000000000000000000000000],
+    ],
     initParamTypes: ['string', 'string', 'uint', 'uint', 'address', 'address'],
     initParamVals: [
       'Upgradeable NORI Token',
@@ -46,6 +55,7 @@ const participantRegistryConfig = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'ParticipantRegistry',
     versionName: await getLatestVersionFromFs('ParticipantRegistry'),
+    constructorParams: null,
     initParamTypes: ['address', 'address'],
     initParamVals: [
       contractRegistry.registry.address,
@@ -58,6 +68,7 @@ const crcConfig = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'CRC',
     versionName: await getLatestVersionFromFs('CRC'),
+    constructorParams: null,
     initParamTypes: ['string', 'string', 'address', 'address', 'address'],
     initParamVals: [
       'Carbon Removal Certificate',
@@ -75,6 +86,7 @@ const participantConfig = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'Participant',
     versionName: await getLatestVersionFromFs('Participant'),
+    constructorParams: null,
     initParamTypes: ['address', 'address', 'address'],
     initParamVals: [
       contractRegistry.registry.address,
@@ -90,6 +102,7 @@ const supplierConfig = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'Supplier',
     versionName: await getLatestVersionFromFs('Supplier'),
+    constructorParams: null,
     initParamTypes: ['address', 'address', 'address'],
     initParamVals: [
       contractRegistry.registry.address,
@@ -103,6 +116,7 @@ const verifierConfig = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'Verifier',
     versionName: await getLatestVersionFromFs('Verifier'),
+    constructorParams: null,
     initParamTypes: ['address', 'address', 'address'],
     initParamVals: [
       contractRegistry.registry.address,
@@ -118,6 +132,7 @@ const fifoCrcMarketConfig = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'FifoCrcMarket',
     versionName: await getLatestVersionFromFs('FifoCrcMarket'),
+    constructorParams: null,
     initParamTypes: ['address', 'address[]', 'address', 'address'],
     initParamVals: [
       contractRegistry.registry.address,
@@ -137,6 +152,12 @@ const unstructuredUpgradeableTokenV0Config = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'UnstructuredUpgradeableToken',
     versionName: '0_1_0',
+    constructorParams: [
+      '',
+      '',
+      1,
+      [0x0000000000000000000000000000000000000000],
+    ],
     initParamTypes: ['string', 'string', 'uint', 'uint', 'address', 'address'],
     initParamVals: [
       'Token',
@@ -153,6 +174,12 @@ const unstructuredUpgradeableTokenV1Config = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'UnstructuredUpgradeableToken',
     versionName: '0_2_0',
+    constructorParams: [
+      '',
+      '',
+      1,
+      [0x0000000000000000000000000000000000000000],
+    ],
     initParamTypes: null,
     initParamVals: null,
     registry: contractRegistry.registry,
@@ -162,6 +189,12 @@ const unstructuredUpgradeableTokenV2Config = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'UnstructuredUpgradeableToken',
     versionName: '0_3_0',
+    constructorParams: [
+      '',
+      '',
+      1,
+      [0x0000000000000000000000000000000000000000],
+    ],
     initParamTypes: null,
     initParamVals: null,
     registry: contractRegistry.registry,
@@ -171,6 +204,7 @@ const riskMitigationAccountConfig = async (root, artifacts) =>
   contractRegistryConfig(root, artifacts).then(async contractRegistry => ({
     contractName: 'RiskMitigationAccount',
     versionName: await getLatestVersionFromFs('RiskMitigationAccount'),
+    constructorParams: null,
     registry: contractRegistry.registry,
     initParamTypes: ['address', 'address'],
     initParamVals: [

@@ -169,8 +169,16 @@ const testFifoSaleBehavior = () => {
       'Create a CRC sale from a supplier account, then purchase part of that CRC using a buyer account',
       () => {
         beforeEach(async () => {
-          await nori.mint(buyer0, web3.toWei('100'), '');
-          await nori.mint(buyer1, web3.toWei('100'), '');
+          await callFunctionAsMultiAdmin(multiAdmin, nori, 0, 'mint', [
+            buyer0,
+            web3.toWei('100'),
+            '0x0',
+          ]);
+          await callFunctionAsMultiAdmin(multiAdmin, nori, 0, 'mint', [
+            buyer1,
+            web3.toWei('100'),
+            '0x0',
+          ]);
 
           await supplier.forward(
             crc.address,
@@ -187,9 +195,10 @@ const testFifoSaleBehavior = () => {
         });
 
         it('should split the CRC by using the market contract when the buyer purchases only part of the listed sale', async () => {
-          await nori.authorizeOperator(
+          await nori.approveAndCall(
             fifoCrcMarket.address,
             web3.toWei('50'),
+            '0x0',
             {
               from: buyer0,
             }
@@ -203,23 +212,26 @@ const testFifoSaleBehavior = () => {
         });
 
         it('should split the CRC by using the market contract when the buyer0 purchases only part of the listed sale. Buyer1 should be able to buy the remainder in two purchases', async () => {
-          await nori.authorizeOperator(
+          await nori.approveAndCall(
             fifoCrcMarket.address,
             web3.toWei('50'),
+            '0x0',
             {
               from: buyer0,
             }
           );
-          await nori.authorizeOperator(
+          await nori.approveAndCall(
             fifoCrcMarket.address,
             web3.toWei('25'),
+            '0x0',
             {
               from: buyer1,
             }
           );
-          await nori.authorizeOperator(
+          await nori.approveAndCall(
             fifoCrcMarket.address,
             web3.toWei('25'),
+            '0x0',
             {
               from: buyer1,
             }
@@ -340,8 +352,13 @@ const testFifoSaleBehavior = () => {
         await crc.authorizeOperator(fifoCrcMarket.address, 0, {
           from: supplier0,
         });
-        await nori.mint(buyer0, web3.toWei('1'), '');
-        await nori.authorizeOperator(fifoCrcMarket.address, web3.toWei('1'), {
+        await callFunctionAsMultiAdmin(multiAdmin, nori, 0, 'mint', [
+          buyer0,
+          web3.toWei('1'),
+          '0x0',
+        ]);
+
+        await nori.approveAndCall(fifoCrcMarket.address, web3.toWei('1'), '', {
           from: buyer0,
         });
 
@@ -397,7 +414,11 @@ const testFifoSaleBehavior = () => {
 
     context('Make sure you cant buy your own crcs', () => {
       it('should fail trying to buy your own crc', async () => {
-        await nori.mint(supplier0, web3.toWei('1'), '');
+        await callFunctionAsMultiAdmin(multiAdmin, nori, 0, 'mint', [
+          supplier0,
+          web3.toWei('1'),
+          '0x0',
+        ]);
         await supplier.forward(
           crc.address,
           0,
@@ -411,7 +432,7 @@ const testFifoSaleBehavior = () => {
           from: supplier0,
         });
         await expectThrow(
-          nori.authorizeOperator(fifoCrcMarket.address, web3.toWei('1'), {
+          nori.approveAndCall(fifoCrcMarket.address, web3.toWei('1'), '', {
             from: supplier0,
           })
         );

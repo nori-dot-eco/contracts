@@ -1,3 +1,24 @@
+# Pre-reqs:
+
+Until the Solidity extension for VSCode supports `.soliumrc.json` files, you'll need both extensions:
+
+- [Solidity](https://github.com/juanfranblanco/vscode-solidity)
+- [Solidity Extended](https://github.com/beaugunderson/vscode-solidity-extended)
+
+When using VSCode, add the following to your user settings (`ctrl + ,`)
+
+```
+"solidity.packageDefaultDependenciesContractsDirectory": "",
+"solidity.linter": "",
+```
+
+#### Initialize and update the submodules
+
+```
+git submodule init
+git submodule update --init --recursive
+```
+
 # Contracts
 
 The Ethereum smart contracts that power nori.com

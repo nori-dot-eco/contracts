@@ -115,7 +115,7 @@ See [here](https://github.com/nori-dot-eco/contracts/blob/master/contracts/commo
 
 This is the Super User account. It is a multisig wallet, adapted from the [official gnosis implementation](https://github.com/gnosis/MultiSigWallet) . The MultiAdmin contains a list of owners (aka admins) who can call functions such as the upgrading of a contract. This is the account that owns all of the contracts in the Nori dapp.
 
-It is currently defined at this address for ropsten (and will likely change pre-launch): `0x853A954591dA9DB7d6Bb774bC8FeaF7646aA5010`
+It is currently defined at this address for ropsten (and will likely change pre-launch): `0x63c5d0a58669062cc4b5686647655eea00d07367`
 
 #### Key features
 

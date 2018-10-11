@@ -1,9 +1,9 @@
 pragma solidity ^0.4.24;
 import "./MarketLib.sol";
-import "./../EIP777/IEIP777.sol";
+import "../contrib/EIP/eip777/contracts/ERC777Token.sol";
 import "./../commodity/ICommodity.sol";
 import "./Market.sol";
-import "../../node_modules/zeppelin-solidity/contracts//math/SafeMath.sol";
+import "openzeppelin-solidity/contracts//math/SafeMath.sol";
 
 
 contract StandardTokenizedCommodityMarket is Market {
@@ -12,7 +12,7 @@ contract StandardTokenizedCommodityMarket is Market {
   /// @dev Reference to contract tracking commodity ownership
   ICommodity public commodityContract;
   /// @dev Reference to contract tracking token ownership
-  IEIP777 public tokenContract;
+  ERC777Token public tokenContract;
   /// @dev Reference to contract storing restricted token balances
   address public riskMitigationAccount;
 
@@ -33,7 +33,7 @@ contract StandardTokenizedCommodityMarket is Market {
   ) public {
     super.initialize(_contractRegistry, _marketItems, _owner);
     commodityContract = ICommodity(_marketItems[0]);
-    tokenContract = IEIP777(_marketItems[1]);
+    tokenContract = ERC777Token(_marketItems[1]);
     riskMitigationAccount = _riskMitigationAccount; //todo get this from contractReg
   }
 
@@ -42,7 +42,7 @@ contract StandardTokenizedCommodityMarket is Market {
   }
 
   function setTokenContract (address _tokenContract) internal onlyOwner {
-    tokenContract = IEIP777(_tokenContract);
+    tokenContract = ERC777Token(_tokenContract);
   }
 
   function _addSale(uint256 _tokenId, MarketLib.Sale _sale) private whenNotPaused {
@@ -120,8 +120,8 @@ contract StandardTokenizedCommodityMarket is Market {
       // convert the seller address to bytes so operatorSend can use it
       bytes memory sellerAsBytes = addressToBytes(seller);
       //send the unrestricted tokens to the supplier
-      tokenContract.operatorSend(
-        this,
+      tokenContract.transferFromAndCall(
+        //this,
         _buyer,
         seller,
         unrestrictedTokens,
@@ -130,8 +130,8 @@ contract StandardTokenizedCommodityMarket is Market {
       );
       if(restrictedTokens > 0){
         //send the restricted tokens to the risk mitigation account
-        tokenContract.operatorSend(
-          this,
+        tokenContract.transferFromAndCall(
+          //this,
           _buyer,
           riskMitigationAccount,
           restrictedTokens,
