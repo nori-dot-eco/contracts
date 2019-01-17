@@ -23,32 +23,25 @@ jobs:
             echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
 
-      - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+     - restore_cache:
+          key: v1-contracts_build-{{ .Revision }}
+
       - run:
-          name: Install Dependencies
+          name: Build Contracts
           command: |
-            if [ ! -d "node_modules" ]; then
-              for i in 1 2; do
-                yarn install --prefer-offline && break || sleep 15;
-              done
-              git checkout yarn.lock
-            fi
+            cd contracts
+            truffle compile
+
+      - save_cache:
+          key: v1-contracts_build-{{ .Revision }}
+          paths:
+            - "contracts/build"
+
       - save_cache:
           key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
             - ~/.cache
-
-      - restore_cache:
-          key: v1-contracts_build-{{ .Revision }}
-      - run:
-          name: Build Contracts
-          command: ./node_modules/.bin/truffle compile
-      - save_cache:
-          key: v1-contracts_build-{{ .Revision }}
-          paths:
-            - 'contracts/build'
 
   run-unit-tests:
     <<: *defaults
@@ -59,6 +52,10 @@ jobs:
           command: |
             git submodule init
             git submodule update --init --recursive
+      - run:
+          name: Install dependencies
+          command: |
+            yarn install
       - run:
           name: Setup Environment
           command: |
@@ -83,6 +80,11 @@ jobs:
           command: |
             git submodule init
             git submodule update --init --recursive
+      - run:
+          name: Install dependencies
+          command: |
+            yarn install
+
       - run:
           name: Setup Environment
           command: |
