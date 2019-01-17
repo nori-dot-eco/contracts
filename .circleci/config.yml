@@ -7,7 +7,7 @@ defaults: &defaults
     - image: circleci/node:9.11
 
 jobs:
-  setup-contract-tests:
+  run-tests:
     <<: *defaults
     steps:
       - checkout
@@ -15,111 +15,40 @@ jobs:
           name: Initialize submodules
           command: |
             git submodule init
-            git submodule update --init --recursive
+            git submodule update
+
+      - restore_cache:
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
 
       - run:
-          name: Setup Environment
+          name: Install Dependencies
           command: |
-            echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
-            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+            if [ ! -d "node_modules" ]; then
+              for i in 1 2; do
+                yarn install --prefer-offline && break || sleep 15;
+              done
+            fi
 
-     - restore_cache:
-          key: v1-contracts_build-{{ .Revision }}
+      - save_cache:
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
+          paths:
+            - node_modules
 
       - run:
           name: Build Contracts
-          command: |
-            cd contracts
-            truffle compile
-
-      - save_cache:
-          key: v1-contracts_build-{{ .Revision }}
-          paths:
-            - "contracts/build"
-
-      - save_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-          paths:
-            - node_modules
-            - ~/.cache
-
-  run-unit-tests:
-    <<: *defaults
-    steps:
-      - checkout
-      - run:
-          name: Initialize submodules
-          command: |
-            git submodule init
-            git submodule update --init --recursive
-      - run:
-          name: Install dependencies
-          command: |
-            yarn install
-      - run:
-          name: Setup Environment
-          command: |
-            echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
-            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
-
-      - restore_cache:
-          key: v1-contracts_build-{{ .Revision }}
-      - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+          command: ./node_modules/.bin/truffle compile
 
       - run:
-          name: Run Unit Tests
-          command: UNIT=true yarn run test
-
-  run-upgrade-tests:
-    <<: *defaults
-    steps:
-      - checkout
-      - run:
-          name: Initialize submodules
-          command: |
-            git submodule init
-            git submodule update --init --recursive
-      - run:
-          name: Install dependencies
-          command: |
-            yarn install
-
-      - run:
-          name: Setup Environment
-          command: |
-            echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
-            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
-
-      - restore_cache:
-          key: v1-contracts_build-{{ .Revision }}
-      - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Run Upgrade Tests
-          command: UPGRADES=true yarn run test
+          name: Run Tests
+          command: yarn run test
 
   run-coverage:
     <<: *defaults
     steps:
       - checkout
-      - run:
-          name: Initialize submodules
-          command: |
-            git submodule init
-            git submodule update --init --recursive
-      - run:
-          name: Setup Environment
-          command: |
-            echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
-            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
 
       - restore_cache:
-          key: v1-contracts_build-{{ .Revision }}
-      - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
       - run:
           name: Generate Contract Coverage
           command: yarn run sol:cov
@@ -128,13 +57,9 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - run:
-          name: Initialize submodules
-          command: |
-            git submodule init
-            git submodule update --init --recursive
+
       - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v1-node_modules_dir-{{ checksum "yarn.lock" }}
 
       - run:
           name: Run Gas Report
@@ -144,13 +69,7 @@ workflows:
   version: 2
   test:
     jobs:
-      - setup-contract-tests
-      - run-unit-tests:
-          requires:
-            - setup-contract-tests
-      - run-upgrade-tests:
-          requires:
-            - setup-contract-tests
+      - run-tests
 # TODO: reenable these once they are working
 #      - run-coverage:
 #          requires:
