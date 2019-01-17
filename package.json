@@ -37,8 +37,8 @@
     "web3": "^0.20.6"
   },
   "scripts": {
-    "lint:sol": "yarn run solium -d .",
-    "lint:sol:fix": "yarn run solium -d . --fix",
+    "lint:sol": "./node_modules/.bin/solium -d .",
+    "lint:sol:fix": "./node_modules/.bin/solium -d . --fix",
     "testnet:compile": "yarn run lint:sol && truffle compile",
     "testnet:deploy": "yarn run lint:sol && truffle deploy --network noritestnet",
     "testnet:migrate": "yarn run lint:sol && truffle migrate --network noritestnet",
