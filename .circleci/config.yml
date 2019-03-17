@@ -122,21 +122,21 @@ jobs:
           name: Generate Contract Coverage
           command: yarn run sol:cov
 
-  run-gasreport:
-    <<: *defaults
-    steps:
-      - checkout
-      - run:
-          name: Initialize submodules
-          command: |
-            git submodule init
-            git submodule update --init --recursive
-      - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Run Gas Report
-          command: yarn run test:gasreport
+  # todo upgrade to latest gas reporter
+  # run-gasreport:
+  #   <<: *defaults
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Initialize submodules
+  #         command: |
+  #           git submodule init
+  #           git submodule update --init --recursive
+  #     - restore_cache:
+  #         key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+  #     - run:
+  #         name: Run Gas Report
+  #         command: yarn run test:gasreport
 
 workflows:
   version: 2
