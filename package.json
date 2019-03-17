@@ -35,6 +35,9 @@
     "truffle-contract": "^3.0.6",
     "web3": "^0.20.6"
   },
+  "resolutions": {
+    "lodash": "4.17.11"
+  },
   "scripts": {
     "lint:sol": "yarn run solium -d .",
     "lint:sol:fix": "yarn run solium -d . --fix",
