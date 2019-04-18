@@ -1,6 +1,6 @@
 {
-  "name": "@noridoteco/contracts",
-  "version": "0.0.4",
+  "name": "@nori-dot-com/contracts",
+  "version": "0.0.1-alpha.0",
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
@@ -56,5 +56,6 @@
   "dependencies": {
     "eip820": "https://github.com/nori-dot-eco/eip820.git",
     "truffle-hdwallet-provider": "^0.0.5"
-  }
+  },
+  "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e"
 }
