@@ -1,0 +1,30 @@
+{
+  "name": "@nori-dot-com/contracts",
+  "version": "0.0.1-alpha.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "4.10.0",
+    "eslint-config-airbnb-base": "12.1.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-import": "2.18.2",
+    "ethlint": "^1.2.4",
+    "prettier": "^1.13.6",
+    "solc": "0.5.10",
+    "truffle": "5.0.31",
+    "truffle-hdwallet-provider": "1.0.16",
+    "web3": "1.2.1"
+  },
+  "files": [
+    "build"
+  ],
+  "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
+  "dependencies": {
+    "@ensdomains/ens": "^0.3.11",
+    "@ensdomains/resolver": "^0.1.9",
+    "@openzeppelin/contracts-ethereum-package": "^2.2.1",
+    "@openzeppelin/upgrades": "^2.5.2",
+    "eth-ens-namehash": "^2.0.8",
+    "web3-utils": "^1.2.1"
+  }
+}
