@@ -1,0 +1,17 @@
+{
+  "manifestVersion": "2.2",
+  "contracts": {
+    "Counter": "Counter",
+    "MyNFT": "MyNFT",
+    "CRC": "CRC"
+  },
+  "dependencies": {},
+  "name": "@nori-dot-com/contracts",
+  "version": "0.0.1-alpha.0",
+  "compiler": {
+    "manager": "truffle",
+    "compilerSettings": {
+      "optimizer": {}
+    }
+  }
+}

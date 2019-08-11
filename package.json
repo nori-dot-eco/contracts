@@ -4,58 +4,27 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
-    "@soldoc/soldoc": "^0.4.3",
-    "babel-eslint": "^8.2.5",
-    "babel-plugin-dynamic-import-node": "^1.2.0",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-preset-stage-2": "^6.24.1",
-    "babel-preset-stage-3": "^6.17.0",
-    "babel-register": "^6.23.0",
-    "bluebird": "^3.5.1",
-    "eslint": "4.18.2",
+    "eslint": "4.10.0",
     "eslint-config-airbnb-base": "12.1.0",
     "eslint-config-prettier": "^2.9.0",
-    "eslint-plugin-import": "^2.13.0",
-    "eth-contract-class": "^0.0.12",
-    "eth-ens-namehash": "^2.0.8",
-    "eth-signer": "^0.3.4",
-    "ethereum-ens": "^0.7.4",
-    "ethereumjs-abi": "^0.6.5",
-    "ethereumjs-testrpc-sc": "^6.1.2",
-    "ethereumjs-tx": "^1.3.7",
-    "ethereumjs-util": "^5.2.0",
-    "glob": "^7.1.2",
-    "openzeppelin-solidity": "^1.12.0",
+    "eslint-plugin-import": "2.18.2",
+    "ethlint": "^1.2.4",
     "prettier": "^1.13.6",
-    "solc": "0.4.24",
-    "solidity-coverage": "^0.5.4",
-    "solium": "^1.1.8",
-    "truffle": "4.1.14",
-    "truffle-contract": "^3.0.6",
-    "web3": "^0.20.6"
-  },
-  "resolutions": {
-    "lodash": "4.17.11"
-  },
-  "scripts": {
-    "lint:sol": "yarn run solium -d .",
-    "lint:sol:fix": "yarn run solium -d . --fix",
-    "testnet:compile": "yarn run lint:sol && truffle compile",
-    "testnet:deploy": "yarn run lint:sol && truffle deploy --network noritestnet",
-    "testnet:migrate": "yarn run lint:sol && truffle migrate --network noritestnet",
-    "ropsten:migrate": "yarn run solium -d . && `yarn bin`/truffle migrate --network ropstenGeth",
-    "test": "yarn run lint:sol && truffle test",
-    "test:verbose": "yarn run lint:sol && MIGRATION=true `yarn bin`/truffle test --reset --compile-all",
-    "sol:cov": "testrpc-sc --port 8555 --gasLimit 0xfffffffffff --gasPrice 0x01 & $(yarn bin)/solidity-coverage",
-    "sol:docs": "`yarn bin`/soldoc . ./contracts ./docs"
+    "solc": "0.5.10",
+    "truffle": "5.0.31",
+    "truffle-hdwallet-provider": "1.0.16",
+    "web3": "1.2.1"
   },
   "files": [
     "build"
   ],
+  "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "dependencies": {
-    "eip820": "https://github.com/nori-dot-eco/eip820.git",
-    "truffle-hdwallet-provider": "^0.0.5"
-  },
-  "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e"
+    "@ensdomains/ens": "^0.3.11",
+    "@ensdomains/resolver": "^0.1.9",
+    "@openzeppelin/contracts-ethereum-package": "^2.2.1",
+    "@openzeppelin/upgrades": "^2.5.2",
+    "eth-ens-namehash": "^2.0.8",
+    "web3-utils": "^1.2.1"
+  }
 }
