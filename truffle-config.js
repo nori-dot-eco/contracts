@@ -1,13 +1,19 @@
 const HDWalletProvider = require('truffle-hdwallet-provider');
 
+const rpcUrl = `https://ropsten.infura.io/v3`;
+
 module.exports = {
   networks: {
+    test: {
+      host: 'localhost', // Localhost (default: none)
+      port: 8545, // Standard Ethereum port (default: none)
+      network_id: '*', // Any network (default: none)
+    },
     development: {
       host: 'localhost', // Localhost (default: none)
       port: 8545, // Standard Ethereum port (default: none)
       network_id: '*', // Any network (default: none)
     },
-
     ropsten: {
       network_id: 3,
       gas: 4000000,
@@ -19,20 +25,11 @@ module.exports = {
         }
         return new HDWalletProvider(
           process.env.MNEMONIC,
-          `https://ropsten.infura.io/${process.env.INFURA_KEY}`
+          `${rpcUrl}/${process.env.INFURA_KEY}`
         );
       },
     },
-    // Use this if you want to use a ledger + geth
-    ropstenGeth: {
-      host: 'localhost',
-      port: 8545,
-      network_id: 3,
-      gas: 6219725,
-      // production: true    // Treats this network as if it was a public net. (default: false)
-    },
   },
-
   // Set default mocha options here, use special reporters etc.
   mocha: {
     enableTimeouts: false,
