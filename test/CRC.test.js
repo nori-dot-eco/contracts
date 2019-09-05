@@ -209,7 +209,7 @@ contract('CRC_V0', accounts => {
           crc.methods
             .mintWithTokenURI(from, 1, 'https://example.com')
             .send({ from: accounts[1], gas }),
-          'MinterRole: caller does not have the Minter role'
+          'revert'
         );
       });
 
