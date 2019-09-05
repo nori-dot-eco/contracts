@@ -16,11 +16,8 @@
     "prettier": "^1.13.6",
     "solc": "0.5.10",
     "truffle": "5.0.31",
-    "@ensdomains/ens": "^0.3.11",
-    "@ensdomains/resolver": "^0.1.9",
     "@openzeppelin/contracts-ethereum-package": "^2.2.1",
     "@openzeppelin/upgrades": "^2.5.2",
-    "eth-ens-namehash": "^2.0.8",
     "truffle-hdwallet-provider": "^1.0.17"
   },
   "files": [
