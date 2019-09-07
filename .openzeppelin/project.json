@@ -1,7 +1,7 @@
 {
   "manifestVersion": "2.2",
   "contracts": {
-    "CRC": "CRC_V0"
+    "CRC_V0": "CRC_V0"
   },
   "dependencies": {},
   "name": "@nori-dot-com/contracts",
