@@ -8,7 +8,7 @@ async function deploy(options) {
   await create(
     Object.assign(
       {
-        contractAlias: 'CRC',
+        contractAlias: 'CRC_V0',
         initMethod: 'initialize',
         initArgs: [],
       },
