@@ -3,12 +3,12 @@ const { scripts, ConfigManager } = require('@openzeppelin/cli');
 const { add, push, create } = scripts;
 
 async function deploy(options) {
-  add({ contractsData: [{ name: 'CRC_V0', alias: 'CRC_V0' }] });
+  add({ contractsData: [{ name: 'Nori_V0', alias: 'Nori_V0' }] });
   await push(options);
   await create(
     Object.assign(
       {
-        contractAlias: 'CRC_V0',
+        contractAlias: 'Nori_V0',
         methodName: 'initialize',
         methodArgs: [],
       },
@@ -18,6 +18,7 @@ async function deploy(options) {
 }
 
 module.exports = (deployer, network, accounts) => {
+  // todo only run when network !== mainnet
   deployer.then(async () => {
     const {
       network: n,

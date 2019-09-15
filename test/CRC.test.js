@@ -1,4 +1,3 @@
-/* eslint func-names: "off", prefer-arrow-callback: "off" */
 const { expectRevert } = require('openzeppelin-test-helpers');
 const { TestHelper } = require('@openzeppelin/cli');
 const { shouldSupportInterfaces } = require('./helpers/interfaces');
