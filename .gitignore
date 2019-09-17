@@ -69,3 +69,6 @@ workspace.code-workspace
 
 # truffle tmp files
 .node-xmlhttp*
+.openzeppelin/.session
+
+.openzeppelin/dev-*

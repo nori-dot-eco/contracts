@@ -4,18 +4,13 @@ defaults: &defaults
   environment:
     - NODE_ENV: test
   docker:
-    - image: circleci/node:9.11
+    - image: circleci/node:10.15
 
 jobs:
   setup-contract-tests:
     <<: *defaults
     steps:
       - checkout
-      - run:
-          name: Initialize submodules
-          command: |
-            git submodule init
-            git submodule update --init --recursive
 
       - run:
           name: Setup Environment
@@ -40,119 +35,33 @@ jobs:
             - node_modules
             - ~/.cache
 
+  run-tests:
+    <<: *defaults
+    steps:
+      - checkout
       - restore_cache:
-          key: v1-contracts_build-{{ .Revision }}
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+      - run:
+          name: Setup Environment
+          command: |
+            echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
+            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+            yarn
+
       - run:
           name: Build Contracts
-          command: ./node_modules/.bin/truffle compile
-      - save_cache:
-          key: v1-contracts_build-{{ .Revision }}
-          paths:
-            - 'contracts/build'
-
-  run-unit-tests:
-    <<: *defaults
-    steps:
-      - checkout
-      - run:
-          name: Initialize submodules
           command: |
-            git submodule init
-            git submodule update --init --recursive
+            truffle compile
       - run:
-          name: Setup Environment
+          name: Run Contract Tests
           command: |
-            echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
-            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
-
-      - restore_cache:
-          key: v1-contracts_build-{{ .Revision }}
-      - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Run Unit Tests
-          command: UNIT=true yarn run test
-
-  run-upgrade-tests:
-    <<: *defaults
-    steps:
-      - checkout
-      - run:
-          name: Initialize submodules
-          command: |
-            git submodule init
-            git submodule update --init --recursive
-      - run:
-          name: Setup Environment
-          command: |
-            echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
-            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
-
-      - restore_cache:
-          key: v1-contracts_build-{{ .Revision }}
-      - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Run Upgrade Tests
-          command: UPGRADES=true yarn run test
-
-  run-coverage:
-    <<: *defaults
-    steps:
-      - checkout
-      - run:
-          name: Initialize submodules
-          command: |
-            git submodule init
-            git submodule update --init --recursive
-      - run:
-          name: Setup Environment
-          command: |
-            echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
-            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
-
-      - restore_cache:
-          key: v1-contracts_build-{{ .Revision }}
-      - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-
-      - run:
-          name: Generate Contract Coverage
-          command: yarn run sol:cov
-
-  # todo upgrade to latest gas reporter
-  # run-gasreport:
-  #   <<: *defaults
-  #   steps:
-  #     - checkout
-  #     - run:
-  #         name: Initialize submodules
-  #         command: |
-  #           git submodule init
-  #           git submodule update --init --recursive
-  #     - restore_cache:
-  #         key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-  #     - run:
-  #         name: Run Gas Report
-  #         command: yarn run test:gasreport
+            yarn run test:ci
 
 workflows:
   version: 2
   test:
     jobs:
       - setup-contract-tests
-      - run-unit-tests:
+      - run-tests:
           requires:
             - setup-contract-tests
-      - run-upgrade-tests:
-          requires:
-            - setup-contract-tests
-# TODO: reenable these once they are working
-#      - run-coverage:
-#          requires:
-#            - run-tests
-#      - run-gasreport:
-#          requires:
-#            - run-tests

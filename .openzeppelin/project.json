@@ -1,0 +1,17 @@
+{
+  "manifestVersion": "2.2",
+  "contracts": {
+    "CRC_V0": "CRC_V0",
+    "Nori_V0": "Nori_V0"
+  },
+  "dependencies": {},
+  "name": "@nori-dot-com/contracts",
+  "version": "0.0.1-alpha.0",
+  "compiler": {
+    "manager": "openzeppelin",
+    "compilerSettings": {
+      "optimizer": {}
+    },
+    "solcVersion": "0.5.11"
+  }
+}
