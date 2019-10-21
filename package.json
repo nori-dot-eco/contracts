@@ -11,7 +11,7 @@
     "eslint-config-prettier": "^2.9.0",
     "eslint-plugin-import": "2.18.2",
     "ethlint": "^1.2.4",
-    "ganache-cli": "^6.5.1",
+    "ganache-cli": "6.5.1",
     "openzeppelin-test-helpers": "^0.5.1",
     "prettier": "^1.13.6",
     "solc": "0.5.10",
