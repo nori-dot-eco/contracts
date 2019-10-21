@@ -1,7 +1,7 @@
 {
   "manifestVersion": "2.2",
   "contracts": {
-    "CRC_V0": "CRC_V0",
+    "NCCR_V0": "NCCR_V0",
     "Nori_V0": "Nori_V0"
   },
   "dependencies": {},
