@@ -13,7 +13,7 @@
     "ethlint": "^1.2.4",
     "ganache-cli": "6.5.1",
     "openzeppelin-test-helpers": "^0.5.1",
-    "prettier": "^1.13.6",
+    "prettier": "^1.19.1",
     "solc": "0.5.10",
     "truffle": "5.0.31",
     "@openzeppelin/contracts-ethereum-package": "2.2.3",
