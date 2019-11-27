@@ -16,6 +16,12 @@ To deploy new upgradeable contracts via the CLI to Ropsten use the following:
 openzeppelin create --network ropsten
 ```
 
+Then initialize them selecting the `initialize()`
+
+You'll need to add minter roles for any address that needs the ability to mint NCCR/NORI tokens
+
+## Upgrading on Ropsten
+
 To upgrade existing contracts via the CLI to Ropsten use the following:
 
 ```
@@ -31,6 +37,7 @@ ganache-cli
 ```
 
 Clear and compile contracts
+
 ```
 rm -rf build && truffle compile
 ```
@@ -40,7 +47,6 @@ Then run the tests
 ```
 yarn test
 ```
-
 
 # Contracts
 
@@ -53,4 +59,3 @@ Contracts in this repo use the [OpenZeppelin SDK](https://github.com/OpenZeppeli
 ### The Minter Role
 
 The minter role is required to add additional minters to the CRC contract. This role allows suppliers to mint CRCs.
-

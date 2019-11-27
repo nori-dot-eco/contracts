@@ -1,7 +1,7 @@
 {
   "contracts": {
     "NCCR_V0": {
-      "address": "0xeE6335EdDD5c86B059b3BBc43DF47B10092a4d23",
+      "address": "0x02f620a54f5aDA061614AfB974316673f45c7ef6",
       "constructorCode": "60806040525b5b61000b565b6135d08061001a6000396000f3fe",
       "bodyBytecodeHash": "c225006d03e83eb2a1676fe5f9758cebdd6232368a7e59e0a6e04d97b61c7dc6",
       "localBytecodeHash": "8d2769b9cd31a69eaab0b8fedbef149c90e3ca7e8113a4418de9b9ce32372b53",
@@ -347,7 +347,7 @@
       }
     },
     "Nori_V0": {
-      "address": "0x5648e4d587aEDd2e3914f7DA40469Ca51544cB23",
+      "address": "0xA9504B347814108A48009843Ef090276d0F7f7F5",
       "constructorCode": "60806040525b5b61000b565b6127d38061001a6000396000f3fe",
       "bodyBytecodeHash": "973100fe3e952c799314d54c10a4f8a3f2e95d70f44b37eed94868730db37a92",
       "localBytecodeHash": "09d433f9c9145196f699c6789234a4c325768224b1fff830bfc91fef8a9c55a3",
@@ -573,19 +573,19 @@
   "proxies": {
     "@nori-dot-com/contracts/NCCR_V0": [
       {
-        "address": "0x3015F7A94e8d0095073b4369306BF8d5A6536cFE",
+        "address": "0x4595168c25bA690b42D96c94CC3B1d9911965234",
         "version": "0.0.1-alpha.0",
-        "implementation": "0xeE6335EdDD5c86B059b3BBc43DF47B10092a4d23",
-        "admin": "0xDBb0bCED74E915DB69212E147d1842D50Adf60C4",
+        "implementation": "0x02f620a54f5aDA061614AfB974316673f45c7ef6",
+        "admin": "0xC851841BD41DB21C81a69D07Af79238C3f0a158F",
         "kind": "Upgradeable"
       }
     ],
     "@nori-dot-com/contracts/Nori_V0": [
       {
-        "address": "0x2aaB42424f1DA5CC3678aeDabaa712CF5BaFDf5d",
+        "address": "0x3268c8019ea38BB2d34d0c82A2Be3D6B500bc7fF",
         "version": "0.0.1-alpha.0",
-        "implementation": "0x5648e4d587aEDd2e3914f7DA40469Ca51544cB23",
-        "admin": "0xDBb0bCED74E915DB69212E147d1842D50Adf60C4",
+        "implementation": "0xA9504B347814108A48009843Ef090276d0F7f7F5",
+        "admin": "0xC851841BD41DB21C81a69D07Af79238C3f0a158F",
         "kind": "Upgradeable"
       }
     ]
@@ -593,6 +593,6 @@
   "manifestVersion": "2.2",
   "version": "0.0.1-alpha.0",
   "proxyAdmin": {
-    "address": "0xDBb0bCED74E915DB69212E147d1842D50Adf60C4"
+    "address": "0xC851841BD41DB21C81a69D07Af79238C3f0a158F"
   }
 }
