@@ -1,7 +1,5 @@
 const HDWalletProvider = require('truffle-hdwallet-provider');
 
-const rpcUrl = `https://ropsten.infura.io/v3`;
-
 module.exports = {
   networks: {
     test: {
@@ -25,7 +23,22 @@ module.exports = {
         }
         return new HDWalletProvider(
           process.env.MNEMONIC,
-          `${rpcUrl}/${process.env.INFURA_KEY}`
+          `https://ropsten.infura.io/v3/${process.env.INFURA_KEY}`
+        );
+      },
+    },
+    mainnet: {
+      network_id: 1,
+      gasPrice: 10000000000, // 10 gwei
+      provider: () => {
+        if (!process.env.MNEMONIC || !process.env.INFURA_PROD_KEY) {
+          throw new Error(
+            'You must set both the MNEMONIC and INFURA_PROD_KEY environment variables to use the ropsten network'
+          );
+        }
+        return new HDWalletProvider(
+          process.env.MNEMONIC,
+          `https://mainnet.infura.io/v3/${process.env.INFURA_PROD_KEY}`
         );
       },
     },
