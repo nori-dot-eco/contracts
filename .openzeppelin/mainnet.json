@@ -1,7 +1,7 @@
 {
   "contracts": {
     "Nori_V0": {
-      "address": "0x63Ab1c0815Da4bc1bdc021F7b49DED955D406589",
+      "address": "0x3a2Cca05F6350E064E8D10D3029fEDa1270FeB26",
       "constructorCode": "60806040525b5b61000b565b6127d38061001a6000396000f3fe",
       "bodyBytecodeHash": "973100fe3e952c799314d54c10a4f8a3f2e95d70f44b37eed94868730db37a92",
       "localBytecodeHash": "09d433f9c9145196f699c6789234a4c325768224b1fff830bfc91fef8a9c55a3",
@@ -223,7 +223,7 @@
       }
     },
     "NCCR_V0": {
-      "address": "0x07E13BD87C6d43d2b4D2cd99c9d69b15EE8B47B5",
+      "address": "0x70E15d2263635E6cDFF759b6422EBf6444DF1661",
       "constructorCode": "60806040525b5b61000b565b6135d08061001a6000396000f3fe",
       "bodyBytecodeHash": "c225006d03e83eb2a1676fe5f9758cebdd6232368a7e59e0a6e04d97b61c7dc6",
       "localBytecodeHash": "8d2769b9cd31a69eaab0b8fedbef149c90e3ca7e8113a4418de9b9ce32372b53",
@@ -573,10 +573,10 @@
   "proxies": {
     "@nori-dot-com/contracts/NCCR_V0": [
       {
-        "address": "0x28361981411fdfe1710fCC637a36A7AD7d7010c2",
+        "address": "0xBBbD7AEBD29360a34ceA492e012B9A2119DEd306",
         "version": "0.0.1-alpha.0",
-        "implementation": "0x07E13BD87C6d43d2b4D2cd99c9d69b15EE8B47B5",
-        "admin": "0x13051f43901f2567F080fE3ca6D61c5ABc17deB7",
+        "implementation": "0x70E15d2263635E6cDFF759b6422EBf6444DF1661",
+        "admin": "0x4555cE4ef3F7DAEEC9535914b58e9b3C712D5612",
         "kind": "Upgradeable"
       }
     ]
@@ -584,6 +584,6 @@
   "manifestVersion": "2.2",
   "version": "0.0.1-alpha.0",
   "proxyAdmin": {
-    "address": "0x13051f43901f2567F080fE3ca6D61c5ABc17deB7"
+    "address": "0x4555cE4ef3F7DAEEC9535914b58e9b3C712D5612"
   }
 }
