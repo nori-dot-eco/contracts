@@ -1,6 +1,6 @@
 {
   "name": "@nori-dot-com/contracts",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
