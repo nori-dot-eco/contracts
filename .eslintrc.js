@@ -1,5 +1,5 @@
 module.exports = {
-  extends: ['airbnb-base', 'prettier'],
+  extends: ['airbnb-base', '@nori-dot-com/eslint-config-nori', 'prettier'],
   env: {
     browser: true,
     node: true,
