@@ -18,7 +18,8 @@
     "prettier": "^1.19.1",
     "solc": "0.5.10",
     "truffle": "5.0.31",
-    "truffle-hdwallet-provider": "^1.0.17"
+    "truffle-hdwallet-provider": "^1.0.17",
+    "@nori-dot-com/eslint-config-nori": "^1.0.5"
   },
   "files": [
     "build",
