@@ -28,6 +28,6 @@
   "scripts": {
     "test": "truffle test",
     "test:ci": "ganache-cli & yarn test",
-    "postinstall": "./node_modules/.bin/openzeppelin compile"
+    "prepare": "./node_modules/.bin/openzeppelin compile"
   }
 }
