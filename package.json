@@ -8,16 +8,14 @@
     "@openzeppelin/contracts-ethereum-package": "2.2.3",
     "@openzeppelin/upgrades": "^2.5.2",
     "chai": "^4.2.0",
-    "eslint": "^7.19.0",
-    "eslint-config-airbnb-base": "12.1.0",
-    "eslint-config-prettier": "^6.11.0",
     "ethlint": "^1.2.4",
     "ganache-cli": "6.5.1",
     "openzeppelin-test-helpers": "^0.5.1",
-    "prettier": "^1.19.1",
+    "prettier": "^2.2.1",
     "solc": "0.5.10",
     "truffle": "5.0.31",
-    "truffle-hdwallet-provider": "^1.0.17"
+    "truffle-hdwallet-provider": "^1.0.17",
+    "@nori-dot-com/eslint-config-nori": "^1.4.0"
   },
   "files": [
     "build",
