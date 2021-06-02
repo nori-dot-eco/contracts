@@ -11,7 +11,7 @@
     "ethlint": "^1.2.4",
     "ganache-cli": "6.5.1",
     "openzeppelin-test-helpers": "^0.5.1",
-    "prettier": "^2.2.1",
+    "prettier": "^2.3.0",
     "solc": "0.5.10",
     "truffle": "5.0.31",
     "truffle-hdwallet-provider": "^1.0.17",
