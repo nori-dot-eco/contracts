@@ -1,21 +1,29 @@
-const { expectRevert } = require('openzeppelin-test-helpers');
-const { TestHelper } = require('@openzeppelin/cli');
-const { shouldSupportInterfaces } = require('./helpers/interfaces');
-const { Contracts, ZWeb3 } = require('@openzeppelin/upgrades');
+import { NCCRV0Instance } from '../types/truffle-contracts/NCCRV0';
 
+const { expectRevert } = require('@openzeppelin/test-helpers');
+import { TestHelper } from '@openzeppelin/cli';
+import { shouldSupportInterfaces } from './helpers/interfaces';
+import { Contract, Contracts, ZWeb3 } from '@openzeppelin/upgrades';
+const web3 = (global as any).web3;
 require('chai').should();
 
-/** @type {import('web3')} */
-const web3 = global.web3;
 const NCCR_V0 = Contracts.getFromLocal('NCCR_V0');
 
-NCCR_V0.setProvider(web3.currentProvider);
+(NCCR_V0 as any).setProvider(web3.currentProvider);
 
-contract('NCCR_V0', accounts => {
+type NCCRInstance = Omit<Contract, 'methods'> & {
+  methods: NCCRV0Instance['methods'] & {
+    initialize: any;
+    safeTransferFrom: any;
+  };
+};
+
+contract('NCCR_V0', (accounts) => {
   const from = accounts[0];
 
   describe('contract upgradeability', () => {
-    let project, nccr;
+    let project: ResolvedReturnType<typeof TestHelper>;
+    let nccr: NCCRInstance;
 
     before(async () => {
       ZWeb3.initialize(web3.currentProvider);
@@ -33,7 +41,7 @@ contract('NCCR_V0', accounts => {
   });
 
   describe('contract interfaces', () => {
-    let nccr;
+    let nccr: NCCRInstance;
 
     before(async () => {
       ZWeb3.initialize(web3.currentProvider);
@@ -138,7 +146,7 @@ contract('NCCR_V0', accounts => {
     });
 
     it('should have a `initialize` function', async () => {
-      (typeof nccr.methods.initialize).should.equals('function');
+      (typeof (nccr.methods as any).initialize).should.equals('function');
     });
 
     it('should have a `approve` function', async () => {
@@ -146,7 +154,7 @@ contract('NCCR_V0', accounts => {
     });
 
     it('should have a `safeTransferFrom` function', async () => {
-      (typeof nccr.methods.safeTransferFrom).should.equals('function');
+      (typeof (nccr.methods as any).safeTransferFrom).should.equals('function');
     });
     describe('non-standard functions', () => {
       it('should have a `tokenData` function', async () => {
@@ -160,7 +168,7 @@ contract('NCCR_V0', accounts => {
   });
 
   describe('contract behaviors', () => {
-    let nccr;
+    let nccr: NCCRInstance;
 
     beforeEach(async () => {
       ZWeb3.initialize(web3.currentProvider);
@@ -169,12 +177,12 @@ contract('NCCR_V0', accounts => {
         initMethod: 'initialize',
         initArgs: [],
       });
-      nccr.setProvider(web3.currentProvider);
+      (nccr as any).setProvider(web3.currentProvider);
     });
 
     describe('initialize', () => {
       it('should have registered its interface', async () => {
-        await shouldSupportInterfaces(nccr, [
+        await shouldSupportInterfaces(nccr as any, [
           'ERC165',
           'ERC721',
           'ERC721Enumerable',
@@ -183,103 +191,101 @@ contract('NCCR_V0', accounts => {
       });
 
       it('should have been given a symbol', async () => {
-        (await nccr.methods.symbol().call()).should.equal('NCCR');
+        (await nccr.methods.symbol()).should.equal('NCCR');
       });
 
       it('should have been given a name', async () => {
-        (await nccr.methods.name().call()).should.equal(
+        (await nccr.methods.name()).should.equal(
           'Nori Certificate of Carbon Removal'
         );
       });
 
       it('should have granted the deployer the minter role', async () => {
-        (await nccr.methods.isMinter(from).call()).should.equal(true);
+        (await nccr.methods.isMinter(from)).should.equal(true);
       });
 
       it('should have granted the deployer the pauser role', async () => {
-        (await nccr.methods.isPauser(from).call()).should.equal(true);
+        (await nccr.methods.isPauser(from)).should.equal(true);
       });
 
       it('should not be paused', async () => {
-        (await nccr.methods.paused().call()).should.equal(false);
+        (await nccr.methods.paused()).should.equal(false);
       });
     });
 
     describe('minting', () => {
       describe('mintWithTokenURIAndData', () => {
-        let gas;
+        let gas: any;
 
         beforeEach(async () => {
-          gas = await nccr.methods
-            .mintWithTokenURIAndData(
+          gas = (
+            (await nccr.methods.mintWithTokenURIAndData(
               from,
               1,
               'https://example.com',
               '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
-            )
-            .estimateGas();
-          await nccr.methods
-            .mintWithTokenURIAndData(
+            )) as any
+          ).estimateGas();
+          await (
+            nccr.methods.mintWithTokenURIAndData(
               from,
               1,
               'https://example.com',
               '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
-            )
-            .send({ from, gas });
+            ) as any
+          ).send({ from, gas });
         });
 
         describe('reverting', () => {
           it('should not allow minting from a non-minter', async () => {
             await expectRevert(
-              nccr.methods
-                .mintWithTokenURIAndData(
-                  from,
-                  1,
-                  'https://example.com',
-                  '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
-                )
-                .send({ from: accounts[1], gas }),
-              'revert MinterRole: caller does not have the Minter role'
-            );
+              nccr.methods.mintWithTokenURIAndData(
+                from,
+                1,
+                'https://example.com',
+                '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
+              ) as any
+            ).send({ from: accounts[1], gas }),
+              'revert MinterRole: caller does not have the Minter role';
           });
         });
 
         describe('success', () => {
           it('should allow minting from the minter using mintWithTokenURIAndData', async () => {
-            await nccr.methods
-              .mintWithTokenURIAndData(
+            (
+              (await nccr.methods.mintWithTokenURIAndData(
                 from,
                 2,
                 'https://example.com',
                 '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
-              )
-              .send({ from, gas });
+              )) as any
+            ).send({ from, gas });
           });
 
           it('should assign the token to the `to` address given', async () => {
-            (await nccr.methods.ownerOf(1).call()).should.equal(from);
+            (await nccr.methods.ownerOf(1)).should.equal(from);
           });
 
           it('should increment the NCCR balance of the `to` address given', async () => {
-            (await nccr.methods.balanceOf(from).call()).should.equal('1');
+            (await nccr.methods.balanceOf(from)).should.equal('1');
           });
 
           it('should assign the token to the `to` address given', async () => {
-            (await nccr.methods.ownerOf(1).call()).should.equal(from);
+            (await nccr.methods.ownerOf(1)).should.equal(from);
           });
 
           it('should assign the token to the `to` address given', async () => {
-            (await nccr.methods.ownerOf(1).call()).should.equal(from);
+            (await nccr.methods.ownerOf(1)).should.equal(from);
           });
 
           it('should assign the token a URI', async () => {
-            (await nccr.methods.tokenURI(1).call()).should.equal(
+            (await nccr.methods.tokenURI(1)).should.equal(
               'https://example.com'
             );
           });
 
           it('should assign the token human readable data', async () => {
-            (await nccr.methods.tokenData(1).call()).should.equal(
+            (await nccr.methods.tokenData(1)).should.equal(
               '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
             );
           });
@@ -291,33 +297,34 @@ contract('NCCR_V0', accounts => {
       let gas;
 
       beforeEach(async () => {
-        gas = await nccr.methods
-          .mintWithTokenURIAndData(
+        gas = (
+          (await nccr.methods.mintWithTokenURIAndData(
             from,
             1,
             'https://example.com',
             '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
-          )
-          .estimateGas();
-        await nccr.methods
-          .mintWithTokenURIAndData(
+          )) as any
+        ).estimateGas();
+        (
+          (await nccr.methods.mintWithTokenURIAndData(
             from,
             1,
             'https://example.com',
             '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
-          )
-          .send({ from, gas });
+          )) as any
+        ).send({ from, gas });
       });
 
       describe('transferFrom', () => {
         it('should not allow transferring the NCCR after minting via `transferFrom`', async () => {
-          const transferFromGas = await nccr.methods
-            .transferFrom(from, accounts[1], 1)
-            .estimateGas();
+          const transferFromGas = (
+            (await nccr.methods.transferFrom(from, accounts[1], 1)) as any
+          ).estimateGas();
           await expectRevert(
-            nccr.methods
-              .transferFrom(from, accounts[1], 1)
-              .send({ from, gas: transferFromGas }),
+            (nccr.methods.transferFrom(from, accounts[1], 1) as any).send({
+              from,
+              gas: transferFromGas,
+            }),
             'NCCRs are retired after they are minted.'
           );
         });
@@ -325,11 +332,14 @@ contract('NCCR_V0', accounts => {
 
       describe('approve', () => {
         it('should not allow approving the NCCR after minting via `approve`', async () => {
-          const approveGas = await nccr.methods
-            .approve(accounts[1], 1)
-            .estimateGas();
+          const approveGas = (
+            (await nccr.methods.approve(accounts[1], 1)) as any
+          ).estimateGas();
           await expectRevert(
-            nccr.methods.approve(accounts[1], 1).send({ from, approveGas }),
+            (nccr.methods.approve(accounts[1], 1) as any).send({
+              from,
+              approveGas,
+            }),
             'NCCRs are retired after they are minted.'
           );
         });
@@ -337,13 +347,14 @@ contract('NCCR_V0', accounts => {
 
       describe('setApprovalForAll', () => {
         it('should not allow approving all NCCRs after minting via `setApprovalForAll`', async () => {
-          const setApprovalForAllGas = await nccr.methods
-            .setApprovalForAll(accounts[1], true)
-            .estimateGas();
+          const setApprovalForAllGas = (
+            (await nccr.methods.setApprovalForAll(accounts[1], true)) as any
+          ).estimateGas();
           await expectRevert(
-            nccr.methods
-              .setApprovalForAll(accounts[1], true)
-              .send({ from, gas: setApprovalForAllGas }),
+            (nccr.methods.setApprovalForAll(accounts[1], true) as any).send({
+              from,
+              gas: setApprovalForAllGas,
+            }),
             'NCCRs are retired after they are minted.'
           );
         });
@@ -363,13 +374,18 @@ contract('NCCR_V0', accounts => {
         });
 
         it('should not allow transferring NCCRs after minting via `safeTransferFrom` with a bytes arg', async () => {
-          const safeTransferFromGas = await nccr.methods
-            .safeTransferFrom(from, accounts[1], 1, '0x')
-            .estimateGas();
+          const safeTransferFromGas = (
+            (await nccr.methods.safeTransferFrom(
+              from,
+              accounts[1],
+              1,
+              '0x'
+            )) as any
+          ).estimateGas();
           await expectRevert(
-            nccr.methods
-              .safeTransferFrom(from, accounts[1], 1, '0x')
-              .send({ from, gas: safeTransferFromGas }),
+            (
+              nccr.methods.safeTransferFrom(from, accounts[1], 1, '0x') as any
+            ).send({ from, gas: safeTransferFromGas }),
             'NCCRs are retired after they are minted.'
           );
         });
@@ -377,13 +393,21 @@ contract('NCCR_V0', accounts => {
 
       describe('mintWithTokenURI', () => {
         it('should not allow minting using mintWithTokenURI', async () => {
-          const mintWithTokenURIGas = await nccr.methods
-            .mintWithTokenURI(from, 1, 'https://example.com')
-            .estimateGas();
+          const mintWithTokenURIGas = (
+            (await nccr.methods.mintWithTokenURI(
+              from,
+              1,
+              'https://example.com'
+            )) as any
+          ).estimateGas();
           await expectRevert(
-            nccr.methods
-              .mintWithTokenURI(from, 1, 'https://example.com')
-              .send({ from, gas: mintWithTokenURIGas }),
+            (
+              nccr.methods.mintWithTokenURI(
+                from,
+                1,
+                'https://example.com'
+              ) as any
+            ).send({ from, gas: mintWithTokenURIGas }),
             'NCCRs must be minted using a data parameter'
           );
         });

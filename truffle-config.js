@@ -1,3 +1,5 @@
+require('ts-node/register');
+
 const HDWalletProvider = require('truffle-hdwallet-provider');
 
 module.exports = {
@@ -16,14 +18,29 @@ module.exports = {
       network_id: 3,
       gas: 4000000,
       provider: () => {
-        if (!process.env.MNEMONIC || !process.env.INFURA_KEY) {
+        if (!process.env.STAGING_MNEMONIC || !process.env.INFURA_STAGING_KEY) {
           throw new Error(
-            'You must set both the MNEMONIC and INFURA_KEY environment variables to use the ropsten network'
+            'You must set both the STAGING_MNEMONIC and INFURA_STAGING_KEY environment variables to use the ropsten network'
           );
         }
         return new HDWalletProvider(
-          process.env.MNEMONIC,
-          `https://ropsten.infura.io/v3/${process.env.INFURA_KEY}`
+          process.env.STAGING_MNEMONIC,
+          `https://ropsten.infura.io/v3/${process.env.INFURA_STAGING_KEY}`
+        );
+      },
+    },
+    kovan: {
+      network_id: 42,
+      gas: 4000000,
+      provider: () => {
+        if (!process.env.TEST_MNEMONIC || !process.env.INFURA_TEST_KEY) {
+          throw new Error(
+            'You must set both the TEST_MNEMONIC and INFURA_TEST_KEY environment variables to use the ropsten network'
+          );
+        }
+        return new HDWalletProvider(
+          process.env.TEST_MNEMONIC,
+          `https://kovan.infura.io/v3/${process.env.INFURA_TEST_KEY}`
         );
       },
     },
