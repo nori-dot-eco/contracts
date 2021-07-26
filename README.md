@@ -60,7 +60,7 @@ The minter role is required to add additional minters to the NCCR contract. This
 ### Ropsten
 #### Deploying
 
-Deploy and initialize all contracts via the migration subscriptions
+Deploy and initialize all contracts via the truffle migration files
 
 ```
 truffle migrate --network ropsten
