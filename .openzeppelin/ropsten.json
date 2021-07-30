@@ -347,11 +347,11 @@
       }
     },
     "Nori_V0": {
-      "address": "0xA9504B347814108A48009843Ef090276d0F7f7F5",
-      "constructorCode": "60806040525b5b61000b565b6127d38061001a6000396000f3fe",
-      "bodyBytecodeHash": "973100fe3e952c799314d54c10a4f8a3f2e95d70f44b37eed94868730db37a92",
-      "localBytecodeHash": "09d433f9c9145196f699c6789234a4c325768224b1fff830bfc91fef8a9c55a3",
-      "deployedBytecodeHash": "09d433f9c9145196f699c6789234a4c325768224b1fff830bfc91fef8a9c55a3",
+      "address": "0x0F409b52667Dc936c796A24ACb4b61C5EA090389",
+      "constructorCode": "608060405261260f806100136000396000f3fe",
+      "bodyBytecodeHash": "d671dd5406991550f2529d38119c7d777d2f8c810bca22015a968fadf6cefaeb",
+      "localBytecodeHash": "18016bbf692295445a97277b546fcd05e8c2fe953bb615251b40ec2f717034e4",
+      "deployedBytecodeHash": "18016bbf692295445a97277b546fcd05e8c2fe953bb615251b40ec2f717034e4",
       "types": {
         "t_bool": {
           "id": "t_bool",
@@ -427,9 +427,9 @@
           "contract": "Initializable",
           "path": "@openzeppelin/upgrades/contracts/Initializable.sol",
           "label": "______gap",
-          "astId": 2949,
+          "astId": 2955,
           "type": "t_array:50<t_uint256>",
-          "src": "1951:29:25"
+          "src": "1982:29:25"
         },
         {
           "contract": "ERC20Detailed",
@@ -565,7 +565,26 @@
         "hasSelfDestruct": false,
         "hasDelegateCall": false,
         "hasInitialValuesInDeclarations": false,
-        "uninitializedBaseContracts": []
+        "uninitializedBaseContracts": [],
+        "storageUncheckedVars": [
+          {
+            "contract": "MinterRole",
+            "path": "@openzeppelin/contracts-ethereum-package/contracts/access/roles/MinterRole.sol",
+            "label": "_minters",
+            "astId": 142,
+            "type": "t_struct<Roles.Role>",
+            "src": "327:27:2"
+          },
+          {
+            "contract": "PauserRole",
+            "path": "@openzeppelin/contracts-ethereum-package/contracts/access/roles/PauserRole.sol",
+            "label": "_pausers",
+            "astId": 265,
+            "type": "t_struct<Roles.Role>",
+            "src": "327:27:3"
+          }
+        ],
+        "storageDiff": []
       }
     }
   },
@@ -584,7 +603,7 @@
       {
         "address": "0x3268c8019ea38BB2d34d0c82A2Be3D6B500bc7fF",
         "version": "0.0.1-alpha.0",
-        "implementation": "0xA9504B347814108A48009843Ef090276d0F7f7F5",
+        "implementation": "0x0F409b52667Dc936c796A24ACb4b61C5EA090389",
         "admin": "0xC851841BD41DB21C81a69D07Af79238C3f0a158F",
         "kind": "Upgradeable"
       }
