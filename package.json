@@ -4,13 +4,21 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@nori-dot-com/eslint-config-nori": "^1.4.0",
     "@openzeppelin/cli": "^2.5.3",
     "@openzeppelin/contracts-ethereum-package": "2.2.3",
+    "@openzeppelin/hardhat-upgrades": "^1.9.0",
     "@openzeppelin/upgrades": "^2.5.2",
-    "chai": "^4.2.0",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.4.0",
+    "ethernal": "^0.7.5",
+    "ethers": "^5.4.3",
     "ethlint": "^1.2.4",
     "ganache-cli": "6.5.1",
+    "hardhat": "^2.5.0",
+    "hardhat-ethernal": "^0.3.8",
     "openzeppelin-test-helpers": "^0.5.1",
     "prettier": "^2.3.0",
     "solc": "0.5.10",
@@ -23,8 +31,8 @@
   ],
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
-    "test": "truffle test",
-    "test:ci": "ganache-cli & yarn test",
-    "prepare": "./node_modules/.bin/openzeppelin compile"
+    "test": "NODE_ENV=test hardhat test",
+    "prepare": "./node_modules/.bin/openzeppelin compile",
+    "ethernal:login": "./node_modules/.bin/ethernal login"
   }
 }

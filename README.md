@@ -5,6 +5,21 @@ The Ethereum smart contracts that power nori.com
 ---
 ## Local Development
 
+### Environment setup
+
+#### Configure Ethernal
+
+*NOTE: This step is only required if you are using this repo in conjunction with the nori front-end*
+
+1. Sign up on the [ethernal website](https://app.tryethernal.com/)
+
+2. Login using the following command:
+
+```bash
+yarn run ethernal:login
+```
+3. Then, connect to metamask using the localhost option. You can set `https://app.tryethernal.com/` as the block explorer.
+
 ### Deploying to a local testnet
 
 First, start [ganache](https://github.com/trufflesuite/ganache-cli)

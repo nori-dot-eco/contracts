@@ -72,3 +72,12 @@ workspace.code-workspace
 .openzeppelin/.session
 
 .openzeppelin/dev-*
+
+
+# ethernal
+.config
+
+# hardhat
+*.dbg.*
+cache
+artifacts
