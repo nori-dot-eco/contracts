@@ -55,7 +55,7 @@ jobs:
       - run:
           name: Run Contract Tests
           command: |
-            yarn run test:ci
+            yarn run test
 
 workflows:
   version: 2

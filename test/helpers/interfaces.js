@@ -26,11 +26,9 @@ const INTERFACE_IDS = {
 
 const shouldSupportInterfaces = async (contract, interfaces = []) => {
   await Promise.all(
-    interfaces.map(async k => {
+    interfaces.map(async (k) => {
       const interfaceId = INTERFACE_IDS[k];
-      (await contract.methods
-        .supportsInterface(interfaceId)
-        .call()).should.equal(true);
+      (await contract.supportsInterface(interfaceId)).should.equal(true);
     })
   );
 };
