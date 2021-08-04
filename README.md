@@ -4,7 +4,6 @@ The Ethereum smart contracts that power nori.com
 
 ---
 ## Local Development
-
 ### Deploying to a local testnet
 
 First, start [ganache](https://github.com/trufflesuite/ganache-cli)
