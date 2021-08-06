@@ -15,7 +15,7 @@
     "ethereum-waffle": "^3.4.0",
     "ethers": "^5.4.3",
     "ethlint": "^1.2.4",
-    "ganache-cli": "6.5.1",
+    "ganache-cli": "^6.12.2",
     "hardhat": "^2.5.0",
     "openzeppelin-test-helpers": "^0.5.1",
     "prettier": "^2.3.0",
