@@ -4,7 +4,7 @@ defaults: &defaults
   environment:
     - NODE_ENV: test
   docker:
-    - image: circleci/node:10.15
+    - image: circleci/node:14.15
 
 jobs:
   setup-contract-tests:
