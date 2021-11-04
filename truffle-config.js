@@ -34,7 +34,7 @@ module.exports = {
       provider: () => {
         if (!process.env.TEST_MNEMONIC || !process.env.INFURA_TEST_KEY) {
           throw new Error(
-            'You must set both the TEST_MNEMONIC and INFURA_TEST_KEY environment variables to use the ropsten network'
+            'You must set both the TEST_MNEMONIC and INFURA_TEST_KEY environment variables to use the kovan network'
           );
         }
         return new HDWalletProvider(
@@ -49,7 +49,7 @@ module.exports = {
       provider: () => {
         if (!process.env.MNEMONIC || !process.env.INFURA_PROD_KEY) {
           throw new Error(
-            'You must set both the MNEMONIC and INFURA_PROD_KEY environment variables to use the ropsten network'
+            'You must set both the MNEMONIC and INFURA_PROD_KEY environment variables to use mainnet'
           );
         }
         return new HDWalletProvider(
