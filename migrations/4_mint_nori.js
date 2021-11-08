@@ -15,7 +15,5 @@ module.exports = async function (deployer, network, accounts) {
     await noriInstance.mint(accounts[5], tokensToMint);
     await noriInstance.mint(accounts[6], tokensToMint);
     await noriInstance.mint(accounts[7], tokensToMint);
-    // await noriInstance.mint(accounts[8], tokensToMint);
-    // await noriInstance.mint(accounts[9], tokensToMint);
   }
 };
