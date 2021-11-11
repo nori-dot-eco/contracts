@@ -1,7 +1,8 @@
 const { TestHelper } = require('@openzeppelin/cli');
-const { shouldSupportInterfaces } = require('./helpers/interfaces');
 const { waffle } = require('hardhat');
 const { expect } = require('chai');
+
+const { shouldSupportInterfaces } = require('./helpers/interfaces');
 
 const setupTest = async ({ shouldMint = false } = {}) => {
   const Nccr = await ethers.getContractFactory('NCCR_V0');
@@ -16,7 +17,7 @@ const setupTest = async ({ shouldMint = false } = {}) => {
       )[0].address,
       1,
       'https://example.com',
-      '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
+      '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17}]}'
     );
   }
   const [signer1, signer2] = await ethers.getSigners();
@@ -227,7 +228,7 @@ describe('NCCR_V0', () => {
                 signer1.address,
                 1,
                 'https://example.com',
-                '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
+                '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17}]}'
               )
             ).to.be.revertedWith(
               'MinterRole: caller does not have the Minter role'
@@ -242,7 +243,7 @@ describe('NCCR_V0', () => {
               signer1.address,
               2,
               'https://example.com',
-              '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
+              '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17}]}'
             );
           });
 
@@ -274,7 +275,7 @@ describe('NCCR_V0', () => {
           it('should assign the token human readable data', async () => {
             const { nccr } = await setupTest({ shouldMint: true });
             (await nccr.tokenData(1)).should.equal(
-              '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17,"serial":"20191018-m01-USMD023-s5746173184835584-p4617357183558443-n4080--4096"}]}'
+              '{"buyer":"Bill O","NRTs":17,"sources":[{"source":0,"NRTs":17}]}'
             );
           });
         });
