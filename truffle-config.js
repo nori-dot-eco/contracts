@@ -43,6 +43,38 @@ module.exports = {
         );
       },
     },
+    goerli: {
+      network_id: 5,
+      skipDryRun: true,
+      provider: () => {
+        if (!process.env.TEST_MNEMONIC || !process.env.INFURA_TEST_KEY) {
+          throw new Error(
+            'You must set both the TEST_MNEMONIC and INFURA_TEST_KEY environment variables to use the kovan network'
+          );
+        }
+        return new HDWalletProvider(
+          process.env.TEST_MNEMONIC,
+          `https://goerli.infura.io/v3/${process.env.INFURA_TEST_KEY}`
+        );
+      },
+    },
+    mumbai: {
+      provider: () => {
+        if (!process.env.TEST_MNEMONIC || !process.env.INFURA_TEST_KEY) {
+          throw new Error(
+            'You must set both the TEST_MNEMONIC and INFURA_TEST_KEY environment variables to use the kovan network'
+          );
+        }
+        return new HDWalletProvider(
+          process.env.TEST_MNEMONIC,
+          `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_TEST_KEY}`
+        );
+      },
+      network_id: 80001,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      skipDryRun: true,
+    },
     mainnet: {
       network_id: 1,
       gasPrice: 10000000000, // 10 gwei

@@ -2,7 +2,8 @@
   "manifestVersion": "2.2",
   "contracts": {
     "NCCR_V0": "NCCR_V0",
-    "Nori_V0": "Nori_V0"
+    "Nori_V0": "Nori_V0",
+    "Nori_Polygon_V0": "Nori_Polygon_V0"
   },
   "dependencies": {},
   "name": "@nori-dot-com/contracts",
