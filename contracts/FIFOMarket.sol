@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./Removal.sol";
 
+// todo emit events
 
 /**
  * @title FIFOMarket
@@ -24,14 +25,23 @@ contract FIFOMarket is
   IERC777RecipientUpgradeable {
 
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using SafeMathUpgradeable for uint;
 
   Removal private _removal;
   ERC1155PresetMinterPauserUpgradeable private _certificate;
   ERC777Upgradeable private _nori;
   EnumerableSetUpgradeable.UintSet private _queue;
+  address private _noriFeeWallet;
+  uint256 private _noriFee;
 
-  function initialize(address removalAddress, address noriAddress, address certificateAddress) public initializer {
+  function initialize(
+    address removalAddress,
+    address noriAddress,
+    address certificateAddress,
+    address noriFeeWalletAddress,
+    uint256 noriFee
+  ) public initializer {
     __Context_init_unchained();
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
@@ -41,6 +51,8 @@ contract FIFOMarket is
     _certificate = ERC1155PresetMinterPauserUpgradeable(certificateAddress);
     _registerInterfaceForAddress(keccak256("ERC777TokensRecipient"), address(this));
     _registerInterfaceForAddress(keccak256("ERC1155TokensRecipient"), address(this));
+    _noriFeeWallet = noriFeeWalletAddress;
+    _noriFee = noriFee;
   }
 
   function onERC1155BatchReceived(
@@ -77,6 +89,7 @@ contract FIFOMarket is
     }
   }
 
+  // todo optimize gas
   /**
    * @dev Called automatically by the ERC777 (nori) contract when a batch of tokens are transferred to the contract.
    */
@@ -95,7 +108,7 @@ contract FIFOMarket is
     uint amountToFill = amount;
     for (uint i = 0; i < _queue.length(); i.add(1)) {
       uint issuanceAmount = _removal.balanceOf(address(this), _queue.at(i));
-      // address supplier = _removal.vintage(_queue.at(i));
+      address supplier = _removal.vintage(_queue.at(i)).supplier;
       if(amountToFill <= issuanceAmount) {
         ids[i] = i;
         amounts[i] = amountToFill;
@@ -104,6 +117,7 @@ contract FIFOMarket is
       } else if(amountToFill > issuanceAmount) {
         ids[i] = i;
         amounts[i] = issuanceAmount;
+        suppliers[i] = supplier;
         amountToFill = amountToFill.add(issuanceAmount);
       } else {
         revert("Not enough supply");
@@ -115,8 +129,10 @@ contract FIFOMarket is
       amounts,
       ""
     );
-    // _nori.transfer(recipient, amount);
+    for (uint i = 0; i < suppliers.length; i.add(1)) {
+      _nori.transfer(_noriFeeWallet, _noriFee.mul(amounts[i]));
+      _nori.transfer(suppliers[i], amounts[i].sub(_noriFee.mul(amounts[i])));
+    }
     _removal.burnBatch(address(this),ids,amounts);
-    // todo transfer received tokens to suppliers
   }
 }
