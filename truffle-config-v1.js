@@ -1,7 +1,9 @@
 const HDWalletProvider = require('truffle-hdwallet-provider');
 
 module.exports = {
-  contracts_build_directory: './build/v0',
+  contracts_directory: './contracts/v1',
+  migrations_directory: './migrations/v1',
+  contracts_build_directory: './build/v1',
   networks: {
     test: {
       host: 'localhost', // Localhost (default: none)
@@ -98,7 +100,7 @@ module.exports = {
   },
   compilers: {
     solc: {
-      // version: "^0.8",
+      version: "^0.8",
       settings: {
         optimizer: {
           enabled: false,

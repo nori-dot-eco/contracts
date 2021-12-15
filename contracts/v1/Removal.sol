@@ -23,20 +23,13 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
   }
 
   mapping(uint256 => Vintage) private _vintages;
-  uint256 private _latestTokenId = 0;
+  uint256 private _latestTokenId;
 
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
-    __ERC1155Supply_init();
+    __ERC1155Supply_init_unchained();
+    _latestTokenId = 0;
   }
-
-  function bytesToAddress(bytes memory bys) public pure returns (address addr) {
-    // todo check for existing safer utils
-    assembly {
-      addr := mload(add(add(bys, 32), 0))
-    }
-  }
-
 
   /**
    * @dev returns the removal vintage data for a given removal token ID
@@ -57,25 +50,25 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
     uint256[] memory amounts,
     uint16[] memory vintages,
     bytes memory data
-  ) public returns (uint256 success) {
+  ) public returns (bool success) {
     // todo require vintage is within valid year range and doesn't already exist
-    uint[] memory ids;
+    uint256[] memory ids = new uint256[](vintages.length);
     for (uint256 i = 0; i < vintages.length; i++) {
-      ids[i] = _latestTokenId.add(i.add(1));
-      _vintages[vintages[i]] = Vintage({
+      ids[i] = _latestTokenId + i;
+      _vintages[_latestTokenId + i] = Vintage({
         vintage: vintages[i],
-        supplier: bytesToAddress(data)
+        supplier: to
       });
     }
-    _latestTokenId = ids[ids.length];
+    _latestTokenId = ids[ids.length - 1];
     super.mintBatch(
       to,
       ids,
       amounts,
       data
     );
-    return ERC1155SupplyUpgradeable.totalSupply(1);
-    // ids: [0, 1, 2]
+    return true;
+    // ids that will be auto assigned [0, 1, 2]
     // amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
     // vintages: [2018, 2019, 2020]
     // token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }

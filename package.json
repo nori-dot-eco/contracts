@@ -12,6 +12,7 @@
     "@openzeppelin/contracts-ethereum-package": "2.2.3",
     "@openzeppelin/contracts-upgradeable": "^4.4.0",
     "@openzeppelin/hardhat-upgrades": "^1.9.0",
+    "@openzeppelin/test-helpers": "^0.5.15",
     "@openzeppelin/truffle-upgrades": "^1.11.0",
     "@openzeppelin/upgrades": "^2.5.2",
     "chai": "^4.3.4",
@@ -23,7 +24,7 @@
     "openzeppelin-test-helpers": "^0.5.1",
     "prettier": "^2.4.0",
     "solc": "0.5.10",
-    "truffle": "5.4.2",
+    "truffle": "5.4.24",
     "truffle-hdwallet-provider": "^1.0.17"
   },
   "files": [

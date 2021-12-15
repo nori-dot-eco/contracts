@@ -1,0 +1,107 @@
+{
+  "networks": {
+    "goerli": {
+      "proxies": {
+        "@nori-dot-com/contracts/NCCR_V0": [
+          {
+            "address": "0x41BC1b080a09EBf7Db6e925DA7c0038Db44B0828",
+            "version": "0.0.1-alpha.0",
+            "implementation": "0x4994660d50B5773f50255F0D11Cf9A47b96EffaF",
+            "admin": "0x5e4cA60934572a0aEa1d71aBCC0baFa2E578c057",
+            "kind": "Upgradeable"
+          }
+        ],
+        "@nori-dot-com/contracts/Nori_V0": [
+          {
+            "address": "0x884174b30C2913C189E4356DED7662E19Ff756aa",
+            "version": "0.0.1-alpha.0",
+            "implementation": "0xFcD9FEB9deA14b0DCa3F66cb3D54237C2B8003da",
+            "admin": "0x5e4cA60934572a0aEa1d71aBCC0baFa2E578c057",
+            "kind": "Upgradeable"
+          }
+        ]
+      }
+    },
+    "kovan": {
+      "proxies": {
+        "@nori-dot-com/contracts/NCCR_V0": [
+          {
+            "address": "0xbe4Cb1891a063DD4fF80d6cc541c977B898ADA91",
+            "version": "0.0.1-alpha.0",
+            "implementation": "0xc1c5d18b33C8b8B6FB8913b208817329c392A81D",
+            "admin": "0x7744b57884c6A847970Dd84fF61d373469fED911",
+            "kind": "Upgradeable"
+          }
+        ],
+        "@nori-dot-com/contracts/Nori_V0": [
+          {
+            "address": "0x2B7856c201459DE961A52d0FD6E39EeeF03348Ff",
+            "version": "0.0.1-alpha.0",
+            "implementation": "0xfBf76E4f307e950186e67D28fA9A9BB5E701763b",
+            "admin": "0x7744b57884c6A847970Dd84fF61d373469fED911",
+            "kind": "Upgradeable"
+          }
+        ]
+      }
+    },
+    "mainnet": {
+      "proxies": {
+        "@nori-dot-com/contracts/NCCR_V0": [
+          {
+            "address": "0xBBbD7AEBD29360a34ceA492e012B9A2119DEd306",
+            "version": "0.0.1-alpha.0",
+            "implementation": "0x70E15d2263635E6cDFF759b6422EBf6444DF1661",
+            "admin": "0x4555cE4ef3F7DAEEC9535914b58e9b3C712D5612",
+            "kind": "Upgradeable"
+          }
+        ],
+        "@nori-dot-com/contracts/Nori_V0": [
+          {
+            "address": "0x1f77C0415bc4E5B5Dcb33C796F9c8cd8cc1c259d",
+            "version": "0.0.1-alpha.0",
+            "implementation": "0x6bdF8F75124aE47B6E18F9C0B92E10D69ff8D658",
+            "admin": "0x4555cE4ef3F7DAEEC9535914b58e9b3C712D5612",
+            "kind": "Upgradeable"
+          }
+        ]
+      }
+    },
+    "ropsten": {
+      "proxies": {
+        "@nori-dot-com/contracts/NCCR_V0": [
+          {
+            "address": "0x4595168c25bA690b42D96c94CC3B1d9911965234",
+            "version": "0.0.1-alpha.0",
+            "implementation": "0x02f620a54f5aDA061614AfB974316673f45c7ef6",
+            "admin": "0xC851841BD41DB21C81a69D07Af79238C3f0a158F",
+            "kind": "Upgradeable"
+          }
+        ],
+        "@nori-dot-com/contracts/Nori_V0": [
+          {
+            "address": "0x3268c8019ea38BB2d34d0c82A2Be3D6B500bc7fF",
+            "version": "0.0.1-alpha.0",
+            "implementation": "0x0F409b52667Dc936c796A24ACb4b61C5EA090389",
+            "admin": "0xC851841BD41DB21C81a69D07Af79238C3f0a158F",
+            "kind": "Upgradeable"
+          }
+        ]
+      }
+    }
+  },
+  "compiler": {
+    "manager": "openzeppelin",
+    "compilerSettings": {
+      "optimizer": {
+        "enabled": false,
+        "runs": "200"
+      }
+    },
+    "solcVersion": "0.5.11",
+    "artifactsDir": "build/contracts",
+    "contractsDir": "contracts",
+    "typechain": {
+      "enabled": false
+    }
+  }
+}

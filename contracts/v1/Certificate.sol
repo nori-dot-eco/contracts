@@ -29,11 +29,12 @@ contract Certificate is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgra
   /**
    * @dev auto incrementing token ID
    */
-  uint256 private _latestTokenId = 0;
+  uint256 private _latestTokenId;
 
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/certificate/{id}.json");
-    __ERC1155Supply_init();
+    __ERC1155Supply_init_unchained();
+    _latestTokenId = 0;
   }
 
   /**
@@ -62,7 +63,6 @@ contract Certificate is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgra
     // todo only allowed by market contract
     // todo require _sources[_latestTokenId] doesnt exist
     // todo require _sources[_latestTokenId][n] doesnt exist
-    _latestTokenId = _latestTokenId.add(1);
     uint256 certificateAmount = 0;
     for (uint256 i = 0; i < removalIds.length; i++) {
       _sources[_latestTokenId][i] = Source({
@@ -71,6 +71,7 @@ contract Certificate is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgra
       });
       certificateAmount = certificateAmount.add(removalAmounts[i]);
     }
+    _latestTokenId = _latestTokenId.add(1);
     super.mint(
       to,
       _latestTokenId,
