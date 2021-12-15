@@ -74,10 +74,9 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
       amounts,
       data
     );
-
     return ERC1155SupplyUpgradeable.totalSupply(1);
     // ids: [0, 1, 2]
-    // amounts: [100, 10, 50]
+    // amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
     // vintages: [2018, 2019, 2020]
     // token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
     // token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
