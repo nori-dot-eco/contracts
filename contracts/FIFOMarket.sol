@@ -52,7 +52,7 @@ contract FIFOMarket is
     _registerInterfaceForAddress(keccak256("ERC777TokensRecipient"), address(this));
     _registerInterfaceForAddress(keccak256("ERC1155TokensRecipient"), address(this));
     _noriFeeWallet = noriFeeWalletAddress;
-    _noriFee = noriFee;
+    _noriFee = noriFee.div(100);
   }
 
   function onERC1155BatchReceived(
