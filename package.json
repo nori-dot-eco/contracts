@@ -6,6 +6,7 @@
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
     "@nori-dot-com/eslint-config-nori": "*",
     "@openzeppelin/cli": "^2.5.3",
     "@openzeppelin/contracts": "^4.4.0",
@@ -20,12 +21,12 @@
     "ethers": "^5.4.3",
     "ethlint": "^1.2.4",
     "ganache-cli": "^6.12.2",
-    "hardhat": "^2.5.0",
-    "openzeppelin-test-helpers": "^0.5.1",
+    "hardhat": "^2.8.0",
     "prettier": "^2.4.0",
-    "solc": "0.5.10",
+    "solc": "0.8.10",
     "truffle": "5.4.24",
-    "truffle-hdwallet-provider": "^1.0.17"
+    "truffle-hdwallet-provider": "^1.0.17",
+    "web3": "^1.6.1"
   },
   "files": [
     "build",

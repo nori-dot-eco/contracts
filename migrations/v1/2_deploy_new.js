@@ -25,10 +25,16 @@ module.exports = async function (deployer, network, accounts) {
   console.log('Deployed', removalInstance.address);
   console.log('Deployed', certificateInstance.address);
   console.log('Deployed', fifoMarketInstance.address);
-  await noriInstance.contract.methods.mint(accounts[1],this.web3.utils.toWei('100'),"0x0","0x0").send({from:accounts[0]});
-  console.log('NORI balance accounts[1]', await noriInstance.contract.methods.balanceOf(accounts[1]).call({from:accounts[0]}));
-  await (removalInstance.contract.methods.mintBatch(accounts[2],[this.web3.utils.toWei('100'),this.web3.utils.toWei('10'),this.web3.utils.toWei('50')],[2018, 2019, 2020],"0x0").send({from:accounts[0], gas: 5000000 }));
-  console.log('Removal balances accounts[2] for token ids [0,1,2]', await removalInstance.contract.methods.balanceOfBatch([accounts[2],accounts[2],accounts[2]], [0,1,2]).call({from:accounts[0]}));
+  // await noriInstance.contract.methods.mint(accounts[3],this.web3.utils.toWei('200'),"0x0","0x0").send({from:accounts[0]});
+  // console.log('NORI balance accounts[1]', await noriInstance.contract.methods.balanceOf(accounts[1]).call({from:accounts[0]}));
+  // const mintBatchTx = await (removalInstance.contract.methods.mintBatch(accounts[2],[this.web3.utils.toWei('100'),this.web3.utils.toWei('10'),this.web3.utils.toWei('50')],[2018, 2019, 2020],"0x0").send({from:accounts[0], gas: 5000000 })); // 264919
+  // console.log("mintBatchTx gasUsed", mintBatchTx.gasUsed); // 264919 ($.01 - $.10)
+  // console.log('Removal balances accounts[2] for token ids [0,1,2]', await removalInstance.contract.methods.balanceOfBatch([accounts[2],accounts[2],accounts[2]], [0,1,2]).call({from:accounts[0]}));
+  // const removalSafeBatchTransferFrom = await (removalInstance.contract.methods.safeBatchTransferFrom(accounts[2],fifoMarketInstance.address,[0,1,2],[this.web3.utils.toWei('100'),this.web3.utils.toWei('10'),this.web3.utils.toWei('50')],"0x0").send({from:accounts[2], gas: 5000000 }));
+  // console.log("removalSafeBatchTransferFrom gasUsed", removalSafeBatchTransferFrom.gasUsed); // 221449 ($.01 - $.10)
+  // const noriSend = await (noriInstance.contract.methods.send(fifoMarketInstance.address,this.web3.utils.toWei('170'),"0x0").send({from:accounts[3], gas: 5000000 }));
+  // console.log("noriSend gasUsed", noriSend.gasUsed); 
+
 
 
   

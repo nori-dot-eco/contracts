@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "hardhat/console.sol";
 
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
@@ -48,26 +49,32 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
   function mintBatch(
     address to,
     uint256[] memory amounts,
-    uint16[] memory vintages,
+    uint256[] memory vintages,
     bytes memory data
-  ) public returns (bool success) {
+  ) public override {
+    console.log("DEBUG:","_latestTokenId",_latestTokenId);
+
     // todo require vintage is within valid year range and doesn't already exist
     uint256[] memory ids = new uint256[](vintages.length);
     for (uint256 i = 0; i < vintages.length; i++) {
       ids[i] = _latestTokenId + i;
       _vintages[_latestTokenId + i] = Vintage({
-        vintage: vintages[i],
+        vintage: uint16(vintages[i]),
         supplier: to
       });
+      console.log("DEBUG:","vintages[i]",vintages[i]);
+      console.log("DEBUG:","vintages[i]",amounts[i]);
+      console.log("DEBUG:","ids[i]",ids[i]);
+
     }
-    _latestTokenId = ids[ids.length - 1];
+    _latestTokenId = ids[ids.length - 1] + 1;
+    console.log("DEBUG:","_latestTokenId end",_latestTokenId);
     super.mintBatch(
       to,
       ids,
       amounts,
       data
     );
-    return true;
     // ids that will be auto assigned [0, 1, 2]
     // amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
     // vintages: [2018, 2019, 2020]
