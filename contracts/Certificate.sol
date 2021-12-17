@@ -71,12 +71,17 @@ contract Certificate is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgra
     // todo require _sources[_latestTokenId] doesnt exist
     // todo require _sources[_latestTokenId][n] doesnt exist
     for (uint256 i = 0; i < removalIds.length; i++) {
-      _sources[_latestTokenId].push(
-        Source({
-          removalId: removalIds[i],
-          amount: removalAmounts[i]
-        })
-      );
+      if(removalAmounts[i] == 0){
+        break;
+      } else {
+        // todo try filtering out the zero amountsbefore calling mint; revert if any are zero
+        _sources[_latestTokenId].push(
+          Source({
+            removalId: removalIds[i],
+            amount: removalAmounts[i]
+          })
+        );
+      }
     }
     super.mint(
       to,

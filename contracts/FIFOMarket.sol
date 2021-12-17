@@ -96,11 +96,13 @@ contract FIFOMarket is
         suppliers[i] = supplier;
         amountToFill = 0;
       } else if(amountToFill >= issuanceAmount) {
+        if(i == _queue.length() - 1 && amountToFill > issuanceAmount){
+          revert("FIFOMarket: Not enough supply");
+        }
         ids[i] = _queue.at(i);
         amounts[i] = issuanceAmount;
         suppliers[i] = supplier;
         amountToFill -= issuanceAmount;
-        _queue.remove(i);
       } else {
         revert("FIFOMarket: Not enough supply");
       }
@@ -115,10 +117,11 @@ contract FIFOMarket is
       amounts,
       encodedCertificateAmount
     );
-    for (uint i = 0; i < _queue.length(); i++) {
+    for (uint i = 0; i < ids.length; i++) {
       if(amounts[i] == 0){
         break;
       }
+      _queue.remove(i);
       uint256 noriFee = (amounts[i] / 100) * _noriFee;
       uint256 supplierFee = amounts[i] - noriFee;
       _nori.transfer(_noriFeeWallet, noriFee);

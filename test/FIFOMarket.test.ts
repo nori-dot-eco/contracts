@@ -142,12 +142,13 @@ const setup = deployments.createFixture(async (hre) => {
               (await certificateInstance.balanceOf(buyer, 0)).toString()
             ).toString()
           ),
-          sources: (await certificateInstance.sources(0)).length,
-          // sources: (await certificateInstance.sources(0)).map((sources: any) =>
-          //   sources.map((r: any) => ({
-          //     source: r.toString(),
-          //   }))
-          // ),
+          // sources: (await certificateInstance.sources(0)).length,
+          sources: (await certificateInstance.sources(0)).map(
+            (sources: any) => ({
+              removalId: sources.removalId.toString(),
+              amount: sources.amount.toString(),
+            })
+          ),
         })
       ),
       '\n'
