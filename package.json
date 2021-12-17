@@ -15,7 +15,6 @@
     "@openzeppelin/truffle-upgrades": "^1.11.0",
     "@openzeppelin/upgrades": "^2.5.2",
     "@types/chai": "^4.3.0",
-    "@types/mocha": "^9.0.0",
     "@types/node": "^17.0.0",
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.4.0",

@@ -54,13 +54,6 @@ const config: HardhatUserConfig = {
       chainId: 9001,
       accounts: defaultAccountFixtures,
     },
-    localhost2: {
-      gas: 2_000_000,
-      blockGasLimit: 21_000_000,
-      url: 'http://localhost:8545',
-      chainId: 9001,
-      seeds: defaultAccountFixtures as any,
-    } as any,
   },
   solidity: {
     version: '0.8.10',
