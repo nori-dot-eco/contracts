@@ -24,6 +24,7 @@
     "hardhat": "^2.8.0",
     "hardhat-deploy": "^0.9.14",
     "hardhat-erc1820": "^0.1.0",
+    "hardhat-ethernal": "^0.3.10",
     "prettier": "^2.4.0",
     "solc": "^0.8.10",
     "truffle": "^5.4.24",
@@ -36,6 +37,6 @@
   ],
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
-    "test": "NODE_ENV=test hardhat test"
+    "test": "hardhat test"
   }
 }

@@ -66,10 +66,10 @@ contract Certificate is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgra
     uint256[] memory removalAmounts,
     bytes memory data
   ) public override {
+    uint256 certificateAmount = abi.decode(data, (uint256));
     // todo only allowed by market contract
     // todo require _sources[_latestTokenId] doesnt exist
     // todo require _sources[_latestTokenId][n] doesnt exist
-    uint256 certificateAmount = 0;
     for (uint256 i = 0; i < removalIds.length; i++) {
       _sources[_latestTokenId].push(
         Source({
@@ -77,15 +77,14 @@ contract Certificate is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgra
           amount: removalAmounts[i]
         })
       );
-      certificateAmount = certificateAmount += removalAmounts[i];
     }
-    _latestTokenId = _latestTokenId += 1;
     super.mint(
       to,
       _latestTokenId,
       certificateAmount,
       data
     );
+    _latestTokenId = _latestTokenId += 1;
   }
 
   function _beforeTokenTransfer(

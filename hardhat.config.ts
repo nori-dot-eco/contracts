@@ -1,10 +1,13 @@
+import { execSync } from 'child_process';
+
 import { task } from 'hardhat/config';
-import type { HardhatUserConfig } from 'hardhat/config';
 import 'tsconfig-paths/register';
-import 'hardhat-erc1820';
 import '@nomiclabs/hardhat-waffle';
 import 'hardhat-deploy';
 import '@openzeppelin/hardhat-upgrades';
+import 'hardhat-erc1820';
+import 'hardhat-ethernal';
+import type { HardhatUserConfig } from 'hardhat/config';
 import { ethers } from 'ethers';
 import type { HardhatNetworkAccountUserConfig } from 'hardhat/types';
 
@@ -13,6 +16,16 @@ task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
   accounts.forEach((account) => {
     console.log(account.address);
   });
+});
+
+task('ethernal:reset', 'Prints the list of accounts', async (taskArgs, hre) => {
+  try {
+    execSync('rm .openzeppelin/unknown-9001', { cwd: __dirname });
+  } catch (e) {
+    //
+  }
+  execSync('ethernal reset nori');
+  console.log('RESET ETHERNAL');
 });
 
 export const namedAccounts = {
@@ -39,9 +52,6 @@ const defaultAccountFixtures: HardhatNetworkAccountUserConfig[] | undefined =
 
 const config: HardhatUserConfig = {
   paths: {
-    sources: './contracts',
-    tests: './test',
-    artifacts: './artifacts',
     deploy: 'deploy',
     deployments: 'deployments',
     imports: 'imports',
@@ -49,6 +59,7 @@ const config: HardhatUserConfig = {
   namedAccounts,
   networks: {
     hardhat: {
+      live: false,
       gas: 2_000_000,
       blockGasLimit: 21_000_000,
       chainId: 9001,

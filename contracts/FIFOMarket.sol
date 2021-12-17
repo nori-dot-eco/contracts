@@ -108,11 +108,12 @@ contract FIFOMarket is
         break;
       }
     }
+    bytes memory encodedCertificateAmount = abi.encode(amount);
     _certificate.mintBatch(
       recipient,
       ids,
       amounts,
-      ""
+      encodedCertificateAmount
     );
     for (uint i = 0; i < _queue.length(); i++) {
       if(amounts[i] == 0){

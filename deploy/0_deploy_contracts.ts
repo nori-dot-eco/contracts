@@ -1,8 +1,6 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { DeployFunction } from 'hardhat-deploy/types';
 
-require('hardhat-erc1820');
-
 import type { namedAccounts } from '../hardhat.config';
 
 interface HRE extends Partial<DeployFunction> {
@@ -20,8 +18,9 @@ const func: HRE = async (hre) => {
     ethers,
     run,
   } = hre;
+  await hre.network.provider.send('hardhat_setLoggingEnabled', [true]);
+  await run('ethernal:reset');
   await run('test:setup-test-environment');
-
   const { noriWallet } = await getNamedAccounts();
   const NORI = await ethers.getContractFactory('NORI');
   const Removal = await ethers.getContractFactory('Removal');
@@ -45,6 +44,26 @@ const func: HRE = async (hre) => {
   console.log('Deployed Removal', removalInstance.address);
   console.log('Deployed Certificate', certificateInstance.address);
   console.log('Deployed FIFOMarket', fifoMarketInstance.address);
+  await hre.ethernal.push({
+    name: 'NORI',
+    address: noriInstance.address,
+  });
+  await hre.ethernal.push({
+    name: 'NORI',
+    address: noriInstance.address,
+  });
+  await hre.ethernal.push({
+    name: 'Removal',
+    address: removalInstance.address,
+  });
+  await hre.ethernal.push({
+    name: 'Certificate',
+    address: certificateInstance.address,
+  });
+  await hre.ethernal.push({
+    name: 'FIFOMarket',
+    address: fifoMarketInstance.address,
+  });
 };
 func.tags = ['NORI', 'Removal', 'Certificate', 'FIFOMarket'];
 export default func;
