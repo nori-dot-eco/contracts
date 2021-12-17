@@ -1,47 +1,43 @@
-const { ethers, upgrades } = require('hardhat');
-const { singletons } = require('@openzeppelin/test-helpers');
+import { deployments } from 'hardhat';
+import { expect } from 'chai';
 
-const setupTest = async ({ accounts }) => {
-  console.log('BUYER:', accounts[3].address);
-  const Nori = await ethers.getContractFactory('NORI');
+const setup = deployments.createFixture(async (hre) => {
+  const {
+    getNamedAccounts,
+    upgrades: { deployProxy },
+    ethers,
+    run,
+  } = hre;
+  await run('test:setup-test-environment');
+  const { buyer, supplier, noriWallet } = await getNamedAccounts();
+  const [, buyerSigner, supplierSigner] = await ethers.getSigners();
+  const NORI = await ethers.getContractFactory('NORI');
   const Removal = await ethers.getContractFactory('Removal');
   const Certificate = await ethers.getContractFactory('Certificate');
   const FIFOMarket = await ethers.getContractFactory('FIFOMarket');
-  console.log('accounts[0].address.address', accounts[0].address);
-  const { deployProxy } = upgrades;
-  await singletons.ERC1820Registry(accounts[0].address); // In a test environment an ERC777 token requires deploying an ERC1820 registry
-  console.log('DEPLOYED REGISTRY');
-  const noriInstance = await deployProxy(Nori, []);
-  console.log('Deployed Nori', noriInstance.address);
+  const noriInstance = await deployProxy(NORI, []);
   const removalInstance = await deployProxy(Removal, [], {
     initializer: 'initialize()',
   });
-  console.log('Deployed Removal', removalInstance.address);
   const certificateInstance = await deployProxy(Certificate, [], {
     initializer: 'initialize()',
   });
-  console.log('Deployed Certificate', certificateInstance.address, 15);
   const fifoMarketInstance = await deployProxy(FIFOMarket, [
     removalInstance.address,
     noriInstance.address,
     certificateInstance.address,
-    accounts[9].address,
+    noriWallet,
     15,
   ]);
   await certificateInstance.addMinter(fifoMarketInstance.address);
-  console.log('Deployed FIFOMarket', fifoMarketInstance.address);
   await noriInstance.mint(
-    accounts[3].address,
+    buyer,
     ethers.utils.parseUnits('1000000'),
     ethers.utils.formatBytes32String('0x0'),
     ethers.utils.formatBytes32String('0x0')
-  ).wait;
-  console.log(
-    'NORI balance accounts[1].address',
-    await noriInstance.balanceOf(accounts[1].address)
   );
   const mintBatchTx3 = await removalInstance.mintBatch(
-    accounts[2].address,
+    supplier,
     [
       ethers.utils.parseUnits('100'),
       ethers.utils.parseUnits('10'),
@@ -51,27 +47,23 @@ const setupTest = async ({ accounts }) => {
     ethers.utils.formatBytes32String('0x0')
   );
   const mintBatchTx1 = await removalInstance.mintBatch(
-    accounts[2].address,
+    supplier,
     [ethers.utils.parseUnits('100')],
     [2018],
     ethers.utils.formatBytes32String('0x0')
   );
   console.log(
-    'Removal balances accounts[2].address for token ids [0,1,2]',
+    'Removal balances supplier for token ids [0,1,2]',
     await removalInstance.balanceOfBatch(
-      [
-        accounts[2].address,
-        accounts[2].address,
-        accounts[2].address,
-        accounts[2].address,
-      ],
+      [supplier, supplier, supplier, supplier],
       [0, 1, 2, 3]
     )
   );
+  console.log({ supplier });
   const removalSafeBatchTransferFrom3 = await (
-    await removalInstance.connect(accounts[2])
+    await removalInstance.connect(supplierSigner)
   ).safeBatchTransferFrom(
-    accounts[2].address,
+    supplier,
     fifoMarketInstance.address,
     [0, 1, 2],
     [
@@ -82,27 +74,27 @@ const setupTest = async ({ accounts }) => {
     ethers.utils.formatBytes32String('0x0')
   );
   const removalSafeBatchTransferFrom1 = await (
-    await removalInstance.connect(accounts[2])
+    await removalInstance.connect(supplierSigner)
   ).safeBatchTransferFrom(
-    accounts[2].address,
+    supplier,
     fifoMarketInstance.address,
     [3],
     [ethers.utils.parseUnits('100')],
     ethers.utils.formatBytes32String('0x0')
   );
   const noriSend3 = await (
-    await noriInstance.connect(accounts[3])
+    await noriInstance.connect(buyerSigner)
   ).send(
     fifoMarketInstance.address,
     ethers.utils.parseUnits('160'),
-    ethers.utils.hexZeroPad(accounts[3].address, 32)
+    ethers.utils.hexZeroPad(buyer, 32)
   );
   const noriSend1 = await (
-    await noriInstance.connect(accounts[3])
+    await noriInstance.connect(buyerSigner)
   ).send(
     fifoMarketInstance.address,
     ethers.utils.parseUnits('100'),
-    ethers.utils.hexZeroPad(accounts[3].address, 32)
+    ethers.utils.hexZeroPad(buyer, 32)
   );
   console.log(
     'removal.mintBatchTx3 gasUsed',
@@ -135,19 +127,25 @@ const setupTest = async ({ accounts }) => {
   // $0.000433 - $0.129858
   // buying + minting 1 certificate that crosses 3 removal vintage years for sale in the FIFOMarket `removal.safeBatchTransferFrom (gas: 120695)`:
   // $0.000261 - $0.078391
+  console.log('Deployed NORI', noriInstance.address);
+  console.log('Deployed Removal', removalInstance.address);
+  console.log('Deployed Certificate', certificateInstance.address);
+  console.log('Deployed FIFOMarket', fifoMarketInstance.address);
   return {
-    noriInstance,
-    removalInstance,
-    certificateInstance,
-    fifoMarketInstance,
+    contracts: {
+      NORI: noriInstance,
+      Removal: removalInstance,
+      Certificate: certificateInstance,
+      FIFOMarket: fifoMarketInstance,
+    },
   };
-};
+});
 
 describe('FIFOMarket', () => {
   describe('Buying', () => {
     it('should purchase removals and create a certificate', async () => {
-      const accounts = await ethers.getSigners();
-      await setupTest({ accounts });
+      const NORI = await setup();
+      expect(true).equal(true);
     });
   });
 });

@@ -1,0 +1,30 @@
+// {
+//   "compilerOptions": {
+//     // "paths": { "~/*": ["./*"] },
+//     "target": "es2018",
+//     "module": "commonjs",
+//     "strict": true,
+//     "esModuleInterop": true,
+//     "outDir": "dist",
+//     // "types": []
+//   },
+//   "include": ["./scripts", "./test", "./deploy", "./hardhat.config.ts", "./types"],
+// }
+{
+  "compilerOptions": {
+    "target": "es2018",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist"
+  },
+  "include": [
+    "hardhat.config.ts",
+    "./scripts",
+    "./deploy",
+    "./test",
+    "./types"
+  ]
+}

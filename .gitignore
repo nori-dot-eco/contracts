@@ -81,5 +81,4 @@ workspace.code-workspace
 *.dbg.*
 cache
 artifacts
-.openzeppelin/unknown-31337.json
-.openzeppelin/unknown-1337.json
+.openzeppelin/unknown-*.json
