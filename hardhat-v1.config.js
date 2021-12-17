@@ -19,5 +19,18 @@ module.exports = {
     tests: './test/v1',
     artifacts: './artifacts/v1',
   },
-  solidity: '0.8.10',
+  networks: {
+    hardhat: {
+      gas: 20000000,
+    },
+  },
+  solidity: {
+    version: '0.8.10',
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
 };

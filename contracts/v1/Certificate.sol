@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "hardhat/console.sol"; // todo
 
 // todo non-transferable/approveable
 // todo disable other mint functions
@@ -15,7 +15,8 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
  * @title Certificate
  */
 contract Certificate is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable {
-  using SafeMathUpgradeable for uint;
+
+
 
   struct Source {
     uint256 removalId;
@@ -35,6 +36,11 @@ contract Certificate is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgra
     super.initialize("https://nori.com/api/certificate/{id}.json");
     __ERC1155Supply_init_unchained();
     _latestTokenId = 0;
+  }
+
+  function addMinter(address _minter) public {
+    require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "Certificate: must have minter role to mint");
+    _setupRole(MINTER_ROLE, _minter);
   }
 
   /**
@@ -65,13 +71,15 @@ contract Certificate is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgra
     // todo require _sources[_latestTokenId][n] doesnt exist
     uint256 certificateAmount = 0;
     for (uint256 i = 0; i < removalIds.length; i++) {
-      _sources[_latestTokenId][i] = Source({
-        removalId: removalIds[i],
-        amount: removalAmounts[i]
-      });
-      certificateAmount = certificateAmount.add(removalAmounts[i]);
+      _sources[_latestTokenId].push(
+        Source({
+          removalId: removalIds[i],
+          amount: removalAmounts[i]
+        })
+      );
+      certificateAmount = certificateAmount += removalAmounts[i];
     }
-    _latestTokenId = _latestTokenId.add(1);
+    _latestTokenId = _latestTokenId += 1;
     super.mint(
       to,
       _latestTokenId,

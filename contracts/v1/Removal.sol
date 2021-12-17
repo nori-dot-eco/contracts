@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol"; // todo
 
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
@@ -16,11 +16,15 @@ import "hardhat/console.sol";
  * @title Removal
  */
 contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable {
+
   using SafeMathUpgradeable for uint;
 
   struct Vintage {
     address supplier;
     uint16 vintage;
+    // todo: location
+    // todo: methodology
+    // todo: supplier name
   }
 
   mapping(uint256 => Vintage) private _vintages;
@@ -52,8 +56,6 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
     uint256[] memory vintages,
     bytes memory data
   ) public override {
-    console.log("DEBUG:","_latestTokenId",_latestTokenId);
-
     // todo require vintage is within valid year range and doesn't already exist
     uint256[] memory ids = new uint256[](vintages.length);
     for (uint256 i = 0; i < vintages.length; i++) {
@@ -62,13 +64,8 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
         vintage: uint16(vintages[i]),
         supplier: to
       });
-      console.log("DEBUG:","vintages[i]",vintages[i]);
-      console.log("DEBUG:","vintages[i]",amounts[i]);
-      console.log("DEBUG:","ids[i]",ids[i]);
-
     }
     _latestTokenId = ids[ids.length - 1] + 1;
-    console.log("DEBUG:","_latestTokenId end",_latestTokenId);
     super.mintBatch(
       to,
       ids,

@@ -23,8 +23,8 @@
     "ganache-cli": "^6.12.2",
     "hardhat": "^2.8.0",
     "prettier": "^2.4.0",
-    "solc": "0.8.10",
-    "truffle": "5.4.24",
+    "solc": "^0.8.10",
+    "truffle": "^5.4.24",
     "truffle-hdwallet-provider": "^1.0.17",
     "web3": "^1.6.1"
   },

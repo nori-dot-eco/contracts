@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820Registry
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./NORI.sol";
-import "hardhat/console.sol";
+import "hardhat/console.sol"; // todo
 
 // todo emit events
 
@@ -49,8 +49,8 @@ contract FIFOMarket is
     _nori = NORI(noriAddress);
     _certificate = Certificate(certificateAddress);
     _noriFeeWallet = noriFeeWalletAddress;
-    _noriFee = noriFee / 100;
-    _erc1820 = IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
+    _noriFee = noriFee;
+    _erc1820 = IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24); // todo
     _erc1820.setInterfaceImplementer(address(this), keccak256("ERC777TokensRecipient"), address(this));
   }
 
@@ -67,13 +67,6 @@ contract FIFOMarket is
     return this.onERC1155BatchReceived.selector;
   }
 
-  function bytesToAddress(bytes memory bys) public pure returns (address addr) {
-    // todo check for existing safer utils
-    assembly {
-      addr := mload(add(add(bys, 32), 0))
-    }
-  }
-
   // todo optimize gas (perhaps consider setting the last sold id instead of looping -- not sure if it's possible to reduce array size yet or not)
   /**
    * @dev Called automatically by the ERC777 (nori) contract when a batch of tokens are transferred to the contract.
@@ -86,50 +79,51 @@ contract FIFOMarket is
     bytes calldata userData,
     bytes calldata operatorData
   ) external override {
-    require(msg.sender == address(_nori), "This contract can only receive NORI");
+    address recipient = abi.decode(userData, (address));
+    require(recipient == address(recipient),"FIFOMarket: Invalid address");
+    require(recipient != address(0), "FIFOMarket: Cannot mint to the 0 address");
+    require(msg.sender == address(_nori), "FIFOMarket: This contract can only receive NORI");
+    uint amountToFill = amount;
     uint256[] memory ids = new uint256[](_queue.length());
     uint256[] memory amounts = new uint256[](_queue.length());
     address[] memory suppliers = new address[](_queue.length());
-    uint amountToFill = amount;
     for (uint i = 0; i < _queue.length(); i++) {
-      console.log("DEBUG:","i",i);
       uint issuanceAmount = _removal.balanceOf(address(this), _queue.at(i));
-      console.log("DEBUG:","issuanceAmount",issuanceAmount);
-      console.log("DEBUG:","amountToFill",amountToFill);
-      console.log("DEBUG:","ids",ids.length);
-      console.log("DEBUG:","amounts",amounts.length);
-      console.log("DEBUG:","suppliers",suppliers.length);
       address supplier = _removal.vintage(_queue.at(i)).supplier;
-      console.log("DEBUG:","supplier",supplier);
-      console.log("DEBUG:","amountToFill <= issuanceAmount",amountToFill <= issuanceAmount);
-      console.log("DEBUG:","amountToFill > issuanceAmount",amountToFill > issuanceAmount);
-      if(amountToFill <= issuanceAmount) {
-        ids[i] = i;
+      if(amountToFill < issuanceAmount) {
+        ids[i] = _queue.at(i);
         amounts[i] = amountToFill;
         suppliers[i] = supplier;
-        break;
-      } else if(amountToFill > issuanceAmount) {
-        ids[i] = i;
-        console.log("DEBUG:","ids[i]",ids[i]);
+        amountToFill = 0;
+      } else if(amountToFill >= issuanceAmount) {
+        ids[i] = _queue.at(i);
         amounts[i] = issuanceAmount;
         suppliers[i] = supplier;
-        amountToFill = amountToFill += issuanceAmount;
+        amountToFill -= issuanceAmount;
         _queue.remove(i);
       } else {
-        revert("Not enough supply");
+        revert("FIFOMarket: Not enough supply");
+      }
+      if(amountToFill == 0){
+        break;
       }
     }
-    // _certificate.mintBatch(
-    //   bytesToAddress(userData),
-    //   ids,
-    //   amounts,
-    //   ""
-    // );
-    // for (uint i = 0; i < suppliers.length; i++) {
-    //   _nori.transfer(_noriFeeWallet, _noriFee * amounts[i]);
-    //   _nori.transfer(suppliers[i], amounts[i] - (_noriFee * amounts[i]));
-    // }
-    // _removal.burnBatch(address(this),ids,amounts);
+    _certificate.mintBatch(
+      recipient,
+      ids,
+      amounts,
+      ""
+    );
+    for (uint i = 0; i < _queue.length(); i++) {
+      if(amounts[i] == 0){
+        break;
+      }
+      uint256 noriFee = (amounts[i] / 100) * _noriFee;
+      uint256 supplierFee = amounts[i] - noriFee;
+      _nori.transfer(_noriFeeWallet, noriFee);
+      _nori.transfer(suppliers[i], supplierFee);
+    }
+    _removal.burnBatch(address(this),ids,amounts);
   }
 
   function supportsInterface(

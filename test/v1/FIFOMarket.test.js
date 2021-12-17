@@ -2,6 +2,7 @@ const { ethers, upgrades } = require('hardhat');
 const { singletons } = require('@openzeppelin/test-helpers');
 
 const setupTest = async ({ accounts }) => {
+  console.log('BUYER:', accounts[3].address);
   const Nori = await ethers.getContractFactory('NORI');
   const Removal = await ethers.getContractFactory('Removal');
   const Certificate = await ethers.getContractFactory('Certificate');
@@ -19,18 +20,15 @@ const setupTest = async ({ accounts }) => {
   const certificateInstance = await deployProxy(Certificate, [], {
     initializer: 'initialize()',
   });
-  console.log(
-    'Deployed Certificate',
-    certificateInstance.address,
-    ethers.utils.parseUnits('0.15')
-  );
+  console.log('Deployed Certificate', certificateInstance.address, 15);
   const fifoMarketInstance = await deployProxy(FIFOMarket, [
     removalInstance.address,
     noriInstance.address,
     certificateInstance.address,
     accounts[9].address,
-    ethers.utils.parseUnits('0.15'),
+    15,
   ]);
+  await certificateInstance.addMinter(fifoMarketInstance.address);
   console.log('Deployed FIFOMarket', fifoMarketInstance.address);
   await noriInstance.mint(
     accounts[3].address,
@@ -96,15 +94,15 @@ const setupTest = async ({ accounts }) => {
     await noriInstance.connect(accounts[3])
   ).send(
     fifoMarketInstance.address,
-    ethers.utils.parseUnits('170'),
-    ethers.utils.formatBytes32String('0x0')
+    ethers.utils.parseUnits('160'),
+    ethers.utils.hexZeroPad(accounts[3].address, 32)
   );
   const noriSend1 = await (
     await noriInstance.connect(accounts[3])
   ).send(
     fifoMarketInstance.address,
     ethers.utils.parseUnits('100'),
-    ethers.utils.formatBytes32String('0x0')
+    ethers.utils.hexZeroPad(accounts[3].address, 32)
   );
   console.log(
     'removal.mintBatchTx3 gasUsed',
