@@ -33,13 +33,19 @@ const func: HRE = async (hre) => {
   const certificateInstance = await deployProxy(Certificate, [], {
     initializer: 'initialize()',
   });
-  const fifoMarketInstance = await deployProxy(FIFOMarket, [
-    removalInstance.address,
-    noriInstance.address,
-    certificateInstance.address,
-    noriWallet,
-    15,
-  ]);
+  const fifoMarketInstance = await deployProxy(
+    FIFOMarket,
+    [
+      removalInstance.address,
+      noriInstance.address,
+      certificateInstance.address,
+      noriWallet,
+      15,
+    ],
+    {
+      initializer: 'initialize(address,address,address,address,uint256)',
+    }
+  );
   console.log('Deployed NORI', noriInstance.address);
   console.log('Deployed Removal', removalInstance.address);
   console.log('Deployed Certificate', certificateInstance.address);

@@ -54,6 +54,14 @@ contract FIFOMarket is
     _erc1820.setInterfaceImplementer(address(this), keccak256("ERC777TokensRecipient"), address(this));
   }
 
+  function numberOfTonnesInQueue() public view returns (uint) {
+    uint tonnesInQueue = 0;
+    for(uint i = 0; i < _queue.length(); i++) {
+      tonnesInQueue += _removal.balanceOf(address(this), _queue.at(i));
+    }
+    return tonnesInQueue;
+  }
+
   function onERC1155BatchReceived(
     address operator,
     address from,
@@ -88,21 +96,21 @@ contract FIFOMarket is
     uint256[] memory amounts = new uint256[](_queue.length());
     address[] memory suppliers = new address[](_queue.length());
     for (uint i = 0; i < _queue.length(); i++) {
-      uint issuanceAmount = _removal.balanceOf(address(this), _queue.at(i));
+      uint removalAmount = _removal.balanceOf(address(this), _queue.at(i));
       address supplier = _removal.vintage(_queue.at(i)).supplier;
-      if(amountToFill < issuanceAmount) {
+      if(amountToFill < removalAmount) {
         ids[i] = _queue.at(i);
         amounts[i] = amountToFill;
         suppliers[i] = supplier;
         amountToFill = 0;
-      } else if(amountToFill >= issuanceAmount) {
-        if(i == _queue.length() - 1 && amountToFill > issuanceAmount){
+      } else if(amountToFill >= removalAmount) {
+        if(i == _queue.length() - 1 && amountToFill > removalAmount){
           revert("FIFOMarket: Not enough supply");
         }
         ids[i] = _queue.at(i);
-        amounts[i] = issuanceAmount;
+        amounts[i] = removalAmount;
         suppliers[i] = supplier;
-        amountToFill -= issuanceAmount;
+        amountToFill -= removalAmount;
       } else {
         revert("FIFOMarket: Not enough supply");
       }

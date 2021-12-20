@@ -20,7 +20,7 @@ task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
 
 task('ethernal:reset', 'Prints the list of accounts', async (taskArgs, hre) => {
   try {
-    execSync('rm .openzeppelin/unknown-9001', { cwd: __dirname });
+    execSync('rm .openzeppelin/unknown-9001.json', { cwd: __dirname });
   } catch (e) {
     //
   }

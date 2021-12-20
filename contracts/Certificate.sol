@@ -67,6 +67,7 @@ contract Certificate is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgra
     bytes memory data
   ) public override {
     uint256 certificateAmount = abi.decode(data, (uint256));
+    // todo use modified mintCertificate instead of mintBatch. mintBatch should be used to mint multi certificates.
     // todo only allowed by market contract
     // todo require _sources[_latestTokenId] doesnt exist
     // todo require _sources[_latestTokenId][n] doesnt exist

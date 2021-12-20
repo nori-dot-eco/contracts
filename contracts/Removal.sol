@@ -29,11 +29,14 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
 
   mapping(uint256 => Vintage) private _vintages;
   uint256 private _latestTokenId;
+  string public name;
+
 
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
     _latestTokenId = 0;
+    name = "Removal";
   }
 
   /**
