@@ -1,11 +1,11 @@
 import { execSync } from 'child_process';
 
 import { task } from 'hardhat/config';
+import './erc-1820';
 import 'tsconfig-paths/register';
 import '@nomiclabs/hardhat-waffle';
 import 'hardhat-deploy';
 import '@openzeppelin/hardhat-upgrades';
-import 'hardhat-erc1820';
 import 'hardhat-ethernal';
 import type { HardhatUserConfig } from 'hardhat/config';
 import { ethers } from 'ethers';

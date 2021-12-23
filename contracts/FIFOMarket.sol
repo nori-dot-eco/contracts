@@ -87,10 +87,12 @@ contract FIFOMarket is
     bytes calldata userData,
     bytes calldata operatorData
   ) external override {
+    // todo this doesnt seem to revert if the queue is empty
+    // todo take into consideration the fact that the user is sending the amount + 15% fee
     address recipient = abi.decode(userData, (address));
     require(recipient == address(recipient),"FIFOMarket: Invalid address");
     require(recipient != address(0), "FIFOMarket: Cannot mint to the 0 address");
-    require(msg.sender == address(_nori), "FIFOMarket: This contract can only receive NORI");
+    require(msg.sender == address(_nori), "FIFOMarket: This contract can only receive NORI"); // todo verify this can only be invoked by the nori contract
     uint amountToFill = amount;
     uint256[] memory ids = new uint256[](_queue.length());
     uint256[] memory amounts = new uint256[](_queue.length());
@@ -129,7 +131,9 @@ contract FIFOMarket is
       if(amounts[i] == 0){
         break;
       }
-      _queue.remove(i);
+      if(amounts[i] == _removal.balanceOf(address(this), _queue.at(i))) {
+        _queue.remove(i);
+      }
       uint256 noriFee = (amounts[i] / 100) * _noriFee;
       uint256 supplierFee = amounts[i] - noriFee;
       _nori.transfer(_noriFeeWallet, noriFee);
