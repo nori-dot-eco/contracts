@@ -70,6 +70,19 @@ const config: HardhatUserConfig = {
       chainId: 9001,
       accounts: defaultAccountFixtures,
     },
+    goerli: {
+      chainId: 5,
+      url: `https://goerli.infura.io/v3/${process.env.INFURA_STAGING_KEY}`,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
+    mumbai: {
+      url: `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_STAGING_KEY}`,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
   },
   solidity: {
     compilers: [

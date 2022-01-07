@@ -1,32 +1,50 @@
 {
-  "contracts": {
-    "hardhat": {
-      "NORI": {
-        "proxyAddress": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
-      },
-      "Removal": {
-        "proxyAddress": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318"
-      },
-      "Certificate": {
-        "proxyAddress": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
-      },
-      "FIFOMarket": {
-        "proxyAddress": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
-      },
-      "Nori_V0": {
-        "proxyAddress": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
-      },
-      "NCCR_V0": {
-        "proxyAddress": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
-      }
+  "hardhat": {
+    "NORI": {
+      "proxyAddress": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
     },
-    "mainnet": {
-      "NCCR_V0": {
-        "proxyAddress": "0xBBbD7AEBD29360a34ceA492e012B9A2119DEd306"
-      },
-      "Nori_V0": {
-        "proxyAddress": "0x1f77C0415bc4E5B5Dcb33C796F9c8cd8cc1c259d"
-      }
+    "Removal": {
+      "proxyAddress": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318"
+    },
+    "Certificate": {
+      "proxyAddress": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
+    },
+    "FIFOMarket": {
+      "proxyAddress": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
+    },
+    "Nori_V0": {
+      "proxyAddress": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+    },
+    "NCCR_V0": {
+      "proxyAddress": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+    }
+  },
+  "mainnet": {
+    "NCCR_V0": {
+      "proxyAddress": "0xBBbD7AEBD29360a34ceA492e012B9A2119DEd306"
+    },
+    "Nori_V0": {
+      "proxyAddress": "0x1f77C0415bc4E5B5Dcb33C796F9c8cd8cc1c259d"
+    }
+  },
+  "mumbai": {
+    "NORI": {
+      "proxyAddress": "0x3325e2987D4C0804A020b2Ec4F9BcB3DD50014EE"
+    },
+    "Removal": {
+      "proxyAddress": "0x6E6F16f2f18f9D4A670fC101b2cbfDCA77E389c9"
+    },
+    "Certificate": {
+      "proxyAddress": "0x6d1f7F5650EC9C5941B04D5C2Add659FF430642e"
+    },
+    "FIFOMarket": {
+      "proxyAddress": "0x4D705793e3dfeeE4A1c0331DAeC2b56D455F983D"
+    },
+    "Nori_V0": {
+      "proxyAddress": "0x3A78013BD257DbEeD37704D981D289DF52D06Fb1"
+    },
+    "NCCR_V0": {
+      "proxyAddress": "0x8B32C0480Ab650D6ba23a5B7A13fE05E186Fa312"
     }
   }
 }
