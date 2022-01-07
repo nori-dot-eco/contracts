@@ -4,7 +4,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
-// todo restrict all functions (when not paused)
+// todo restrict all functions (whenNotPaused modifier)
 // todo restrict burning
 
 contract NORI is ERC777Upgradeable, AccessControlEnumerableUpgradeable, PausableUpgradeable {

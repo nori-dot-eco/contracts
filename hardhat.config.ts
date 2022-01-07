@@ -18,15 +18,20 @@ task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
   });
 });
 
-task('ethernal:reset', 'Prints the list of accounts', async (taskArgs, hre) => {
-  try {
-    execSync('rm .openzeppelin/unknown-9001.json', { cwd: __dirname });
-  } catch (e) {
-    //
+task(
+  'ethernal:reset',
+  'Prints the list of accounts',
+  async (_taskArgs, _hre) => {
+    try {
+      execSync('rm .openzeppelin/unknown-9001.json', { cwd: __dirname });
+    } catch (e) {
+      //
+    }
+    execSync('ethernal reset nori');
+    console.log('RESET ETHERNAL');
+    return Promise.resolve();
   }
-  execSync('ethernal reset nori');
-  console.log('RESET ETHERNAL');
-});
+);
 
 export const namedAccounts = {
   admin: 0,
@@ -67,13 +72,26 @@ const config: HardhatUserConfig = {
     },
   },
   solidity: {
-    version: '0.8.10',
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
+    compilers: [
+      {
+        version: '0.5.11', // todo deprecate when we remove the *_V0 contracts
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
       },
-    },
+      {
+        version: '0.8.10',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+    ],
   },
 };
 
