@@ -29,7 +29,7 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
 
   mapping(uint256 => Vintage) private _vintages;
   uint256 private _latestTokenId;
-  string public name;
+  string public name; // todo why did I add this
 
 
   function initialize() public virtual initializer {
