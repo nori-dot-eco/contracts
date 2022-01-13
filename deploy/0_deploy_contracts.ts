@@ -16,6 +16,8 @@ interface HRE extends Partial<DeployFunction> {
 
 const func: HRE = async (hre) => {
   // todo throw if wrong account is deploying on goerli, mumbai or mainnet
+  // todo does deploy proxy always deploy a proxy or will it upgradeTo if it exists?
+
   const {
     getNamedAccounts,
     upgrades: { deployProxy },
@@ -25,7 +27,6 @@ const func: HRE = async (hre) => {
     ethernal,
   } = hre;
   const { noriWallet, buyer } = await getNamedAccounts();
-  // todo does deploy proxy always deploy a proxy or will it upgradeTo if it exists?
 
   if (network.name === 'mainnet') {
     throw new Error('You cannot deploy to mainnet yet');
@@ -33,8 +34,10 @@ const func: HRE = async (hre) => {
 
   if (network.name === 'hardhat') {
     await network.provider.send('hardhat_setLoggingEnabled', [true]);
-    await ethernal.startListening();
-    await run('ethernal:reset');
+    if (process.env.ETHERNAL_EMAIL && process.env.ETHERNAL_PASSWORD) {
+      await ethernal.startListening();
+      await run('ethernal:reset');
+    }
     await run('deploy:erc1820');
   }
 
@@ -82,32 +85,45 @@ const func: HRE = async (hre) => {
   console.log('Added FIFOMarket as a minter of Certificate');
 
   if (network.name === 'hardhat') {
-    await noriInstance.mint(
-      buyer,
-      ethers.utils.parseUnits('1000000'),
-      ethers.utils.formatBytes32String('0x0'),
-      ethers.utils.formatBytes32String('0x0')
-    );
-    console.log('Minted NORI to buyer wallet', buyer);
     await Promise.all([
-      hre.ethernal.push({
-        name: 'NORI',
-        address: noriInstance.address,
-      }),
-      hre.ethernal.push({
-        name: 'Removal',
-        address: removalInstance.address,
-      }),
-      hre.ethernal.push({
-        name: 'Certificate',
-        address: certificateInstance.address,
-      }),
-      hre.ethernal.push({
-        name: 'FIFOMarket',
-        address: fifoMarketInstance.address,
-      }),
+      noriInstance.mint(
+        buyer,
+        ethers.utils.parseUnits('1000000'),
+        ethers.utils.formatBytes32String('0x0'),
+        ethers.utils.formatBytes32String('0x0')
+      ),
+      noriV0Instance.mint(buyer, ethers.utils.parseUnits('1000000')),
     ]);
-    console.log('Registered contracts in Ethernal', buyer);
+    console.log('Minted NORI and Nori_V0 to buyer wallet', buyer);
+    if (process.env.ETHERNAL_EMAIL && process.env.ETHERNAL_PASSWORD) {
+      await Promise.all([
+        ethernal.push({
+          name: 'Nori_V0',
+          address: noriV0Instance.address,
+        }),
+        ethernal.push({
+          name: 'NCCR_V0',
+          address: nccrV0Instance.address,
+        }),
+        ethernal.push({
+          name: 'NORI',
+          address: noriInstance.address,
+        }),
+        ethernal.push({
+          name: 'Removal',
+          address: removalInstance.address,
+        }),
+        ethernal.push({
+          name: 'Certificate',
+          address: certificateInstance.address,
+        }),
+        ethernal.push({
+          name: 'FIFOMarket',
+          address: fifoMarketInstance.address,
+        }),
+      ]);
+      console.log('Registered contracts in Ethernal', buyer);
+    }
   }
 
   console.log('Writing contracts.json config');
@@ -119,7 +135,7 @@ const func: HRE = async (hre) => {
     path.join(__dirname, '../contracts.json'),
     {
       ...originalContractsJson,
-      [hre.network.name]: {
+      [hre.network.name]: { 
         NORI: {
           proxyAddress: noriInstance.address,
         },
@@ -155,5 +171,12 @@ const func: HRE = async (hre) => {
   );
   console.log('Wrote contracts.json config');
 };
-func.tags = ['NORI', 'Removal', 'Certificate', 'FIFOMarket'];
+func.tags = [
+  'Nori_V0',
+  'NCCR_V0',
+  'NORI',
+  'Removal',
+  'Certificate',
+  'FIFOMarket',
+];
 export default func;
