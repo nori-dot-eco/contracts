@@ -25,6 +25,7 @@ const func: HRE = async (hre) => {
     ethernal,
   } = hre;
   const { noriWallet, buyer } = await getNamedAccounts();
+  // todo does deploy proxy always deploy a proxy or will it upgradeTo if it exists?
 
   if (network.name === 'mainnet') {
     throw new Error('You cannot deploy to mainnet yet');
