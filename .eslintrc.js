@@ -9,4 +9,25 @@ module.exports = {
       jsx: true,
     },
   },
+  plugins: ['disable'],
+  processor: 'disable/disable',
+  overrides: [
+    {
+      files: ['./**/*'],
+      settings: {
+        'disable/plugins': [
+          'next/core-web-vitals',
+          'plugin:@next/next/recommended',
+          '@next/next',
+        ],
+      },
+    },
+    {
+      files: ['**/*.test.*', './test/helpers/**/*.*'],
+      rules: {
+        '@typescript-eslint/no-unused-expressions': 'off',
+        'jest/valid-expect': 'off',
+      },
+    },
+  ],
 };

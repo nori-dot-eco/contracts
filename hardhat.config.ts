@@ -1,13 +1,15 @@
+import 'tsconfig-paths/register';
+import '@nomiclabs/hardhat-waffle';
+import '@openzeppelin/hardhat-upgrades';
+import 'hardhat-ethernal';
+import 'hardhat-deploy';
+
+import '@/tasks';
+
 import { execSync } from 'child_process';
 
 import { task } from 'hardhat/config';
-import './erc-1820';
-import 'tsconfig-paths/register';
-import '@nomiclabs/hardhat-waffle';
-import 'hardhat-deploy';
-import '@openzeppelin/hardhat-upgrades';
-import 'hardhat-ethernal';
-import type { HardhatUserConfig } from 'hardhat/config';
+import type { HardhatUserConfig } from 'hardhat/types/config';
 import { ethers } from 'ethers';
 import type { HardhatNetworkAccountUserConfig } from 'hardhat/types';
 
@@ -73,15 +75,11 @@ const config: HardhatUserConfig = {
     goerli: {
       chainId: 5,
       url: `https://goerli.infura.io/v3/${process.env.INFURA_STAGING_KEY}`,
-      accounts: {
-        mnemonic: process.env.MNEMONIC,
-      },
+      accounts: defaultAccountFixtures,
     },
     mumbai: {
       url: `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_STAGING_KEY}`,
-      accounts: {
-        mnemonic: process.env.MNEMONIC,
-      },
+      accounts: defaultAccountFixtures,
     },
   },
   solidity: {

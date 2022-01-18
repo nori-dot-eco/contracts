@@ -7,13 +7,16 @@
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
-    "baseUrl": "."
+    "baseUrl": ".",
+    "types": ["node", "chai", "jest"],
+    "paths": {
+      "@/tasks": ["./tasks/index.ts"],
+      "@/test/helpers": ["./test/helpers/index.ts"],
+    }
   },
   "include": [
-    "hardhat.config.ts",
-    "./scripts",
-    "./deploy",
-    "./test",
-    "./types"
+    "**/*.ts",
+    "**/*.d.ts",
+    ".eslintrc.js"
   ]
 }

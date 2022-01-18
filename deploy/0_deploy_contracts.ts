@@ -1,20 +1,8 @@
 import path from 'path';
 
-import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-import type { DeployFunction } from 'hardhat-deploy/types';
 import { writeJsonSync, readJsonSync } from 'fs-extra';
 
-import type { namedAccounts } from '../hardhat.config';
-
-interface HRE extends Partial<DeployFunction> {
-  (
-    hre: Omit<HardhatRuntimeEnvironment, 'getNamedAccounts'> & {
-      getNamedAccounts: () => Promise<typeof namedAccounts>;
-    }
-  ): Promise<void | boolean>;
-}
-
-const func: HRE = async (hre) => {
+const func: CustomHardhatDeployFunction = async (hre) => {
   // todo throw if wrong account is deploying on goerli, mumbai or mainnet
   // todo does deploy proxy always deploy a proxy or will it upgradeTo if it exists?
 
@@ -135,7 +123,7 @@ const func: HRE = async (hre) => {
     path.join(__dirname, '../contracts.json'),
     {
       ...originalContractsJson,
-      [hre.network.name]: { 
+      [hre.network.name]: {
         NORI: {
           proxyAddress: noriInstance.address,
         },
@@ -171,12 +159,5 @@ const func: HRE = async (hre) => {
   );
   console.log('Wrote contracts.json config');
 };
-func.tags = [
-  'Nori_V0',
-  'NCCR_V0',
-  'NORI',
-  'Removal',
-  'Certificate',
-  'FIFOMarket',
-];
+
 export default func;

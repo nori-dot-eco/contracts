@@ -1,6 +1,5 @@
 import { task } from 'hardhat/config';
 import type { EthereumProvider } from 'hardhat/types';
-// todo make a hardhat script
 
 const ERC1820_ADDRESS = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24';
 const ERC1820_DEPLOYER = '0xa990077c3205cbDf861e17Fa532eeB069cE9fF96';
@@ -18,12 +17,17 @@ async function ensureERC1820(provider: EthereumProvider): Promise<void> {
         value: '0x11c37937e080000',
       },
     ]);
-
     await provider.send('eth_sendRawTransaction', [ERC1820_PAYLOAD]);
     console.log('ERC1820 registry successfully deployed', tx);
   }
 }
 
-task('deploy:erc1820', 'deploy erc 1820', async (taskArgs, hre) => {
-  await ensureERC1820(hre.network.provider);
-});
+export const TASK = {
+  name: 'deploy:erc1820',
+  description: 'deploy erc 1820',
+  run: async (taskArgs: void, hre: CustomHardHatRuntimeEnvironment) => {
+    return ensureERC1820(hre.network.provider);
+  },
+} as const;
+
+task(TASK.name, TASK.description, TASK.run);
