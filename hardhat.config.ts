@@ -75,11 +75,11 @@ const config: HardhatUserConfig = {
     goerli: {
       chainId: 5,
       url: `https://goerli.infura.io/v3/${process.env.INFURA_STAGING_KEY}`,
-      accounts: { mnemonic: process.env.MNEMONIC },
+      accounts: { mnemonic: process.env.STAGING_MNEMONIC },
     },
     mumbai: {
       url: `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_STAGING_KEY}`,
-      accounts: { mnemonic: process.env.MNEMONIC },
+      accounts: { mnemonic: process.env.STAGING_MNEMONIC },
     },
   },
   solidity: {
