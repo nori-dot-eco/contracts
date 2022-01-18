@@ -47,11 +47,6 @@ jobs:
             echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
             yarn
-
-      - run:
-          name: Build Contracts
-          command: |
-            truffle compile
       - run:
           name: Run Contract Tests
           command: |
