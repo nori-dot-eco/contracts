@@ -54,8 +54,10 @@ contract NORI is ERC777Upgradeable, AccessControlEnumerableUpgradeable, Pausable
     * - the caller must have the `PAUSER_ROLE`.
     */
   function pause() public {
+    @start<Different-from>
     require(hasRole(PAUSER_ROLE, _msgSender()), "NORI: must have pauser role to pause");
     _pause();
+    @end
   }
 
   /**

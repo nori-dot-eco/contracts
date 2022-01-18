@@ -8,11 +8,11 @@
     "@nomiclabs/hardhat-ethers": "^2.0.4",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@nori-dot-com/eslint-config-nori": "*",
-    "@openzeppelin/test-helpers": "^0.5.15",
     "@openzeppelin/contracts": "^4.4.2",
     "@openzeppelin/contracts-ethereum-package": "2.2.3",
     "@openzeppelin/contracts-upgradeable": "^4.4.2",
     "@openzeppelin/hardhat-upgrades": "^1.13.0",
+    "@openzeppelin/test-helpers": "^0.5.15",
     "@openzeppelin/upgrades": "^2.8.0",
     "@types/chai": "^4.3.0",
     "@types/fs-extra": "^9.0.13",
@@ -29,6 +29,7 @@
     "hardhat-ethernal": "^0.3.12",
     "prettier": "^2.5.1",
     "solc": "^0.8.11",
+    "ts-node": "^10.4.0",
     "tsconfig-paths": "^3.12.0"
   },
   "files": [
@@ -39,5 +40,8 @@
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
     "test": "hardhat test"
+  },
+  "dependencies": {
+    "@primitivefi/hardhat-marmite": "^0.0.4"
   }
 }

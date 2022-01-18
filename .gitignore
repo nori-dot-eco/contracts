@@ -83,3 +83,6 @@ cache
 artifacts/*
 !artifacts/contracts
 .openzeppelin/unknown-*.json
+
+# marmite
+.gas

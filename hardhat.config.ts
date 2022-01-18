@@ -1,17 +1,23 @@
 import 'tsconfig-paths/register';
 import '@nomiclabs/hardhat-waffle';
 import '@openzeppelin/hardhat-upgrades';
-import 'hardhat-ethernal';
 import 'hardhat-deploy';
+import '@primitivefi/hardhat-marmite';
+import 'hardhat-ethernal';
 
 import '@/tasks';
-
 import { execSync } from 'child_process';
 
-import { task } from 'hardhat/config';
+import { extendEnvironment, task } from 'hardhat/config';
 import type { HardhatUserConfig } from 'hardhat/types/config';
 import { ethers } from 'ethers';
 import type { HardhatNetworkAccountUserConfig } from 'hardhat/types';
+
+extendEnvironment((hre) => {
+  hre.ethernalSync = false;
+  hre.ethernalWorkspace = 'Workspace';
+  hre.ethernalTrace = false;
+});
 
 task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -61,12 +67,12 @@ const config: HardhatUserConfig = {
   paths: {
     deploy: 'deploy',
     deployments: 'deployments',
-    imports: 'imports',
+    imports: 'artifacts',
   },
   namedAccounts,
   networks: {
     hardhat: {
-      live: false,
+      // live: false,
       gas: 2_000_000,
       blockGasLimit: 21_000_000,
       chainId: 9001,
@@ -92,6 +98,9 @@ const config: HardhatUserConfig = {
             runs: 200,
           },
         },
+      },
+      {
+        version: '0.8.9',
       },
       {
         version: '0.8.10',
