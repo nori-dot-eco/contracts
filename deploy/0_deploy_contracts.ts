@@ -81,6 +81,7 @@ const func: CustomHardhatDeployFunction = async (hre) => {
         ethers.utils.formatBytes32String('0x0')
       ),
       noriV0Instance.mint(buyer, ethers.utils.parseUnits('1000000')),
+      noriV0Instance.mint(buyer, ethers.utils.parseUnits('1000000')),
     ]);
     console.log('Minted NORI and Nori_V0 to buyer wallet', buyer);
     if (process.env.ETHERNAL_EMAIL && process.env.ETHERNAL_PASSWORD) {

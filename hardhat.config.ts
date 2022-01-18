@@ -37,8 +37,8 @@ task(
 
 export const namedAccounts = {
   admin: 0,
-  buyer: 1,
   supplier: 2,
+  buyer: 6,
   noriWallet: 9,
 };
 
