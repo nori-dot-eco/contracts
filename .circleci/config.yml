@@ -15,7 +15,6 @@ jobs:
       - run:
           name: Setup Environment
           command: |
-            sudo apt-get update && sudo apt -y install libsecret-1-0
             echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
 
@@ -51,6 +50,7 @@ jobs:
       - run:
           name: Run Contract Tests
           command: |
+            sudo apt-get update && sudo apt -y install libsecret-1-0
             yarn run test
 
 workflows:
