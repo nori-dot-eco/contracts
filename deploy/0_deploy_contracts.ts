@@ -14,7 +14,7 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     network,
     ethernal,
   } = hre;
-  const { noriWallet, buyer } = await getNamedAccounts();
+  const { noriWallet, buyer, supplier, admin } = await getNamedAccounts();
 
   if (network.name === 'mainnet') {
     throw new Error('You cannot deploy to mainnet yet');
@@ -81,7 +81,8 @@ const func: CustomHardhatDeployFunction = async (hre) => {
         ethers.utils.formatBytes32String('0x0')
       ),
       noriV0Instance.mint(buyer, ethers.utils.parseUnits('1000000')),
-      noriV0Instance.mint(buyer, ethers.utils.parseUnits('1000000')),
+      noriV0Instance.mint(supplier, ethers.utils.parseUnits('100')),
+      noriV0Instance.mint(admin, ethers.utils.parseUnits('100')),
     ]);
     console.log('Minted NORI and Nori_V0 to buyer wallet', buyer);
     if (process.env.ETHERNAL_EMAIL && process.env.ETHERNAL_PASSWORD) {
