@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2018",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "types": ["node", "chai", "jest"],
+    "paths": {
+      "@/tasks": ["./tasks/index.ts"],
+      "@/test/helpers": ["./test/helpers/index.ts"],
+      "@/plugins": ["./plugins/index.ts"],
+      "@/utils": ["./utils/index.ts"],
+      "@/utils/*": ["./utils/*"],
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.d.ts",
+    ".eslintrc.js"
+  ]
+}

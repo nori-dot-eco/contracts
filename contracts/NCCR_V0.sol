@@ -4,6 +4,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/ERC721Fu
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/ERC721MetadataMintable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/ERC721Pausable.sol";
 
+//todo deprecate
 contract NCCR_V0 is ERC721Full, ERC721MetadataMintable, ERC721Pausable {
 
   // mapping of tokenId -> to a string of human readable data

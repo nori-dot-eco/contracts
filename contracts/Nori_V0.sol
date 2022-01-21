@@ -4,6 +4,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Deta
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Mintable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Pausable.sol";
 
+//todo deprecate
 contract Nori_V0 is Initializable, ERC20Detailed, ERC20Mintable, ERC20Pausable {
   event TransferWithFeeAndMemo(
     address indexed from,
