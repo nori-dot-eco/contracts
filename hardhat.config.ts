@@ -1,39 +1,12 @@
 import 'tsconfig-paths/register';
-import '@nomiclabs/hardhat-waffle';
-import '@openzeppelin/hardhat-upgrades';
-import 'hardhat-ethernal';
-import 'hardhat-deploy';
-
-import '@/tasks';
-
-import { execSync } from 'child_process';
-
-import { task } from 'hardhat/config';
-import type { HardhatUserConfig } from 'hardhat/types/config';
+import '@/plugins';
+import type {
+  HardhatNetworkAccountUserConfig,
+  HardhatUserConfig,
+} from 'hardhat/types';
 import { ethers } from 'ethers';
-import type { HardhatNetworkAccountUserConfig } from 'hardhat/types';
 
-task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
-  accounts.forEach((account) => {
-    console.log(account.address);
-  });
-});
-
-task(
-  'ethernal:reset',
-  'Prints the list of accounts',
-  async (_taskArgs, _hre) => {
-    try {
-      execSync('rm .openzeppelin/unknown-9001.json', { cwd: __dirname });
-    } catch (e) {
-      //
-    }
-    execSync('ethernal reset nori');
-    console.log('RESET ETHERNAL');
-    return Promise.resolve();
-  }
-);
+import { env } from '@/utils/environment';
 
 export const namedAccounts = {
   admin: 0,
@@ -43,11 +16,11 @@ export const namedAccounts = {
 };
 
 const defaultAccountFixtures: HardhatNetworkAccountUserConfig[] | undefined =
-  process.env.MNEMONIC
+  env.MNEMONIC
     ? [...Array(10)].map((_, i) => {
         return {
           privateKey: ethers.Wallet.fromMnemonic(
-            process.env.MNEMONIC as string,
+            env.MNEMONIC as string,
             `m/44'/60'/0'/0/${i}`
           ).privateKey.toString(),
           balance: ethers.utils
@@ -58,29 +31,38 @@ const defaultAccountFixtures: HardhatNetworkAccountUserConfig[] | undefined =
     : undefined;
 
 const config: HardhatUserConfig = {
+  tenderly:
+    env.TENDERLY_USERNAME && env.TENDERLY_PROJECT
+      ? {
+          username: env.TENDERLY_USERNAME,
+          project: env.TENDERLY_PROJECT,
+        }
+      : undefined,
   paths: {
     deploy: 'deploy',
     deployments: 'deployments',
-    imports: 'imports',
+    imports: 'artifacts',
   },
   namedAccounts,
   networks: {
     hardhat: {
-      live: false,
       gas: 2_000_000,
-      blockGasLimit: 21_000_000,
+      blockGasLimit: 20_000_000,
       chainId: 9001,
       accounts: defaultAccountFixtures,
     },
-    goerli: {
-      chainId: 5,
-      url: `https://goerli.infura.io/v3/${process.env.INFURA_STAGING_KEY}`,
-      accounts: { mnemonic: process.env.STAGING_MNEMONIC },
-    },
-    mumbai: {
-      url: `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_STAGING_KEY}`,
-      accounts: { mnemonic: process.env.STAGING_MNEMONIC },
-    },
+    ...(env.INFURA_STAGING_KEY &&
+      env.STAGING_MNEMONIC && {
+        goerli: {
+          chainId: 5,
+          url: `https://goerli.infura.io/v3/${env.INFURA_STAGING_KEY}`,
+          accounts: { mnemonic: env.STAGING_MNEMONIC },
+        },
+        mumbai: {
+          url: `https://polygon-mumbai.infura.io/v3/${env.INFURA_STAGING_KEY}`,
+          accounts: { mnemonic: env.STAGING_MNEMONIC },
+        },
+      }),
   },
   solidity: {
     compilers: [
