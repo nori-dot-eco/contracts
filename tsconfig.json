@@ -12,6 +12,9 @@
     "paths": {
       "@/tasks": ["./tasks/index.ts"],
       "@/test/helpers": ["./test/helpers/index.ts"],
+      "@/plugins": ["./plugins/index.ts"],
+      "@/utils": ["./utils/index.ts"],
+      "@/utils/*": ["./utils/*"],
     }
   },
   "include": [
