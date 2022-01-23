@@ -93,34 +93,35 @@ contract FIFOMarket is
     require(recipient == address(recipient),"FIFOMarket: Invalid address");
     require(recipient != address(0), "FIFOMarket: Cannot mint to the 0 address");
     require(msg.sender == address(_nori), "FIFOMarket: This contract can only receive NORI"); // todo verify this can only be invoked by the nori contract
-    uint amountToFill = amount;
+    uint certificateAmount = (amount * 100) / (100 + _noriFee);
+    uint remainingAmountToFill = certificateAmount;
     uint256[] memory ids = new uint256[](_queue.length());
     uint256[] memory amounts = new uint256[](_queue.length());
     address[] memory suppliers = new address[](_queue.length());
     for (uint i = 0; i < _queue.length(); i++) {
       uint removalAmount = _removal.balanceOf(address(this), _queue.at(i));
       address supplier = _removal.vintage(_queue.at(i)).supplier;
-      if(amountToFill < removalAmount) {
+      if(remainingAmountToFill < removalAmount) {
         ids[i] = _queue.at(i);
-        amounts[i] = amountToFill;
+        amounts[i] = remainingAmountToFill;
         suppliers[i] = supplier;
-        amountToFill = 0;
-      } else if(amountToFill >= removalAmount) {
-        if(i == _queue.length() - 1 && amountToFill > removalAmount){
+        remainingAmountToFill = 0;
+      } else if(remainingAmountToFill >= removalAmount) {
+        if(i == _queue.length() - 1 && remainingAmountToFill > removalAmount){
           revert("FIFOMarket: Not enough supply");
         }
         ids[i] = _queue.at(i);
         amounts[i] = removalAmount;
         suppliers[i] = supplier;
-        amountToFill -= removalAmount;
+        remainingAmountToFill -= removalAmount;
       } else {
         revert("FIFOMarket: Not enough supply");
       }
-      if(amountToFill == 0){
+      if(remainingAmountToFill == 0){
         break;
       }
     }
-    bytes memory encodedCertificateAmount = abi.encode(amount);
+    bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
     _certificate.mintBatch(
       recipient,
       ids,
@@ -135,7 +136,7 @@ contract FIFOMarket is
         _queue.remove(i);
       }
       uint256 noriFee = (amounts[i] / 100) * _noriFee;
-      uint256 supplierFee = amounts[i] - noriFee;
+      uint256 supplierFee = amounts[i];
       _nori.transfer(_noriFeeWallet, noriFee);
       _nori.transfer(suppliers[i], supplierFee);
     }
