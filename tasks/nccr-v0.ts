@@ -6,10 +6,10 @@ import {
 } from './utils/contract-functions';
 
 import * as contractsConfig from '@/contracts.json';
-import { abi as noriAbi } from '@/artifacts/NORI.sol/NORI.json';
+import { abi as nccrAbi } from '@/artifacts/NCCR_V0.sol/NCCR_V0.json';
 
 export const TASK = {
-  name: 'NORI',
+  name: 'NCCR_V0',
   description: 'Interact with the nori contract',
   run: async (
     {
@@ -28,8 +28,8 @@ export const TASK = {
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
     return CONTRACT_FUNCTION_TASK_RUN({
-      contractAddress: contractsConfig[hre.network.name].NORI.proxyAddress,
-      contractAbi: noriAbi,
+      contractAddress: contractsConfig[hre.network.name].NCCR_V0.proxyAddress,
+      contractAbi: nccrAbi,
       from,
       func,
       args,

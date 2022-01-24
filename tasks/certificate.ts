@@ -6,10 +6,10 @@ import {
 } from './utils/contract-functions';
 
 import * as contractsConfig from '@/contracts.json';
-import { abi as noriAbi } from '@/artifacts/NORI.sol/NORI.json';
+import { abi as certificateAbi } from '@/artifacts/Certificate.sol/Certificate.json';
 
 export const TASK = {
-  name: 'NORI',
+  name: 'Certificate',
   description: 'Interact with the nori contract',
   run: async (
     {
@@ -28,8 +28,9 @@ export const TASK = {
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
     return CONTRACT_FUNCTION_TASK_RUN({
-      contractAddress: contractsConfig[hre.network.name].NORI.proxyAddress,
-      contractAbi: noriAbi,
+      contractAddress:
+        contractsConfig[hre.network.name].Certificate.proxyAddress,
+      contractAbi: certificateAbi,
       from,
       func,
       args,
