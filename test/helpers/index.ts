@@ -1,2 +1,2 @@
-export * from './setup-chai';
+export * from './chai';
 export * from './interfaces';

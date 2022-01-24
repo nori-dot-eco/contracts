@@ -16,7 +16,7 @@ const func: CustomHardhatDeployFunction = async (hre) => {
   } = hre;
   const { noriWallet, buyer, supplier, admin } = await getNamedAccounts();
 
-  if (network.name === 'mainnet') {
+  if ((network.name as string) === 'mainnet') {
     throw new Error('You cannot deploy to mainnet yet');
   }
 

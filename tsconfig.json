@@ -6,15 +6,17 @@
     "esModuleInterop": true,
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "outDir": "dist",
     "baseUrl": ".",
-    "types": ["node", "chai", "jest"],
+    "types": ["chai", "jest"],
     "paths": {
       "@/tasks": ["./tasks/index.ts"],
       "@/test/helpers": ["./test/helpers/index.ts"],
       "@/plugins": ["./plugins/index.ts"],
-      "@/utils": ["./utils/index.ts"],
-      "@/utils/*": ["./utils/*"],
+      "@/contracts.json": ["./contracts.json"],
+      "@/artifacts/*": ["./artifacts/contracts/*"],
+      "@/config/*": ["./config/*"],
     }
   },
   "include": [

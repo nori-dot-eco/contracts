@@ -1,11 +1,10 @@
 import type {
   ConfigurableTaskDefinition,
   HardhatRuntimeEnvironment,
+  Network,
   RunSuperFunction,
   TaskArguments,
 } from 'hardhat/types/runtime';
-import type { MessageTraceStep } from 'hardhat/src/internal/hardhat-network/stack-traces/message-trace';
-import type { ContractInput } from 'hardhat-ethernal/dist/src/types';
 import type { DeployFunction } from '@openzeppelin/hardhat-upgrades/src/deploy-proxy';
 import type { Contract, ContractFactory, ethers } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
@@ -16,7 +15,8 @@ import type {
   HardhatEthersHelpers,
 } from '@nomiclabs/hardhat-ethers/types';
 
-import type { namedAccounts } from '../hardhat.config';
+import type { namedAccounts } from '@/config/accounts';
+import type { networks } from '@/config/networks';
 
 import type { TASKS } from '@/tasks';
 
@@ -47,18 +47,6 @@ declare module 'hardhat/types/runtime' {
   ) => Promise<T>;
   export interface HardhatRuntimeEnvironment {
     deployments: DeploymentsExtension;
-    ethernalSync: boolean;
-    ethernalTrace: boolean;
-    ethernalWorkspace: string;
-    ethernal: {
-      // todo get hardhat to recognize ethernal types natively
-      startListening: () => Promise<void>;
-      traceHandler: (
-        trace: MessageTraceStep,
-        isMessageTraceFromACall: boolean
-      ) => Promise<void>;
-      push: (contract: ContractInput) => Promise<void>;
-    };
   }
 }
 
@@ -90,10 +78,10 @@ declare global {
     getNamedAccounts: () => Promise<typeof namedAccounts>;
     run: (
       name: keyof typeof TASKS,
-      taskArguments?: TaskArguments
+      taskArguments: Parameters<typeof TASKS[typeof name]['run']>[0]
     ) => Promise<ReturnType<typeof TASKS[typeof name]['run']>>;
-    // upgrades: CustomHardhatUpgrades;
     upgrades: HardhatUpgrades;
+    network: Omit<Network,'name'> & { name:keyof typeof networks },
     ethers: Omit<typeof ethers & HardhatEthersHelpers, 'getContractFactory'> & {
       getContractFactory(
         name:
@@ -111,4 +99,15 @@ declare global {
   interface CustomHardhatDeployFunction extends Partial<DeployFunction> {
     (hre: CustomHardHatRuntimeEnvironment): Promise<void | boolean>;
   }
+
+  namespace NodeJS {
+    interface ProcessEnv {
+      MNEMONIC?: string;
+      STAGING_MNEMONIC?: string;
+      INFURA_STAGING_KEY?: string;
+      TENDERLY_USERNAME?: string;
+      TENDERLY_PROJECT?: string;
+    }
+  }
 }
+
