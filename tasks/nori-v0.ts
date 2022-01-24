@@ -10,7 +10,7 @@ import { abi as noriV0Abi } from '@/artifacts/Nori_V0.sol/Nori_V0.json';
 
 export const TASK = {
   name: 'Nori_V0',
-  description: 'Interact with the nori contract',
+  description: 'Interact with the Nori_V0 contract',
   run: async (
     {
       func,

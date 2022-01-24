@@ -10,7 +10,7 @@ import { abi as removalAbi } from '@/artifacts/Removal.sol/Removal.json';
 
 export const TASK = {
   name: 'Removal',
-  description: 'Interact with the nori contract',
+  description: 'Interact with the Removal contract',
   run: async (
     {
       func,

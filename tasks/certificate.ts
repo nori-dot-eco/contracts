@@ -10,7 +10,7 @@ import { abi as certificateAbi } from '@/artifacts/Certificate.sol/Certificate.j
 
 export const TASK = {
   name: 'Certificate',
-  description: 'Interact with the nori contract',
+  description: 'Interact with the Certificate contract',
   run: async (
     {
       func,

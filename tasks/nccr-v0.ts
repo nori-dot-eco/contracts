@@ -10,7 +10,7 @@ import { abi as nccrAbi } from '@/artifacts/NCCR_V0.sol/NCCR_V0.json';
 
 export const TASK = {
   name: 'NCCR_V0',
-  description: 'Interact with the nori contract',
+  description: 'Interact with the NCCR_V0 contract',
   run: async (
     {
       func,

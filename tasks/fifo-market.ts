@@ -10,7 +10,7 @@ import { abi as fifoMarketAbi } from '@/artifacts/FIFOMarket.sol/FIFOMarket.json
 
 export const TASK = {
   name: 'FIFOMarket',
-  description: 'Interact with the nori contract',
+  description: 'Interact with the FIFOMarket contract',
   run: async (
     {
       func,
