@@ -40,12 +40,12 @@ export const CONTRACT_FUNCTION_TASK_RUN = async ({
   if (hre.network.provider) {
     const signers = await hre.ethers.getSigners();
     const signer = signers[from];
-    const noriV0TokenContract = new Contract(
+    const contract = new Contract(
       contractAddress,
       contractAbi, // todo store artifacts in contracts.json
       signer
     );
-    const transaction = await noriV0TokenContract[func](...args);
+    const transaction = await contract[func](...args);
     const result = await transaction.wait?.();
     if (result?.transactionHash) {
       console.log({ result });
