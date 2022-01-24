@@ -61,11 +61,6 @@ describe('NCCR_V0', () => {
       expect(typeof nccr.tokenOfOwnerByIndex).to.equals('function');
     });
 
-    it('should have a `tokenOfOwnerByIndex` function', async () => {
-      const { nccr } = await setupTest();
-      expect(typeof nccr.tokenOfOwnerByIndex).to.equals('function');
-    });
-
     it('should have a `unpause` function', async () => {
       const { nccr } = await setupTest();
       expect(typeof nccr.unpause).to.equals('function');
@@ -257,15 +252,6 @@ describe('NCCR_V0', () => {
             expect(await nccr.ownerOf(2)).to.equal(signer1.address);
           });
 
-          it('should assign the token to the `to` address given', async () => {
-            const { hre, nccr, signer1 } = await setupTest();
-            await mint({
-              to: (await hre.ethers.getSigners())[0].address,
-              nccr,
-            });
-            expect(await nccr.ownerOf(1)).to.equal(signer1.address);
-          });
-
           it('should increment the NCCR balance of the `to` address given', async () => {
             const { hre, nccr, signer1 } = await setupTest();
             await mint({
@@ -273,15 +259,6 @@ describe('NCCR_V0', () => {
               nccr,
             });
             expect(await nccr.balanceOf(signer1.address)).to.equal('1');
-          });
-
-          it('should assign the token to the `to` address given', async () => {
-            const { hre, nccr, signer1 } = await setupTest();
-            await mint({
-              to: (await hre.ethers.getSigners())[0].address,
-              nccr,
-            });
-            expect(await nccr.ownerOf(1)).to.equal(signer1.address);
           });
 
           it('should assign the token to the `to` address given', async () => {
