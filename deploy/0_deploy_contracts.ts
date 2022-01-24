@@ -102,6 +102,12 @@ const func: CustomHardhatDeployFunction = async (hre) => {
       );
     console.log('Minted NORI and Nori_V0 to buyer wallet', buyer);
     console.log('Listed 100 NRTs for sale in FIFOMarket');
+
+    /*
+    Note: the named contracts in the ethernal UI are the proxies.
+    The 'name' field in the push command must match the contract name exactly,
+    so labeling the implementations would add confusion.
+    */
     if (process.env.ETHERNAL_EMAIL && process.env.ETHERNAL_PASSWORD) {
       await Promise.all([
         ethernal.push({
