@@ -46,8 +46,17 @@ export const CONTRACT_FUNCTION_TASK_RUN = async ({
       signer
     );
     const transaction = await noriV0TokenContract[func](...args);
-    const result = await transaction.wait();
-    console.log({ result });
+    const result = await transaction.wait?.();
+    if (result?.transactionHash) {
+      console.log({ result });
+    } else {
+      console.log({
+        raw: transaction,
+        parsed: hre.ethers.BigNumber.isBigNumber(transaction)
+          ? transaction.toString()
+          : transaction,
+      });
+    }
   } else {
     throw new Error('No provider available');
   }
