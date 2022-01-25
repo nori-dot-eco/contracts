@@ -78,7 +78,7 @@ declare global {
     getNamedAccounts: () => Promise<typeof namedAccounts>;
     run: (
       name: keyof typeof TASKS,
-      taskArguments: Parameters<typeof TASKS[typeof name]['run']>[0]
+      taskArguments?: Parameters<typeof TASKS[typeof name]['run']>[0]
     ) => Promise<ReturnType<typeof TASKS[typeof name]['run']>>;
     upgrades: HardhatUpgrades;
     network: Omit<Network,'name'> & { name:keyof typeof networks },
@@ -109,6 +109,7 @@ declare global {
       TENDERLY_PROJECT?: string;
       ETHERNAL_EMAIL?: string;
       ETHERNAL_PASSWORD?: string;
+      ETHERSCAN_API_KEY?: string;
     }
   }
 }
