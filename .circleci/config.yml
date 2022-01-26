@@ -17,7 +17,6 @@ jobs:
           command: |
             echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
-            sudo apt-get update && sudo apt -y install libsecret-1-0
 
       - restore_cache:
           key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
@@ -47,6 +46,7 @@ jobs:
           command: |
             echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+            sudo apt-get update && sudo apt -y install libsecret-1-0
             yarn
       - run:
           name: Run Contract Tests
