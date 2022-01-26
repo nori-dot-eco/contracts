@@ -3,6 +3,7 @@ import '@/config/environment';
 import '@/plugins';
 import type { HardhatUserConfig } from 'hardhat/types';
 
+import { etherscan } from '@/config/etherscan';
 import { tenderly } from '@/config/tenderly';
 import { networks } from '@/config/networks';
 import { namedAccounts } from '@/config/accounts';
@@ -16,6 +17,7 @@ export const config: HardhatUserConfig = {
   },
   namedAccounts,
   networks,
+  etherscan,
   solidity: {
     compilers: [
       {
