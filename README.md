@@ -20,6 +20,21 @@ yarn test
 
 ---
 
+## Hardhat Tasks
+
+https://hardhat.org/guides/create-task.html
+Custom hardhat tasks have been implemented that allow for calling any function (read or write) on the existing contracts.
+
+```
+hardhat [contract name] --func [function name] [arguments] --network [network name]
+```
+
+Example: mints 1 NORI on mumbai to given address
+
+```
+hardhat NORI --func mint  "0x321af43416f670ce8b4ba214dfb87c4199e2a77f" 1000000000000000000 "0x" "0x" --network mumbai
+```
+
 ## Contracts
 
 ### Upgradeability
