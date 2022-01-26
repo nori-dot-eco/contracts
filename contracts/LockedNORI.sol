@@ -167,12 +167,12 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, ER
     address holder,
     address spender,
     uint256 value
-  ) internal override(ERC20Upgradeable, ERC777Upgradeable) {
+  ) internal virtual override(ERC20Upgradeable, ERC777Upgradeable) {
     ERC777Upgradeable._approve(holder, spender, value);
   }
 
   function allowance(address holder, address spender) public view virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (uint256) {
-    return ERC777Upgradeable.allowance(spender, spender);
+    return ERC777Upgradeable.allowance(holder, spender);
   }
 
   function approve(address spender, uint256 value) public virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (bool) {
@@ -183,15 +183,15 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, ER
     return ERC777Upgradeable.decimals();
   }
 
-  function name() public pure virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (string memory) {
+  function name() public view virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (string memory) {
     return ERC777Upgradeable.name();
   }
 
-  function symbol() public pure virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (string memory){
+  function symbol() public view virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (string memory){
     return ERC777Upgradeable.symbol();
   }
 
-  function totalSupply() public pure virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (uint256) {
+  function totalSupply() public view virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (uint256) {
     return ERC777Upgradeable.totalSupply();
   }
 
