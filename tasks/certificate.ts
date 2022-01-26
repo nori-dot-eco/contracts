@@ -6,7 +6,6 @@ import {
 } from './utils/contract-functions';
 
 import * as contractsConfig from '@/contracts.json';
-import { abi as certificateAbi } from '@/artifacts/Certificate.sol/Certificate.json';
 
 export const TASK = {
   name: 'Certificate',
@@ -30,7 +29,9 @@ export const TASK = {
     return CONTRACT_FUNCTION_TASK_RUN({
       contractAddress:
         contractsConfig[hre.network.name].Certificate.proxyAddress,
-      contractAbi: certificateAbi,
+      contractAbi: (
+        await require('@/artifacts/Certificate.sol/Certificate.json')
+      ).abi,
       from,
       func,
       args,

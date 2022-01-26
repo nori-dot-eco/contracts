@@ -1,9 +1,11 @@
+import type { NoriV0, NoriV0__factory } from '../typechain-types';
+
 import { expect, hardhat } from '@/test/helpers';
 
 const setupTest = hardhat.deployments.createFixture(async (hre) => {
   const { upgrades, ethers } = hre;
-  const NoriV0 = await ethers.getContractFactory('Nori_V0');
-  const noriV0 = await upgrades.deployProxy(NoriV0, [], {
+  const NoriV0 = await ethers.getContractFactory<NoriV0__factory>('Nori_V0');
+  const noriV0 = await upgrades.deployProxy<NoriV0>(NoriV0, [], {
     initializer: 'initialize()',
   });
   return { noriV0, hre };
