@@ -2,6 +2,21 @@ import path from 'path';
 
 import { writeJsonSync, readJsonSync } from 'fs-extra';
 
+import type {
+  Certificate,
+  Certificate__factory,
+  FIFOMarket,
+  FIFOMarket__factory,
+  NCCRV0,
+  NCCRV0__factory,
+  NORI,
+  NoriV0,
+  NoriV0__factory,
+  NORI__factory,
+  Removal,
+  Removal__factory,
+} from '../typechain-types';
+
 const func: CustomHardhatDeployFunction = async (hre) => {
   // todo throw if wrong account is deploying on goerli, mumbai or mainnet
   // todo does deploy proxy always deploy a proxy or will it upgradeTo if it exists?
@@ -26,28 +41,33 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     await run('deploy:erc1820');
   }
   // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-  const Nori_V0 = await ethers.getContractFactory('Nori_V0'); // todo deprecate
-  const noriV0Instance = await deployProxy(Nori_V0, [], {
+  const Nori_V0 = await ethers.getContractFactory<NoriV0__factory>('Nori_V0'); // todo deprecate
+  const noriV0Instance = await deployProxy<NoriV0>(Nori_V0, [], {
     initializer: 'initialize()',
   }); // todo deprecate
-  const NCCR_V0 = await ethers.getContractFactory('NCCR_V0'); // todo deprecate
-  const nccrV0Instance = await deployProxy(NCCR_V0, [], {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const NCCR_V0 = await ethers.getContractFactory<NCCRV0__factory>('NCCR_V0'); // todo deprecate
+  const nccrV0Instance = await deployProxy<NCCRV0>(NCCR_V0, [], {
     initializer: 'initialize()',
   }); // todo deprecate
   console.log('Deployed legacy contracts (Nori_V0 and NCCR_V0)');
-  const NORI = await ethers.getContractFactory('NORI');
-  const Removal = await ethers.getContractFactory('Removal');
-  const Certificate = await ethers.getContractFactory('Certificate');
-  const FIFOMarket = await ethers.getContractFactory('FIFOMarket');
-  const noriInstance = await deployProxy(NORI, []);
 
-  const removalInstance = await deployProxy(Removal, [], {
+  const NORI = await ethers.getContractFactory<NORI__factory>('NORI');
+  const Removal = await ethers.getContractFactory<Removal__factory>('Removal');
+  const Certificate = await ethers.getContractFactory<Certificate__factory>(
+    'Certificate'
+  );
+  const FIFOMarket = await ethers.getContractFactory<FIFOMarket__factory>(
+    'FIFOMarket'
+  );
+  const noriInstance = await deployProxy<NORI>(NORI, []);
+  const removalInstance = await deployProxy<Removal>(Removal, [], {
     initializer: 'initialize()',
   });
-  const certificateInstance = await deployProxy(Certificate, [], {
+  const certificateInstance = await deployProxy<Certificate>(Certificate, [], {
     initializer: 'initialize()',
   });
-  const fifoMarketInstance = await deployProxy(
+  const fifoMarketInstance = await deployProxy<FIFOMarket>(
     FIFOMarket,
     [
       removalInstance.address,

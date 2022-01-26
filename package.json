@@ -15,6 +15,8 @@
     "@openzeppelin/test-helpers": "^0.5.15",
     "@openzeppelin/upgrades": "^2.8.0",
     "@tenderly/hardhat-tenderly": "^1.0.13",
+    "@typechain/ethers-v5": "^9.0.0",
+    "@typechain/hardhat": "^4.0.0",
     "@types/chai": "^4.3.0",
     "@types/fs-extra": "^9.0.13",
     "@types/jest": "^27.4.0",
@@ -32,7 +34,8 @@
     "prettier": "^2.5.1",
     "solc": "^0.8.11",
     "ts-node": "^10.4.0",
-    "tsconfig-paths": "^3.12.0"
+    "tsconfig-paths": "^3.12.0",
+    "typechain": "^7.0.0"
   },
   "files": [
     "build",
@@ -42,6 +45,7 @@
   ],
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "prepare": "hardhat compile"
   }
 }

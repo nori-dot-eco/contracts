@@ -1,30 +1,52 @@
-import { ethers } from 'hardhat';
-import { hexZeroPad } from 'ethers/lib/utils';
+import type {
+  Certificate,
+  Certificate__factory,
+  FIFOMarket,
+  FIFOMarket__factory,
+  NORI,
+  NORI__factory,
+  Removal,
+  Removal__factory,
+} from '../typechain-types';
 
 import { expect, hardhat } from '@/test/helpers';
 
 const setupTest = hardhat.deployments.createFixture(async (hre) => {
-  const { getNamedAccounts, upgrades, ethers, run } = hre;
+  const { getNamedAccounts, upgrades, run, ethers } = hre;
   await run('deploy:erc1820');
   const { noriWallet } = await getNamedAccounts();
-  const NORI = await ethers.getContractFactory('NORI');
-  const Removal = await ethers.getContractFactory('Removal');
-  const Certificate = await ethers.getContractFactory('Certificate');
-  const FIFOMarket = await ethers.getContractFactory('FIFOMarket');
-  const noriInstance = await upgrades.deployProxy(NORI, []);
-  const removalInstance = await upgrades.deployProxy(Removal, [], {
+  const NORI = await ethers.getContractFactory<NORI__factory>('NORI');
+  const Removal = await ethers.getContractFactory<Removal__factory>('Removal');
+  const Certificate = await ethers.getContractFactory<Certificate__factory>(
+    'Certificate'
+  );
+  const FIFOMarket = await ethers.getContractFactory<FIFOMarket__factory>(
+    'FIFOMarket'
+  );
+  const noriInstance = await upgrades.deployProxy<NORI>(NORI, []);
+  const removalInstance = await upgrades.deployProxy<Removal>(Removal, [], {
     initializer: 'initialize()',
   });
-  const certificateInstance = await upgrades.deployProxy(Certificate, [], {
-    initializer: 'initialize()',
-  });
-  const fifoMarketInstance = await upgrades.deployProxy(FIFOMarket, [
-    removalInstance.address,
-    noriInstance.address,
-    certificateInstance.address,
-    noriWallet,
-    15,
-  ]);
+  const certificateInstance = await upgrades.deployProxy<Certificate>(
+    Certificate,
+    [],
+    {
+      initializer: 'initialize()',
+    }
+  );
+  const fifoMarketInstance = await upgrades.deployProxy<FIFOMarket>(
+    FIFOMarket,
+    [
+      removalInstance.address,
+      noriInstance.address,
+      certificateInstance.address,
+      noriWallet,
+      15,
+    ],
+    {
+      initializer: 'initialize(address,address,address,address,uint256)',
+    }
+  );
   return {
     contracts: {
       NORI: noriInstance,
@@ -55,32 +77,32 @@ describe('FIFOMarket', () => {
       await Promise.all([
         Removal.mintBatch(
           supplier,
-          [ethers.utils.parseUnits('100')],
+          [hardhat.ethers.utils.parseUnits('100')],
           [2018],
-          ethers.utils.formatBytes32String('0x0')
+          hardhat.ethers.utils.formatBytes32String('0x0')
         ),
         NORI.mint(
           buyer,
-          ethers.utils.parseUnits(buyerInitialNoriBalance),
-          ethers.utils.formatBytes32String('0x0'),
-          ethers.utils.formatBytes32String('0x0')
+          hardhat.ethers.utils.parseUnits(buyerInitialNoriBalance),
+          hardhat.ethers.utils.formatBytes32String('0x0'),
+          hardhat.ethers.utils.formatBytes32String('0x0')
         ),
         Certificate.addMinter(FIFOMarket.address),
       ]);
-      const accounts = await ethers.getSigners();
+      const accounts = await hardhat.ethers.getSigners();
       await Removal.connect(accounts[2]).safeBatchTransferFrom(
         supplier,
         FIFOMarket.address,
         [0],
-        [ethers.utils.parseUnits('100')],
-        ethers.utils.formatBytes32String('0x0')
+        [hardhat.ethers.utils.parseUnits('100')],
+        hardhat.ethers.utils.formatBytes32String('0x0')
       );
 
       await Certificate.connect(accounts[0]);
       await NORI.connect(accounts[6]).send(
         FIFOMarket.address,
-        ethers.utils.parseUnits('1.15'),
-        hexZeroPad(buyer, 32)
+        hardhat.ethers.utils.parseUnits('1.15'),
+        hardhat.ethers.utils.hexZeroPad(buyer, 32)
       );
 
       const buyerFinalNoriBalance = await NORI.balanceOf(buyer);
@@ -88,28 +110,28 @@ describe('FIFOMarket', () => {
       const noriFinalNoriBalance = await NORI.balanceOf(noriWallet);
 
       expect(buyerFinalNoriBalance).to.equal(
-        ethers.utils
+        hardhat.ethers.utils
           .parseUnits(buyerInitialNoriBalance)
-          .sub(ethers.utils.parseUnits('1.15', 18))
+          .sub(hardhat.ethers.utils.parseUnits('1.15', 18))
           .toString()
       );
 
       expect(supplierFinalNoriBalance).to.equal(
-        ethers.utils
+        hardhat.ethers.utils
           .parseUnits(supplierInitialNoriBalance)
-          .add(ethers.utils.parseUnits('1', 18))
+          .add(hardhat.ethers.utils.parseUnits('1', 18))
           .toString()
       );
 
       expect(noriFinalNoriBalance).to.equal(
-        ethers.utils
+        hardhat.ethers.utils
           .parseUnits(noriInitialNoriBalance)
-          .add(ethers.utils.parseUnits('0.15', 18))
+          .add(hardhat.ethers.utils.parseUnits('0.15', 18))
           .toString()
       );
 
       expect(await Certificate.balanceOf(buyer, 0)).to.equal(
-        ethers.utils.parseUnits('1', 18)
+        hardhat.ethers.utils.parseUnits('1', 18)
       );
     });
   });

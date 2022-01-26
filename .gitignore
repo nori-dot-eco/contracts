@@ -84,3 +84,6 @@ artifacts/*
 !artifacts/contracts
 .openzeppelin/unknown-*.json
 !.openzeppelin/unknown-80001.json
+
+# typechain
+typechain-types

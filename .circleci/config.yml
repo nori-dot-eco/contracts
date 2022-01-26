@@ -46,11 +46,11 @@ jobs:
           command: |
             echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+            sudo apt-get update && sudo apt -y install libsecret-1-0
             yarn
       - run:
           name: Run Contract Tests
           command: |
-            sudo apt-get update && sudo apt -y install libsecret-1-0
             yarn run test
 
 workflows:

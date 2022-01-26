@@ -6,7 +6,6 @@ import {
 } from './utils/contract-functions';
 
 import * as contractsConfig from '@/contracts.json';
-import { abi as nccrAbi } from '@/artifacts/NCCR_V0.sol/NCCR_V0.json';
 
 export const TASK = {
   name: 'NCCR_V0',
@@ -29,7 +28,7 @@ export const TASK = {
   ): Promise<void> => {
     return CONTRACT_FUNCTION_TASK_RUN({
       contractAddress: contractsConfig[hre.network.name].NCCR_V0.proxyAddress,
-      contractAbi: nccrAbi,
+      contractAbi: (await require('@/artifacts/NCCR_V0.sol/NCCR_V0.json')).abi,
       from,
       func,
       args,

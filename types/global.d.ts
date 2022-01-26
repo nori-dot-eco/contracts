@@ -6,10 +6,9 @@ import type {
   TaskArguments,
 } from 'hardhat/types/runtime';
 import type { DeployFunction } from '@openzeppelin/hardhat-upgrades/src/deploy-proxy';
-import type { Contract, ContractFactory, ethers } from 'ethers';
+import type { Contract, ContractFactory, ethers as defaultEthers } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
-import type { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
 import type {
   FactoryOptions,
   HardhatEthersHelpers,
@@ -50,27 +49,34 @@ declare module 'hardhat/types/runtime' {
   }
 }
 
-/**
- * @todo //todo this can be removed when '@openzeppelin/hardhat-upgrades' is upgraded to use the latest version of ethers (^5.5.3)
- */
-declare module '@openzeppelin/hardhat-upgrades' {
-  interface DeployFunction {
-    (
-      ImplFactory: ContractFactory,
-      args?: unknown[],
-      opts?: DeployProxyOptions
-    ): Promise<Contract>;
-    (
-      ImplFactory: ContractFactory,
-      opts?: DeployProxyOptions
-    ): Promise<Contract>;
-  }
-  interface CustomHardhatUpgrades {
-    deployProxy: DeployFunction; // overridden because of a mismatch in ethers types
-  }
+
+interface GenericDeployFunction {
+  <TC extends Contract = Contract, TContract extends ContractFactory = ContractFactory>(ImplFactory: TContract, args?: unknown[], opts?: DeployProxyOptions): Promise<InstanceOfContract<TC>>;
+  <TC extends Contract = Contract, TContract extends ContractFactory = ContractFactory>(ImplFactory: TContract, opts?: DeployProxyOptions): Promise<InstanceOfContract<TC>>;
+}
+
+type InstanceOfContract<TContract extends Contract> = ReturnType<TContract['attach']>;
+
+interface CustomHardhatUpgrades {
+  deployProxy: GenericDeployFunction; // overridden because of a mismatch in ethers types
 }
 
 declare global {
+  var hre: CustomHardHatRuntimeEnvironment;
+
+  var ethers: Omit<typeof defaultEthers & HardhatEthersHelpers, 'getContractFactory'> & {
+    getContractFactory<TContractFactory extends ContractFactory = ContractFactory>(
+      name:
+        | 'NCCR_V0'
+        | 'Nori_V0'
+        | 'FIFOMarket'
+        | 'NORI'
+        | 'Removal'
+        | 'Certificate',
+      signerOrOptions?: Signer | FactoryOptions
+    ): Promise<TContractFactory>;
+  };
+
   type CustomHardHatRuntimeEnvironment = Omit<
     HardhatRuntimeEnvironment,
     'getNamedAccounts' | 'run' | 'upgrades' | 'ethers'
@@ -80,20 +86,9 @@ declare global {
       name: keyof typeof TASKS,
       taskArguments?: Parameters<typeof TASKS[typeof name]['run']>[0]
     ) => Promise<ReturnType<typeof TASKS[typeof name]['run']>>;
-    upgrades: HardhatUpgrades;
+    upgrades: CustomHardhatUpgrades;
     network: Omit<Network,'name'> & { name:keyof typeof networks },
-    ethers: Omit<typeof ethers & HardhatEthersHelpers, 'getContractFactory'> & {
-      getContractFactory(
-        name:
-          | 'NCCR_V0'
-          | 'Nori_V0'
-          | 'FIFOMarket'
-          | 'NORI'
-          | 'Removal'
-          | 'Certificate',
-        signerOrOptions?: Signer | FactoryOptions
-      ): Promise<ContractFactory>;
-    };
+    ethers: typeof ethers
   };
 
   interface CustomHardhatDeployFunction extends Partial<DeployFunction> {

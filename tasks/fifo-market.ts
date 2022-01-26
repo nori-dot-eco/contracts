@@ -6,7 +6,6 @@ import {
 } from './utils/contract-functions';
 
 import * as contractsConfig from '@/contracts.json';
-import { abi as fifoMarketAbi } from '@/artifacts/FIFOMarket.sol/FIFOMarket.json';
 
 export const TASK = {
   name: 'FIFOMarket',
@@ -30,7 +29,8 @@ export const TASK = {
     return CONTRACT_FUNCTION_TASK_RUN({
       contractAddress:
         contractsConfig[hre.network.name].FIFOMarket.proxyAddress,
-      contractAbi: fifoMarketAbi,
+      contractAbi: (await require('@/artifacts/FIFOMarket.sol/NCCR_V0.json'))
+        .abi,
       from,
       func,
       args,

@@ -1,11 +1,11 @@
-import type { Contract } from 'ethers';
+import type { NCCRV0, NCCRV0__factory } from '../typechain-types';
 
 import { expect, hardhat, shouldSupportInterfaces } from '@/test/helpers';
 
 const setupTest = hardhat.deployments.createFixture(async (hre) => {
   const { upgrades, ethers } = hre;
-  const NccrV0 = await ethers.getContractFactory('NCCR_V0');
-  const nccr = await upgrades.deployProxy(NccrV0, [], {
+  const NccrV0 = await ethers.getContractFactory<NCCRV0__factory>('NCCR_V0');
+  const nccr = await upgrades.deployProxy<NCCRV0>(NccrV0, [], {
     initializer: 'initialize()',
   });
   const [signer1, signer2] = await ethers.getSigners();
@@ -16,7 +16,7 @@ const mint = async ({
   nccr,
   to,
 }: {
-  nccr: Contract;
+  nccr: NCCRV0;
   to: string;
 }): Promise<void> => {
   await nccr.mintWithTokenURIAndData(
