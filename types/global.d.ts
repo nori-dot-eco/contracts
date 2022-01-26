@@ -18,6 +18,7 @@ import type { namedAccounts } from '@/config/accounts';
 import type { networks } from '@/config/networks';
 
 import type { TASKS } from '@/tasks';
+import { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
 
 declare module 'hardhat/config' {
   export type ActionType<ArgsT extends TaskArguments, TActionReturnType> = (
@@ -57,7 +58,7 @@ interface GenericDeployFunction {
 
 type InstanceOfContract<TContract extends Contract> = ReturnType<TContract['attach']>;
 
-interface CustomHardhatUpgrades {
+interface CustomHardhatUpgrades extends HardhatUpgrades {
   deployProxy: GenericDeployFunction; // overridden because of a mismatch in ethers types
 }
 

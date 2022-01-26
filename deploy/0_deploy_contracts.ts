@@ -179,7 +179,7 @@ const func: CustomHardhatDeployFunction = async (hre) => {
         FIFOMarket: {
           proxyAddress: fifoMarketInstance.address,
         },
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
         Nori_V0: {
           proxyAddress: noriV0Instance.address,
         },
@@ -192,7 +192,7 @@ const func: CustomHardhatDeployFunction = async (hre) => {
         NCCR_V0: {
           proxyAddress: '0xBBbD7AEBD29360a34ceA492e012B9A2119DEd306',
         },
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
         Nori_V0: {
           proxyAddress: '0x1f77C0415bc4E5B5Dcb33C796F9c8cd8cc1c259d',
         },
