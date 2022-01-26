@@ -29,11 +29,9 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     ethernal,
   } = hre;
   const { noriWallet, buyer, supplier, admin } = await getNamedAccounts();
-
   if ((network.name as string) === 'mainnet') {
     throw new Error('You cannot deploy to mainnet yet');
   }
-
   if (network.name === 'hardhat') {
     await network.provider.send('hardhat_setLoggingEnabled', [true]);
     if (process.env.ETHERNAL_EMAIL && process.env.ETHERNAL_PASSWORD) {
@@ -42,7 +40,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     }
     await run('deploy:erc1820');
   }
-
   // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
   const Nori_V0 = await ethers.getContractFactory<NoriV0__factory>('Nori_V0'); // todo deprecate
   const noriV0Instance = await deployProxy<NoriV0>(Nori_V0, [], {
@@ -83,14 +80,18 @@ const func: CustomHardhatDeployFunction = async (hre) => {
       initializer: 'initialize(address,address,address,address,uint256)',
     }
   );
+  await noriV0Instance.deployed();
+  await nccrV0Instance.deployed();
+  await noriInstance.deployed();
+  await removalInstance.deployed();
+  await certificateInstance.deployed();
+  await fifoMarketInstance.deployed();
   console.log('Deployed NORI', noriInstance.address);
   console.log('Deployed Removal', removalInstance.address);
   console.log('Deployed Certificate', certificateInstance.address);
   console.log('Deployed FIFOMarket', fifoMarketInstance.address);
-
   await certificateInstance.addMinter(fifoMarketInstance.address);
   console.log('Added FIFOMarket as a minter of Certificate');
-
   if (network.name === 'hardhat') {
     await Promise.all([
       removalInstance.mintBatch(
@@ -121,7 +122,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
       );
     console.log('Minted NORI and Nori_V0 to buyer wallet', buyer);
     console.log('Listed 100 NRTs for sale in FIFOMarket');
-
     /*
     Note: the named contracts in the ethernal UI are the proxies.
     The 'name' field in the push command must match the contract name exactly,
@@ -157,7 +157,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
       console.log('Registered contracts in Ethernal', buyer);
     }
   }
-
   console.log('Writing contracts.json config');
   const originalContractsJson =
     readJsonSync(path.join(__dirname, '../contracts.json'), {
@@ -202,6 +201,52 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     { spaces: 2 }
   );
   console.log('Wrote contracts.json config');
+  console.log('Verifying contracts');
+  const noriImplementation =
+    await hre.upgrades.erc1967.getImplementationAddress(noriInstance.address);
+  const removalImplementation =
+    await hre.upgrades.erc1967.getImplementationAddress(
+      removalInstance.address
+    );
+  const fifoMarketImplementation =
+    await hre.upgrades.erc1967.getImplementationAddress(
+      fifoMarketInstance.address
+    );
+  const nccrV0Implementation =
+    await hre.upgrades.erc1967.getImplementationAddress(nccrV0Instance.address);
+  const noriV0Implementation =
+    await hre.upgrades.erc1967.getImplementationAddress(noriV0Instance.address);
+  const certificateImplementation =
+    await hre.upgrades.erc1967.getImplementationAddress(
+      certificateInstance.address
+    );
+  await Promise.allSettled([
+    run('verify:verify', {
+      address: noriImplementation,
+      constructorArguments: [],
+    }),
+    run('verify:verify', {
+      address: removalImplementation,
+      constructorArguments: [],
+    }),
+    run('verify:verify', {
+      address: fifoMarketImplementation,
+      constructorArguments: [],
+    }),
+    run('verify:verify', {
+      address: nccrV0Implementation,
+      constructorArguments: [],
+    }),
+    run('verify:verify', {
+      address: noriV0Implementation,
+      constructorArguments: [],
+    }),
+    run('verify:verify', {
+      address: certificateImplementation,
+      constructorArguments: [],
+    }),
+  ]);
+  console.log('Verified contracts');
 };
 
 export default func;
