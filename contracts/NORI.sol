@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 
 // todo restrict all functions (whenNotPaused modifier)
 // todo restrict burning
-
+// todo inherit ERC20PresetMinterPauserUpgradeable isnstead of using custom pausable logic
 contract NORI is ERC777Upgradeable, AccessControlEnumerableUpgradeable, PausableUpgradeable {
 
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -17,7 +17,7 @@ contract NORI is ERC777Upgradeable, AccessControlEnumerableUpgradeable, Pausable
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
-    __ERC777_init_unchained("Nori", "NORI", new address[](0));
+    __ERC777_init_unchained("NORI", "NORI", new address[](0));
     __Pausable_init_unchained();
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(MINTER_ROLE, _msgSender());
