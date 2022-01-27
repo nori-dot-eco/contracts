@@ -23,15 +23,13 @@ contract FIFOMarket is
     ERC1155HolderUpgradeable,
     IERC777RecipientUpgradeable
 {
-    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-
     IERC1820RegistryUpgradeable private _erc1820;
     Removal private _removal;
     Certificate private _certificate;
     NORI private _nori;
-    // todo: EnumerableSetUpgradeable makes no ordering guarantees. Ordering can change after adding/removing items.
-    // If a FIFO ordering is necessary in any component of our marketplace, this isn't the right structure to use.
-    EnumerableSetUpgradeable.UintSet private _queue;
+    mapping(uint256 => uint256) private _queue;
+    uint256 private _queueHeadIndex;
+    uint256 private _queueNextInsertIndex;
     address private _noriFeeWallet;
     uint256 private _noriFee;
 
@@ -60,12 +58,18 @@ contract FIFOMarket is
             keccak256('ERC777TokensRecipient'),
             address(this)
         );
+        _queueHeadIndex = 0;
+        _queueNextInsertIndex = 0;
+    }
+
+    function _queueLength() private view returns (uint256) {
+        return _queueNextInsertIndex - _queueHeadIndex;
     }
 
     function numberOfTonnesInQueue() public view returns (uint256) {
         uint256 tonnesInQueue = 0;
-        for (uint256 i = 0; i < _queue.length(); i++) {
-            tonnesInQueue += _removal.balanceOf(address(this), _queue.at(i));
+        for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
+            tonnesInQueue += _removal.balanceOf(address(this), _queue[i]);
         }
         return tonnesInQueue;
     }
@@ -78,7 +82,8 @@ contract FIFOMarket is
         bytes memory data
     ) public override returns (bytes4) {
         for (uint256 i = 0; i < ids.length; i++) {
-            _queue.add(ids[i]);
+            _queue[_queueNextInsertIndex] = (ids[i]);
+            _queueNextInsertIndex++;
         }
         return this.onERC1155BatchReceived.selector;
     }
@@ -98,7 +103,6 @@ contract FIFOMarket is
         uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
         uint256 remainingAmountToFill = certificateAmount;
 
-        // todo this doesnt seem to revert if the queue is empty
         address recipient = abi.decode(userData, (address));
         require(recipient == address(recipient), 'FIFOMarket: Invalid address');
         require(
@@ -109,28 +113,28 @@ contract FIFOMarket is
             msg.sender == address(_nori),
             'FIFOMarket: This contract can only receive NORI'
         ); // todo verify this can only be invoked by the nori contract
-        uint256[] memory ids = new uint256[](_queue.length());
-        uint256[] memory amounts = new uint256[](_queue.length());
-        address[] memory suppliers = new address[](_queue.length());
-        for (uint256 i = 0; i < _queue.length(); i++) {
+        uint256[] memory ids = new uint256[](_queueLength());
+        uint256[] memory amounts = new uint256[](_queueLength());
+        address[] memory suppliers = new address[](_queueLength());
+        for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
             uint256 removalAmount = _removal.balanceOf(
                 address(this),
-                _queue.at(i)
+                _queue[i]
             );
-            address supplier = _removal.vintage(_queue.at(i)).supplier;
+            address supplier = _removal.vintage(_queue[i]).supplier;
             if (remainingAmountToFill < removalAmount) {
-                ids[i] = _queue.at(i);
+                ids[i] = _queue[i];
                 amounts[i] = remainingAmountToFill;
                 suppliers[i] = supplier;
                 remainingAmountToFill = 0;
             } else if (remainingAmountToFill >= removalAmount) {
                 if (
-                    i == _queue.length() - 1 &&
+                    i == _queueNextInsertIndex - 1 &&
                     remainingAmountToFill > removalAmount
                 ) {
                     revert('FIFOMarket: Not enough supply');
                 }
-                ids[i] = _queue.at(i);
+                ids[i] = _queue[i];
                 amounts[i] = removalAmount;
                 suppliers[i] = supplier;
                 remainingAmountToFill -= removalAmount;
@@ -144,6 +148,7 @@ contract FIFOMarket is
         // In a completely empty queue, the for loop never runs.
         // Catch this case here without the gas-heavy numberOfTonnesInQueue call.
         require(amounts[0] > 0, 'FIFOMarket: Not enough supply');
+
         bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
         _certificate.mintBatch(
             recipient,
@@ -155,8 +160,8 @@ contract FIFOMarket is
             if (amounts[i] == 0) {
                 break;
             }
-            if (amounts[i] == _removal.balanceOf(address(this), _queue.at(i))) {
-                _queue.remove(i);
+            if (amounts[i] == _removal.balanceOf(address(this), _queue[i])) {
+                _queueHeadIndex++;
             }
             uint256 noriFee = (amounts[i] / 100) * _noriFee;
             uint256 supplierFee = amounts[i];

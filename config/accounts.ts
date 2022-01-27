@@ -21,6 +21,8 @@ export const accounts: HardhatNetworkAccountUserConfig[] | undefined = MNEMONIC
 export const namedAccounts = {
   admin: 0 as unknown as Address,
   supplier: 2 as unknown as Address,
+  supplier2: 3 as unknown as Address,
+  supplier3: 4 as unknown as Address,
   buyer: 6 as unknown as Address,
   noriWallet: 9 as unknown as Address,
 } as const;
