@@ -428,11 +428,6 @@ describe('FIFOMarket', () => {
       } = await setupTest();
       const { supplier, buyer, noriWallet } = await hardhat.getNamedAccounts();
 
-      expect(NORI.address).to.be.properAddress;
-      expect(Removal.address).to.be.properAddress;
-      expect(Certificate.address).to.be.properAddress;
-      expect(FIFOMarket.address).to.be.properAddress;
-
       const totalAvailableSupply = '1';
       const purchaseAmount = '2';
       const fee = '.3';
