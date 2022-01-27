@@ -91,6 +91,16 @@ const func: CustomHardhatDeployFunction = async (hre) => {
   console.log('Deployed Certificate', certificateInstance.address);
   console.log('Deployed FIFOMarket', fifoMarketInstance.address);
   await certificateInstance.addMinter(fifoMarketInstance.address);
+  await hre.run('defender:add', {
+    contractNames: [
+      'Nori_V0',
+      'NCCR_V0',
+      'NORI',
+      'Removal',
+      'Certificate',
+      'FIFOMarket',
+    ],
+  });
   console.log('Added FIFOMarket as a minter of Certificate');
   if (network.name === 'hardhat') {
     await Promise.all([

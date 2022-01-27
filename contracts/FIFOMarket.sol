@@ -63,11 +63,11 @@ contract FIFOMarket is
   }
 
   function onERC1155BatchReceived(
-    address operator,
-    address from,
+    address,
+    address,
     uint256[] memory ids,
-    uint256[] memory values,
-    bytes memory data
+    uint256[] memory,
+    bytes memory
   ) public override returns (bytes4) {
     for (uint i = 0; i < ids.length; i++) {
       _queue.add(ids[i]);
@@ -80,16 +80,16 @@ contract FIFOMarket is
    * @dev Called automatically by the ERC777 (nori) contract when a batch of tokens are transferred to the contract.
    */
   function tokensReceived(
-    address operator,
-    address from,
-    address to,
+    address,
+    address,
+    address,
     uint256 amount,
     bytes calldata userData,
-    bytes calldata operatorData
+    bytes calldata
   ) external override {
     // todo this doesnt seem to revert if the queue is empty
     // todo take into consideration the fact that the user is sending the amount + 15% fee
-    address recipient = abi.decode(userData, (address));
+    address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
     require(recipient == address(recipient),"FIFOMarket: Invalid address");
     require(recipient != address(0), "FIFOMarket: Cannot mint to the 0 address");
     require(msg.sender == address(_nori), "FIFOMarket: This contract can only receive NORI"); // todo verify this can only be invoked by the nori contract
