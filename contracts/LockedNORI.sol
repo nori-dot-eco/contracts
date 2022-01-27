@@ -2,15 +2,16 @@
 pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/presets/ERC20PresetMinterPauserUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20WrapperUpgradeable.sol";
 import "./NORI.sol";
-import "./ScheduleUtils.sol";
+import { ScheduleUtils, Schedule, Cliff } from "./ScheduleUtils.sol";
 
-contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, ERC20WrapperUpgradeable {
-  using ScheduleUtils for ScheduleUtils.Schedule;
+contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable {
+  using ScheduleUtils for Schedule;
 
+  // TODO Remove for privacy reasons?
   event TokenGrantCreated(
     address indexed recipient,
     uint256 amount,
@@ -18,10 +19,13 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, ER
     uint256 vestEndTime,
     uint256 unlockEndTime
   );
+  event TokenGrantTransferred(address from, address to);
+  event UnvestedTokensRevoked(uint256 atTime, address from, uint256 quantity);
+  event TokensClaimed(address account, uint256 quantity);
 
   struct TokenGrant {
-    ScheduleUtils.Schedule vestingSchedule;
-    ScheduleUtils.Schedule lockupSchedule;
+    Schedule vestingSchedule;
+    Schedule lockupSchedule;
     uint256 grantAmount;
     uint256 claimedAmount;
     bool exists;
@@ -30,6 +34,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, ER
   bytes32 public constant TOKEN_GRANTER_ROLE = keccak256("TOKEN_GRANTER_ROLE");
 
   mapping(address => TokenGrant) grants;
+  ERC777Upgradeable underlying;
 
   function initialize(IERC777Upgradeable noriAddress) public initializer {
     __Context_init_unchained();
@@ -40,16 +45,47 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, ER
     __Pausable_init_unchained();
     __ERC20Pausable_init_unchained();
     __ERC20PresetMinterPauser_init_unchained("Locked NORI", "lNORI");
-    __ERC20Wrapper_init_unchained(IERC20Upgradeable(address(noriAddress)));
-    __ERC777_init_unchained("Locked NORI", "lNORI", new address[](0));
+    address[] memory operators = new address[](1);
+    operators[0] = _msgSender();
+    __ERC777_init_unchained("Locked NORI", "lNORI", operators);
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    underlying = ERC777Upgradeable(address(noriAddress));
   }
 
   /**
-   * @dev grantTo: Sets up an unlock schedule for recipient.
+   * @dev Allow a user to deposit underlying tokens and mint the corresponding number of wrapped tokens.
+   */
+  function depositFor(address account, uint256 amount)
+    public
+    virtual
+    returns (bool)
+  {
+    underlying.transferFrom(_msgSender(), address(this), amount);
+    _mint(account, amount, "", "");
+    return true;
+  }
+
+  /**
+   * @dev Allow a user to burn a number of wrapped tokens and withdraw the corresponding number of underlying tokens.
+   */
+  function withdrawTo(address account, uint256 amount)
+    public
+    virtual
+    returns (bool)
+  {
+    TokenGrant storage grant = grants[account];
+    _burn(_msgSender(), amount, "", "");
+    underlying.send(account, amount, "");
+    grant.claimedAmount += amount;
+    emit TokensClaimed(account, amount);
+    return true;
+  }
+
+  /**
+   * @dev grantTo: Sets up an vesting + lockup schedule for recipient.
+   *
    * Tokens must be wrapped in the name of the recipient separately using `depositFor`.
-   * This allows us to start the unlock schedule running for a recipient who may
-   * not yet have vested into all of their granted tokens.
+   * This can happen before or after creating the schedule or gradually over time.
    */
   function grantTo(
     address recipient,
@@ -68,24 +104,24 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, ER
       address(recipient) != address(0),
       "Recipient cannot be zero address"
     );
-    require(super.balanceOf(recipient) == 0, "Recipient has remaining tokens");
-
-    depositFor(recipient, amount);
 
     TokenGrant storage grant = grants[recipient];
     grant.grantAmount = amount;
     grant.exists = true;
-    grant.vestingSchedule.totalAmount = amount;
-    grant.vestingSchedule.startTime = startTime;
-    grant.vestingSchedule.endTime = vestEndTime;
-    // grant.vestingSchedule.addCliff(cliff1Time, vestCliff1Amount);
-    // grant.vestingSchedule.addCliff(cliff2Time, vestCliff2Amount);
+
+    if (vestEndTime > startTime) {
+      grant.vestingSchedule.totalAmount = amount;
+      grant.vestingSchedule.startTime = startTime;
+      grant.vestingSchedule.endTime = vestEndTime;
+      grant.vestingSchedule.addCliff(cliff1Time, vestCliff1Amount);
+      grant.vestingSchedule.addCliff(cliff2Time, vestCliff2Amount);
+    }
 
     grant.lockupSchedule.totalAmount = amount;
     grant.lockupSchedule.startTime = startTime;
-    grant.lockupSchedule.endTime = vestEndTime;
-    // grant.lockupSchedule.addCliff(cliff1Time, unlockCliff1Amount);
-    // grant.lockupSchedule.addCliff(cliff2Time, unlockCliff2Amount);
+    grant.lockupSchedule.endTime = unlockEndTime;
+    grant.lockupSchedule.addCliff(cliff1Time, unlockCliff1Amount);
+    grant.lockupSchedule.addCliff(cliff2Time, unlockCliff2Amount);
 
     emit TokenGrantCreated(
       recipient,
@@ -96,71 +132,162 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, ER
     );
   }
 
-  function depositedBalanceOf(address account) public view returns (uint256) {
-    return super.balanceOf(account);
+  /**
+   * @dev revokeUnvestedTokens: Truncates a vesting grant.
+   *
+   * Transfers any unvested tokens in *from*'s grant to *to*
+   * and reduces the total grant size.
+   *
+   * No change is made to balances that have vested but not claimed
+   * whether locked or not.
+   */
+  function revokeUnvestedTokens(
+    uint256 atTime,
+    address from,
+    address to
+  ) external onlyRole(TOKEN_GRANTER_ROLE) whenNotPaused {
+    TokenGrant storage grant = grants[from];
+    require(grant.exists, "No grant exist");
+    uint256 vestedBalance = _vestedBalanceOf(atTime, from);
+    // console.log(
+    //   "[revokeUnvestedTokens] time: %s from: %s vestedBalance: %s",
+    //   atTime,
+    //   from,
+    //   vestedBalance
+    // );
+    if (vestedBalance < grant.grantAmount) {
+      uint256 quantityRevoked = grant.grantAmount - vestedBalance;
+      grant.grantAmount = vestedBalance;
+      grant.vestingSchedule.totalAmount = vestedBalance;
+      grant.lockupSchedule.totalAmount = vestedBalance;
+      emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
+      // TODO: destination address for clawed back tokens should be a role
+      // or an initialization parameter rather than the caller.
+      // TODO:Jayce use operatorSend
+      transferFrom(from, to, quantityRevoked);
+    }
   }
 
-  function totalGrantAmount(address account) public view returns (uint256) {
-    TokenGrant storage grant = grants[account];
-    return grant.grantAmount;
-  }
-
+  /**
+   * @dev vestedBalanceOf: Vested balance less any claimed amount
+   */
   function vestedBalanceOf(address account) public view returns (uint256) {
+    return _vestedBalanceOf(block.timestamp, account);
+  }
+
+  /**
+   * @dev vestedBalanceOf: Vested balance less any claimed amount
+   */
+  function _vestedBalanceOf(uint256 atTime, address account)
+    internal
+    view
+    returns (uint256)
+  {
     TokenGrant storage grant = grants[account];
     if (grant.exists) {
-      // Past the end date user can claim any remaining wrapped tokens
-      return
-        grant.vestingSchedule.availableAmount(block.timestamp) -
-        grant.claimedAmount;
+      if (grant.vestingSchedule.startTime > 0) {
+        return
+          grant.vestingSchedule.availableAmount(atTime) - grant.claimedAmount;
+      } else {
+        return grant.grantAmount - grant.claimedAmount;
+      }
     }
-    return depositedBalanceOf(account);
+    return 0;
   }
 
+  /**
+   * @dev unlockedBalanceOf: Unlocked balance less any claimed amount
+   */
   function unlockedBalanceOf(address account) public view returns (uint256) {
     TokenGrant storage grant = grants[account];
     if (grant.exists) {
       // Past the end date user can claim any remaining wrapped tokens
-      // TODO can't be larger than vested amount
       return
-        grant.lockupSchedule.availableAmount(block.timestamp) -
-        grant.claimedAmount;
+        MathUpgradeable.min(
+          grant.vestingSchedule.availableAmount(block.timestamp),
+          grant.lockupSchedule.availableAmount(block.timestamp)
+        ) - grant.claimedAmount;
     }
-    return depositedBalanceOf(account);
+    return 0;
   }
 
-  function balanceOf(address account) public view override(ERC20Upgradeable, ERC777Upgradeable) returns (uint256) {
-    return unlockedBalanceOf(account);
+  /**
+   * @dev balanceOf: Total amount granted to the user less any previously claimed amount
+   */
+  function balanceOf(address account)
+    public
+    view
+    override(ERC20Upgradeable, ERC777Upgradeable)
+    returns (uint256)
+  {
+    return ERC777Upgradeable.balanceOf(account);
+  }
+
+  /**
+   * @dev getGrant: Returns all governing settings on a grant.
+   */
+  function getGrant(address account)
+    public
+    view
+    returns (
+      uint256 amount,
+      uint256 startTime,
+      uint256 vestEndTime,
+      uint256 unlockEndTime,
+      uint256 cliff1Time,
+      uint256 cliff2Time,
+      uint256 vestCliff1Amount,
+      uint256 vestCliff2Amount,
+      uint256 unlockCliff1Amount,
+      uint256 unlockCliff2Amount,
+      uint256 claimedAmount
+    )
+  {
+    TokenGrant storage grant = grants[account];
+    return (
+      grant.grantAmount,
+      grant.lockupSchedule.startTime,
+      grant.vestingSchedule.endTime,
+      grant.lockupSchedule.endTime,
+      grant.lockupSchedule.cliffs[0].time,
+      grant.lockupSchedule.cliffs[1].time,
+      grant.vestingSchedule.cliffs[0].amount,
+      grant.vestingSchedule.cliffs[1].amount,
+      grant.lockupSchedule.cliffs[0].amount,
+      grant.lockupSchedule.cliffs[1].amount,
+      grant.claimedAmount
+    );
+  }
+
+  function _isTokenGranter(address account) internal view returns (bool) {
+    for (uint256 i = 0; i < getRoleMemberCount(TOKEN_GRANTER_ROLE); i++) {
+      if (getRoleMember(TOKEN_GRANTER_ROLE, i) == account) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function _beforeTokenTransfer(
-    address from,
-    address to,
-    uint256 amount
-  ) internal override(ERC20PresetMinterPauserUpgradeable, ERC20Upgradeable) {
-    if (to == address(0)) {
-      uint256 availableBalance = balanceOf(from);
-      uint256 wrappedBalance = super.balanceOf(from);
-      console.log(
-        "amount: %d  available: %d  wrapped: %d",
-        amount,
-        availableBalance,
-        wrappedBalance
-      );
-      require(amount <= availableBalance, "Withdrawl amount unavailable");
-    }
-    super._beforeTokenTransfer(from, to, amount);
-  }
-
-  function _afterTokenTransfer(
+    address,
     address from,
     address to,
     uint256 amount
   ) internal override {
+    // console.log("[_beforeTokenTransfer] %s %s %d", from, to, amount);
+    // this is a burn / unwrap
     if (to == address(0)) {
-      TokenGrant storage grant = grants[from];
-      grant.claimedAmount += amount;
+      uint256 availableBalance = unlockedBalanceOf(from);
+      //   uint256 wrappedBalance = super.balanceOf(from);
+      //   console.log(
+      //     "[burn] amount: %d  available (unlocked): %d  wrapped: %d",
+      //     amount,
+      //     availableBalance,
+      //     wrappedBalance
+      //   );
+      require(amount <= availableBalance, "Withdrawl amount unavailable");
     }
-    super._afterTokenTransfer(from, to, amount);
+    super._beforeTokenTransfer(from, to, amount);
   }
 
   function _approve(
@@ -171,31 +298,71 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, ER
     ERC777Upgradeable._approve(holder, spender, value);
   }
 
-  function allowance(address holder, address spender) public view virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (uint256) {
+  function allowance(address holder, address spender)
+    public
+    view
+    virtual
+    override(ERC20Upgradeable, ERC777Upgradeable)
+    returns (uint256)
+  {
     return ERC777Upgradeable.allowance(holder, spender);
   }
 
-  function approve(address spender, uint256 value) public virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (bool) {
+  function approve(address spender, uint256 value)
+    public
+    virtual
+    override(ERC20Upgradeable, ERC777Upgradeable)
+    returns (bool)
+  {
     return ERC777Upgradeable.approve(spender, value);
   }
 
-  function decimals() public pure virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (uint8) {
+  function decimals()
+    public
+    pure
+    virtual
+    override(ERC20Upgradeable, ERC777Upgradeable)
+    returns (uint8)
+  {
     return ERC777Upgradeable.decimals();
   }
 
-  function name() public view virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (string memory) {
+  function name()
+    public
+    view
+    virtual
+    override(ERC20Upgradeable, ERC777Upgradeable)
+    returns (string memory)
+  {
     return ERC777Upgradeable.name();
   }
 
-  function symbol() public view virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (string memory){
+  function symbol()
+    public
+    view
+    virtual
+    override(ERC20Upgradeable, ERC777Upgradeable)
+    returns (string memory)
+  {
     return ERC777Upgradeable.symbol();
   }
 
-  function totalSupply() public view virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (uint256) {
+  function totalSupply()
+    public
+    view
+    virtual
+    override(ERC20Upgradeable, ERC777Upgradeable)
+    returns (uint256)
+  {
     return ERC777Upgradeable.totalSupply();
   }
 
-  function transfer(address recipient, uint256 amount) public virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (bool) {
+  function transfer(address recipient, uint256 amount)
+    public
+    virtual
+    override(ERC20Upgradeable, ERC777Upgradeable)
+    returns (bool)
+  {
     return ERC777Upgradeable.transfer(recipient, amount);
   }
 
@@ -203,7 +370,21 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, ER
     address holder,
     address recipient,
     uint256 amount
-  ) public virtual override(ERC20Upgradeable, ERC777Upgradeable) returns (bool) {
+  )
+    public
+    virtual
+    override(ERC20Upgradeable, ERC777Upgradeable)
+    returns (bool)
+  {
     return ERC777Upgradeable.transferFrom(holder, recipient, amount);
   }
+
+  //   function _burn(
+  //         address from,
+  //         uint256 amount,
+  //         bytes memory data,
+  //         bytes memory operatorData
+  //     ) internal virtual override {
+  //         return ERC777Upgradeable._burn()
+  //     }
 }

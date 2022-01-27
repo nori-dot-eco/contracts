@@ -73,7 +73,8 @@ declare global {
         | 'FIFOMarket'
         | 'NORI'
         | 'Removal'
-        | 'Certificate',
+        | 'Certificate'
+	| 'LockedNORI',
       signerOrOptions?: Signer | FactoryOptions
     ): Promise<TContractFactory>;
   };
