@@ -87,15 +87,15 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     bytes calldata
   ) internal virtual returns (bool) {
     (address recipient) = abi.decode(userData, (address));
+    _grantTo(
+      amount,
+      userData
+    );
     ERC777Upgradeable._mint(
       recipient,
       amount,
       userData,
       ""
-    );
-    _grantTo(
-      amount,
-      userData
     );
     return true;
   }
@@ -152,6 +152,13 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
         uint256,
         uint256
       )
+    );
+    console.log(
+      startTime,
+      vestEndTime,
+      // unlockEndTime
+      // cliff1Time,
+      cliff2Time
     );
     require(
       address(recipient) != address(0),
@@ -216,8 +223,16 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
       emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
       // TODO: destination address for clawed back tokens should be a role
       // or an initialization parameter rather than the caller.
-      // TODO:Jayce use operatorSend
-      transferFrom(from, to, quantityRevoked);
+      console.log("from,to,quantityRevoked",from,to,quantityRevoked);
+      console.log("grant.grantAmount",grant.grantAmount);
+      console.log("vestedBalance",vestedBalance);
+      operatorSend(
+        from,
+        to,
+        quantityRevoked,
+        "",
+        ""
+      );
     }
   }
 
@@ -254,6 +269,9 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   function unlockedBalanceOf(address account) public view returns (uint256) {
     TokenGrant storage grant = grants[account];
     if (grant.exists) {
+      console.log("grant.vestingSchedule.availableAmount(block.timestamp)",grant.vestingSchedule.availableAmount(block.timestamp));
+      console.log("ggrant.lockupSchedule.availableAmount(block.timestamp)",grant.lockupSchedule.availableAmount(block.timestamp));
+      console.log("grant.claimedAmount",grant.claimedAmount);
       // Past the end date user can claim any remaining wrapped tokens
       return
         MathUpgradeable.min(
@@ -321,25 +339,24 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     return false;
   }
 
+  /**
+   * @dev called before send and transfer and used to disable transferring locket nori
+   */
   function _beforeTokenTransfer(
-    address,
+    address operator,
     address from,
     address to,
     uint256 amount
   ) internal override {
-    // console.log("[_beforeTokenTransfer] %s %s %d", from, to, amount);
+    bool isNotMinting = from != address(0); // if it's not minting, then we check balances
     // this is a burn / unwrap
-    if (to == address(0)) {
+    if (isNotMinting) {
       uint256 availableBalance = unlockedBalanceOf(from);
-      //   uint256 wrappedBalance = super.balanceOf(from);
-      //   console.log(
-      //     "[burn] amount: %d  available (unlocked): %d  wrapped: %d",
-      //     amount,
-      //     availableBalance,
-      //     wrappedBalance
-      //   );
-      require(amount <= availableBalance, "Withdrawl amount unavailable");
+      if(!hasRole(DEFAULT_ADMIN_ROLE, _msgSender())){
+        require(amount <= availableBalance, "LockedNORI: Withdrawl amount unavailable");
+      }
     }
+    console.log("before token transfer");
     super._beforeTokenTransfer(from, to, amount);
   }
 
