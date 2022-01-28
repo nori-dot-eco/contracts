@@ -172,7 +172,7 @@ describe('LockedNori', () => {
     expect(await nori.totalSupply()).to.equal(INITIAL_SUPPLY);
   });
 
-  it.only('Should return zero before startTime', async () => {
+  it('Should return zero before startTime', async () => {
     const { lNori, nori, hre } = await setupWithGrant();
     const { investor1 } = await hre.getNamedAccounts();
     const addr1Signer = await hre.ethers.getSigner(investor1);

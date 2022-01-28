@@ -74,7 +74,7 @@ declare global {
         | 'NORI'
         | 'Removal'
         | 'Certificate'
-	| 'LockedNORI',
+	      | 'LockedNORI',
       signerOrOptions?: Signer | FactoryOptions
     ): Promise<TContractFactory>;
   };
