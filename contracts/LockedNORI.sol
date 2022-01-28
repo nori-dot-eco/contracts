@@ -5,10 +5,11 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/presets/ERC20PresetMinterPauserUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./NORI.sol";
 import { ScheduleUtils, Schedule, Cliff } from "./ScheduleUtils.sol";
 
-contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable {
+contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IERC777RecipientUpgradeable {
   using ScheduleUtils for Schedule;
 
   // TODO Remove for privacy reasons?
@@ -33,8 +34,11 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable {
 
   bytes32 public constant TOKEN_GRANTER_ROLE = keccak256("TOKEN_GRANTER_ROLE");
 
+
   mapping(address => TokenGrant) grants;
-  ERC777Upgradeable underlying;
+  ERC777Upgradeable _underlying;
+  IERC1820RegistryUpgradeable private _erc1820;
+
 
   function initialize(IERC777Upgradeable noriAddress) public initializer {
     __Context_init_unchained();
@@ -49,24 +53,55 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable {
     operators[0] = _msgSender();
     __ERC777_init_unchained("Locked NORI", "lNORI", operators);
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    underlying = ERC777Upgradeable(address(noriAddress));
+    _underlying = ERC777Upgradeable(address(noriAddress));
+    _erc1820 = IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24); // todo
+    _erc1820.setInterfaceImplementer(address(this), keccak256("ERC777TokensRecipient"), address(this));
+  }
+
+  function tokensReceived(
+    address,
+    address,
+    address,
+    uint256 amount,
+    bytes calldata userData,
+    bytes calldata operatorData
+  ) external override {
+    require(
+      msg.sender == address(_underlying),
+      "LockedNORI: This contract can only receive NORI"
+    ); // todo verify this can only be invoked by the nori contract
+    // todo restrict such that only admin can invoke this function
+    _depositFor(
+      amount,
+      userData,
+      operatorData
+    );
   }
 
   /**
-   * @dev Allow a user to deposit underlying tokens and mint the corresponding number of wrapped tokens.
+   * @dev Allow a user to deposit _underlying tokens and mint the corresponding number of wrapped tokens.
    */
-  function depositFor(address account, uint256 amount)
-    public
-    virtual
-    returns (bool)
-  {
-    underlying.transferFrom(_msgSender(), address(this), amount);
-    _mint(account, amount, "", "");
+  function _depositFor(
+    uint256 amount,
+    bytes calldata userData,
+    bytes calldata
+  ) internal virtual returns (bool) {
+    (address recipient) = abi.decode(userData, (address));
+    ERC777Upgradeable._mint(
+      recipient,
+      amount,
+      userData,
+      ""
+    );
+    _grantTo(
+      amount,
+      userData
+    );
     return true;
   }
 
   /**
-   * @dev Allow a user to burn a number of wrapped tokens and withdraw the corresponding number of underlying tokens.
+   * @dev Allow a user to burn a number of wrapped tokens and withdraw the corresponding number of _underlying tokens.
    */
   function withdrawTo(address account, uint256 amount)
     public
@@ -75,7 +110,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable {
   {
     TokenGrant storage grant = grants[account];
     _burn(_msgSender(), amount, "", "");
-    underlying.send(account, amount, "");
+    _underlying.send(account, amount, "");
     grant.claimedAmount += amount;
     emit TokensClaimed(account, amount);
     return true;
@@ -87,19 +122,37 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable {
    * Tokens must be wrapped in the name of the recipient separately using `depositFor`.
    * This can happen before or after creating the schedule or gradually over time.
    */
-  function grantTo(
-    address recipient,
+  function _grantTo(
     uint256 amount,
-    uint256 startTime,
-    uint256 vestEndTime,
-    uint256 unlockEndTime,
-    uint256 cliff1Time,
-    uint256 cliff2Time,
-    uint256 vestCliff1Amount,
-    uint256 vestCliff2Amount,
-    uint256 unlockCliff1Amount,
-    uint256 unlockCliff2Amount
-  ) external onlyRole(TOKEN_GRANTER_ROLE) whenNotPaused {
+    bytes calldata userData
+  ) internal whenNotPaused {
+    // todo  onlyRole(TOKEN_GRANTER_ROLE)
+    (
+      address recipient,
+      uint256 startTime,
+      uint256 vestEndTime,
+      uint256 unlockEndTime,
+      uint256 cliff1Time,
+      uint256 cliff2Time,
+      uint256 vestCliff1Amount,
+      uint256 vestCliff2Amount,
+      uint256 unlockCliff1Amount,
+      uint256 unlockCliff2Amount
+    ) = abi.decode(
+      userData,
+      (
+        address,
+        uint256,
+        uint256,
+        uint256,
+        uint256,
+        uint256,
+        uint256,
+        uint256,
+        uint256,
+        uint256
+      )
+    );
     require(
       address(recipient) != address(0),
       "Recipient cannot be zero address"
