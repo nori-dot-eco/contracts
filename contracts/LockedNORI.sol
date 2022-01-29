@@ -29,6 +29,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     Schedule lockupSchedule;
     uint256 grantAmount;
     uint256 claimedAmount;
+    uint256 originalAmount;
     bool exists;
   }
 
@@ -167,9 +168,13 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
 
     TokenGrant storage grant = grants[recipient];
     grant.grantAmount = amount;
+    grant.originalAmount = amount;
     grant.exists = true;
 
     if (vestEndTime > startTime) {
+      require(vestCliff1Amount >= unlockCliff1Amount 
+        && vestCliff2Amount >= unlockCliff2Amount,
+        "Unlock cliff amounts cannot exceed vest cliff amounts");
       grant.vestingSchedule.totalAmount = amount;
       grant.vestingSchedule.startTime = startTime;
       grant.vestingSchedule.endTime = vestEndTime;
@@ -218,8 +223,8 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     if (vestedBalance < grant.grantAmount) {
       uint256 quantityRevoked = grant.grantAmount - vestedBalance;
       grant.grantAmount = vestedBalance;
-      grant.vestingSchedule.totalAmount = vestedBalance;
-      grant.lockupSchedule.totalAmount = vestedBalance;
+    //   grant.vestingSchedule.totalAmount = vestedBalance;
+    //   grant.lockupSchedule.totalAmount = vestedBalance;
       emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
       // TODO: destination address for clawed back tokens should be a role
       // or an initialization parameter rather than the caller.
@@ -234,6 +239,14 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
         ""
       );
     }
+  }
+
+  /**
+   * @dev vestedBalanceOf: Vested balance less any claimed amount
+   */
+  function quantityRevokedFrom(address account) public view returns (uint256) {
+    TokenGrant storage grant = grants[account];
+    return grant.originalAmount - grant.grantAmount;
   }
 
   /**
@@ -254,8 +267,10 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     TokenGrant storage grant = grants[account];
     if (grant.exists) {
       if (grant.vestingSchedule.startTime > 0) {
+        // If any tokens have been revoked then the schedule (which doesn't get updated) could
+        // return more than the total grant amount.
         return
-          grant.vestingSchedule.availableAmount(atTime) - grant.claimedAmount;
+          MathUpgradeable.min(grant.grantAmount, grant.vestingSchedule.availableAmount(atTime)) - grant.claimedAmount;
       } else {
         return grant.grantAmount - grant.claimedAmount;
       }
@@ -270,13 +285,17 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     TokenGrant storage grant = grants[account];
     if (grant.exists) {
       console.log("grant.vestingSchedule.availableAmount(block.timestamp)",grant.vestingSchedule.availableAmount(block.timestamp));
-      console.log("ggrant.lockupSchedule.availableAmount(block.timestamp)",grant.lockupSchedule.availableAmount(block.timestamp));
+      console.log("grant.lockupSchedule.availableAmount(block.timestamp)",grant.lockupSchedule.availableAmount(block.timestamp));
       console.log("grant.claimedAmount",grant.claimedAmount);
-      // Past the end date user can claim any remaining wrapped tokens
+      // If any tokens have been revoked then the schedule (which doesn't get updated) could
+      // return more than the total grant amount.
       return
         MathUpgradeable.min(
-          grant.vestingSchedule.availableAmount(block.timestamp),
-          grant.lockupSchedule.availableAmount(block.timestamp)
+          MathUpgradeable.min(
+            grant.vestingSchedule.availableAmount(block.timestamp),
+            grant.lockupSchedule.availableAmount(block.timestamp)
+          ),
+          grant.grantAmount
         ) - grant.claimedAmount;
     }
     return 0;
@@ -311,7 +330,8 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
       uint256 vestCliff2Amount,
       uint256 unlockCliff1Amount,
       uint256 unlockCliff2Amount,
-      uint256 claimedAmount
+      uint256 claimedAmount,
+      uint256 originalAmount
     )
   {
     TokenGrant storage grant = grants[account];
@@ -326,7 +346,8 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
       grant.vestingSchedule.cliffs[1].amount,
       grant.lockupSchedule.cliffs[0].amount,
       grant.lockupSchedule.cliffs[1].amount,
-      grant.claimedAmount
+      grant.claimedAmount,
+      grant.originalAmount
     );
   }
 
@@ -343,7 +364,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
    * @dev called before send and transfer and used to disable transferring locket nori
    */
   function _beforeTokenTransfer(
-    address operator,
+    address,
     address from,
     address to,
     uint256 amount
