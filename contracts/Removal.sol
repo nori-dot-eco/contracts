@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-// import "hardhat/console.sol"; // todo
+import "hardhat/console.sol"; // todo
 
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
@@ -22,12 +22,14 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
   struct Vintage {
     address supplier;
     uint16 vintage;
+    bytes32 uniqueId;
     // todo: location
     // todo: methodology
     // todo: supplier name
   }
 
   mapping(uint256 => Vintage) private _vintages;
+  mapping(bytes32 => uint256) private _vintageTokenIdMap;
   uint256 private _latestTokenId;
   string public name; // todo why did I add this
 
@@ -47,11 +49,19 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
   }
 
   /**
-   * @dev mints all of the removal vintages for an issuance
+   * @dev returns the removal token ID for a given unique removal id
+   */
+  function tokenIdForRemoval(bytes32 uniqueId) public view returns (uint256) {
+    return _vintageTokenIdMap[uniqueId];
+  }
+
+  /**
+   * @dev mints multiple removals at once (but only for one supplier)
    * @param to The supplier address
-   * @param amounts The issuance id (each vintage's tonnes of CO2 formatted as wei)
-   * @param vintages The vintages for each tokenId
+   * @param amounts Each removal's tonnes of CO2 formatted as wei
+   * @param vintages The year for each removal
    * @param data Additional data with no specified format, MUST be sent unaltered in call to `onERC1155Received` on `_to`
+   going to try co-opting this as a unique ID
    */
   function mintBatch(
     address to,
@@ -62,11 +72,19 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
     // todo require vintage is within valid year range and doesn't already exist
     uint256[] memory ids = new uint256[](vintages.length);
     for (uint256 i = 0; i < vintages.length; i++) {
+      // bytes32 vintageBytes = bytes32(abi.encodePacked(uint256(vintages[i])));
+      // console.log("data: ", data);
+      // console.log("vintage_bytes: ", vintageBytes);
+      bytes32 uniqueId = keccak256(abi.encodePacked(data, vintages[i]));
+      // console.log("uniqueId: ", uniqueId);
+
       ids[i] = _latestTokenId + i;
       _vintages[_latestTokenId + i] = Vintage({
         vintage: uint16(vintages[i]),
-        supplier: to
+        supplier: to,
+        uniqueId: uniqueId
       });
+      _vintageTokenIdMap[uniqueId] = _latestTokenId + i;
     }
     _latestTokenId = ids[ids.length - 1] + 1;
     super.mintBatch(
