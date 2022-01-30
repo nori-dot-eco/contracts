@@ -68,18 +68,16 @@ describe('Removal', () => {
       const removalBalance = '100';
 
       await Removal.mintBatch(
-          supplier,
-          [hardhat.ethers.utils.parseUnits(removalBalance)],
-          [2018],
-          hardhat.ethers.utils.formatBytes32String('0x0')
-        );
+        supplier,
+        [hardhat.ethers.utils.parseUnits(removalBalance)],
+        [2018],
+        hardhat.ethers.utils.formatBytes32String('0x0')
+      );
 
       const balance = await Removal.totalSupply(0);
 
       expect(balance).to.equal(
-        hardhat.ethers.utils
-          .parseUnits(removalBalance)
-          .toString()
+        hardhat.ethers.utils.parseUnits(removalBalance).toString()
       );
     });
   });
@@ -93,17 +91,25 @@ describe('Removal', () => {
       const removalBalances = ['100', '200', '300', '400'];
       const removalVintages = [2018, 2019, 2020, 2021];
       const targetTokenIdIndices = [1, 3];
-      const arbitraryCallData = "someParcelIdentifier";
+      const arbitraryCallData = 'someParcelIdentifier';
       await Removal.mintBatch(
-          supplier,
-          removalBalances.map((balance) => hardhat.ethers.utils.parseUnits(balance)),
-          removalVintages,
-          hardhat.ethers.utils.formatBytes32String(arbitraryCallData)
-        );
+        supplier,
+        removalBalances.map((balance) =>
+          hardhat.ethers.utils.parseUnits(balance)
+        ),
+        removalVintages,
+        hardhat.ethers.utils.formatBytes32String(arbitraryCallData)
+      );
 
-      const parcelIdentifiers = targetTokenIdIndices.map((_) => hardhat.ethers.utils.formatBytes32String(arbitraryCallData));
-      const vintages: number[] = removalVintages.filter((vintage) => targetTokenIdIndices.includes(removalVintages.indexOf(vintage)));
-      const tokenIds: number[] = (await Removal.tokenIdsForRemovals(parcelIdentifiers, vintages)).map((id) => id.toNumber());
+      const parcelIdentifiers = targetTokenIdIndices.map((_) =>
+        hardhat.ethers.utils.formatBytes32String(arbitraryCallData)
+      );
+      const vintages: number[] = removalVintages.filter((vintage) =>
+        targetTokenIdIndices.includes(removalVintages.indexOf(vintage))
+      );
+      const tokenIds: number[] = (
+        await Removal.tokenIdsForRemovals(parcelIdentifiers, vintages)
+      ).map((id) => id.toNumber());
 
       expect(tokenIds).to.eql(targetTokenIdIndices);
 
@@ -126,30 +132,51 @@ describe('Removal', () => {
       const removalBalances = ['100', '200', '300', '400'];
       const removalVintages = [2018, 2019, 2020, 2021];
       const targetTokenIdIndices = [1, 3]; // list for sale token ids 1 and 3
-      const arbitraryCallData = "someParcelIdentifier";
+      const arbitraryCallData = 'someParcelIdentifier';
       await Removal.mintBatch(
         supplier,
-        removalBalances.map((balance) => hardhat.ethers.utils.parseUnits(balance)),
+        removalBalances.map((balance) =>
+          hardhat.ethers.utils.parseUnits(balance)
+        ),
         removalVintages,
         hardhat.ethers.utils.formatBytes32String(arbitraryCallData)
       );
 
-    const parcelIdentifiers = targetTokenIdIndices.map((_) => hardhat.ethers.utils.formatBytes32String(arbitraryCallData));
-    const vintagesToList: number[] = removalVintages.filter((vintage) => targetTokenIdIndices.includes(removalVintages.indexOf(vintage)));
-    const tokenIdsToList: number[] = (await Removal.tokenIdsForRemovals(parcelIdentifiers, vintagesToList)).map((id) => id.toNumber());
-    const amountsToList: string[] = removalBalances.filter((balance) => targetTokenIdIndices.includes(removalBalances.indexOf(balance)));
+      const parcelIdentifiers = targetTokenIdIndices.map((_) =>
+        hardhat.ethers.utils.formatBytes32String(arbitraryCallData)
+      );
+      const vintagesToList: number[] = removalVintages.filter((vintage) =>
+        targetTokenIdIndices.includes(removalVintages.indexOf(vintage))
+      );
+      const tokenIdsToList: number[] = (
+        await Removal.tokenIdsForRemovals(parcelIdentifiers, vintagesToList)
+      ).map((id) => id.toNumber());
+      const amountsToList: string[] = removalBalances.filter((balance) =>
+        targetTokenIdIndices.includes(removalBalances.indexOf(balance))
+      );
 
-    const accounts = await ethers.getSigners();
-    await Removal.connect(accounts[2]).safeBatchTransferFrom(supplier, FIFOMarket.address, tokenIdsToList, amountsToList, ethers.utils.formatBytes32String('0x0'));
+      const accounts = await ethers.getSigners();
+      await Removal.connect(accounts[2]).safeBatchTransferFrom(
+        supplier,
+        FIFOMarket.address,
+        tokenIdsToList,
+        amountsToList,
+        ethers.utils.formatBytes32String('0x0')
+      );
 
-    const firstListedTokenId = targetTokenIdIndices[0];
-    const secondListedTokenId = targetTokenIdIndices[1];
-    const balance1 = await Removal.balanceOf(FIFOMarket.address, firstListedTokenId);
-    const balance2 = await Removal.balanceOf(FIFOMarket.address, secondListedTokenId);
+      const firstListedTokenId = targetTokenIdIndices[0];
+      const secondListedTokenId = targetTokenIdIndices[1];
+      const balance1 = await Removal.balanceOf(
+        FIFOMarket.address,
+        firstListedTokenId
+      );
+      const balance2 = await Removal.balanceOf(
+        FIFOMarket.address,
+        secondListedTokenId
+      );
 
-    expect(balance1).to.equal(removalBalances[firstListedTokenId]);
-    expect(balance2).to.equal(removalBalances[secondListedTokenId]);
+      expect(balance1).to.equal(removalBalances[firstListedTokenId]);
+      expect(balance2).to.equal(removalBalances[secondListedTokenId]);
     });
   });
 });
-
