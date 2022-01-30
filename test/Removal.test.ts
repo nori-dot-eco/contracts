@@ -83,8 +83,8 @@ describe('Removal', () => {
       );
     });
   });
-  describe('Getting the tokenId for a unique identifier', () => {
-    it('should get the correct tokenIds given a unique identifier', async () => {
+  describe('Getting the tokenIds for a group fo removals', () => {
+    it('should get the correct tokenIds given a unique parcel identifier and the removal vintage', async () => {
       const {
         contracts: { Removal },
       } = await setupTest();
