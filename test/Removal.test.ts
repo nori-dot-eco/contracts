@@ -61,15 +61,15 @@ describe('Removal', () => {
   describe('Minting removals', () => {
     it('should mint a batch of removals', async () => {
       const {
-        contracts: { NORI, Removal, Certificate, FIFOMarket },
+        contracts: { Removal },
       } = await setupTest();
-      const { supplier, buyer, noriWallet } = await hardhat.getNamedAccounts();
+      const { supplier } = await hardhat.getNamedAccounts();
 
-      const firstRemovalBalance = '100';
+      const removalBalance = '100';
 
       await Removal.mintBatch(
           supplier,
-          [hardhat.ethers.utils.parseUnits(firstRemovalBalance)],
+          [hardhat.ethers.utils.parseUnits(removalBalance)],
           [2018],
           hardhat.ethers.utils.formatBytes32String('0x0')
         );
@@ -78,43 +78,78 @@ describe('Removal', () => {
 
       expect(balance).to.equal(
         hardhat.ethers.utils
-          .parseUnits(firstRemovalBalance)
+          .parseUnits(removalBalance)
           .toString()
       );
     });
   });
   describe('Getting the tokenId for a unique identifier', () => {
-    it('should get the correct tokenId given a unique identifier', async () => {
+    it('should get the correct tokenIds given a unique identifier', async () => {
       const {
-        contracts: { NORI, Removal, Certificate, FIFOMarket },
+        contracts: { Removal },
       } = await setupTest();
-      const { supplier, buyer, noriWallet } = await hardhat.getNamedAccounts();
+      const { supplier } = await hardhat.getNamedAccounts();
 
-      const firstRemovalBalance = '100';
-      const uniqueIdSeed = "supplierandparcel";
+      const removalBalances = ['100', '200', '300', '400'];
+      const removalVintages = [2018, 2019, 2020, 2021];
+      const targetTokenIdIndices = [1, 3];
+      const arbitraryCallData = "someParcelIdentifier";
       await Removal.mintBatch(
           supplier,
-          [hardhat.ethers.utils.parseUnits(firstRemovalBalance)],
-          [2018],
-          hardhat.ethers.utils.formatBytes32String(uniqueIdSeed)
+          removalBalances.map((balance) => hardhat.ethers.utils.parseUnits(balance)),
+          removalVintages,
+          hardhat.ethers.utils.formatBytes32String(arbitraryCallData)
         );
 
-      // TODO: trying to figure out the right way in javascript land to use the data present in `data` and `vintages`
-      // to come up with the same sort of unique identifier that the Removal contract itself could compute, to use this as a unique ID by which to get
-      // a vintage's token ID.
+      const parcelIdentifiers = targetTokenIdIndices.map((_) => hardhat.ethers.utils.formatBytes32String(arbitraryCallData));
+      const vintages: number[] = removalVintages.filter((vintage) => targetTokenIdIndices.includes(removalVintages.indexOf(vintage)));
+      const tokenIds: number[] = (await Removal.tokenIdsForRemovals(parcelIdentifiers, vintages)).map((id) => id.toNumber());
 
-      // Alternatively, maybe `mintBatch` can be altered to take an additional array alongside amounts and vintages that contains the unique ID that will
-      // be used as a mapping key to keep track of tokenIds... It seems this wasn't possible because of the need to conform to interfaces like 1155.
+      expect(tokenIds).to.eql(targetTokenIdIndices);
 
-      const tokenIdForUniqueId = await Removal.tokenIdForRemoval(uniqueId);
-      console.log("tokenIdForUniqueId: ", tokenIdForUniqueId);
-      const balance = await Removal.totalSupply(tokenIdForUniqueId);
-
+      const firstReturnedTokenId = Number(tokenIds[0].toString());
+      const balance = await Removal.totalSupply(firstReturnedTokenId);
       expect(balance).to.equal(
         hardhat.ethers.utils
-          .parseUnits(firstRemovalBalance)
+          .parseUnits(removalBalances[targetTokenIdIndices[0]])
           .toString()
       );
     });
   });
+  describe('Listing removals for sale', () => {
+    it('should list removals for sale in the atomic marketplace and the FIFOMarket contract should have a balance for those token ids', async () => {
+      const {
+        contracts: { Removal, FIFOMarket },
+      } = await setupTest();
+      const { supplier } = await hardhat.getNamedAccounts();
+
+      const removalBalances = ['100', '200', '300', '400'];
+      const removalVintages = [2018, 2019, 2020, 2021];
+      const targetTokenIdIndices = [1, 3]; // list for sale token ids 1 and 3
+      const arbitraryCallData = "someParcelIdentifier";
+      await Removal.mintBatch(
+        supplier,
+        removalBalances.map((balance) => hardhat.ethers.utils.parseUnits(balance)),
+        removalVintages,
+        hardhat.ethers.utils.formatBytes32String(arbitraryCallData)
+      );
+
+    const parcelIdentifiers = targetTokenIdIndices.map((_) => hardhat.ethers.utils.formatBytes32String(arbitraryCallData));
+    const vintagesToList: number[] = removalVintages.filter((vintage) => targetTokenIdIndices.includes(removalVintages.indexOf(vintage)));
+    const tokenIdsToList: number[] = (await Removal.tokenIdsForRemovals(parcelIdentifiers, vintagesToList)).map((id) => id.toNumber());
+    const amountsToList: string[] = removalBalances.filter((balance) => targetTokenIdIndices.includes(removalBalances.indexOf(balance)));
+
+    const accounts = await ethers.getSigners();
+    await Removal.connect(accounts[2]).safeBatchTransferFrom(supplier, FIFOMarket.address, tokenIdsToList, amountsToList, ethers.utils.formatBytes32String('0x0'));
+
+    const firstListedTokenId = targetTokenIdIndices[0];
+    const secondListedTokenId = targetTokenIdIndices[1];
+    const balance1 = await Removal.balanceOf(FIFOMarket.address, firstListedTokenId);
+    const balance2 = await Removal.balanceOf(FIFOMarket.address, secondListedTokenId);
+
+    expect(balance1).to.equal(removalBalances[firstListedTokenId]);
+    expect(balance2).to.equal(removalBalances[secondListedTokenId]);
+    });
+  });
 });
+

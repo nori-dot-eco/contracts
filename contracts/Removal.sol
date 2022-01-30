@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import "hardhat/console.sol"; // todo
+// import "hardhat/console.sol"; // todo
 
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
@@ -49,10 +49,15 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
   }
 
   /**
-   * @dev returns the removal token ID for a given unique removal id
+   * @dev returns the token ids for a set of removals given each one's vintage and the data that was provided
+   * in its mint transaction
    */
-  function tokenIdForRemoval(bytes32 uniqueId) public view returns (uint256) {
-    return _vintageTokenIdMap[uniqueId];
+  function tokenIdsForRemovals(bytes[] memory parcelIdentifiers, uint256[] memory removalVintages) public view returns (uint256[] memory) {
+    uint256[] memory ids = new uint256[](removalVintages.length);
+    for (uint256 i = 0; i < removalVintages.length; i++) {
+      ids[i] = _vintageTokenIdMap[keccak256(abi.encodePacked(parcelIdentifiers[i], removalVintages[i]))];
+    }
+    return ids;
   }
 
   /**
@@ -61,7 +66,7 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
    * @param amounts Each removal's tonnes of CO2 formatted as wei
    * @param vintages The year for each removal
    * @param data Additional data with no specified format, MUST be sent unaltered in call to `onERC1155Received` on `_to`
-   going to try co-opting this as a unique ID
+   going to try co-opting this as part of a per-vintage unique ID
    */
   function mintBatch(
     address to,
@@ -72,11 +77,7 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
     // todo require vintage is within valid year range and doesn't already exist
     uint256[] memory ids = new uint256[](vintages.length);
     for (uint256 i = 0; i < vintages.length; i++) {
-      // bytes32 vintageBytes = bytes32(abi.encodePacked(uint256(vintages[i])));
-      // console.log("data: ", data);
-      // console.log("vintage_bytes: ", vintageBytes);
       bytes32 uniqueId = keccak256(abi.encodePacked(data, vintages[i]));
-      // console.log("uniqueId: ", uniqueId);
 
       ids[i] = _latestTokenId + i;
       _vintages[_latestTokenId + i] = Vintage({
