@@ -1,6 +1,6 @@
-import type { NORI } from '../typechain-types/NORI';
-import type { LockedNORI } from '../typechain-types/LockedNORI';
-import type { LockedNORI__factory, NORI__factory } from '../typechain-types';
+import { NORI } from '../typechain-types/NORI';
+import { LockedNORI } from '../typechain-types/LockedNORI';
+import { LockedNORI__factory, NORI__factory } from '../typechain-types';
 
 import { expect, hardhat } from '@/test/helpers';
 
@@ -11,7 +11,6 @@ const CLIFF1_AMOUNT = hardhat.ethers.utils.parseUnits((100).toString());
 const CLIFF2_AMOUNT = hardhat.ethers.utils.parseUnits((100).toString());
 const CLIFF1_OFFSET = 5_000;
 const CLIFF2_OFFSET = 10_000;
-const START_OFFSET = 1_000;
 const END_OFFSET = 100_000;
 const DELTA = 1_000; // useful offset to place time before / after the inflection points
 const GRANT_AMOUNT = hardhat.ethers.utils.parseUnits((1_000).toString());
@@ -21,6 +20,11 @@ const INITIAL_SUPPLY = hardhat.ethers.utils.parseUnits(
 
 // specific to employee scenario
 const VEST_END_OFFSET = 80_000;
+const VEST_REVOKED_OFFSET = 55_000; // halfway through the linear distribution of vesting
+const VESTED_BALANCE_AFTER_REVOCATION = hardhat.ethers.utils.parseUnits(
+  (750).toString()
+);
+const FULLY_UNLOCKED_AFTER_REVOCATION_OFFSET = 72_000;
 const VEST_CLIFF1_AMOUNT = hardhat.ethers.utils.parseUnits((150).toString()); // todo use named account "employee"
 const VEST_CLIFF2_AMOUNT = hardhat.ethers.utils.parseUnits((150).toString());
 
@@ -61,7 +65,7 @@ const setupWithGrant = hardhat.deployments.createFixture(
   async (hre, options?: { startTime: number }): ReturnType<typeof setup> => {
     const { nori, lNori } = await setup();
     const { investor1 } = await hre.getNamedAccounts();
-    const start = options?.startTime || NOW + START_OFFSET;
+    const start = options?.startTime || NOW;
     console.log({ start, options });
     const userData = hre.ethers.utils.defaultAbiCoder.encode(
       [
@@ -107,7 +111,7 @@ const setupWithEmployeeStyleGrant = hardhat.deployments.createFixture(
   ): Promise<ReturnType<typeof setup>> => {
     const { nori, lNori } = await setup();
     const { investor1 } = await hre.getNamedAccounts();
-    const start = options?.startTime || NOW + START_OFFSET;
+    const start = options?.startTime || NOW;
     const userData = hre.ethers.utils.defaultAbiCoder.encode(
       [
         'address',
@@ -337,10 +341,11 @@ describe('LockedNori', () => {
     expect(await lNori.unlockedBalanceOf(investor1)).to.equal(
       GRANT_AMOUNT.sub(withdrawlAmount)
     );
-    const tx2 = await lNori
-      .connect(addr1Signer)
-      .withdrawTo(investor1, GRANT_AMOUNT.sub(withdrawlAmount));
-    await tx2.wait();
+    expect(
+      await lNori
+        .connect(addr1Signer)
+        .withdrawTo(investor1, GRANT_AMOUNT.sub(withdrawlAmount))
+    ).to.emit(lNori, 'Transfer');
     expect(await lNori.balanceOf(investor1)).to.equal(0);
     expect(await lNori.vestedBalanceOf(investor1)).to.equal(0);
     expect(await lNori.unlockedBalanceOf(investor1)).to.equal(0);
@@ -375,26 +380,36 @@ describe('LockedNori', () => {
   it('Should revoke unvested tokens', async () => {
     // now == CLIFF2
     const startTime = NOW;
-    const { lNori, hre } = await setupWithEmployeeStyleGrant({ startTime });
+    const {
+      lNori,
+      hre,
+      hre: {
+        ethers: { BigNumber },
+      },
+    } = await setupWithEmployeeStyleGrant({ startTime });
     const { investor1, admin } = await hre.getNamedAccounts();
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
-      NOW + CLIFF2_OFFSET,
+      NOW + VEST_REVOKED_OFFSET,
     ]);
     await hardhat.network.provider.send('evm_mine');
     expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
-    const newBalance = VEST_CLIFF1_AMOUNT.add(VEST_CLIFF2_AMOUNT);
+    const newBalance = VESTED_BALANCE_AFTER_REVOCATION;
     expect(await lNori.vestedBalanceOf(investor1)).to.equal(newBalance);
     expect(
       await lNori
         .connect(await hre.ethers.getSigner(admin))
-        .revokeUnvestedTokens(NOW + CLIFF2_OFFSET, investor1, admin)
+        .revokeUnvestedTokens(NOW + VEST_REVOKED_OFFSET, investor1, admin)
     )
       .to.emit(lNori, 'UnvestedTokensRevoked')
-      .withArgs(NOW + CLIFF2_OFFSET, investor1, GRANT_AMOUNT.sub(newBalance));
+      .withArgs(
+        NOW + VEST_REVOKED_OFFSET,
+        investor1,
+        GRANT_AMOUNT.sub(newBalance)
+      );
     expect(await lNori.vestedBalanceOf(investor1)).to.equal(newBalance);
     expect(await lNori.balanceOf(investor1)).to.equal(newBalance);
     // await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
-    //   NOW + CLIFF2_OFFSET,
+    //   NOW + VEST_REVOKED_OFFSET + DELTA,
     // ]);
     // await hardhat.network.provider.send('evm_mine');
     console.log({
@@ -402,8 +417,24 @@ describe('LockedNori', () => {
       CLIFF1_AMOUNT: CLIFF1_AMOUNT.toString(),
       CLIFF2_AMOUNT: CLIFF2_AMOUNT.toString(),
     });
-    expect(await lNori.unlockedBalanceOf(investor1)).to.equal(newBalance);
+    expect(await lNori.unlockedBalanceOf(investor1)).to.eq(
+      BigNumber.from('600008888888888888888')
+    );
     expect(await lNori.balanceOf(admin)).to.equal(GRANT_AMOUNT.sub(newBalance));
+
+    // TODO: Might be worth reworking the times in all these fixtures
+    // with actual seconds and calculate these thresholds more carefully.
+    await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
+      NOW + FULLY_UNLOCKED_AFTER_REVOCATION_OFFSET - DELTA,
+    ]);
+    await hardhat.network.provider.send('evm_mine');
+    expect(await lNori.unlockedBalanceOf(investor1)).to.be.lt(newBalance);
+
+    await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
+      NOW + FULLY_UNLOCKED_AFTER_REVOCATION_OFFSET + DELTA,
+    ]);
+    await hardhat.network.provider.send('evm_mine');
+    expect(await lNori.unlockedBalanceOf(investor1)).to.be.eq(newBalance);
   });
 
   it('Should return details of a grant', async () => {
@@ -416,18 +447,26 @@ describe('LockedNori', () => {
       },
     } = await setupWithEmployeeStyleGrant({ startTime });
     const { investor1 } = await hre.getNamedAccounts();
-    expect(await lNori.getGrant(investor1)).to.deep.equal([
-      BigNumber.from(GRANT_AMOUNT),
+    const grant = await lNori.getGrant(investor1);
+    const expected = [
+      GRANT_AMOUNT,
       BigNumber.from(startTime),
       BigNumber.from(startTime + VEST_END_OFFSET),
       BigNumber.from(startTime + END_OFFSET),
       BigNumber.from(startTime + CLIFF1_OFFSET),
       BigNumber.from(startTime + CLIFF2_OFFSET),
-      BigNumber.from(VEST_CLIFF1_AMOUNT),
-      BigNumber.from(VEST_CLIFF2_AMOUNT),
-      BigNumber.from(CLIFF1_AMOUNT),
-      BigNumber.from(CLIFF2_AMOUNT),
+      VEST_CLIFF1_AMOUNT,
+      VEST_CLIFF2_AMOUNT,
+      CLIFF1_AMOUNT,
+      CLIFF2_AMOUNT,
       BigNumber.from(0),
-    ]);
+      GRANT_AMOUNT,
+    ];
+    for (let i = 0; i < grant.length; i++) {
+      expect(grant[i]).to.eq(
+        expected[i],
+        `${i}: ${expected[i].toString()} == ${grant[i].toString()}`
+      );
+    }
   });
 });
