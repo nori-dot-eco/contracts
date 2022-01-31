@@ -96,6 +96,8 @@ library ScheduleUtils {
     view
     returns (uint256)
   {
+    console.log("cliffAmountsAvailable(schedule, atTime)",cliffAmountsAvailable(schedule, atTime));
+    console.log("linearReleaseAmountAvailable(schedule, atTime)",linearReleaseAmountAvailable(schedule, atTime));
     return
       cliffAmountsAvailable(schedule, atTime) +
       linearReleaseAmountAvailable(schedule, atTime);

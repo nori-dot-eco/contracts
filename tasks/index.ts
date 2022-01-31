@@ -20,6 +20,7 @@ import { TASK as REMOVAL_TASK } from './removal';
 import { TASK as CERTIFICATE_TASK } from './certificate';
 import { TASK as FIFO_MARKET_TASK } from './fifo-market';
 import { TASK as NORI_TASK } from './nori';
+import { TASK as LOCKED_NORI_TASK } from './locked-nori';
 
 interface Task {
   run: ActionType<unknown>;
@@ -56,4 +57,5 @@ export const TASKS = {
   [FIFO_MARKET_TASK.name]: { ...FIFO_MARKET_TASK },
   [REMOVAL_TASK.name]: { ...REMOVAL_TASK },
   [NORI_TASK.name]: { ...NORI_TASK },
+  [LOCKED_NORI_TASK.name]: { ...LOCKED_NORI_TASK },
 } as const;
