@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 
 struct Cliff {
@@ -96,8 +95,6 @@ library ScheduleUtils {
     view
     returns (uint256)
   {
-    console.log("cliffAmountsAvailable(schedule, atTime)",cliffAmountsAvailable(schedule, atTime));
-    console.log("linearReleaseAmountAvailable(schedule, atTime)",linearReleaseAmountAvailable(schedule, atTime));
     return
       cliffAmountsAvailable(schedule, atTime) +
       linearReleaseAmountAvailable(schedule, atTime);

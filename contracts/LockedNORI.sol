@@ -154,13 +154,13 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
         uint256
       )
     );
-    console.log(
-      startTime,
-      vestEndTime,
-      // unlockEndTime
-      // cliff1Time,
-      cliff2Time
-    );
+    // console.log(
+    //   startTime,
+    //   vestEndTime,
+    //   // unlockEndTime
+    //   // cliff1Time,
+    //   cliff2Time
+    // );
     require(
       address(recipient) != address(0),
       "Recipient cannot be zero address"
@@ -228,9 +228,9 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
       emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
       // TODO: destination address for clawed back tokens should be a role
       // or an initialization parameter rather than the caller.
-      console.log("from,to,quantityRevoked",from,to,quantityRevoked);
-      console.log("grant.grantAmount",grant.grantAmount);
-      console.log("vestedBalance",vestedBalance);
+    //   console.log("from,to,quantityRevoked",from,to,quantityRevoked);
+    //   console.log("grant.grantAmount",grant.grantAmount);
+    //   console.log("vestedBalance",vestedBalance);
       operatorSend(
         from,
         to,
@@ -284,9 +284,9 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   function unlockedBalanceOf(address account) public view returns (uint256) {
     TokenGrant storage grant = grants[account];
     if (grant.exists) {
-      console.log("grant.vestingSchedule.availableAmount(block.timestamp)",grant.vestingSchedule.availableAmount(block.timestamp));
-      console.log("grant.lockupSchedule.availableAmount(block.timestamp)",grant.lockupSchedule.availableAmount(block.timestamp));
-      console.log("grant.claimedAmount",grant.claimedAmount);
+    //   console.log("grant.vestingSchedule.availableAmount(block.timestamp)",grant.vestingSchedule.availableAmount(block.timestamp));
+    //   console.log("grant.lockupSchedule.availableAmount(block.timestamp)",grant.lockupSchedule.availableAmount(block.timestamp));
+    //   console.log("grant.claimedAmount",grant.claimedAmount);
       // If any tokens have been revoked then the schedule (which doesn't get updated) could
       // return more than the total grant amount.
       return
@@ -377,7 +377,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
         require(amount <= availableBalance, "LockedNORI: Withdrawl amount unavailable");
       }
     }
-    console.log("before token transfer");
+    // console.log("before token transfer");
     super._beforeTokenTransfer(from, to, amount);
   }
 
