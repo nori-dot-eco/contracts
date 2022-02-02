@@ -17,11 +17,11 @@ import "hardhat/console.sol"; // todo
  * @title FIFOMarket
  */
 contract FIFOMarket is
-    Initializable,
-    ContextUpgradeable,
-    AccessControlEnumerableUpgradeable,
-    ERC1155HolderUpgradeable,
-    IERC777RecipientUpgradeable
+  Initializable,
+  ContextUpgradeable,
+  AccessControlEnumerableUpgradeable,
+  ERC1155HolderUpgradeable,
+  IERC777RecipientUpgradeable
 {
   IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
@@ -90,8 +90,8 @@ contract FIFOMarket is
 
   // todo optimize gas (perhaps consider setting the last sold id instead of looping -- not sure if it's possible to reduce array size yet or not)
   /**
-    * @dev Called automatically by the ERC777 (nori) contract when a batch of tokens are transferred to the contract.
-    */
+  * @dev Called automatically by the ERC777 (nori) contract when a batch of tokens are transferred to the contract.
+  */
   function tokensReceived(
     address,
     address,
@@ -146,10 +146,10 @@ contract FIFOMarket is
 
     bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
     _certificate.mintBatch(
-        recipient,
-        ids,
-        amounts,
-        encodedCertificateAmount
+      recipient,
+      ids,
+      amounts,
+      encodedCertificateAmount
     );
     for (uint256 i = 0; i < ids.length; i++) {
       if (amounts[i] == 0) {
@@ -167,11 +167,11 @@ contract FIFOMarket is
   }
 
   function supportsInterface(bytes4 interfaceId)
-      public
-      view
-      virtual
-      override(AccessControlEnumerableUpgradeable, ERC1155ReceiverUpgradeable)
-      returns (bool)
+    public
+    view
+    virtual
+    override(AccessControlEnumerableUpgradeable, ERC1155ReceiverUpgradeable)
+    returns (bool)
   {
     return
       AccessControlEnumerableUpgradeable.supportsInterface(interfaceId) ||
