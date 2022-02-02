@@ -17,6 +17,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
  */
 contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable {
 
+
   using SafeMathUpgradeable for uint;
 
   struct Vintage {
@@ -48,6 +49,12 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
 
   /**
    * @dev mints all of the removal vintages for an issuance
+   * ids that will be auto assigned [0, 1, 2]
+   * amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
+   * vintages: [2018, 2019, 2020]
+   * token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
+   * token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
+   * token id 2 URI points to vintage information (e.g., 2020) nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
    * @param to The supplier address
    * @param amounts The issuance id (each vintage's tonnes of CO2 formatted as wei)
    * @param vintages The vintages for each tokenId
@@ -75,13 +82,26 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
       amounts,
       data
     );
-    // ids that will be auto assigned [0, 1, 2]
-    // amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
-    // vintages: [2018, 2019, 2020]
-    // token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
-    // token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
-    // token id 2 URI points to vintage information (e.g., 2020) nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
+    setApprovalForAllAsAdmin(to, _msgSender(), true);
+    // todo decode FIFO_ADDRESS
+    address market = abi.decode(data, (address));
+    super.safeBatchTransferFrom(
+      to,
+      market,
+      ids,
+      amounts,
+      data
+    );
   }
+  
+  /**
+    * @dev See {IERC1155-setApprovalForAll}.
+    */
+  function setApprovalForAllAsAdmin(address owner, address operator, bool approved) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+    _setApprovalForAll(owner, operator, approved);
+  }
+
+
 
   /**
    * @dev used to initiate a sale of removals by transferring the removals to the
