@@ -33,6 +33,19 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     bool exists;
   }
 
+  struct CreateTokenGrantParams {
+      address recipient;
+      uint256 startTime;
+      uint256 vestEndTime;
+      uint256 unlockEndTime;
+      uint256 cliff1Time;
+      uint256 cliff2Time;
+      uint256 vestCliff1Amount;
+      uint256 vestCliff2Amount;
+      uint256 unlockCliff1Amount;
+      uint256 unlockCliff2Amount;
+  }
+
   bytes32 public constant TOKEN_GRANTER_ROLE = keccak256("TOKEN_GRANTER_ROLE");
 
 
@@ -80,23 +93,28 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev Allow a user to deposit _underlying tokens and mint the corresponding number of wrapped tokens.
+   * @dev Internal callback from tokensDeposited hook, wraps minting wrapped token and grant setup.
    */
   function _depositFor(
     uint256 amount,
     bytes calldata userData,
-    bytes calldata
-  ) internal virtual returns (bool) {
-    (address recipient) = abi.decode(userData, (address));
-    _grantTo(
-      amount,
-      userData
-    );
+    bytes calldata operatorData
+  ) internal returns (bool) {
+    (address recipient, uint256 startTime) = abi.decode(userData, (address, uint256));
+    // TODO:SW Make this more explicit
+    // If a startTime parameter is non-zero then set up a schedule
+    if (startTime > 0) {
+      _grantTo(
+        amount,
+        userData
+      );
+    }
+
     ERC777Upgradeable._mint(
       recipient,
       amount,
       userData,
-      ""
+      operatorData
     );
     return true;
   }
@@ -118,82 +136,94 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev grantTo: Sets up an vesting + lockup schedule for recipient.
+   * @dev _grantTo: Sets up an vesting + lockup schedule for recipient.
    *
-   * Tokens must be wrapped in the name of the recipient separately using `depositFor`.
-   * This can happen before or after creating the schedule or gradually over time.
+   * Typically this will be invoked via the `tokensReceived` callback for cases
+   * where we have the tokens in hand at the time we set up the grant.
+   *
+   * It is also callable externally to handle the case that tokens are incrementally
+   * deposited after the grant is established.
    */
   function _grantTo(
     uint256 amount,
-    bytes calldata userData
-  ) internal whenNotPaused {
-    // todo  onlyRole(TOKEN_GRANTER_ROLE)
-    (
-      address recipient,
-      uint256 startTime,
-      uint256 vestEndTime,
-      uint256 unlockEndTime,
-      uint256 cliff1Time,
-      uint256 cliff2Time,
-      uint256 vestCliff1Amount,
-      uint256 vestCliff2Amount,
-      uint256 unlockCliff1Amount,
-      uint256 unlockCliff2Amount
-    ) = abi.decode(
+    bytes memory userData
+  ) internal {
+    CreateTokenGrantParams memory params = abi.decode(
       userData,
-      (
-        address,
-        uint256,
-        uint256,
-        uint256,
-        uint256,
-        uint256,
-        uint256,
-        uint256,
-        uint256,
-        uint256
-      )
+      (CreateTokenGrantParams)
     );
-    // console.log(
-    //   startTime,
-    //   vestEndTime,
-    //   // unlockEndTime
-    //   // cliff1Time,
-    //   cliff2Time
-    // );
     require(
-      address(recipient) != address(0),
+      address(params.recipient) != address(0),
       "Recipient cannot be zero address"
     );
 
-    TokenGrant storage grant = grants[recipient];
+    TokenGrant storage grant = grants[params.recipient];
     grant.grantAmount = amount;
     grant.originalAmount = amount;
     grant.exists = true;
 
-    if (vestEndTime > startTime) {
-      require(vestCliff1Amount >= unlockCliff1Amount 
-        && vestCliff2Amount >= unlockCliff2Amount,
+    if (params.vestEndTime > params.startTime) {
+      require(params.vestCliff1Amount >= params.unlockCliff1Amount
+        && params.vestCliff2Amount >= params.unlockCliff2Amount,
         "Unlock cliff amounts cannot exceed vest cliff amounts");
       grant.vestingSchedule.totalAmount = amount;
-      grant.vestingSchedule.startTime = startTime;
-      grant.vestingSchedule.endTime = vestEndTime;
-      grant.vestingSchedule.addCliff(cliff1Time, vestCliff1Amount);
-      grant.vestingSchedule.addCliff(cliff2Time, vestCliff2Amount);
+      grant.vestingSchedule.startTime = params.startTime;
+      grant.vestingSchedule.endTime = params.vestEndTime;
+      grant.vestingSchedule.addCliff(params.cliff1Time, params.vestCliff1Amount);
+      grant.vestingSchedule.addCliff(params.cliff2Time, params.vestCliff2Amount);
     }
 
     grant.lockupSchedule.totalAmount = amount;
-    grant.lockupSchedule.startTime = startTime;
-    grant.lockupSchedule.endTime = unlockEndTime;
-    grant.lockupSchedule.addCliff(cliff1Time, unlockCliff1Amount);
-    grant.lockupSchedule.addCliff(cliff2Time, unlockCliff2Amount);
+    grant.lockupSchedule.startTime = params.startTime;
+    grant.lockupSchedule.endTime = params.unlockEndTime;
+    grant.lockupSchedule.addCliff(params.cliff1Time, params.unlockCliff1Amount);
+    grant.lockupSchedule.addCliff(params.cliff2Time, params.unlockCliff2Amount);
 
     emit TokenGrantCreated(
-      recipient,
+      params.recipient,
       amount,
-      startTime,
-      vestEndTime,
-      unlockEndTime
+      params.startTime,
+      params.vestEndTime,
+      params.unlockEndTime
+    );
+  }
+
+  /**
+   * @dev grantTo: Sets up an vesting + lockup schedule for recipient.
+   *
+   * Typically this will be invoked via the `tokensReceived` callback for cases
+   * where we have the tokens in hand at the time we set up the grant.
+   *
+   * It is also callable externally to handle the case that tokens are incrementally
+   * deposited after the grant is established.
+   */
+  function grantTo(
+    uint256 amount,
+    address recipient,
+    uint256 startTime,
+    uint256 vestEndTime,
+    uint256 unlockEndTime,
+    uint256 cliff1Time,
+    uint256 cliff2Time,
+    uint256 vestCliff1Amount,
+    uint256 vestCliff2Amount,
+    uint256 unlockCliff1Amount,
+    uint256 unlockCliff2Amount
+  ) public whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
+    bytes memory userData = abi.encode(
+        recipient,
+        startTime,
+        vestEndTime,
+        unlockEndTime,
+        cliff1Time,
+        cliff2Time,
+        vestCliff1Amount,
+        vestCliff2Amount,
+        unlockCliff1Amount,
+        unlockCliff2Amount);
+    _grantTo(
+        amount,
+        userData
     );
   }
 
@@ -214,23 +244,10 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     TokenGrant storage grant = grants[from];
     require(grant.exists, "No grant exist");
     uint256 vestedBalance = _vestedBalanceOf(atTime, from);
-    // console.log(
-    //   "[revokeUnvestedTokens] time: %s from: %s vestedBalance: %s",
-    //   atTime,
-    //   from,
-    //   vestedBalance
-    // );
     if (vestedBalance < grant.grantAmount) {
       uint256 quantityRevoked = grant.grantAmount - vestedBalance;
       grant.grantAmount = vestedBalance;
-    //   grant.vestingSchedule.totalAmount = vestedBalance;
-    //   grant.lockupSchedule.totalAmount = vestedBalance;
       emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
-      // TODO: destination address for clawed back tokens should be a role
-      // or an initialization parameter rather than the caller.
-    //   console.log("from,to,quantityRevoked",from,to,quantityRevoked);
-    //   console.log("grant.grantAmount",grant.grantAmount);
-    //   console.log("vestedBalance",vestedBalance);
       operatorSend(
         from,
         to,

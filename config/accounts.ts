@@ -24,5 +24,6 @@ export const namedAccounts = {
   investor1: 4 as unknown as Address,
   investor2: 5 as unknown as Address,
   buyer: 6 as unknown as Address,
+  employee: 7 as unknown as Address,
   noriWallet: 9 as unknown as Address,
 } as const;
