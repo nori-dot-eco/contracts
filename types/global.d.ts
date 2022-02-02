@@ -6,7 +6,7 @@ import type {
   TaskArguments,
 } from 'hardhat/types/runtime';
 import type { DeployFunction } from '@openzeppelin/hardhat-upgrades/src/deploy-proxy';
-import type { Contract, ContractFactory, ethers as defaultEthers } from 'ethers';
+import type { BaseContract, Contract, ContractFactory, ethers as defaultEthers } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
@@ -63,17 +63,19 @@ interface CustomHardhatUpgrades extends HardhatUpgrades {
 }
 
 declare global {
-  var hre: CustomHardHatRuntimeEnvironment;
+  type TypeChainBaseContract = BaseContract & { contractName: string };
 
+  var hre: CustomHardHatRuntimeEnvironment;
+  type ContractNames = 
+    | 'NCCR_V0'
+    | 'Nori_V0'
+    | 'FIFOMarket'
+    | 'NORI'
+    | 'Removal'
+    | 'Certificate';
   var ethers: Omit<typeof defaultEthers & HardhatEthersHelpers, 'getContractFactory'> & {
     getContractFactory<TContractFactory extends ContractFactory = ContractFactory>(
-      name:
-        | 'NCCR_V0'
-        | 'Nori_V0'
-        | 'FIFOMarket'
-        | 'NORI'
-        | 'Removal'
-        | 'Certificate',
+      name: ContractNames,
       signerOrOptions?: Signer | FactoryOptions
     ): Promise<TContractFactory>;
   };

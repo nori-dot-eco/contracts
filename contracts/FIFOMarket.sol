@@ -103,16 +103,11 @@ contract FIFOMarket is
     uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
     uint256 remainingAmountToFill = certificateAmount;
 
-    address recipient = abi.decode(userData, (address));
-    require(recipient == address(recipient), "FIFOMarket: Invalid address");
-    require(
-      recipient != address(0),
-      "FIFOMarket: Cannot mint to the 0 address"
-    );
-    require(
-      msg.sender == address(_nori),
-      "FIFOMarket: This contract can only receive NORI"
-    ); // todo verify this can only be invoked by the nori contract
+    address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
+    require(recipient == address(recipient),"FIFOMarket: Invalid address");
+    require(recipient != address(0), "FIFOMarket: Cannot mint to the 0 address");
+    // todo verify this can only be invoked by the nori contract
+    require(msg.sender == address(_nori), "FIFOMarket: This contract can only receive NORI");
     uint256[] memory ids = new uint256[](_queueLength());
     uint256[] memory amounts = new uint256[](_queueLength());
     address[] memory suppliers = new address[](_queueLength());
