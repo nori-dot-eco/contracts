@@ -432,8 +432,6 @@ describe('LockedNori', () => {
     expect(await lNori.vestedBalanceOf(supplier)).to.be.gt(0);
     expect(await lNori.unlockedBalanceOf(supplier)).to.be.gt(0);
 
-    console.log(await nori.allowance(admin, admin));
-
     expect(await nori.send(lNori.address, GRANT_AMOUNT.div(2), userData));
     expect(await lNori.balanceOf(supplier)).to.equal(GRANT_AMOUNT.div(2));
     expect(await lNori.vestedBalanceOf(supplier)).to.be.gt(0);
@@ -564,8 +562,5 @@ describe('LockedNori', () => {
     }
   });
 
-  it.todo(
-    'Wallet granted TOKEN_GRANTER_ROL after initialization can revoke',
-    () => {}
-  );
+  it('Wallet granted TOKEN_GRANTER_ROLE after initialization can revoke', () => {});
 });

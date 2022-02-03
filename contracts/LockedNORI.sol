@@ -9,9 +9,47 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "./NORI.sol";
 import { ScheduleUtils, Schedule, Cliff } from "./ScheduleUtils.sol";
 
+/**
+ * @title {ERC20Wrapper} extension implementing scheduled {NORI} token vesting + lockup.
+ * @author Nori Inc.
+ *
+ * @notice Based on the mechanics of a wrapped ERC20/ERC777 token this contact layers in scheduled withdrawl
+ * to implement *vesting* (a revocable grant) *lockup* (an irrevocable timelock on utility).
+ *
+ * _Vesting_ is applied in scenarios where the tokens may need to be recaptured by Nori.
+ * This could either be due to an employee leaving the company before being fully vested or
+ * because one of our suppliers incurs a carbon loss so their restricted (unvested in the terminology of this contract)
+ * tokens need to be recaptured to mitigate the loss and make the original buyer whole by using them
+ * to purchases new NRTs on their behalf.
+ *
+ * _Lockup_ refers to tokens that are guaranteed to be available to the grantee but are subject to a time delay
+ * before they are usable / transferrable out of this smart contract.
+ * This is a standard mechanism used to avoid sudden floods of liquidity in the NORI token that
+ * could severely depress the price.
+ *
+ *
+ * A _cliff_ refers to a period prior to which no tokens are vested or unlocked.
+ * Cliffs are defined by a date and an amount which must is <= the overall grant amount.
+ *
+ * This contract supports a maximum of two distinct cliffs per grant.
+ * The effect of fewer cliffs can be achieve by setting one of both cliff times
+ * to the start time or end time, and/or by setting the cliff amount to zero.
+ *
+ * Tokens are released linearly from the latest cliff date to the end date of
+ * the grant based on the block.timestamp of each block.
+ *
+ * Assumptions / Constraints:
+ *  * A single grant per address is supported
+ *  * Unlock is always at the same time or lagging vesting.
+ *  * Transfer of LockedNORI under lockup is forbidden.
+ *  * In absence of a grant LockedNORI functions identically to a standard wrapped token.
+ */
 contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IERC777RecipientUpgradeable {
   using ScheduleUtils for Schedule;
 
+  /**
+   * @dev Emit on successful creation of a new grant.
+   */
   event TokenGrantCreated(
     address indexed recipient,
     uint256 amount,
@@ -19,8 +57,15 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     uint256 vestEndTime,
     uint256 unlockEndTime
   );
-  event TokenGrantTransferred(address from, address to);
+
+  /**
+   * @dev Emit on when the vesting portion of an active grant is terminated.
+   */
   event UnvestedTokensRevoked(uint256 atTime, address from, uint256 quantity);
+  
+  /**
+   * @dev Emit on withdwal of fully unlocked tokens.
+   */
   event TokensClaimed(address account, uint256 quantity);
 
   struct TokenGrant {
@@ -48,6 +93,9 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
       uint256 originalAmount;
   }
 
+  /**
+   * @dev Grant creation parameters as passed in the `userData` parameter of {NORI}.`send`
+   */
   struct CreateTokenGrantParams {
       address recipient;
       uint256 startTime;
@@ -93,6 +141,9 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     _erc1820.setInterfaceImplementer(address(this), keccak256("ERC777TokensRecipient"), address(this));
   }
 
+  /**
+   * @dev {ERC777} tokensReceived hook.
+   */
   function tokensReceived(
     address,
     address,
@@ -114,7 +165,11 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev Internal callback from tokensDeposited hook, wraps minting wrapped token and grant setup.
+   * @dev Wraps minting of wrapper token and grant setup.
+   *
+   * If `startTime` is zero no grant is set up.
+   * Satisfies situations where funding of the grant happens over time.
+   * Enforces that a grant exists for `recipient` in this case.
    */
   function _depositFor(
     uint256 amount,
@@ -128,6 +183,8 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
         amount,
         userData
       );
+    } else {
+      require(grants[params.recipient].exists, "Cannot wrap NORI without a grant in place.");
     }
 
     ERC777Upgradeable._mint(
@@ -140,7 +197,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev Allow a user to burn a number of wrapped tokens and withdraw the corresponding number of _underlying tokens.
+   * @dev Burn (claim) `amount` of wrapped tokens and withdraw the corresponding {NORI} tokens.
    */
   function withdrawTo(address account, uint256 amount)
     external
@@ -156,13 +213,13 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev _grantTo: Sets up an vesting + lockup schedule for recipient.
+   * @dev _grantTo: Sets up a vesting + lockup schedule for recipient (implementation).
    *
-   * Typically this will be invoked via the `tokensReceived` callback for cases
+   * This will be invoked via the `tokensReceived` callback for cases
    * where we have the tokens in hand at the time we set up the grant.
    *
-   * It is also callable externally to handle the case that tokens are incrementally
-   * deposited after the grant is established.
+   * It is also callable externally (see `grantTo`) to handle cases
+   * where tokens are incrementally deposited after the grant is established.
    */
   function _grantTo(
     uint256 amount,
@@ -209,13 +266,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev grantTo: Sets up an vesting + lockup schedule for recipient.
-   *
-   * Typically this will be invoked via the `tokensReceived` callback for cases
-   * where we have the tokens in hand at the time we set up the grant.
-   *
-   * It is also callable externally to handle the case that tokens are incrementally
-   * deposited after the grant is established.
+   * @dev grantTo: Sets up a vesting + lockup schedule for recipient.
    */
   function grantTo(
     uint256 amount,
@@ -250,10 +301,10 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   /**
    * @dev revokeUnvestedTokens: Truncates a vesting grant.
    *
-   * Transfers any unvested tokens in *from*'s grant to *to*
+   * Transfers any unvested tokens in `from`'s grant to `to`
    * and reduces the total grant size.
    *
-   * No change is made to balances that have vested but not claimed
+   * No change is made to balances that have vested but not yet been claimed
    * whether locked or not.
    */
   function revokeUnvestedTokens(
@@ -264,6 +315,9 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
       _revokeUnvestedTokens(atTime, from, to);
   }
 
+  /**
+   * @dev _revokeUnvestedTokens: Truncates a vesting grant. (implementation)
+   */
   function _revokeUnvestedTokens(
     uint256 atTime,
     address from,
@@ -289,7 +343,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev vestedBalanceOf: Vested balance less any claimed amount
+   * @dev quantityRevokedFrom: Number of unvested tokens that were revoked if any.
    */
   function quantityRevokedFrom(address account) external view returns (uint256) {
     TokenGrant storage grant = grants[account];
@@ -297,14 +351,14 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev vestedBalanceOf: Vested balance less any claimed amount
+   * @dev vestedBalanceOf: Vested balance less any claimed amount at current block timestamp.
    */
   function vestedBalanceOf(address account) external view returns (uint256) {
     return _vestedBalanceOf(block.timestamp, account);
   }
 
   /**
-   * @dev vestedBalanceOf: Vested balance less any claimed amount
+   * @dev _vestedBalanceOf: Vested balance less any claimed amount at `atTime` (implementation)
    */
   function _vestedBalanceOf(uint256 atTime, address account)
     internal
@@ -324,20 +378,20 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev unlockedBalanceOf: Unlocked balance less any claimed amount
+   * @dev unlockedBalanceOf: Unlocked balance less any claimed amount at current block timestamp.
    */
   function unlockedBalanceOf(address account) public view returns (uint256) {
       return _unlockedBalanceOf(block.timestamp, account);
   }
 
   /**
-   * @dev _unlockedBalanceOf: Unlocked balance less any claimed amount
+   * @dev _unlockedBalanceOf: Unlocked balance less any claimed amount. (implementation)
    */
   function _unlockedBalanceOf(uint256 atTime, address account) internal view returns (uint256) {
     TokenGrant storage grant = grants[account];
-    uint256 balance = 0;
+    uint256 balance = this.balanceOf(account);
     if (grant.exists) {
-      // If any tokens have been revoked then the schedule (which doesn't get updated) may
+      // @dev If any tokens have been revoked then the schedule (which doesn't get updated) may
       // return more than the total grant amount.
       //
       // This is done to preserve the behavior of the unlock schedule despite a reduction in the total
@@ -356,7 +410,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev balanceOf: Total amount granted to the user less any previously claimed amount
+   * @dev balanceOf: Total quantity of `_underlying` deposited for `account`.
    */
   function balanceOf(address account)
     public
@@ -368,7 +422,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev getGrant: Returns all governing settings on a grant.
+   * @dev getGrant: Returns all governing settings for a grant.
    */
   function getGrant(address account)
     external
@@ -410,7 +464,6 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
         require(amount <= availableBalance, "LockedNORI: Withdrawl amount unavailable");
       }
     }
-    // console.log("before token transfer");
     super._beforeTokenTransfer(from, to, amount);
   }
 
