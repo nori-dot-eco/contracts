@@ -18,6 +18,24 @@ hardhat node
 yarn test
 ```
 
+## Reporting gas usage
+
+Note that gas reporting is disabled by default because it slows tests down significantly.
+
+First, set REPORT_GAS and COINMARKETCAP_API_KEY environment variables.
+
+Then, in a first terminal, run the following:
+
+```
+hardhat node --no-deploy
+```
+
+Finally, in a second terminal, run the following:
+
+```
+REPORT_GAS=true hardhat test --network localhost
+```
+
 ---
 
 ## Hardhat Tasks
