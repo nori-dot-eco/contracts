@@ -7,4 +7,5 @@ import '@nomiclabs/hardhat-ethers';
 import '@typechain/hardhat';
 import '@nomiclabs/hardhat-etherscan';
 import '@openzeppelin/hardhat-defender';
+import 'hardhat-gas-reporter';
 import '@/tasks';
