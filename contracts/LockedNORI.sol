@@ -503,12 +503,4 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     return ERC777Upgradeable.transferFrom(holder, recipient, amount);
   }
 
-  //   function _burn(
-  //         address from,
-  //         uint256 amount,
-  //         bytes memory data,
-  //         bytes memory operatorData
-  //     ) internal virtual override {
-  //         return ERC777Upgradeable._burn()
-  //     }
 }

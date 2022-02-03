@@ -563,4 +563,9 @@ describe('LockedNori', () => {
       );
     }
   });
+
+  it.todo(
+    'Wallet granted TOKEN_GRANTER_ROL after initialization can revoke',
+    () => {}
+  );
 });
