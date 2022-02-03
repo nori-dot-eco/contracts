@@ -7,6 +7,7 @@ import { etherscan } from '@/config/etherscan';
 import { tenderly } from '@/config/tenderly';
 import { networks } from '@/config/networks';
 import { namedAccounts } from '@/config/accounts';
+import { defender } from '@/config/defender';
 
 export const config: HardhatUserConfig = {
   tenderly,
@@ -18,6 +19,7 @@ export const config: HardhatUserConfig = {
   namedAccounts,
   networks,
   etherscan,
+  defender,
   solidity: {
     compilers: [
       {
