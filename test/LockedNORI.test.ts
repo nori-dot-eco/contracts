@@ -243,7 +243,9 @@ describe('LockedNori', () => {
     expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT); // todo use as options for setupWithGrant instead of constant
     expect(await lNori.vestedBalanceOf(investor1)).to.equal(0);
     expect(await lNori.unlockedBalanceOf(investor1)).to.equal(0);
-    expect((await lNori.getGrant(investor1)).amount).to.equal(GRANT_AMOUNT);
+    expect((await lNori.getGrant(investor1)).grantAmount).to.equal(
+      GRANT_AMOUNT
+    );
     expect(await nori.totalSupply()).to.equal(INITIAL_SUPPLY);
     await expect(
       lNori
@@ -541,6 +543,7 @@ describe('LockedNori', () => {
     const grant = await lNori.getGrant(employee);
     const expected = [
       GRANT_AMOUNT,
+      employee,
       BigNumber.from(startTime),
       BigNumber.from(startTime + VEST_END_OFFSET),
       BigNumber.from(startTime + END_OFFSET),
