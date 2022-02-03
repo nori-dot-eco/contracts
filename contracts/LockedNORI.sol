@@ -166,10 +166,12 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
 
   /**
    * @dev Wraps minting of wrapper token and grant setup.
-   *
+   * @param amount uint256 Quantity of `_underlying` to deposit
+   * @param userData CreateTokenGrantParams or DepositForParams
+   * @param operatorData bytes extra information provided by the operator (if any)
+   * 
    * If `startTime` is zero no grant is set up.
    * Satisfies situations where funding of the grant happens over time.
-   * Enforces that a grant exists for `recipient` in this case.
    */
   function _depositFor(
     uint256 amount,
@@ -183,8 +185,6 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
         amount,
         userData
       );
-    } else {
-      require(grants[params.recipient].exists, "Cannot wrap NORI without a grant in place.");
     }
 
     ERC777Upgradeable._mint(
@@ -205,7 +205,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     returns (bool)
   {
     TokenGrant storage grant = grants[account];
-    _burn(_msgSender(), amount, "", "");
+    ERC777Upgradeable._burn(_msgSender(), amount, "", "");
     _underlying.send(account, amount, "");
     grant.claimedAmount += amount;
     emit TokensClaimed(account, amount);
@@ -366,7 +366,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     returns (uint256)
   {
     TokenGrant storage grant = grants[account];
-    uint256 balance = 0;
+    uint256 balance = this.balanceOf(account);
     if (grant.exists) {
       if (grant.vestingSchedule.startTime > 0) {
         balance = grant.vestingSchedule.availableAmount(atTime) - grant.claimedAmount;
@@ -448,7 +448,7 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
   }
 
   /**
-   * @dev called before send and transfer and used to disable transferring locket nori
+   * @dev called before send and transfer and used to disable transferring locked nori
    */
   function _beforeTokenTransfer(
     address,
@@ -457,8 +457,9 @@ contract LockedNORI is ERC777Upgradeable, ERC20PresetMinterPauserUpgradeable, IE
     uint256 amount
   ) internal override {
     bool isNotMinting = from != address(0); // if it's not minting, then we check balances
+    bool hasGrant = grants[from].exists;
     // this is a burn / unwrap
-    if (isNotMinting) {
+    if (isNotMinting && hasGrant) {
       uint256 availableBalance = unlockedBalanceOf(from);
       if(!hasRole(DEFAULT_ADMIN_ROLE, _msgSender())){
         require(amount <= availableBalance, "LockedNORI: Withdrawl amount unavailable");

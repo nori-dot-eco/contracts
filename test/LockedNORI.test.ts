@@ -194,48 +194,39 @@ const setupGrantWithDirectCall = hardhat.deployments.createFixture(
 describe('LockedNori', () => {
   // todo
   // it.todo('test that the admin cannot revoke vested tokens')
-  // todo should revoking redeem the NORI too?
-  // it.only('Should deposit NORI', async () => {
-  //   const { nori, lNori, hre } = await setup();
-  //   const { admin, investor1 } = await hre.getNamedAccounts();
-  //   const adminBalance = await nori.balanceOf(admin);
-  //   expect(await nori.balanceOf(investor1)).to.equal(0);
-  //   const depositAmount = hre.ethers.utils.parseUnits((10_000).toString());
-  //   const userData = hre.ethers.utils.defaultAbiCoder.encode(
-  //     [
-  //       'address',
-  //       'uint256',
-  //       'uint256',
-  //       'uint256',
-  //       'uint256',
-  //       'uint256',
-  //       'uint256',
-  //       'uint256',
-  //       'uint256',
-  //       'uint256',
-  //     ],
-  //     [investor1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  //   );
-  //   expect(await nori.send(lNori.address, depositAmount, userData))
-  //     .to.emit(nori, 'Sent')
-  //     .withArgs(admin, admin, lNori.address, depositAmount, userData, '0x')
-  //     .to.emit(lNori, 'Transfer')
-  //     .withArgs(hre.ethers.constants.AddressZero, investor1, depositAmount);
-  //   expect(await nori.balanceOf(admin)).to.equal(
-  //     adminBalance.sub(depositAmount)
-  //   );
-  //   expect(await lNori.balanceOf(admin)).to.equal(0);
-  //   // With no lockup schedule balanceOf == wrapped quantity
-  //   // and vestedBalanceOf == unlockedBalanceOf == 0
-  //   expect(await lNori.balanceOf(investor1)).to.equal(depositAmount);
-  //   expect(await lNori.vestedBalanceOf(investor1)).to.equal(0);
-  //   expect(await lNori.unlockedBalanceOf(investor1)).to.equal(0);
-  //   await expect(lNori.withdrawTo(investor1, depositAmount)).to.be.revertedWith(
-  //     'Withdrawl amount unavailable'
-  //   );
-  //   expect(await lNori.totalSupply()).to.equal(depositAmount);
-  //   expect(await nori.totalSupply()).to.equal(INITIAL_SUPPLY);
-  // });
+
+  it('Functions like ERC20Wrapped when no grant is present', async () => {
+    const { nori, lNori, hre } = await setup();
+    const { admin, investor1 } = await hre.getNamedAccounts();
+    const adminBalance = await nori.balanceOf(admin);
+    expect(await nori.balanceOf(investor1)).to.equal(0);
+    const depositAmount = hre.ethers.utils.parseUnits((10_000).toString());
+    const userData = hre.ethers.utils.defaultAbiCoder.encode(
+      ['address', 'uint256'],
+      [investor1, 0]
+    );
+    expect(await nori.send(lNori.address, depositAmount, userData))
+      .to.emit(nori, 'Sent')
+      .withArgs(admin, admin, lNori.address, depositAmount, userData, '0x')
+      .to.emit(lNori, 'Transfer')
+      .withArgs(hre.ethers.constants.AddressZero, investor1, depositAmount);
+    expect(await nori.balanceOf(admin)).to.equal(
+      adminBalance.sub(depositAmount)
+    );
+    expect(await lNori.balanceOf(admin)).to.equal(0);
+    // With no lockup schedule balanceOf == wrapped quantity
+    // and vestedBalanceOf == unlockedBalanceOf == 0
+    expect(await lNori.balanceOf(investor1)).to.equal(depositAmount);
+    expect(await lNori.vestedBalanceOf(investor1)).to.equal(depositAmount);
+    expect(await lNori.unlockedBalanceOf(investor1)).to.equal(depositAmount);
+    expect(
+      await lNori
+        .connect(await hre.ethers.getSigner(investor1))
+        .withdrawTo(investor1, depositAmount)
+    ).to.emit(lNori, 'TokensClaimed');
+    expect(await lNori.totalSupply()).to.equal(0);
+    expect(await nori.totalSupply()).to.equal(INITIAL_SUPPLY);
+  });
 
   it('Should return zero before startTime', async () => {
     const { lNori, nori, hre } = await setupWithGrant();
