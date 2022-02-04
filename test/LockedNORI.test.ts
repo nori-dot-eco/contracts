@@ -1,6 +1,6 @@
-import { NORI } from '../typechain-types/NORI';
-import { LockedNORI } from '../typechain-types/LockedNORI';
-import { LockedNORI__factory, NORI__factory } from '../typechain-types';
+import type { NORI } from '../typechain-types/NORI';
+import type { LockedNORI } from '../typechain-types/LockedNORI';
+import type { LockedNORI__factory, NORI__factory } from '../typechain-types';
 
 import { expect, hardhat } from '@/test/helpers';
 
@@ -66,7 +66,6 @@ const setupWithGrant = hardhat.deployments.createFixture(
     const { nori, lNori } = await setup();
     const { investor1 } = await hre.getNamedAccounts();
     const start = options?.startTime || NOW;
-    // console.log({ start, options });
     const userData = hre.ethers.utils.defaultAbiCoder.encode(
       [
         'address',
@@ -97,7 +96,7 @@ const setupWithGrant = hardhat.deployments.createFixture(
     expect(await nori.send(lNori.address, GRANT_AMOUNT, userData))
       .to.emit(
         lNori,
-        'TokenGrantCreated' // todo withArgs
+        'TokenGrantCreated' // todo  overload expectGrantCreated withArgs
       )
       .to.emit(lNori, 'Minted');
     return { nori, lNori, hre };
@@ -152,48 +151,58 @@ const setupWithEmployeeStyleGrant = hardhat.deployments.createFixture(
   }
 );
 
+const expectGrantCreated = async ({
+  hre,
+  options,
+  nori,
+  lNori,
+}: Awaited<ReturnType<typeof setup>> & {
+  options?: { startTime: number };
+}): Promise<void> => {
+  const { admin, supplier } = await hre.getNamedAccounts();
+  const start = options?.startTime || NOW;
+  expect(
+    await lNori.grantTo(
+      GRANT_AMOUNT,
+      supplier,
+      start,
+      start + END_OFFSET,
+      start + END_OFFSET,
+      start,
+      start,
+      0,
+      0,
+      0,
+      0
+    )
+  )
+    .to.emit(
+      lNori,
+      'TokenGrantCreated' // todo withArgs
+    )
+    .withArgs(
+      supplier,
+      GRANT_AMOUNT,
+      start,
+      start + END_OFFSET,
+      start + END_OFFSET
+    );
+  expect(await nori.approve(lNori.address, GRANT_AMOUNT))
+    .to.emit(nori, 'Approval')
+    .withArgs(admin, lNori.address, GRANT_AMOUNT);
+  expect(await nori.allowance(admin, lNori.address)).to.eq(GRANT_AMOUNT);
+};
+
 const setupGrantWithDirectCall = hardhat.deployments.createFixture(
   async (hre, options?: { startTime: number }): ReturnType<typeof setup> => {
     const { nori, lNori } = await setup();
-    const { admin, supplier } = await hre.getNamedAccounts();
-    const start = options?.startTime || NOW;
-    expect(
-      await lNori.grantTo(
-        GRANT_AMOUNT,
-        supplier,
-        start,
-        start + END_OFFSET,
-        start + END_OFFSET,
-        start,
-        start,
-        0,
-        0,
-        0,
-        0
-      )
-    )
-      .to.emit(
-        lNori,
-        'TokenGrantCreated' // todo withArgs
-      )
-      .withArgs(
-        supplier,
-        GRANT_AMOUNT,
-        start,
-        start + END_OFFSET,
-        start + END_OFFSET
-      );
-    // expect(await nori.approve(lNori.address, GRANT_AMOUNT))
-    //   .to.emit(nori, 'Approval')
-    //   .withArgs(admin, lNori.address, GRANT_AMOUNT);
-    // expect(await nori.allowance(admin, lNori.address)).to.eq(GRANT_AMOUNT);
+    await expectGrantCreated({ options, nori, lNori, hre });
     return { nori, lNori, hre };
   }
 );
 
 describe('LockedNori', () => {
-  // todo
-  // it.todo('test that the admin cannot revoke vested tokens')
+  // it.todo('test that the admin cannot revoke vested tokens');
 
   it('Functions like ERC20Wrapped when no grant is present', async () => {
     const { nori, lNori, hre } = await setup();
@@ -242,7 +251,7 @@ describe('LockedNori', () => {
       lNori
         .connect(await hre.ethers.getSigner(investor1))
         .withdrawTo(investor1, 1)
-    ).to.be.revertedWith('LockedNORI: Withdrawl amount unavailable');
+    ).to.be.revertedWith('lNORI: insufficient balance');
   });
 
   it('Should fail to transfer locked tokens', async () => {
@@ -252,7 +261,7 @@ describe('LockedNori', () => {
     expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
     await expect(
       lNori.connect(addr1Signer).transfer(investor2, 1)
-    ).to.be.revertedWith('LockedNORI: Withdrawl amount unavailable');
+    ).to.be.revertedWith('lNORI: insufficient balance');
     expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
     expect(await lNori.totalSupply()).to.equal(GRANT_AMOUNT);
     expect(await nori.balanceOf(investor1)).to.equal(0);
@@ -265,7 +274,7 @@ describe('LockedNori', () => {
     expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
     await expect(
       lNori.connect(addr1Signer).send(investor2, 1, '0x')
-    ).to.be.revertedWith('Withdrawl amount unavailable');
+    ).to.be.revertedWith('lNORI: insufficient balance');
     expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
     expect(await lNori.totalSupply()).to.equal(GRANT_AMOUNT);
     expect(await nori.balanceOf(investor1)).to.equal(0);
@@ -320,7 +329,7 @@ describe('LockedNori', () => {
       lNori
         .connect(addr1Signer)
         .withdrawTo(investor1, hre.ethers.utils.parseUnits((500).toString()))
-    ).to.be.revertedWith('Withdrawl amount unavailable');
+    ).to.be.revertedWith('lNORI: insufficient balance');
   });
 
   it('Should unlock smoothly after cliff2', async () => {
@@ -409,7 +418,7 @@ describe('LockedNori', () => {
 
   it('Should handle a linear unlock with funding lagging vesting', async () => {
     const { lNori, nori, hre } = await setupGrantWithDirectCall();
-    const { admin, supplier } = await hre.getNamedAccounts();
+    const { supplier } = await hre.getNamedAccounts();
     const userData = await hre.ethers.utils.defaultAbiCoder.encode(
       ['address', 'uint256'],
       [supplier, 0]
@@ -553,5 +562,5 @@ describe('LockedNori', () => {
     }
   });
 
-  it('Wallet granted TOKEN_GRANTER_ROLE after initialization can revoke', () => {});
+  // it.todo('Wallet granted TOKEN_GRANTER_ROLE after initialization can revoke');
 });

@@ -7,6 +7,7 @@
     "@ethersproject/contracts": "^5.5.0",
     "@nomiclabs/hardhat-ethers": "^2.0.4",
     "@nomiclabs/hardhat-etherscan": "^3.0.0",
+    "@nomiclabs/hardhat-solhint": "^2.0.0",
     "@nomiclabs/hardhat-waffle": "^2.0.2",
     "@nori-dot-com/eslint-config-nori": "^1.6.0",
     "@openzeppelin/contracts-ethereum-package": "2.2.3",
@@ -36,10 +37,16 @@
     "hardhat-ethernal": "^0.3.12",
     "hardhat-gas-reporter": "^1.0.7",
     "prettier": "^2.5.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.19",
     "solc": "^0.8.11",
+    "solhint": "^3.3.6",
+    "solhint-plugin-prettier": "^0.0.5",
+    "solidity-coverage": "^0.7.18",
     "ts-node": "^10.4.0",
     "tsconfig-paths": "^3.12.0",
-    "typechain": "^7.0.0"
+    "typechain": "^7.0.0",
+    "typescript": "^4.5.5",
+    "codecov": "^3.8.3"
   },
   "files": [
     "build",
@@ -50,6 +57,7 @@
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
     "test": "hardhat test",
+    "test:coverage": "hardhat coverage --solcoverjs ./.solcover.js",
     "prepare": "yarn build",
     "build": "hardhat compile"
   }

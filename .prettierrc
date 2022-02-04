@@ -1,4 +1,15 @@
 {
   "singleQuote": true,
-  "trailingComma": "es5"
+  "trailingComma": "es5",
+  "overrides": [
+    {
+      "files": "*.sol",
+      "options": {
+        "useTabs": false,
+        "tabWidth": 2,
+        "singleQuote": false,
+        "explicitTypes": "always"
+      }
+    }
+  ]
 }

@@ -9,4 +9,6 @@ import '@nomiclabs/hardhat-etherscan';
 import '@openzeppelin/hardhat-defender';
 import 'hardhat-gas-reporter';
 import '@primitivefi/hardhat-dodoc';
+import '@nomiclabs/hardhat-solhint';
+import 'solidity-coverage';
 import '@/tasks';
