@@ -65,21 +65,24 @@ describe('FIFOMarket', () => {
       } = await setupTest();
       const { supplier, buyer, noriWallet } = await hardhat.getNamedAccounts();
 
-      expect(NORI.address).to.be.properAddress;
-      expect(Removal.address).to.be.properAddress;
-      expect(Certificate.address).to.be.properAddress;
-      expect(FIFOMarket.address).to.be.properAddress;
-
       const buyerInitialNoriBalance = '1000000';
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
+      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
+        'someParcelIdentifier'
+      );
+      const listNow = true;
+      const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bytes32', 'bool'],
+        [FIFOMarket.address, parcelIdentifier, listNow]
+      );
       await Promise.all([
         Removal.mintBatch(
           supplier,
           [hardhat.ethers.utils.parseUnits('100')],
           [2018],
-          hardhat.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
         NORI.mint(
           buyer,
@@ -90,13 +93,6 @@ describe('FIFOMarket', () => {
         Certificate.addMinter(FIFOMarket.address),
       ]);
       const accounts = await hardhat.ethers.getSigners();
-      await Removal.connect(accounts[2]).safeBatchTransferFrom(
-        supplier,
-        FIFOMarket.address,
-        [0],
-        [hardhat.ethers.utils.parseUnits('100')],
-        hardhat.ethers.utils.formatBytes32String('0x0')
-      );
 
       await Certificate.connect(accounts[0]);
       await NORI.connect(accounts[6]).send(

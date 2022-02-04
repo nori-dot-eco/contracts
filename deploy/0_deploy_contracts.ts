@@ -102,13 +102,21 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     ],
   });
   console.log('Added FIFOMarket as a minter of Certificate');
+  const parcelIdentifier = hre.ethers.utils.formatBytes32String(
+    'someParcelIdentifier'
+  );
+  const listNow = true;
+  const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+    ['address', 'bytes32', 'bool'],
+    [fifoMarketInstance.address, parcelIdentifier, listNow]
+  );
   if (network.name === 'hardhat') {
     await Promise.all([
       removalInstance.mintBatch(
         supplier,
         [ethers.utils.parseUnits('100')],
         [2018],
-        ethers.utils.formatBytes32String('0x0')
+        packedData
       ),
       noriInstance.mint(
         buyer,
@@ -120,16 +128,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
       noriV0Instance.mint(supplier, ethers.utils.parseUnits('100')),
       noriV0Instance.mint(admin, ethers.utils.parseUnits('100')),
     ]);
-    const accounts = await ethers.getSigners();
-    await removalInstance
-      .connect(accounts[2])
-      .safeBatchTransferFrom(
-        supplier,
-        fifoMarketInstance.address,
-        [0],
-        [ethers.utils.parseUnits('100')],
-        ethers.utils.formatBytes32String('0x0')
-      );
     console.log('Minted NORI and Nori_V0 to buyer wallet', buyer);
     console.log('Listed 100 NRTs for sale in FIFOMarket');
     /*
