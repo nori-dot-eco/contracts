@@ -22,6 +22,12 @@ contract NORI is ERC777Upgradeable, AccessControlEnumerableUpgradeable, Pausable
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(MINTER_ROLE, _msgSender());
     _setupRole(PAUSER_ROLE, _msgSender());
+    _mint(
+      msg.sender,
+      500000000 * 10 ** 18, // 500,000,000 NORI
+      "",
+      ""
+    );
   }
 
   /**
