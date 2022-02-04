@@ -2,7 +2,7 @@ version: 2
 defaults: &defaults
   working_directory: ~/repo
   environment:
-    - NODE_ENV: test
+    NODE_ENV: test
   docker:
     - image: cimg/node:14.18
 
@@ -11,13 +11,11 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-
       - run:
           name: Setup Environment
           command: |
             echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
-
       - restore_cache:
           key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
       - run:
@@ -49,9 +47,13 @@ jobs:
             sudo apt-get update && sudo apt -y install libsecret-1-0
             yarn
       - run:
-          name: Run Contract Tests
+          name: Run Contract Tests and Collect Coverage
           command: |
-            yarn run test
+            yarn run test:coverage
+            - run:
+      - run:
+          name: Upload Coverage Reports
+          command: codecov --token=$CODECOV_TOKEN
 
 workflows:
   version: 2
