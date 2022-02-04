@@ -22,6 +22,7 @@
   "include": [
     "**/*.ts",
     "**/*.d.ts",
-    ".eslintrc.js"
+    ".eslintrc.js",
+    ".solcover.js"
   ]
 }

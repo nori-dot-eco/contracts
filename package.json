@@ -41,6 +41,7 @@
     "solc": "^0.8.11",
     "solhint": "^3.3.6",
     "solhint-plugin-prettier": "^0.0.5",
+    "solidity-coverage": "^0.7.18",
     "ts-node": "^10.4.0",
     "tsconfig-paths": "^3.12.0",
     "typechain": "^7.0.0",
@@ -55,6 +56,7 @@
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
     "test": "hardhat test",
+    "test:coverage": "hardhat coverage --solcoverjs ./.solcover.js",
     "prepare": "yarn build",
     "build": "hardhat compile"
   }

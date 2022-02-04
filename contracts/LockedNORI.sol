@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/presets/ERC20PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./NORI.sol";
+import "hardhat/console.sol"; // todo
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
@@ -176,6 +177,8 @@ contract LockedNORI is
     uint256 unlockCliff1Amount,
     uint256 unlockCliff2Amount
   ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
+    string memory test = "abc";
+    console.log(test);
     bytes memory userData = abi.encode(
       recipient,
       startTime,
