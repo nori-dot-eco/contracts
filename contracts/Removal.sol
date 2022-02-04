@@ -108,7 +108,7 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
       amounts,
       data
     );
-    setApprovalForAllAsAdmin(to, _msgSender(), true);
+    setApprovalForAllAsAdmin(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
     if (listNow) {
       super.safeBatchTransferFrom(
         to,
