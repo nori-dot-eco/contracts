@@ -66,12 +66,12 @@ contract FIFOMarket is
     return _queueNextInsertIndex - _queueHeadIndex;
   }
 
-  function numberOfTonnesInQueue() public view returns (uint256) {
-    uint256 tonnesInQueue = 0;
+  function numberOfNrtsInQueue() public view returns (uint256) {
+    uint256 nrtsInQueue = 0;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
-      tonnesInQueue += _removal.balanceOf(address(this), _queue[i]);
+      nrtsInQueue += _removal.balanceOf(address(this), _queue[i]);
     }
-    return tonnesInQueue;
+    return nrtsInQueue;
   }
 
   function onERC1155BatchReceived(
@@ -122,7 +122,7 @@ contract FIFOMarket is
         amounts[i] = remainingAmountToFill;
         suppliers[i] = supplier;
         remainingAmountToFill = 0;
-      } else if (remainingAmountToFill >= removalAmount) {
+      } else {
         if (
             i == _queueNextInsertIndex - 1 &&
             remainingAmountToFill > removalAmount
@@ -133,15 +133,14 @@ contract FIFOMarket is
         amounts[i] = removalAmount;
         suppliers[i] = supplier;
         remainingAmountToFill -= removalAmount;
-      } else {
-        revert("FIFOMarket: Not enough supply");
       }
+
       if (remainingAmountToFill == 0) {
         break;
       }
     }
     // In a completely empty queue, the for loop never runs.
-    // Catch this case here without the gas-heavy numberOfTonnesInQueue call.
+    // Catch this case here without the gas-heavy numberOfNrtsInQueue call.
     require(amounts[0] > 0, "FIFOMarket: Not enough supply");
 
     bytes memory encodedCertificateAmount = abi.encode(certificateAmount);

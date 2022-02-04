@@ -99,7 +99,7 @@ describe('FIFOMarket', () => {
         hardhat.ethers.utils.formatBytes32String('0x0')
       );
 
-      const initialFifoSupply = await FIFOMarket.numberOfTonnesInQueue();
+      const initialFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
 
       await NORI.connect(accounts[6]).send(
         FIFOMarket.address,
@@ -110,7 +110,7 @@ describe('FIFOMarket', () => {
       const buyerFinalNoriBalance = await NORI.balanceOf(buyer);
       const supplierFinalNoriBalance = await NORI.balanceOf(supplier);
       const noriFinalNoriBalance = await NORI.balanceOf(noriWallet);
-      const finalFifoSupply = await FIFOMarket.numberOfTonnesInQueue();
+      const finalFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
 
       expect(buyerFinalNoriBalance).to.equal(
         hardhat.ethers.utils
@@ -191,7 +191,7 @@ describe('FIFOMarket', () => {
         hardhat.ethers.utils.formatBytes32String('0x0')
       );
 
-      const initialFifoSupply = await FIFOMarket.numberOfTonnesInQueue();
+      const initialFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
       await NORI.connect(accounts[6]).send(
         FIFOMarket.address,
         hardhat.ethers.utils.parseUnits(totalPrice),
@@ -200,7 +200,7 @@ describe('FIFOMarket', () => {
       const buyerFinalNoriBalance = await NORI.balanceOf(buyer);
       const supplierFinalNoriBalance = await NORI.balanceOf(supplier);
       const noriFinalNoriBalance = await NORI.balanceOf(noriWallet);
-      const finalFifoSupply = await FIFOMarket.numberOfTonnesInQueue();
+      const finalFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
 
       expect(buyerFinalNoriBalance).to.equal(
         hardhat.ethers.utils
@@ -304,7 +304,7 @@ describe('FIFOMarket', () => {
         hardhat.ethers.utils.formatBytes32String('0x0')
       );
 
-      const initialFifoSupply = await FIFOMarket.numberOfTonnesInQueue();
+      const initialFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
 
       await NORI.connect(accounts[6]).send(
         FIFOMarket.address,
@@ -318,7 +318,7 @@ describe('FIFOMarket', () => {
       const investor2FinalNoriBalance = await NORI.balanceOf(investor2);
 
       const noriFinalNoriBalance = await NORI.balanceOf(noriWallet);
-      const finalFifoSupply = await FIFOMarket.numberOfTonnesInQueue();
+      const finalFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
 
       expect(buyerFinalNoriBalance).to.equal(
         hardhat.ethers.utils
