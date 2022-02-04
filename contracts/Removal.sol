@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
@@ -7,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+
 // import "hardhat/console.sol"; // todo
 
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
@@ -15,9 +17,11 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 /**
  * @title Removal
  */
-contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable {
-
-  using SafeMathUpgradeable for uint;
+contract Removal is
+  ERC1155PresetMinterPauserUpgradeable,
+  ERC1155SupplyUpgradeable
+{
+  using SafeMathUpgradeable for uint256;
 
   struct Vintage {
     address supplier;
@@ -32,7 +36,6 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
   mapping(bytes32 => uint256) private _vintageTokenIdMap;
   uint256 private _latestTokenId;
   string public name; // todo why did I add this
-
 
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
@@ -132,13 +135,23 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
     bytes memory _data
   ) public override {
     // todo require _to is a known market contract
-    super.safeBatchTransferFrom(
-      _from,
-      _to,
-      _ids,
-      _amounts,
-      _data
-    );
+    super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
+  }
+
+  function supportsInterface(bytes4 interfaceId)
+    public
+    view
+    override(ERC1155Upgradeable, ERC1155PresetMinterPauserUpgradeable)
+    returns (bool)
+  {
+    return super.supportsInterface(interfaceId);
+  }
+
+  /**
+   * @dev returns the removal vintage data for a given removal token ID
+   */
+  function vintage(uint256 removalId) public view returns (Vintage memory) {
+    return _vintages[removalId];
   }
 
   function _beforeTokenTransfer(
@@ -148,20 +161,10 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) internal override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable) {
-    return super._beforeTokenTransfer(
-      operator,
-      from,
-      to,
-      ids,
-      amounts,
-      data
-    );
-  }
-
-  function supportsInterface(
-    bytes4 interfaceId
-  ) public view override(ERC1155Upgradeable, ERC1155PresetMinterPauserUpgradeable) returns (bool) {
-    return super.supportsInterface(interfaceId);
+  )
+    internal
+    override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
+  {
+    return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 }
