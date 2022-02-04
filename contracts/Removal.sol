@@ -147,13 +147,6 @@ contract Removal is
     return super.supportsInterface(interfaceId);
   }
 
-  /**
-   * @dev returns the removal vintage data for a given removal token ID
-   */
-  function vintage(uint256 removalId) public view returns (Vintage memory) {
-    return _vintages[removalId];
-  }
-
   function _beforeTokenTransfer(
     address operator,
     address from,
