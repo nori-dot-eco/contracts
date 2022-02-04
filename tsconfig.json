@@ -17,6 +17,7 @@
       "@/contracts.json": ["./contracts.json"],
       "@/artifacts/*": ["./artifacts/contracts/*"],
       "@/config/*": ["./config/*"],
+      "@/utils/*": ["./utils/*"],
     }
   },
   "include": [

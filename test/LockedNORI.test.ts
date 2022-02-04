@@ -2,6 +2,7 @@ import type { NORI } from '../typechain-types/NORI';
 import type { LockedNORI } from '../typechain-types/LockedNORI';
 import type { LockedNORI__factory, NORI__factory } from '../typechain-types';
 
+import { connectToContract } from '@/utils/contracts';
 import { expect, hardhat } from '@/test/helpers';
 
 const NOW = Math.floor(Date.now() / 1_000);
@@ -62,10 +63,21 @@ const setup = hardhat.deployments.createFixture(
 );
 
 const setupWithGrant = hardhat.deployments.createFixture(
-  async (hre, options?: { startTime: number }): ReturnType<typeof setup> => {
+  async (
+    hre,
+    {
+      startTime = NOW,
+      connect = {},
+    }: {
+      startTime?: number;
+      connect?: { [Property in ContractNames]?: string };
+    } = {
+      startTime: NOW,
+      connect: {},
+    }
+  ): ReturnType<typeof setup> => {
     const { nori, lNori } = await setup();
     const { investor1 } = await hre.getNamedAccounts();
-    const start = options?.startTime || NOW;
     const userData = hre.ethers.utils.defaultAbiCoder.encode(
       [
         'address',
@@ -81,25 +93,36 @@ const setupWithGrant = hardhat.deployments.createFixture(
       ],
       [
         investor1,
-        start,
-        start + END_OFFSET,
-        start + END_OFFSET,
-        start + CLIFF1_OFFSET,
-        start + CLIFF2_OFFSET,
+        startTime,
+        startTime + END_OFFSET,
+        startTime + END_OFFSET,
+        startTime + CLIFF1_OFFSET,
+        startTime + CLIFF2_OFFSET,
         CLIFF1_AMOUNT,
         CLIFF2_AMOUNT,
         CLIFF1_AMOUNT,
         CLIFF2_AMOUNT,
       ]
     );
-    // eslint-disable-next-line jest/no-standalone-expect
-    expect(await nori.send(lNori.address, GRANT_AMOUNT, userData))
+    expect(await nori.send(lNori.address, GRANT_AMOUNT, userData)) // eslint-disable-line jest/no-standalone-expect
       .to.emit(
         lNori,
         'TokenGrantCreated' // todo  overload expectGrantCreated withArgs
       )
       .to.emit(lNori, 'Minted');
-    return { nori, lNori, hre };
+    return {
+      nori: await connectToContract({
+        hre,
+        contract: nori,
+        account: connect.NORI,
+      }),
+      lNori: await connectToContract({
+        hre,
+        contract: lNori,
+        account: connect.LockedNORI,
+      }),
+      hre,
+    };
   }
 );
 
@@ -202,6 +225,60 @@ const setupGrantWithDirectCall = hardhat.deployments.createFixture(
 );
 
 describe('LockedNori', () => {
+  describe('when paused', () => {
+    (
+      [
+        {
+          method: 'authorizeOperator',
+          args: async (): Promise<
+            Parameters<LockedNORI['authorizeOperator']>
+          > => [(await global.hre.getNamedAccounts())['investor2']],
+        },
+        {
+          method: 'decreaseAllowance',
+          args: async (): Promise<
+            Parameters<LockedNORI['decreaseAllowance']>
+          > => [
+            (await global.hre.getNamedAccounts())['investor2'],
+            global.hre.ethers.utils.parseUnits((1).toString()),
+          ],
+        },
+        {
+          method: 'approve',
+          args: async (): Promise<Parameters<LockedNORI['approve']>> => [
+            (await global.hre.getNamedAccounts())['investor2'],
+            global.hre.ethers.utils.parseUnits((1).toString()),
+          ],
+        },
+      ] as const
+    ).forEach(({ method, args }) => {
+      it(`will disable the function ${method}`, async () => {
+        const { investor1, admin } = await global.hre.getNamedAccounts();
+        const { lNori, hre } = await setupWithGrant({
+          connect: { LockedNORI: investor1 },
+        });
+        await (
+          await connectToContract({ hre, contract: lNori, account: admin })
+        ).pause();
+        await expect((lNori[method] as any)(...(await args()))).revertedWith(
+          'Pausable: paused'
+        );
+      });
+    });
+  });
+
+  describe('authorizeOperator', () => {
+    it(`Will authorize the operator`, async () => {
+      const { investor1, investor2 } = await global.hre.getNamedAccounts();
+      const { lNori } = await setupWithGrant({
+        connect: { LockedNORI: investor1 },
+      });
+      await expect(lNori.authorizeOperator(investor2))
+        .to.emit(lNori, 'AuthorizedOperator')
+        .withArgs(investor2, investor1);
+    });
+  });
+
   // it.todo('test that the admin cannot revoke vested tokens');
 
   it('Functions like ERC20Wrapped when no grant is present', async () => {

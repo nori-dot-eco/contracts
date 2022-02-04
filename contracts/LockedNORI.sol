@@ -586,6 +586,6 @@ contract LockedNORI is
     override
     whenNotPaused
   {
-    ERC777Upgradeable.authorizeOperator(operator);
+    return ERC777Upgradeable.authorizeOperator(operator);
   }
 }
