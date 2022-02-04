@@ -53,6 +53,7 @@ contract Removal is ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeab
    * in its mint transaction
    */
   function tokenIdsForRemovals(bytes32[] memory parcelIdentifiers, uint256[] memory removalVintages) public view returns (uint256[] memory) {
+    require(parcelIdentifiers.length == removalVintages.length, "parcelIdentifers and removalVintages must be same length");
     uint256[] memory ids = new uint256[](removalVintages.length);
     for (uint256 i = 0; i < removalVintages.length; i++) {
       ids[i] = _vintageTokenIdMap[keccak256(abi.encodePacked(parcelIdentifiers[i], removalVintages[i]))];
