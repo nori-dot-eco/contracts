@@ -454,14 +454,14 @@ contract LockedNORI is
   }
 
   /**
-   * @dev called before send and transfer and used to disable transferring locked nori
+   * @dev Hook that is called before send, transfer, and burn. Used used to disable transferring locked nori.
    */
   function _beforeTokenTransfer(
     address,
     address from,
     address to,
     uint256 amount
-  ) internal override {
+  ) internal override whenNotPaused {
     bool isNotMinting = from != address(0);
     bool hasGrant = _grants[from].exists;
     if (isNotMinting && hasGrant) {
@@ -478,7 +478,12 @@ contract LockedNORI is
     address holder,
     address spender,
     uint256 value
-  ) internal virtual override(ERC20Upgradeable, ERC777Upgradeable) {
+  )
+    internal
+    virtual
+    override(ERC20Upgradeable, ERC777Upgradeable)
+    whenNotPaused
+  {
     ERC777Upgradeable._approve(holder, spender, value);
   }
 
@@ -561,5 +566,25 @@ contract LockedNORI is
     returns (bool)
   {
     return ERC777Upgradeable.transferFrom(holder, recipient, amount);
+  }
+
+  function decreaseAllowance(address spender, uint256 subtractedValue)
+    public
+    virtual
+    override
+    whenNotPaused
+    returns (bool)
+  {
+    return decreaseAllowance(spender, subtractedValue);
+  }
+
+  // todo operatorsend should be disabled?
+  function authorizeOperator(address operator)
+    public
+    virtual
+    override
+    whenNotPaused
+  {
+    ERC777Upgradeable.authorizeOperator(operator);
   }
 }
