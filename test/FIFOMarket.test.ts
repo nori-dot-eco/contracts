@@ -289,14 +289,14 @@ describe('FIFOMarket', () => {
         [hardhat.ethers.utils.parseUnits(removalBalance1)],
         hardhat.ethers.utils.formatBytes32String('0x0')
       );
-      await Removal.connect(accounts[3]).safeBatchTransferFrom(
+      await Removal.connect(accounts[4]).safeBatchTransferFrom(
         investor1,
         FIFOMarket.address,
         [1],
         [hardhat.ethers.utils.parseUnits(removalBalance2)],
         hardhat.ethers.utils.formatBytes32String('0x0')
       );
-      await Removal.connect(accounts[4]).safeBatchTransferFrom(
+      await Removal.connect(accounts[5]).safeBatchTransferFrom(
         investor2,
         FIFOMarket.address,
         [2],
