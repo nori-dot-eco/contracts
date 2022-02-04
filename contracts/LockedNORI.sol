@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/presets/ERC20PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./NORI.sol";
-import "hardhat/console.sol"; // todo
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
@@ -177,8 +176,6 @@ contract LockedNORI is
     uint256 unlockCliff1Amount,
     uint256 unlockCliff2Amount
   ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
-    string memory test = "abc";
-    console.log(test);
     bytes memory userData = abi.encode(
       recipient,
       startTime,
@@ -457,14 +454,14 @@ contract LockedNORI is
   }
 
   /**
-   * @dev Hook that is called before send, transfer, and burn. Used used to disable transferring locked nori.
+   * @dev called before send and transfer and used to disable transferring locked nori
    */
   function _beforeTokenTransfer(
     address,
     address from,
     address to,
     uint256 amount
-  ) internal override whenNotPaused {
+  ) internal override {
     bool isNotMinting = from != address(0);
     bool hasGrant = _grants[from].exists;
     if (isNotMinting && hasGrant) {
@@ -481,12 +478,7 @@ contract LockedNORI is
     address holder,
     address spender,
     uint256 value
-  )
-    internal
-    virtual
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    whenNotPaused
-  {
+  ) internal virtual override(ERC20Upgradeable, ERC777Upgradeable) {
     ERC777Upgradeable._approve(holder, spender, value);
   }
 
@@ -569,25 +561,5 @@ contract LockedNORI is
     returns (bool)
   {
     return ERC777Upgradeable.transferFrom(holder, recipient, amount);
-  }
-
-  function decreaseAllowance(address spender, uint256 subtractedValue)
-    public
-    virtual
-    override
-    whenNotPaused
-    returns (bool)
-  {
-    return decreaseAllowance(spender, subtractedValue);
-  }
-
-  // todo operatorsend should be disabled?
-  function authorizeOperator(address operator)
-    public
-    virtual
-    override
-    whenNotPaused
-  {
-    ERC777Upgradeable.authorizeOperator(operator);
   }
 }
