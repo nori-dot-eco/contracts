@@ -1,7 +1,8 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { BigNumberish } from 'ethers';
-import { ScheduleTestHarness } from '../typechain-types/ScheduleTestHarness';
+import type { BigNumberish } from 'ethers';
+
+import type { ScheduleTestHarness } from '../typechain-types/ScheduleTestHarness';
 
 const NOW = Math.floor(Date.now() / 1000);
 

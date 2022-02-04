@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/ERC721Full.sol";
@@ -6,7 +7,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/ERC721Pa
 
 //todo deprecate
 contract NCCR_V0 is ERC721Full, ERC721MetadataMintable, ERC721Pausable {
-
   // mapping of tokenId -> to a string of human readable data
   mapping(uint256 => string) private _tokenData;
 
@@ -59,7 +59,11 @@ contract NCCR_V0 is ERC721Full, ERC721MetadataMintable, ERC721Pausable {
     return _tokenData[tokenId];
   }
 
-  function mintWithTokenURI(address, uint256, string memory) public onlyMinter returns (bool) {
+  function mintWithTokenURI(
+    address,
+    uint256,
+    string memory
+  ) public onlyMinter returns (bool) {
     revert("NCCRs must be minted using a data parameter");
   }
 
@@ -71,11 +75,19 @@ contract NCCR_V0 is ERC721Full, ERC721MetadataMintable, ERC721Pausable {
     revert("NCCRs are retired after they are minted.");
   }
 
-  function transferFrom(address, address, uint256) public {
+  function transferFrom(
+    address,
+    address,
+    uint256
+  ) public {
     revert("NCCRs are retired after they are minted.");
   }
 
-  function safeTransferFrom(address, address, uint256) public {
+  function safeTransferFrom(
+    address,
+    address,
+    uint256
+  ) public {
     revert("NCCRs are retired after they are minted.");
   }
 
@@ -87,5 +99,4 @@ contract NCCR_V0 is ERC721Full, ERC721MetadataMintable, ERC721Pausable {
   ) public {
     revert("NCCRs are retired after they are minted.");
   }
-
 }
