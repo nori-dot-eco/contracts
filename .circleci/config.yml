@@ -50,7 +50,6 @@ jobs:
           name: Run Contract Tests and Collect Coverage
           command: |
             yarn run test:coverage
-            - run:
       - run:
           name: Upload Coverage Reports
           command: codecov --token=$CODECOV_TOKEN
