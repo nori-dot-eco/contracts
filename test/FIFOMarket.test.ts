@@ -237,7 +237,7 @@ describe('FIFOMarket', () => {
       const {
         contracts: { NORI, Removal, Certificate, FIFOMarket },
       } = await setupTest();
-      const { supplier, supplier2, supplier3, buyer, noriWallet } =
+      const { supplier, investor1, investor2, buyer, noriWallet } =
         await hardhat.getNamedAccounts();
 
       const removalBalance1 = '3';
@@ -248,8 +248,8 @@ describe('FIFOMarket', () => {
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
       const buyerInitialNoriBalance = '1000000';
       const supplierInitialNoriBalance = '0';
-      const supplier2InitialNoriBalance = '0';
-      const supplier3InitialNoriBalance = '0';
+      const investor1InitialNoriBalance = '0';
+      const investor2InitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
       await Promise.all([
@@ -260,13 +260,13 @@ describe('FIFOMarket', () => {
           hardhat.ethers.utils.formatBytes32String('0x0')
         ),
         Removal.mintBatch(
-          supplier2,
+          investor1,
           [hardhat.ethers.utils.parseUnits(removalBalance2)],
           [2018],
           hardhat.ethers.utils.formatBytes32String('0x0')
         ),
         Removal.mintBatch(
-          supplier3,
+          investor2,
           [hardhat.ethers.utils.parseUnits(removalBalance3)],
           [2018],
           hardhat.ethers.utils.formatBytes32String('0x0')
@@ -290,14 +290,14 @@ describe('FIFOMarket', () => {
         hardhat.ethers.utils.formatBytes32String('0x0')
       );
       await Removal.connect(accounts[3]).safeBatchTransferFrom(
-        supplier2,
+        investor1,
         FIFOMarket.address,
         [1],
         [hardhat.ethers.utils.parseUnits(removalBalance2)],
         hardhat.ethers.utils.formatBytes32String('0x0')
       );
       await Removal.connect(accounts[4]).safeBatchTransferFrom(
-        supplier3,
+        investor2,
         FIFOMarket.address,
         [2],
         [hardhat.ethers.utils.parseUnits(removalBalance3)],
@@ -314,8 +314,8 @@ describe('FIFOMarket', () => {
 
       const buyerFinalNoriBalance = await NORI.balanceOf(buyer);
       const supplierFinalNoriBalance = await NORI.balanceOf(supplier);
-      const supplier2FinalNoriBalance = await NORI.balanceOf(supplier2);
-      const supplier3FinalNoriBalance = await NORI.balanceOf(supplier3);
+      const investor1FinalNoriBalance = await NORI.balanceOf(investor1);
+      const investor2FinalNoriBalance = await NORI.balanceOf(investor2);
 
       const noriFinalNoriBalance = await NORI.balanceOf(noriWallet);
       const finalFifoSupply = await FIFOMarket.numberOfTonnesInQueue();
@@ -333,15 +333,15 @@ describe('FIFOMarket', () => {
           .add(hardhat.ethers.utils.parseUnits(removalBalance1, 18))
           .toString()
       );
-      expect(supplier2FinalNoriBalance).to.equal(
+      expect(investor1FinalNoriBalance).to.equal(
         hardhat.ethers.utils
-          .parseUnits(supplier2InitialNoriBalance)
+          .parseUnits(investor1InitialNoriBalance)
           .add(hardhat.ethers.utils.parseUnits(removalBalance2, 18))
           .toString()
       );
-      expect(supplier3FinalNoriBalance).to.equal(
+      expect(investor2FinalNoriBalance).to.equal(
         hardhat.ethers.utils
-          .parseUnits(supplier3InitialNoriBalance)
+          .parseUnits(investor2InitialNoriBalance)
           .add(hardhat.ethers.utils.parseUnits(removalBalance3, 18))
           .toString()
       );

@@ -1326,6 +1326,13 @@
     web3-eth-contract "1.2.2"
     web3-utils "1.2.2"
 
+"@primitivefi/hardhat-dodoc@^0.1.3":
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/@primitivefi/hardhat-dodoc/-/hardhat-dodoc-0.1.3.tgz#338ecff24b93d3b43fa35a98909f6840af86c27c"
+  integrity sha512-IM2rwyk9SHxnifHnoCKmB1K1su/d1BvF5C0zspCWH8rVrrNpS1NzLTjisDNJmbM69/cWcEX0vfk449LuTsQVaw==
+  dependencies:
+    squirrelly "^8.0.8"
+
 "@protobufjs/aspromise@^1.1.1", "@protobufjs/aspromise@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@protobufjs/aspromise/-/aspromise-1.1.2.tgz#9b8b0cc663d669a7d8f6f5d0893a14d348f30fbf"
@@ -3829,9 +3836,9 @@ command-line-args@^4.0.7:
     typical "^2.6.1"
 
 command-line-args@^5.1.1:
-  version "5.2.1"
-  resolved "https://registry.yarnpkg.com/command-line-args/-/command-line-args-5.2.1.tgz#c44c32e437a57d7c51157696893c5909e9cec42e"
-  integrity sha512-H4UfQhZyakIjC74I9d34fGYDwk3XpSr17QhEd0Q3I9Xq1CETHo4Hcuo87WyWHpAF1aSLjLRf5lD9ZGX2qStUvg==
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/command-line-args/-/command-line-args-5.2.0.tgz#087b02748272169741f1fd7c785b295df079b9be"
+  integrity sha512-4zqtU1hYsSJzcJBOcNZIbW5Fbk9BkjCp1pZVhQKoRaWL5J7N4XphDLwo8aWwdQpTugxwu+jf9u2ZhkXiqp5Z6A==
   dependencies:
     array-back "^3.1.0"
     find-replace "^3.0.0"
@@ -10361,9 +10368,9 @@ simple-concat@^1.0.0:
   integrity sha512-cSFtAPtRhljv69IK0hTVZQ+OfE9nePi/rtJmw5UjHeVyVroEqJXP1sFztKUy1qU+xvz3u/sfYJLa947b7nAN2Q==
 
 simple-get@^2.7.0:
-  version "2.8.1"
-  resolved "https://registry.yarnpkg.com/simple-get/-/simple-get-2.8.1.tgz#0e22e91d4575d87620620bc91308d57a77f44b5d"
-  integrity sha512-lSSHRSw3mQNUGPAYRqo7xy9dhKmxFXIjLjp4KHpf99GEH2VH7C3AM+Qfx6du6jhfUi6Vm7XnbEVEf7Wb6N8jRw==
+  version "2.8.2"
+  resolved "https://registry.yarnpkg.com/simple-get/-/simple-get-2.8.2.tgz#5708fb0919d440657326cd5fe7d2599d07705019"
+  integrity sha512-Ijd/rV5o+mSBBs4F/x9oDPtTx9Zb6X9brmnXvMW4J7IR15ngi9q5xxqWBKU744jTZiaXtxaPL7uHG6vtN8kUkw==
   dependencies:
     decompress-response "^3.3.0"
     once "^1.3.1"
@@ -10583,6 +10590,11 @@ sprintf-js@~1.0.2:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw=
+
+squirrelly@^8.0.8:
+  version "8.0.8"
+  resolved "https://registry.yarnpkg.com/squirrelly/-/squirrelly-8.0.8.tgz#d6704650b2170b8040d5de5bff9fa69cb62b5e0f"
+  integrity sha512-7dyZJ9Gw86MmH0dYLiESsjGOTj6KG8IWToTaqBuB6LwPI+hyNb6mbQaZwrfnAQ4cMDnSWMUvX/zAYDLTSWLk/w==
 
 sshpk@^1.7.0:
   version "1.16.1"

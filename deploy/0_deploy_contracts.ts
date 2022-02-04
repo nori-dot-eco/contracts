@@ -7,6 +7,8 @@ import type {
   Certificate__factory,
   FIFOMarket,
   FIFOMarket__factory,
+  LockedNORI,
+  LockedNORI__factory,
   NCCRV0,
   NCCRV0__factory,
   NORI,
@@ -80,6 +82,9 @@ const func: CustomHardhatDeployFunction = async (hre) => {
       initializer: 'initialize(address,address,address,address,uint256)',
     }
   );
+  const LockedNORI = await ethers.getContractFactory<LockedNORI__factory>(
+    'LockedNORI'
+  );
   await noriV0Instance.deployed();
   await nccrV0Instance.deployed();
   await noriInstance.deployed();
@@ -90,6 +95,16 @@ const func: CustomHardhatDeployFunction = async (hre) => {
   console.log('Deployed Removal', removalInstance.address);
   console.log('Deployed Certificate', certificateInstance.address);
   console.log('Deployed FIFOMarket', fifoMarketInstance.address);
+  console.log('Deploying LockedNORI');
+  const lNoriInstance = await deployProxy<LockedNORI>(
+    LockedNORI,
+    [noriInstance.address],
+    {
+      initializer: 'initialize(address)',
+    }
+  );
+  await lNoriInstance.deployed();
+  console.log('Deployed LockedNORI', lNoriInstance.address);
   await certificateInstance.addMinter(fifoMarketInstance.address);
   await hre.run('defender:add', {
     contractNames: [
@@ -163,6 +178,10 @@ const func: CustomHardhatDeployFunction = async (hre) => {
           name: 'FIFOMarket',
           address: fifoMarketInstance.address,
         }),
+        ethernal.push({
+          name: 'LockedNORI',
+          address: lNoriInstance.address,
+        }),
       ]);
       console.log('Registered contracts in Ethernal', buyer);
     }
@@ -188,6 +207,9 @@ const func: CustomHardhatDeployFunction = async (hre) => {
         },
         FIFOMarket: {
           proxyAddress: fifoMarketInstance.address,
+        },
+        LockedNORI: {
+          proxyAddress: lNoriInstance.address,
         },
         // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
         Nori_V0: {
