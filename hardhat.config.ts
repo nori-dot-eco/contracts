@@ -2,6 +2,7 @@ import 'tsconfig-paths/register';
 import '@/config/environment';
 import '@/plugins';
 import type { HardhatUserConfig } from 'hardhat/types';
+import { extendEnvironment } from 'hardhat/config';
 
 import { etherscan } from '@/config/etherscan';
 import { tenderly } from '@/config/tenderly';
@@ -45,5 +46,21 @@ export const config: HardhatUserConfig = {
     ],
   },
 };
+
+// todo move to @/extensions/signers
+extendEnvironment(async (hre) => {
+  const accounts = (await hre.getNamedAccounts()) as NamedAccounts;
+  const namedSigners: NamedSigners = Object.fromEntries(
+    await Promise.all(
+      Object.entries(accounts).map(async ([accountName, address]) => {
+        const signer = await hre.ethers.getSigner(address);
+        return [accountName, signer];
+      })
+    )
+  );
+  (hre as unknown as CustomHardHatRuntimeEnvironment).namedSigners =
+    namedSigners;
+  (hre as unknown as CustomHardHatRuntimeEnvironment).namedAccounts = accounts;
+});
 
 export default config;

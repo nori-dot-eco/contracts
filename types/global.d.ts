@@ -24,6 +24,7 @@ import type { networks } from '@/config/networks';
 
 import type { TASKS } from '@/tasks';
 import { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 declare module 'hardhat/config' {
   export type ActionType<ArgsT extends TaskArguments, TActionReturnType> = (
@@ -52,6 +53,8 @@ declare module 'hardhat/types/runtime' {
   ) => Promise<T>;
   export interface HardhatRuntimeEnvironment {
     deployments: DeploymentsExtension;
+    namedSigners:  NamedSigners;
+    namedAccounts: NamedAccounts;
   }
 }
 
@@ -82,11 +85,12 @@ interface CustomHardhatUpgrades extends HardhatUpgrades {
 }
 
 declare global {
-  type Concrete<Type> = {
-    [Property in keyof Type]-?: Type[Property];
+  type Concrete<Type, TProperty> = {
+    [Property in keyof Type]?: Type[TProperty extends Property ? TProperty : Property];
   };
   type TypeChainBaseContract = BaseContract & { contractName: string };
   type NamedAccounts = typeof namedAccounts;
+  type NamedSigners = { [Property in keyof NamedAccounts]: SignerWithAddress };
   var hre: CustomHardHatRuntimeEnvironment;
   type ContractNames =
     | 'NCCR_V0'

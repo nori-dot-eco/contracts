@@ -462,7 +462,7 @@ contract LockedNORI is
     address from,
     address to,
     uint256 amount
-  ) internal override whenNotPaused {
+  ) internal virtual override whenNotPaused {
     bool isNotMinting = from != address(0);
     bool hasGrant = _grants[from].exists;
     if (isNotMinting && hasGrant) {
