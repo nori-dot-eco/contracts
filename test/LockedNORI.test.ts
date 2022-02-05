@@ -250,6 +250,13 @@ describe('LockedNori', () => {
             global.hre.ethers.utils.parseUnits((1).toString()),
           ],
         },
+        {
+          method: 'burnFrom',
+          args: async (): Promise<Parameters<LockedNORI['burnFrom']>> => [
+            (await global.hre.getNamedAccounts())['investor2'],
+            global.hre.ethers.utils.parseUnits((1).toString()),
+          ],
+        },
       ] as const
     ).forEach(({ method, args }) => {
       it(`will disable the function ${method}`, async () => {
