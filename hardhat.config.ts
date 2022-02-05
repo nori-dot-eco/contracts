@@ -1,6 +1,7 @@
 import 'tsconfig-paths/register';
 import '@/config/environment';
 import '@/plugins';
+
 import type { HardhatUserConfig } from 'hardhat/types';
 import { extendEnvironment } from 'hardhat/config';
 
@@ -10,6 +11,7 @@ import { networks } from '@/config/networks';
 import { namedAccounts } from '@/config/accounts';
 import { defender } from '@/config/defender';
 import { gasReporter } from '@/config/gas-reporter';
+import { dodoc } from '@/config/dodoc';
 
 export const config: HardhatUserConfig = {
   tenderly,
@@ -18,6 +20,7 @@ export const config: HardhatUserConfig = {
     deployments: 'deployments',
     imports: 'artifacts',
   },
+  dodoc,
   namedAccounts,
   networks,
   etherscan,
@@ -53,8 +56,7 @@ extendEnvironment(async (hre) => {
   const namedSigners: NamedSigners = Object.fromEntries(
     await Promise.all(
       Object.entries(accounts).map(async ([accountName, address]) => {
-        const signer = await hre.ethers.getSigner(address);
-        return [accountName, signer];
+        return [accountName, await hre.waffle.provider.getSigner(address)];
       })
     )
   );
