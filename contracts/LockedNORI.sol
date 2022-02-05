@@ -210,6 +210,8 @@ contract LockedNORI is
   }
 
   function initialize(IERC777Upgradeable noriAddress) public initializer {
+    address[] memory operators = new address[](1);
+    operators[0] = _msgSender();
     __Context_init_unchained();
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
@@ -218,11 +220,8 @@ contract LockedNORI is
     __Pausable_init_unchained();
     __ERC20Pausable_init_unchained();
     __ERC20PresetMinterPauser_init_unchained("Locked NORI", "lNORI");
-    address[] memory operators = new address[](1);
-    operators[0] = _msgSender();
     __ERC777_init_unchained("Locked NORI", "lNORI", operators);
-    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _setupRole(TOKEN_GRANTER_ROLE, _msgSender());
+    grantRole(TOKEN_GRANTER_ROLE, _msgSender());
     _underlying = ERC777Upgradeable(address(noriAddress));
     _erc1820 = IERC1820RegistryUpgradeable(
       0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24
@@ -456,6 +455,8 @@ contract LockedNORI is
 
   /**
    * @dev Hook that is called before send, transfer, and burn. Used used to disable transferring locked nori.
+   *
+   * @custom:see Rules of hooks: https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks
    */
   function _beforeTokenTransfer(
     address,
@@ -474,6 +475,18 @@ contract LockedNORI is
     }
     super._beforeTokenTransfer(from, to, amount);
   }
+
+  /**
+   * @dev Hook that is called before granting/revoking roles via
+   * `grantRole`, `revokeRole`, `renounceRole`
+   *
+   * This overrides the behavior of `_grantRole`, `_setupRole`,
+   * `_revokeRole`, and `_renounceRole` with pausable behavior.
+   * When the contract is paused, these functions will not be callable.
+   *
+   * @custom:see Rules of hooks: https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks
+   */
+  function _beforeRoleChange(bytes32, address) internal virtual whenNotPaused {} // solhint-disable-line no-empty-blocks
 
   function _approve(
     address holder,
@@ -587,5 +600,27 @@ contract LockedNORI is
     whenNotPaused
   {
     return ERC777Upgradeable.authorizeOperator(operator);
+  }
+
+  /**
+   * @dev Grants `role` to `account` if the `_beforeRoleGranted`
+   * hook is satisfied
+   */
+  function _grantRole(bytes32 role, address account) internal virtual override {
+    _beforeRoleChange(role, account);
+    super._grantRole(role, account);
+  }
+
+  /**
+   * @dev Revokes `role` from `account` if the `_beforeRoleGranted`
+   * hook is satisfied
+   */
+  function _revokeRole(bytes32 role, address account)
+    internal
+    virtual
+    override
+  {
+    _beforeRoleChange(role, account);
+    super.revokeRole(role, account);
   }
 }

@@ -37,8 +37,7 @@ const setup = hardhat.deployments.createFixture(
     nori: NORI;
     lNori: LockedNORI;
   }> => {
-    const { upgrades, run, ethers, getNamedAccounts } = hre;
-    const { admin } = await getNamedAccounts();
+    const { upgrades, run, ethers } = hre;
     await run('deploy:erc1820');
     const NORIFactory = await ethers.getContractFactory<NORI__factory>('NORI');
     const LockedNoriFactory =
@@ -53,7 +52,6 @@ const setup = hardhat.deployments.createFixture(
       }
     );
     await lNori.deployed();
-    await lNori.grantRole(await lNori.TOKEN_GRANTER_ROLE(), admin);
     return {
       nori,
       lNori,
@@ -203,6 +201,7 @@ const setupGrantWithDirectCall = hardhat.deployments.createFixture(
 );
 
 describe('LockedNori', () => {
+  // todo test supported interfaces
   describe('when paused', () => {
     (
       [
@@ -231,10 +230,6 @@ describe('LockedNori', () => {
         },
         {
           method: 'approve',
-          args: async (): Promise<Parameters<LockedNORI['approve']>> => [
-            (await hre.getNamedAccounts())['investor2'],
-            hre.ethers.utils.parseUnits((1).toString()),
-          ],
           pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
             return async () =>
               lNori
@@ -248,15 +243,58 @@ describe('LockedNori', () => {
           pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
             return async () =>
               lNori
-                .connect(hre.namedSigners.admin)
-                .approve(hre.namedAccounts.investor1, formatTokenAmount(1));
+                .connect(namedSigners.admin)
+                .approve(namedAccounts.investor1, formatTokenAmount(1));
           },
           postSetupHook: async ({ lNori }: { lNori: LockedNORI }) => {
             await lNori
-              .connect(hre.namedSigners.investor1)
+              .connect(namedSigners.investor1)
               .approve(
-                hre.namedAccounts.admin,
+                namedAccounts.admin,
                 hre.ethers.utils.parseEther((1).toString())
+              );
+          },
+        },
+        {
+          method: 'grantRole',
+          pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
+            return async () =>
+              lNori
+                .connect(namedSigners.admin)
+                .grantRole(ethers.utils.id('SOME_ROLE'), namedAccounts.admin);
+          },
+          postSetupHook: undefined,
+        },
+        {
+          method: 'renounceRole',
+          pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
+            return async () =>
+              lNori
+                .connect(namedSigners.admin)
+                .renounceRole(
+                  ethers.utils.id('MINTER_ROLE'),
+                  namedAccounts.admin
+                );
+          },
+          postSetupHook: undefined,
+        },
+        {
+          method: 'revokeRole',
+          pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
+            return async () =>
+              lNori
+                .connect(namedSigners.admin)
+                .revokeRole(
+                  ethers.utils.id('MINTER_ROLE'),
+                  namedAccounts.admin
+                );
+          },
+          postSetupHook: async ({ lNori }: { lNori: LockedNORI }) => {
+            await lNori
+              .connect(namedSigners.admin)
+              .grantRole(
+                ethers.utils.id('MINTER_ROLE'),
+                namedAccounts.noriWallet
               );
           },
         },
@@ -270,6 +308,53 @@ describe('LockedNori', () => {
         await lNori.connect(namedSigners.admin).pause();
         const fn = pausableFunction({ lNori });
         await expect(fn()).revertedWith('Pausable: paused');
+      });
+    });
+  });
+
+  describe('initialization', () => {
+    // it.todo('should fire events');
+    it('should be deployed from the admin', async () => {
+      const { lNori } = await setup();
+      expect(lNori.deployTransaction.from).to.eq(namedAccounts.admin);
+      // todo check that initialization happens at deployment
+    });
+    describe('roles', () => {
+      (
+        [
+          { role: 'DEFAULT_ADMIN_ROLE' },
+          { role: 'MINTER_ROLE' },
+          { role: 'PAUSER_ROLE' },
+          { role: 'TOKEN_GRANTER_ROLE' },
+        ] as const
+      ).forEach(({ role }) => {
+        it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
+          const { lNori } = await setup();
+          expect(await lNori.hasRole(await lNori[role](), namedAccounts.admin))
+            .to.be.true;
+          expect(await lNori.getRoleAdmin(await lNori[role]())).to.eq(
+            await lNori.DEFAULT_ADMIN_ROLE()
+          );
+          expect(await lNori.getRoleMemberCount(await lNori[role]())).to.eq(1);
+        });
+      });
+    });
+  });
+
+  describe('getRoleAdmin', () => {
+    (
+      [
+        { role: 'DEFAULT_ADMIN_ROLE' },
+        { role: 'MINTER_ROLE' },
+        { role: 'PAUSER_ROLE' },
+        { role: 'TOKEN_GRANTER_ROLE' },
+      ] as const
+    ).forEach(({ role }) => {
+      it(`will assign the admin of the role ${role} to the DEFAULT_ADMIN_ROLE role`, async () => {
+        const { lNori } = await setup();
+        expect(await lNori.getRoleAdmin(await lNori[role]())).to.eq(
+          await lNori.DEFAULT_ADMIN_ROLE()
+        );
       });
     });
   });
