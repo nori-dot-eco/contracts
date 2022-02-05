@@ -225,13 +225,6 @@ const setupGrantWithDirectCall = hardhat.deployments.createFixture(
 );
 
 describe('LockedNori', () => {
-  describe('testCoverage', () => {
-    it('will test one branch of the function', async () => {
-      const { lNori } = await setupWithGrant();
-      expect(await lNori.testCoverage(1)).to.equal(true);
-      // expect(await lNori.testCoverage(true)).to.be.true;
-    });
-  });
   describe('when paused', () => {
     (
       [
