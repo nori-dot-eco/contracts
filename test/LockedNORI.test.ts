@@ -207,44 +207,40 @@ describe('LockedNori', () => {
       [
         {
           method: 'authorizeOperator',
-          pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
-            return async () =>
-              lNori
-                .connect(hre.namedSigners.investor1)
-                .authorizeOperator(hre.namedAccounts.investor2);
+          pausableFunction: async ({ lNori }: { lNori: LockedNORI }) => {
+            return lNori
+              .connect(hre.namedSigners.investor1)
+              .authorizeOperator(hre.namedAccounts.investor2);
           },
           postSetupHook: undefined,
         },
         {
           method: 'decreaseAllowance',
-          pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
-            return async () =>
-              lNori
-                .connect(hre.namedSigners.investor1)
-                .decreaseAllowance(
-                  hre.namedAccounts.investor2,
-                  formatTokenAmount(1)
-                );
+          pausableFunction: async ({ lNori }: { lNori: LockedNORI }) => {
+            return lNori
+              .connect(hre.namedSigners.investor1)
+              .decreaseAllowance(
+                hre.namedAccounts.investor2,
+                formatTokenAmount(1)
+              );
           },
           postSetupHook: undefined,
         },
         {
           method: 'approve',
-          pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
-            return async () =>
-              lNori
-                .connect(hre.namedSigners.investor1)
-                .approve(hre.namedAccounts.investor2, formatTokenAmount(1));
+          pausableFunction: async ({ lNori }: { lNori: LockedNORI }) => {
+            return lNori
+              .connect(hre.namedSigners.investor1)
+              .approve(hre.namedAccounts.investor2, formatTokenAmount(1));
           },
           postSetupHook: undefined,
         },
         {
           method: 'burnFrom',
-          pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
-            return async () =>
-              lNori
-                .connect(namedSigners.admin)
-                .approve(namedAccounts.investor1, formatTokenAmount(1));
+          pausableFunction: async ({ lNori }: { lNori: LockedNORI }) => {
+            return lNori
+              .connect(namedSigners.admin)
+              .approve(namedAccounts.investor1, formatTokenAmount(1));
           },
           postSetupHook: async ({ lNori }: { lNori: LockedNORI }) => {
             await lNori
@@ -257,37 +253,31 @@ describe('LockedNori', () => {
         },
         {
           method: 'grantRole',
-          pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
-            return async () =>
-              lNori
-                .connect(namedSigners.admin)
-                .grantRole(ethers.utils.id('SOME_ROLE'), namedAccounts.admin);
+          pausableFunction: async ({ lNori }: { lNori: LockedNORI }) => {
+            return lNori
+              .connect(namedSigners.admin)
+              .grantRole(ethers.utils.id('SOME_ROLE'), namedAccounts.admin);
           },
           postSetupHook: undefined,
         },
         {
           method: 'renounceRole',
-          pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
-            return async () =>
-              lNori
-                .connect(namedSigners.admin)
-                .renounceRole(
-                  ethers.utils.id('MINTER_ROLE'),
-                  namedAccounts.admin
-                );
+          pausableFunction: async ({ lNori }: { lNori: LockedNORI }) => {
+            return lNori
+              .connect(namedSigners.admin)
+              .renounceRole(
+                ethers.utils.id('MINTER_ROLE'),
+                namedAccounts.admin
+              );
           },
           postSetupHook: undefined,
         },
         {
           method: 'revokeRole',
-          pausableFunction: ({ lNori }: { lNori: LockedNORI }) => {
-            return async () =>
-              lNori
-                .connect(namedSigners.admin)
-                .revokeRole(
-                  ethers.utils.id('MINTER_ROLE'),
-                  namedAccounts.admin
-                );
+          pausableFunction: async ({ lNori }: { lNori: LockedNORI }) => {
+            return lNori
+              .connect(namedSigners.admin)
+              .revokeRole(ethers.utils.id('MINTER_ROLE'), namedAccounts.admin);
           },
           postSetupHook: async ({ lNori }: { lNori: LockedNORI }) => {
             await lNori
@@ -306,8 +296,9 @@ describe('LockedNori', () => {
           await postSetupHook({ lNori });
         }
         await lNori.connect(namedSigners.admin).pause();
-        const fn = pausableFunction({ lNori });
-        await expect(fn()).revertedWith('Pausable: paused');
+        await expect(pausableFunction({ lNori })).revertedWith(
+          'Pausable: paused'
+        );
       });
     });
   });
