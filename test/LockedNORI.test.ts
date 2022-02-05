@@ -228,7 +228,7 @@ describe('LockedNori', () => {
   describe('testCoverage', () => {
     it.only('will test one branch of the function', async () => {
       const { lNori } = await setupWithGrant();
-      expect(await lNori.testCoverage(1)).to.equal(true);
+      expect(await lNori.testCoverage(3)).to.equal(true);
       // expect(await lNori.testCoverage(true)).to.be.true;
     });
   });
