@@ -53,9 +53,6 @@ jobs:
           name: Run Contract Tests and Collect Coverage
           command: |
             yarn run test:coverage
-      - run:
-          name: Upload Coverage Reports
-          command: codecov --token=$CODECOV_TOKEN
       - coveralls/upload
 
 workflows:

@@ -570,8 +570,9 @@ contract LockedNORI is
   }
 
   function testCoverage(uint256 branch) public pure virtual returns (bool) {
-    // @prettier:ignore
-    if (branch == 3 || branch == 4) {if(branch ==3) return true;}
+    if (branch == 3 || branch == 4) {
+      if (branch == 3) return true;
+    }
     if (branch == 1 || branch == 2) {
       bool brancher = false;
       if (branch == 1) {
