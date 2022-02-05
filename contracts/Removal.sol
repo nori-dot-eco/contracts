@@ -55,19 +55,31 @@ contract Removal is
    * @dev returns the token ids for a set of removals given each one's vintage and the data that was provided
    * in its mint transaction
    */
-  function tokenIdsForRemovals(bytes32[] memory parcelIdentifiers, uint256[] memory removalVintages) public view returns (uint256[] memory) {
-    require(parcelIdentifiers.length == removalVintages.length, "parcelIdentifers and removalVintages must be same length");
+  function tokenIdsForRemovals(
+    bytes32[] memory parcelIdentifiers,
+    uint256[] memory removalVintages
+  ) public view returns (uint256[] memory) {
+    require(
+      parcelIdentifiers.length == removalVintages.length,
+      "parcelIdentifers and removalVintages must be same length"
+    );
     uint256[] memory ids = new uint256[](removalVintages.length);
     for (uint256 i = 0; i < removalVintages.length; i++) {
-      ids[i] = _vintageTokenIdMap[keccak256(abi.encodePacked(parcelIdentifiers[i], removalVintages[i]))];
+      ids[i] = _vintageTokenIdMap[
+        keccak256(abi.encodePacked(parcelIdentifiers[i], removalVintages[i]))
+      ];
     }
     return ids;
   }
 
   /**
-    * @dev See {IERC1155-setApprovalForAll}.
-    */
-  function setApprovalForAllAsAdmin(address owner, address operator, bool approved) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+   * @dev See {IERC1155-setApprovalForAll}.
+   */
+  function setApprovalForAllAsAdmin(
+    address owner,
+    address operator,
+    bool approved
+  ) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     _setApprovalForAll(owner, operator, approved);
   }
 
@@ -91,7 +103,10 @@ contract Removal is
     bytes memory data
   ) public override {
     // todo require vintage is within valid year range and doesn't already exist
-    (address market, bytes32 parcelId, bool listNow) = abi.decode(data, (address, bytes32, bool));
+    (address market, bytes32 parcelId, bool listNow) = abi.decode(
+      data,
+      (address, bytes32, bool)
+    );
 
     uint256[] memory ids = new uint256[](vintages.length);
     for (uint256 i = 0; i < vintages.length; i++) {
@@ -106,21 +121,10 @@ contract Removal is
       _vintageTokenIdMap[uniqueId] = _latestTokenId + i;
     }
     _latestTokenId = ids[ids.length - 1] + 1;
-    super.mintBatch(
-      to,
-      ids,
-      amounts,
-      data
-    );
+    super.mintBatch(to, ids, amounts, data);
     setApprovalForAllAsAdmin(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
     if (listNow) {
-      super.safeBatchTransferFrom(
-        to,
-        market,
-        ids,
-        amounts,
-        data
-      );
+      super.safeBatchTransferFrom(to, market, ids, amounts, data);
     }
   }
 
