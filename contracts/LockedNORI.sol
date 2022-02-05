@@ -569,11 +569,18 @@ contract LockedNORI is
     return ERC777Upgradeable.transferFrom(holder, recipient, amount);
   }
 
-  function testCoverage(bool branch) public pure virtual returns (bool) {
-    if (branch) {
+  function testCoverage(uint256 branch) public pure virtual returns (bool) {
+    if (branch == 1 || branch == 2) {
       bool brancher = false;
+      if (branch == 1) {
+        return true;
+      }
+      if (branch == 2) {
+        return false;
+      }
+      return true;
     }
-    return branch;
+    return false;
   }
 
   function decreaseAllowance(address spender, uint256 subtractedValue)
