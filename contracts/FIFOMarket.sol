@@ -104,6 +104,10 @@ contract FIFOMarket is
     uint256 remainingAmountToFill = certificateAmount;
 
     address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
+    require(
+      _queueHeadIndex != _queueNextInsertIndex,
+      "FIFOMarket: Not enough supply"
+    );
     require(recipient == address(recipient), "FIFOMarket: Invalid address");
     require(
       recipient != address(0),
@@ -114,6 +118,7 @@ contract FIFOMarket is
       msg.sender == address(_nori),
       "FIFOMarket: This contract can only receive NORI"
     );
+
     uint256[] memory ids = new uint256[](_queueLength());
     uint256[] memory amounts = new uint256[](_queueLength());
     address[] memory suppliers = new address[](_queueLength());
@@ -142,9 +147,6 @@ contract FIFOMarket is
         break;
       }
     }
-    // In a completely empty queue, the for loop never runs.
-    // Catch this case here without the gas-heavy numberOfNrtsInQueue call.
-    require(amounts[0] > 0, "FIFOMarket: Not enough supply");
 
     bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
     _certificate.mintBatch(recipient, ids, amounts, encodedCertificateAmount);

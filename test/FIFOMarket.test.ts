@@ -1,7 +1,5 @@
 import { assert } from 'console';
 
-import { expectRevert } from '@openzeppelin/test-helpers';
-
 import type {
   NORI,
   Certificate,
@@ -28,9 +26,11 @@ const setupTest = hardhat.deployments.createFixture(async (hre) => {
     'FIFOMarket'
   );
   const noriInstance = await upgrades.deployProxy<NORI>(NORI, []);
+  await noriInstance.deployed();
   const removalInstance = await upgrades.deployProxy<Removal>(Removal, [], {
     initializer: 'initialize()',
   });
+  await removalInstance.deployed();
   const certificateInstance = await upgrades.deployProxy<Certificate>(
     Certificate,
     [],
@@ -38,6 +38,8 @@ const setupTest = hardhat.deployments.createFixture(async (hre) => {
       initializer: 'initialize()',
     }
   );
+  await certificateInstance.deployed();
+
   const fifoMarketInstance = await upgrades.deployProxy<FIFOMarket>(
     FIFOMarket,
     [
@@ -51,6 +53,8 @@ const setupTest = hardhat.deployments.createFixture(async (hre) => {
       initializer: 'initialize(address,address,address,address,uint256)',
     }
   );
+  await fifoMarketInstance.deployed();
+
   return {
     contracts: {
       NORI: noriInstance,
@@ -194,6 +198,7 @@ describe('FIFOMarket', () => {
       );
 
       const initialFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
+      expect(initialFifoSupply).to.equal(hardhat.ethers.utils.parseUnits('10'));
       await NORI.connect(accounts[6]).send(
         FIFOMarket.address,
         hardhat.ethers.utils.parseUnits(totalPrice),
@@ -246,7 +251,7 @@ describe('FIFOMarket', () => {
       const tokenIds = [];
       for (let i = 0; i <= 20; i++) {
         removalBalances.push(hardhat.ethers.utils.parseUnits('50'));
-        vintages.push('2018');
+        vintages.push(2018);
         tokenIds.push(i);
       }
 
@@ -272,6 +277,7 @@ describe('FIFOMarket', () => {
         ),
         Certificate.addMinter(FIFOMarket.address),
       ]);
+
       const accounts = await hardhat.ethers.getSigners();
       await Removal.connect(accounts[2]).safeBatchTransferFrom(
         supplier,
