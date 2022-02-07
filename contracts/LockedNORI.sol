@@ -247,12 +247,15 @@ contract LockedNORI is
     bytes calldata userData,
     bytes calldata operatorData
   ) internal returns (bool) {
-    DepositForParams memory params = abi.decode(userData, (DepositForParams));
+    // require(
+    //   hasRole(TOKEN_GRANTER_ROLE, tx.origin), // todo figure out how to make this safe
+    //   "lNORI: requires TOKEN_GRANTER_ROLE"
+    // );
+    DepositForParams memory params = abi.decode(userData, (DepositForParams)); // todo error handling
     // If a startTime parameter is non-zero then set up a schedule
     if (params.startTime > 0) {
       _grantTo(amount, userData);
     }
-
     ERC777Upgradeable._mint(params.recipient, amount, userData, operatorData);
     return true;
   }
@@ -275,17 +278,15 @@ contract LockedNORI is
       address(params.recipient) != address(0),
       "Recipient cannot be zero address"
     );
-
     TokenGrant storage grant = _grants[params.recipient];
     grant.grantAmount = amount;
     grant.originalAmount = amount;
     grant.exists = true;
-
     if (params.vestEndTime > params.startTime) {
       require(
         params.vestCliff1Amount >= params.unlockCliff1Amount ||
           params.vestCliff2Amount >= params.unlockCliff2Amount,
-        "Unlock cliff amounts cannot exceed vest cliff amounts"
+        "lNORI: Unlock cliff amounts cannot exceed vest cliff amounts"
       );
       grant.vestingSchedule.totalAmount = amount;
       grant.vestingSchedule.startTime = params.startTime;
@@ -299,7 +300,6 @@ contract LockedNORI is
         params.vestCliff2Amount
       );
     }
-
     grant.lockupSchedule.totalAmount = amount;
     grant.lockupSchedule.startTime = params.startTime;
     grant.lockupSchedule.endTime = params.unlockEndTime;
@@ -324,16 +324,15 @@ contract LockedNORI is
     address to
   ) internal {
     TokenGrant storage grant = _grants[from];
-    require(grant.exists, "No grant exist");
+    require(grant.exists, "lNori: no grant exists");
     uint256 vestedBalance = _vestedBalanceOf(atTime, from);
-    if (vestedBalance < grant.grantAmount) {
-      uint256 quantityRevoked = grant.grantAmount - vestedBalance;
-      grant.grantAmount = vestedBalance;
-      grant.vestingSchedule.totalAmount = vestedBalance;
-      grant.vestingSchedule.endTime = atTime;
-      emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
-      operatorSend(from, to, quantityRevoked, "", "");
-    }
+    require(vestedBalance < grant.grantAmount, "lNORI: tokens already vested");
+    uint256 quantityRevoked = grant.grantAmount - vestedBalance;
+    grant.grantAmount = vestedBalance;
+    grant.vestingSchedule.totalAmount = vestedBalance;
+    grant.vestingSchedule.endTime = atTime;
+    operatorSend(from, to, quantityRevoked, "", "");
+    emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
   }
 
   /**

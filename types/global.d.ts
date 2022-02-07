@@ -13,6 +13,7 @@ import type {
   ethers as defaultEthers,
 } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
+import type { JsonRpcSigner } from '@ethersproject/providers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
   FactoryOptions,
@@ -24,7 +25,6 @@ import type { networks } from '@/config/networks';
 
 import type { TASKS } from '@/tasks';
 import { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 declare module 'hardhat/config' {
   export type ActionType<ArgsT extends TaskArguments, TActionReturnType> = (
@@ -85,12 +85,12 @@ interface CustomHardhatUpgrades extends HardhatUpgrades {
 }
 
 declare global {
-  type Concrete<Type, TProperty> = {
-    [Property in keyof Type]?: Type[TProperty extends Property ? TProperty : Property];
-  };
   type TypeChainBaseContract = BaseContract & { contractName: string };
   type NamedAccounts = typeof namedAccounts;
-  type NamedSigners = { [Property in keyof NamedAccounts]: SignerWithAddress };
+  type NamedSigners = { [Property in keyof NamedAccounts]: JsonRpcSigner };
+  type DeepPartial<T> = {
+    [P in keyof T]?: DeepPartial<T[P]>;
+  };
   var hre: CustomHardHatRuntimeEnvironment;
   type ContractNames =
     | 'NCCR_V0'
