@@ -1,17 +1,19 @@
+import { assert } from 'console';
+
+import { expectRevert } from '@openzeppelin/test-helpers';
+
 import type {
-  Certificate,
-  Certificate__factory,
-  FIFOMarket,
-  FIFOMarket__factory,
   NORI,
-  NORI__factory,
+  Certificate,
+  FIFOMarket,
   Removal,
+  Certificate__factory,
+  FIFOMarket__factory,
+  NORI__factory,
   Removal__factory,
 } from '../typechain-types';
 
 import { expect, hardhat } from '@/test/helpers';
-import { assert } from 'console';
-import { expectRevert } from '@openzeppelin/test-helpers';
 
 const setupTest = hardhat.deployments.createFixture(async (hre) => {
   const { getNamedAccounts, upgrades, run, ethers } = hre;
@@ -143,7 +145,7 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('should purchase removals and mint a certificate when there is enough supply spanning multiple removals', async () => {
+    it('should purchase removals and mint a certificate for a small purchase spanning several removals', async () => {
       const {
         contracts: { NORI, Removal, Certificate, FIFOMarket },
       } = await setupTest();
@@ -188,6 +190,94 @@ describe('FIFOMarket', () => {
           hardhat.ethers.utils.parseUnits(removalBalance2),
           hardhat.ethers.utils.parseUnits(removalBalance3),
         ],
+        hardhat.ethers.utils.formatBytes32String('0x0')
+      );
+
+      const initialFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
+      await NORI.connect(accounts[6]).send(
+        FIFOMarket.address,
+        hardhat.ethers.utils.parseUnits(totalPrice),
+        hardhat.ethers.utils.hexZeroPad(buyer, 32)
+      );
+      const buyerFinalNoriBalance = await NORI.balanceOf(buyer);
+      const supplierFinalNoriBalance = await NORI.balanceOf(supplier);
+      const noriFinalNoriBalance = await NORI.balanceOf(noriWallet);
+      const finalFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
+
+      expect(buyerFinalNoriBalance).to.equal(
+        hardhat.ethers.utils
+          .parseUnits(buyerInitialNoriBalance)
+          .sub(hardhat.ethers.utils.parseUnits(totalPrice, 18))
+          .toString()
+      );
+
+      expect(supplierFinalNoriBalance).to.equal(
+        hardhat.ethers.utils
+          .parseUnits(supplierInitialNoriBalance)
+          .add(hardhat.ethers.utils.parseUnits(purchaseAmount, 18))
+          .toString()
+      );
+
+      expect(noriFinalNoriBalance).to.equal(
+        hardhat.ethers.utils
+          .parseUnits(noriInitialNoriBalance)
+          .add(hardhat.ethers.utils.parseUnits(fee, 18))
+          .toString()
+      );
+
+      expect(await Certificate.balanceOf(buyer, 0)).to.equal(
+        hardhat.ethers.utils.parseUnits(purchaseAmount, 18)
+      );
+
+      expect(finalFifoSupply).to.equal(
+        initialFifoSupply
+          .sub(hardhat.ethers.utils.parseUnits(purchaseAmount, 18))
+          .toString()
+      );
+    });
+    it('should purchase removals and mint a certificate for a large purchase spanning many removals', async () => {
+      const {
+        contracts: { NORI, Removal, Certificate, FIFOMarket },
+      } = await setupTest();
+      const { supplier, buyer, noriWallet } = await hardhat.getNamedAccounts();
+
+      const removalBalances = [];
+      const vintages = [];
+      const tokenIds = [];
+      for (let i = 0; i <= 20; i++) {
+        removalBalances.push(hardhat.ethers.utils.parseUnits('50'));
+        vintages.push('2018');
+        tokenIds.push(i);
+      }
+
+      const purchaseAmount = '1000'; // purchase all supply
+      const fee = '150';
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+      const buyerInitialNoriBalance = '1000000';
+      const supplierInitialNoriBalance = '0';
+      const noriInitialNoriBalance = '0';
+
+      await Promise.all([
+        Removal.mintBatch(
+          supplier,
+          removalBalances,
+          vintages,
+          hardhat.ethers.utils.formatBytes32String('0x0')
+        ),
+        NORI.mint(
+          buyer,
+          hardhat.ethers.utils.parseUnits(buyerInitialNoriBalance),
+          hardhat.ethers.utils.formatBytes32String('0x0'),
+          hardhat.ethers.utils.formatBytes32String('0x0')
+        ),
+        Certificate.addMinter(FIFOMarket.address),
+      ]);
+      const accounts = await hardhat.ethers.getSigners();
+      await Removal.connect(accounts[2]).safeBatchTransferFrom(
+        supplier,
+        FIFOMarket.address,
+        tokenIds,
+        removalBalances,
         hardhat.ethers.utils.formatBytes32String('0x0')
       );
 
@@ -368,11 +458,10 @@ describe('FIFOMarket', () => {
   describe('Unsuccessful purchases', () => {
     it('should revert when the queue is completely empty', async () => {
       const {
-        contracts: { NORI, Removal, Certificate, FIFOMarket },
+        contracts: { NORI, Certificate, FIFOMarket },
       } = await setupTest();
       const { supplier, buyer, noriWallet } = await hardhat.getNamedAccounts();
 
-      const totalAvailableSupply = '100';
       const purchaseAmount = '1';
       const fee = '.15';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
