@@ -8,7 +8,7 @@ import '@typechain/hardhat';
 import '@nomiclabs/hardhat-etherscan';
 import '@openzeppelin/hardhat-defender';
 import 'hardhat-gas-reporter';
-import '@primitivefi/hardhat-dodoc';
+// import '@primitivefi/hardhat-dodoc'; // todo stop generating every time tests are run
 import '@nomiclabs/hardhat-solhint';
 import 'solidity-coverage';
 import '@/tasks';
