@@ -82,8 +82,11 @@ interface CustomHardhatUpgrades extends HardhatUpgrades {
 }
 
 declare global {
+  type Concrete<Type> = {
+    [Property in keyof Type]-?: Type[Property];
+  };
   type TypeChainBaseContract = BaseContract & { contractName: string };
-
+  type NamedAccounts = typeof namedAccounts;
   var hre: CustomHardHatRuntimeEnvironment;
   type ContractNames =
     | 'NCCR_V0'
