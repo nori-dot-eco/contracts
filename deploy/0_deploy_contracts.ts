@@ -119,12 +119,12 @@ const func: CustomHardhatDeployFunction = async (hre) => {
   console.log('Added FIFOMarket as a minter of Certificate');
   if (network.name === 'hardhat') {
     await Promise.all([
-      removalInstance.mintBatch(
-        supplier,
-        [ethers.utils.parseUnits('100')],
-        [2018],
-        ethers.utils.formatBytes32String('0x0')
-      ),
+      // removalInstance.mintBatch(
+      //   supplier,
+      //   [ethers.utils.parseUnits('100')],
+      //   [2018],
+      //   ethers.utils.formatBytes32String('0x0')
+      // ),
       noriInstance.mint(
         buyer,
         ethers.utils.parseUnits('1000000'),
@@ -136,17 +136,17 @@ const func: CustomHardhatDeployFunction = async (hre) => {
       noriV0Instance.mint(admin, ethers.utils.parseUnits('100')),
     ]);
     const accounts = await ethers.getSigners();
-    await removalInstance
-      .connect(accounts[2])
-      .safeBatchTransferFrom(
-        supplier,
-        fifoMarketInstance.address,
-        [0],
-        [ethers.utils.parseUnits('100')],
-        ethers.utils.formatBytes32String('0x0')
-      );
+    // await removalInstance
+    //   .connect(accounts[2])
+    //   .safeBatchTransferFrom(
+    //     supplier,
+    //     fifoMarketInstance.address,
+    //     [0],
+    //     [ethers.utils.parseUnits('100')],
+    //     ethers.utils.formatBytes32String('0x0')
+    //   );
     console.log('Minted NORI and Nori_V0 to buyer wallet', buyer);
-    console.log('Listed 100 NRTs for sale in FIFOMarket');
+    // console.log('Listed 100 NRTs for sale in FIFOMarket');
     /*
     Note: the named contracts in the ethernal UI are the proxies.
     The 'name' field in the push command must match the contract name exactly,

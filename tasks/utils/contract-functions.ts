@@ -45,7 +45,10 @@ export const CONTRACT_FUNCTION_TASK_RUN = async ({
       contractAbi, // todo store artifacts in contracts.json
       signer
     );
+    // const parsedArgs = args.map((arg) => JSON.parse(arg as string));
+    // const transaction = await contract[func](...parsedArgs);
     const transaction = await contract[func](...args);
+
     const result = await transaction.wait?.();
     if (result?.transactionHash) {
       console.log({ result });
