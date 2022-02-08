@@ -331,8 +331,8 @@ contract LockedNORI is
     grant.grantAmount = vestedBalance;
     grant.vestingSchedule.totalAmount = vestedBalance;
     grant.vestingSchedule.endTime = atTime;
-    _underlying.send(to, quantityRevoked, ""); // todo test; burning; redeeming;
-    ERC777Upgradeable._burn(from, quantityRevoked, "", ""); // todo test
+    _underlying.send(to, quantityRevoked, "");
+    ERC777Upgradeable._burn(from, quantityRevoked, "", "");
     emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
   }
 
