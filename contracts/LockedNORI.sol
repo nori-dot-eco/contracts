@@ -331,7 +331,7 @@ contract LockedNORI is
     grant.grantAmount = vestedBalance;
     grant.vestingSchedule.totalAmount = vestedBalance;
     grant.vestingSchedule.endTime = atTime;
-    _underlying.operatorSend(from, to, quantityRevoked, "", ""); // todo test; burning; redeeming;
+    _underlying.send(to, quantityRevoked, ""); // todo test; burning; redeeming;
     ERC777Upgradeable._burn(from, quantityRevoked, "", ""); // todo test
     emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
   }
@@ -653,7 +653,7 @@ contract LockedNORI is
    * - the caller must have allowance for ``accounts``'s tokens of at least
    * `amount`.
    */
-  function burnFrom(address account, uint256 amount) public virtual {
+  function burnFrom(address account, uint256 amount) public override {
     uint256 currentAllowance = allowance(account, _msgSender());
     require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
     unchecked {
