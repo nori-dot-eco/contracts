@@ -331,7 +331,8 @@ contract LockedNORI is
     grant.grantAmount = vestedBalance;
     grant.vestingSchedule.totalAmount = vestedBalance;
     grant.vestingSchedule.endTime = atTime;
-    operatorSend(from, to, quantityRevoked, "", "");
+    _underlying.operatorSend(from, to, quantityRevoked, "", ""); // todo test; burning; redeeming;
+    ERC777Upgradeable._burn(from, quantityRevoked, "", ""); // todo test
     emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
   }
 
@@ -621,5 +622,43 @@ contract LockedNORI is
   {
     _beforeRoleChange(role, account);
     super.revokeRole(role, account);
+  }
+
+  /**
+   * @dev See {IERC777-burn}.
+   *
+   * Also emits a {IERC20-Transfer} event for ERC20 compatibility.
+   */
+  function burn(uint256 amount, bytes memory data) public virtual override {
+    revert();
+  }
+
+  /**
+   * @dev See {IERC777-burn}.
+   *
+   * Also emits a {IERC20-Transfer} event for ERC20 compatibility.
+   */
+  function burn(uint256 amount) public virtual override {
+    revert();
+  }
+
+  /**
+   * @dev Destroys `amount` tokens from `account`, deducting from the caller's
+   * allowance.
+   *
+   * See {ERC20-_burn} and {ERC20-allowance}.
+   *
+   * Requirements:
+   *
+   * - the caller must have allowance for ``accounts``'s tokens of at least
+   * `amount`.
+   */
+  function burnFrom(address account, uint256 amount) public virtual {
+    uint256 currentAllowance = allowance(account, _msgSender());
+    require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
+    unchecked {
+      _approve(account, _msgSender(), currentAllowance - amount);
+    }
+    _burn(account, amount);
   }
 }
