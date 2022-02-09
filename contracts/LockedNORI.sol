@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/presets/ERC20PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./NORI.sol";
-import "hardhat/console.sol"; // todo
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
@@ -97,6 +96,9 @@ contract LockedNORI is
     uint256 startTime;
   }
 
+  /**
+   * @dev Role conferring creation and revocation of token grants.
+   */
   bytes32 public constant TOKEN_GRANTER_ROLE = keccak256("TOKEN_GRANTER_ROLE");
 
   mapping(address => TokenGrant) private _grants;
@@ -162,9 +164,9 @@ contract LockedNORI is
   }
 
   /**
-   * @dev grantTo: Sets up a vesting + lockup schedule for recipient.
+   * @dev createGrant: Sets up a vesting + lockup schedule for recipient.
    */
-  function grantTo(
+  function createGrant(
     uint256 amount,
     address recipient,
     uint256 startTime,
@@ -189,7 +191,7 @@ contract LockedNORI is
       unlockCliff1Amount,
       unlockCliff2Amount
     );
-    _grantTo(amount, userData);
+    _createGrant(amount, userData);
   }
 
   /**
@@ -254,14 +256,14 @@ contract LockedNORI is
     DepositForParams memory params = abi.decode(userData, (DepositForParams)); // todo error handling
     // If a startTime parameter is non-zero then set up a schedule
     if (params.startTime > 0) {
-      _grantTo(amount, userData);
+      _createGrant(amount, userData);
     }
     ERC777Upgradeable._mint(params.recipient, amount, userData, operatorData);
     return true;
   }
 
   /**
-   * @dev _grantTo: Sets up a vesting + lockup schedule for recipient (implementation).
+   * @dev _createGrant: Sets up a vesting + lockup schedule for recipient (implementation).
    *
    * This will be invoked via the `tokensReceived` callback for cases
    * where we have the tokens in hand at the time we set up the grant.
@@ -269,7 +271,7 @@ contract LockedNORI is
    * It is also callable externally (see `grantTo`) to handle cases
    * where tokens are incrementally deposited after the grant is established.
    */
-  function _grantTo(uint256 amount, bytes memory userData) internal {
+  function _createGrant(uint256 amount, bytes memory userData) internal {
     CreateTokenGrantParams memory params = abi.decode(
       userData,
       (CreateTokenGrantParams)
@@ -488,6 +490,11 @@ contract LockedNORI is
    */
   function _beforeRoleChange(bytes32, address) internal virtual whenNotPaused {} // solhint-disable-line no-empty-blocks
 
+  /**
+   * @dev See {ERC20-_approve}.
+   *
+   * Note that accounts cannot have allowance issued by their operators.
+   */
   function _approve(
     address holder,
     address spender,
@@ -501,6 +508,13 @@ contract LockedNORI is
     ERC777Upgradeable._approve(holder, spender, value);
   }
 
+  /**
+   * @dev See {IERC20-allowance}.
+   *
+   * Note that operator and allowance concepts are orthogonal: operators may
+   * not have allowance, and accounts with allowance may not be operators
+   * themselves.
+   */
   function allowance(address holder, address spender)
     public
     view
@@ -511,6 +525,14 @@ contract LockedNORI is
     return ERC777Upgradeable.allowance(holder, spender);
   }
 
+  /**
+   * @dev See {IERC20-approve}.
+   *
+   * NOTE: If `value` is the maximum `uint256`, the allowance is not updated on
+   * `transferFrom`. This is semantically equivalent to an infinite approval.
+   *
+   * Note that accounts cannot have allowance issued by their operators.
+   */
   function approve(address spender, uint256 value)
     public
     virtual
@@ -520,6 +542,12 @@ contract LockedNORI is
     return ERC777Upgradeable.approve(spender, value);
   }
 
+  /**
+   * @dev See {ERC20-decimals}.
+   *
+   * Always returns 18, as per the
+   * [ERC777 EIP](https://eips.ethereum.org/EIPS/eip-777#backward-compatibility).
+   */
   function decimals()
     public
     pure
@@ -530,6 +558,9 @@ contract LockedNORI is
     return ERC777Upgradeable.decimals();
   }
 
+  /**
+   * @dev See {IERC777-name}.
+   */
   function name()
     public
     view
@@ -540,6 +571,9 @@ contract LockedNORI is
     return ERC777Upgradeable.name();
   }
 
+  /**
+   * @dev See {IERC777-symbol}.
+   */
   function symbol()
     public
     view
@@ -550,6 +584,9 @@ contract LockedNORI is
     return ERC777Upgradeable.symbol();
   }
 
+  /**
+   * @dev See {IERC777-totalSupply}.
+   */
   function totalSupply()
     public
     view
@@ -560,6 +597,14 @@ contract LockedNORI is
     return ERC777Upgradeable.totalSupply();
   }
 
+  /**
+   * @dev See {IERC20-transfer}.
+   *
+   * Unlike `send`, `recipient` is _not_ required to implement the {IERC777Recipient}
+   * interface if it is a contract.
+   *
+   * Also emits a {Sent} event.
+   */
   function transfer(address recipient, uint256 amount)
     public
     virtual
@@ -569,6 +614,18 @@ contract LockedNORI is
     return ERC777Upgradeable.transfer(recipient, amount);
   }
 
+  /**
+   * @dev See {IERC20-transferFrom}.
+   *
+   * NOTE: Does not update the allowance if the current allowance
+   * is the maximum `uint256`.
+   *
+   * Note that operator and allowance concepts are orthogonal: operators cannot
+   * call `transferFrom` (unless they have allowance), and accounts with
+   * allowance cannot call `operatorSend` (unless they are operators).
+   *
+   * Emits {Sent}, {IERC20-Transfer} and {IERC20-Approval} events.
+   */
   function transferFrom(
     address holder,
     address recipient,
@@ -582,6 +639,20 @@ contract LockedNORI is
     return ERC777Upgradeable.transferFrom(holder, recipient, amount);
   }
 
+  /**
+   * @dev Atomically decreases the allowance granted to `spender` by the caller.
+   *
+   * This is an alternative to {approve} that can be used as a mitigation for
+   * problems described in {IERC20-approve}.
+   *
+   * Emits an {Approval} event indicating the updated allowance.
+   *
+   * Requirements:
+   *
+   * - `spender` cannot be the zero address.
+   * - `spender` must have allowance for the caller of at least
+   * `subtractedValue`.
+   */
   function decreaseAllowance(address spender, uint256 subtractedValue)
     public
     virtual
@@ -592,7 +663,9 @@ contract LockedNORI is
     return decreaseAllowance(spender, subtractedValue);
   }
 
-  // todo operatorsend should be disabled?
+  /**
+   * @dev See {IERC777-authorizeOperator}.
+   */
   function authorizeOperator(address operator)
     public
     virtual
@@ -629,7 +702,7 @@ contract LockedNORI is
    *
    * Also emits a {IERC20-Transfer} event for ERC20 compatibility.
    */
-  function burn(uint256 amount, bytes memory data) public virtual override {
+  function burn(uint256, bytes memory) public virtual override {
     revert();
   }
 
@@ -638,7 +711,7 @@ contract LockedNORI is
    *
    * Also emits a {IERC20-Transfer} event for ERC20 compatibility.
    */
-  function burn(uint256 amount) public virtual override {
+  function burn(uint256) public virtual override {
     revert();
   }
 

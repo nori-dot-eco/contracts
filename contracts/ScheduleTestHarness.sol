@@ -3,8 +3,11 @@ pragma solidity ^0.8.0;
 
 import {ScheduleUtils, Schedule} from "./ScheduleUtils.sol";
 
-// @dev Testbed contract for testing ScheduleUtils library.
-// Not intended for deployment in productionish environments.
+/**
+ * @dev Testbed contract for testing ScheduleUtils library.
+ *
+ * Not intended for deployment in productionish environments.
+ */
 
 contract ScheduleTestHarness {
   using ScheduleUtils for Schedule;
