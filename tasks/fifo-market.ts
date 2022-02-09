@@ -29,7 +29,7 @@ export const TASK = {
     return CONTRACT_FUNCTION_TASK_RUN({
       contractAddress:
         contractsConfig[hre.network.name].FIFOMarket.proxyAddress,
-      contractAbi: (await require('@/artifacts/FIFOMarket.sol/NCCR_V0.json'))
+      contractAbi: (await require('@/artifacts/FIFOMarket.sol/FIFOMarket.json'))
         .abi,
       from,
       func,
