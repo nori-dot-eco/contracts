@@ -29,6 +29,9 @@ struct Schedule {
  * See also {ScheduleTestHarness.sol} for a simple use of this library
  * for unit testing purposes.
  *
+ * NOTE: All methods are internal so this library gets inlined into the consuming
+ * contract and does not need to be deployed separately.
+ *
  * Designed to be used i.e.:
  *
  * ```
@@ -42,10 +45,9 @@ struct Schedule {
  *  s.addCliff(1644436200, 50000);
  *  s.amountAvailable(1644436200);
  * ```
- * 
+ *
  */
 library ScheduleUtils {
-
   /**
    * @dev Adds a cliff defined by *time* and *amount* to *schedule*
    *
