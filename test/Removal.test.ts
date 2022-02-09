@@ -96,7 +96,7 @@ describe('Removal', () => {
         );
       });
       // but not listed to the FIFOMarket
-      const marketTotalSupply = await FIFOMarket.numberOfTonnesInQueue();
+      const marketTotalSupply = await FIFOMarket.numberOfNrtsInQueue();
       expect(marketTotalSupply).to.equal(
         hardhat.ethers.utils.parseUnits(expectedMarketSupply).toString()
       );
@@ -137,7 +137,7 @@ describe('Removal', () => {
           hardhat.ethers.utils.parseUnits(removalBalances[tokenId]).toString()
         );
       });
-      const marketTotalSupply = await FIFOMarket.numberOfTonnesInQueue();
+      const marketTotalSupply = await FIFOMarket.numberOfNrtsInQueue();
       expect(marketTotalSupply).to.equal(
         hardhat.ethers.utils.parseUnits(expectedMarketSupply).toString()
       );
