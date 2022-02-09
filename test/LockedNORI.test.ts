@@ -821,7 +821,7 @@ describe('LockedNori', () => {
   it('Should revoke unvested tokens', async () => {
     // now == CLIFF2
 
-    const { lNori } = await setupWithEmployeeStyleGrant();
+    const { nori, lNori } = await setupWithEmployeeStyleGrant();
     const { employee, admin } = await hre.getNamedAccounts();
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
       NOW + VEST_REVOKED_OFFSET,
@@ -829,6 +829,8 @@ describe('LockedNori', () => {
     await hardhat.network.provider.send('evm_mine');
     expect(await lNori.balanceOf(employee)).to.equal(GRANT_AMOUNT);
     const newBalance = VESTED_BALANCE_AFTER_REVOCATION;
+    expect(await nori.balanceOf(admin)).to.eq(INITIAL_SUPPLY.sub(GRANT_AMOUNT));
+
     expect(await lNori.vestedBalanceOf(employee)).to.equal(newBalance);
     expect(
       await lNori
@@ -844,19 +846,12 @@ describe('LockedNori', () => {
     expect(await lNori.vestedBalanceOf(employee)).to.equal(newBalance);
     expect(await lNori.balanceOf(employee)).to.equal(newBalance);
 
-    // await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
-    //   NOW + VEST_REVOKED_OFFSET + DELTA,
-    // ]);
-    // await hardhat.network.provider.send('evm_mine');
-    // console.log({
-    //   unlocked: await (await lNori.unlockedBalanceOf(investor1)).toString(),
-    //   CLIFF1_AMOUNT: CLIFF1_AMOUNT.toString(),
-    //   CLIFF2_AMOUNT: CLIFF2_AMOUNT.toString(),
-    // });
+    expect(await lNori.totalSupply()).to.eq(newBalance);
     expect(await lNori.unlockedBalanceOf(employee)).to.eq(
       BigNumber.from('600008888888888888888')
     );
-    expect(await lNori.balanceOf(admin)).to.equal(GRANT_AMOUNT.sub(newBalance));
+
+    expect(await nori.balanceOf(admin)).to.eq(INITIAL_SUPPLY.sub(newBalance));
 
     // TODO: Might be worth reworking the times in all these fixtures
     // with actual seconds and calculate these thresholds more carefully.
