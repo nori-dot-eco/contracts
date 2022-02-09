@@ -491,11 +491,11 @@ contract LockedNORI is
    */
   function _beforeRoleChange(bytes32, address) internal virtual whenNotPaused {} // solhint-disable-line no-empty-blocks
 
-    /**
-     * @dev See {ERC20-_approve}.
-     *
-     * Note that accounts cannot have allowance issued by their operators.
-     */
+  /**
+   * @dev See {ERC20-_approve}.
+   *
+   * Note that accounts cannot have allowance issued by their operators.
+   */
   function _approve(
     address holder,
     address spender,
@@ -509,13 +509,13 @@ contract LockedNORI is
     ERC777Upgradeable._approve(holder, spender, value);
   }
 
-    /**
-     * @dev See {IERC20-allowance}.
-     *
-     * Note that operator and allowance concepts are orthogonal: operators may
-     * not have allowance, and accounts with allowance may not be operators
-     * themselves.
-     */
+  /**
+   * @dev See {IERC20-allowance}.
+   *
+   * Note that operator and allowance concepts are orthogonal: operators may
+   * not have allowance, and accounts with allowance may not be operators
+   * themselves.
+   */
   function allowance(address holder, address spender)
     public
     view
@@ -527,13 +527,13 @@ contract LockedNORI is
   }
 
   /**
-  * @dev See {IERC20-approve}.
-  *
-  * NOTE: If `value` is the maximum `uint256`, the allowance is not updated on
-  * `transferFrom`. This is semantically equivalent to an infinite approval.
-  *
-  * Note that accounts cannot have allowance issued by their operators.
-  */
+   * @dev See {IERC20-approve}.
+   *
+   * NOTE: If `value` is the maximum `uint256`, the allowance is not updated on
+   * `transferFrom`. This is semantically equivalent to an infinite approval.
+   *
+   * Note that accounts cannot have allowance issued by their operators.
+   */
   function approve(address spender, uint256 value)
     public
     virtual
@@ -543,12 +543,12 @@ contract LockedNORI is
     return ERC777Upgradeable.approve(spender, value);
   }
 
-    /**
-     * @dev See {ERC20-decimals}.
-     *
-     * Always returns 18, as per the
-     * [ERC777 EIP](https://eips.ethereum.org/EIPS/eip-777#backward-compatibility).
-     */
+  /**
+   * @dev See {ERC20-decimals}.
+   *
+   * Always returns 18, as per the
+   * [ERC777 EIP](https://eips.ethereum.org/EIPS/eip-777#backward-compatibility).
+   */
   function decimals()
     public
     pure
@@ -559,9 +559,9 @@ contract LockedNORI is
     return ERC777Upgradeable.decimals();
   }
 
-    /**
-     * @dev See {IERC777-name}.
-     */
+  /**
+   * @dev See {IERC777-name}.
+   */
   function name()
     public
     view
@@ -572,9 +572,9 @@ contract LockedNORI is
     return ERC777Upgradeable.name();
   }
 
-    /**
-     * @dev See {IERC777-symbol}.
-     */
+  /**
+   * @dev See {IERC777-symbol}.
+   */
   function symbol()
     public
     view
@@ -585,9 +585,9 @@ contract LockedNORI is
     return ERC777Upgradeable.symbol();
   }
 
-    /**
-     * @dev See {IERC777-totalSupply}.
-     */
+  /**
+   * @dev See {IERC777-totalSupply}.
+   */
   function totalSupply()
     public
     view
@@ -598,14 +598,14 @@ contract LockedNORI is
     return ERC777Upgradeable.totalSupply();
   }
 
-    /**
-     * @dev See {IERC20-transfer}.
-     *
-     * Unlike `send`, `recipient` is _not_ required to implement the {IERC777Recipient}
-     * interface if it is a contract.
-     *
-     * Also emits a {Sent} event.
-     */
+  /**
+   * @dev See {IERC20-transfer}.
+   *
+   * Unlike `send`, `recipient` is _not_ required to implement the {IERC777Recipient}
+   * interface if it is a contract.
+   *
+   * Also emits a {Sent} event.
+   */
   function transfer(address recipient, uint256 amount)
     public
     virtual
@@ -615,18 +615,18 @@ contract LockedNORI is
     return ERC777Upgradeable.transfer(recipient, amount);
   }
 
-    /**
-     * @dev See {IERC20-transferFrom}.
-     *
-     * NOTE: Does not update the allowance if the current allowance
-     * is the maximum `uint256`.
-     *
-     * Note that operator and allowance concepts are orthogonal: operators cannot
-     * call `transferFrom` (unless they have allowance), and accounts with
-     * allowance cannot call `operatorSend` (unless they are operators).
-     *
-     * Emits {Sent}, {IERC20-Transfer} and {IERC20-Approval} events.
-     */
+  /**
+   * @dev See {IERC20-transferFrom}.
+   *
+   * NOTE: Does not update the allowance if the current allowance
+   * is the maximum `uint256`.
+   *
+   * Note that operator and allowance concepts are orthogonal: operators cannot
+   * call `transferFrom` (unless they have allowance), and accounts with
+   * allowance cannot call `operatorSend` (unless they are operators).
+   *
+   * Emits {Sent}, {IERC20-Transfer} and {IERC20-Approval} events.
+   */
   function transferFrom(
     address holder,
     address recipient,
@@ -640,20 +640,20 @@ contract LockedNORI is
     return ERC777Upgradeable.transferFrom(holder, recipient, amount);
   }
 
-    /**
-     * @dev Atomically decreases the allowance granted to `spender` by the caller.
-     *
-     * This is an alternative to {approve} that can be used as a mitigation for
-     * problems described in {IERC20-approve}.
-     *
-     * Emits an {Approval} event indicating the updated allowance.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
-     * - `spender` must have allowance for the caller of at least
-     * `subtractedValue`.
-     */
+  /**
+   * @dev Atomically decreases the allowance granted to `spender` by the caller.
+   *
+   * This is an alternative to {approve} that can be used as a mitigation for
+   * problems described in {IERC20-approve}.
+   *
+   * Emits an {Approval} event indicating the updated allowance.
+   *
+   * Requirements:
+   *
+   * - `spender` cannot be the zero address.
+   * - `spender` must have allowance for the caller of at least
+   * `subtractedValue`.
+   */
   function decreaseAllowance(address spender, uint256 subtractedValue)
     public
     virtual
@@ -664,9 +664,9 @@ contract LockedNORI is
     return decreaseAllowance(spender, subtractedValue);
   }
 
-    /**
-    * @dev See {IERC777-authorizeOperator}.
-    */
+  /**
+   * @dev See {IERC777-authorizeOperator}.
+   */
   function authorizeOperator(address operator)
     public
     virtual
