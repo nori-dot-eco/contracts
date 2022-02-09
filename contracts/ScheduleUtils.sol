@@ -16,7 +16,42 @@ struct Schedule {
   uint256 cliffCount;
 }
 
+/**
+ * @dev Library encapsulating the logic around timed release schedules with cliffs.
+ *
+ * Supports an arbitrary number of stepwise cliff releases beyond which the remaining
+ * amount is released linearly from the time of the final cliff to the end date.
+ *
+ * All time parameters are in unixtime for ease of comparison with block.timestamp
+ * although all methods on ScheduleUtils take *atTime* as a parameter and do not
+ * directly reason about the current block timestamp.
+ *
+ * See also {ScheduleTestHarness.sol} for a simple use of this library
+ * for unit testing purposes.
+ *
+ * Designed to be used i.e.:
+ *
+ * ```
+ *  using ScheduleUtils for Schedule;
+ *
+ *  mapping(address => Schedule) schedules = Schedules;
+ *  Schedule s = schedules[account];
+ *  s.startTime = 1644436100;
+ *  s.endTime = 1645436100;
+ *  s.totalAmount = 1000000;
+ *  s.addCliff(1644436200, 50000);
+ *  s.amountAvailable(1644436200);
+ * ```
+ * 
+ */
 library ScheduleUtils {
+
+  /**
+   * @dev Adds a cliff defined by *time* and *amount* to *schedule*
+   *
+   * *time* must be >= any existing cliff, >= schedule.startTime and <= schedule.endTime
+   * *amount* must be <= (schedule.totalAmount - total of existing cliffs)
+   */
   function addCliff(
     Schedule storage schedule,
     uint256 time,
@@ -40,6 +75,9 @@ library ScheduleUtils {
     schedule.cliffCount += 1;
   }
 
+  /**
+   * @dev The sum of all cliff amounts in *schedule*
+   */
   function allCliffAmounts(Schedule storage schedule)
     internal
     view
@@ -52,6 +90,9 @@ library ScheduleUtils {
     return cliffAmounts;
   }
 
+  /**
+   * @dev The total of unlocked cliff amounts in *schedule* at time *atTime*
+   */
   function cliffAmountsAvailable(Schedule storage schedule, uint256 atTime)
     internal
     view
@@ -66,6 +107,12 @@ library ScheduleUtils {
     return MathUpgradeable.min(schedule.totalAmount, available);
   }
 
+  /**
+   * @dev The total amount of the linear (post-cliff) release available at *atTime*
+   *
+   * Will always be zero prior to the final cliff time and then increases linearly
+   * util *schedule.endTime*.
+   */
   function linearReleaseAmountAvailable(
     Schedule storage schedule,
     uint256 atTime
@@ -90,6 +137,14 @@ library ScheduleUtils {
         : (rampTotalAmount * uint256(rampTimeElapsed)) / rampTotalTime;
   }
 
+  /**
+   * @dev The total amount available at *atTime*
+   *
+   * Will always be zero prior to *schedule.startTime* and *amount*
+   * after *schedule.endTime*.
+   *
+   * Equivalent to cliffAmountsAvailable + linearReleaseAmountAvailable.
+   */
   function availableAmount(Schedule storage schedule, uint256 atTime)
     internal
     view

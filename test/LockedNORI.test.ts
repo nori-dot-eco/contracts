@@ -122,7 +122,7 @@ interface TokenGrantOptions {
   };
 }
 
-type GrantToArgs = TokenGrantOptions['grant'] & {
+type CreateGrantArgs = TokenGrantOptions['grant'] & {
   grantAmount: TokenGrantOptions['grantAmount'];
 };
 
@@ -190,7 +190,7 @@ const setupGrantWithDirectCall = hardhat.deployments.createFixture(
   ): ReturnType<typeof setup> => {
     const { nori, lNori } = await setup();
     const { admin, supplier } = await hre.getNamedAccounts();
-    await lNori.grantTo(
+    await lNori.createGrant(
       GRANT_AMOUNT,
       supplier,
       startTime,
@@ -424,13 +424,13 @@ describe('LockedNori', () => {
               ].toLowerCase()} is missing role ${roleId}`
             );
           });
-          it(`accounts with the role "${role}" can use "grantTo" whilst accounts without the role "${role}" cannot`, async () => {
+          it(`accounts with the role "${role}" can use "createGrant" whilst accounts without the role "${role}" cannot`, async () => {
             const { lNori } = await setup();
             const roleId = await lNori[role]();
             expect(
               await lNori.hasRole(roleId, namedAccounts[accountWithoutRole])
             ).to.be.false;
-            const grant: GrantToArgs = {
+            const grant: CreateGrantArgs = {
               grantAmount: GRANT_AMOUNT,
               recipient: namedAccounts.employee,
               startTime: NOW,
@@ -446,7 +446,7 @@ describe('LockedNori', () => {
             expect(
               await lNori
                 .connect(namedSigners[accountWithRole])
-                .grantTo(
+                .createGrant(
                   grant.grantAmount,
                   grant.recipient,
                   grant.startTime,
@@ -471,7 +471,7 @@ describe('LockedNori', () => {
             await expect(
               lNori
                 .connect(namedSigners[accountWithoutRole])
-                .grantTo(
+                .createGrant(
                   grant.grantAmount,
                   grant.recipient,
                   grant.startTime,
