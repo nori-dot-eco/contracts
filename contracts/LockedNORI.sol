@@ -138,7 +138,7 @@ contract LockedNORI is
     uint256 amount,
     bytes calldata userData,
     bytes calldata operatorData
-  ) external override {
+  ) external override whenNotPaused {
     require(
       msg.sender == address(_underlying),
       "lNORI: This contract can only receive NORI"
@@ -153,6 +153,7 @@ contract LockedNORI is
   function withdrawTo(address account, uint256 amount)
     external
     virtual
+    whenNotPaused
     returns (bool)
   {
     TokenGrant storage grant = _grants[account];
@@ -676,6 +677,16 @@ contract LockedNORI is
   }
 
   /**
+   * @dev This is a wrapper, minting is only supported via `send`
+   *
+   * See {ERC20-_mint}.
+   *
+   */
+  function mint(address, uint256) public virtual override {
+    revert();
+  }
+
+  /**
    * @dev Grants `role` to `account` if the `_beforeRoleGranted`
    * hook is satisfied
    */
@@ -733,5 +744,31 @@ contract LockedNORI is
       _approve(account, _msgSender(), currentAllowance - amount);
     }
     _burn(account, amount);
+  }
+
+  /**
+   * @dev See {IERC777-operatorBurn}. Reverts, unsupported.
+   *
+   * Emits {Burned} and {IERC20-Transfer} events.
+   */
+  function operatorBurn(
+    address,
+    uint256,
+    bytes memory,
+    bytes memory
+  ) public virtual override {
+    revert();
+  }
+
+  /**
+   * @dev See {IERC777-revokeOperator}.
+   */
+  function revokeOperator(address operator)
+    public
+    virtual
+    override
+    whenNotPaused
+  {
+    super.revokeOperator(operator);
   }
 }
