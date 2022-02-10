@@ -6,4 +6,6 @@ const runOnCompile =
 
 export const dodoc: HardhatUserConfig['dodoc'] = {
   runOnCompile,
+  templatePath:
+    '/home/ubuntu/dev/nori/@nori-dot-com/contracts/config/template.sqrl',
 };

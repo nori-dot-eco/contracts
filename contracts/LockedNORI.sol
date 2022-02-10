@@ -15,34 +15,33 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
  *
  * @notice Based on the mechanics of a wrapped ERC20/ERC777 token this contact layers in scheduled withdrawl
  * to implement *vesting* (a revocable grant) *lockup* (an irrevocable timelock on utility).
- *
+ * <p/>
  * _Vesting_ is applied in scenarios where the tokens may need to be recaptured by Nori.
  * This could either be due to an employee leaving the company before being fully vested or
  * because one of our suppliers incurs a carbon loss so their restricted (unvested in the terminology of this contract)
  * tokens need to be recaptured to mitigate the loss and make the original buyer whole by using them
  * to purchases new NRTs on their behalf.
- *
+ * <p/>
  * _Lockup_ refers to tokens that are guaranteed to be available to the grantee but are subject to a time delay
  * before they are usable / transferrable out of this smart contract.
  * This is a standard mechanism used to avoid sudden floods of liquidity in the NORI token that
  * could severely depress the price.
- *
- *
+ * <p/>
  * A _cliff_ refers to a period prior to which no tokens are vested or unlocked.
  * Cliffs are defined by a date and an amount which must is <= the overall grant amount.
- *
+ * <p/>
  * This contract supports a maximum of two distinct cliffs per grant.
  * The effect of fewer cliffs can be achieve by setting one of both cliff times
  * to the start time or end time, and/or by setting the cliff amount to zero.
- *
+ * <p/>
  * Tokens are released linearly from the latest cliff date to the end date of
  * the grant based on the block.timestamp of each block.
- *
+ * <p/>
  * Assumptions / Constraints:
- *  * A single grant per address is supported
- *  * Unlock is always at the same time or lagging vesting.
- *  * Transfer of LockedNORI under lockup is forbidden.
- *  * In absence of a grant LockedNORI functions identically to a standard wrapped token.
+ *  <li>A single grant per address is supported </li>
+ *  <li>Unlock is always at the same time or lagging vesting.</li>
+ *  <li>Transfer of LockedNORI under lockup is forbidden.</li>
+ *  <li>In absence of a grant LockedNORI functions identically to a standard wrapped token.</li>
  */
 contract LockedNORI is
   ERC777Upgradeable,
