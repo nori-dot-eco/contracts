@@ -11,14 +11,5 @@ export const solidity: HardhatUserConfig['solidity'] = {
         },
       },
     },
-    {
-      version: '0.5.11',
-      settings: {
-        optimizer: {
-          enabled: true,
-          runs: 200,
-        },
-      },
-    },
   ],
 };

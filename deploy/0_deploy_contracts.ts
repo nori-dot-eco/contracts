@@ -9,11 +9,7 @@ import type {
   FIFOMarket__factory,
   LockedNORI,
   LockedNORI__factory,
-  NCCRV0,
-  NCCRV0__factory,
   NORI,
-  NoriV0,
-  NoriV0__factory,
   NORI__factory,
   Removal,
   Removal__factory,
@@ -30,7 +26,7 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     network,
     ethernal,
   } = hre;
-  const { noriWallet, buyer, supplier, admin } = await getNamedAccounts();
+  const { noriWallet, buyer, supplier } = await getNamedAccounts();
   if ((network.name as string) === 'mainnet') {
     throw new Error('You cannot deploy to mainnet yet');
   }
@@ -42,17 +38,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     }
     await run('deploy:erc1820');
   }
-  // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-  const Nori_V0 = await ethers.getContractFactory<NoriV0__factory>('Nori_V0'); // todo deprecate
-  const noriV0Instance = await deployProxy<NoriV0>(Nori_V0, [], {
-    initializer: 'initialize()',
-  }); // todo deprecate
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const NCCR_V0 = await ethers.getContractFactory<NCCRV0__factory>('NCCR_V0'); // todo deprecate
-  const nccrV0Instance = await deployProxy<NCCRV0>(NCCR_V0, [], {
-    initializer: 'initialize()',
-  }); // todo deprecate
-  console.log('Deployed legacy contracts (Nori_V0 and NCCR_V0)');
 
   const NORI = await ethers.getContractFactory<NORI__factory>('NORI');
   const Removal = await ethers.getContractFactory<Removal__factory>('Removal');
@@ -85,8 +70,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
   const LockedNORI = await ethers.getContractFactory<LockedNORI__factory>(
     'LockedNORI'
   );
-  await noriV0Instance.deployed();
-  await nccrV0Instance.deployed();
   await noriInstance.deployed();
   await removalInstance.deployed();
   await certificateInstance.deployed();
@@ -107,23 +90,24 @@ const func: CustomHardhatDeployFunction = async (hre) => {
   console.log('Deployed LockedNORI', lNoriInstance.address);
   await certificateInstance.addMinter(fifoMarketInstance.address);
   await hre.run('defender:add', {
-    contractNames: [
-      'Nori_V0',
-      'NCCR_V0',
-      'NORI',
-      'Removal',
-      'Certificate',
-      'FIFOMarket',
-    ],
+    contractNames: ['NORI', 'Removal', 'Certificate', 'FIFOMarket'],
   });
   console.log('Added FIFOMarket as a minter of Certificate');
+  const parcelIdentifier = hre.ethers.utils.formatBytes32String(
+    'someParcelIdentifier'
+  );
+  const listNow = true;
+  const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+    ['address', 'bytes32', 'bool'],
+    [fifoMarketInstance.address, parcelIdentifier, listNow]
+  );
   if (network.name === 'hardhat') {
     await Promise.all([
       removalInstance.mintBatch(
         supplier,
         [ethers.utils.parseUnits('100')],
         [2018],
-        ethers.utils.formatBytes32String('0x0')
+        packedData
       ),
       noriInstance.mint(
         buyer,
@@ -131,21 +115,8 @@ const func: CustomHardhatDeployFunction = async (hre) => {
         ethers.utils.formatBytes32String('0x0'),
         ethers.utils.formatBytes32String('0x0')
       ),
-      noriV0Instance.mint(buyer, ethers.utils.parseUnits('1000000')),
-      noriV0Instance.mint(supplier, ethers.utils.parseUnits('100')),
-      noriV0Instance.mint(admin, ethers.utils.parseUnits('100')),
     ]);
-    const accounts = await ethers.getSigners();
-    await removalInstance
-      .connect(accounts[2])
-      .safeBatchTransferFrom(
-        supplier,
-        fifoMarketInstance.address,
-        [0],
-        [ethers.utils.parseUnits('100')],
-        ethers.utils.formatBytes32String('0x0')
-      );
-    console.log('Minted NORI and Nori_V0 to buyer wallet', buyer);
+    console.log('Minted 1000000 NORI to buyer wallet', buyer);
     console.log('Listed 100 NRTs for sale in FIFOMarket');
     /*
     Note: the named contracts in the ethernal UI are the proxies.
@@ -154,14 +125,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     */
     if (process.env.ETHERNAL_EMAIL && process.env.ETHERNAL_PASSWORD) {
       await Promise.all([
-        ethernal.push({
-          name: 'Nori_V0',
-          address: noriV0Instance.address,
-        }),
-        ethernal.push({
-          name: 'NCCR_V0',
-          address: nccrV0Instance.address,
-        }),
         ethernal.push({
           name: 'NORI',
           address: noriInstance.address,
@@ -211,23 +174,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
         LockedNORI: {
           proxyAddress: lNoriInstance.address,
         },
-        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-        Nori_V0: {
-          proxyAddress: noriV0Instance.address,
-        },
-        NCCR_V0: {
-          proxyAddress: nccrV0Instance.address,
-        },
-      },
-      mainnet: {
-        // todo use new contracts when ready (remove NCCR_V0 + Nori_V0)
-        NCCR_V0: {
-          proxyAddress: '0xBBbD7AEBD29360a34ceA492e012B9A2119DEd306',
-        },
-        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-        Nori_V0: {
-          proxyAddress: '0x1f77C0415bc4E5B5Dcb33C796F9c8cd8cc1c259d',
-        },
       },
     },
     { spaces: 2 }
@@ -244,10 +190,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     await hre.upgrades.erc1967.getImplementationAddress(
       fifoMarketInstance.address
     );
-  const nccrV0Implementation =
-    await hre.upgrades.erc1967.getImplementationAddress(nccrV0Instance.address);
-  const noriV0Implementation =
-    await hre.upgrades.erc1967.getImplementationAddress(noriV0Instance.address);
   const certificateImplementation =
     await hre.upgrades.erc1967.getImplementationAddress(
       certificateInstance.address
@@ -263,14 +205,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     }),
     run('verify:verify', {
       address: fifoMarketImplementation,
-      constructorArguments: [],
-    }),
-    run('verify:verify', {
-      address: nccrV0Implementation,
-      constructorArguments: [],
-    }),
-    run('verify:verify', {
-      address: noriV0Implementation,
       constructorArguments: [],
     }),
     run('verify:verify', {

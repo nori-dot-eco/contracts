@@ -10,38 +10,48 @@ import "hardhat/console.sol"; // todo
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
- * @title {ERC20Wrapper} extension implementing scheduled {NORI} token vesting + lockup.
+ * @title A wrapped NORI token contract for vesting and lockup
  * @author Nori Inc.
+ * @notice Based on the mechanics of a wrapped ERC20/ERC777 token this contact layers in scheduled withdrawl to
+ * implement *vesting* (a revocable grant) *lockup* (an irrevocable timelock on to implement *vesting* (a revocable
+ * grant) *lockup* (an irrevocable timelock on utility).
  *
- * @notice Based on the mechanics of a wrapped ERC20/ERC777 token this contact layers in scheduled withdrawl
- * to implement *vesting* (a revocable grant) *lockup* (an irrevocable timelock on utility).
- * <p/>
- * _Vesting_ is applied in scenarios where the tokens may need to be recaptured by Nori.
- * This could either be due to an employee leaving the company before being fully vested or
- * because one of our suppliers incurs a carbon loss so their restricted (unvested in the terminology of this contract)
- * tokens need to be recaptured to mitigate the loss and make the original buyer whole by using them
- * to purchases new NRTs on their behalf.
- * <p/>
- * _Lockup_ refers to tokens that are guaranteed to be available to the grantee but are subject to a time delay
- * before they are usable / transferrable out of this smart contract.
- * This is a standard mechanism used to avoid sudden floods of liquidity in the NORI token that
- * could severely depress the price.
- * <p/>
- * A _cliff_ refers to a period prior to which no tokens are vested or unlocked.
- * Cliffs are defined by a date and an amount which must is <= the overall grant amount.
- * <p/>
- * This contract supports a maximum of two distinct cliffs per grant.
- * The effect of fewer cliffs can be achieve by setting one of both cliff times
- * to the start time or end time, and/or by setting the cliff amount to zero.
- * <p/>
- * Tokens are released linearly from the latest cliff date to the end date of
- * the grant based on the block.timestamp of each block.
- * <p/>
- * Assumptions / Constraints:
- *  <li>A single grant per address is supported </li>
- *  <li>Unlock is always at the same time or lagging vesting.</li>
- *  <li>Transfer of LockedNORI under lockup is forbidden.</li>
- *  <li>In absence of a grant LockedNORI functions identically to a standard wrapped token.</li>
+ * @dev This contract extends {ERC20Wrapper} behavior with schedule + lockup functionality for the underlying ${NORI}
+ * token
+ *
+ * \
+ *
+ * _Vesting_ is applied in scenarios where the tokens may need to be recaptured by Nori. This could either be due to an
+ * employee leaving the company before being fully vested or because one of our suppliers incurs a carbon loss so their
+ * restricted (unvested in the terminology of this contract). tokens need to be recaptured to mitigate the loss and make
+ * the original buyer whole by using them to purchases new NRTs on their behalf.
+ *
+ * \
+ *
+ * _Lockup_ refers to tokens that are guaranteed to be available to the grantee but are subject to a time delay before
+ * they are usable / transferrable out of this smart contract. This is a standard mechanism used to avoid sudden floods
+ * of liquidity in the NORI token that could severely depress the price.
+ *
+ * A _cliff_ refers to a period prior to which no tokens are vested or unlocked. Cliffs are defined by a date and an
+ * amount which must be <= the overall grant amount.
+ *
+ * \
+ *
+ * This contract supports a maximum of two distinct cliffs per grant. The effect of fewer cliffs can be achieve by
+ * setting one of both cliff times to the start time or end time, and/or by setting the cliff amount to zero.
+ *
+ * \
+ *
+ * Tokens are released linearly from the latest cliff date to the end date of the grant based on the block.timestamp of
+ * each block.
+ *
+ * ##### Constraints:
+ *
+ * - A single grant per address is supported
+ * - Unlock is always at the same time or lagging vesting
+ * - Transfer of LockedNORI under lockup is forbidden
+ * - In absence of a grant LockedNORI functions identically to a standard wrapped token
+ *
  */
 contract LockedNORI is
   ERC777Upgradeable,
@@ -75,9 +85,6 @@ contract LockedNORI is
     uint256 originalAmount;
   }
 
-  /**
-   * @dev Grant creation parameters as passed in the `userData` parameter of {NORI}.`send`
-   */
   struct CreateTokenGrantParams {
     address recipient;
     uint256 startTime;
@@ -96,8 +103,14 @@ contract LockedNORI is
     uint256 startTime;
   }
 
+  /**
+   * @notice This role is required to create a token grant
+   */
   bytes32 public constant TOKEN_GRANTER_ROLE = keccak256("TOKEN_GRANTER_ROLE");
 
+  /**
+   * @dev A mapping from grantee to grant
+   */
   mapping(address => TokenGrant) private _grants;
 
   ERC777Upgradeable private _underlying;
@@ -105,7 +118,7 @@ contract LockedNORI is
   IERC1820RegistryUpgradeable private _erc1820;
 
   /**
-   * @dev Emit on successful creation of a new grant.
+   * @notice Emit on successful creation of a new grant.
    */
   event TokenGrantCreated(
     address indexed recipient,
@@ -161,7 +174,14 @@ contract LockedNORI is
   }
 
   /**
-   * @dev grantTo: Sets up a vesting + lockup schedule for recipient.
+   * @notice Sets up a vesting + lockup schedule for recipient.
+   * @dev This function can be used as an alternative way to set up a grant that doesn't require
+   * wrapping NORI first.
+   *
+   * ##### Constraints:
+   * - Can only be used when the contract is not paused.
+   * - Can only be used when the contract is not paused.
+   *
    */
   function grantTo(
     uint256 amount,

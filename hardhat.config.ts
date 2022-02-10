@@ -12,7 +12,7 @@ import { namedAccounts } from '@/config/accounts';
 import { defender } from '@/config/defender';
 import { gasReporter } from '@/config/gas-reporter';
 import { solidity } from '@/config/solidity';
-import { dodoc } from '@/config/dodoc';
+import { docgen } from '@/config/docgen';
 
 export const config: HardhatUserConfig = {
   tenderly,
@@ -21,10 +21,7 @@ export const config: HardhatUserConfig = {
     deployments: 'deployments',
     imports: 'artifacts',
   },
-  dodoc,
-  // docgen: {
-  //   collapseNewlines: false,
-  // },
+  docgen,
   namedAccounts,
   networks,
   etherscan,
