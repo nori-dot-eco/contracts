@@ -7,6 +7,7 @@ import type { LockedNORI__factory, NORI__factory } from '../typechain-types';
 import { expect, hardhat } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
 import { hre } from '@/utils/hre';
 import { formatTokenAmount } from '@/utils/units';
+import { Assertion } from 'chai';
 
 const {
   ethers: { BigNumber },
@@ -61,51 +62,6 @@ const setup = hardhat.deployments.createFixture(
   }
 );
 
-const setupWithGrant = hardhat.deployments.createFixture(
-  async (
-    _,
-    { startTime = NOW }: { startTime?: number } = { startTime: NOW }
-  ): ReturnType<typeof setup> => {
-    const { nori, lNori } = await setup();
-    const userData = hre.ethers.utils.defaultAbiCoder.encode(
-      [
-        'address',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-      ],
-      [
-        namedAccounts.investor1,
-        startTime,
-        startTime + END_OFFSET,
-        startTime + END_OFFSET,
-        startTime + CLIFF1_OFFSET,
-        startTime + CLIFF2_OFFSET,
-        CLIFF1_AMOUNT,
-        CLIFF2_AMOUNT,
-        CLIFF1_AMOUNT,
-        CLIFF2_AMOUNT,
-      ]
-    );
-    expect(await nori.send(lNori.address, GRANT_AMOUNT, userData)) // eslint-disable-line jest/no-standalone-expect
-      .to.emit(
-        lNori,
-        'TokenGrantCreated' // todo  overload expectGrantCreated withArgs
-      )
-      .to.emit(lNori, 'Minted');
-    return {
-      nori,
-      lNori,
-    };
-  }
-);
-
 interface TokenGrantOptions {
   grantAmount: BigNumberish;
   grant: {
@@ -126,59 +82,105 @@ type CreateGrantArgs = TokenGrantOptions['grant'] & {
   grantAmount: TokenGrantOptions['grantAmount'];
 };
 
-// todo merge this and setupWithGrant and just accept the userData as the arg
-const setupWithEmployeeStyleGrant = hardhat.deployments.createFixture(
+const defaultParams = ({
+  startTime = NOW,
+}: {
+  startTime?: number;
+}): TokenGrantOptions => {
+  return {
+    grantAmount: GRANT_AMOUNT,
+    grant: {
+      recipient: namedAccounts.investor1,
+      startTime,
+      vestEndTime: startTime + END_OFFSET,
+      unlockEndTime: startTime + END_OFFSET,
+      cliff1Time: startTime + CLIFF1_OFFSET,
+      cliff2Time: startTime + CLIFF2_OFFSET,
+      vestCliff1Amount: CLIFF1_AMOUNT,
+      vestCliff2Amount: CLIFF2_AMOUNT,
+      unlockCliff1Amount: CLIFF1_AMOUNT,
+      unlockCliff2Amount: CLIFF2_AMOUNT,
+    },
+  };
+};
+
+const employeeParams = ({
+  startTime = NOW,
+}: {
+  startTime?: number;
+}): TokenGrantOptions => {
+  return {
+    grantAmount: GRANT_AMOUNT,
+    grant: {
+      recipient: namedAccounts.employee,
+      startTime,
+      vestEndTime: startTime + VEST_END_OFFSET,
+      unlockEndTime: startTime + END_OFFSET,
+      cliff1Time: startTime + CLIFF1_OFFSET,
+      cliff2Time: startTime + CLIFF2_OFFSET,
+      vestCliff1Amount: VEST_CLIFF1_AMOUNT,
+      vestCliff2Amount: VEST_CLIFF2_AMOUNT,
+      unlockCliff1Amount: CLIFF1_AMOUNT,
+      unlockCliff2Amount: CLIFF2_AMOUNT,
+    },
+  };
+};
+
+const setupWithGrant = hardhat.deployments.createFixture(
   async (
     _,
     options: DeepPartial<TokenGrantOptions> = {}
   ): Promise<Awaited<ReturnType<typeof setup>> & TokenGrantOptions> => {
+    const defaults = defaultParams({});
     const { grantAmount, grant } = {
-      grantAmount: GRANT_AMOUNT,
+      grantAmount: options?.grantAmount || defaults.grantAmount,
       grant: {
-        recipient: namedAccounts.employee,
-        startTime: NOW,
-        vestEndTime: NOW + VEST_END_OFFSET,
-        unlockEndTime: NOW + END_OFFSET,
-        cliff1Time: NOW + CLIFF1_OFFSET,
-        cliff2Time: NOW + CLIFF2_OFFSET,
-        vestCliff1Amount: VEST_CLIFF1_AMOUNT,
-        vestCliff2Amount: VEST_CLIFF2_AMOUNT,
-        unlockCliff1Amount: CLIFF1_AMOUNT,
-        unlockCliff2Amount: CLIFF2_AMOUNT,
+        ...defaults.grant,
         ...options.grant,
       },
     } as TokenGrantOptions;
     const { nori, lNori } = await setup();
+    const userData = hre.ethers.utils.defaultAbiCoder.encode(
+      [
+        'address',
+        'uint256',
+        'uint256',
+        'uint256',
+        'uint256',
+        'uint256',
+        'uint256',
+        'uint256',
+        'uint256',
+        'uint256',
+      ],
+      Object.values(grant)
+    );
+
     // eslint-disable-next-line jest/no-standalone-expect
-    expect(
-      await nori.send(
-        lNori.address,
-        GRANT_AMOUNT,
-        hre.ethers.utils.defaultAbiCoder.encode(
-          [
-            'address',
-            'uint256',
-            'uint256',
-            'uint256',
-            'uint256',
-            'uint256',
-            'uint256',
-            'uint256',
-            'uint256',
-            'uint256',
-          ],
-          Object.values(grant)
-        )
-      )
-    )
+    expect(await nori.send(lNori.address, grantAmount, userData))
       .to.emit(lNori, 'TokenGrantCreated')
       .withArgs(
-        namedAccounts.employee,
+        grant.recipient,
         grantAmount,
         grant.startTime,
-        grant.startTime + VEST_END_OFFSET,
-        grant.startTime + END_OFFSET
-      );
+        grant.vestEndTime,
+        grant.unlockEndTime
+      )
+      .to.emit(lNori, 'Minted')
+      .withArgs(nori.address, grant.recipient, grantAmount, userData, '0x')
+      .to.emit(lNori, 'Transfer')
+      .withArgs(hre.ethers.constants.AddressZero, grant.recipient, grantAmount)
+      .to.emit(nori, 'Sent')
+      .withArgs(
+        namedAccounts.admin,
+        namedAccounts.admin,
+        lNori.address,
+        grantAmount,
+        userData,
+        '0x'
+      )
+      .to.emit(nori, 'Transfer')
+      .withArgs(namedAccounts.admin, lNori.address, grantAmount);
     return { nori, lNori, grant, grantAmount };
   }
 );
@@ -394,7 +396,7 @@ describe('LockedNori', () => {
           } as const,
         ].forEach(({ role, accountWithRole, accountWithoutRole }) => {
           it(`accounts with the role "${role}" can use "revokeUnvestedTokens" whilst accounts without the role "${role}" cannot`, async () => {
-            const { lNori, grantAmount } = await setupWithEmployeeStyleGrant();
+            const { lNori, grantAmount } = await setupWithGrant(employeeParams({}));
             const roleId = await lNori[role]();
             expect(await lNori.hasRole(roleId, namedAccounts[accountWithRole]))
               .to.be.true;
@@ -630,8 +632,7 @@ describe('LockedNori', () => {
 
   it('Should unlock cliff1', async () => {
     // cliff1 < now < cliff2
-    const startTime = NOW;
-    const { lNori } = await setupWithGrant({ startTime });
+    const { lNori } = await setupWithGrant();
     const { investor1 } = await hre.getNamedAccounts();
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
       NOW + CLIFF1_OFFSET + DELTA,
@@ -644,8 +645,7 @@ describe('LockedNori', () => {
 
   it('Should unlock cliff2', async () => {
     // cliff2 == now
-    const startTime = NOW;
-    const { lNori } = await setupWithGrant({ startTime });
+    const { lNori } = await setupWithGrant();
     const { investor1 } = await hre.getNamedAccounts();
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
       NOW + CLIFF2_OFFSET,
@@ -662,8 +662,7 @@ describe('LockedNori', () => {
 
   it('Should revert if N wrapped tokens < N requested (even if unlocked)', async () => {
     // cliff1 == now
-    const startTime = NOW;
-    const { lNori } = await setupWithGrant({ startTime });
+    const { lNori } = await setupWithGrant();
     const { investor1 } = await hre.getNamedAccounts();
     const addr1Signer = await hre.ethers.getSigner(investor1); // todo
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
@@ -682,8 +681,7 @@ describe('LockedNori', () => {
 
   it('Should unlock smoothly after cliff2', async () => {
     // cliff2 < now < endTime
-    const startTime = NOW;
-    const { lNori } = await setupWithGrant({ startTime });
+    const { lNori } = await setupWithGrant();
     const { investor1 } = await hre.getNamedAccounts();
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
       NOW + CLIFF2_OFFSET + (END_OFFSET - CLIFF2_OFFSET) / 2,
@@ -698,8 +696,7 @@ describe('LockedNori', () => {
 
   it('Should unlock the full grant at endtime', async () => {
     // now == endTime
-    const startTime = NOW;
-    const { lNori } = await setupWithGrant({ startTime });
+    const { lNori } = await setupWithGrant();
     const { investor1 } = await hre.getNamedAccounts();
     const addr1Signer = await hre.ethers.getSigner(investor1);
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
@@ -736,7 +733,7 @@ describe('LockedNori', () => {
 
   it('Should treat unlock lagging vest schedules correctly at end of vest', async () => {
     // now == endTime
-    const { lNori, grant, grantAmount } = await setupWithEmployeeStyleGrant();
+    const { lNori, grant, grantAmount } = await setupWithGrant(employeeParams({}));
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
       grant.startTime + VEST_END_OFFSET,
     ]);
@@ -752,7 +749,7 @@ describe('LockedNori', () => {
 
   it('Should treat larger vest cliffs than unlock cliffs correctly', async () => {
     // now == cliff1
-    const { lNori } = await setupWithEmployeeStyleGrant();
+    const { lNori } = await setupWithGrant(employeeParams({}));
     const { employee } = await hre.getNamedAccounts();
 
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
@@ -820,8 +817,7 @@ describe('LockedNori', () => {
 
   it('Should revoke unvested tokens', async () => {
     // now == CLIFF2
-
-    const { nori, lNori } = await setupWithEmployeeStyleGrant();
+    const { nori, lNori } = await setupWithGrant(employeeParams({}));
     const { employee, admin } = await hre.getNamedAccounts();
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
       NOW + VEST_REVOKED_OFFSET,
@@ -869,21 +865,18 @@ describe('LockedNori', () => {
   });
 
   it('Should return details of a grant', async () => {
-    const startTime = NOW;
-    const { lNori, grantAmount } = await setupWithEmployeeStyleGrant({
-      grant: { startTime },
-    });
+    const { lNori, grant, grantAmount } = await setupWithGrant(employeeParams({}));
     const { employee } = await hre.getNamedAccounts();
     const grantFromContract = await lNori.getGrant(employee);
 
     const expected = [
       grantAmount,
       employee,
-      BigNumber.from(startTime),
-      BigNumber.from(startTime + VEST_END_OFFSET),
-      BigNumber.from(startTime + END_OFFSET),
-      BigNumber.from(startTime + CLIFF1_OFFSET),
-      BigNumber.from(startTime + CLIFF2_OFFSET),
+      BigNumber.from(grant.startTime),
+      BigNumber.from(grant.startTime + VEST_END_OFFSET),
+      BigNumber.from(grant.startTime + END_OFFSET),
+      BigNumber.from(grant.startTime + CLIFF1_OFFSET),
+      BigNumber.from(grant.startTime + CLIFF2_OFFSET),
       VEST_CLIFF1_AMOUNT,
       VEST_CLIFF2_AMOUNT,
       CLIFF1_AMOUNT,
