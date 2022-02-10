@@ -138,7 +138,7 @@ contract LockedNORI is
     uint256 amount,
     bytes calldata userData,
     bytes calldata operatorData
-  ) external override whenNotPaused {
+  ) external override {
     require(
       msg.sender == address(_underlying),
       "lNORI: This contract can only receive NORI"
@@ -153,7 +153,6 @@ contract LockedNORI is
   function withdrawTo(address account, uint256 amount)
     external
     virtual
-    whenNotPaused
     returns (bool)
   {
     TokenGrant storage grant = _grants[account];
