@@ -3,51 +3,101 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/presets/ERC20PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./NORI.sol";
-import "hardhat/console.sol"; // todo
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
- * @title {ERC20Wrapper} extension implementing scheduled {NORI} token vesting + lockup.
+ * @title A wrapped NORI token contract for vesting and lockup
  * @author Nori Inc.
+ * @notice Based on the mechanics of a wrapped ERC-777 token, this contract layers in schedules to withdrawal
+ * functionality to implement *vesting* (a revocable grant) *lockup* (an irrevocable timelock on to implement *vesting*
+ * (a revocable *vesting* (a revocable grant) *lockup* (an irrevocable timelock on utility).
  *
- * @notice Based on the mechanics of a wrapped ERC20/ERC777 token this contact layers in scheduled withdrawl
- * to implement *vesting* (a revocable grant) *lockup* (an irrevocable timelock on utility).
+ * ##### Behaviors and features
  *
- * _Vesting_ is applied in scenarios where the tokens may need to be recaptured by Nori.
- * This could either be due to an employee leaving the company before being fully vested or
- * because one of our suppliers incurs a carbon loss so their restricted (unvested in the terminology of this contract)
- * tokens need to be recaptured to mitigate the loss and make the original buyer whole by using them
- * to purchases new NRTs on their behalf.
+ * ###### Grants
  *
- * _Lockup_ refers to tokens that are guaranteed to be available to the grantee but are subject to a time delay
- * before they are usable / transferrable out of this smart contract.
- * This is a standard mechanism used to avoid sudden floods of liquidity in the NORI token that
- * could severely depress the price.
+ * - _Grants_ define lockup periods and vesting schedules for tokens
+ * - A single grant per address is supported
  *
+ * ###### Vesting
  *
- * A _cliff_ refers to a period prior to which no tokens are vested or unlocked.
- * Cliffs are defined by a date and an amount which must is <= the overall grant amount.
+ * - _Vesting_ is applied in scenarios where the tokens may need to be recaptured by Nori. This could either be due to
+ * an employee leaving the company before being fully vested or because one of our suppliers incurs a carbon loss so
+ * their restricted (unvested in the terminology of this contract). tokens need to be recaptured to mitigate the loss
+ * and make the original buyer whole by using them to purchases new NRTs on their behalf.
+ * - Tokens are released linearly from the latest cliff date to the end date of the grant based on the block.timestamp
+ * of each block
  *
- * This contract supports a maximum of two distinct cliffs per grant.
- * The effect of fewer cliffs can be achieve by setting one of both cliff times
- * to the start time or end time, and/or by setting the cliff amount to zero.
+ * ###### Lockup
  *
- * Tokens are released linearly from the latest cliff date to the end date of
- * the grant based on the block.timestamp of each block.
+ * - _Lockup_ refers to tokens that are guaranteed to be available to the grantee but are subject to a time delay before
+ * they are usable / transferrable out of this smart contract. This is a standard mechanism used to avoid sudden floods
+ * of liquidity in the NORI token that could severely depress the price.
+ * - Unlock is always at the same time or lagging vesting
+ * - Transfer of LockedNORI under lockup is forbidden
  *
- * Assumptions / Constraints:
- *  * A single grant per address is supported
- *  * Unlock is always at the same time or lagging vesting.
- *  * Transfer of LockedNORI under lockup is forbidden.
- *  * In absence of a grant LockedNORI functions identically to a standard wrapped token.
+ * ###### Cliffs
+ *
+ * - A _cliff_ refers to a period prior to which no tokens are vested or unlocked. Cliffs are defined by a date and an
+ * amount which must be <= the overall grant amount.
+ * - This contract supports a maximum of two distinct cliffs per grant. The effect of fewer cliffs can be achieve by
+ * setting one of both cliff times to the start time or end time, and/or by setting the cliff amount to zero.
+ *
+ * ###### Additional behaviors and features
+ *
+ * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
+ * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ *   - all functions that mutate state are pausable
+ * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
+ *    - TOKEN_GRANTER_ROLE
+ *      - Can create token grants without sending NORI to the contract `createGrant`
+ *    - PAUSER_ROLE
+ *      - Can pause and unpause the contract
+ *    - DEFAULT_ADMIN_ROLE
+ *      - This is the only role that can add/revoke other accounts to any of the roles
+ * - [Can receive NORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
+ *   - NORI is wrapped and grants are created upon receipt
+ * - [Limited ERC-777 functionality](https://eips.ethereum.org/EIPS/eip-777)
+ *   - burn and operatorBurn will revert as only the internal variants are expected to be used
+ *   - mint is not callable as only the internal variants are expected to be used when wrapping NORI
+ * - [Limited ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/erc20)
+ *   - mint is not callable as only the internal variants are expected to be used when wrapping NORI
+ *   - burn functions are not externally callable
+ * - [Extended Wrapped ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Wrapper)
+ *   - In absence of a grant LockedNORI functions identically to a standard wrapped token
+ *   - when a grant is defined, LockedNORI follows the restrictions noted above
+ *
+ * ##### Inherits
+ *
+ * - [ERC777Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc777#ERC777)
+ * - [PausableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ * - [AccessControlEnumerableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/access)
+ * - [ContextUpgradeable](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
+ * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
+ *
+ * ##### Implements
+ *
+ * - [IERC777RecipientUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc777#IERC777Recipient)
+ * - [IERC777Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc777#IERC777)
+ * - [IERC20Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20)
+ * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
+ * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
+ *
+ * ##### Uses
+ *
+ * - [ScheduleUtils](./ScheduleUtils.md) for Schedule
+ * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
+ *
  */
 contract LockedNORI is
   ERC777Upgradeable,
-  ERC20PresetMinterPauserUpgradeable,
-  IERC777RecipientUpgradeable
+  IERC777RecipientUpgradeable,
+  PausableUpgradeable,
+  AccessControlEnumerableUpgradeable
 {
   using ScheduleUtils for Schedule;
 
@@ -76,9 +126,6 @@ contract LockedNORI is
     uint256 originalAmount;
   }
 
-  /**
-   * @dev Grant creation parameters as passed in the `userData` parameter of {NORI}.`send`
-   */
   struct CreateTokenGrantParams {
     address recipient;
     uint256 startTime;
@@ -97,16 +144,43 @@ contract LockedNORI is
     uint256 startTime;
   }
 
+  /**
+   * @notice Role conferring creation and revocation of token grants.
+   */
   bytes32 public constant TOKEN_GRANTER_ROLE = keccak256("TOKEN_GRANTER_ROLE");
-
+  /**
+   * @notice Role conferring the ability to pause and unpause mutable functions
+   * of the contract
+   */
+  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+  /**
+   * @notice Used to register the ERC777TokensRecipient recipient interface in the
+   * ERC-1820 registry
+   * @dev Registering that LockedNORI implements the ERC777TokensRecipient interface with the registry is a
+   * requiremnt to be able to receive ERC-777 NORI tokens. Once registered, sending NORI tokens to this contract
+   * will trigger tokensReceived as part of the lifecycle of the NORI transaction
+   */
+  bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
+    keccak256("ERC777TokensRecipient");
+  /**
+   * @notice A mapping from grantee to grant
+   */
   mapping(address => TokenGrant) private _grants;
-
-  ERC777Upgradeable private _underlying;
-
+  /**
+   * @notice The NORI contract that this contract wraps tokens for
+   */
+  NORI private _nori;
+  /**
+   * @notice The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection registry
+   * contract
+   * @dev Registering that LockedNORI implements the ERC777TokensRecipient interface with the registry is a
+   * requiremnt to be able to receive ERC-777 NORI tokens. Once registered, sending NORI tokens to this contract
+   * will trigger tokensReceived as part of the lifecycle of the NORI transaction
+   */
   IERC1820RegistryUpgradeable private _erc1820;
 
   /**
-   * @dev Emit on successful creation of a new grant.
+   * @notice Emitted on successful creation of a new grant.
    */
   event TokenGrantCreated(
     address indexed recipient,
@@ -117,17 +191,22 @@ contract LockedNORI is
   );
 
   /**
-   * @dev Emit on when the vesting portion of an active grant is terminated.
+   * @dev Emitted on when the vesting portion of an active grant is terminated.
    */
   event UnvestedTokensRevoked(uint256 atTime, address from, uint256 quantity);
 
   /**
-   * @dev Emit on withdwal of fully unlocked tokens.
+   * @dev Emitted on withdwal of fully unlocked tokens.
    */
   event TokensClaimed(address account, uint256 quantity);
 
   /**
-   * @dev {ERC777} tokensReceived hook.
+   * @notice This function is triggered when NORI is sent to this contract
+   * @dev Sending NORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard because this
+   * contract is a registered ERC777 tokens recipient.
+   *
+   * [See here for more](
+   * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
    */
   function tokensReceived(
     address,
@@ -138,7 +217,7 @@ contract LockedNORI is
     bytes calldata operatorData
   ) external override {
     require(
-      msg.sender == address(_underlying),
+      msg.sender == address(_nori),
       "lNORI: This contract can only receive NORI"
     ); // todo verify this can only be invoked by the nori contract
     // todo restrict such that only admin can invoke this function
@@ -146,25 +225,32 @@ contract LockedNORI is
   }
 
   /**
-   * @dev Burn (claim) `amount` of wrapped tokens and withdraw the corresponding {NORI} tokens.
+   * @notice Unwrap NORI tokens and makes them available for use in the NORI contract
+   * @dev This function burns `amount` of wrapped tokens and withdraws them to the corresponding {NORI} tokens.
+   *
+   * ##### Requirements:
+   * - Can only be used when the contract is not paused.
    */
-  function withdrawTo(address account, uint256 amount)
-    external
-    virtual
-    returns (bool)
-  {
+  function withdrawTo(address account, uint256 amount) external returns (bool) {
     TokenGrant storage grant = _grants[account];
-    ERC777Upgradeable._burn(_msgSender(), amount, "", "");
-    _underlying.send(account, amount, "");
+    super._burn(_msgSender(), amount, "", "");
+    _nori.send(account, amount, ""); // solhint-disable-line check-send-result, because this isn't a solidity send
     grant.claimedAmount += amount;
     emit TokensClaimed(account, amount);
     return true;
   }
 
   /**
-   * @dev grantTo: Sets up a vesting + lockup schedule for recipient.
+   * @notice Sets up a vesting + lockup schedule for recipient.
+   * @dev This function can be used as an alternative way to set up a grant that doesn't require
+   * wrapping NORI first.
+   *
+   * ##### Requirements:
+   * - Can only be used when the contract is not paused.
+   * - Can only be used when the caller has the `TOKEN_GRANTER_ROLE` role
+   *
    */
-  function grantTo(
+  function createGrant(
     uint256 amount,
     address recipient,
     uint256 startTime,
@@ -189,7 +275,7 @@ contract LockedNORI is
       unlockCliff1Amount,
       unlockCliff2Amount
     );
-    _grantTo(amount, userData);
+    _createGrant(amount, userData);
   }
 
   /**
@@ -209,34 +295,49 @@ contract LockedNORI is
     _revokeUnvestedTokens(atTime, from, to);
   }
 
+  /**
+   * @dev Number of unvested tokens that were revoked if any.
+   */
+  function quantityRevokedFrom(address account)
+    external
+    view
+    returns (uint256)
+  {
+    TokenGrant storage grant = _grants[account];
+    return grant.originalAmount - grant.grantAmount;
+  }
+
+  /**
+   * @dev Vested balance less any claimed amount at current block timestamp.
+   */
+  function vestedBalanceOf(address account) external view returns (uint256) {
+    return _vestedBalanceOf(block.timestamp, account);
+  }
+
+  // todo document expected initialzation state
   function initialize(IERC777Upgradeable noriAddress) public initializer {
+    address[] memory operators = new address[](1);
+    operators[0] = _msgSender();
     __Context_init_unchained();
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
-    __ERC20Burnable_init_unchained();
     __Pausable_init_unchained();
-    __ERC20Pausable_init_unchained();
-    __ERC20PresetMinterPauser_init_unchained("Locked NORI", "lNORI");
-    address[] memory operators = new address[](1);
-    operators[0] = _msgSender();
     __ERC777_init_unchained("Locked NORI", "lNORI", operators);
-    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _setupRole(TOKEN_GRANTER_ROLE, _msgSender());
-    _underlying = ERC777Upgradeable(address(noriAddress));
-    _erc1820 = IERC1820RegistryUpgradeable(
-      0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24
-    ); // todo
-    _erc1820.setInterfaceImplementer(
+    _nori = NORI(address(noriAddress));
+    _ERC1820_REGISTRY.setInterfaceImplementer(
       address(this),
-      keccak256("ERC777TokensRecipient"),
+      ERC777_TOKENS_RECIPIENT_HASH,
       address(this)
     );
+    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo why doesnt grantRole work
+    _setupRole(TOKEN_GRANTER_ROLE, _msgSender()); // todo why doesnt grantRole work
+    _setupRole(PAUSER_ROLE, _msgSender()); // todo why doesnt grantRole work
   }
 
   /**
    * @dev Wraps minting of wrapper token and grant setup.
-   * @param amount uint256 Quantity of `_underlying` to deposit
+   * @param amount uint256 Quantity of `_nori` to deposit
    * @param userData CreateTokenGrantParams or DepositForParams
    * @param operatorData bytes extra information provided by the operator (if any)
    *
@@ -248,18 +349,21 @@ contract LockedNORI is
     bytes calldata userData,
     bytes calldata operatorData
   ) internal returns (bool) {
-    DepositForParams memory params = abi.decode(userData, (DepositForParams));
+    // require(
+    //   hasRole(TOKEN_GRANTER_ROLE, tx.origin), // todo figure out how to make this safe
+    //   "lNORI: requires TOKEN_GRANTER_ROLE"
+    // );
+    DepositForParams memory params = abi.decode(userData, (DepositForParams)); // todo error handling
     // If a startTime parameter is non-zero then set up a schedule
     if (params.startTime > 0) {
-      _grantTo(amount, userData);
+      _createGrant(amount, userData);
     }
-
-    ERC777Upgradeable._mint(params.recipient, amount, userData, operatorData);
+    super._mint(params.recipient, amount, userData, operatorData);
     return true;
   }
 
   /**
-   * @dev _grantTo: Sets up a vesting + lockup schedule for recipient (implementation).
+   * @dev Sets up a vesting + lockup schedule for recipient (implementation).
    *
    * This will be invoked via the `tokensReceived` callback for cases
    * where we have the tokens in hand at the time we set up the grant.
@@ -267,7 +371,7 @@ contract LockedNORI is
    * It is also callable externally (see `grantTo`) to handle cases
    * where tokens are incrementally deposited after the grant is established.
    */
-  function _grantTo(uint256 amount, bytes memory userData) internal {
+  function _createGrant(uint256 amount, bytes memory userData) internal {
     CreateTokenGrantParams memory params = abi.decode(
       userData,
       (CreateTokenGrantParams)
@@ -276,17 +380,15 @@ contract LockedNORI is
       address(params.recipient) != address(0),
       "Recipient cannot be zero address"
     );
-
     TokenGrant storage grant = _grants[params.recipient];
     grant.grantAmount = amount;
     grant.originalAmount = amount;
     grant.exists = true;
-
     if (params.vestEndTime > params.startTime) {
       require(
         params.vestCliff1Amount >= params.unlockCliff1Amount ||
           params.vestCliff2Amount >= params.unlockCliff2Amount,
-        "Unlock cliff amounts cannot exceed vest cliff amounts"
+        "lNORI: Unlock cliff amounts cannot exceed vest cliff amounts"
       );
       grant.vestingSchedule.totalAmount = amount;
       grant.vestingSchedule.startTime = params.startTime;
@@ -300,13 +402,11 @@ contract LockedNORI is
         params.vestCliff2Amount
       );
     }
-
     grant.lockupSchedule.totalAmount = amount;
     grant.lockupSchedule.startTime = params.startTime;
     grant.lockupSchedule.endTime = params.unlockEndTime;
     grant.lockupSchedule.addCliff(params.cliff1Time, params.unlockCliff1Amount);
     grant.lockupSchedule.addCliff(params.cliff2Time, params.unlockCliff2Amount);
-
     emit TokenGrantCreated(
       params.recipient,
       amount,
@@ -317,7 +417,7 @@ contract LockedNORI is
   }
 
   /**
-   * @dev _revokeUnvestedTokens: Truncates a vesting grant. (implementation)
+   * @dev Truncates a vesting grant
    */
   function _revokeUnvestedTokens(
     uint256 atTime,
@@ -325,39 +425,20 @@ contract LockedNORI is
     address to
   ) internal {
     TokenGrant storage grant = _grants[from];
-    require(grant.exists, "No grant exist");
+    require(grant.exists, "lNORI: no grant exists");
     uint256 vestedBalance = _vestedBalanceOf(atTime, from);
-    if (vestedBalance < grant.grantAmount) {
-      uint256 quantityRevoked = grant.grantAmount - vestedBalance;
-      grant.grantAmount = vestedBalance;
-      grant.vestingSchedule.totalAmount = vestedBalance;
-      grant.vestingSchedule.endTime = atTime;
-      emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
-      operatorSend(from, to, quantityRevoked, "", "");
-    }
+    require(vestedBalance < grant.grantAmount, "lNORI: tokens already vested");
+    uint256 quantityRevoked = grant.grantAmount - vestedBalance;
+    grant.grantAmount = vestedBalance;
+    grant.vestingSchedule.totalAmount = vestedBalance;
+    grant.vestingSchedule.endTime = atTime;
+    _nori.send(to, quantityRevoked, "");
+    ERC777Upgradeable._burn(from, quantityRevoked, "", "");
+    emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
   }
 
   /**
-   * @dev quantityRevokedFrom: Number of unvested tokens that were revoked if any.
-   */
-  function quantityRevokedFrom(address account)
-    external
-    view
-    returns (uint256)
-  {
-    TokenGrant storage grant = _grants[account];
-    return grant.originalAmount - grant.grantAmount;
-  }
-
-  /**
-   * @dev vestedBalanceOf: Vested balance less any claimed amount at current block timestamp.
-   */
-  function vestedBalanceOf(address account) external view returns (uint256) {
-    return _vestedBalanceOf(block.timestamp, account);
-  }
-
-  /**
-   * @dev _vestedBalanceOf: Vested balance less any claimed amount at `atTime` (implementation)
+   * @dev Vested balance less any claimed amount at `atTime` (implementation)
    */
   function _vestedBalanceOf(uint256 atTime, address account)
     internal
@@ -379,14 +460,17 @@ contract LockedNORI is
   }
 
   /**
-   * @dev unlockedBalanceOf: Unlocked balance less any claimed amount at current block timestamp.
+   * @dev Unlocked balance less any claimed amount at current block timestamp.
    */
   function unlockedBalanceOf(address account) public view returns (uint256) {
     return _unlockedBalanceOf(block.timestamp, account);
   }
 
   /**
-   * @dev _unlockedBalanceOf: Unlocked balance less any claimed amount. (implementation)
+   * @notice Unlocked balance less any claimed amount
+   * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
+   * grant amount. This is done to preserve the behavior of the unlock schedule despite a reduction in the total
+   * quantity of tokens vesting.  i.o.w The rate of unlocking does not change after calling `revokeUnvestedTokens`
    */
   function _unlockedBalanceOf(uint256 atTime, address account)
     internal
@@ -396,12 +480,6 @@ contract LockedNORI is
     TokenGrant storage grant = _grants[account];
     uint256 balance = this.balanceOf(account);
     if (grant.exists) {
-      // @dev If any tokens have been revoked then the schedule (which doesn't get updated) may
-      // return more than the total grant amount.
-      //
-      // This is done to preserve the behavior of the unlock schedule despite a reduction in the total
-      // quantity of tokens vesting.  i.o.w The rate of unlocking does not change after calling
-      // `revokeUnvestedTokens`
       balance =
         MathUpgradeable.min(
           MathUpgradeable.min(
@@ -416,19 +494,7 @@ contract LockedNORI is
   }
 
   /**
-   * @dev balanceOf: Total quantity of `_underlying` deposited for `account`.
-   */
-  function balanceOf(address account)
-    public
-    view
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    returns (uint256)
-  {
-    return ERC777Upgradeable.balanceOf(account);
-  }
-
-  /**
-   * @dev getGrant: Returns all governing settings for a grant.
+   * @notice Returns all governing settings for a grant.
    */
   function getGrant(address account)
     external
@@ -455,137 +521,162 @@ contract LockedNORI is
   }
 
   /**
-   * @dev Hook that is called before send, transfer, and burn. Used used to disable transferring locked nori.
+   * @notice Hook that is called before send, transfer, mint, and burn. Used used to disable transferring locked nori.
+   * @dev Follows the rules of hooks defined [here](
+   *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+   *
+   * ##### Requirements:
+   *
+   * - the contract must not be paused
+   * - One of the following must be true:
+   *    - the sender is minting (which should ONLY occur when NORI is being wrapped via `_depositFor`)
+   *    - the sender is not minting and one of the following must be true:
+   *      - the sender is the admin and the grant exists
+   *      - the transfer amount is <= the sender's unlocked balance
    */
   function _beforeTokenTransfer(
-    address,
+    address operator,
     address from,
     address to,
     uint256 amount
   ) internal override whenNotPaused {
-    bool isNotMinting = from != address(0);
-    bool hasGrant = _grants[from].exists;
-    if (isNotMinting && hasGrant) {
-      bool senderIsNotAdmin = !hasRole(DEFAULT_ADMIN_ROLE, _msgSender());
-      if (senderIsNotAdmin) {
-        uint256 availableBalance = unlockedBalanceOf(from);
-        require(amount <= availableBalance, "lNORI: insufficient balance");
+    bool isMinting = from == address(0);
+    bool grantExists = _grants[from].exists;
+    bool senderIsAdmin = hasRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    bool ownerHasSufficientUnlockedBalance = amount <= unlockedBalanceOf(from); // todo test transferfrom/operatorsend
+    if (!isMinting) {
+      if (senderIsAdmin) {
+        require(grantExists, "lNORI: grant does not exists");
+      } else {
+        require(
+          ownerHasSufficientUnlockedBalance,
+          "lNORI: insufficient balance"
+        );
       }
     }
-    super._beforeTokenTransfer(from, to, amount);
+    return super._beforeTokenTransfer(operator, from, to, amount);
   }
 
-  function _approve(
-    address holder,
-    address spender,
-    uint256 value
-  )
-    internal
-    virtual
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    whenNotPaused
-  {
-    ERC777Upgradeable._approve(holder, spender, value);
-  }
+  /**
+   * @dev Hook that is called before granting/revoking roles via `grantRole`, `revokeRole`, `renounceRole`
+   *
+   * This overrides the behavior of `_grantRole`, `_setupRole`, `_revokeRole`, and `_renounceRole` with pausable
+   * behavior. When the contract is paused, these functions will not be callable. Follows the rules of hooks
+   * defined [here](https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+   *
+   * ##### Requirements:
+   *
+   * - the contract must not be paused
+   */
+  function _beforeRoleChange(bytes32, address) internal whenNotPaused {} // solhint-disable-line no-empty-blocks
 
-  function allowance(address holder, address spender)
-    public
-    view
-    virtual
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    returns (uint256)
-  {
-    return ERC777Upgradeable.allowance(holder, spender);
-  }
-
+  /**
+   * @dev See {ERC777-approve}.
+   *
+   * NOTE: If `value` is the maximum `uint256`, the allowance is not updated on
+   * `transferFrom`. This is semantically equivalent to an infinite approval.
+   *
+   * Note that accounts cannot have allowance issued by their operators.
+   *
+   * ##### Requirements:
+   *
+   * - the contract must not be paused
+   */
   function approve(address spender, uint256 value)
     public
-    virtual
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    returns (bool)
-  {
-    return ERC777Upgradeable.approve(spender, value);
-  }
-
-  function decimals()
-    public
-    pure
-    virtual
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    returns (uint8)
-  {
-    return ERC777Upgradeable.decimals();
-  }
-
-  function name()
-    public
-    view
-    virtual
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    returns (string memory)
-  {
-    return ERC777Upgradeable.name();
-  }
-
-  function symbol()
-    public
-    view
-    virtual
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    returns (string memory)
-  {
-    return ERC777Upgradeable.symbol();
-  }
-
-  function totalSupply()
-    public
-    view
-    virtual
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    returns (uint256)
-  {
-    return ERC777Upgradeable.totalSupply();
-  }
-
-  function transfer(address recipient, uint256 amount)
-    public
-    virtual
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    returns (bool)
-  {
-    return ERC777Upgradeable.transfer(recipient, amount);
-  }
-
-  function transferFrom(
-    address holder,
-    address recipient,
-    uint256 amount
-  )
-    public
-    virtual
-    override(ERC20Upgradeable, ERC777Upgradeable)
-    returns (bool)
-  {
-    return ERC777Upgradeable.transferFrom(holder, recipient, amount);
-  }
-
-  function decreaseAllowance(address spender, uint256 subtractedValue)
-    public
-    virtual
     override
     whenNotPaused
     returns (bool)
   {
-    return decreaseAllowance(spender, subtractedValue);
+    return super.approve(spender, value);
   }
 
-  // todo operatorsend should be disabled?
-  function authorizeOperator(address operator)
-    public
-    virtual
-    override
-    whenNotPaused
-  {
-    return ERC777Upgradeable.authorizeOperator(operator);
+  /**
+   * @dev Grants `role` to `account` if the `_beforeRoleGranted`
+   * hook is satisfied
+   *
+   * ##### Requirements:
+   *
+   * - the contract must not be paused
+   */
+  function _grantRole(bytes32 role, address account) internal override {
+    _beforeRoleChange(role, account);
+    super._grantRole(role, account);
+  }
+
+  /**
+   * @dev Revokes `role` from `account` if the `_beforeRoleGranted`
+   * hook is satisfied
+   *
+   * ##### Requirements:
+   *
+   * - the contract must not be paused
+   */
+  function _revokeRole(bytes32 role, address account) internal override {
+    _beforeRoleChange(role, account);
+    super.revokeRole(role, account);
+  }
+
+  /**
+   * @notice Used to pause the contract so that state mutating functions may **not** be called.
+   * @dev Pauses all mutable functionality.
+   *
+   * See {ERC20Pausable} and {Pausable-_pause}.
+   *
+   * ##### Requirements:
+   *
+   * - the caller must have the `PAUSER_ROLE`.
+   * - the contract must not be paused
+   */
+  function pause() public onlyRole(PAUSER_ROLE) {
+    _pause();
+  }
+
+  /**
+   * @notice Used to unpause the contract so that state mutating functions may be called.
+   * @dev Unpauses all mutable functionality
+   *
+   * See {ERC20Pausable} and {Pausable-_unpause}.
+   *
+   * ##### Requirements
+   *
+   * - the caller must have the `PAUSER_ROLE`.
+   * - the contract must be paused
+   */
+  function unpause() public onlyRole(PAUSER_ROLE) {
+    _unpause();
+  }
+
+  /**
+   * @notice Overridden standard ERC777.burn that will always revert
+   * @dev This function is not currently supported from external callers so we override it so that we can revert.
+   */
+  function burn(uint256, bytes memory) public pure override {
+    revert("lNORI: burning not supported");
+  }
+
+  /**
+   * @notice Overridden standard ERC777.operatorBurn that will always revert
+   * @dev This function is not currently supported from external callers so we override it so that we can revert.
+   */
+  function operatorBurn(
+    address,
+    uint256,
+    bytes memory,
+    bytes memory
+  ) public pure override {
+    revert("lNORI: burning not supported");
+  }
+
+  /**
+   * @notice Authorize an operator to spend on behalf of the sender
+   * @dev See {IERC777-authorizeOperator}.
+   *
+   * ##### Requirements:
+   *
+   * - the contract must not be paused
+   */
+  function authorizeOperator(address operator) public override whenNotPaused {
+    return super.authorizeOperator(operator);
   }
 }

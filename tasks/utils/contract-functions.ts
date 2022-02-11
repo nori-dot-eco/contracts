@@ -10,7 +10,7 @@ export const CONTRACT_FUNCTION_TASK_PARAMETERS = {
   },
   from: {
     name: 'from',
-    description: 'the index of the signer account to user',
+    description: 'the index of the signer account to use',
     defaultValue: 0,
     type: types.int,
   },

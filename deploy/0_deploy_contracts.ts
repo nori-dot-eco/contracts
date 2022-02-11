@@ -97,13 +97,21 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     contractNames: ['NCCR_V0', 'NORI', 'Removal', 'Certificate', 'FIFOMarket'],
   });
   console.log('Added FIFOMarket as a minter of Certificate');
+  const parcelIdentifier = hre.ethers.utils.formatBytes32String(
+    'someParcelIdentifier'
+  );
+  const listNow = true;
+  const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+    ['address', 'bytes32', 'bool'],
+    [fifoMarketInstance.address, parcelIdentifier, listNow]
+  );
   if (network.name === 'hardhat') {
     await Promise.all([
       removalInstance.mintBatch(
         supplier,
         [ethers.utils.parseUnits('100')],
         [2018],
-        ethers.utils.formatBytes32String('0x0')
+        packedData
       ),
       noriInstance.mint(
         buyer,

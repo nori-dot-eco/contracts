@@ -5,10 +5,9 @@ import { accounts } from '@/config/accounts';
 const { INFURA_STAGING_KEY, STAGING_MNEMONIC, PROD_MNEMONIC } = process.env;
 
 const hardhat: NetworksUserConfig['hardhat'] = {
-  gas: 30_000_000,
+  blockGasLimit: 20_000_000,
   initialBaseFeePerGas: 1,
   gasPrice: 1,
-  blockGasLimit: 50_000_000,
   chainId: 9001,
   accounts,
 };
