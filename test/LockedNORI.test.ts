@@ -77,7 +77,7 @@ const defaultParams = ({
   startTime = NOW,
 }: {
   startTime?: number;
-}): TokenGrantOptions => {
+} = {}): TokenGrantOptions => {
   return {
     grantAmount: GRANT_AMOUNT,
     grant: {
@@ -104,7 +104,7 @@ const employeeParams = ({
   startTime = NOW,
 }: {
   startTime?: number;
-}): TokenGrantOptions => {
+} = {}): TokenGrantOptions => {
   const VEST_END_OFFSET = 80_000;
   const VEST_CLIFF1_AMOUNT = formatTokenAmount(150);
   const VEST_CLIFF2_AMOUNT = formatTokenAmount(150);
@@ -129,7 +129,7 @@ const linearParams = ({
   startTime = NOW,
 }: {
   startTime?: number;
-}): TokenGrantOptions => {
+} = {}): TokenGrantOptions => {
   return {
     grantAmount: GRANT_AMOUNT,
     grant: {
@@ -152,9 +152,9 @@ const setupWithGrant = hardhat.deployments.createFixture(
     _,
     options: DeepPartial<TokenGrantOptions> = {}
   ): Promise<Awaited<ReturnType<typeof setup>> & TokenGrantOptions> => {
-    const defaults = defaultParams({});
+    const defaults = defaultParams();
     const { grantAmount, grant } = {
-      grantAmount: options?.grantAmount || defaults.grantAmount,
+      grantAmount: options?.grantAmount ?? defaults.grantAmount,
       grant: {
         ...defaults.grant,
         ...options.grant,
@@ -214,6 +214,7 @@ const setupGrantWithDirectCall = hardhat.deployments.createFixture(
     const { nori, lNori } = await setup();
     const { admin, supplier } = await hre.getNamedAccounts();
     const { grant, grantAmount } = linearParams({});
+    // eslint-disable-next-line jest/no-standalone-expect
     await expect(
       lNori.createGrant(
         grantAmount,
@@ -262,18 +263,6 @@ describe('LockedNori', () => {
             return lNori
               .connect(hre.namedSigners.investor1)
               .authorizeOperator(hre.namedAccounts.investor2);
-          },
-          postSetupHook: undefined,
-        },
-        {
-          method: 'decreaseAllowance',
-          pausableFunction: async ({ lNori }: { lNori: LockedNORI }) => {
-            return lNori
-              .connect(hre.namedSigners.investor1)
-              .decreaseAllowance(
-                hre.namedAccounts.investor2,
-                formatTokenAmount(1)
-              );
           },
           postSetupHook: undefined,
         },
@@ -367,7 +356,7 @@ describe('LockedNori', () => {
       await expect(
         lNori
           .connect(namedSigners.investor1)
-          .increaseAllowance(namedAccounts.admin, formatTokenAmount(10_000))
+          .approve(namedAccounts.admin, formatTokenAmount(10_000))
       ).to.emit(lNori, 'Approval');
 
       await expect(lNori.connect(namedSigners.admin).pause()).to.emit(
@@ -415,7 +404,6 @@ describe('LockedNori', () => {
       (
         [
           { role: 'DEFAULT_ADMIN_ROLE' },
-          { role: 'MINTER_ROLE' },
           { role: 'PAUSER_ROLE' },
           { role: 'TOKEN_GRANTER_ROLE' },
         ] as const
@@ -445,8 +433,8 @@ describe('LockedNori', () => {
           } as const,
         ].forEach(({ role, accountWithRole, accountWithoutRole }) => {
           it(`accounts with the role "${role}" can use "revokeUnvestedTokens" whilst accounts without the role "${role}" cannot`, async () => {
-            const { lNori, grantAmount } = await setupWithGrant(
-              employeeParams({})
+            const { lNori, grantAmount, grant } = await setupWithGrant(
+              employeeParams()
             );
             const roleId = await lNori[role]();
             expect(await lNori.hasRole(roleId, namedAccounts[accountWithRole]))
@@ -454,11 +442,7 @@ describe('LockedNori', () => {
             expect(
               await lNori
                 .connect(namedSigners[accountWithRole])
-                .revokeUnvestedTokens(
-                  NOW,
-                  namedAccounts.employee,
-                  namedAccounts.admin
-                )
+                .revokeUnvestedTokens(NOW, grant.recipient, namedAccounts.admin)
             )
               .to.emit(lNori, 'UnvestedTokensRevoked')
               .withArgs(NOW, namedAccounts.employee, grantAmount);
@@ -466,11 +450,7 @@ describe('LockedNori', () => {
             await expect(
               lNori
                 .connect(namedSigners[accountWithoutRole])
-                .revokeUnvestedTokens(
-                  NOW,
-                  namedAccounts.employee,
-                  namedAccounts.admin
-                )
+                .revokeUnvestedTokens(NOW, grant.recipient, namedAccounts.admin)
             ).to.be.revertedWith(
               `AccessControl: account ${namedAccounts[
                 accountWithoutRole
@@ -483,7 +463,7 @@ describe('LockedNori', () => {
             expect(
               await lNori.hasRole(roleId, namedAccounts[accountWithoutRole])
             ).to.be.false;
-            const { grant, grantAmount } = employeeParams({});
+            const { grant, grantAmount } = employeeParams();
             expect(
               await lNori
                 .connect(namedSigners[accountWithRole])
@@ -533,24 +513,13 @@ describe('LockedNori', () => {
           });
         });
         // (
-        //   [
-        //     {
-        //       role: 'TOKEN_GRANTER_ROLE',
-        //       accountWithRole: namedSigners.admin,
-        //       accountWithoutRole: namedSigners.investor1,
-        //     },
-        //     {
-        //       role: 'MINTER_ROLE',
-        //       accountWithRole: namedSigners.admin,
-        //       accountWithoutRole: namedSigners.investor1,
-        //     },
         //     {
         //       role: 'PAUSER_ROLE',
         //       accountWithRole: namedSigners.admin,
         //       accountWithoutRole: namedSigners.investor1,
         //     },
         //     {
-        //       role: 'TOKEN_GRANTER_ROLE',
+        //       role: 'DEFAULT_ADMIN_ROLE',
         //       accountWithRole: namedSigners.admin,
         //       accountWithoutRole: namedSigners.investor1,
         //     },
@@ -564,7 +533,6 @@ describe('LockedNori', () => {
     (
       [
         { role: 'DEFAULT_ADMIN_ROLE' },
-        { role: 'MINTER_ROLE' },
         { role: 'PAUSER_ROLE' },
         { role: 'TOKEN_GRANTER_ROLE' },
       ] as const
@@ -593,10 +561,10 @@ describe('LockedNori', () => {
 
   it('Functions like ERC20Wrapped when no grant is present', async () => {
     const { nori, lNori } = await setup();
-    const { admin, investor1 } = await hre.getNamedAccounts();
+    const { admin, investor1 } = namedAccounts;
     const adminBalance = await nori.balanceOf(admin);
     expect(await nori.balanceOf(investor1)).to.equal(0);
-    const depositAmount = hre.ethers.utils.parseUnits((10_000).toString());
+    const depositAmount = formatTokenAmount(10_000);
     const userData = hre.ethers.utils.defaultAbiCoder.encode(
       ['address', 'uint256'],
       [investor1, 0]
@@ -617,7 +585,7 @@ describe('LockedNori', () => {
     expect(await lNori.unlockedBalanceOf(investor1)).to.equal(depositAmount);
     expect(
       await lNori
-        .connect(await hre.ethers.getSigner(investor1))
+        .connect(namedSigners.investor1)
         .withdrawTo(investor1, depositAmount)
     ).to.emit(lNori, 'TokensClaimed');
     expect(await lNori.totalSupply()).to.equal(0);
@@ -750,19 +718,9 @@ describe('LockedNori', () => {
       .to.emit(lNori, 'TokensClaimed')
       .withArgs(investor1, withdrawlAmount)
       .to.emit(lNori, 'Burned')
-      .withArgs(
-        investor1,
-        investor1,
-        withdrawlAmount,
-        '0x',
-        '0x'
-      )
+      .withArgs(investor1, investor1, withdrawlAmount, '0x', '0x')
       .to.emit(lNori, 'Transfer')
-      .withArgs(
-        investor1,
-        hre.ethers.constants.AddressZero,
-        withdrawlAmount
-      )
+      .withArgs(investor1, hre.ethers.constants.AddressZero, withdrawlAmount)
       .to.emit(nori, 'Sent')
       .withArgs(
         lNori.address,
@@ -775,13 +733,13 @@ describe('LockedNori', () => {
       .to.emit(nori, 'Transfer')
       .withArgs(lNori.address, investor1, withdrawlAmount);
     expect(await lNori.balanceOf(investor1)).to.equal(
-        grantAmount.sub(withdrawlAmount)
+      grantAmount.sub(withdrawlAmount)
     );
     expect(await lNori.vestedBalanceOf(investor1)).to.equal(
-        grantAmount.sub(withdrawlAmount)
+      grantAmount.sub(withdrawlAmount)
     );
     expect(await lNori.unlockedBalanceOf(investor1)).to.equal(
-        grantAmount.sub(withdrawlAmount)
+      grantAmount.sub(withdrawlAmount)
     );
     expect(
       await lNori
@@ -796,7 +754,7 @@ describe('LockedNori', () => {
   it('Should treat unlock lagging vest schedules correctly at end of vest', async () => {
     // now == endTime
     const { lNori, grant, grantAmount } = await setupWithGrant(
-      employeeParams({})
+      employeeParams()
     );
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
       grant.vestEndTime,
@@ -813,7 +771,7 @@ describe('LockedNori', () => {
 
   it('Should treat larger vest cliffs than unlock cliffs correctly', async () => {
     // now == cliff1
-    const { lNori, grant } = await setupWithGrant(employeeParams({}));
+    const { lNori, grant } = await setupWithGrant(employeeParams());
     const { employee } = await hre.getNamedAccounts();
 
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
@@ -847,9 +805,7 @@ describe('LockedNori', () => {
     expect(await lNori.unlockedBalanceOf(grant.recipient)).to.be.gt(0);
 
     expect(await nori.send(lNori.address, GRANT_AMOUNT.div(2), userData));
-    expect(await lNori.balanceOf(grant.recipient)).to.equal(
-      grantAmount.div(2)
-    );
+    expect(await lNori.balanceOf(grant.recipient)).to.equal(grantAmount.div(2));
     expect(await lNori.vestedBalanceOf(grant.recipient)).to.be.gt(0);
     expect(await lNori.unlockedBalanceOf(grant.recipient)).to.be.gt(0);
 
@@ -893,7 +849,9 @@ describe('LockedNori', () => {
 
   it('Should revoke unvested tokens', async () => {
     // now == CLIFF2
-    const { nori, lNori, grantAmount, grant } = await setupWithGrant(employeeParams({}));
+    const { nori, lNori, grantAmount, grant } = await setupWithGrant(
+      employeeParams()
+    );
     const { employee, admin } = await hre.getNamedAccounts();
     await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
       grant.startTime + VEST_REVOKED_OFFSET,
@@ -901,14 +859,18 @@ describe('LockedNori', () => {
     await hardhat.network.provider.send('evm_mine');
     expect(await lNori.balanceOf(employee)).to.equal(grantAmount);
     const newBalance = VESTED_BALANCE_AFTER_REVOCATION;
-    const quantityRevoked = grantAmount.sub(newBalance)
+    const quantityRevoked = grantAmount.sub(newBalance);
     expect(await nori.balanceOf(admin)).to.eq(INITIAL_SUPPLY.sub(grantAmount));
 
     expect(await lNori.vestedBalanceOf(employee)).to.equal(newBalance);
     await expect(
       lNori
         .connect(await hre.ethers.getSigner(admin))
-        .revokeUnvestedTokens(grant.startTime + VEST_REVOKED_OFFSET, employee, admin)
+        .revokeUnvestedTokens(
+          grant.startTime + VEST_REVOKED_OFFSET,
+          employee,
+          admin
+        )
     )
       .to.emit(lNori, 'UnvestedTokensRevoked')
       .withArgs(
@@ -917,11 +879,28 @@ describe('LockedNori', () => {
         grantAmount.sub(newBalance)
       )
       .to.emit(lNori, 'Burned')
-      .withArgs(namedAccounts.admin, namedAccounts.employee, quantityRevoked, '0x', '0x')
+      .withArgs(
+        namedAccounts.admin,
+        namedAccounts.employee,
+        quantityRevoked,
+        '0x',
+        '0x'
+      )
       .to.emit(lNori, 'Transfer')
-      .withArgs(namedAccounts.employee, hre.ethers.constants.AddressZero, quantityRevoked)
+      .withArgs(
+        namedAccounts.employee,
+        hre.ethers.constants.AddressZero,
+        quantityRevoked
+      )
       .to.emit(nori, 'Sent')
-      .withArgs(lNori.address, lNori.address, namedAccounts.admin, quantityRevoked, '0x', '0x')
+      .withArgs(
+        lNori.address,
+        lNori.address,
+        namedAccounts.admin,
+        quantityRevoked,
+        '0x',
+        '0x'
+      )
       .to.emit(nori, 'Transfer')
       .withArgs(lNori.address, namedAccounts.admin, quantityRevoked);
     expect(await lNori.vestedBalanceOf(employee)).to.equal(newBalance);
@@ -951,7 +930,7 @@ describe('LockedNori', () => {
 
   it('Should return details of a grant', async () => {
     const { lNori, grant, grantAmount } = await setupWithGrant(
-      employeeParams({})
+      employeeParams()
     );
     const { employee } = await hre.getNamedAccounts();
     const grantFromContract = await lNori.getGrant(employee);

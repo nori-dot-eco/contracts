@@ -5,7 +5,16 @@ import type { HardhatUserConfig } from 'hardhat/types';
 export const docgen: HardhatUserConfig['docgen'] = {
   collapseNewlines: false,
   templates: [path.join(__dirname, '../docs/templates')],
-  pages: (item, file): string => {
-    return file?.absolutePath?.replace('.sol', '.md');
+  pages: (item, file) => {
+    console.log({ file, item });
+    return [
+      'FIFOMarket',
+      'NORI',
+      'Removal',
+      'Certificate',
+      'LockedNORI',
+    ].includes((item as any)?.canonicalName)
+      ? (item as any)?.canonicalName?.concat('.md')
+      : undefined;
   },
 };
