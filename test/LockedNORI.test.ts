@@ -1,5 +1,3 @@
-import type { BigNumberish } from 'ethers';
-
 import type { NORI } from '../typechain-types/NORI';
 import type { LockedNORI } from '../typechain-types/LockedNORI';
 import type { LockedNORI__factory, NORI__factory } from '../typechain-types';
@@ -15,8 +13,7 @@ const {
 } = hre;
 
 const NOW = Math.floor(Date.now() / 1_000);
-// todo expect(await -> await expect(  ??
-
+// todo use hardhat-deploy fixtures (https://github.com/wighawag/hardhat-deploy#3-hardhat-test) (last time we tried runnin this with the gas reporter it wasn't reporting unit test gas numbers)
 const setup = hardhat.deployments.createFixture(
   async (): Promise<{
     nori: NORI;
@@ -59,10 +56,6 @@ interface TokenGrantOptions {
     unlockCliff2Amount: ReturnType<typeof formatTokenAmount>;
   };
 }
-
-type CreateGrantArgs = TokenGrantOptions['grant'] & {
-  grantAmount: TokenGrantOptions['grantAmount'];
-};
 
 const CLIFF1_AMOUNT = formatTokenAmount(100);
 const CLIFF2_AMOUNT = formatTokenAmount(100);
@@ -209,11 +202,18 @@ const setupWithGrant = hardhat.deployments.createFixture(
 const setupGrantWithDirectCall = hardhat.deployments.createFixture(
   async (
     _,
-    { startTime = NOW }: { startTime?: number } = { startTime: NOW }
+    options: DeepPartial<TokenGrantOptions> = {}
   ): ReturnType<typeof setupWithGrant> => {
     const { nori, lNori } = await setup();
-    const { admin, supplier } = await hre.getNamedAccounts();
-    const { grant, grantAmount } = linearParams({});
+    const defaults = linearParams();
+    const { grantAmount, grant } = {
+      grantAmount: options?.grantAmount ?? defaults.grantAmount,
+      grant: {
+        ...defaults.grant,
+        ...options.grant,
+      },
+    } as TokenGrantOptions;
+    const { admin } = await hre.getNamedAccounts();
     // eslint-disable-next-line jest/no-standalone-expect
     await expect(
       lNori.createGrant(
