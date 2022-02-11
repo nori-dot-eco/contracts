@@ -8,8 +8,8 @@ import {
 import * as contractsConfig from '@/contracts.json';
 
 export const TASK = {
-  name: 'FIFOMarket',
-  description: 'Interact with the FIFOMarket contract',
+  name: 'NCCR_V0',
+  description: 'Interact with the NCCR_V0 contract',
   run: async (
     {
       func,
@@ -26,16 +26,20 @@ export const TASK = {
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
-    return CONTRACT_FUNCTION_TASK_RUN({
-      contractAddress:
-        contractsConfig[hre.network.name].FIFOMarket.proxyAddress,
-      contractAbi: (await require('@/artifacts/FIFOMarket.sol/FIFOMarket.json'))
-        .abi,
-      from,
-      func,
-      args,
-      hre,
-    });
+    if (hre.network.name === 'mainnet') {
+      return CONTRACT_FUNCTION_TASK_RUN({
+        contractAddress: contractsConfig.mainnet.NCCR_V0.proxyAddress,
+        contractAbi: (
+          await require('@/legacy-artifacts/NCCR_V0.sol/NCCR_V0.json')
+        ).abi,
+        from,
+        func,
+        args,
+        hre,
+      });
+    } else {
+      throw new Error('You can only query NCCR_V0 on mainnet');
+    }
   },
   CONTRACT_FUNCTION_TASK_PARAMETERS,
 } as const;

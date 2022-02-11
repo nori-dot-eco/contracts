@@ -54,7 +54,7 @@ task(TASK.name, TASK.description, TASK.run)
     CONTRACT_FUNCTION_TASK_PARAMETERS.from.defaultValue,
     CONTRACT_FUNCTION_TASK_PARAMETERS.from.type
   )
-  .addVariadicPositionalParam(
+  .addOptionalVariadicPositionalParam(
     CONTRACT_FUNCTION_TASK_PARAMETERS.args.name,
     CONTRACT_FUNCTION_TASK_PARAMETERS.args.description,
     CONTRACT_FUNCTION_TASK_PARAMETERS.args.defaultValue,

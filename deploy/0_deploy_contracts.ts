@@ -38,7 +38,11 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     }
     await run('deploy:erc1820');
   }
-
+  const originalContractsJson =
+    readJsonSync(path.join(__dirname, '../contracts.json'), {
+      throws: false,
+    }) ?? {};
+  console.log('Deployed legacy contracts (Nori_V0 and NCCR_V0)');
   const NORI = await ethers.getContractFactory<NORI__factory>('NORI');
   const Removal = await ethers.getContractFactory<Removal__factory>('Removal');
   const Certificate = await ethers.getContractFactory<Certificate__factory>(
@@ -90,7 +94,7 @@ const func: CustomHardhatDeployFunction = async (hre) => {
   console.log('Deployed LockedNORI', lNoriInstance.address);
   await certificateInstance.addMinter(fifoMarketInstance.address);
   await hre.run('defender:add', {
-    contractNames: ['NORI', 'Removal', 'Certificate', 'FIFOMarket'],
+    contractNames: ['NCCR_V0', 'NORI', 'Removal', 'Certificate', 'FIFOMarket'],
   });
   console.log('Added FIFOMarket as a minter of Certificate');
   const parcelIdentifier = hre.ethers.utils.formatBytes32String(
@@ -117,6 +121,15 @@ const func: CustomHardhatDeployFunction = async (hre) => {
       ),
     ]);
     console.log('Minted 1000000 NORI to buyer wallet', buyer);
+    await removalInstance
+      .connect(await ethers.getSigner(supplier))
+      .safeBatchTransferFrom(
+        supplier,
+        fifoMarketInstance.address,
+        [0],
+        [ethers.utils.parseUnits('100')],
+        ethers.utils.formatBytes32String('0x0')
+      );
     console.log('Listed 100 NRTs for sale in FIFOMarket');
     /*
     Note: the named contracts in the ethernal UI are the proxies.
@@ -150,10 +163,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     }
   }
   console.log('Writing contracts.json config');
-  const originalContractsJson =
-    readJsonSync(path.join(__dirname, '../contracts.json'), {
-      throws: false,
-    }) ?? {};
   writeJsonSync(
     path.join(__dirname, '../contracts.json'),
     {
@@ -173,6 +182,28 @@ const func: CustomHardhatDeployFunction = async (hre) => {
         },
         LockedNORI: {
           proxyAddress: lNoriInstance.address,
+        },
+      },
+      mainnet: {
+        // todo use new contracts when ready (remove NCCR_V0 + Nori_V0)
+        NCCR_V0: {
+          proxyAddress: '0xBBbD7AEBD29360a34ceA492e012B9A2119DEd306',
+        },
+        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+        Nori_V0: {
+          proxyAddress: '0x1f77C0415bc4E5B5Dcb33C796F9c8cd8cc1c259d',
+        },
+        NORI: {
+          proxyAddress: '',
+        },
+        Removal: {
+          proxyAddress: '',
+        },
+        Certificate: {
+          proxyAddress: '',
+        },
+        FIFOMarket: {
+          proxyAddress: '',
         },
       },
     },
