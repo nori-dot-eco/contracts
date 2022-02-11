@@ -28,7 +28,7 @@ export const TASK = {
   ): Promise<void> => {
     return CONTRACT_FUNCTION_TASK_RUN({
       contractAddress: contractsConfig[hre.network.name].Removal.proxyAddress,
-      contractAbi: (await require('@/artifacts/Nori_V0.sol/Nori_V0.json')).abi,
+      contractAbi: (await require('@/artifacts/Removal.sol/Removal.json')).abi,
       from,
       func,
       args,
