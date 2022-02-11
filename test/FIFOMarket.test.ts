@@ -81,12 +81,21 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
+      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
+        'someParcelIdentifier'
+      );
+      const listNow = true;
+      const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bytes32', 'bool'],
+        [FIFOMarket.address, parcelIdentifier, listNow]
+      );
+
       await Promise.all([
         Removal.mintBatch(
           supplier,
           [hardhat.ethers.utils.parseUnits(totalAvailableSupply)],
           [2018],
-          hardhat.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
         NORI.mint(
           buyer,
@@ -97,13 +106,6 @@ describe('FIFOMarket', () => {
         Certificate.addMinter(FIFOMarket.address),
       ]);
       const accounts = await hardhat.ethers.getSigners();
-      await Removal.connect(accounts[2]).safeBatchTransferFrom(
-        supplier,
-        FIFOMarket.address,
-        [0],
-        [hardhat.ethers.utils.parseUnits(totalAvailableSupply)],
-        hardhat.ethers.utils.formatBytes32String('0x0')
-      );
 
       const initialFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
 
@@ -165,6 +167,14 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
+      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
+        'someParcelIdentifier'
+      );
+      const listNow = true;
+      const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bytes32', 'bool'],
+        [FIFOMarket.address, parcelIdentifier, listNow]
+      );
       await Promise.all([
         Removal.mintBatch(
           supplier,
@@ -174,7 +184,7 @@ describe('FIFOMarket', () => {
             hardhat.ethers.utils.parseUnits(removalBalance3),
           ],
           [2018, 2019, 2017],
-          hardhat.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
         NORI.mint(
           buyer,
@@ -185,17 +195,6 @@ describe('FIFOMarket', () => {
         Certificate.addMinter(FIFOMarket.address),
       ]);
       const accounts = await hardhat.ethers.getSigners();
-      await Removal.connect(accounts[2]).safeBatchTransferFrom(
-        supplier,
-        FIFOMarket.address,
-        [0, 1, 2],
-        [
-          hardhat.ethers.utils.parseUnits(removalBalance1),
-          hardhat.ethers.utils.parseUnits(removalBalance2),
-          hardhat.ethers.utils.parseUnits(removalBalance3),
-        ],
-        hardhat.ethers.utils.formatBytes32String('0x0')
-      );
 
       const initialFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
       expect(initialFifoSupply).to.equal(hardhat.ethers.utils.parseUnits('10'));
@@ -262,13 +261,16 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
+      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
+        'someParcelIdentifier'
+      );
+      const listNow = true;
+      const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bytes32', 'bool'],
+        [FIFOMarket.address, parcelIdentifier, listNow]
+      );
       await Promise.all([
-        Removal.mintBatch(
-          supplier,
-          removalBalances,
-          vintages,
-          hardhat.ethers.utils.formatBytes32String('0x0')
-        ),
+        Removal.mintBatch(supplier, removalBalances, vintages, packedData),
         NORI.mint(
           buyer,
           hardhat.ethers.utils.parseUnits(buyerInitialNoriBalance),
@@ -279,13 +281,6 @@ describe('FIFOMarket', () => {
       ]);
 
       const accounts = await hardhat.ethers.getSigners();
-      await Removal.connect(accounts[2]).safeBatchTransferFrom(
-        supplier,
-        FIFOMarket.address,
-        tokenIds,
-        removalBalances,
-        hardhat.ethers.utils.formatBytes32String('0x0')
-      );
 
       const initialFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
       await NORI.connect(accounts[6]).send(
@@ -348,24 +343,32 @@ describe('FIFOMarket', () => {
       const investor2InitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
+      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
+        'someParcelIdentifier'
+      );
+      const listNow = true;
+      const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bytes32', 'bool'],
+        [FIFOMarket.address, parcelIdentifier, listNow]
+      );
       await Promise.all([
         Removal.mintBatch(
           supplier,
           [hardhat.ethers.utils.parseUnits(removalBalance1)],
           [2018],
-          hardhat.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
         Removal.mintBatch(
           investor1,
           [hardhat.ethers.utils.parseUnits(removalBalance2)],
           [2018],
-          hardhat.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
         Removal.mintBatch(
           investor2,
           [hardhat.ethers.utils.parseUnits(removalBalance3)],
           [2018],
-          hardhat.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
         NORI.mint(
           buyer,
@@ -377,28 +380,6 @@ describe('FIFOMarket', () => {
       ]);
 
       const accounts = await hardhat.ethers.getSigners();
-
-      await Removal.connect(accounts[2]).safeBatchTransferFrom(
-        supplier,
-        FIFOMarket.address,
-        [0],
-        [hardhat.ethers.utils.parseUnits(removalBalance1)],
-        hardhat.ethers.utils.formatBytes32String('0x0')
-      );
-      await Removal.connect(accounts[4]).safeBatchTransferFrom(
-        investor1,
-        FIFOMarket.address,
-        [1],
-        [hardhat.ethers.utils.parseUnits(removalBalance2)],
-        hardhat.ethers.utils.formatBytes32String('0x0')
-      );
-      await Removal.connect(accounts[5]).safeBatchTransferFrom(
-        investor2,
-        FIFOMarket.address,
-        [2],
-        [hardhat.ethers.utils.parseUnits(removalBalance3)],
-        hardhat.ethers.utils.formatBytes32String('0x0')
-      );
 
       const initialFifoSupply = await FIFOMarket.numberOfNrtsInQueue();
 
@@ -531,12 +512,20 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
+      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
+        'someParcelIdentifier'
+      );
+      const listNow = true;
+      const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bytes32', 'bool'],
+        [FIFOMarket.address, parcelIdentifier, listNow]
+      );
       await Promise.all([
         Removal.mintBatch(
           supplier,
           [hardhat.ethers.utils.parseUnits(totalAvailableSupply)],
           [2018],
-          hardhat.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
         NORI.mint(
           buyer,
@@ -547,13 +536,6 @@ describe('FIFOMarket', () => {
         Certificate.addMinter(FIFOMarket.address),
       ]);
       const accounts = await hardhat.ethers.getSigners();
-      await Removal.connect(accounts[2]).safeBatchTransferFrom(
-        supplier,
-        FIFOMarket.address,
-        [0],
-        [hardhat.ethers.utils.parseUnits(totalAvailableSupply)],
-        hardhat.ethers.utils.formatBytes32String('0x0')
-      );
 
       try {
         await NORI.connect(accounts[6]).send(
