@@ -16,6 +16,7 @@
       "@/plugins": ["./plugins/index.ts"],
       "@/contracts.json": ["./contracts.json"],
       "@/artifacts/*": ["./artifacts/contracts/*"],
+      "@/legacy-artifacts/*": ["./legacy-artifacts/contracts/*"],
       "@/config/*": ["./config/*"],
       "@/utils/*": ["./utils/*"],
     }

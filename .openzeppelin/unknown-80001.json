@@ -1094,12 +1094,6 @@
             "label": "______gap",
             "type": "t_array(t_uint256)50_storage",
             "src": "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/ERC721Pausable.sol:29"
-          },
-          {
-            "contract": "NCCR_V0",
-            "label": "_tokenData",
-            "type": "t_mapping(t_uint256,t_string_storage)",
-            "src": "contracts/NCCR_V0.sol:11"
           }
         ],
         "types": {

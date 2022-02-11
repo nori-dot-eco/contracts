@@ -25,15 +25,6 @@ export const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.5.11', // todo deprecate when we remove the *_V0 contracts
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        },
-      },
-      {
         version: '0.8.10',
         settings: {
           optimizer: {

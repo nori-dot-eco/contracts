@@ -89,8 +89,6 @@ declare global {
   type NamedAccounts = typeof namedAccounts;
   var hre: CustomHardHatRuntimeEnvironment;
   type ContractNames =
-    | 'NCCR_V0'
-    | 'Nori_V0'
     | 'FIFOMarket'
     | 'NORI'
     | 'Removal'
