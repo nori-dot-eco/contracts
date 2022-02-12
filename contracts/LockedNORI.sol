@@ -10,9 +10,9 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 /**
  * @title A wrapped NORI token contract for vesting and lockup
  * @author Nori Inc.
- * @notice Based on the mechanics of a wrapped ERC-777 token, this contract layers in schedules to withdrawal
- * functionality to implement *vesting* (a revocable grant) *lockup* (an irrevocable timelock on to implement *vesting*
- * (a revocable *vesting* (a revocable grant) *lockup* (an irrevocable timelock on utility).
+ * @notice Based on the mechanics of a wrapped ERC-777 token, this contract layers schedules over the withdrawal
+ * functionality to implement _vesting_ (a revocable grant)
+ * and _lockup_ (an irrevocable timelock on utility).
  *
  * ##### Behaviors and features
  *
@@ -288,11 +288,29 @@ contract LockedNORI is
    * whether locked or not.
    */
   function revokeUnvestedTokens(
-    uint256 atTime,
     address from,
-    address to
+    address to,
+    uint256 atTime
   ) external onlyRole(TOKEN_GRANTER_ROLE) whenNotPaused {
-    _revokeUnvestedTokens(atTime, from, to);
+    _revokeUnvestedTokens(from, to, atTime, 0);
+  }
+
+  /**
+   * @dev revokeUnvestedTokens: Truncates a vesting grant.
+   *
+   * Transfers any unvested tokens in `from`'s grant to `to`
+   * and reduces the total grant size.
+   *
+   * No change is made to balances that have vested but not yet been claimed
+   * whether locked or not.
+   */
+  function revokeUnvestedTokens(
+    address from,
+    address to,
+    uint256 atTime,
+    uint256 amount
+  ) external onlyRole(TOKEN_GRANTER_ROLE) whenNotPaused {
+    _revokeUnvestedTokens(from, to, atTime, amount);
   }
 
   /**
@@ -311,7 +329,14 @@ contract LockedNORI is
    * @dev Vested balance less any claimed amount at current block timestamp.
    */
   function vestedBalanceOf(address account) external view returns (uint256) {
-    return _vestedBalanceOf(block.timestamp, account);
+    return _vestedBalanceOf(account, block.timestamp);
+  }
+
+  /**
+   * @dev Unlocked balance less any claimed amount at current block timestamp.
+   */
+  function unlockedBalanceOf(address account) public view returns (uint256) {
+    return _unlockedBalanceOf(account, block.timestamp);
   }
 
   // todo document expected initialzation state
@@ -380,6 +405,7 @@ contract LockedNORI is
       address(params.recipient) != address(0),
       "Recipient cannot be zero address"
     );
+    require(!_grants[params.recipient].exists, "lNORI: Grant already exists");
     TokenGrant storage grant = _grants[params.recipient];
     grant.grantAmount = amount;
     grant.originalAmount = amount;
@@ -420,15 +446,26 @@ contract LockedNORI is
    * @dev Truncates a vesting grant
    */
   function _revokeUnvestedTokens(
-    uint256 atTime,
     address from,
-    address to
+    address to,
+    uint256 atTime,
+    uint256 amount
   ) internal {
     TokenGrant storage grant = _grants[from];
     require(grant.exists, "lNORI: no grant exists");
-    uint256 vestedBalance = _vestedBalanceOf(atTime, from);
+    uint256 vestedBalance = _vestedBalanceOf(from, atTime);
     require(vestedBalance < grant.grantAmount, "lNORI: tokens already vested");
-    uint256 quantityRevoked = grant.grantAmount - vestedBalance;
+    uint256 revocableQuantity = grant.grantAmount - vestedBalance;
+    uint256 quantityRevoked;
+    if (amount > 0) {
+      require(
+        amount <= revocableQuantity,
+        "lNORI: insufficient unvested tokens"
+      );
+      quantityRevoked = amount;
+    } else {
+      quantityRevoked = revocableQuantity;
+    }
     grant.grantAmount = vestedBalance;
     grant.vestingSchedule.totalAmount = vestedBalance;
     grant.vestingSchedule.endTime = atTime;
@@ -440,7 +477,7 @@ contract LockedNORI is
   /**
    * @dev Vested balance less any claimed amount at `atTime` (implementation)
    */
-  function _vestedBalanceOf(uint256 atTime, address account)
+  function _vestedBalanceOf(address account, uint256 atTime)
     internal
     view
     returns (uint256)
@@ -460,19 +497,12 @@ contract LockedNORI is
   }
 
   /**
-   * @dev Unlocked balance less any claimed amount at current block timestamp.
-   */
-  function unlockedBalanceOf(address account) public view returns (uint256) {
-    return _unlockedBalanceOf(block.timestamp, account);
-  }
-
-  /**
    * @notice Unlocked balance less any claimed amount
    * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
    * grant amount. This is done to preserve the behavior of the unlock schedule despite a reduction in the total
    * quantity of tokens vesting.  i.o.w The rate of unlocking does not change after calling `revokeUnvestedTokens`
    */
-  function _unlockedBalanceOf(uint256 atTime, address account)
+  function _unlockedBalanceOf(address account, uint256 atTime)
     internal
     view
     returns (uint256)
@@ -529,9 +559,10 @@ contract LockedNORI is
    *
    * - the contract must not be paused
    * - One of the following must be true:
-   *    - the sender is minting (which should ONLY occur when NORI is being wrapped via `_depositFor`)
-   *    - the sender is not minting and one of the following must be true:
-   *      - the sender is the admin and the grant exists
+   *    - the operation is minting (which should ONLY occur when NORI is being wrapped via `_depositFor`)
+   *    - the operation is a burn and _all_ of the following must be true:
+   *      - the operator has TOKEN_GRANTER_ROLE
+   *      - the operator is not operating on their own balance
    *      - the transfer amount is <= the sender's unlocked balance
    */
   function _beforeTokenTransfer(
@@ -541,18 +572,14 @@ contract LockedNORI is
     uint256 amount
   ) internal override whenNotPaused {
     bool isMinting = from == address(0);
-    bool grantExists = _grants[from].exists;
-    bool senderIsAdmin = hasRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    bool ownerHasSufficientUnlockedBalance = amount <= unlockedBalanceOf(from); // todo test transferfrom/operatorsend
-    if (!isMinting) {
-      if (senderIsAdmin) {
-        require(grantExists, "lNORI: grant does not exists");
-      } else {
-        require(
-          ownerHasSufficientUnlockedBalance,
-          "lNORI: insufficient balance"
-        );
-      }
+    bool isBurning = to == address(0);
+    bool operatorIsGrantAdmin = hasRole(TOKEN_GRANTER_ROLE, operator);
+    bool operatorIsNotSender = operator != from;
+    bool ownerHasSufficientUnlockedBalance = amount <= unlockedBalanceOf(from);
+    if (isBurning && operatorIsNotSender && operatorIsGrantAdmin) {
+      require(balanceOf(from) >= amount, "lNORI: insufficient balance");
+    } else if (!isMinting) {
+      require(ownerHasSufficientUnlockedBalance, "lNORI: insufficient balance");
     }
     return super._beforeTokenTransfer(operator, from, to, amount);
   }
