@@ -296,7 +296,7 @@ contract LockedNORI is
   }
 
   /**
-   * @dev revokeUnvestedTokens: Truncates a vesting grant.
+   * @dev revokeUnvestedTokenAmount: Truncates a vesting grant.
    *
    * Transfers any unvested tokens in `from`'s grant to `to`
    * and reduces the total grant size.
@@ -304,7 +304,7 @@ contract LockedNORI is
    * No change is made to balances that have vested but not yet been claimed
    * whether locked or not.
    */
-  function revokeUnvestedTokens(
+  function revokeUnvestedTokenAmount(
     address from,
     address to,
     uint256 atTime,

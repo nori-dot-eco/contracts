@@ -441,8 +441,7 @@ describe('LockedNori', () => {
               .to.be.true;
             expect(
               await lNori
-                .connect(namedSigners[accountWithRole])
-                ['revokeUnvestedTokens(address,address,uint256)'](
+                .connect(namedSigners[accountWithRole]).revokeUnvestedTokens(
                   grant.recipient,
                   namedAccounts.admin,
                   NOW
@@ -453,8 +452,7 @@ describe('LockedNori', () => {
             // todo test balance of admin is now the revoked token balance
             await expect(
               lNori
-                .connect(namedSigners[accountWithoutRole])
-                ['revokeUnvestedTokens(address,address,uint256)'](
+                .connect(namedSigners[accountWithoutRole]).revokeUnvestedTokens(
                   grant.recipient,
                   namedAccounts.admin,
                   NOW
@@ -970,8 +968,7 @@ describe('LockedNori', () => {
       expect(await lNori.vestedBalanceOf(employee)).to.equal(newBalance);
       await expect(
         lNori
-          .connect(await hre.ethers.getSigner(admin))
-          ['revokeUnvestedTokens(address,address,uint256)'](
+          .connect(await hre.ethers.getSigner(admin)).revokeUnvestedTokens(
             employee,
             admin,
             grant.startTime + VEST_REVOKED_OFFSET
@@ -1043,8 +1040,7 @@ describe('LockedNori', () => {
       const newBalance = grantAmount.sub(quantityToRevoke);
       await expect(
         lNori
-          .connect(await hre.ethers.getSigner(admin))
-          ['revokeUnvestedTokens(address,address,uint256,uint256)'](
+          .connect(await hre.ethers.getSigner(admin)).revokeUnvestedTokenAmount(
             employee,
             admin,
             grant.startTime + VEST_REVOKED_OFFSET,
@@ -1072,8 +1068,7 @@ describe('LockedNori', () => {
       const newBalance = grantAmount.sub(quantityToRevoke);
       await expect(
         lNori
-          .connect(await hre.ethers.getSigner(admin))
-          ['revokeUnvestedTokens(address,address,uint256,uint256)'](
+          .connect(await hre.ethers.getSigner(admin)).revokeUnvestedTokenAmount(
             employee,
             admin,
             grant.startTime + VEST_REVOKED_OFFSET,
