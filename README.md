@@ -1,28 +1,34 @@
 # About
 
-The Ethereum smart contracts that power nori.com
+The Ethereum smart contracts that power [nori](https://nori.com)
 
 ---
 
-## Local Development
+## Development
 
 ### Deploying to a local testnet
+
+Deploy to hardhat using:
 
 ```
 hardhat node
 ```
 
+---
+
 ## Testing
+
+Run tests with:
 
 ```
 yarn test
 ```
 
-## Reporting gas usage
+### Reporting gas usage from tests
 
 Note that gas reporting is disabled by default because it slows tests down significantly.
 
-First, set REPORT_GAS and COINMARKETCAP_API_KEY environment variables.
+First, set `REPORT_GAS` and `COINMARKETCAP_API_KEY` environment variables.
 
 Then, in a first terminal, run the following:
 
@@ -40,6 +46,8 @@ REPORT_GAS=true hardhat test --network localhost
 
 ## Hardhat Tasks
 
+### Interact with contracts
+
 https://hardhat.org/guides/create-task.html
 Custom hardhat tasks have been implemented that allow for calling any function (read or write) on the existing contracts.
 
@@ -53,20 +61,26 @@ Example: mints 1 NORI on mumbai to given address
 hardhat NORI --func mint  "0x321af43416f670ce8b4ba214dfb87c4199e2a77f" 1000000000000000000 "0x" "0x" --network mumbai
 ```
 
+### Generate docs
+
+Generate docs using
+
+```
+hardhat docgen
+```
+
+---
+
 ## Contracts
 
 ### Upgradeability
 
 Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openzeppelin.com/upgrades-plugins/1.x/) to manage upgradeability
 
+---
+
 ## Additional tooling notes
 
-## CLI
+### CLI
 
 Install hardhat [shorthand and autocomplete](https://hardhat.org/guides/shorthand.html)
-
-### IDE support
-
-#### Solidity linting via Solium
-
-If you are using vscode, use the [solidity plugin](https://marketplace.visualstudio.com/items?itemName=JuanBlanco.solidity) and set the following user setting: `"solidity.linter": "solium",`

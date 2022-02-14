@@ -3,17 +3,13 @@ import type { BaseContract } from 'ethers';
 import type {
   FIFOMarket,
   LockedNORI,
-  NCCRV0,
   NORI,
-  NoriV0,
   Removal,
   Certificate,
 } from '../typechain-types';
 
 export const connectToContract = async <
   TContract extends
-    | NCCRV0
-    | NoriV0
     | FIFOMarket
     | NORI
     | Removal

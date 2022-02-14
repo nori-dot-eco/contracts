@@ -13,6 +13,7 @@ import type {
   ethers as defaultEthers,
 } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
+import type { JsonRpcSigner } from '@ethersproject/providers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
   FactoryOptions,
@@ -52,6 +53,8 @@ declare module 'hardhat/types/runtime' {
   ) => Promise<T>;
   export interface HardhatRuntimeEnvironment {
     deployments: DeploymentsExtension;
+    namedSigners:  NamedSigners;
+    namedAccounts: NamedAccounts;
   }
 }
 
@@ -82,15 +85,14 @@ interface CustomHardhatUpgrades extends HardhatUpgrades {
 }
 
 declare global {
-  type Concrete<Type> = {
-    [Property in keyof Type]-?: Type[Property];
-  };
   type TypeChainBaseContract = BaseContract & { contractName: string };
   type NamedAccounts = typeof namedAccounts;
+  type NamedSigners = { [Property in keyof NamedAccounts]: JsonRpcSigner };
+  type DeepPartial<T> = {
+    [P in keyof T]?: DeepPartial<T[P]>;
+  };
   var hre: CustomHardHatRuntimeEnvironment;
   type ContractNames =
-    | 'NCCR_V0'
-    | 'Nori_V0'
     | 'FIFOMarket'
     | 'NORI'
     | 'Removal'
