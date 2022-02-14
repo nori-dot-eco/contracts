@@ -88,6 +88,3 @@ artifacts/*
 
 # typechain
 typechain-types
-
-# docs
-docs/*
