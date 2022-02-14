@@ -441,22 +441,16 @@ describe('LockedNori', () => {
               .to.be.true;
             expect(
               await lNori
-                .connect(namedSigners[accountWithRole]).revokeUnvestedTokens(
-                  grant.recipient,
-                  namedAccounts.admin,
-                  NOW
-                )
+                .connect(namedSigners[accountWithRole])
+                .revokeUnvestedTokens(grant.recipient, namedAccounts.admin, NOW)
             )
               .to.emit(lNori, 'UnvestedTokensRevoked')
               .withArgs(NOW, namedAccounts.employee, grantAmount);
             // todo test balance of admin is now the revoked token balance
             await expect(
               lNori
-                .connect(namedSigners[accountWithoutRole]).revokeUnvestedTokens(
-                  grant.recipient,
-                  namedAccounts.admin,
-                  NOW
-                )
+                .connect(namedSigners[accountWithoutRole])
+                .revokeUnvestedTokens(grant.recipient, namedAccounts.admin, NOW)
             ).to.be.revertedWith(
               `AccessControl: account ${namedAccounts[
                 accountWithoutRole
@@ -617,9 +611,8 @@ describe('LockedNori', () => {
 
   describe('createGrant', () => {
     it('Should fail to create a second grant for an address', async () => {
-      const { nori, lNori } = await setup();
+      const { lNori } = await setup();
       const { grant, grantAmount } = employeeParams();
-      const { namedSigners } = hre;
       await expect(
         lNori
           .connect(namedSigners['admin'])
@@ -666,7 +659,7 @@ describe('LockedNori', () => {
     });
   });
 
-  describe('locked tokens', async () => {
+  describe('locked tokens', () => {
     it('Should fail to *send*', async () => {
       const { lNori, nori } = await setupWithGrant();
       const { investor1, investor2 } = await hre.getNamedAccounts();
@@ -968,7 +961,8 @@ describe('LockedNori', () => {
       expect(await lNori.vestedBalanceOf(employee)).to.equal(newBalance);
       await expect(
         lNori
-          .connect(await hre.ethers.getSigner(admin)).revokeUnvestedTokens(
+          .connect(await hre.ethers.getSigner(admin))
+          .revokeUnvestedTokens(
             employee,
             admin,
             grant.startTime + VEST_REVOKED_OFFSET
@@ -1040,7 +1034,8 @@ describe('LockedNori', () => {
       const newBalance = grantAmount.sub(quantityToRevoke);
       await expect(
         lNori
-          .connect(await hre.ethers.getSigner(admin)).revokeUnvestedTokenAmount(
+          .connect(await hre.ethers.getSigner(admin))
+          .revokeUnvestedTokenAmount(
             employee,
             admin,
             grant.startTime + VEST_REVOKED_OFFSET,
@@ -1062,21 +1057,20 @@ describe('LockedNori', () => {
       const { lNori, grantAmount, grant } = await setupWithGrant(
         employeeParams()
       );
-      const { employee, admin } = await hre.getNamedAccounts();
-
       const quantityToRevoke = grantAmount.add(1);
-      const newBalance = grantAmount.sub(quantityToRevoke);
       await expect(
         lNori
-          .connect(await hre.ethers.getSigner(admin)).revokeUnvestedTokenAmount(
-            employee,
-            admin,
+          .connect(await hre.ethers.getSigner(namedAccounts.admin))
+          .revokeUnvestedTokenAmount(
+            namedAccounts.employee,
+            namedAccounts.admin,
             grant.startTime + VEST_REVOKED_OFFSET,
             quantityToRevoke
           )
-      ).to.revertedWith('lNORI: insufficient unvested tokens');
-
-      expect(await lNori.balanceOf(employee)).to.equal(grantAmount);
+      ).to.revertedWith('lNORI: not enough unvested NORI');
+      expect(await lNori.balanceOf(namedAccounts.employee)).to.equal(
+        grantAmount
+      );
       expect(await lNori.totalSupply()).to.eq(grantAmount);
     });
   });

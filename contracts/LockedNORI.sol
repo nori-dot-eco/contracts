@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
+import "./ERC777PresetPausablePermissioned.sol";
 import "./NORI.sol";
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
@@ -94,10 +94,8 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
  *
  */
 contract LockedNORI is
-  ERC777Upgradeable,
   IERC777RecipientUpgradeable,
-  PausableUpgradeable,
-  AccessControlEnumerableUpgradeable
+  ERC777PresetPausablePermissioned
 {
   using ScheduleUtils for Schedule;
 
@@ -148,11 +146,7 @@ contract LockedNORI is
    * @notice Role conferring creation and revocation of token grants.
    */
   bytes32 public constant TOKEN_GRANTER_ROLE = keccak256("TOKEN_GRANTER_ROLE");
-  /**
-   * @notice Role conferring the ability to pause and unpause mutable functions
-   * of the contract
-   */
-  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
   /**
    * @notice Used to register the ERC777TokensRecipient recipient interface in the
    * ERC-1820 registry
@@ -162,14 +156,17 @@ contract LockedNORI is
    */
   bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
     keccak256("ERC777TokensRecipient");
+
   /**
    * @notice A mapping from grantee to grant
    */
   mapping(address => TokenGrant) private _grants;
+
   /**
    * @notice The NORI contract that this contract wraps tokens for
    */
   NORI private _nori;
+
   /**
    * @notice The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection registry
    * contract
@@ -291,7 +288,7 @@ contract LockedNORI is
     address from,
     address to,
     uint256 atTime
-  ) external onlyRole(TOKEN_GRANTER_ROLE) whenNotPaused {
+  ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
     _revokeUnvestedTokens(from, to, atTime, 0);
   }
 
@@ -309,7 +306,7 @@ contract LockedNORI is
     address to,
     uint256 atTime,
     uint256 amount
-  ) external onlyRole(TOKEN_GRANTER_ROLE) whenNotPaused {
+  ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
     _revokeUnvestedTokens(from, to, atTime, amount);
   }
 
@@ -458,10 +455,7 @@ contract LockedNORI is
     uint256 revocableQuantity = grant.grantAmount - vestedBalance;
     uint256 quantityRevoked;
     if (amount > 0) {
-      require(
-        amount <= revocableQuantity,
-        "lNORI: insufficient unvested tokens"
-      );
+      require(amount <= revocableQuantity, "lNORI: not enough unvested NORI");
       quantityRevoked = amount;
     } else {
       quantityRevoked = revocableQuantity;
@@ -469,8 +463,8 @@ contract LockedNORI is
     grant.grantAmount = vestedBalance;
     grant.vestingSchedule.totalAmount = vestedBalance;
     grant.vestingSchedule.endTime = atTime;
-    _nori.send(to, quantityRevoked, "");
-    ERC777Upgradeable._burn(from, quantityRevoked, "", "");
+    _nori.send(to, quantityRevoked, ""); // solhint-disable-line check-send-result, because this isn't a solidity send
+    super._burn(from, quantityRevoked, "", "");
     emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
   }
 
@@ -558,6 +552,7 @@ contract LockedNORI is
    * ##### Requirements:
    *
    * - the contract must not be paused
+   * - the recipient cannot be the zero address (e.g., no burning of tokens is allowed)
    * - One of the following must be true:
    *    - the operation is minting (which should ONLY occur when NORI is being wrapped via `_depositFor`)
    *    - the operation is a burn and _all_ of the following must be true:
@@ -570,7 +565,7 @@ contract LockedNORI is
     address from,
     address to,
     uint256 amount
-  ) internal override whenNotPaused {
+  ) internal override {
     bool isMinting = from == address(0);
     bool isBurning = to == address(0);
     bool operatorIsGrantAdmin = hasRole(TOKEN_GRANTER_ROLE, operator);
@@ -582,96 +577,6 @@ contract LockedNORI is
       require(ownerHasSufficientUnlockedBalance, "lNORI: insufficient balance");
     }
     return super._beforeTokenTransfer(operator, from, to, amount);
-  }
-
-  /**
-   * @dev Hook that is called before granting/revoking roles via `grantRole`, `revokeRole`, `renounceRole`
-   *
-   * This overrides the behavior of `_grantRole`, `_setupRole`, `_revokeRole`, and `_renounceRole` with pausable
-   * behavior. When the contract is paused, these functions will not be callable. Follows the rules of hooks
-   * defined [here](https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
-   *
-   * ##### Requirements:
-   *
-   * - the contract must not be paused
-   */
-  function _beforeRoleChange(bytes32, address) internal whenNotPaused {} // solhint-disable-line no-empty-blocks
-
-  /**
-   * @dev See {ERC777-approve}.
-   *
-   * NOTE: If `value` is the maximum `uint256`, the allowance is not updated on
-   * `transferFrom`. This is semantically equivalent to an infinite approval.
-   *
-   * Note that accounts cannot have allowance issued by their operators.
-   *
-   * ##### Requirements:
-   *
-   * - the contract must not be paused
-   */
-  function approve(address spender, uint256 value)
-    public
-    override
-    whenNotPaused
-    returns (bool)
-  {
-    return super.approve(spender, value);
-  }
-
-  /**
-   * @dev Grants `role` to `account` if the `_beforeRoleGranted`
-   * hook is satisfied
-   *
-   * ##### Requirements:
-   *
-   * - the contract must not be paused
-   */
-  function _grantRole(bytes32 role, address account) internal override {
-    _beforeRoleChange(role, account);
-    super._grantRole(role, account);
-  }
-
-  /**
-   * @dev Revokes `role` from `account` if the `_beforeRoleGranted`
-   * hook is satisfied
-   *
-   * ##### Requirements:
-   *
-   * - the contract must not be paused
-   */
-  function _revokeRole(bytes32 role, address account) internal override {
-    _beforeRoleChange(role, account);
-    super.revokeRole(role, account);
-  }
-
-  /**
-   * @notice Used to pause the contract so that state mutating functions may **not** be called.
-   * @dev Pauses all mutable functionality.
-   *
-   * See {ERC20Pausable} and {Pausable-_pause}.
-   *
-   * ##### Requirements:
-   *
-   * - the caller must have the `PAUSER_ROLE`.
-   * - the contract must not be paused
-   */
-  function pause() public onlyRole(PAUSER_ROLE) {
-    _pause();
-  }
-
-  /**
-   * @notice Used to unpause the contract so that state mutating functions may be called.
-   * @dev Unpauses all mutable functionality
-   *
-   * See {ERC20Pausable} and {Pausable-_unpause}.
-   *
-   * ##### Requirements
-   *
-   * - the caller must have the `PAUSER_ROLE`.
-   * - the contract must be paused
-   */
-  function unpause() public onlyRole(PAUSER_ROLE) {
-    _unpause();
   }
 
   /**
@@ -693,17 +598,5 @@ contract LockedNORI is
     bytes memory
   ) public pure override {
     revert("lNORI: burning not supported");
-  }
-
-  /**
-   * @notice Authorize an operator to spend on behalf of the sender
-   * @dev See {IERC777-authorizeOperator}.
-   *
-   * ##### Requirements:
-   *
-   * - the contract must not be paused
-   */
-  function authorizeOperator(address operator) public override whenNotPaused {
-    return super.authorizeOperator(operator);
   }
 }
