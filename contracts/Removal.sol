@@ -32,8 +32,14 @@ contract Removal is
     // todo: supplier name
   }
 
+  struct BatchMintRemovalsData {
+    address marketAddress;
+    bytes32 uniqueId;
+    bool list;
+  }
+
   mapping(uint256 => Vintage) private _vintages;
-  mapping(bytes32 => uint256) private _vintageTokenIdMap;
+  mapping(bytes32 => uint256) private _vintageToTokenIdMap;
   uint256 private _latestTokenId;
   string public name; // todo why did I add this
 
@@ -52,21 +58,19 @@ contract Removal is
   }
 
   /**
-   * @dev returns the token ids for a set of removals given each one's vintage and the data that was provided
-   * in its mint transaction
+   * @dev returns the token ids for a set of removals given each one's vintage and the identifying data that was provided
+   * in its mint transaction. Arguments should be arrays of the same length as they correspond to the same removals.
+   * @param uniqueIdentifiers The unique identifier that was passed at the time of minting each removal.
+   * @param removalVintages The vintage (year) of each removal.
    */
   function tokenIdsForRemovals(
-    bytes32[] memory parcelIdentifiers,
+    bytes32[] memory uniqueIdentifiers,
     uint256[] memory removalVintages
   ) public view returns (uint256[] memory) {
-    require(
-      parcelIdentifiers.length == removalVintages.length,
-      "parcelIdentifers and removalVintages must be same length"
-    );
     uint256[] memory ids = new uint256[](removalVintages.length);
     for (uint256 i = 0; i < removalVintages.length; i++) {
-      ids[i] = _vintageTokenIdMap[
-        keccak256(abi.encodePacked(parcelIdentifiers[i], removalVintages[i]))
+      ids[i] = _vintageToTokenIdMap[
+        keccak256(abi.encodePacked(uniqueIdentifiers[i], removalVintages[i]))
       ];
     }
     return ids;
@@ -79,7 +83,7 @@ contract Removal is
     address owner,
     address operator,
     bool approved
-  ) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+  ) public virtual onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
     _setApprovalForAll(owner, operator, approved);
   }
 
@@ -103,28 +107,36 @@ contract Removal is
     bytes memory data
   ) public override {
     // todo require vintage is within valid year range and doesn't already exist
-    (address market, bytes32 parcelId, bool listNow) = abi.decode(
+    BatchMintRemovalsData memory decodedData = abi.decode(
       data,
-      (address, bytes32, bool)
+      (BatchMintRemovalsData)
     );
 
     uint256[] memory ids = new uint256[](vintages.length);
     for (uint256 i = 0; i < vintages.length; i++) {
-      bytes32 uniqueId = keccak256(abi.encodePacked(parcelId, vintages[i]));
+      bytes32 uniqueIdHash = keccak256(
+        abi.encodePacked(decodedData.uniqueId, vintages[i])
+      );
 
       ids[i] = _latestTokenId + i;
       _vintages[_latestTokenId + i] = Vintage({
         vintage: uint16(vintages[i]),
         supplier: to,
-        uniqueId: uniqueId
+        uniqueId: uniqueIdHash
       });
-      _vintageTokenIdMap[uniqueId] = _latestTokenId + i;
+      _vintageToTokenIdMap[uniqueIdHash] = _latestTokenId + i;
     }
     _latestTokenId = ids[ids.length - 1] + 1;
     super.mintBatch(to, ids, amounts, data);
     setApprovalForAllAsAdmin(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
-    if (listNow) {
-      super.safeBatchTransferFrom(to, market, ids, amounts, data);
+    if (decodedData.list) {
+      super.safeBatchTransferFrom(
+        to,
+        decodedData.marketAddress,
+        ids,
+        amounts,
+        data
+      );
     }
   }
 
