@@ -19,6 +19,7 @@
       "@/legacy-artifacts/*": ["./legacy-artifacts/contracts/*"],
       "@/config/*": ["./config/*"],
       "@/utils/*": ["./utils/*"],
+      "@/constants/*": ["./constants/*"],
     }
   },
   "include": [

@@ -4,24 +4,28 @@ import type { BigNumberish } from 'ethers';
 
 import type { ScheduleTestHarness } from '../typechain-types/ScheduleTestHarness';
 
+import { hre } from '@/utils/hre';
+
 const NOW = Math.floor(Date.now() / 1000);
+const setupTest = hre.deployments.createFixture(
+  async (): Promise<{
+    scheduleTestHarness: ScheduleTestHarness;
+  }> => {
+    await hre.deployments.fixture(); // ensure you start from a fresh deployments
+    const ScheduleTestHarness = await ethers.getContractFactory(
+      'ScheduleTestHarness'
+    );
+    const scheduleTestHarness =
+      (await ScheduleTestHarness.deploy()) as ScheduleTestHarness;
+    return {
+      scheduleTestHarness,
+    };
+  }
+);
 
-const setup = async (): Promise<{
-  scheduleTestHarness: ScheduleTestHarness;
-}> => {
-  const ScheduleTestHarness = await ethers.getContractFactory(
-    'ScheduleTestHarness'
-  );
-  const scheduleTestHarness =
-    (await ScheduleTestHarness.deploy()) as ScheduleTestHarness;
-  return {
-    scheduleTestHarness,
-  };
-};
-
-describe('Schedule', function () {
-  it('Should create a simple Schedule', async function () {
-    const { scheduleTestHarness: harness } = await setup();
+describe('ScheduleUtils', () => {
+  it('Should create a simple Schedule', async () => {
+    const { scheduleTestHarness: harness } = await setupTest();
     expect(harness.create(NOW, NOW + 86400, 1_000_000))
       .to.emit(harness, 'ScheduleCreated')
       .withArgs(0, NOW, NOW + 86400, 1_000_000);
@@ -39,8 +43,8 @@ describe('Schedule', function () {
     );
   });
 
-  it('Should create a Schedule with one linear cliff', async function () {
-    const { scheduleTestHarness: harness } = await setup();
+  it('Should create a Schedule with one linear cliff', async () => {
+    const { scheduleTestHarness: harness } = await setupTest();
     await harness.create(NOW, NOW + 86400, 1_000_000);
     const schedule = 0;
     expect(harness.addCliff(schedule, NOW + 86400 / 4, 250_000))
@@ -61,8 +65,8 @@ describe('Schedule', function () {
     );
   });
 
-  it('Should create a Schedule with one sub-linear cliff', async function () {
-    const { scheduleTestHarness: harness } = await setup();
+  it('Should create a Schedule with one sub-linear cliff', async () => {
+    const { scheduleTestHarness: harness } = await setupTest();
     await harness.create(NOW, NOW + 86400, 1_000_000);
     const schedule = 0;
     await harness.addCliff(schedule, NOW + 86400 / 2, 250_000);
@@ -81,8 +85,8 @@ describe('Schedule', function () {
     ).to.equal(250_000 + 750_000 / 2);
   });
 
-  it('Should create a Schedule with multiple cliffs', async function () {
-    const { scheduleTestHarness: harness } = await setup();
+  it('Should create a Schedule with multiple cliffs', async () => {
+    const { scheduleTestHarness: harness } = await setupTest();
     await harness.create(NOW, NOW + 86400, 1_000_000);
     const schedule = 0;
     await harness.addCliff(schedule, NOW + 86400 / 10, 100_000);
@@ -110,8 +114,8 @@ describe('Schedule', function () {
     );
   });
 
-  it('Should handle truncation of the schedule amount', async function () {
-    const { scheduleTestHarness: harness } = await setup();
+  it('Should handle truncation of the schedule amount', async () => {
+    const { scheduleTestHarness: harness } = await setupTest();
     await harness.create(NOW, NOW + 86400, 1_000_000);
     const schedule = 0;
     expect(harness.addCliff(schedule, NOW + 86400 / 4, 250_000))

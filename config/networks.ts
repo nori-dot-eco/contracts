@@ -16,6 +16,8 @@ const goerli: NetworkUserConfig = {
   chainId: 5,
   url: `https://goerli.infura.io/v3/${INFURA_STAGING_KEY}`,
   accounts: { mnemonic: STAGING_MNEMONIC },
+  gas: 2100000,
+  gasPrice: 8000000000,
 };
 
 const mumbai: NetworkUserConfig = {

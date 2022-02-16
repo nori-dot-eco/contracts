@@ -1,46 +1,24 @@
-import type { NORI } from '../typechain-types/NORI';
 import type { LockedNORI } from '../typechain-types/LockedNORI';
-import type { LockedNORI__factory, NORI__factory } from '../typechain-types';
 
-import { expect, hardhat } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
+import type { Contracts } from '@/test/helpers';
+import { expect, hardhat, getDeployments } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
 import { hre } from '@/utils/hre';
 import { formatTokenAmount } from '@/utils/units';
 
+const NOW = Math.floor(Date.now() / 1_000);
+// todo use hardhat-deploy fixtures (https://github.com/wighawag/hardhat-deploy#3-hardhat-test) (last time we tried runnin this with the gas reporter it wasn't reporting unit test gas numbers)
+const setupTest = hardhat.deployments.createFixture(
+  async (): Promise<Contracts> => {
+    await hre.deployments.fixture(); // ensure you start from a fresh deployments
+
+    return getDeployments({ hre });
+  }
+);
 const {
   ethers: { BigNumber },
   namedAccounts,
   namedSigners,
 } = hre;
-
-const NOW = Math.floor(Date.now() / 1_000);
-// todo use hardhat-deploy fixtures (https://github.com/wighawag/hardhat-deploy#3-hardhat-test) (last time we tried runnin this with the gas reporter it wasn't reporting unit test gas numbers)
-const setup = hardhat.deployments.createFixture(
-  async (): Promise<{
-    nori: NORI;
-    lNori: LockedNORI;
-  }> => {
-    const { upgrades, run, ethers } = hre;
-    await run('deploy:erc1820');
-    const NORIFactory = await ethers.getContractFactory<NORI__factory>('NORI');
-    const LockedNoriFactory =
-      await ethers.getContractFactory<LockedNORI__factory>('LockedNORI');
-    const nori = await upgrades.deployProxy<NORI>(NORIFactory, []);
-    await nori.deployed();
-    const lNori = await upgrades.deployProxy<LockedNORI>(
-      LockedNoriFactory,
-      [nori.address],
-      {
-        initializer: 'initialize(address)',
-      }
-    );
-    await lNori.deployed();
-    return {
-      nori,
-      lNori,
-    };
-  }
-);
-
 interface TokenGrantOptions {
   grantAmount: ReturnType<typeof formatTokenAmount>;
   grant: {
@@ -144,7 +122,7 @@ const setupWithGrant = hardhat.deployments.createFixture(
   async (
     _,
     options: DeepPartial<TokenGrantOptions> = {}
-  ): Promise<Awaited<ReturnType<typeof setup>> & TokenGrantOptions> => {
+  ): Promise<Awaited<ReturnType<typeof setupTest>> & TokenGrantOptions> => {
     const defaults = defaultParams();
     const { grantAmount, grant } = {
       grantAmount: options?.grantAmount ?? defaults.grantAmount,
@@ -153,7 +131,7 @@ const setupWithGrant = hardhat.deployments.createFixture(
         ...options.grant,
       },
     } as TokenGrantOptions;
-    const { nori, lNori } = await setup();
+    const { nori, lNori, ...rest } = await setupTest();
     const userData = hre.ethers.utils.defaultAbiCoder.encode(
       [
         'address',
@@ -195,7 +173,7 @@ const setupWithGrant = hardhat.deployments.createFixture(
       )
       .to.emit(nori, 'Transfer')
       .withArgs(namedAccounts.admin, lNori.address, grantAmount);
-    return { nori, lNori, grant, grantAmount };
+    return { nori, lNori, grant, grantAmount, ...rest };
   }
 );
 
@@ -204,7 +182,7 @@ const setupGrantWithDirectCall = hardhat.deployments.createFixture(
     _,
     options: DeepPartial<TokenGrantOptions> = {}
   ): ReturnType<typeof setupWithGrant> => {
-    const { nori, lNori } = await setup();
+    const { nori, lNori, ...rest } = await setupTest();
     const defaults = linearParams();
     const { grantAmount, grant } = {
       grantAmount: options?.grantAmount ?? defaults.grantAmount,
@@ -248,7 +226,7 @@ const setupGrantWithDirectCall = hardhat.deployments.createFixture(
       .withArgs(admin, lNori.address, grantAmount);
     // eslint-disable-next-line jest/no-standalone-expect
     expect(await nori.allowance(admin, lNori.address)).to.eq(grantAmount);
-    return { nori, lNori, grantAmount, grant };
+    return { nori, lNori, grantAmount, grant, ...rest };
   }
 );
 
@@ -331,7 +309,7 @@ describe('LockedNori', () => {
       ] as const
     ).forEach(({ method, pausableFunction, postSetupHook }) => {
       it(`will disable the function ${method}`, async () => {
-        const { lNori } = await setup();
+        const { lNori } = await setupTest();
         if (postSetupHook) {
           await postSetupHook({ lNori });
         }
@@ -343,7 +321,7 @@ describe('LockedNori', () => {
     });
 
     it(`will not allow tokens to be deposited when the contract is paused`, async () => {
-      const { lNori, nori } = await setup();
+      const { lNori, nori } = await setupTest();
       const userData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'uint256'],
         [namedAccounts.investor1, 0]
@@ -395,11 +373,6 @@ describe('LockedNori', () => {
 
   describe('initialization', () => {
     // it.todo('should fire events');
-    it('should be deployed from the admin', async () => {
-      const { lNori } = await setup();
-      expect(lNori.deployTransaction.from).to.eq(namedAccounts.admin);
-      // todo check that initialization happens at deployment
-    });
     describe('roles', () => {
       (
         [
@@ -409,7 +382,7 @@ describe('LockedNori', () => {
         ] as const
       ).forEach(({ role }) => {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
-          const { lNori } = await setup();
+          const { lNori } = await setupTest();
           expect(await lNori.hasRole(await lNori[role](), namedAccounts.admin))
             .to.be.true;
           expect(await lNori.getRoleAdmin(await lNori[role]())).to.eq(
@@ -458,7 +431,7 @@ describe('LockedNori', () => {
             );
           });
           it(`accounts with the role "${role}" can use "createGrant" whilst accounts without the role "${role}" cannot`, async () => {
-            const { lNori } = await setup();
+            const { lNori } = await setupTest();
             const roleId = await lNori[role]();
             expect(
               await lNori.hasRole(roleId, namedAccounts[accountWithoutRole])
@@ -538,7 +511,7 @@ describe('LockedNori', () => {
       ] as const
     ).forEach(({ role }) => {
       it(`will assign the admin of the role ${role} to the DEFAULT_ADMIN_ROLE role`, async () => {
-        const { lNori } = await setup();
+        const { lNori } = await setupTest();
         expect(await lNori.getRoleAdmin(await lNori[role]())).to.eq(
           await lNori.DEFAULT_ADMIN_ROLE()
         );
@@ -560,7 +533,7 @@ describe('LockedNori', () => {
   });
 
   it('Functions like ERC20Wrapped when no grant is present', async () => {
-    const { nori, lNori } = await setup();
+    const { nori, lNori } = await setupTest();
     const { admin, investor1 } = namedAccounts;
     const adminBalance = await nori.balanceOf(admin);
     expect(await nori.balanceOf(investor1)).to.equal(0);
@@ -611,7 +584,7 @@ describe('LockedNori', () => {
 
   describe('createGrant', () => {
     it('Should fail to create a second grant for an address', async () => {
-      const { lNori } = await setup();
+      const { lNori } = await setupTest();
       const { grant, grantAmount } = employeeParams();
       await expect(
         lNori

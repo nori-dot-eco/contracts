@@ -34,6 +34,9 @@
     },
     "FIFOMarket": {
       "proxyAddress": ""
+    },
+    "LockedNORI": {
+      "proxyAddress": ""
     }
   },
   "mumbai": {
@@ -51,23 +54,26 @@
     },
     "NCCR_V0": {
       "proxyAddress": "0xE919ac73f41C8E4bF924AaC341e52b35c84cdFE7"
+    },
+    "LockedNORI": {
+      "proxyAddress": "0xE919ac73f41C8E4bF924AaC341e52b35c84cdFE7"
     }
   },
   "goerli": {
     "NORI": {
-      "proxyAddress": "0x3325e2987D4C0804A020b2Ec4F9BcB3DD50014EE"
+      "proxyAddress": "0x334692E9730Ec7c7f4742759c0F443a69FD28293"
     },
     "Removal": {
-      "proxyAddress": "0x6E6F16f2f18f9D4A670fC101b2cbfDCA77E389c9"
+      "proxyAddress": "0x62da5C2B26618B4Ed1A2a939934B89f5133A4bB9"
     },
     "Certificate": {
-      "proxyAddress": "0x6d1f7F5650EC9C5941B04D5C2Add659FF430642e"
+      "proxyAddress": "0x5266f41eE0ab1Af2C26D795406F83F6c73A940E9"
     },
     "FIFOMarket": {
-      "proxyAddress": "0x4D705793e3dfeeE4A1c0331DAeC2b56D455F983D"
+      "proxyAddress": "0x9c3E7Ff8D40b484f5F12002cf41be6A9beb10357"
     },
-    "NCCR_V0": {
-      "proxyAddress": "0x8B32C0480Ab650D6ba23a5B7A13fE05E186Fa312"
+    "LockedNORI": {
+      "proxyAddress": "0xB141acfF468940b6a7e67b1ffA5236bf10b8fb5e"
     }
   }
 }
