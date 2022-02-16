@@ -100,10 +100,10 @@ const func: CustomHardhatDeployFunction = async (hre) => {
   const parcelIdentifier = hre.ethers.utils.formatBytes32String(
     'someParcelIdentifier'
   );
-  const listNow = true;
+  const list = true;
   const packedData = hre.ethers.utils.defaultAbiCoder.encode(
     ['address', 'bytes32', 'bool'],
-    [fifoMarketInstance.address, parcelIdentifier, listNow]
+    [fifoMarketInstance.address, parcelIdentifier, list]
   );
   if (network.name === 'hardhat') {
     await Promise.all([
