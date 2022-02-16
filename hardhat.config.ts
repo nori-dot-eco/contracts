@@ -87,7 +87,7 @@ extendEnvironment(async (hre) => {
       contractName
     );
     if (contractCode === '0x') {
-      console.log('Deploying proxy and instance');
+      console.log('Deploying proxy and instance', contractName);
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,
         args,
@@ -99,7 +99,10 @@ extendEnvironment(async (hre) => {
         contract.address
       );
     } else {
-      console.log('Found existing proxy, attempting to upgrade instance');
+      console.log(
+        'Found existing proxy, attempting to upgrade instance',
+        contractName
+      );
       contract = await hre.upgrades.upgradeProxy<TContract>(
         proxyAddress,
         contractFactory
@@ -107,7 +110,9 @@ extendEnvironment(async (hre) => {
       );
       console.log('Upgraded instance', contractName, contract.address);
     }
+    console.log('awaiting deployment transaction', contractName);
     await contract.deployed();
+    console.log('successful deployment transaction', contractName);
     return contract;
   };
   hre.deployOrUpgradeProxy = deployOrUpgradeProxy;

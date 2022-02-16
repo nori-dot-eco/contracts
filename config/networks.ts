@@ -25,6 +25,11 @@ const mumbai: NetworkUserConfig = {
   accounts: { mnemonic: STAGING_MNEMONIC },
 };
 
+const polygon: NetworkUserConfig = {
+  url: `https://polygon.infura.io/v3/${INFURA_STAGING_KEY}`, // todo use prod key
+  accounts: { mnemonic: PROD_MNEMONIC },
+};
+
 const mainnet: NetworkUserConfig = {
   url: `https://mainnet.infura.io/v3/${INFURA_STAGING_KEY}`, // todo use prod key
   accounts: { mnemonic: PROD_MNEMONIC },
@@ -33,5 +38,5 @@ const mainnet: NetworkUserConfig = {
 export const networks = {
   hardhat,
   ...(INFURA_STAGING_KEY && STAGING_MNEMONIC && { goerli, mumbai }),
-  ...(INFURA_STAGING_KEY && PROD_MNEMONIC && { mainnet }),
+  ...(INFURA_STAGING_KEY && PROD_MNEMONIC && { mainnet, polygon }),
 } as const;

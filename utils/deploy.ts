@@ -13,15 +13,24 @@ import type {
   NORI__factory,
   FIFOMarket__factory,
   LockedNORI__factory,
+  BridgedPolygonNORI,
+  BridgedPolygonNORI__factory,
 } from '../typechain-types';
 import contractsConfig from '../contracts.json';
 
+import {
+  MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
+  POLYGON_CHILD_CHAIN_MANAGER_PROXY,
+  STAGING_DEPLOYMENT_ADDRESS,
+} from '@/constants/addresses';
+
 export interface Contracts {
-  Removal: Removal;
-  NORI: NORI;
-  FIFOMarket: FIFOMarket;
-  LockedNORI: LockedNORI;
-  Certificate: Certificate;
+  Removal?: Removal;
+  NORI?: NORI;
+  BridgedPolygonNORI?: BridgedPolygonNORI;
+  FIFOMarket?: FIFOMarket;
+  LockedNORI?: LockedNORI;
+  Certificate?: Certificate;
 }
 
 export const verifyContracts = async ({
@@ -86,56 +95,76 @@ export const deployContracts = async ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<Contracts> => {
-  const noriInstance = await hre.deployOrUpgradeProxy<NORI, NORI__factory>({
-    contractName: 'NORI',
-    args: [],
-  });
-  const removalInstance = await hre.deployOrUpgradeProxy<
-    Removal,
-    Removal__factory
-  >({
-    contractName: 'Removal',
-    args: [],
-    options: { initializer: 'initialize()' },
-  });
-  const certificateInstance = await hre.deployOrUpgradeProxy<
-    Certificate,
-    Certificate__factory
-  >({
-    contractName: 'Certificate',
-    args: [],
-    options: { initializer: 'initialize()' },
-  });
-  const fifoMarketInstance = await hre.deployOrUpgradeProxy<
-    FIFOMarket,
-    FIFOMarket__factory
-  >({
-    contractName: 'FIFOMarket',
-    args: [
-      removalInstance.address,
-      noriInstance.address,
-      certificateInstance.address,
-      hre.namedAccounts.noriWallet,
-      15,
-    ],
-    options: {
-      initializer: 'initialize(address,address,address,address,uint256)',
-    },
-  });
-  const lNoriInstance = await hre.deployOrUpgradeProxy<
-    LockedNORI,
-    LockedNORI__factory
-  >({
-    contractName: 'LockedNORI',
-    args: [noriInstance.address],
-    options: { initializer: 'initialize(address)' },
-  });
+  const isPolygonNetwork = ['mumbai', 'polygon', 'hardhat'].includes(
+    hre.network.name
+  );
+  const noriInstance =
+    !isPolygonNetwork || hre.network.name === 'hardhat'
+      ? await hre.deployOrUpgradeProxy<NORI, NORI__factory>({
+          contractName: 'NORI',
+          args: [],
+        })
+      : undefined;
+  const removalInstance = isPolygonNetwork
+    ? await hre.deployOrUpgradeProxy<Removal, Removal__factory>({
+        contractName: 'Removal',
+        args: [],
+        options: { initializer: 'initialize()' },
+      })
+    : undefined;
+  const certificateInstance = isPolygonNetwork
+    ? await hre.deployOrUpgradeProxy<Certificate, Certificate__factory>({
+        contractName: 'Certificate',
+        args: [],
+        options: { initializer: 'initialize()' },
+      })
+    : undefined;
+  const bridgedPolygonNoriInstance = isPolygonNetwork
+    ? await hre.deployOrUpgradeProxy<
+        BridgedPolygonNORI,
+        BridgedPolygonNORI__factory
+      >({
+        contractName: 'BridgedPolygonNORI',
+        args: [
+          hre.network.name === 'polygon'
+            ? POLYGON_CHILD_CHAIN_MANAGER_PROXY
+            : MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
+        ],
+        options: { initializer: 'initialize(address)' },
+      })
+    : undefined;
+  const fifoMarketInstance =
+    removalInstance && certificateInstance && bridgedPolygonNoriInstance
+      ? await hre.deployOrUpgradeProxy<FIFOMarket, FIFOMarket__factory>({
+          contractName: 'FIFOMarket',
+          args: [
+            removalInstance.address,
+            bridgedPolygonNoriInstance.address,
+            certificateInstance.address,
+            hre.namedAccounts.noriWallet,
+            15,
+          ],
+          options: {
+            initializer: 'initialize(address,address,address,address,uint256)',
+          },
+        })
+      : undefined;
+  const lNoriInstance = bridgedPolygonNoriInstance
+    ? await hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
+        contractName: 'LockedNORI',
+        args: [bridgedPolygonNoriInstance.address],
+        options: { initializer: 'initialize(address)' },
+      })
+    : undefined;
   return {
-    NORI: noriInstance,
-    Removal: removalInstance,
-    Certificate: certificateInstance,
-    FIFOMarket: fifoMarketInstance,
-    LockedNORI: lNoriInstance,
+    ...(noriInstance && { NORI: noriInstance }),
+    ...(bridgedPolygonNoriInstance && {
+      BridgedPolygonNORI: bridgedPolygonNoriInstance,
+    }),
+    ...(removalInstance && { Removal: removalInstance }),
+    ...(certificateInstance && { Certificate: certificateInstance }),
+    ...(fifoMarketInstance && { FIFOMarket: fifoMarketInstance }),
+    ...(lNoriInstance && { LockedNORI: lNoriInstance }),
   };
 };
 
@@ -144,15 +173,14 @@ export const validateDeployment = ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
 }): void => {
-  if (hre.network.name === 'mainnet') {
+  if (['polygon', 'mainnet'].includes(hre.network.name)) {
     throw new Error('You cannot deploy to mainnet yet');
   }
   if (
     (['goerli', 'mumbai'].includes(hre.network.name) &&
-      hre.namedAccounts.admin !==
-        '0x465d5a3fFeA4CD109043499Fa576c3E16f918463') ||
+      hre.namedAccounts.admin !== STAGING_DEPLOYMENT_ADDRESS) ||
     (['polygon', 'mainnet'].includes(hre.network.name) &&
-      hre.namedAccounts.admin !== '0x465d5a3fFeA4CD109043499Fa576c3E16f918463')
+      hre.namedAccounts.admin !== STAGING_DEPLOYMENT_ADDRESS)
   ) {
     throw new Error(
       `You can only deploy to ${hre.network.name} using the admin account`
@@ -208,36 +236,34 @@ export const seedContracts = async ({
   hre: CustomHardHatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
-  await contracts.Certificate.addMinter(contracts.FIFOMarket.address); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
-  console.log('Added FIFOMarket as a minter of Certificate');
-  if (
-    hre.network.name === 'hardhat' &&
-    process.env.MINT &&
-    process.env.MINT !== 'false'
-  ) {
-    const parcelIdentifier = hre.ethers.utils.formatBytes32String(
-      'someParcelIdentifier'
-    );
-    const listNow = true;
-    const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-      ['address', 'bytes32', 'bool'],
-      [contracts.FIFOMarket.address, parcelIdentifier, listNow]
-    );
-    await Promise.all([
-      contracts.Removal.mintBatch(
+  if (contracts.Certificate && contracts.FIFOMarket) {
+    await contracts.Certificate?.addMinter(contracts.FIFOMarket?.address); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
+    console.log('Added FIFOMarket as a minter of Certificate');
+  }
+  if (process.env.MINT && process.env.MINT !== 'false') {
+    if (contracts.Certificate && contracts.FIFOMarket && contracts.Removal) {
+      const parcelIdentifier = hre.ethers.utils.formatBytes32String(
+        'someParcelIdentifier'
+      );
+      const listNow = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bytes32', 'bool'],
+        [contracts.FIFOMarket.address, parcelIdentifier, listNow]
+      );
+      await contracts.Removal.mintBatch(
         hre.namedAccounts.supplier,
         [ethers.utils.parseUnits('100')],
         [2018],
         packedData
-      ),
-      contracts.NORI.mint(
+      );
+      console.log('Listed 100 NRTs for sale in FIFOMarket');
+    }
+    if (contracts.NORI) {
+      await contracts.NORI.send(
         hre.namedAccounts.buyer,
         ethers.utils.parseUnits('1000000'),
-        ethers.utils.formatBytes32String('0x0'),
         ethers.utils.formatBytes32String('0x0')
-      ),
-    ]);
-    console.log('Minted 1000000 NORI to buyer wallet', hre.namedAccounts.buyer);
-    console.log('Listed 100 NRTs for sale in FIFOMarket');
+      );
+    }
   }
 };

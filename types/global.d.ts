@@ -121,6 +121,7 @@ interface CustomHardhatUpgrades extends HardhatUpgrades {
 }
 
 declare global {
+  type RequiredKeys<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
   type InstanceOfContract<TContract extends Contract> = ReturnType<
     TContract['attach']
   >;
@@ -136,7 +137,8 @@ declare global {
     | 'NORI'
     | 'Removal'
     | 'Certificate'
-    | 'LockedNORI';
+    | 'LockedNORI'
+    | 'BridgedPolygonNORI';
   var ethers: Omit<
     typeof defaultEthers & HardhatEthersHelpers,
     'getContractFactory'

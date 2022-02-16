@@ -26,9 +26,14 @@ export const TASK = {
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
+    const network = hre.network.name;
+    if (
+      !(network === 'polygon' || network === 'hardhat' || network === 'mumbai')
+    ) {
+      throw new Error(`Unsupported network: ${network}`);
+    }
     return CONTRACT_FUNCTION_TASK_RUN({
-      contractAddress: (contractsConfig[hre.network.name] as any).LockedNORI
-        .proxyAddress,
+      contractAddress: contractsConfig[network].LockedNORI.proxyAddress,
       contractAbi: (await require('@/artifacts/LockedNORI.sol/LockedNORI.json'))
         .abi,
       from,
