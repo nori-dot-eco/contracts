@@ -57,7 +57,7 @@
   "scripts": {
     "test": "MINT=false ETHERNAL=false LOG=false hardhat test --deploy-fixture",
     "test:gas": "REPORT_GAS=true yarn test",
-    "test:coverage": "MINT=false ETHERNAL=false hardhat coverage --solcoverjs ./.solcover.js",
+    "test:coverage": "hardhat clean && hardhat compile && MINT=false ETHERNAL=false hardhat coverage --solcoverjs ./.solcover.js",
     "prepare": "yarn build",
     "build": "hardhat compile"
   }
