@@ -4,11 +4,13 @@ import type {
   Removal,
   LockedNORI,
   NORI,
+  BridgedPolygonNORI,
 } from '../../typechain-types';
 import * as contractsConfig from '../../contracts.json';
 
 export interface Contracts {
   nori: NORI;
+  bpNori: BridgedPolygonNORI;
   removal: Removal;
   certificate: Certificate;
   fifoMarket: FIFOMarket;
@@ -39,6 +41,12 @@ export const getDeployments = async ({
     ).abi,
     contractsConfig.hardhat.Certificate.proxyAddress
   )) as Certificate;
+  const bridgedPolygonNoriInstance = (await ethers.getContractAt(
+    (
+      await require('@/artifacts/BridgedPolygonNORI.sol/BridgedPolygonNORI.json')
+    ).abi,
+    contractsConfig.hardhat.BridgedPolygonNORI.proxyAddress
+  )) as BridgedPolygonNORI;
   const fifoMarketInstance = (await ethers.getContractAt(
     (
       await require('@/artifacts/FIFOMarket.sol/FIFOMarket.json')
@@ -54,6 +62,7 @@ export const getDeployments = async ({
 
   return {
     nori: noriInstance,
+    bpNori: bridgedPolygonNoriInstance,
     removal: removalInstance,
     certificate: certificateInstance,
     fifoMarket: fifoMarketInstance,
