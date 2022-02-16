@@ -38,6 +38,13 @@ contract Removal is
     bool list;
   }
 
+  /**
+   * @notice Emitted on successful minting of a batch of removals.
+   */
+  // todo: do we need any indexed filters for this? like the parcel id or something?
+  // how do we know which set of removals being minted corresponds exactly to an event emission?
+  event BatchMinted(uint256[] tokenIds);
+
   mapping(uint256 => Vintage) private _vintages;
   mapping(bytes32 => uint256) private _vintageToTokenIdMap;
   uint256 private _latestTokenId;
@@ -128,15 +135,11 @@ contract Removal is
     }
     _latestTokenId = ids[ids.length - 1] + 1;
     super.mintBatch(to, ids, amounts, data);
+    emit BatchMinted(ids);
+
     setApprovalForAllAsAdmin(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
     if (decodedData.list) {
-      super.safeBatchTransferFrom(
-        to,
-        decodedData.marketAddress,
-        ids,
-        amounts,
-        data
-      );
+      safeBatchTransferFrom(to, decodedData.marketAddress, ids, amounts, data);
     }
   }
 
@@ -152,6 +155,7 @@ contract Removal is
   ) public override {
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
+    // todo should this emit an event too?
   }
 
   function supportsInterface(bytes4 interfaceId)

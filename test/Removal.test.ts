@@ -59,7 +59,7 @@ const setupTest = hardhat.deployments.createFixture(async (hre) => {
 
 describe('Removal', () => {
   describe('Minting removals', () => {
-    it('should mint a batch of removals without listing any', async () => {
+    it.only('should mint a batch of removals without listing any', async () => {
       const {
         contracts: { Removal, FIFOMarket },
       } = await setupTest();
@@ -76,7 +76,8 @@ describe('Removal', () => {
         ['address', 'bytes32', 'bool'],
         [FIFOMarket.address, parcelIdentifier, listNow]
       );
-      await Removal.mintBatch(
+
+      const transactionResponse = await Removal.mintBatch(
         supplier,
         removalBalances.map((balance) =>
           hardhat.ethers.utils.parseUnits(balance)
@@ -84,6 +85,17 @@ describe('Removal', () => {
         removalVintages,
         packedData
       );
+
+      const transactionReceipt = await transactionResponse.wait();
+      const batchMintedEvent = transactionReceipt?.events?.filter((event) => {
+        return event.event === 'BatchMinted';
+      })[0];
+      console.log(batchMintedEvent);
+      console.log(batchMintedEvent?.args?.tokenIds.toString());
+
+      // console.log(transactionReceipt?.events?.[0]);
+      // console.log(transactionReceipt?.events?.[1]);
+      // console.log(transactionReceipt?.events?.[1].args?.tokenIds.toString());
 
       const balances = await Promise.all(
         [0, 1, 2, 3].map((tokenId) => {
