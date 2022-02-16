@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820RegistryUpgradeable.sol";
 import "./Removal.sol";
 import "./Certificate.sol";
-import "./NORI.sol";
+import "./BridgedPolygonNORI.sol";
 import "hardhat/console.sol"; // todo
 
 // todo emit events
@@ -27,7 +27,7 @@ contract FIFOMarket is
   IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
   Certificate private _certificate;
-  NORI private _nori;
+  BridgedPolygonNORI private _bridgedPolygonNori;
   mapping(uint256 => uint256) private _queue;
   uint256 private _queueHeadIndex;
   uint256 private _queueNextInsertIndex;
@@ -36,7 +36,7 @@ contract FIFOMarket is
 
   function initialize(
     address removalAddress,
-    address noriAddress,
+    address bridgedPolygonNoriAddress,
     address certificateAddress,
     address noriFeeWalletAddress,
     uint256 noriFee
@@ -47,7 +47,7 @@ contract FIFOMarket is
     __AccessControlEnumerable_init_unchained();
     __ERC1155Receiver_init_unchained();
     _removal = Removal(removalAddress);
-    _nori = NORI(noriAddress);
+    _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
     _certificate = Certificate(certificateAddress);
     _noriFeeWallet = noriFeeWalletAddress;
     _noriFee = noriFee;
@@ -116,8 +116,8 @@ contract FIFOMarket is
     );
     // todo verify this can only be invoked by the nori contract
     require(
-      msg.sender == address(_nori),
-      "FIFOMarket: This contract can only receive NORI"
+      msg.sender == address(_bridgedPolygonNori),
+      "FIFOMarket: This contract can only receive BridgedPolygonNORI"
     );
 
     uint256[] memory ids = new uint256[](_queueLength());
@@ -160,8 +160,8 @@ contract FIFOMarket is
       }
       uint256 noriFee = (amounts[i] / 100) * _noriFee;
       uint256 supplierFee = amounts[i];
-      _nori.transfer(_noriFeeWallet, noriFee);
-      _nori.transfer(suppliers[i], supplierFee);
+      _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
+      _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
     }
     _removal.burnBatch(address(this), ids, amounts);
   }

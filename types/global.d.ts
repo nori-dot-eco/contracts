@@ -25,8 +25,14 @@ import type { networks } from '@/config/networks';
 
 import type { TASKS } from '@/tasks';
 import { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
+import { ContractAddressOrInstance, UpgradeProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
+import { DeploymentsExtension } from 'hardhat-deploy/dist/types';
 
 declare module 'hardhat/config' {
+  type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
+
+  function extendEnvironment(extender: EnvironmentExtender): void;
+
   export type ActionType<ArgsT extends TaskArguments, TActionReturnType> = (
     taskArgs: ArgsT,
     env: CustomHardHatRuntimeEnvironment,
@@ -38,14 +44,17 @@ declare module 'hardhat/config' {
     description?: string,
     action?: ActionType<ArgsT, TActionReturnType>
   ): ConfigurableTaskDefinition;
+
 }
 
 declare module 'hardhat/types/runtime' {
-  interface DeploymentsExtension {
+
+  interface CustomDeploymentsExtension extends Omit<DeploymentsExtension ,'createFixture'>{
     createFixture<T, O>(
       func: FixtureFunc<T, O>,
       id?: string
     ): (options?: O) => Promise<T>;
+
   }
   export type FixtureFunc<T, O> = (
     env: CustomHardHatRuntimeEnvironment,
@@ -56,6 +65,9 @@ declare module 'hardhat/types/runtime' {
     namedSigners:  NamedSigners;
     namedAccounts: NamedAccounts;
   }
+
+  // type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
+
 }
 
 interface GenericDeployFunction {
@@ -76,15 +88,43 @@ interface GenericDeployFunction {
   ): Promise<InstanceOfContract<TC>>;
 }
 
-type InstanceOfContract<TContract extends Contract> = ReturnType<
-  TContract['attach']
->;
+interface GenericUpgradeFunction {
+  <
+    TC extends Contract = Contract,
+    TFactory extends ContractFactory = ContractFactory
+  >(
+    proxy: ContractAddressOrInstance,
+    ImplFactory: TFactory,
+    opts?: UpgradeProxyOptions
+  ): Promise<InstanceOfContract<TC>>;  
+}
+
+interface DeployOrUpgradeProxyFunction {
+  <
+  TContract extends BaseContract,
+  TFactory extends ContractFactory
+  >({
+    contractName,
+    args,
+    options,
+  }: {
+    contractName: ContractNames;
+    args: unknown[];
+    options?: DeployProxyOptions;
+  }): Promise<InstanceOfContract<TContract>>;
+}
+
 
 interface CustomHardhatUpgrades extends HardhatUpgrades {
   deployProxy: GenericDeployFunction; // overridden because of a mismatch in ethers types
+  upgradeProxy: GenericUpgradeFunction; // overridden because of a mismatch in ethers types
 }
 
 declare global {
+  type RequiredKeys<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
+  type InstanceOfContract<TContract extends Contract> = ReturnType<
+    TContract['attach']
+  >;
   type TypeChainBaseContract = BaseContract & { contractName: string };
   type NamedAccounts = typeof namedAccounts;
   type NamedSigners = { [Property in keyof NamedAccounts]: JsonRpcSigner };
@@ -97,7 +137,8 @@ declare global {
     | 'NORI'
     | 'Removal'
     | 'Certificate'
-    | 'LockedNORI';
+    | 'LockedNORI'
+    | 'BridgedPolygonNORI';
   var ethers: Omit<
     typeof defaultEthers & HardhatEthersHelpers,
     'getContractFactory'
@@ -122,6 +163,7 @@ declare global {
     upgrades: CustomHardhatUpgrades;
     network: Omit<Network, 'name'> & { name: keyof typeof networks };
     ethers: typeof ethers;
+    deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
   };
 
   interface CustomHardhatDeployFunction extends Partial<DeployFunction> {
@@ -135,6 +177,7 @@ declare global {
       INFURA_STAGING_KEY?: string;
       TENDERLY_USERNAME?: string;
       TENDERLY_PROJECT?: string;
+      ETHERNAL?: string;
       ETHERNAL_EMAIL?: string;
       ETHERNAL_PASSWORD?: string;
       ETHERSCAN_API_KEY?: string;
