@@ -13,6 +13,8 @@ export const docgen: HardhatUserConfig['docgen'] = {
       'Removal',
       'Certificate',
       'LockedNORI',
+      'BridgedPolygonNORI',
+      'ERC777PresetPausablePermissioned',
     ].includes((item as any)?.canonicalName)
       ? (item as any)?.canonicalName?.concat('.md')
       : undefined;
