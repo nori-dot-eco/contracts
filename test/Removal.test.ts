@@ -1,4 +1,4 @@
-import type { BigNumber } from '@nomiclabs/hardhat-ethers/node_modules/ethers';
+import type { BigNumber } from 'ethers';
 
 import type {
   Certificate,
