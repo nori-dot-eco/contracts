@@ -81,13 +81,10 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
-        'someParcelIdentifier'
-      );
       const listNow = true;
       const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bytes32', 'bool'],
-        [FIFOMarket.address, parcelIdentifier, listNow]
+        ['address', 'bool'],
+        [FIFOMarket.address, listNow]
       );
 
       await Promise.all([
@@ -166,14 +163,10 @@ describe('FIFOMarket', () => {
       const buyerInitialNoriBalance = '1000000';
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
-
-      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
-        'someParcelIdentifier'
-      );
       const listNow = true;
       const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bytes32', 'bool'],
-        [FIFOMarket.address, parcelIdentifier, listNow]
+        ['address', 'bool'],
+        [FIFOMarket.address, listNow]
       );
       await Promise.all([
         Removal.mintBatch(
@@ -261,13 +254,10 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
-        'someParcelIdentifier'
-      );
       const listNow = true;
       const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bytes32', 'bool'],
-        [FIFOMarket.address, parcelIdentifier, listNow]
+        ['address', 'bool'],
+        [FIFOMarket.address, listNow]
       );
       await Promise.all([
         Removal.mintBatch(supplier, removalBalances, vintages, packedData),
@@ -343,13 +333,10 @@ describe('FIFOMarket', () => {
       const investor2InitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
-        'someParcelIdentifier'
-      );
       const listNow = true;
       const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bytes32', 'bool'],
-        [FIFOMarket.address, parcelIdentifier, listNow]
+        ['address', 'bool'],
+        [FIFOMarket.address, listNow]
       );
       await Promise.all([
         Removal.mintBatch(
@@ -512,13 +499,10 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const parcelIdentifier = hardhat.ethers.utils.formatBytes32String(
-        'someParcelIdentifier'
-      );
       const listNow = true;
       const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bytes32', 'bool'],
-        [FIFOMarket.address, parcelIdentifier, listNow]
+        ['address', 'bool'],
+        [FIFOMarket.address, listNow]
       );
       await Promise.all([
         Removal.mintBatch(

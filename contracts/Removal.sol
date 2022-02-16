@@ -26,7 +26,6 @@ contract Removal is
   struct Vintage {
     address supplier;
     uint16 vintage;
-    bytes32 uniqueId;
     // todo: location
     // todo: methodology
     // todo: supplier name
@@ -34,19 +33,15 @@ contract Removal is
 
   struct BatchMintRemovalsData {
     address marketAddress;
-    bytes32 uniqueId;
     bool list;
   }
 
   /**
    * @notice Emitted on successful minting of a batch of removals.
    */
-  // todo: do we need any indexed filters for this? like the parcel id or something?
-  // how do we know which set of removals being minted corresponds exactly to an event emission?
   event BatchMinted(uint256[] tokenIds);
 
   mapping(uint256 => Vintage) private _vintages;
-  mapping(bytes32 => uint256) private _vintageToTokenIdMap;
   uint256 private _latestTokenId;
   string public name; // todo why did I add this
 
@@ -62,25 +57,6 @@ contract Removal is
    */
   function vintage(uint256 removalId) public view returns (Vintage memory) {
     return _vintages[removalId];
-  }
-
-  /**
-   * @dev returns the token ids for a set of removals given each one's vintage and the identifying data that was provided
-   * in its mint transaction. Arguments should be arrays of the same length as they correspond to the same removals.
-   * @param uniqueIdentifiers The unique identifier that was passed at the time of minting each removal.
-   * @param removalVintages The vintage (year) of each removal.
-   */
-  function tokenIdsForRemovals(
-    bytes32[] memory uniqueIdentifiers,
-    uint256[] memory removalVintages
-  ) public view returns (uint256[] memory) {
-    uint256[] memory ids = new uint256[](removalVintages.length);
-    for (uint256 i = 0; i < removalVintages.length; i++) {
-      ids[i] = _vintageToTokenIdMap[
-        keccak256(abi.encodePacked(uniqueIdentifiers[i], removalVintages[i]))
-      ];
-    }
-    return ids;
   }
 
   /**
@@ -121,17 +97,11 @@ contract Removal is
 
     uint256[] memory ids = new uint256[](vintages.length);
     for (uint256 i = 0; i < vintages.length; i++) {
-      bytes32 uniqueIdHash = keccak256(
-        abi.encodePacked(decodedData.uniqueId, vintages[i])
-      );
-
       ids[i] = _latestTokenId + i;
       _vintages[_latestTokenId + i] = Vintage({
         vintage: uint16(vintages[i]),
-        supplier: to,
-        uniqueId: uniqueIdHash
+        supplier: to
       });
-      _vintageToTokenIdMap[uniqueIdHash] = _latestTokenId + i;
     }
     _latestTokenId = ids[ids.length - 1] + 1;
     super.mintBatch(to, ids, amounts, data);
