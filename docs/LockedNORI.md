@@ -1,9 +1,9 @@
 ## LockedNORI
 
 
-Based on the mechanics of a wrapped ERC-777 token, this contract layers in schedules to withdrawal
-functionality to implement *vesting* (a revocable grant) *lockup* (an irrevocable timelock on to implement *vesting*
-(a revocable *vesting* (a revocable grant) *lockup* (an irrevocable timelock on utility).
+Based on the mechanics of a wrapped ERC-777 token, this contract layers schedules over the withdrawal
+functionality to implement _vesting_ (a revocable grant)
+and _lockup_ (an irrevocable timelock on utility).
 ##### Behaviors and features
 ###### Grants
 - _Grants_ define lockup periods and vesting schedules for tokens
@@ -18,7 +18,7 @@ of each block
 ###### Lockup
 - _Lockup_ refers to tokens that are guaranteed to be available to the grantee but are subject to a time delay before
 they are usable / transferrable out of this smart contract. This is a standard mechanism used to avoid sudden floods
-of liquidity in the NORI token that could severely depress the price.
+of liquidity in the BridgedPolygonNORI token that could severely depress the price.
 - Unlock is always at the same time or lagging vesting
 - Transfer of LockedNORI under lockup is forbidden
 ###### Cliffs
@@ -33,18 +33,18 @@ setting one of both cliff times to the start time or end time, and/or by setting
   - all functions that mutate state are pausable
 - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
    - TOKEN_GRANTER_ROLE
-     - Can create token grants without sending NORI to the contract &#x60;createGrant&#x60;
+     - Can create token grants without sending BridgedPolygonNORI to the contract &#x60;createGrant&#x60;
    - PAUSER_ROLE
      - Can pause and unpause the contract
    - DEFAULT_ADMIN_ROLE
      - This is the only role that can add/revoke other accounts to any of the roles
-- [Can receive NORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
-  - NORI is wrapped and grants are created upon receipt
+- [Can receive BridgedPolygonNORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
+  - BridgedPolygonNORI is wrapped and grants are created upon receipt
 - [Limited ERC-777 functionality](https://eips.ethereum.org/EIPS/eip-777)
   - burn and operatorBurn will revert as only the internal variants are expected to be used
-  - mint is not callable as only the internal variants are expected to be used when wrapping NORI
+  - mint is not callable as only the internal variants are expected to be used when wrapping BridgedPolygonNORI
 - [Limited ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/erc20)
-  - mint is not callable as only the internal variants are expected to be used when wrapping NORI
+  - mint is not callable as only the internal variants are expected to be used when wrapping BridgedPolygonNORI
   - burn functions are not externally callable
 - [Extended Wrapped ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Wrapper)
   - In absence of a grant LockedNORI functions identically to a standard wrapped token
@@ -165,18 +165,6 @@ Role conferring creation and revocation of token grants.
 
 
 
-### PAUSER_ROLE
-
-```solidity
-bytes32 PAUSER_ROLE
-```
-
-Role conferring the ability to pause and unpause mutable functions
-of the contract
-
-
-
-
 ### ERC777_TOKENS_RECIPIENT_HASH
 
 ```solidity
@@ -187,8 +175,8 @@ Used to register the ERC777TokensRecipient recipient interface in the
 ERC-1820 registry
 
 _Registering that LockedNORI implements the ERC777TokensRecipient interface with the registry is a
-requiremnt to be able to receive ERC-777 NORI tokens. Once registered, sending NORI tokens to this contract
-will trigger tokensReceived as part of the lifecycle of the NORI transaction_
+requiremnt to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
+tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction_
 
 
 
@@ -203,13 +191,13 @@ A mapping from grantee to grant
 
 
 
-### _nori
+### _bridgedPolygonNori
 
 ```solidity
-contract NORI _nori
+contract BridgedPolygonNORI _bridgedPolygonNori
 ```
 
-The NORI contract that this contract wraps tokens for
+The BridgedPolygonNORI contract that this contract wraps tokens for
 
 
 
@@ -224,8 +212,8 @@ The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection reg
 contract
 
 _Registering that LockedNORI implements the ERC777TokensRecipient interface with the registry is a
-requiremnt to be able to receive ERC-777 NORI tokens. Once registered, sending NORI tokens to this contract
-will trigger tokensReceived as part of the lifecycle of the NORI transaction_
+requiremnt to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
+tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction_
 
 
 
@@ -270,10 +258,10 @@ _Emitted on withdwal of fully unlocked tokens._
 function tokensReceived(address, address, address, uint256 amount, bytes userData, bytes operatorData) external
 ```
 
-This function is triggered when NORI is sent to this contract
+This function is triggered when BridgedPolygonNORI is sent to this contract
 
-_Sending NORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard because this
-contract is a registered ERC777 tokens recipient.
+_Sending BridgedPolygonNORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard
+because this contract is a registered ERC777 tokens recipient.
 [See here for more](
 https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)_
 
@@ -285,9 +273,10 @@ https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipie
 function withdrawTo(address account, uint256 amount) external returns (bool)
 ```
 
-Unwrap NORI tokens and makes them available for use in the NORI contract
+Unwrap BridgedPolygonNORI tokens and makes them available for use in the BridgedPolygonNORI contract
 
-_This function burns &#x60;amount&#x60; of wrapped tokens and withdraws them to the corresponding {NORI} tokens.
+_This function burns &#x60;amount&#x60; of wrapped tokens and withdraws them to the corresponding {BridgedPolygonNORI}
+tokens.
 ##### Requirements:
 - Can only be used when the contract is not paused._
 
@@ -302,7 +291,7 @@ function createGrant(uint256 amount, address recipient, uint256 startTime, uint2
 Sets up a vesting + lockup schedule for recipient.
 
 _This function can be used as an alternative way to set up a grant that doesn&#x27;t require
-wrapping NORI first.
+wrapping BridgedPolygonNORI first.
 ##### Requirements:
 - Can only be used when the contract is not paused.
 - Can only be used when the caller has the &#x60;TOKEN_GRANTER_ROLE&#x60; role_
@@ -312,12 +301,28 @@ wrapping NORI first.
 ### revokeUnvestedTokens
 
 ```solidity
-function revokeUnvestedTokens(uint256 atTime, address from, address to) external
+function revokeUnvestedTokens(address from, address to, uint256 atTime) external
 ```
 
 
 
 _revokeUnvestedTokens: Truncates a vesting grant.
+Transfers any unvested tokens in &#x60;from&#x60;&#x27;s grant to &#x60;to&#x60;
+and reduces the total grant size.
+No change is made to balances that have vested but not yet been claimed
+whether locked or not._
+
+
+
+### revokeUnvestedTokenAmount
+
+```solidity
+function revokeUnvestedTokenAmount(address from, address to, uint256 atTime, uint256 amount) external
+```
+
+
+
+_revokeUnvestedTokenAmount: Truncates a vesting grant.
 Transfers any unvested tokens in &#x60;from&#x60;&#x27;s grant to &#x60;to&#x60;
 and reduces the total grant size.
 No change is made to balances that have vested but not yet been claimed
@@ -349,100 +354,6 @@ _Vested balance less any claimed amount at current block timestamp._
 
 
 
-### initialize
-
-```solidity
-function initialize(contract IERC777Upgradeable noriAddress) public
-```
-
-
-
-
-
-
-### _depositFor
-
-```solidity
-function _depositFor(uint256 amount, bytes userData, bytes operatorData) internal returns (bool)
-```
-
-
-
-_Wraps minting of wrapper token and grant setup._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| amount | uint256 | uint256 Quantity of &#x60;_nori&#x60; to deposit |
-| userData | bytes | CreateTokenGrantParams or DepositForParams |
-| operatorData | bytes | bytes extra information provided by the operator (if any) If &#x60;startTime&#x60; is zero no grant is set up. Satisfies situations where funding of the grant happens over time. |
-
-
-### _createGrant
-
-```solidity
-function _createGrant(uint256 amount, bytes userData) internal
-```
-
-
-
-_Sets up a vesting + lockup schedule for recipient (implementation).
-This will be invoked via the &#x60;tokensReceived&#x60; callback for cases
-where we have the tokens in hand at the time we set up the grant.
-It is also callable externally (see &#x60;grantTo&#x60;) to handle cases
-where tokens are incrementally deposited after the grant is established._
-
-
-
-### _revokeUnvestedTokens
-
-```solidity
-function _revokeUnvestedTokens(uint256 atTime, address from, address to) internal
-```
-
-
-
-_Truncates a vesting grant_
-
-
-
-### _vestedBalanceOf
-
-```solidity
-function _vestedBalanceOf(uint256 atTime, address account) internal view returns (uint256)
-```
-
-
-
-_Vested balance less any claimed amount at &#x60;atTime&#x60; (implementation)_
-
-
-
-### unlockedBalanceOf
-
-```solidity
-function unlockedBalanceOf(address account) public view returns (uint256)
-```
-
-
-
-_Unlocked balance less any claimed amount at current block timestamp._
-
-
-
-### _unlockedBalanceOf
-
-```solidity
-function _unlockedBalanceOf(uint256 atTime, address account) internal view returns (uint256)
-```
-
-Unlocked balance less any claimed amount
-
-_If any tokens have been revoked then the schedule (which doesn&#x27;t get updated) may return more than the total
-grant amount. This is done to preserve the behavior of the unlock schedule despite a reduction in the total
-quantity of tokens vesting.  i.o.w The rate of unlocking does not change after calling &#x60;revokeUnvestedTokens&#x60;_
-
-
-
 ### getGrant
 
 ```solidity
@@ -454,119 +365,14 @@ Returns all governing settings for a grant.
 
 
 
-### _beforeTokenTransfer
+### initialize
 
 ```solidity
-function _beforeTokenTransfer(address operator, address from, address to, uint256 amount) internal
-```
-
-Hook that is called before send, transfer, mint, and burn. Used used to disable transferring locked nori.
-
-_Follows the rules of hooks defined [here](
- https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
-##### Requirements:
-- the contract must not be paused
-- One of the following must be true:
-   - the sender is minting (which should ONLY occur when NORI is being wrapped via &#x60;_depositFor&#x60;)
-   - the sender is not minting and one of the following must be true:
-     - the sender is the admin and the grant exists
-     - the transfer amount is &lt;&#x3D; the sender&#x27;s unlocked balance_
-
-
-
-### _beforeRoleChange
-
-```solidity
-function _beforeRoleChange(bytes32, address) internal
+function initialize(contract IERC777Upgradeable bridgedPolygonNoriAddress) public
 ```
 
 
 
-_Hook that is called before granting/revoking roles via &#x60;grantRole&#x60;, &#x60;revokeRole&#x60;, &#x60;renounceRole&#x60;
-This overrides the behavior of &#x60;_grantRole&#x60;, &#x60;_setupRole&#x60;, &#x60;_revokeRole&#x60;, and &#x60;_renounceRole&#x60; with pausable
-behavior. When the contract is paused, these functions will not be callable. Follows the rules of hooks
-defined [here](https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
-##### Requirements:
-- the contract must not be paused_
-
-
-
-### approve
-
-```solidity
-function approve(address spender, uint256 value) public returns (bool)
-```
-
-
-
-_See {ERC777-approve}.
-NOTE: If &#x60;value&#x60; is the maximum &#x60;uint256&#x60;, the allowance is not updated on
-&#x60;transferFrom&#x60;. This is semantically equivalent to an infinite approval.
-Note that accounts cannot have allowance issued by their operators.
-##### Requirements:
-- the contract must not be paused_
-
-
-
-### _grantRole
-
-```solidity
-function _grantRole(bytes32 role, address account) internal
-```
-
-
-
-_Grants &#x60;role&#x60; to &#x60;account&#x60; if the &#x60;_beforeRoleGranted&#x60;
-hook is satisfied
-##### Requirements:
-- the contract must not be paused_
-
-
-
-### _revokeRole
-
-```solidity
-function _revokeRole(bytes32 role, address account) internal
-```
-
-
-
-_Revokes &#x60;role&#x60; from &#x60;account&#x60; if the &#x60;_beforeRoleGranted&#x60;
-hook is satisfied
-##### Requirements:
-- the contract must not be paused_
-
-
-
-### pause
-
-```solidity
-function pause() public
-```
-
-Used to pause the contract so that state mutating functions may **not** be called.
-
-_Pauses all mutable functionality.
-See {ERC20Pausable} and {Pausable-_pause}.
-##### Requirements:
-- the caller must have the &#x60;PAUSER_ROLE&#x60;.
-- the contract must not be paused_
-
-
-
-### unpause
-
-```solidity
-function unpause() public
-```
-
-Used to unpause the contract so that state mutating functions may be called.
-
-_Unpauses all mutable functionality
-See {ERC20Pausable} and {Pausable-_unpause}.
-##### Requirements
-- the caller must have the &#x60;PAUSER_ROLE&#x60;.
-- the contract must be paused_
 
 
 
@@ -594,17 +400,108 @@ _This function is not currently supported from external callers so we override i
 
 
 
-### authorizeOperator
+### unlockedBalanceOf
 
 ```solidity
-function authorizeOperator(address operator) public
+function unlockedBalanceOf(address account) public view returns (uint256)
 ```
 
-Authorize an operator to spend on behalf of the sender
 
-_See {IERC777-authorizeOperator}.
+
+_Unlocked balance less any claimed amount at current block timestamp._
+
+
+
+### _depositFor
+
+```solidity
+function _depositFor(uint256 amount, bytes userData, bytes operatorData) internal returns (bool)
+```
+
+
+
+_Wraps minting of wrapper token and grant setup._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| amount | uint256 | uint256 Quantity of &#x60;_bridgedPolygonNori&#x60; to deposit |
+| userData | bytes | CreateTokenGrantParams or DepositForParams |
+| operatorData | bytes | bytes extra information provided by the operator (if any) If &#x60;startTime&#x60; is zero no grant is set up. Satisfies situations where funding of the grant happens over time. |
+
+
+### _createGrant
+
+```solidity
+function _createGrant(uint256 amount, bytes userData) internal
+```
+
+
+
+_Sets up a vesting + lockup schedule for recipient (implementation).
+This will be invoked via the &#x60;tokensReceived&#x60; callback for cases
+where we have the tokens in hand at the time we set up the grant.
+It is also callable externally (see &#x60;grantTo&#x60;) to handle cases
+where tokens are incrementally deposited after the grant is established._
+
+
+
+### _revokeUnvestedTokens
+
+```solidity
+function _revokeUnvestedTokens(address from, address to, uint256 atTime, uint256 amount) internal
+```
+
+
+
+_Truncates a vesting grant_
+
+
+
+### _beforeTokenTransfer
+
+```solidity
+function _beforeTokenTransfer(address operator, address from, address to, uint256 amount) internal
+```
+
+Hook that is called before send, transfer, mint, and burn. Used used to disable transferring locked nori.
+
+_Follows the rules of hooks defined [here](
+ https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
 ##### Requirements:
-- the contract must not be paused_
+- the contract must not be paused
+- the recipient cannot be the zero address (e.g., no burning of tokens is allowed)
+- One of the following must be true:
+   - the operation is minting (which should ONLY occur when BridgedPolygonNORI is being wrapped via &#x60;_depositFor&#x60;)
+   - the operation is a burn and _all_ of the following must be true:
+     - the operator has TOKEN_GRANTER_ROLE
+     - the operator is not operating on their own balance
+     - the transfer amount is &lt;&#x3D; the sender&#x27;s unlocked balance_
+
+
+
+### _vestedBalanceOf
+
+```solidity
+function _vestedBalanceOf(address account, uint256 atTime) internal view returns (uint256)
+```
+
+
+
+_Vested balance less any claimed amount at &#x60;atTime&#x60; (implementation)_
+
+
+
+### _unlockedBalanceOf
+
+```solidity
+function _unlockedBalanceOf(address account, uint256 atTime) internal view returns (uint256)
+```
+
+Unlocked balance less any claimed amount
+
+_If any tokens have been revoked then the schedule (which doesn&#x27;t get updated) may return more than the total
+grant amount. This is done to preserve the behavior of the unlock schedule despite a reduction in the total
+quantity of tokens vesting.  i.o.w The rate of unlocking does not change after calling &#x60;revokeUnvestedTokens&#x60;_
 
 
 

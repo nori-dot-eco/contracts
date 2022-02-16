@@ -41,10 +41,10 @@ contract Certificate _certificate
 
 
 
-### _nori
+### _bridgedPolygonNori
 
 ```solidity
-contract NORI _nori
+contract BridgedPolygonNORI _bridgedPolygonNori
 ```
 
 
@@ -110,7 +110,7 @@ uint256 _noriFee
 ### initialize
 
 ```solidity
-function initialize(address removalAddress, address noriAddress, address certificateAddress, address noriFeeWalletAddress, uint256 noriFee) public
+function initialize(address removalAddress, address bridgedPolygonNoriAddress, address certificateAddress, address noriFeeWalletAddress, uint256 noriFee) public
 ```
 
 
