@@ -18,11 +18,13 @@ import type {
 } from '../typechain-types';
 import contractsConfig from '../contracts.json';
 
+import { formatTokenAmount } from '@/utils/units';
 import {
   MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
   POLYGON_CHILD_CHAIN_MANAGER_PROXY,
   STAGING_DEPLOYMENT_ADDRESS,
 } from '@/constants/addresses';
+import { mockDepositNoriToPolygon } from '@/test/helpers';
 
 export interface Contracts {
   Removal?: Removal;
@@ -252,17 +254,47 @@ export const seedContracts = async ({
       );
       await contracts.Removal.mintBatch(
         hre.namedAccounts.supplier,
-        [ethers.utils.parseUnits('100')],
+        [formatTokenAmount(100)],
         [2018],
         packedData
       );
+      await contracts.Removal.connect(
+        hre.namedSigners.supplier
+      ).safeBatchTransferFrom(
+        hre.namedAccounts.supplier,
+        contracts.FIFOMarket.address,
+        [0],
+        [formatTokenAmount(100)],
+        ethers.utils.formatBytes32String('0x0')
+      );
       console.log('Listed 100 NRTs for sale in FIFOMarket');
     }
-    if (contracts.NORI) {
-      await contracts.NORI.send(
+    if (
+      contracts.BridgedPolygonNORI &&
+      contracts.NORI &&
+      hre.network.name === 'hardhat'
+    ) {
+      await mockDepositNoriToPolygon({
+        hre,
+        contracts: {
+          BridgedPolygonNORI: contracts.BridgedPolygonNORI,
+          NORI: contracts.NORI,
+        },
+        amount: formatTokenAmount(500_000_000),
+        to: hre.namedAccounts.admin,
+        signer: hre.namedSigners.admin,
+      });
+      console.log(
+        'Mock deposited 500_000_000 NORI into BridgedPolygonNORI for the admin account'
+      );
+      await contracts.BridgedPolygonNORI.connect(hre.namedSigners.admin).send(
+        // todo stop minting/seeding during deployment
         hre.namedAccounts.buyer,
-        ethers.utils.parseUnits('1000000'),
-        ethers.utils.formatBytes32String('0x0')
+        formatTokenAmount(1_000_000),
+        hre.ethers.utils.formatBytes32String('0x0')
+      );
+      console.log(
+        'Sent some BridgedPolygonNORI from the admin account to the buyer account'
       );
     }
   }
