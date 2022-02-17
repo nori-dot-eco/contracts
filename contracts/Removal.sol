@@ -62,7 +62,7 @@ contract Removal is
   /**
    * @dev See {IERC1155-setApprovalForAll}.
    */
-  function setApprovalForAllAsAdmin(
+  function setApprovalForAll(
     address owner,
     address operator,
     bool approved
@@ -107,7 +107,7 @@ contract Removal is
     super.mintBatch(to, ids, amounts, data);
     emit BatchMinted(ids);
 
-    setApprovalForAllAsAdmin(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
+    setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
     if (decodedData.list) {
       safeBatchTransferFrom(to, decodedData.marketAddress, ids, amounts, data);
     }
