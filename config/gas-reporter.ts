@@ -15,4 +15,5 @@ export const gasReporter: HardhatUserConfig['gasReporter'] = {
     'https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice',
   coinmarketcap: COINMARKETCAP_API_KEY,
   ...(REPORT_GAS_FILE && { outputFile: REPORT_GAS_FILE }),
+  maxMethodDiff: 1,
 };
