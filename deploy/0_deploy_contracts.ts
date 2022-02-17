@@ -97,13 +97,10 @@ const func: CustomHardhatDeployFunction = async (hre) => {
     contractNames: ['NCCR_V0', 'NORI', 'Removal', 'Certificate', 'FIFOMarket'],
   });
   console.log('Added FIFOMarket as a minter of Certificate');
-  const parcelIdentifier = hre.ethers.utils.formatBytes32String(
-    'someParcelIdentifier'
-  );
   const list = true;
   const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-    ['address', 'bytes32', 'bool'],
-    [fifoMarketInstance.address, parcelIdentifier, list]
+    ['address', 'bool'],
+    [fifoMarketInstance.address, list]
   );
   if (network.name === 'hardhat') {
     await Promise.all([
@@ -121,15 +118,6 @@ const func: CustomHardhatDeployFunction = async (hre) => {
       ),
     ]);
     console.log('Minted 1000000 NORI to buyer wallet', buyer);
-    // await removalInstance
-    //   .connect(await ethers.getSigner(supplier))
-    //   .safeBatchTransferFrom(
-    //     supplier,
-    //     fifoMarketInstance.address,
-    //     [0],
-    //     [ethers.utils.parseUnits('100')],
-    //     ethers.utils.formatBytes32String('0x0')
-    //   );
     console.log('Listed 100 NRTs for sale in FIFOMarket');
     /*
     Note: the named contracts in the ethernal UI are the proxies.
