@@ -56,7 +56,7 @@ jobs:
       - run:
           name: Submit gas report
           command: |
-            npx codechecks
+            yarn run test:gas && npx codechecks
       - coveralls/upload
 
 workflows:
