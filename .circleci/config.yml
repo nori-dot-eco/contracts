@@ -52,9 +52,12 @@ jobs:
       - run:
           name: Run Contract Tests and Collect Coverage
           command: |
-            yarn run test:coverage
+            REPORT_GAS=true yarn run test:coverage
+      - run:
+          name: Submit gas report
+          command: |
+            npx codechecks
       - coveralls/upload
-      - run: npx codechecks
 
 workflows:
   version: 2
