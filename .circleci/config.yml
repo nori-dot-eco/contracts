@@ -54,6 +54,7 @@ jobs:
           command: |
             yarn run test:coverage
       - coveralls/upload
+      - run: npx codechecks
 
 workflows:
   version: 2
