@@ -26,8 +26,14 @@ export const TASK = {
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
+    const network = hre.network.name;
+    if (
+      !(network === 'mumbai' || network === 'hardhat' || network === 'polygon')
+    ) {
+      throw new Error(`Unsupported network: ${network}`);
+    }
     return CONTRACT_FUNCTION_TASK_RUN({
-      contractAddress: contractsConfig[hre.network.name].Removal.proxyAddress,
+      contractAddress: contractsConfig[network].Removal.proxyAddress,
       contractAbi: (await require('@/artifacts/Removal.sol/Removal.json')).abi,
       from,
       func,

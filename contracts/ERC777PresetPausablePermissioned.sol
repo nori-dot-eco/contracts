@@ -17,6 +17,13 @@ contract ERC777PresetPausablePermissioned is
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
   /**
+   * @dev This empty reserved space is put in place to allow future versions to add new
+   * variables without shifting down storage in the inheritance chain.
+   * See more [here](https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps)
+   */
+  uint256[50] private __gap;
+
+  /**
    * @dev See {ERC777-approve}.
    *
    * NOTE: If `value` is the maximum `uint256`, the allowance is not updated on
@@ -166,6 +173,6 @@ contract ERC777PresetPausablePermissioned is
     override
   {
     _beforeRoleChange(role, account);
-    super.revokeRole(role, account);
+    super._revokeRole(role, account);
   }
 }
