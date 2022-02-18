@@ -19,13 +19,8 @@
       "@/legacy-artifacts/*": ["./legacy-artifacts/contracts/*"],
       "@/config/*": ["./config/*"],
       "@/utils/*": ["./utils/*"],
-      "@/constants/*": ["./constants/*"],
+      "@/constants/*": ["./constants/*"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.d.ts",
-    ".eslintrc.js",
-    ".solcover.js"
-  ]
+  "include": ["**/*.ts", "**/*.d.ts", "./.eslintrc.js", ".solcover.js"]
 }
