@@ -24,21 +24,17 @@ describe('Removal', () => {
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const transactionResponse = await removal.mintBatch(
+      const tokenIds = [0,1,2,3];
+      await expect(removal.mintBatch(
         hre.namedAccounts.supplier,
         removalBalances,
         removalVintages,
         packedData
-      );
-      const transactionReceipt = await transactionResponse.wait();
-      const batchMintedEvent = transactionReceipt?.events?.filter((event) => {
-        return event.event === 'TransferBatch';
-      })[0];
-      const tokenIds = (batchMintedEvent?.args?.ids as BigNumber[]).map(
-        (id) => id.toNumber()
-      );
+      ))
+      .to.emit(removal, 'TransferBatch')
+      .withArgs( hre.namedAccounts.admin,hre.ethers.constants.AddressZero ,hre.namedAccounts.supplier,tokenIds, removalBalances);
       const balances = await Promise.all(
-        tokenIds.map((tokenId) => {
+        tokenIds.map(async (tokenId) => {
           return removal.totalSupply(tokenId);
         })
       );
@@ -63,19 +59,15 @@ describe('Removal', () => {
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const transactionResponse = await removal.mintBatch(
+      const tokenIds = [0,1,2,3];
+      await expect(removal.mintBatch(
         hre.namedAccounts.supplier,
         removalBalances,
         removalVintages,
         packedData
-      );
-      const transactionReceipt = await transactionResponse.wait();
-      const batchMintedEvent = transactionReceipt?.events?.filter((event) => {
-        return event.event === 'TransferBatch';
-      })[0];
-      const tokenIds = (batchMintedEvent?.args?.ids as BigNumber[]).map(
-        (id) => id.toNumber()
-      );
+      ))
+      .to.emit(removal, 'TransferBatch')
+      .withArgs( hre.namedAccounts.admin,hre.ethers.constants.AddressZero ,hre.namedAccounts.supplier,tokenIds, removalBalances);
       const balances = await Promise.all(
         tokenIds.map((tokenId) => {
           return removal.totalSupply(tokenId);
@@ -102,19 +94,15 @@ describe('Removal', () => {
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const transactionResponse = await removal.mintBatch(
+      const tokenIds = [0,1,2,3];
+      await expect(removal.mintBatch(
         hre.namedAccounts.supplier,
         removalBalances,
         removalVintages,
         packedData
-      );
-      const transactionReceipt = await transactionResponse.wait();
-      const batchMintedEvent = transactionReceipt?.events?.filter((event) => {
-        return event.event === 'TransferBatch';
-      })[0];
-      const tokenIds = (batchMintedEvent?.args?.ids as BigNumber[]).map(
-        (id) => id.toNumber()
-      );
+      ))
+      .to.emit(removal, 'TransferBatch')
+      .withArgs( hre.namedAccounts.admin,hre.ethers.constants.AddressZero ,hre.namedAccounts.supplier,tokenIds, removalBalances);
       await expect(removal.safeBatchTransferFrom(
         hre.namedAccounts.supplier,
         fifoMarket.address,
