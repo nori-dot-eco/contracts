@@ -4,11 +4,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./ERC777PresetPausablePermissioned.sol";
-import "./NORI.sol";
+import "./BridgedPolygonNORI.sol";
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
- * @title A wrapped NORI token contract for vesting and lockup
+ * @title A wrapped BridgedPolygonNORI token contract for vesting and lockup
  * @author Nori Inc.
  * @notice Based on the mechanics of a wrapped ERC-777 token, this contract layers schedules over the withdrawal
  * functionality to implement _vesting_ (a revocable grant)
@@ -34,7 +34,7 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
  *
  * - _Lockup_ refers to tokens that are guaranteed to be available to the grantee but are subject to a time delay before
  * they are usable / transferrable out of this smart contract. This is a standard mechanism used to avoid sudden floods
- * of liquidity in the NORI token that could severely depress the price.
+ * of liquidity in the BridgedPolygonNORI token that could severely depress the price.
  * - Unlock is always at the same time or lagging vesting
  * - Transfer of LockedNORI under lockup is forbidden
  *
@@ -53,18 +53,18 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
  *   - all functions that mutate state are pausable
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
  *    - TOKEN_GRANTER_ROLE
- *      - Can create token grants without sending NORI to the contract `createGrant`
+ *      - Can create token grants without sending BridgedPolygonNORI to the contract `createGrant`
  *    - PAUSER_ROLE
  *      - Can pause and unpause the contract
  *    - DEFAULT_ADMIN_ROLE
  *      - This is the only role that can add/revoke other accounts to any of the roles
- * - [Can receive NORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
- *   - NORI is wrapped and grants are created upon receipt
+ * - [Can receive BridgedPolygonNORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
+ *   - BridgedPolygonNORI is wrapped and grants are created upon receipt
  * - [Limited ERC-777 functionality](https://eips.ethereum.org/EIPS/eip-777)
  *   - burn and operatorBurn will revert as only the internal variants are expected to be used
- *   - mint is not callable as only the internal variants are expected to be used when wrapping NORI
+ *   - mint is not callable as only the internal variants are expected to be used when wrapping BridgedPolygonNORI
  * - [Limited ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/erc20)
- *   - mint is not callable as only the internal variants are expected to be used when wrapping NORI
+ *   - mint is not callable as only the internal variants are expected to be used when wrapping BridgedPolygonNORI
  *   - burn functions are not externally callable
  * - [Extended Wrapped ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Wrapper)
  *   - In absence of a grant LockedNORI functions identically to a standard wrapped token
@@ -151,8 +151,8 @@ contract LockedNORI is
    * @notice Used to register the ERC777TokensRecipient recipient interface in the
    * ERC-1820 registry
    * @dev Registering that LockedNORI implements the ERC777TokensRecipient interface with the registry is a
-   * requiremnt to be able to receive ERC-777 NORI tokens. Once registered, sending NORI tokens to this contract
-   * will trigger tokensReceived as part of the lifecycle of the NORI transaction
+   * requiremnt to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
+   * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
    */
   bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
     keccak256("ERC777TokensRecipient");
@@ -163,16 +163,16 @@ contract LockedNORI is
   mapping(address => TokenGrant) private _grants;
 
   /**
-   * @notice The NORI contract that this contract wraps tokens for
+   * @notice The BridgedPolygonNORI contract that this contract wraps tokens for
    */
-  NORI private _nori;
+  BridgedPolygonNORI private _bridgedPolygonNori;
 
   /**
    * @notice The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection registry
    * contract
    * @dev Registering that LockedNORI implements the ERC777TokensRecipient interface with the registry is a
-   * requiremnt to be able to receive ERC-777 NORI tokens. Once registered, sending NORI tokens to this contract
-   * will trigger tokensReceived as part of the lifecycle of the NORI transaction
+   * requiremnt to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
+   * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
    */
   IERC1820RegistryUpgradeable private _erc1820;
 
@@ -198,9 +198,9 @@ contract LockedNORI is
   event TokensClaimed(address account, uint256 quantity);
 
   /**
-   * @notice This function is triggered when NORI is sent to this contract
-   * @dev Sending NORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard because this
-   * contract is a registered ERC777 tokens recipient.
+   * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
+   * @dev Sending BridgedPolygonNORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard
+   * because this contract is a registered ERC777 tokens recipient.
    *
    * [See here for more](
    * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
@@ -214,16 +214,17 @@ contract LockedNORI is
     bytes calldata operatorData
   ) external override {
     require(
-      msg.sender == address(_nori),
-      "lNORI: This contract can only receive NORI"
+      msg.sender == address(_bridgedPolygonNori),
+      "lNORI: not BridgedPolygonNORI"
     ); // todo verify this can only be invoked by the nori contract
     // todo restrict such that only admin can invoke this function
     _depositFor(amount, userData, operatorData);
   }
 
   /**
-   * @notice Unwrap NORI tokens and makes them available for use in the NORI contract
-   * @dev This function burns `amount` of wrapped tokens and withdraws them to the corresponding {NORI} tokens.
+   * @notice Unwrap BridgedPolygonNORI tokens and makes them available for use in the BridgedPolygonNORI contract
+   * @dev This function burns `amount` of wrapped tokens and withdraws them to the corresponding {BridgedPolygonNORI}
+   * tokens.
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
@@ -231,7 +232,12 @@ contract LockedNORI is
   function withdrawTo(address account, uint256 amount) external returns (bool) {
     TokenGrant storage grant = _grants[account];
     super._burn(_msgSender(), amount, "", "");
-    _nori.send(account, amount, ""); // solhint-disable-line check-send-result, because this isn't a solidity send
+    _bridgedPolygonNori.send(
+      // solhint-disable-previous-line check-send-result, because this isn't a solidity send
+      account,
+      amount,
+      ""
+    );
     grant.claimedAmount += amount;
     emit TokensClaimed(account, amount);
     return true;
@@ -240,7 +246,7 @@ contract LockedNORI is
   /**
    * @notice Sets up a vesting + lockup schedule for recipient.
    * @dev This function can be used as an alternative way to set up a grant that doesn't require
-   * wrapping NORI first.
+   * wrapping BridgedPolygonNORI first.
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
@@ -330,14 +336,37 @@ contract LockedNORI is
   }
 
   /**
-   * @dev Unlocked balance less any claimed amount at current block timestamp.
+   * @notice Returns all governing settings for a grant.
    */
-  function unlockedBalanceOf(address account) public view returns (uint256) {
-    return _unlockedBalanceOf(account, block.timestamp);
+  function getGrant(address account)
+    external
+    view
+    returns (TokenGrantDetail memory)
+  {
+    TokenGrant storage grant = _grants[account];
+    return
+      TokenGrantDetail(
+        grant.grantAmount,
+        account,
+        grant.lockupSchedule.startTime,
+        grant.vestingSchedule.endTime,
+        grant.lockupSchedule.endTime,
+        grant.lockupSchedule.cliffs[0].time,
+        grant.lockupSchedule.cliffs[1].time,
+        grant.vestingSchedule.cliffs[0].amount,
+        grant.vestingSchedule.cliffs[1].amount,
+        grant.lockupSchedule.cliffs[0].amount,
+        grant.lockupSchedule.cliffs[1].amount,
+        grant.claimedAmount,
+        grant.originalAmount
+      );
   }
 
   // todo document expected initialzation state
-  function initialize(IERC777Upgradeable noriAddress) public initializer {
+  function initialize(IERC777Upgradeable bridgedPolygonNoriAddress)
+    public
+    initializer
+  {
     address[] memory operators = new address[](1);
     operators[0] = _msgSender();
     __Context_init_unchained();
@@ -345,8 +374,10 @@ contract LockedNORI is
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
-    __ERC777_init_unchained("Locked NORI", "lNORI", operators);
-    _nori = NORI(address(noriAddress));
+    __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
+    _bridgedPolygonNori = BridgedPolygonNORI(
+      address(bridgedPolygonNoriAddress)
+    );
     _ERC1820_REGISTRY.setInterfaceImplementer(
       address(this),
       ERC777_TOKENS_RECIPIENT_HASH,
@@ -358,8 +389,36 @@ contract LockedNORI is
   }
 
   /**
+   * @notice Overridden standard ERC777.burn that will always revert
+   * @dev This function is not currently supported from external callers so we override it so that we can revert.
+   */
+  function burn(uint256, bytes memory) public pure override {
+    revert("lNORI: burning not supported");
+  }
+
+  /**
+   * @notice Overridden standard ERC777.operatorBurn that will always revert
+   * @dev This function is not currently supported from external callers so we override it so that we can revert.
+   */
+  function operatorBurn(
+    address,
+    uint256,
+    bytes memory,
+    bytes memory
+  ) public pure override {
+    revert("lNORI: burning not supported");
+  }
+
+  /**
+   * @dev Unlocked balance less any claimed amount at current block timestamp.
+   */
+  function unlockedBalanceOf(address account) public view returns (uint256) {
+    return _unlockedBalanceOf(account, block.timestamp);
+  }
+
+  /**
    * @dev Wraps minting of wrapper token and grant setup.
-   * @param amount uint256 Quantity of `_nori` to deposit
+   * @param amount uint256 Quantity of `_bridgedPolygonNori` to deposit
    * @param userData CreateTokenGrantParams or DepositForParams
    * @param operatorData bytes extra information provided by the operator (if any)
    *
@@ -411,7 +470,7 @@ contract LockedNORI is
       require(
         params.vestCliff1Amount >= params.unlockCliff1Amount ||
           params.vestCliff2Amount >= params.unlockCliff2Amount,
-        "lNORI: Unlock cliff amounts cannot exceed vest cliff amounts"
+        "lNORI: unlock cliff < vest cliff"
       );
       grant.vestingSchedule.totalAmount = amount;
       grant.vestingSchedule.startTime = params.startTime;
@@ -455,7 +514,7 @@ contract LockedNORI is
     uint256 revocableQuantity = grant.grantAmount - vestedBalance;
     uint256 quantityRevoked;
     if (amount > 0) {
-      require(amount <= revocableQuantity, "lNORI: not enough unvested NORI");
+      require(amount <= revocableQuantity, "lNORI: too few unvested tokens");
       quantityRevoked = amount;
     } else {
       quantityRevoked = revocableQuantity;
@@ -463,9 +522,49 @@ contract LockedNORI is
     grant.grantAmount = vestedBalance;
     grant.vestingSchedule.totalAmount = vestedBalance;
     grant.vestingSchedule.endTime = atTime;
-    _nori.send(to, quantityRevoked, ""); // solhint-disable-line check-send-result, because this isn't a solidity send
+    _bridgedPolygonNori.send(
+      // solhint-disable-previous-line check-send-result, because this isn't a solidity send
+      to,
+      quantityRevoked,
+      ""
+    );
     super._burn(from, quantityRevoked, "", "");
     emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
+  }
+
+  /**
+   * @notice Hook that is called before send, transfer, mint, and burn. Used used to disable transferring locked nori.
+   * @dev Follows the rules of hooks defined [here](
+   *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+   *
+   * ##### Requirements:
+   *
+   * - the contract must not be paused
+   * - the recipient cannot be the zero address (e.g., no burning of tokens is allowed)
+   * - One of the following must be true:
+   *    - the operation is minting (which should ONLY occur when BridgedPolygonNORI is being wrapped via `_depositFor`)
+   *    - the operation is a burn and _all_ of the following must be true:
+   *      - the operator has TOKEN_GRANTER_ROLE
+   *      - the operator is not operating on their own balance
+   *      - the transfer amount is <= the sender's unlocked balance
+   */
+  function _beforeTokenTransfer(
+    address operator,
+    address from,
+    address to,
+    uint256 amount
+  ) internal override {
+    bool isMinting = from == address(0);
+    bool isBurning = to == address(0);
+    bool operatorIsGrantAdmin = hasRole(TOKEN_GRANTER_ROLE, operator);
+    bool operatorIsNotSender = operator != from;
+    bool ownerHasSufficientUnlockedBalance = amount <= unlockedBalanceOf(from);
+    if (isBurning && operatorIsNotSender && operatorIsGrantAdmin) {
+      require(balanceOf(from) >= amount, "lNORI: insufficient balance");
+    } else if (!isMinting) {
+      require(ownerHasSufficientUnlockedBalance, "lNORI: insufficient balance");
+    }
+    return super._beforeTokenTransfer(operator, from, to, amount);
   }
 
   /**
@@ -515,88 +614,5 @@ contract LockedNORI is
         grant.claimedAmount;
     }
     return balance;
-  }
-
-  /**
-   * @notice Returns all governing settings for a grant.
-   */
-  function getGrant(address account)
-    external
-    view
-    returns (TokenGrantDetail memory)
-  {
-    TokenGrant storage grant = _grants[account];
-    return
-      TokenGrantDetail(
-        grant.grantAmount,
-        account,
-        grant.lockupSchedule.startTime,
-        grant.vestingSchedule.endTime,
-        grant.lockupSchedule.endTime,
-        grant.lockupSchedule.cliffs[0].time,
-        grant.lockupSchedule.cliffs[1].time,
-        grant.vestingSchedule.cliffs[0].amount,
-        grant.vestingSchedule.cliffs[1].amount,
-        grant.lockupSchedule.cliffs[0].amount,
-        grant.lockupSchedule.cliffs[1].amount,
-        grant.claimedAmount,
-        grant.originalAmount
-      );
-  }
-
-  /**
-   * @notice Hook that is called before send, transfer, mint, and burn. Used used to disable transferring locked nori.
-   * @dev Follows the rules of hooks defined [here](
-   *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
-   *
-   * ##### Requirements:
-   *
-   * - the contract must not be paused
-   * - the recipient cannot be the zero address (e.g., no burning of tokens is allowed)
-   * - One of the following must be true:
-   *    - the operation is minting (which should ONLY occur when NORI is being wrapped via `_depositFor`)
-   *    - the operation is a burn and _all_ of the following must be true:
-   *      - the operator has TOKEN_GRANTER_ROLE
-   *      - the operator is not operating on their own balance
-   *      - the transfer amount is <= the sender's unlocked balance
-   */
-  function _beforeTokenTransfer(
-    address operator,
-    address from,
-    address to,
-    uint256 amount
-  ) internal override {
-    bool isMinting = from == address(0);
-    bool isBurning = to == address(0);
-    bool operatorIsGrantAdmin = hasRole(TOKEN_GRANTER_ROLE, operator);
-    bool operatorIsNotSender = operator != from;
-    bool ownerHasSufficientUnlockedBalance = amount <= unlockedBalanceOf(from);
-    if (isBurning && operatorIsNotSender && operatorIsGrantAdmin) {
-      require(balanceOf(from) >= amount, "lNORI: insufficient balance");
-    } else if (!isMinting) {
-      require(ownerHasSufficientUnlockedBalance, "lNORI: insufficient balance");
-    }
-    return super._beforeTokenTransfer(operator, from, to, amount);
-  }
-
-  /**
-   * @notice Overridden standard ERC777.burn that will always revert
-   * @dev This function is not currently supported from external callers so we override it so that we can revert.
-   */
-  function burn(uint256, bytes memory) public pure override {
-    revert("lNORI: burning not supported");
-  }
-
-  /**
-   * @notice Overridden standard ERC777.operatorBurn that will always revert
-   * @dev This function is not currently supported from external callers so we override it so that we can revert.
-   */
-  function operatorBurn(
-    address,
-    uint256,
-    bytes memory,
-    bytes memory
-  ) public pure override {
-    revert("lNORI: burning not supported");
   }
 }
