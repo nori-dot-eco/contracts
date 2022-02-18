@@ -136,7 +136,7 @@ describe('Removal', () => {
       );
 
       const accounts = await ethers.getSigners();
-      await removal.connect(accounts[2]).safeBatchTransferFrom(
+      await expect(removal.connect(accounts[2]).safeBatchTransferFrom(
         supplier,
         fifoMarket.address,
         tokenIds,
@@ -144,7 +144,7 @@ describe('Removal', () => {
           hardhat.ethers.utils.parseUnits(balance)
         ),
         ethers.utils.formatBytes32String('0x0')
-      );
+      )).to.emit(removal, "BatchListed").withArgs(tokenIds);
 
       // market contract should have a balance for each listed tokenId
       const balances = await Promise.all(

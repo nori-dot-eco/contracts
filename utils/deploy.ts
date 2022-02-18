@@ -244,28 +244,16 @@ export const seedContracts = async ({
   }
   if (process.env.MINT && process.env.MINT !== 'false') {
     if (contracts.Certificate && contracts.FIFOMarket && contracts.Removal) {
-      const parcelIdentifier = hre.ethers.utils.formatBytes32String(
-        'someParcelIdentifier'
-      );
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bytes32', 'bool'],
-        [contracts.FIFOMarket.address, parcelIdentifier, listNow]
+        ['address', 'bool'],
+        [contracts.FIFOMarket.address, listNow]
       );
       await contracts.Removal.mintBatch(
         hre.namedAccounts.supplier,
         [formatTokenAmount(100)],
         [2018],
         packedData
-      );
-      await contracts.Removal.connect(
-        hre.namedSigners.supplier
-      ).safeBatchTransferFrom(
-        hre.namedAccounts.supplier,
-        contracts.FIFOMarket.address,
-        [0],
-        [formatTokenAmount(100)],
-        ethers.utils.formatBytes32String('0x0')
       );
       console.log('Listed 100 NRTs for sale in FIFOMarket');
     }

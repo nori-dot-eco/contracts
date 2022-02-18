@@ -41,6 +41,11 @@ contract Removal is
    */
   event BatchMinted(uint256[] tokenIds);
 
+  /**
+   * @notice Emitted on successful listing of a batch of removals.
+   */
+  event BatchListed(uint256[] tokenIds);
+
   mapping(uint256 => Vintage) private _vintages;
   uint256 private _latestTokenId;
   string public name; // todo why did I add this
@@ -125,7 +130,7 @@ contract Removal is
   ) public override {
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
-    // todo should this emit an event too?
+    emit BatchListed(_ids);
   }
 
   function supportsInterface(bytes4 interfaceId)
