@@ -31,10 +31,10 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const listNow = true;
+      const list = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
-        [fifoMarket.address, listNow]
+        [fifoMarket.address, list]
       );
 
       await Promise.all([
@@ -112,10 +112,10 @@ describe('FIFOMarket', () => {
       const buyerInitialNoriBalance = formatTokenAmount(1_000_000);
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
-      const listNow = true;
+      const list = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
-        [fifoMarket.address, listNow]
+        [fifoMarket.address, list]
       );
       await Promise.all([
         removal.mintBatch(
@@ -202,10 +202,10 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const listNow = true;
+      const list = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
-        [fifoMarket.address, listNow]
+        [fifoMarket.address, list]
       );
       await Promise.all([
         removal.mintBatch(supplier, removalBalances, vintages, packedData),
@@ -278,10 +278,10 @@ describe('FIFOMarket', () => {
       const investor2InitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const listNow = true;
+      const list = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
-        [fifoMarket.address, listNow]
+        [fifoMarket.address, list]
       );
       await Promise.all([
         removal.mintBatch(
@@ -449,10 +449,10 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const listNow = true;
+      const list = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
-        [fifoMarket.address, listNow]
+        [fifoMarket.address, list]
       );
       await Promise.all([
         removal.mintBatch(

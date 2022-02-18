@@ -36,16 +36,6 @@ contract Removal is
     bool list;
   }
 
-  /**
-   * @notice Emitted on successful minting of a batch of removals.
-   */
-  event BatchMinted(uint256[] tokenIds);
-
-  /**
-   * @notice Emitted on successful listing of a batch of removals.
-   */
-  event BatchListed(uint256[] tokenIds);
-
   mapping(uint256 => Vintage) private _vintages;
   uint256 private _latestTokenId;
   string public name; // todo why did I add this
@@ -110,7 +100,6 @@ contract Removal is
     }
     _latestTokenId = ids[ids.length - 1] + 1;
     super.mintBatch(to, ids, amounts, data);
-    emit BatchMinted(ids);
 
     setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
     if (decodedData.list) {
@@ -130,7 +119,6 @@ contract Removal is
   ) public override {
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
-    emit BatchListed(_ids);
   }
 
   function supportsInterface(bytes4 interfaceId)
