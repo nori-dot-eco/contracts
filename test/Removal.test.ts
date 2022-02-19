@@ -1,5 +1,3 @@
-import type { BigNumber } from 'ethers';
-
 import type { Contracts } from '@/test/helpers';
 import { getDeployments, expect, hardhat } from '@/test/helpers';
 import { hre } from '@/utils/hre';
@@ -16,7 +14,9 @@ describe('Removal', () => {
   describe('Minting removals', () => {
     it('should mint a batch of removals without listing any', async () => {
       const { fifoMarket, removal } = await setupTest();
-      const removalBalances = [100, 200, 300, 400].map((balance) => formatTokenAmount(balance));
+      const removalBalances = [100, 200, 300, 400].map((balance) =>
+        formatTokenAmount(balance)
+      );
       const expectedMarketSupply = 0;
       const removalVintages = [2018, 2019, 2020, 2021];
       const listNow = false;
@@ -24,24 +24,30 @@ describe('Removal', () => {
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const tokenIds = [0,1,2,3];
-      await expect(removal.mintBatch(
-        hre.namedAccounts.supplier,
-        removalBalances,
-        removalVintages,
-        packedData
-      ))
-      .to.emit(removal, 'TransferBatch')
-      .withArgs( hre.namedAccounts.admin,hre.ethers.constants.AddressZero ,hre.namedAccounts.supplier,tokenIds, removalBalances);
+      const tokenIds = [0, 1, 2, 3];
+      await expect(
+        removal.mintBatch(
+          hre.namedAccounts.supplier,
+          removalBalances,
+          removalVintages,
+          packedData
+        )
+      )
+        .to.emit(removal, 'TransferBatch')
+        .withArgs(
+          hre.namedAccounts.admin,
+          hre.ethers.constants.AddressZero,
+          hre.namedAccounts.supplier,
+          tokenIds,
+          removalBalances
+        );
       const balances = await Promise.all(
         tokenIds.map(async (tokenId) => {
           return removal.totalSupply(tokenId);
         })
       );
       balances.forEach((balance, tokenId) => {
-        expect(balance).to.equal(
-          removalBalances[tokenId].toString()
-        );
+        expect(balance).to.equal(removalBalances[tokenId].toString());
       });
       // not listed to the fifoMarket
       const marketTotalSupply = await fifoMarket.numberOfNrtsInQueue();
@@ -51,7 +57,9 @@ describe('Removal', () => {
     });
     it('should mint and list a batch of removals in the same transaction', async () => {
       const { fifoMarket, removal } = await setupTest();
-      const removalBalances = [100, 200, 300, 400].map((balance) => formatTokenAmount(balance));
+      const removalBalances = [100, 200, 300, 400].map((balance) =>
+        formatTokenAmount(balance)
+      );
       const expectedMarketSupply = 1000;
       const removalVintages = [2018, 2019, 2020, 2021];
       const listNow = true;
@@ -59,24 +67,30 @@ describe('Removal', () => {
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const tokenIds = [0,1,2,3];
-      await expect(removal.mintBatch(
-        hre.namedAccounts.supplier,
-        removalBalances,
-        removalVintages,
-        packedData
-      ))
-      .to.emit(removal, 'TransferBatch')
-      .withArgs( hre.namedAccounts.admin,hre.ethers.constants.AddressZero ,hre.namedAccounts.supplier,tokenIds, removalBalances);
+      const tokenIds = [0, 1, 2, 3];
+      await expect(
+        removal.mintBatch(
+          hre.namedAccounts.supplier,
+          removalBalances,
+          removalVintages,
+          packedData
+        )
+      )
+        .to.emit(removal, 'TransferBatch')
+        .withArgs(
+          hre.namedAccounts.admin,
+          hre.ethers.constants.AddressZero,
+          hre.namedAccounts.supplier,
+          tokenIds,
+          removalBalances
+        );
       const balances = await Promise.all(
         tokenIds.map((tokenId) => {
           return removal.totalSupply(tokenId);
         })
       );
       balances.forEach((balance, tokenId) => {
-        expect(balance).to.equal(
-          removalBalances[tokenId].toString()
-        );
+        expect(balance).to.equal(removalBalances[tokenId].toString());
       });
       const marketTotalSupply = await fifoMarket.numberOfNrtsInQueue();
       expect(marketTotalSupply).to.equal(
@@ -87,29 +101,49 @@ describe('Removal', () => {
   describe('Listing removals for sale', () => {
     it('should list pre-minted removals for sale in the atomic marketplace', async () => {
       const { fifoMarket, removal } = await setupTest();
-      const removalBalances = [100, 200, 300].map((balance) => formatTokenAmount(balance));
+      const removalBalances = [100, 200, 300].map((balance) =>
+        formatTokenAmount(balance)
+      );
       const removalVintages = [2018, 2019, 2020];
       const listNow = false;
       const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const tokenIds = [0,1,2,3];
-      await expect(removal.mintBatch(
-        hre.namedAccounts.supplier,
-        removalBalances,
-        removalVintages,
-        packedData
-      ))
-      .to.emit(removal, 'TransferBatch')
-      .withArgs( hre.namedAccounts.admin,hre.ethers.constants.AddressZero ,hre.namedAccounts.supplier,tokenIds, removalBalances);
-      await expect(removal.safeBatchTransferFrom(
-        hre.namedAccounts.supplier,
-        fifoMarket.address,
-        tokenIds,
-        removalBalances,
-        ethers.utils.formatBytes32String('0x0')
-      )).to.emit(removal, "TransferBatch").withArgs(hre.namedAccounts.admin, hre.namedAccounts.supplier, fifoMarket.address, tokenIds, removalBalances);
+      const tokenIds = [0, 1, 2, 3];
+      await expect(
+        removal.mintBatch(
+          hre.namedAccounts.supplier,
+          removalBalances,
+          removalVintages,
+          packedData
+        )
+      )
+        .to.emit(removal, 'TransferBatch')
+        .withArgs(
+          hre.namedAccounts.admin,
+          hre.ethers.constants.AddressZero,
+          hre.namedAccounts.supplier,
+          tokenIds,
+          removalBalances
+        );
+      await expect(
+        removal.safeBatchTransferFrom(
+          hre.namedAccounts.supplier,
+          fifoMarket.address,
+          tokenIds,
+          removalBalances,
+          ethers.utils.formatBytes32String('0x0')
+        )
+      )
+        .to.emit(removal, 'TransferBatch')
+        .withArgs(
+          hre.namedAccounts.admin,
+          hre.namedAccounts.supplier,
+          fifoMarket.address,
+          tokenIds,
+          removalBalances
+        );
       // market contract should have a balance for each listed tokenId
       const balances = await Promise.all(
         tokenIds.map((tokenId) => {
@@ -117,9 +151,7 @@ describe('Removal', () => {
         })
       );
       balances.forEach((balance, tokenId) => {
-        expect(balance).to.equal(
-          removalBalances[tokenId].toString()
-        );
+        expect(balance).to.equal(removalBalances[tokenId].toString());
       });
     });
   });
