@@ -55,7 +55,7 @@
   ],
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
-    "test": "MINT=false ETHERNAL=false LOG=false hardhat test --deploy-fixture",
+    "test": "MINT=false ETHERNAL=false LOG=false hardhat test",
     "test:gas": "REPORT_GAS=true yarn test",
     "test:coverage": "MINT=false ETHERNAL=false hardhat coverage --solcoverjs ./.solcover.js",
     "prepare": "yarn build",

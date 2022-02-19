@@ -1,5 +1,17 @@
 import { assert } from 'console';
 
+import type {
+  NORI,
+  Certificate,
+  FIFOMarket,
+  Removal,
+  Certificate__factory,
+  FIFOMarket__factory,
+  NORI__factory,
+  Removal__factory,
+} from '../typechain-types';
+import { deployContracts } from '../utils/deploy';
+
 import { formatTokenAmount } from '@/utils/units';
 import type { Contracts } from '@/test/helpers';
 import {
@@ -11,7 +23,9 @@ import { hre } from '@/utils/hre';
 
 const setupTest = hre.deployments.createFixture(
   async (): Promise<Contracts> => {
-    await hre.deployments.fixture(); // ensure you start from a fresh deployments
+    // await hre.deployments.fixture(); // ensure you start from a fresh deployments
+    await hre.run('deploy:erc1820');
+    await deployContracts({ hre });
     return getDeployments({ hre });
   }
 );

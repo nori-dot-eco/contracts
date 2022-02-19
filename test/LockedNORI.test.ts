@@ -1,4 +1,5 @@
 import type { LockedNORI } from '../typechain-types/LockedNORI';
+import { deployContracts } from '../utils/deploy';
 
 import type { Contracts } from '@/test/helpers';
 import {
@@ -12,9 +13,26 @@ import { formatTokenAmount } from '@/utils/units';
 
 const NOW = Math.floor(Date.now() / 1_000);
 // todo use hardhat-deploy fixtures (https://github.com/wighawag/hardhat-deploy#3-hardhat-test) (last time we tried runnin this with the gas reporter it wasn't reporting unit test gas numbers)
-const setupTest = hardhat.deployments.createFixture(
+// const setupTest = hardhat.deployments.createFixture(
+//   async (): Promise<Contracts> => {
+//     await hre.deployments.fixture(); // ensure you start from a fresh deployments
+//     const contracts = await getDeployments({ hre });
+//     await mockDepositNoriToPolygon({
+//       hre,
+//       contracts: { BridgedPolygonNORI: contracts.bpNori, NORI: contracts.nori },
+//       amount: formatTokenAmount(500_000_000),
+//       to: hre.namedAccounts.admin,
+//       signer: hre.namedSigners.admin,
+//     });
+//     return contracts;
+//   }
+// );
+
+const setupTest = hre.deployments.createFixture(
   async (): Promise<Contracts> => {
-    await hre.deployments.fixture(); // ensure you start from a fresh deployments
+    // await hre.deployments.fixture(); // ensure you start from a fresh deployments
+    await hre.run('deploy:erc1820');
+    await deployContracts({ hre });
     const contracts = await getDeployments({ hre });
     await mockDepositNoriToPolygon({
       hre,
@@ -26,6 +44,7 @@ const setupTest = hardhat.deployments.createFixture(
     return contracts;
   }
 );
+
 const {
   ethers: { BigNumber },
   namedAccounts,

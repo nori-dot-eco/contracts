@@ -7,6 +7,7 @@ import type {
   BridgedPolygonNORI,
 } from '../../typechain-types';
 import * as contractsConfig from '../../contracts.json';
+import func from '../../deploy/0_deploy_contracts';
 
 export interface Contracts {
   nori: NORI;
@@ -23,6 +24,7 @@ export const getDeployments = async ({
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<Contracts> => {
   const { ethers } = hre;
+  console.log('get deployments======');
   const noriInstance = (await ethers.getContractAt(
     (
       await require('@/artifacts/NORI.sol/NORI.json')
