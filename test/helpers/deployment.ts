@@ -5,9 +5,15 @@ import type {
   LockedNORI,
   NORI,
   BridgedPolygonNORI,
+  NORI__factory,
+  Removal__factory,
+  Certificate__factory,
+  FIFOMarket__factory,
+  LockedNORI__factory,
+  BridgedPolygonNORI__factory,
 } from '../../typechain-types';
 import * as contractsConfig from '../../contracts.json';
-import func from '../../deploy/0_deploy_contracts';
+import { MUMBAI_CHILD_CHAIN_MANAGER_PROXY } from '../../constants/addresses';
 
 export interface Contracts {
   nori: NORI;
@@ -16,6 +22,68 @@ export interface Contracts {
   certificate: Certificate;
   fifoMarket: FIFOMarket;
   lNori: LockedNORI;
+}
+
+export const deploy =async ({hre}:{hre:CustomHardHatRuntimeEnvironment}):Promise<Contracts> => {
+    const { getNamedAccounts, upgrades, run, ethers } = hre;
+    await run('deploy:erc1820');
+    const { noriWallet } = await getNamedAccounts();
+    const NORI = await ethers.getContractFactory<NORI__factory>('NORI');
+    const Removal = await ethers.getContractFactory<Removal__factory>('Removal');
+    const Certificate = await ethers.getContractFactory<Certificate__factory>(
+      'Certificate'
+    );
+    const FIFOMarket = await ethers.getContractFactory<FIFOMarket__factory>(
+      'FIFOMarket'
+    );
+    const nori = await upgrades.deployProxy<NORI>(NORI, []);
+    await nori.deployed();
+    const LockedNoriFactory = await ethers.getContractFactory<LockedNORI__factory>('LockedNORI');
+  
+  const BridgedPolygonNORI = await ethers.getContractFactory<BridgedPolygonNORI__factory>('BridgedPolygonNORI');
+  const bpNori = await upgrades.deployProxy<BridgedPolygonNORI>(
+    BridgedPolygonNORI,
+    [MUMBAI_CHILD_CHAIN_MANAGER_PROXY,],
+    { initializer: 'initialize(address)' },
+  );
+  await bpNori.deployed();
+  const lNori = await upgrades.deployProxy<LockedNORI>(
+    LockedNoriFactory,
+    [bpNori.address],
+    {
+      initializer: 'initialize(address)',
+    }
+  );
+  await lNori.deployed();
+    const removal = await upgrades.deployProxy<Removal>(Removal, [], {
+      initializer: 'initialize()',
+    });
+    await removal.deployed();
+    const certificate = await upgrades.deployProxy<Certificate>(
+      Certificate,
+      [],
+      {
+        initializer: 'initialize()',
+      }
+    );
+    await certificate.deployed();
+    const fifoMarket = await upgrades.deployProxy<FIFOMarket>(
+      FIFOMarket,
+      [
+        removal.address,
+        bpNori.address,
+        certificate.address,
+        noriWallet,
+        15,
+      ],
+      {
+        initializer: 'initialize(address,address,address,address,uint256)',
+      }
+    );
+    await fifoMarket.deployed();
+  
+    return {nori,removal,fifoMarket,certificate,lNori,bpNori};
+  
 }
 
 export const getDeployments = async ({

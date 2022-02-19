@@ -11,7 +11,7 @@ const setupTest = hre.deployments.createFixture(
   async (): Promise<{
     scheduleTestHarness: ScheduleTestHarness;
   }> => {
-    await hre.deployments.fixture(); // ensure you start from a fresh deployments
+    // await hre.deployments.fixture(); // ensure you start from a fresh deployments
     const ScheduleTestHarness = await ethers.getContractFactory(
       'ScheduleTestHarness'
     );

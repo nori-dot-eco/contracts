@@ -1,5 +1,5 @@
 import type { LockedNORI } from '../typechain-types/LockedNORI';
-import { deployContracts } from '../utils/deploy';
+import { configureDeploymentSettings, deployContracts, seedContracts } from '../utils/deploy';
 
 import type { Contracts } from '@/test/helpers';
 import {
@@ -7,12 +7,14 @@ import {
   hardhat,
   getDeployments,
   mockDepositNoriToPolygon,
+  deploy
 } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
 import { hre } from '@/utils/hre';
 import { formatTokenAmount } from '@/utils/units';
 
 const NOW = Math.floor(Date.now() / 1_000);
-// todo use hardhat-deploy fixtures (https://github.com/wighawag/hardhat-deploy#3-hardhat-test) (last time we tried runnin this with the gas reporter it wasn't reporting unit test gas numbers)
+
+// todo use hardhat-deploy fixtures (https://github.com/wighawag/hardhat-deploy#3-hardhat-test) (requires this to be fixed: https://github.com/cgewecke/hardhat-gas-reporter/issues/86)
 // const setupTest = hardhat.deployments.createFixture(
 //   async (): Promise<Contracts> => {
 //     await hre.deployments.fixture(); // ensure you start from a fresh deployments
@@ -28,22 +30,21 @@ const NOW = Math.floor(Date.now() / 1_000);
 //   }
 // );
 
-const setupTest = hre.deployments.createFixture(
-  async (): Promise<Contracts> => {
-    // await hre.deployments.fixture(); // ensure you start from a fresh deployments
-    await hre.run('deploy:erc1820');
-    await deployContracts({ hre });
-    const contracts = await getDeployments({ hre });
-    await mockDepositNoriToPolygon({
-      hre,
-      contracts: { BridgedPolygonNORI: contracts.bpNori, NORI: contracts.nori },
-      amount: formatTokenAmount(500_000_000),
-      to: hre.namedAccounts.admin,
-      signer: hre.namedSigners.admin,
-    });
-    return contracts;
-  }
-);
+const setupTest = hre.deployments.createFixture(async ():Promise<Contracts> => {
+  await configureDeploymentSettings({hre});
+  const  contracts=await deploy({hre}) ;
+  await seedContracts({hre,     contracts: { FIFOMarket:contracts.fifoMarket,BridgedPolygonNORI: contracts.bpNori, NORI: contracts.nori,Removal:contracts.removal,Certificate:contracts.certificate,LockedNORI:contracts.lNori },
+  });
+  await mockDepositNoriToPolygon({
+    hre,
+    contracts: { BridgedPolygonNORI: contracts.bpNori, NORI: contracts.nori },
+    amount: formatTokenAmount(500_000_000),
+    to: hre.namedAccounts.admin,
+    signer: hre.namedSigners.admin,
+  });
+  return contracts;
+});
+
 
 const {
   ethers: { BigNumber },
