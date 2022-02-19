@@ -110,7 +110,7 @@ describe('Removal', () => {
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const tokenIds = [0, 1, 2, 3];
+      const tokenIds = [0, 1, 2];
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,
