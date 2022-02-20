@@ -88,3 +88,6 @@ artifacts/*
 
 # typechain
 typechain-types
+
+# gas-reporter
+gasReporterOutput.json
