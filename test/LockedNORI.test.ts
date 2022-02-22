@@ -1,6 +1,5 @@
 import type { LockedNORI } from '@/typechain-types/LockedNORI';
 import type { Contracts } from '@/utils/deploy';
-import { seedContracts } from '@/utils/deploy';
 import type { ContractInstances } from '@/test/helpers';
 import { expect, hardhat, mockDepositNoriToPolygon } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
 import { hre } from '@/utils/hre';
@@ -34,7 +33,6 @@ const {
 const setupTest = hre.deployments.createFixture(
   async (): Promise<ContractInstances> => {
     const contracts = (await deploy(hre)) as Required<Contracts>;
-    await seedContracts({ hre, contracts });
     await mockDepositNoriToPolygon({
       hre,
       contracts,

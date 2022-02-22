@@ -26,7 +26,8 @@ import type { networks } from '@/config/networks';
 import type { TASKS } from '@/tasks';
 import { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
 import { ContractAddressOrInstance, UpgradeProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
-import { DeploymentsExtension } from 'hardhat-deploy/dist/types';
+import { DeploymentsExtension as OriginalDeploymentsExtension } from 'hardhat-deploy/dist/types';
+
 
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
@@ -48,15 +49,14 @@ declare module 'hardhat/config' {
 }
 
 declare module 'hardhat/types/runtime' {
-
-  interface CustomDeploymentsExtension extends Omit<DeploymentsExtension ,'createFixture'>{
+  interface DeploymentsExtension extends Omit<OriginalDeploymentsExtension ,'createFixture'>{
     createFixture<T, O>(
       func: FixtureFunc<T, O>,
       id?: string
     ): (options?: O) => Promise<T>;
-
+  
   }
-  export type FixtureFunc<T, O> = (
+  type FixtureFunc<T, O> = (
     env: CustomHardHatRuntimeEnvironment,
     options?: O
   ) => Promise<T>;

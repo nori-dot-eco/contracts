@@ -247,13 +247,10 @@ export const seedContracts = async ({
   }
   if (process.env.MINT && process.env.MINT !== 'false') {
     if (contracts.Certificate && contracts.FIFOMarket && contracts.Removal) {
-      const parcelIdentifier = hre.ethers.utils.formatBytes32String(
-        'someParcelIdentifier'
-      );
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bytes32', 'bool'],
-        [contracts.FIFOMarket.address, parcelIdentifier, listNow]
+        ['address', 'bool'],
+        [contracts.FIFOMarket.address, listNow]
       );
       await contracts.Removal.mintBatch(
         hre.namedAccounts.supplier,
