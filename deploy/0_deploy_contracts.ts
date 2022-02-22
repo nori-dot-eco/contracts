@@ -9,7 +9,7 @@ import {
   addContractsToDefender,
 } from '@/utils/deploy';
 
-const func: CustomHardhatDeployFunction = async (hre) => {
+export const deploy: CustomHardhatDeployFunction = async (hre) => {
   validateDeployment({ hre });
   await configureDeploymentSettings({ hre });
   const contracts = await deployContracts({ hre });
@@ -18,6 +18,7 @@ const func: CustomHardhatDeployFunction = async (hre) => {
   writeContractsConfig({ contracts });
   await addContractsToDefender({ hre, contracts });
   await verifyContracts({ hre, contracts });
+  return contracts;
 };
 
-export default func;
+export default deploy;

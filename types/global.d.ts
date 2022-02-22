@@ -167,7 +167,7 @@ declare global {
   };
 
   interface CustomHardhatDeployFunction extends Partial<DeployFunction> {
-    (hre: CustomHardHatRuntimeEnvironment): Promise<void | boolean>;
+    (hre: CustomHardHatRuntimeEnvironment): Promise<unknown>;
   }
 
   namespace NodeJS {

@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
-import "hardhat/console.sol"; // todo
+// import "hardhat/console.sol"; // todo
 
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
@@ -63,7 +63,6 @@ contract Removal is
     uint256[] memory vintages,
     bytes memory data
   ) public override {
-    console.log("increase gas test");
     // todo require vintage is within valid year range and doesn't already exist
     uint256[] memory ids = new uint256[](vintages.length);
     for (uint256 i = 0; i < vintages.length; i++) {
@@ -87,7 +86,6 @@ contract Removal is
     uint256[] memory _amounts,
     bytes memory _data
   ) public override {
-    console.log("increase gas test");
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
   }
@@ -119,7 +117,6 @@ contract Removal is
     internal
     override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
   {
-    console.log("increase gas test");
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 }

@@ -1,38 +1,27 @@
 import { assert } from 'console';
 
-import type {
-  NORI,
-  Certificate,
-  FIFOMarket,
-  Removal,
-  Certificate__factory,
-  FIFOMarket__factory,
-  NORI__factory,
-  Removal__factory,
-  BridgedPolygonNORI,
-  LockedNORI,
-} from '../typechain-types';
-import { configureDeploymentSettings, deployContracts, seedContracts } from '../utils/deploy';
-
+import { deploy } from '@/deploy/0_deploy_contracts';
+import { seedContracts } from '@/utils/deploy';
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/test/helpers';
-import {
-  expect,
-  getDeployments,
-  mockDepositNoriToPolygon,
-  deploy
-} from '@/test/helpers';
+import type { Contracts } from '@/utils/deploy';
+import type { ContractInstances } from '@/test/helpers';
+import { expect, mockDepositNoriToPolygon } from '@/test/helpers';
 import { hre } from '@/utils/hre';
-import func from '../deploy/0_deploy_contracts';
 
-
-const setupTest = hre.deployments.createFixture(async ():Promise<Contracts> => {
-  await configureDeploymentSettings({hre});
-  const  contracts=await deploy({hre}) ;
-  await seedContracts({hre,     contracts: { FIFOMarket:contracts.fifoMarket,BridgedPolygonNORI: contracts.bpNori, NORI: contracts.nori,Removal:contracts.removal,Certificate:contracts.certificate,LockedNORI:contracts.lNori },
-  });
-    return contracts;
-});
+const setupTest = hre.deployments.createFixture(
+  async (): Promise<ContractInstances> => {
+    const contracts = (await deploy(hre)) as Required<Contracts>;
+    await seedContracts({ hre, contracts });
+    return {
+      nori: contracts.NORI,
+      bpNori: contracts.BridgedPolygonNORI,
+      removal: contracts.Removal,
+      certificate: contracts.Certificate,
+      fifoMarket: contracts.FIFOMarket,
+      lNori: contracts.LockedNORI,
+    };
+  }
+);
 
 describe('FIFOMarket', () => {
   describe('Successful purchases', () => {
@@ -212,7 +201,7 @@ describe('FIFOMarket', () => {
     });
     it('should purchase removals and mint a certificate for a large purchase spanning many removals', async () => {
       const { bpNori, removal, certificate, fifoMarket, nori } =
-      await setupTest();
+        await setupTest();
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const removalBalances = [];
@@ -445,9 +434,8 @@ describe('FIFOMarket', () => {
 
   describe('Unsuccessful purchases', () => {
     it('should revert when the queue is completely empty', async () => {
-      const { bpNori, removal, certificate, fifoMarket, nori } =
-      await setupTest();
-            const { supplier, buyer, noriWallet } = hre.namedAccounts;
+      const { bpNori, certificate, fifoMarket, nori } = await setupTest();
+      const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const purchaseAmount = '1';
       const fee = '.15';

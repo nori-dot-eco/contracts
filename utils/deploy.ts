@@ -25,6 +25,7 @@ import {
   STAGING_DEPLOYMENT_ADDRESS,
 } from '@/constants/addresses';
 import { mockDepositNoriToPolygon } from '@/test/helpers';
+import { log } from '@/utils/log';
 
 export interface Contracts {
   Removal?: Removal;
@@ -43,7 +44,7 @@ export const verifyContracts = async ({
   contracts: Contracts;
 }): Promise<void> => {
   if (hre.network.name !== 'hardhat') {
-    console.log('Verifying contracts');
+    log('Verifying contracts');
     await Promise.allSettled(
       Object.values(contracts).map(async ({ address }) => {
         return hre.run('verify:verify', {
@@ -52,7 +53,7 @@ export const verifyContracts = async ({
         });
       })
     );
-    console.log('Verified contracts');
+    log('Verified contracts');
   }
 };
 
@@ -61,7 +62,7 @@ export const writeContractsConfig = ({
 }: {
   contracts: Contracts;
 }): void => {
-  console.log('Writing contracts.json config', hre.network.name);
+  log('Writing contracts.json config', hre.network.name);
   writeJsonSync(
     path.join(__dirname, '../contracts.json'),
     {
@@ -75,7 +76,7 @@ export const writeContractsConfig = ({
     },
     { spaces: 2 }
   );
-  console.log('Wrote contracts.json config');
+  log('Wrote contracts.json config');
 };
 
 export const configureDeploymentSettings = async ({
@@ -203,13 +204,13 @@ export const pushContractsToEthernal = async ({
   contracts: Contracts;
 }): Promise<void> => {
   if (hre.ethernalSync) {
-    console.log('pushing contracts to ethernal');
+    log('pushing contracts to ethernal');
     await Promise.allSettled(
       Object.entries(contracts).map(async ([name, { address }]) => {
         return hre.ethernal.push({ name, address });
       })
     );
-    console.log('pushed contracts to ethernal');
+    log('pushed contracts to ethernal');
   }
 };
 
@@ -220,9 +221,11 @@ export const addContractsToDefender = async ({
   hre: CustomHardHatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
-  await hre.run('defender:add', {
-    contractNames: Object.keys(contracts).map((name) => name), // todo delete existing contracts from defender and re-add
-  });
+  if (hre.network.name !== 'hardhat') {
+    await hre.run('defender:add', {
+      contractNames: Object.keys(contracts).map((name) => name), // todo delete existing contracts from defender and re-add
+    });
+  }
 };
 
 /**
@@ -240,7 +243,7 @@ export const seedContracts = async ({
 }): Promise<void> => {
   if (contracts.Certificate && contracts.FIFOMarket) {
     await contracts.Certificate?.addMinter(contracts.FIFOMarket?.address); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
-    console.log('Added FIFOMarket as a minter of Certificate');
+    log('Added FIFOMarket as a minter of Certificate');
   }
   if (process.env.MINT && process.env.MINT !== 'false') {
     if (contracts.Certificate && contracts.FIFOMarket && contracts.Removal) {
@@ -267,7 +270,7 @@ export const seedContracts = async ({
         [formatTokenAmount(100)],
         ethers.utils.formatBytes32String('0x0')
       );
-      console.log('Listed 100 NRTs for sale in FIFOMarket');
+      log('Listed 100 NRTs for sale in FIFOMarket');
     }
     if (
       contracts.BridgedPolygonNORI &&
@@ -284,7 +287,7 @@ export const seedContracts = async ({
         to: hre.namedAccounts.admin,
         signer: hre.namedSigners.admin,
       });
-      console.log(
+      log(
         'Mock deposited 500_000_000 NORI into BridgedPolygonNORI for the admin account'
       );
       await contracts.BridgedPolygonNORI.connect(hre.namedSigners.admin).send(
@@ -293,7 +296,7 @@ export const seedContracts = async ({
         formatTokenAmount(1_000_000),
         hre.ethers.utils.formatBytes32String('0x0')
       );
-      console.log(
+      log(
         'Sent some BridgedPolygonNORI from the admin account to the buyer account'
       );
     }
