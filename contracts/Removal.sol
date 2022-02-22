@@ -31,6 +31,11 @@ contract Removal is
     // todo: supplier name
   }
 
+  struct BatchMintRemovalsData {
+    address marketAddress;
+    bool list;
+  }
+
   mapping(uint256 => Vintage) private _vintages;
   uint256 private _latestTokenId;
   string public name; // todo why did I add this
@@ -43,19 +48,35 @@ contract Removal is
   }
 
   /**
+   * @dev returns the removal vintage data for a given removal token ID
+   */
+  function vintage(uint256 removalId) public view returns (Vintage memory) {
+    return _vintages[removalId];
+  }
+
+  /**
+   * @dev See {IERC1155-setApprovalForAll}.
+   */
+  function setApprovalForAll(
+    address owner,
+    address operator,
+    bool approved
+  ) public virtual onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+    _setApprovalForAll(owner, operator, approved);
+  }
+
+  /**
    * @dev mints multiple removals at once (for a single supplier) AND lists those removals for sale in the market.
    * ids that will be auto assigned [0, 1, 2]
-   * amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard
-   * erc20 units (wei)
+   * amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
    * vintages: [2018, 2019, 2020]
-   * token id 0 URI points to vintage 2018 nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
-   * token id 1 URI points to vintage 2019 nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
-   * token id 2 URI points to vintage 2020 nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
+   * token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
+   * token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
+   * token id 2 URI points to vintage information (e.g., 2020) nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
    * @param to The supplier address
    * @param amounts Each removal's tonnes of CO2 formatted as wei
    * @param vintages The year for each removal
-   * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals
-   * came.
+   * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals came.
    */
   function mintBatch(
     address to,
@@ -64,6 +85,11 @@ contract Removal is
     bytes memory data
   ) public override {
     // todo require vintage is within valid year range and doesn't already exist
+    BatchMintRemovalsData memory decodedData = abi.decode(
+      data,
+      (BatchMintRemovalsData)
+    );
+
     uint256[] memory ids = new uint256[](vintages.length);
     for (uint256 i = 0; i < vintages.length; i++) {
       ids[i] = _latestTokenId + i;
@@ -74,6 +100,11 @@ contract Removal is
     }
     _latestTokenId = ids[ids.length - 1] + 1;
     super.mintBatch(to, ids, amounts, data);
+
+    setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
+    if (decodedData.list) {
+      safeBatchTransferFrom(to, decodedData.marketAddress, ids, amounts, data);
+    }
   }
 
   /**
@@ -97,13 +128,6 @@ contract Removal is
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
-  }
-
-  /**
-   * @dev returns the removal vintage data for a given removal token ID
-   */
-  function vintage(uint256 removalId) public view returns (Vintage memory) {
-    return _vintages[removalId];
   }
 
   function _beforeTokenTransfer(
