@@ -1,12 +1,21 @@
-import type { Contracts } from '@/test/helpers';
-import { getDeployments, expect, hardhat } from '@/test/helpers';
+import type { ContractInstances } from '@/test/helpers';
+import { deploy } from '@/deploy/0_deploy_contracts';
+import { expect, hardhat } from '@/test/helpers';
 import { hre } from '@/utils/hre';
 import { formatTokenAmount } from '@/utils/units';
+import type { Contracts } from '@/utils/deploy';
 
 const setupTest = hre.deployments.createFixture(
-  async (): Promise<Contracts> => {
-    await hre.deployments.fixture(); // ensure you start from a fresh deployments
-    return getDeployments({ hre });
+  async (): Promise<ContractInstances> => {
+    const contracts = (await deploy(hre)) as Required<Contracts>;
+    return {
+      nori: contracts.NORI,
+      bpNori: contracts.BridgedPolygonNORI,
+      removal: contracts.Removal,
+      certificate: contracts.Certificate,
+      fifoMarket: contracts.FIFOMarket,
+      lNori: contracts.LockedNORI,
+    };
   }
 );
 

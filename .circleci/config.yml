@@ -48,16 +48,33 @@ jobs:
             echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
             sudo apt-get update && sudo apt -y install libsecret-1-0
-            yarn
+            yarn # todo move to a shared setup step
       - run:
           name: Run Contract Tests and Collect Coverage
           command: |
             REPORT_GAS=true yarn run test:coverage
+      - coveralls/upload
+
+  run-gas-reporter:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+      - run:
+          name: Setup Environment
+          command: |
+            echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
+            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+            sudo apt-get update && sudo apt -y install libsecret-1-0
+            yarn # todo move to a shared setup step
       - run:
           name: Submit gas report
           command: |
-            yarn run test:gas && npx codechecks
-      - coveralls/upload
+            yarn run test:gas && npx codechecks # todo figure out how to get coverage and gas reporter to run in the same commands to de-dupe test run
+      - store_artifacts:
+          path: gasReporterOutput.json
+          destination: gasReporterOutput.json
 
 workflows:
   version: 2
@@ -65,5 +82,8 @@ workflows:
     jobs:
       - setup-contract-tests
       - run-tests:
+          requires:
+            - setup-contract-tests
+      - run-gas-reporter:
           requires:
             - setup-contract-tests
