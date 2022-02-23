@@ -258,15 +258,6 @@ export const seedContracts = async ({
         [2018],
         packedData
       );
-      await contracts.Removal.connect(
-        hre.namedSigners.supplier
-      ).safeBatchTransferFrom(
-        hre.namedAccounts.supplier,
-        contracts.FIFOMarket.address,
-        [0],
-        [formatTokenAmount(100)],
-        ethers.utils.formatBytes32String('0x0')
-      );
       log('Listed 100 NRTs for sale in FIFOMarket');
     }
     if (
