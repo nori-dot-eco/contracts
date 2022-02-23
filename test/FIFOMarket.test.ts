@@ -1,60 +1,71 @@
-import { assert } from 'console';
+import type { BigNumberish } from 'ethers';
 
+import { deploy } from '@/deploy/0_deploy_contracts';
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/test/helpers';
-import {
-  expect,
-  getDeployments,
-  mockDepositNoriToPolygon,
-} from '@/test/helpers';
+import type { Contracts } from '@/utils/deploy';
+import type { ContractInstances } from '@/test/helpers';
+import { expect, chai, mockDepositNoriToPolygon } from '@/test/helpers';
 import { hre } from '@/utils/hre';
 
 const setupTest = hre.deployments.createFixture(
-  async (): Promise<Contracts> => {
-    await hre.deployments.fixture(); // ensure you start from a fresh deployments
-    return getDeployments({ hre });
+  async (
+    _,
+    {
+      buyerInitialBPNoriBalance = formatTokenAmount(1_000_000),
+    }: { buyerInitialBPNoriBalance: BigNumberish } = {
+      buyerInitialBPNoriBalance: formatTokenAmount(1_000_000),
+    }
+  ): Promise<ContractInstances> => {
+    const contracts = (await deploy(hre)) as Required<Contracts>;
+    await mockDepositNoriToPolygon({
+      hre,
+      contracts,
+      amount: buyerInitialBPNoriBalance,
+      to: hre.namedAccounts.buyer,
+      signer: hre.namedSigners.buyer,
+    });
+    return {
+      nori: contracts.NORI,
+      bpNori: contracts.BridgedPolygonNORI,
+      removal: contracts.Removal,
+      certificate: contracts.Certificate,
+      fifoMarket: contracts.FIFOMarket,
+      lNori: contracts.LockedNORI,
+    };
   }
 );
 
 describe('FIFOMarket', () => {
   describe('Successful purchases', () => {
     it('should purchase removals and mint a certificate when there is enough supply in a single removal', async () => {
-      const { bpNori, removal, certificate, fifoMarket, nori } =
-        await setupTest();
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, removal, certificate, fifoMarket } = await setupTest({
+        buyerInitialBPNoriBalance,
+      });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const totalAvailableSupply = '100';
       const purchaseAmount = '1';
       const fee = '.15';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
-      const buyerInitialNoriBalance = formatTokenAmount(1_000_000);
+
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
+
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
 
       await Promise.all([
         removal.mintBatch(
           supplier,
           [hre.ethers.utils.parseUnits(totalAvailableSupply)],
           [2018],
-          hre.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
-        mockDepositNoriToPolygon({
-          hre,
-          contracts: { BridgedPolygonNORI: bpNori, NORI: nori },
-          amount: buyerInitialNoriBalance,
-          to: hre.namedAccounts.buyer,
-          signer: hre.namedSigners.buyer,
-        }),
       ]);
-      await removal
-        .connect(hre.namedSigners.supplier)
-        .safeBatchTransferFrom(
-          supplier,
-          fifoMarket.address,
-          [0],
-          [hre.ethers.utils.parseUnits(totalAvailableSupply)],
-          hre.ethers.utils.formatBytes32String('0x0')
-        );
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
 
@@ -72,7 +83,7 @@ describe('FIFOMarket', () => {
       const finalFifoSupply = await fifoMarket.numberOfNrtsInQueue();
 
       expect(buyerFinalNoriBalance).to.equal(
-        buyerInitialNoriBalance
+        buyerInitialBPNoriBalance
           .sub(hre.ethers.utils.parseUnits(totalPrice, 18))
           .toString()
       );
@@ -102,8 +113,10 @@ describe('FIFOMarket', () => {
       );
     });
     it('should purchase removals and mint a certificate for a small purchase spanning several removals', async () => {
-      const { bpNori, removal, certificate, fifoMarket, nori } =
-        await setupTest();
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, removal, certificate, fifoMarket } = await setupTest({
+        buyerInitialBPNoriBalance,
+      });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const removalBalance1 = '3';
@@ -112,10 +125,14 @@ describe('FIFOMarket', () => {
       const purchaseAmount = '10'; // purchase all supply
       const fee = '1.5';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
-      const buyerInitialNoriBalance = formatTokenAmount(1_000_000);
+
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
-
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
       await Promise.all([
         removal.mintBatch(
           supplier,
@@ -125,29 +142,9 @@ describe('FIFOMarket', () => {
             hre.ethers.utils.parseUnits(removalBalance3),
           ],
           [2018, 2019, 2017],
-          hre.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
-        mockDepositNoriToPolygon({
-          hre,
-          contracts: { BridgedPolygonNORI: bpNori, NORI: nori },
-          amount: buyerInitialNoriBalance,
-          to: hre.namedAccounts.buyer,
-          signer: hre.namedSigners.buyer,
-        }),
       ]);
-      await removal
-        .connect(hre.namedSigners.supplier)
-        .safeBatchTransferFrom(
-          supplier,
-          fifoMarket.address,
-          [0, 1, 2],
-          [
-            hre.ethers.utils.parseUnits(removalBalance1),
-            hre.ethers.utils.parseUnits(removalBalance2),
-            hre.ethers.utils.parseUnits(removalBalance3),
-          ],
-          hre.ethers.utils.formatBytes32String('0x0')
-        );
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
       expect(initialFifoSupply).to.equal(hre.ethers.utils.parseUnits('10'));
@@ -164,7 +161,7 @@ describe('FIFOMarket', () => {
       const finalFifoSupply = await fifoMarket.numberOfNrtsInQueue();
 
       expect(buyerFinalNoriBalance).to.equal(
-        buyerInitialNoriBalance
+        buyerInitialBPNoriBalance
           .sub(hre.ethers.utils.parseUnits(totalPrice, 18))
           .toString()
       );
@@ -194,8 +191,10 @@ describe('FIFOMarket', () => {
       );
     });
     it('should purchase removals and mint a certificate for a large purchase spanning many removals', async () => {
-      const { bpNori, removal, certificate, fifoMarket, nori } =
-        await setupTest();
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, removal, certificate, fifoMarket } = await setupTest({
+        buyerInitialBPNoriBalance,
+      });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const removalBalances = [];
@@ -210,35 +209,18 @@ describe('FIFOMarket', () => {
       const purchaseAmount = '1000'; // purchase all supply
       const fee = '150';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
-      const buyerInitialNoriBalance = formatTokenAmount(1_000_000);
+
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
       await Promise.all([
-        removal.mintBatch(
-          supplier,
-          removalBalances,
-          vintages,
-          hre.ethers.utils.formatBytes32String('0x0')
-        ),
-        mockDepositNoriToPolygon({
-          hre,
-          contracts: { BridgedPolygonNORI: bpNori, NORI: nori },
-          amount: buyerInitialNoriBalance,
-          to: hre.namedAccounts.buyer,
-          signer: hre.namedSigners.buyer,
-        }),
+        removal.mintBatch(supplier, removalBalances, vintages, packedData),
       ]);
-
-      await removal
-        .connect(hre.namedSigners.supplier)
-        .safeBatchTransferFrom(
-          supplier,
-          fifoMarket.address,
-          tokenIds,
-          removalBalances,
-          hre.ethers.utils.formatBytes32String('0x0')
-        );
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
       await bpNori
@@ -254,7 +236,7 @@ describe('FIFOMarket', () => {
       const finalFifoSupply = await fifoMarket.numberOfNrtsInQueue();
 
       expect(buyerFinalNoriBalance).to.equal(
-        buyerInitialNoriBalance
+        buyerInitialBPNoriBalance
           .sub(hre.ethers.utils.parseUnits(totalPrice, 18))
           .toString()
       );
@@ -284,8 +266,10 @@ describe('FIFOMarket', () => {
       );
     });
     it('should correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
-      const { bpNori, removal, certificate, fifoMarket, nori } =
-        await setupTest();
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, removal, certificate, fifoMarket } = await setupTest({
+        buyerInitialBPNoriBalance,
+      });
       const { namedAccounts } = hre;
 
       const removalBalance1 = '3';
@@ -294,67 +278,37 @@ describe('FIFOMarket', () => {
       const purchaseAmount = '10'; // purchase all supply
       const fee = '1.5';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
-      const buyerInitialNoriBalance = formatTokenAmount(1_000_000);
+
       const supplierInitialNoriBalance = '0';
       const investor1InitialNoriBalance = '0';
       const investor2InitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
       await Promise.all([
         removal.mintBatch(
           namedAccounts.supplier,
           [hre.ethers.utils.parseUnits(removalBalance1)],
           [2018],
-          hre.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
         removal.mintBatch(
           namedAccounts.investor1,
           [hre.ethers.utils.parseUnits(removalBalance2)],
           [2018],
-          hre.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
         removal.mintBatch(
           namedAccounts.investor2,
           [hre.ethers.utils.parseUnits(removalBalance3)],
           [2018],
-          hre.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
-        mockDepositNoriToPolygon({
-          hre,
-          contracts: { BridgedPolygonNORI: bpNori, NORI: nori },
-          amount: buyerInitialNoriBalance,
-          to: hre.namedAccounts.buyer,
-          signer: hre.namedSigners.buyer,
-        }),
       ]);
-
-      await removal
-        .connect(hre.namedSigners.supplier)
-        .safeBatchTransferFrom(
-          namedAccounts.supplier,
-          fifoMarket.address,
-          [0],
-          [hre.ethers.utils.parseUnits(removalBalance1)],
-          hre.ethers.utils.formatBytes32String('0x0')
-        );
-      await removal
-        .connect(hre.namedSigners.investor1)
-        .safeBatchTransferFrom(
-          namedAccounts.investor1,
-          fifoMarket.address,
-          [1],
-          [hre.ethers.utils.parseUnits(removalBalance2)],
-          hre.ethers.utils.formatBytes32String('0x0')
-        );
-      await removal
-        .connect(hre.namedSigners.investor2)
-        .safeBatchTransferFrom(
-          namedAccounts.investor2,
-          fifoMarket.address,
-          [2],
-          [hre.ethers.utils.parseUnits(removalBalance3)],
-          hre.ethers.utils.formatBytes32String('0x0')
-        );
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
 
@@ -383,7 +337,7 @@ describe('FIFOMarket', () => {
       const finalFifoSupply = await fifoMarket.numberOfNrtsInQueue();
 
       expect(buyerFinalNoriBalance).to.equal(
-        buyerInitialNoriBalance
+        buyerInitialBPNoriBalance
           .sub(hre.ethers.utils.parseUnits(totalPrice, 18))
           .toString()
       );
@@ -428,25 +382,20 @@ describe('FIFOMarket', () => {
 
   describe('Unsuccessful purchases', () => {
     it('should revert when the queue is completely empty', async () => {
-      const { bpNori, certificate, fifoMarket, nori } = await setupTest();
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, certificate, fifoMarket } = await setupTest({
+        buyerInitialBPNoriBalance,
+      });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const purchaseAmount = '1';
       const fee = '.15';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
-      const buyerInitialNoriBalance = formatTokenAmount(1_000_000);
+
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      await Promise.all([
-        mockDepositNoriToPolygon({
-          hre,
-          contracts: { BridgedPolygonNORI: bpNori, NORI: nori },
-          amount: buyerInitialNoriBalance,
-          to: hre.namedAccounts.buyer,
-          signer: hre.namedSigners.buyer,
-        }),
-      ]);
+      await Promise.all([]);
 
       try {
         await bpNori
@@ -457,7 +406,7 @@ describe('FIFOMarket', () => {
             hre.ethers.utils.hexZeroPad(buyer, 32)
           );
       } catch (err) {
-        assert(err);
+        chai.assert(err);
       }
 
       // no balances should change and no certificate balance should be minted
@@ -466,7 +415,7 @@ describe('FIFOMarket', () => {
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
 
       expect(buyerFinalNoriBalance).to.equal(
-        buyerInitialNoriBalance.toString()
+        buyerInitialBPNoriBalance.toString()
       );
 
       expect(supplierFinalNoriBalance).to.equal(
@@ -482,42 +431,33 @@ describe('FIFOMarket', () => {
       );
     });
     it('should revert when the non-empty queue does not have enough supply to fill the order', async () => {
-      const { bpNori, removal, certificate, fifoMarket, nori } =
-        await setupTest();
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, removal, certificate, fifoMarket } = await setupTest({
+        buyerInitialBPNoriBalance,
+      });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const totalAvailableSupply = '1';
       const purchaseAmount = '2';
       const fee = '.3';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
-      const buyerInitialNoriBalance = formatTokenAmount(1_000_000);
+
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
       await Promise.all([
         removal.mintBatch(
           supplier,
           [hre.ethers.utils.parseUnits(totalAvailableSupply)],
           [2018],
-          hre.ethers.utils.formatBytes32String('0x0')
+          packedData
         ),
-        mockDepositNoriToPolygon({
-          hre,
-          contracts: { BridgedPolygonNORI: bpNori, NORI: nori },
-          amount: buyerInitialNoriBalance,
-          to: hre.namedAccounts.buyer,
-          signer: hre.namedSigners.buyer,
-        }),
       ]);
-      await removal
-        .connect(hre.namedSigners.supplier)
-        .safeBatchTransferFrom(
-          supplier,
-          fifoMarket.address,
-          [0],
-          [hre.ethers.utils.parseUnits(totalAvailableSupply)],
-          hre.ethers.utils.formatBytes32String('0x0')
-        );
 
       try {
         await bpNori.connect(hre.namedSigners.buyer).send(
@@ -526,7 +466,7 @@ describe('FIFOMarket', () => {
           hre.ethers.utils.hexZeroPad(buyer, 32)
         );
       } catch (err) {
-        assert(err);
+        chai.assert(err);
       }
 
       // no balances should change and no certificate balance should be minted
@@ -535,7 +475,7 @@ describe('FIFOMarket', () => {
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
 
       expect(buyerFinalNoriBalance).to.equal(
-        buyerInitialNoriBalance.toString()
+        buyerInitialBPNoriBalance.toString()
       );
 
       expect(supplierFinalNoriBalance).to.equal(

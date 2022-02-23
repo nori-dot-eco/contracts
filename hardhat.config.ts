@@ -17,6 +17,7 @@ import { defender } from '@/config/defender';
 import { gasReporter } from '@/config/gas-reporter';
 import { solidity } from '@/config/solidity';
 import { docgen } from '@/config/docgen';
+import { log } from '@/utils/log';
 
 export const config: HardhatUserConfig = {
   tenderly,
@@ -34,7 +35,7 @@ export const config: HardhatUserConfig = {
   solidity,
 };
 
-// todo move to @/extensions/signers
+// todo move to @/extensions/signers, @extensions/deployments
 extendEnvironment(async (hre) => {
   const accounts = (await hre.getNamedAccounts()) as NamedAccounts;
   const namedSigners: NamedSigners = Object.fromEntries(
@@ -86,33 +87,26 @@ extendEnvironment(async (hre) => {
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
       contractName
     );
-    if (contractCode === '0x') {
-      console.log('Deploying proxy and instance', contractName);
+    if (contractCode === '0x' || process.env.FORCE_PROXY_DEPLOYMENT) {
+      log('Deploying proxy and instance', contractName);
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,
         args,
         options
       );
-      console.log(
-        'Deployed proxy and instance',
-        contractName,
-        contract.address
-      );
+      log('Deployed proxy and instance', contractName, contract.address);
     } else {
-      console.log(
-        'Found existing proxy, attempting to upgrade instance',
-        contractName
-      );
+      log('Found existing proxy, attempting to upgrade instance', contractName);
       contract = await hre.upgrades.upgradeProxy<TContract>(
         proxyAddress,
         contractFactory
         // options
       );
-      console.log('Upgraded instance', contractName, contract.address);
+      log('Upgraded instance', contractName, contract.address);
     }
-    console.log('awaiting deployment transaction', contractName);
+    log('awaiting deployment transaction', contractName);
     await contract.deployed();
-    console.log('successful deployment transaction', contractName);
+    log('successful deployment transaction', contractName);
     return contract;
   };
   hre.deployOrUpgradeProxy = deployOrUpgradeProxy;
