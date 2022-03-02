@@ -1081,7 +1081,7 @@ describe('LockedNori', () => {
         const { lNori, grantAmount, grant } = await setupWithGrant(
           linearParams()
         );
-        const { admin } = await hre.getNamedAccounts();
+        const { admin } = hre.namedAccounts;
   
         const quantityToRevoke = 100;
         const newBalance = grantAmount.sub(quantityToRevoke);
