@@ -1021,7 +1021,7 @@ describe('LockedNori', () => {
 
       expect(await lNori.totalSupply()).to.eq(newBalance);
       expect(await lNori.unlockedBalanceOf(employee)).to.eq(
-        BigNumber.from('600000000000000000000')
+        formatTokenAmount(600)
       );
 
       expect(await bpNori.balanceOf(admin)).to.eq(
@@ -1104,7 +1104,7 @@ describe('LockedNori', () => {
   
         expect(await lNori.balanceOf(grant.recipient)).to.equal(newBalance);
 
-        const newBalance2 = newBalance.sub(quantityToRevoke);
+        const postRevocationBalance = newBalance.sub(quantityToRevoke);
         await expect(
           lNori
             .connect(await hre.ethers.getSigner(admin))
@@ -1122,13 +1122,13 @@ describe('LockedNori', () => {
             quantityToRevoke
           );
 
-          expect(await lNori.balanceOf(grant.recipient)).to.equal(newBalance2);
-          expect(await lNori.totalSupply()).to.eq(newBalance2);
+          expect(await lNori.balanceOf(grant.recipient)).to.equal(postRevocationBalance);
+          expect(await lNori.totalSupply()).to.eq(postRevocationBalance);
     
           // Ensures grantAmount is set correctly after a revocation
-          const grantDetail2 = await lNori.getGrant(grant.recipient);
-          expect(grantDetail2.grantAmount).to.equal(newBalance2);
-          expect(grantDetail2.originalAmount).to.equal(grantAmount);
+          const postRevocationGrantDetails = await lNori.getGrant(grant.recipient);
+          expect(postRevocationGrantDetails.grantAmount).to.equal(postRevocationBalance);
+          expect(postRevocationGrantDetails.originalAmount).to.equal(grantAmount);
       });
 
     it('Should revert when revoking more than remain unvested', async () => {
