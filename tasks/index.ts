@@ -21,6 +21,7 @@ import { TASK as NORI_TASK } from './nori';
 import { TASK as LOCKED_NORI_TASK } from './locked-nori';
 import { TASK as BRIDGED_POLYGON_NORI_TASK } from './bridged-polygon-nori';
 import { TASK as DEFENDER_TASK } from './defender';
+import { TASK as VESTING_TASK } from './vesting';
 
 interface Task {
   run: ActionType<unknown>;
@@ -58,4 +59,5 @@ export const TASKS = {
   [LOCKED_NORI_TASK.name]: { ...LOCKED_NORI_TASK },
   [BRIDGED_POLYGON_NORI_TASK.name]: { ...BRIDGED_POLYGON_NORI_TASK },
   [DEFENDER_TASK.name]: { ...DEFENDER_TASK },
+  [VESTING_TASK.name]: { ...VESTING_TASK },
 } as const;

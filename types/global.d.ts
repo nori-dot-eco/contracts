@@ -46,6 +46,12 @@ declare module 'hardhat/config' {
     action?: ActionType<ArgsT, TActionReturnType>
   ): ConfigurableTaskDefinition;
 
+  export function subtask<ArgsT extends TaskArguments, TActionReturnType = any>(
+    name: string, // todo
+    description?: string,
+    action?: ActionType<ArgsT, TActionReturnType>
+  ): ConfigurableTaskDefinition;
+
 }
 
 declare module 'hardhat/types/runtime' {
@@ -164,6 +170,7 @@ declare global {
     network: Omit<Network, 'name'> & { name: keyof typeof networks };
     ethers: typeof ethers;
     deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
+    log: Console['log']
   };
 
   interface CustomHardhatDeployFunction extends Partial<DeployFunction> {

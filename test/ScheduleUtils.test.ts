@@ -1,10 +1,12 @@
-import { expect } from 'chai';
-import { ethers } from 'hardhat';
 import type { BigNumberish } from 'ethers';
 
 import type { ScheduleTestHarness } from '../typechain-types/ScheduleTestHarness';
 
+import { expect } from './helpers';
+
 import { hre } from '@/utils/hre';
+
+const { ethers } = hre;
 
 const NOW = Math.floor(Date.now() / 1000);
 const setupTest = hre.deployments.createFixture(
@@ -12,7 +14,7 @@ const setupTest = hre.deployments.createFixture(
     scheduleTestHarness: ScheduleTestHarness;
   }> => {
     const ScheduleTestHarness = await ethers.getContractFactory(
-      'ScheduleTestHarness'
+      'ScheduleTestHarness' as unknown as ContractNames
     );
     const scheduleTestHarness =
       (await ScheduleTestHarness.deploy()) as ScheduleTestHarness;

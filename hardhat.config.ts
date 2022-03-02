@@ -110,6 +110,7 @@ extendEnvironment(async (hre) => {
     return contract;
   };
   hre.deployOrUpgradeProxy = deployOrUpgradeProxy;
+  hre.log = console.log;
 });
 
 export default config;
