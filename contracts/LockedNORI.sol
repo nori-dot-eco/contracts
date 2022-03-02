@@ -533,8 +533,7 @@ contract LockedNORI is
     } else {
       quantityRevoked = revocableQuantity;
     }
-    uint256 updatedGrantAmount = grant.grantAmount - quantityRevoked;
-    grant.grantAmount = updatedGrantAmount;
+    grant.grantAmount = grant.grantAmount - quantityRevoked;
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
