@@ -622,11 +622,17 @@ contract LockedNORI is
   {
     TokenGrant storage grant = _grants[account];
     uint256 balance = this.balanceOf(account);
+    uint256 vestedBalance;
+    if (grant.vestingSchedule.startTime > 0) {
+        vestedBalance = grant.vestingSchedule.availableAmount(atTime);
+    } else {
+        vestedBalance = grant.grantAmount;
+    }
     if (grant.exists) {
       balance =
         MathUpgradeable.min(
           MathUpgradeable.min(
-            grant.vestingSchedule.availableAmount(atTime),
+            vestedBalance,
             grant.lockupSchedule.availableAmount(atTime)
           ),
           grant.grantAmount
