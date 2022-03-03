@@ -499,7 +499,13 @@ contract LockedNORI is
   }
 
   /**
-   * @dev Truncates a vesting grant
+   * @notice Truncates a vesting grant
+   *
+   * @dev The implementation never updates underlying schedules (vesting or unlock)
+   * but only the grant amount.  This avoids changing the behavior of the grant
+   * before the point of revocation.  Anytime a vesting or unlock schedule is in
+   * play the corresponding balance functions need to take care to never return
+   * more than the grant amount less the claimed amount.
    */
   function _revokeUnvestedTokens(
     address from,
@@ -509,7 +515,15 @@ contract LockedNORI is
   ) internal {
     TokenGrant storage grant = _grants[from];
     require(grant.exists, "lNORI: no grant exists");
-    uint256 vestedBalance = _vestedBalanceOf(from, atTime);
+    require(
+      grant.vestingSchedule.startTime > 0,
+      "lNORI: no vesting schedule for this grant"
+    );
+    require(
+      atTime >= block.timestamp,
+      "lNORI: Revocation cannot be in the past"
+    );
+    uint256 vestedBalance = grant.vestingSchedule.availableAmount(atTime);
     require(vestedBalance < grant.grantAmount, "lNORI: tokens already vested");
     uint256 revocableQuantity = grant.grantAmount - vestedBalance;
     uint256 quantityRevoked;
@@ -519,9 +533,7 @@ contract LockedNORI is
     } else {
       quantityRevoked = revocableQuantity;
     }
-    grant.grantAmount = vestedBalance;
-    grant.vestingSchedule.totalAmount = vestedBalance;
-    grant.vestingSchedule.endTime = atTime;
+    grant.grantAmount = grant.grantAmount - quantityRevoked;
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
@@ -569,6 +581,10 @@ contract LockedNORI is
 
   /**
    * @dev Vested balance less any claimed amount at `atTime` (implementation)
+   *
+   * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
+   * grant amount. This is done to preserve the behavior of the vesting schedule despite a reduction in the total
+   * quantity of tokens vesting.  i.o.w The rate of vesting does not change after calling `revokeUnvestedTokens`
    */
   function _vestedBalanceOf(address account, uint256 atTime)
     internal
@@ -580,7 +596,10 @@ contract LockedNORI is
     if (grant.exists) {
       if (grant.vestingSchedule.startTime > 0) {
         balance =
-          grant.vestingSchedule.availableAmount(atTime) -
+          MathUpgradeable.min(
+            grant.vestingSchedule.availableAmount(atTime),
+            grant.grantAmount
+          ) -
           grant.claimedAmount;
       } else {
         balance = grant.grantAmount - grant.claimedAmount;
@@ -591,6 +610,7 @@ contract LockedNORI is
 
   /**
    * @notice Unlocked balance less any claimed amount
+   *
    * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
    * grant amount. This is done to preserve the behavior of the unlock schedule despite a reduction in the total
    * quantity of tokens vesting.  i.o.w The rate of unlocking does not change after calling `revokeUnvestedTokens`
