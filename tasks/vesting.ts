@@ -494,6 +494,6 @@ task(TASK.name, TASK.description, TASK.run)
     'master',
     types.string
   );
-// todo --file (testss wont work otherwsie)
+// todo --file (tests wont work otherwise)
 
 subtask(LIST_SUBTASK.name, LIST_SUBTASK.description, LIST_SUBTASK.run);

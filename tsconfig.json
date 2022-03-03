@@ -12,6 +12,8 @@
     "types": ["chai", "jest"],
     "paths": {
       "@/tasks": ["./tasks/index.ts"],
+      "@/tasks/*": ["./tasks/*"],
+      "@/tasks/utils": ["./tasks/utils/*"],
       "@/test/helpers": ["./test/helpers/index.ts"],
       "@/plugins": ["./plugins/index.ts"],
       "@/contracts.json": ["./contracts.json"],
