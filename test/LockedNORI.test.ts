@@ -112,6 +112,28 @@ const employeeParams = ({
   };
 };
 
+const investorParams = ({
+    startTime = NOW,
+  }: {
+    startTime?: number;
+  } = {}): TokenGrantOptions => {
+    return {
+      grantAmount: GRANT_AMOUNT,
+      grant: {
+        recipient: namedAccounts.investor1,
+        startTime,
+        vestEndTime: startTime,
+        unlockEndTime: startTime + END_OFFSET,
+        cliff1Time: startTime + CLIFF1_OFFSET,
+        cliff2Time: startTime + CLIFF2_OFFSET,
+        vestCliff1Amount: BigNumber.from(0),
+        vestCliff2Amount: BigNumber.from(0),
+        unlockCliff1Amount: CLIFF1_AMOUNT,
+        unlockCliff2Amount: CLIFF2_AMOUNT,
+      },
+    };
+  };
+
 const linearParams = ({
   startTime = NOW,
 }: {
@@ -120,7 +142,7 @@ const linearParams = ({
   return {
     grantAmount: GRANT_AMOUNT,
     grant: {
-      recipient: namedAccounts.employee,
+      recipient: namedAccounts.supplier,
       startTime,
       vestEndTime: startTime + END_OFFSET,
       unlockEndTime: startTime + END_OFFSET,
@@ -431,15 +453,15 @@ describe('LockedNori', () => {
             expect(
               await lNori
                 .connect(namedSigners[accountWithRole])
-                .revokeUnvestedTokens(grant.recipient, namedAccounts.admin, NOW)
+                .revokeUnvestedTokens(grant.recipient, namedAccounts.admin, NOW + DELTA)
             )
               .to.emit(lNori, 'UnvestedTokensRevoked')
-              .withArgs(NOW, namedAccounts.employee, grantAmount);
+              .withArgs(NOW + DELTA, namedAccounts.employee, grantAmount);
             // todo test balance of admin is now the revoked token balance
             await expect(
               lNori
                 .connect(namedSigners[accountWithoutRole])
-                .revokeUnvestedTokens(grant.recipient, namedAccounts.admin, NOW)
+                .revokeUnvestedTokens(grant.recipient, namedAccounts.admin, NOW + DELTA)
             ).to.be.revertedWith(
               `AccessControl: account ${namedAccounts[
                 accountWithoutRole
@@ -937,7 +959,7 @@ describe('LockedNori', () => {
       );
       const { employee, admin } = await hre.getNamedAccounts();
       await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
-        grant.startTime + VEST_REVOKED_OFFSET,
+        grant.startTime + VEST_REVOKED_OFFSET - DELTA,
       ]);
       await hardhat.network.provider.send('evm_mine');
       expect(await lNori.balanceOf(employee)).to.equal(grantAmount);
@@ -947,7 +969,7 @@ describe('LockedNori', () => {
         INITIAL_SUPPLY.sub(grantAmount)
       );
 
-      expect(await lNori.vestedBalanceOf(employee)).to.equal(newBalance);
+      expect(await lNori.vestedBalanceOf(employee)).to.be.lt(newBalance);
       await expect(
         lNori
           .connect(await hre.ethers.getSigner(admin))
@@ -988,12 +1010,18 @@ describe('LockedNori', () => {
         )
         .to.emit(bpNori, 'Transfer')
         .withArgs(lNori.address, namedAccounts.admin, quantityRevoked);
+
+      await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
+        grant.startTime + VEST_REVOKED_OFFSET,
+      ]);
+      await hardhat.network.provider.send('evm_mine');
+
       expect(await lNori.vestedBalanceOf(employee)).to.equal(newBalance);
       expect(await lNori.balanceOf(employee)).to.equal(newBalance);
 
       expect(await lNori.totalSupply()).to.eq(newBalance);
       expect(await lNori.unlockedBalanceOf(employee)).to.eq(
-        BigNumber.from('600008888888888888888')
+        formatTokenAmount(600)
       );
 
       expect(await bpNori.balanceOf(admin)).to.eq(
@@ -1042,7 +1070,66 @@ describe('LockedNori', () => {
 
       expect(await lNori.balanceOf(employee)).to.equal(newBalance);
       expect(await lNori.totalSupply()).to.eq(newBalance);
+
+      // Ensures grantAmount is set correctly after a revocation
+      const grantDetail = await lNori.getGrant(employee);
+      expect(grantDetail.grantAmount).to.equal(grantAmount.sub(quantityToRevoke));
+      expect(grantDetail.originalAmount).to.equal(grantAmount);
     });
+
+    it('Should revoke a specific amount of unvested tokens repeatedly', async () => {
+        const { lNori, grantAmount, grant } = await setupWithGrant(
+          linearParams()
+        );
+        const { admin } = hre.namedAccounts;
+  
+        const quantityToRevoke = 100;
+        const newBalance = grantAmount.sub(quantityToRevoke);
+        await expect(
+          lNori
+            .connect(await hre.ethers.getSigner(admin))
+            .revokeUnvestedTokenAmount(
+              grant.recipient,
+              admin,
+              grant.startTime + DELTA,
+              quantityToRevoke
+            )
+        )
+          .to.emit(lNori, 'UnvestedTokensRevoked')
+          .withArgs(
+            grant.startTime + DELTA,
+            grant.recipient,
+            quantityToRevoke
+          );
+  
+        expect(await lNori.balanceOf(grant.recipient)).to.equal(newBalance);
+
+        const postRevocationBalance = newBalance.sub(quantityToRevoke);
+        await expect(
+          lNori
+            .connect(await hre.ethers.getSigner(admin))
+            .revokeUnvestedTokenAmount(
+              grant.recipient,
+              admin,
+              grant.startTime + DELTA,
+              quantityToRevoke
+            )
+        )
+          .to.emit(lNori, 'UnvestedTokensRevoked')
+          .withArgs(
+            grant.startTime + DELTA,
+            grant.recipient,
+            quantityToRevoke
+          );
+
+          expect(await lNori.balanceOf(grant.recipient)).to.equal(postRevocationBalance);
+          expect(await lNori.totalSupply()).to.eq(postRevocationBalance);
+    
+          // Ensures grantAmount is set correctly after a revocation
+          const postRevocationGrantDetails = await lNori.getGrant(grant.recipient);
+          expect(postRevocationGrantDetails.grantAmount).to.equal(postRevocationBalance);
+          expect(postRevocationGrantDetails.originalAmount).to.equal(grantAmount);
+      });
 
     it('Should revert when revoking more than remain unvested', async () => {
       const { lNori, grantAmount, grant } = await setupWithGrant(
@@ -1053,17 +1140,57 @@ describe('LockedNori', () => {
         lNori
           .connect(await hre.ethers.getSigner(namedAccounts.admin))
           .revokeUnvestedTokenAmount(
-            namedAccounts.employee,
+            grant.recipient,
             namedAccounts.admin,
             grant.startTime + VEST_REVOKED_OFFSET,
             quantityToRevoke
           )
       ).to.revertedWith('lNORI: too few unvested tokens');
-      expect(await lNori.balanceOf(namedAccounts.employee)).to.equal(
+      expect(await lNori.balanceOf(grant.recipient)).to.equal(
         grantAmount
       );
       expect(await lNori.totalSupply()).to.eq(grantAmount);
     });
+
+    it('Should revert when revoking in the past', async () => {
+        const { lNori, grantAmount, grant } = await setupWithGrant(
+          linearParams()
+        );
+        await expect(
+          lNori
+            .connect(await hre.ethers.getSigner(namedAccounts.admin))
+            .revokeUnvestedTokenAmount(
+              grant.recipient,
+              namedAccounts.admin,
+              grant.startTime - DELTA,
+              100
+            )
+        ).to.revertedWith('lNORI: Revocation cannot be in the past');
+        expect(await lNori.balanceOf(grant.recipient)).to.equal(
+          grantAmount
+        );
+        expect(await lNori.totalSupply()).to.eq(grantAmount);
+      });
+
+      it('Should revert when revoking from a non-vesting grant', async () => {
+        const { lNori, grantAmount, grant } = await setupWithGrant(
+          investorParams()
+        );
+        await expect(
+          lNori
+            .connect(await hre.ethers.getSigner(namedAccounts.admin))
+            .revokeUnvestedTokenAmount(
+              grant.recipient,
+              namedAccounts.admin,
+              grant.startTime + DELTA,
+              100
+            )
+        ).to.revertedWith('lNORI: no vesting schedule for this grant');
+        expect(await lNori.balanceOf(grant.recipient)).to.equal(
+          grantAmount
+        );
+        expect(await lNori.totalSupply()).to.eq(grantAmount);
+      });
   });
 
   it('Should return details of a grant', async () => {
