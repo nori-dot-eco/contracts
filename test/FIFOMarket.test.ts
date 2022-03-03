@@ -8,6 +8,7 @@ import { expect, chai, mockDepositNoriToPolygon } from '@/test/helpers';
 import { hre } from '@/utils/hre';
 
 const setupTest = hre.deployments.createFixture(
+  // todo use setupTestEnvironment
   async (
     _,
     {
@@ -16,6 +17,7 @@ const setupTest = hre.deployments.createFixture(
       buyerInitialBPNoriBalance: formatTokenAmount(1_000_000),
     }
   ): Promise<ContractInstances> => {
+    hre.ethernalSync = false;
     const contracts = (await deploy(hre)) as Required<Contracts>;
     await mockDepositNoriToPolygon({
       hre,

@@ -37,6 +37,8 @@ export const config: HardhatUserConfig = {
 
 // todo move to @/extensions/signers, @extensions/deployments
 extendEnvironment(async (hre) => {
+  hre.log = console.log;
+
   const accounts = (await hre.getNamedAccounts()) as NamedAccounts;
   const namedSigners: NamedSigners = Object.fromEntries(
     await Promise.all(
@@ -47,6 +49,10 @@ extendEnvironment(async (hre) => {
   );
   hre.namedSigners = namedSigners;
   hre.namedAccounts = accounts;
+
+  if (process.env.LOG && process.env.LOG !== 'false') {
+    await hre.network.provider.send('hardhat_setLoggingEnabled', [true]);
+  }
   hre.ethernalSync = Boolean(
     hre.network.name === 'hardhat' &&
       process.env.ETHERNAL &&
@@ -54,9 +60,6 @@ extendEnvironment(async (hre) => {
       process.env.ETHERNAL_EMAIL &&
       process.env.ETHERNAL_PASSWORD
   );
-  if (process.env.LOG && process.env.LOG !== 'false') {
-    await hre.network.provider.send('hardhat_setLoggingEnabled', [true]);
-  }
   if (hre.network.name === 'hardhat') {
     if (hre.ethernalSync) {
       hre.ethernalWorkspace = 'nori';
@@ -110,7 +113,6 @@ extendEnvironment(async (hre) => {
     return contract;
   };
   hre.deployOrUpgradeProxy = deployOrUpgradeProxy;
-  hre.log = console.log;
 });
 
 export default config;

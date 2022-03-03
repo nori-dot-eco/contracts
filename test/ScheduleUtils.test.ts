@@ -4,16 +4,16 @@ import type { ScheduleTestHarness } from '../typechain-types/ScheduleTestHarness
 
 import { expect } from './helpers';
 
-import { hre } from '@/utils/hre';
-
-const { ethers } = hre;
-
 const NOW = Math.floor(Date.now() / 1000);
+
 const setupTest = hre.deployments.createFixture(
-  async (): Promise<{
+  async (
+    hre
+  ): Promise<{
     scheduleTestHarness: ScheduleTestHarness;
   }> => {
-    const ScheduleTestHarness = await ethers.getContractFactory(
+    hre.ethernalSync = false;
+    const ScheduleTestHarness = await hre.ethers.getContractFactory(
       'ScheduleTestHarness' as unknown as ContractNames
     );
     const scheduleTestHarness =

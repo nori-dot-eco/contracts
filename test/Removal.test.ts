@@ -7,6 +7,7 @@ import type { Contracts } from '@/utils/deploy';
 
 const setupTest = hre.deployments.createFixture(
   async (): Promise<ContractInstances> => {
+    hre.ethernalSync = false;
     const contracts = (await deploy(hre)) as Required<Contracts>;
     return {
       nori: contracts.NORI,

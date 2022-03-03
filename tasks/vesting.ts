@@ -2,12 +2,12 @@ import fs from 'fs';
 
 import csv from 'csvtojson';
 import { task, subtask, types } from 'hardhat/config';
+import type { BigNumber } from 'ethers';
 
 import { formatTokenAmount } from '../utils/units';
 
 import { getOctokit } from './utils/github';
 
-import { log } from '@/utils/log';
 // // README
 // // This script is for reading in a CSV file of token grants with unlocking schedules.
 // // A sample file format is part of NO-1463:
@@ -406,6 +406,28 @@ import { log } from '@/utils/log';
 //   process.exit(1);
 // };
 
+interface ParsedGrant {
+  // todo correct types
+  walletAddress: string;
+  contactUUID: string;
+  amount: BigNumber;
+  startTime: string;
+  vestEndTime: string;
+  unlockEndTime: string;
+  cliff1Time: string;
+  cliff2Time: string;
+  vestCliff1Amount: string;
+  vestCliff2Amount: string;
+  unlockCliff1Amount: string;
+  unlockCliff2Amount: string;
+  revokeUnvestedTime: string;
+}
+
+type RunVestingWithSubTasks = <TTaskKind extends typeof LIST_SUBTASK>(
+  name: TTaskKind['name'],
+  taskArguments?: Parameters<TTaskKind['run']>[0]
+) => Promise<ReturnType<typeof LIST_SUBTASK['run']>>;
+
 export const TASK = {
   name: 'vesting',
   description: 'Utilities for handling vesting',
@@ -413,8 +435,8 @@ export const TASK = {
     { list, commit }: { list: boolean; commit: string },
     _: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
+    const runSubtask = hre.run as RunVestingWithSubTasks;
     const octokit = getOctokit();
-    console.log({ commit });
     const { data } = await octokit.rest.repos.getContent({
       mediaType: { format: 'raw' },
       ref: commit,
@@ -422,7 +444,7 @@ export const TASK = {
       repo: 'grants',
       path: 'grants.csv',
     });
-    const grants = await csv({
+    const grants: ParsedGrant[] = await csv({
       colParser: {
         walletAddress: (walletAddress) => {
           if (!walletAddress) {
@@ -447,20 +469,31 @@ export const TASK = {
       },
     }).fromString(data.toString());
     if (list) {
-      await hre.run('list' as any, { grants });
+      await runSubtask('list', { grants });
     }
   },
 } as const;
 
-task(TASK.name, TASK.description, TASK.run)
-  .addOptionalParam('list', 'lists all grants', false, types.boolean)
-  .addOptionalParam('commit', 'use grant for commit', 'master', types.string);
-
-subtask(
-  'list',
-  '',
-  async ({ grants }: { grants: any[] }, hre): Promise<void> => {
+const LIST_SUBTASK = {
+  name: 'list',
+  description: 'List all grants',
+  run: async (
+    { grants }: { grants: ParsedGrant[] },
+    hre: CustomHardHatRuntimeEnvironment
+  ): Promise<void> => {
     hre.log(grants);
     return Promise.resolve();
-  }
-);
+  },
+} as const;
+
+task(TASK.name, TASK.description, TASK.run)
+  .addOptionalParam('list', 'Lists all grants', false, types.boolean)
+  .addOptionalParam(
+    'commit',
+    'Use the grants known by a particular GitHub commit',
+    'master',
+    types.string
+  );
+// todo --file (testss wont work otherwsie)
+
+subtask(LIST_SUBTASK.name, LIST_SUBTASK.description, LIST_SUBTASK.run);

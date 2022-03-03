@@ -28,7 +28,6 @@ import { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
 import { ContractAddressOrInstance, UpgradeProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
 import { DeploymentsExtension as OriginalDeploymentsExtension } from 'hardhat-deploy/dist/types';
 
-
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
 
