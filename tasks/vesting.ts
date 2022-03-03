@@ -460,8 +460,8 @@ task(TASK.name, TASK.description, TASK.run).addOptionalPositionalParam(
 subtask(
   'list',
   '',
-  async ({ grants }: { grants: any[] }, hre): Promise<any> => {
+  async ({ grants }: { grants: any[] }, hre): Promise<void> => {
     hre.log(grants);
-    await Promise.resolve(grants);
+    return Promise.resolve();
   }
 );
