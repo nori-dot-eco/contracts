@@ -6,7 +6,10 @@ import { hre } from '@/utils/hre';
 
 it.only('vesting task', async () => {
   const logSpy = chai.spy.on(hre, 'log');
-  await hre.run('vesting', { list: true });
+  await hre.run('vesting', {
+    list: true,
+    commit: '362ff5766f3ce9792b7d6387647400898fe06276',
+  });
   expect(logSpy).to.have.been.called.with([
     {
       walletAddress: '0xDD66B46910918B2F442D6b75C6E55631ad678c99',

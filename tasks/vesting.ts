@@ -410,12 +410,14 @@ export const TASK = {
   name: 'vesting',
   description: 'Utilities for handling vesting',
   run: async (
-    { list }: { list?: boolean },
+    { list, commit }: { list: boolean; commit: string },
     _: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
     const octokit = getOctokit();
+    console.log({ commit });
     const { data } = await octokit.rest.repos.getContent({
       mediaType: { format: 'raw' },
+      ref: commit,
       owner: 'nori-dot-eco',
       repo: 'grants',
       path: 'grants.csv',
@@ -450,12 +452,9 @@ export const TASK = {
   },
 } as const;
 
-task(TASK.name, TASK.description, TASK.run).addOptionalPositionalParam(
-  'list',
-  'lists all grants',
-  undefined,
-  types.boolean
-);
+task(TASK.name, TASK.description, TASK.run)
+  .addOptionalParam('list', 'lists all grants', false, types.boolean)
+  .addOptionalParam('commit', 'use grant for commit', 'master', types.string);
 
 subtask(
   'list',
