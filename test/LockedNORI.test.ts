@@ -951,6 +951,21 @@ describe('LockedNori', () => {
     });
   });
 
+  describe('Unlocking without vesting', () => {
+    it('Should unlock cliff1', async () => {
+      // cliff1 < now < cliff2
+      const { lNori } = await setupWithGrant(investorParams());
+      const { investor1 } = hre.namedAccounts;
+      await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
+        NOW + CLIFF1_OFFSET + DELTA,
+      ]);
+      await hardhat.network.provider.send('evm_mine');
+      expect(await lNori.unlockedBalanceOf(investor1)).to.equal(CLIFF1_AMOUNT);
+      expect(await lNori.vestedBalanceOf(investor1)).to.equal(GRANT_AMOUNT);
+      expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
+    });
+  });
+
   describe('revokeUnvestedTokens', () => {
     it('Should revoke *all* unvested tokens', async () => {
       // now == CLIFF2

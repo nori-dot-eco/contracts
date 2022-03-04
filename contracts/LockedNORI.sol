@@ -516,7 +516,7 @@ contract LockedNORI is
     TokenGrant storage grant = _grants[from];
     require(grant.exists, "lNORI: no grant exists");
     require(
-      grant.vestingSchedule.startTime > 0,
+      _hasVestingSchedule(from),
       "lNORI: no vesting schedule for this grant"
     );
     require(
@@ -580,6 +580,14 @@ contract LockedNORI is
   }
 
   /**
+  * @dev Returns true if the there is a grant for *account* with a vesting schedule.
+  */
+  function _hasVestingSchedule(address account) private view returns (bool) {
+      TokenGrant storage grant = _grants[account];
+      return grant.exists && grant.vestingSchedule.startTime > 0;
+  }
+
+  /**
    * @dev Vested balance less any claimed amount at `atTime` (implementation)
    *
    * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
@@ -594,7 +602,7 @@ contract LockedNORI is
     TokenGrant storage grant = _grants[account];
     uint256 balance = this.balanceOf(account);
     if (grant.exists) {
-      if (grant.vestingSchedule.startTime > 0) {
+      if (_hasVestingSchedule(account)) {
         balance =
           MathUpgradeable.min(
             grant.vestingSchedule.availableAmount(atTime),
@@ -622,11 +630,14 @@ contract LockedNORI is
   {
     TokenGrant storage grant = _grants[account];
     uint256 balance = this.balanceOf(account);
+    uint256 vestedBalance = _hasVestingSchedule(account)
+      ? grant.vestingSchedule.availableAmount(atTime)
+      : grant.grantAmount;
     if (grant.exists) {
       balance =
         MathUpgradeable.min(
           MathUpgradeable.min(
-            grant.vestingSchedule.availableAmount(atTime),
+            vestedBalance,
             grant.lockupSchedule.availableAmount(atTime)
           ),
           grant.grantAmount
