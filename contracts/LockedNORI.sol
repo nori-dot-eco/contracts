@@ -195,7 +195,7 @@ contract LockedNORI is
   /**
    * @dev Emitted on withdwal of fully unlocked tokens.
    */
-  event TokensClaimed(address account, uint256 quantity);
+  event TokensClaimed(address from, address to, uint256 quantity);
 
   /**
    * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
@@ -226,20 +226,22 @@ contract LockedNORI is
    * @dev This function burns `amount` of wrapped tokens and withdraws them to the corresponding {BridgedPolygonNORI}
    * tokens.
    *
+   * Burns unlocked tokens from sender and sends them to *recipient*
+   *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    */
-  function withdrawTo(address account, uint256 amount) external returns (bool) {
-    TokenGrant storage grant = _grants[account];
+  function withdrawTo(address recipient, uint256 amount) external returns (bool) {
+    TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
-      account,
+      recipient,
       amount,
       ""
     );
     grant.claimedAmount += amount;
-    emit TokensClaimed(account, amount);
+    emit TokensClaimed(_msgSender(), recipient, amount);
     return true;
   }
 
@@ -459,7 +461,11 @@ contract LockedNORI is
     );
     require(
       address(params.recipient) != address(0),
-      "Recipient cannot be zero address"
+      "lNORI: Recipient cannot be zero address"
+    );
+    require(
+      address(params.recipient) != _msgSender(),
+      "lNORI: Recipient cannot be grant admin"
     );
     require(!_grants[params.recipient].exists, "lNORI: Grant already exists");
     TokenGrant storage grant = _grants[params.recipient];
