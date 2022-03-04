@@ -181,8 +181,8 @@ contract LockedNORI is
    */
   event TokenGrantCreated(
     address indexed recipient,
-    uint256 amount,
-    uint256 startTime,
+    uint256 indexed amount,
+    uint256 indexed startTime,
     uint256 vestEndTime,
     uint256 unlockEndTime
   );
@@ -190,12 +190,16 @@ contract LockedNORI is
   /**
    * @dev Emitted on when the vesting portion of an active grant is terminated.
    */
-  event UnvestedTokensRevoked(uint256 atTime, address from, uint256 quantity);
+  event UnvestedTokensRevoked(
+    uint256 indexed atTime,
+    address indexed from,
+    uint256 indexed quantity
+  );
 
   /**
    * @dev Emitted on withdwal of fully unlocked tokens.
    */
-  event TokensClaimed(address account, uint256 quantity);
+  event TokensClaimed(address indexed account, uint256 indexed quantity);
 
   /**
    * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
