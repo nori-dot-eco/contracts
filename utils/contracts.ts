@@ -1,32 +1,46 @@
-import type { BaseContract } from 'ethers';
+import { Contract } from 'ethers';
 
-import type {
-  FIFOMarket,
-  LockedNORI,
-  NORI,
-  Removal,
-  Certificate,
-} from '../typechain-types';
+import type { BridgedPolygonNORI, LockedNORI } from '../typechain-types';
+import type { networks } from '../config/networks';
 
-export const connectToContract = async <
-  TContract extends
-    | FIFOMarket
-    | NORI
-    | Removal
-    | Certificate
-    | LockedNORI
-    | BaseContract
->({
-  contract,
-  account,
-  hre,
+import * as contractsConfig from '@/contracts.json';
+import { abi as bridgedPolygonNoriAbi } from '@/artifacts/BridgedPolygonNORI.sol/BridgedPolygonNORI.json';
+import { abi as lockedNoriAbi } from '@/artifacts/LockedNORI.sol/LockedNORI.json';
+
+export const getBridgedPolygonNori = ({
+  signer,
+  network,
 }: {
-  contract: TContract;
-  account?: string;
-  hre: CustomHardHatRuntimeEnvironment;
-}): Promise<TContract> => {
-  const signer = account
-    ? await hre.ethers.getSigner(account)
-    : contract.signer;
-  return contract.connect(signer) as TContract;
+  signer: ConstructorParameters<typeof Contract>[2];
+  network: keyof typeof networks;
+}): BridgedPolygonNORI => {
+  const contractsForNetwork = contractsConfig[network];
+  if (!('BridgedPolygonNORI' in contractsForNetwork)) {
+    throw new Error(`Unsupported network: ${network}`);
+  }
+  const bridgedPolygonNori = new Contract(
+    contractsForNetwork.BridgedPolygonNORI.proxyAddress,
+    bridgedPolygonNoriAbi,
+    signer
+  ) as BridgedPolygonNORI;
+  return bridgedPolygonNori;
+};
+
+export const getLockedNori = ({
+  signer,
+  network,
+}: {
+  signer: ConstructorParameters<typeof Contract>[2];
+  network: keyof typeof networks;
+}): LockedNORI => {
+  const contractsForNetwork = contractsConfig[network];
+  if (!('LockedNORI' in contractsForNetwork)) {
+    throw new Error(`Unsupported network: ${network}`);
+  }
+  const lockedNori = new Contract(
+    contractsForNetwork.LockedNORI.proxyAddress,
+    lockedNoriAbi,
+    signer
+  ) as LockedNORI;
+  return lockedNori;
 };

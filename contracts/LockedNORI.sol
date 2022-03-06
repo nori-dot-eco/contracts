@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./ERC777PresetPausablePermissioned.sol";
 import "./BridgedPolygonNORI.sol";
+// import "hardhat/console.sol"; // todo
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
@@ -105,6 +106,7 @@ contract LockedNORI is
     uint256 grantAmount;
     uint256 claimedAmount;
     uint256 originalAmount;
+    uint256 lastRevocationTime;
     bool exists;
   }
 
@@ -122,6 +124,7 @@ contract LockedNORI is
     uint256 unlockCliff2Amount;
     uint256 claimedAmount;
     uint256 originalAmount;
+    uint256 lastRevocationTime;
   }
 
   struct CreateTokenGrantParams {
@@ -336,10 +339,28 @@ contract LockedNORI is
   }
 
   /**
+   * @notice Returns all governing settings for multiple grants
+   * @dev If a grant does not exist for an account, the resulting grant will be zeroed out in the return value
+   */
+  function batchGetGrant(address[] calldata accounts)
+    public
+    view
+    returns (TokenGrantDetail[] memory)
+  {
+    TokenGrantDetail[] memory grantDetails = new TokenGrantDetail[](
+      accounts.length
+    );
+    for (uint256 i = 0; i < accounts.length; i++) {
+      grantDetails[i] = getGrant(accounts[i]);
+    }
+    return grantDetails;
+  }
+
+  /**
    * @notice Returns all governing settings for a grant.
    */
   function getGrant(address account)
-    external
+    public
     view
     returns (TokenGrantDetail memory)
   {
@@ -358,7 +379,8 @@ contract LockedNORI is
         grant.lockupSchedule.cliffs[0].amount,
         grant.lockupSchedule.cliffs[1].amount,
         grant.claimedAmount,
-        grant.originalAmount
+        grant.originalAmount,
+        grant.lastRevocationTime
       );
   }
 
@@ -534,6 +556,7 @@ contract LockedNORI is
       quantityRevoked = revocableQuantity;
     }
     grant.grantAmount = grant.grantAmount - quantityRevoked;
+    grant.lastRevocationTime = atTime;
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,

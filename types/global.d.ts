@@ -1,5 +1,5 @@
 import type {
-  ConfigurableTaskDefinition,
+  ConfigurableTaskDefinition as OriginalConfigurableTaskDefinition,
   HardhatRuntimeEnvironment,
   Network,
   RunSuperFunction,
@@ -51,6 +51,9 @@ declare module 'hardhat/config' {
     action?: ActionType<ArgsT, TActionReturnType>
   ): ConfigurableTaskDefinition;
 
+  type ConfigurableTaskDefinition = OriginalConfigurableTaskDefinition & {  
+    setAction<ArgsT extends TaskArguments, TActionReturnType = any>(action: ActionType<ArgsT, TActionReturnType>): ConfigurableTaskDefinition;
+  }  
 }
 
 declare module 'hardhat/types/runtime' {

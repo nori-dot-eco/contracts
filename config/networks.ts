@@ -12,6 +12,14 @@ const hardhat: NetworksUserConfig['hardhat'] = {
   accounts,
 };
 
+const localhost: NetworkUserConfig = {
+  blockGasLimit: 20_000_000,
+  initialBaseFeePerGas: 1,
+  gasPrice: 1,
+  chainId: 9001,
+  accounts: { mnemonic: STAGING_MNEMONIC },
+};
+
 const goerli: NetworkUserConfig = {
   chainId: 5,
   url: `https://goerli.infura.io/v3/${INFURA_STAGING_KEY}`,
@@ -37,6 +45,7 @@ const mainnet: NetworkUserConfig = {
 
 export const networks = {
   hardhat,
+  localhost,
   ...(INFURA_STAGING_KEY && STAGING_MNEMONIC && { goerli, mumbai }),
   ...(INFURA_STAGING_KEY && PROD_MNEMONIC && { mainnet, polygon }),
 } as const;

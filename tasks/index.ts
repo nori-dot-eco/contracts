@@ -1,4 +1,4 @@
-import type { ActionType } from 'hardhat/types';
+import type { ActionType } from 'hardhat/config';
 import {
   TASK_VERIFY,
   TASK_VERIFY_GET_MINIMUM_BUILD,
@@ -24,22 +24,25 @@ import { TASK as DEFENDER_TASK } from './defender';
 import { TASK as VESTING_TASK } from './vesting';
 
 interface Task {
-  run: ActionType<unknown>;
+  run: ActionType<Record<string, unknown>, any>;
 }
 
 export const TASKS = {
   [TASK_VERIFY_VERIFY]: {} as {
-    run: ActionType<{
-      address: string;
-      // constructor args given as positional params
-      constructorArgsParams: string[];
-      // Filename of constructor arguments module
-      constructorArgs?: string;
-      // Fully qualified name of the contract
-      contract?: string;
-      // Filename of libraries module
-      libraries?: string;
-    }>;
+    run: ActionType<
+      {
+        address: string;
+        // constructor args given as positional params
+        constructorArgsParams: string[];
+        // Filename of constructor arguments module
+        constructorArgs?: string;
+        // Fully qualified name of the contract
+        contract?: string;
+        // Filename of libraries module
+        libraries?: string;
+      },
+      any
+    >;
   },
   [TASK_VERIFY]: {} as Task,
   [TASK_VERIFY_GET_MINIMUM_BUILD]: {} as Task,

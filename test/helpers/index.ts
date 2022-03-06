@@ -1,5 +1,3 @@
-import type Sinon from 'sinon';
-
 import type {
   Certificate,
   FIFOMarket,
@@ -10,7 +8,6 @@ import type {
 } from '../../typechain-types';
 
 import { mockDepositNoriToPolygon } from './polygon'; // todo deprecate exported hardhat, use hre from @/utils
-import { sinon } from './chai';
 
 import { hre } from '@/utils/hre';
 import { formatTokenAmount } from '@/utils/units';
@@ -31,7 +28,7 @@ export interface ContractInstances {
 }
 
 export const setupTestEnvironment = hre.deployments.createFixture(
-  async (): Promise<{ sandbox: Sinon.SinonSandbox } & ContractInstances> => {
+  async (): Promise<ContractInstances> => {
     hre.ethernalSync = false;
     const contracts = (await deploy(hre)) as Required<Contracts>;
     await mockDepositNoriToPolygon({
@@ -41,9 +38,7 @@ export const setupTestEnvironment = hre.deployments.createFixture(
       to: hre.namedAccounts.admin,
       signer: hre.namedSigners.admin,
     });
-    const sandbox = sinon.createSandbox();
     return {
-      sandbox,
       nori: contracts.NORI,
       bpNori: contracts.BridgedPolygonNORI,
       removal: contracts.Removal,

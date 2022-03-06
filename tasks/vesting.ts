@@ -1,12 +1,18 @@
 import fs from 'fs';
 
+import * as yup from 'yup';
 import csv from 'csvtojson';
 import { task, subtask, types } from 'hardhat/config';
-import type { BigNumber } from 'ethers';
+import { BigNumber } from 'ethers';
+import chalk from 'chalk';
+import { diff, diffString } from 'json-diff';
 
 import { formatTokenAmount } from '../utils/units';
+import type { BridgedPolygonNORI, LockedNORI } from '../typechain-types';
 
 import { getOctokit } from './utils/github';
+
+import { getBridgedPolygonNori, getLockedNori } from '@/utils/contracts';
 
 // // README
 // // This script is for reading in a CSV file of token grants with unlocking schedules.
@@ -32,7 +38,7 @@ import { getOctokit } from './utils/github';
 //   vestCliff2Amount?: bigint;
 //   unlockCliff1Amount?: bigint;
 //   unlockCliff2Amount?: bigint;
-//   revokeUnvestedTime?: string;
+//   lastRevocationTime?: string;
 // }
 // type GrantsFromCSV = GrantFromCSV[];
 
@@ -283,19 +289,19 @@ import { getOctokit } from './utils/github';
 //       }
 //     }
 //   }
-//   // revokeUnvestedTime - optional
-//   if ('revokeUnvestedTime' in row && !(row.revokeUnvestedTime === '')) {
-//     if (!isValidTime(row.revokeUnvestedTime)) {
-//       fatalErr(`Invalid revokeUnvestedTime: ${row.revokeUnvestedTime}`);
+//   // lastRevocationTime - optional
+//   if ('lastRevocationTime' in row && !(row.lastRevocationTime === '')) {
+//     if (!isValidTime(row.lastRevocationTime)) {
+//       fatalErr(`Invalid lastRevocationTime: ${row.lastRevocationTime}`);
 //     }
-//     if (Date.parse(row.revokeUnvestedTime) < Date.parse(row.startTime)) {
+//     if (Date.parse(row.lastRevocationTime) < Date.parse(row.startTime)) {
 //       fatalErr(
-//         `Invalid revokeUnvestedTime before startTime: ${row.revokeUnvestedTime}, ${row.startTime}`
+//         `Invalid lastRevocationTime before startTime: ${row.lastRevocationTime}, ${row.startTime}`
 //       );
 //     }
-//     if (Date.parse(row.revokeUnvestedTime) > Date.parse(row.vestEndTime)) {
+//     if (Date.parse(row.lastRevocationTime) > Date.parse(row.vestEndTime)) {
 //       fatalErr(
-//         `Invalid revokeUnvestedTime after vestEndTime: ${row.revokeUnvestedTime}, ${row.vestEndTime}`
+//         `Invalid lastRevocationTime after vestEndTime: ${row.lastRevocationTime}, ${row.vestEndTime}`
 //       );
 //     }
 //   }
@@ -330,8 +336,8 @@ import { getOctokit } from './utils/github';
 //   ) {
 //     grant.vestCliff2Amount = row.vestCliff2Amount;
 //   }
-//   if ('revokeUnvestedTime' in row && row.revokeUnvestedTime !== '') {
-//     grant.revokeUnvestedTime = row.revokeUnvestedTime;
+//   if ('lastRevocationTime' in row && row.lastRevocationTime !== '') {
+//     grant.lastRevocationTime = row.lastRevocationTime;
 //   }
 //   return grant;
 // }
@@ -406,70 +412,165 @@ import { getOctokit } from './utils/github';
 //   process.exit(1);
 // };
 
-interface ParsedGrant {
-  // todo correct types
-  walletAddress: string;
-  contactUUID: string;
-  amount: BigNumber;
-  startTime: string;
-  vestEndTime: string;
-  unlockEndTime: string;
-  cliff1Time: string;
-  cliff2Time: string;
-  vestCliff1Amount: string;
-  vestCliff2Amount: string;
-  unlockCliff1Amount: string;
-  unlockCliff2Amount: string;
-  revokeUnvestedTime: string;
+const grantSchema = yup.lazy((details) => {
+  return yup.object(
+    Object.fromEntries(
+      Object.keys(details).map((key) => [
+        key,
+        yup.object({
+          recipient: yup.string().defined(), // todo further constrain
+          grantAmount: yup.object().defined() as any, // todo further constrain
+          // .test('int', 'must be big number', (val) => val instanceof BigNumber)
+          startTime: yup.number().defined(), // todo further constrain
+          vestEndTime: yup.number().defined(), // todo further constrain
+          unlockEndTime: yup.number().defined(), // todo further constrain
+          cliff1Time: yup.number().defined(), // todo further constrain
+          cliff2Time: yup.number().defined(), // todo further constrain
+          vestCliff1Amount: yup.object() as any, // todo further constrain
+          vestCliff2Amount: yup.object() as any, // todo further constrain
+          unlockCliff1Amount: yup.object() as any, // todo further constrain
+          unlockCliff2Amount: yup.object() as any, // todo further constrain
+          lastRevocationTime: yup.number().optional(), // todo further constrain
+        }),
+      ])
+    )
+  );
+});
+
+type ParsedGrant = yup.InferType<typeof grantSchema>;
+interface Grants {
+  github: ParsedGrant;
+  blockchain: ParsedGrant;
 }
 
-type RunVestingWithSubTasks = <TTaskKind extends typeof LIST_SUBTASK>(
+type RunVestingWithSubTasks = <
+  TTaskKind extends typeof LIST_SUBTASK | typeof UPDATE_SUBTASK
+>(
   name: TTaskKind['name'],
-  taskArguments?: Parameters<TTaskKind['run']>[0]
+  taskArguments: Parameters<TTaskKind['run']>[0]
 ) => Promise<ReturnType<typeof LIST_SUBTASK['run']>>;
 
 export const TASK = {
   name: 'vesting',
   description: 'Utilities for handling vesting',
   run: async (
-    { list, commit }: { list: boolean; commit: string },
+    {
+      list,
+      commit,
+      update,
+      account,
+    }: { list: boolean; commit: string; update: boolean; account: number },
     _: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
-    const runSubtask = hre.run as RunVestingWithSubTasks;
-    const octokit = getOctokit();
-    const { data } = await octokit.rest.repos.getContent({
-      mediaType: { format: 'raw' },
+    const signer = (await hre.ethers.getSigners())[account];
+    const bpNori = getBridgedPolygonNori({ network: hre.network.name, signer });
+    const lNori = getLockedNori({ network: hre.network.name, signer });
+    const { data } = await getOctokit().rest.repos.getContent({
+      mediaType: {
+        format: 'raw',
+      },
       ref: commit,
       owner: 'nori-dot-eco',
       repo: 'grants',
       path: 'grants.csv',
     });
-    const grants: ParsedGrant[] = await csv({
-      colParser: {
-        walletAddress: (walletAddress) => {
-          if (!walletAddress) {
-            throw new Error('Invalid row without a walletAddress column');
-          }
-          return walletAddress;
+    const githubGrants: ParsedGrant = (
+      await csv({
+        checkColumn: true,
+        colParser: {
+          recipient: (item) => {
+            if (!item) {
+              throw new Error('Invalid row without a recipient column');
+            }
+            return item; // todo validate
+          },
+          contactUUID: 'omit',
+          grantAmount: (item) => {
+            return formatTokenAmount(Number(item ?? 0)).toString(); // todo validate
+          },
+          startTime: (item) => {
+            let startTime: number;
+            if (item === '') {
+              startTime = new Date(1_000).getTime() / 1_000; // todo only if vestEndTimeIsAlso ===''
+            } else {
+              startTime = new Date(item).getTime() / 1_000;
+            }
+            return startTime; // todo validate // todo mathjs
+          },
+          vestEndTime: (item) => {
+            let vestEndTime: number;
+            if (item === '') {
+              vestEndTime = 0; // todo only if startTime === ''
+            } else {
+              vestEndTime = new Date(item).getTime() / 1_000;
+            }
+            return vestEndTime; // todo validate // todo mathjs
+          },
+          unlockEndTime: (item) => {
+            return new Date(item).getTime() / 1_000; // todo validate // todo mathjs
+          },
+          cliff1Time: (item, _head, _resultRow, row, colIdx) => {
+            return item ? new Date(item).getTime() / 1_000 : 0; // todo validate // todo mathjs
+          },
+          cliff2Time: (item) => {
+            return item ? new Date(item).getTime() / 1_000 : 0; // todo validate // todo mathjs
+          },
+          vestCliff1Amount: (item) => {
+            return formatTokenAmount(Number(item ?? 0)).toString(); // todo validate
+          },
+          vestCliff2Amount: (item) => {
+            return formatTokenAmount(Number(item ?? 0)).toString(); // todo validate
+          },
+          unlockCliff1Amount: (item) => {
+            return formatTokenAmount(Number(item ?? 0)).toString(); // todo validate
+          },
+          unlockCliff2Amount: (item) => {
+            return formatTokenAmount(Number(item ?? 0)).toString(); // todo validate
+          },
+          lastRevocationTime: (item) => {
+            return item ? new Date(item).getTime() / 1_000 : 0; // todo validate
+          },
         },
-        contactUUID: (item) => item,
-        amount: (item) => {
-          return formatTokenAmount(Number(item)); // todo validate
-        },
-        startTime: (item) => item,
-        vestEndTime: (item) => item,
-        unlockEndTime: (item) => item,
-        cliff1Time: (item) => item,
-        cliff2Time: (item) => item,
-        vestCliff1Amount: (item) => item,
-        vestCliff2Amount: (item) => item,
-        unlockCliff1Amount: (item) => item,
-        unlockCliff2Amount: (item) => item,
-        revokeUnvestedTime: (item) => item,
-      },
-    }).fromString(data.toString());
+      }).fromString(data.toString())
+    ).reduce((acc, val): ParsedGrant => {
+      // todo throw error if dupe
+      return { ...acc, [val.recipient]: val };
+    }, {} as ParsedGrant);
+    // await grantSchema.validate(githubGrants); // todo verify working
+    const blockchainGrants = (
+      await lNori.batchGetGrant(Object.keys(githubGrants))
+    ).reduce((acc, grant): ParsedGrant => {
+      return grant.recipient === hre.ethers.constants.AddressZero
+        ? acc
+        : {
+            ...acc,
+            [grant.recipient]: {
+              recipient: grant.recipient,
+              grantAmount: grant.grantAmount.toString(),
+              startTime: grant.startTime.toNumber(),
+              vestEndTime: grant.vestEndTime.toNumber(),
+              unlockEndTime: grant.unlockEndTime.toNumber(),
+              cliff1Time: grant.cliff1Time.toNumber(),
+              cliff2Time: grant.cliff2Time.toNumber(),
+              vestCliff1Amount: grant.vestCliff1Amount.toString(),
+              vestCliff2Amount: grant.vestCliff2Amount.toString(),
+              unlockCliff1Amount: grant.unlockCliff1Amount.toString(),
+              unlockCliff2Amount: grant.unlockCliff2Amount.toString(),
+              lastRevocationTime: grant.lastRevocationTime.toNumber(), // todo
+            },
+          };
+    }, {} as ParsedGrant) as ParsedGrant;
+    const grants: Grants = {
+      github: githubGrants,
+      blockchain: blockchainGrants,
+    };
     if (list) {
+      const runSubtask = hre.run as RunVestingWithSubTasks;
       await runSubtask('list', { grants });
+    }
+    if (update) {
+      const runSubtask = hre.run as RunVestingWithSubTasks;
+      await runSubtask('update', { grants, bpNori, lNori });
     }
   },
 } as const;
@@ -478,22 +579,156 @@ const LIST_SUBTASK = {
   name: 'list',
   description: 'List all grants',
   run: async (
-    { grants }: { grants: ParsedGrant[] },
+    { grants }: { grants: Grants },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
     hre.log(grants);
     return Promise.resolve();
   },
 } as const;
+// todo --diff subtask
+const UPDATE_SUBTASK = {
+  name: 'update',
+  description: 'Update grants on-chain',
+  run: async (
+    {
+      grants: { github: githubGrants, blockchain: blockchainGrants },
+      bpNori,
+      lNori,
+    }: {
+      grants: {
+        github: ParsedGrant[keyof ParsedGrant];
+        blockchain: ParsedGrant[keyof ParsedGrant];
+      };
+      bpNori: BridgedPolygonNORI;
+      lNori: LockedNORI;
+    },
+    hre: CustomHardHatRuntimeEnvironment
+  ): Promise<void> => {
+    hre.log(diffString(blockchainGrants, githubGrants));
+    const diffs = Object.values(
+      diff(blockchainGrants, githubGrants, { full: true })
+    );
+    const grantDiffs: any[] = Object.values(diffs).filter((d: any) => {
+      return (
+        !d.lastRevocationTime.__new &&
+        Object.values(d).find((v: any) => v.__new)
+      );
+    });
+    const grantRevocationDiffs: any[] = Object.values(
+      diffs.filter((d: any) => d.lastRevocationTime.__new)
+    );
+    hre.log(
+      chalk.bold.bgWhiteBright.black(
+        `Found ${grantDiffs.length} grants that need updating`
+      )
+    );
+    hre.log(
+      chalk.bold.bgWhiteBright.black(
+        `Found ${grantRevocationDiffs.length} grants that need revocations`
+      )
+    );
+    const buildUserData = ({ grant }: { grant: any }): string => {
+      return hre.ethers.utils.defaultAbiCoder.encode(
+        [
+          'address',
+          'uint256',
+          'uint256',
+          'uint256',
+          'uint256',
+          'uint256',
+          'uint256',
+          'uint256',
+          'uint256',
+          'uint256',
+        ],
+        [
+          grant.recipient.__new ?? grant.recipient,
+          grant.startTime.__new ?? grant.startTime,
+          grant.vestEndTime.__new ?? grant.vestEndTime,
+          grant.unlockEndTime.__new ?? grant.unlockEndTime,
+          grant.cliff1Time.__new ?? grant.cliff1Time,
+          grant.cliff2Time.__new ?? grant.cliff2Time,
+          BigNumber.from(
+            grant.vestCliff1Amount.__new ?? grant.vestCliff1Amount
+          ),
+          BigNumber.from(
+            grant.vestCliff2Amount.__new ?? grant.vestCliff2Amount
+          ),
+          BigNumber.from(
+            grant.unlockCliff1Amount.__new ?? grant.unlockCliff1Amount
+          ),
+          BigNumber.from(
+            grant.unlockCliff2Amount.__new ?? grant.unlockCliff2Amount
+          ),
+          // lastRevocationTime: '' // todo use
+        ]
+      );
+    };
+    if (grantDiffs.length) {
+      const recipients = grantDiffs.map((_) => lNori.address);
+      const amounts = grantDiffs.map((grant) =>
+        BigNumber.from(grant.grantAmount.__new ?? grant.grantAmount)
+      );
+      const userData = grantDiffs.map((grant) => buildUserData({ grant }));
+      const operatorData = grantDiffs.map((_) => '0x');
+      const requireReceptionAck = grantDiffs.map((_) => true);
+      const batchCreateGrantsTx = await bpNori.batchSend(
+        recipients,
+        amounts,
+        userData,
+        operatorData,
+        requireReceptionAck
+      );
+      // todo batch revoke
+      const result = await batchCreateGrantsTx.wait();
+      hre.log(
+        chalk.bold.bgWhiteBright.black(
+          `\r\n⏰ Waiting for transaction (tx: ${batchCreateGrantsTx.hash})\r\n`
+        )
+      );
+      if (result.status === 1) {
+        hre.log(
+          chalk.bold.bgWhiteBright.black(
+            `\r\n🎉 Created ${grantDiffs.length} grants (tx: ${result.transactionHash})\r\n`
+          )
+        );
+      }
+    }
+
+    // todo batch revoke
+    hre.log(
+      chalk.bold.bgWhiteBright.black(
+        `\r\nℹ️  Revoked ${
+          grantRevocationDiffs.length
+        } grants (tx: ${'TODO'})\r\n`
+      )
+    );
+  },
+} as const;
 
 task(TASK.name, TASK.description, TASK.run)
-  .addOptionalParam('list', 'Lists all grants', false, types.boolean)
+  .addOptionalParam(
+    LIST_SUBTASK.name,
+    LIST_SUBTASK.description,
+    false,
+    types.boolean
+  )
   .addOptionalParam(
     'commit',
     'Use the grants known by a particular GitHub commit',
     'master',
     types.string
+  )
+  .addOptionalPositionalParam('update', 'Update grants on-chain')
+  .addOptionalParam(
+    'account',
+    'The account index to connect using',
+    0,
+    types.int
   );
-// todo --file (tests wont work otherwise)
 
 subtask(LIST_SUBTASK.name, LIST_SUBTASK.description, LIST_SUBTASK.run);
+subtask(UPDATE_SUBTASK.name, UPDATE_SUBTASK.description, UPDATE_SUBTASK.run);
+
+// todo --file (for local debugging)
