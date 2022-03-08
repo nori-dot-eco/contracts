@@ -54,7 +54,11 @@ extendEnvironment(async (hre) => {
       process.env.ETHERNAL_EMAIL &&
       process.env.ETHERNAL_PASSWORD
   );
-  if (process.env.LOG && process.env.LOG !== 'false') {
+  if (
+    ['hardhat', 'localhost'].includes(hre.network.name) &&
+    process.env.LOG &&
+    process.env.LOG !== 'false'
+  ) {
     await hre.network.provider.send('hardhat_setLoggingEnabled', [true]);
   }
   if (hre.network.name === 'hardhat') {
@@ -82,12 +86,16 @@ extendEnvironment(async (hre) => {
     const proxyAddress =
       contractsConfig[hre.network.name as 'hardhat']?.[contractName]
         ?.proxyAddress;
+    console.log({ proxyAddress, force: process.env.FORCE_PROXY_DEPLOYMENT });
     const contractCode = await hre.ethers.provider.getCode(proxyAddress);
     let contract: InstanceOfContract<TContract>;
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
       contractName
     );
-    if (contractCode === '0x' || process.env.FORCE_PROXY_DEPLOYMENT) {
+    const forceProxyDeployment =
+      process.env.FORCE_PROXY_DEPLOYMENT &&
+      process.env.FORCE_PROXY_DEPLOYMENT !== 'false';
+    if (contractCode === '0x' || forceProxyDeployment) {
       log('Deploying proxy and instance', contractName);
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,
