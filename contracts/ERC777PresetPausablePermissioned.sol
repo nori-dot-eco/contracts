@@ -24,6 +24,65 @@ contract ERC777PresetPausablePermissioned is
   uint256[50] private __gap;
 
   /**
+   * @dev An event emitted when a batch of transfers are bundled into a single transaction
+   */
+  event SentBatch(
+    address indexed from,
+    address[] recipients,
+    uint256[] amounts,
+    bytes[] userData,
+    bytes[] operatorData,
+    bool[] requireReceptionAck
+  );
+
+  /**
+   * @notice Batches multiple transfers into a single transaction
+   *
+   * @param recipients address[] list of recipient addresses
+   * @param amounts uint256[] list of amounts to transfer
+   * @param userData bytes[] list of extra information provided by the token holder (if any)
+   * @param operatorData bytes[] list of extra information provided by the operator (if any)
+   * @param requireReceptionAck list of requirements (if true, contract recipients are required to implement
+   * ERC777TokensRecipient)
+   *
+   * Emits a {SendBatch} event.
+   *
+   * ##### Requirements:
+   *
+   * - the contract must not be paused
+   */
+  function batchSend(
+    address[] memory recipients,
+    uint256[] memory amounts,
+    bytes[] memory userData,
+    bytes[] memory operatorData,
+    bool[] memory requireReceptionAck
+  ) public {
+    require(
+      recipients.length == amounts.length,
+      "ERC777PresetPausablePermissioned: recipient and amount length mismatch"
+    );
+    for (uint256 i = 0; i < recipients.length; i++) {
+      _send(
+        _msgSender(),
+        recipients[i],
+        amounts[i],
+        userData[i],
+        operatorData[i],
+        requireReceptionAck[i]
+      );
+    }
+    emit SentBatch(
+      _msgSender(),
+      recipients,
+      amounts,
+      userData,
+      operatorData,
+      requireReceptionAck
+    );
+  }
+
+  /**
    * @dev See {ERC777-approve}.
    *
    * NOTE: If `value` is the maximum `uint256`, the allowance is not updated on
@@ -75,7 +134,7 @@ contract ERC777PresetPausablePermissioned is
   /**
    * @dev Pauses all token transfers.
    *
-   * Requirements:
+   * ##### Requirements:
    *
    * - the caller must have the `PAUSER_ROLE`.
    */
@@ -86,7 +145,7 @@ contract ERC777PresetPausablePermissioned is
   /**
    * @dev Unpauses all token transfers.
    *
-   * Requirements:
+   * ##### Requirements:
    *
    * - the caller must have the `PAUSER_ROLE`.
    */
@@ -94,6 +153,22 @@ contract ERC777PresetPausablePermissioned is
     _unpause();
   }
 
+  /**
+   * @dev Returns the balances of a batch of addresses in a single call
+   */
+  function balanceOfBatch(address[] memory accounts)
+    public
+    view
+    returns (uint256[] memory)
+  {
+    uint256[] memory batchBalances = new uint256[](accounts.length);
+    for (uint256 i = 0; i < accounts.length; ++i) {
+      batchBalances[i] = balanceOf(accounts[i]);
+    }
+    return batchBalances;
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
   function __ERC777PresetPausablePermissioned_init_unchained()
     internal
     onlyInitializing
@@ -133,7 +208,12 @@ contract ERC777PresetPausablePermissioned is
   function _beforeRoleChange(bytes32, address) internal virtual whenNotPaused {} // solhint-disable-line no-empty-blocks
 
   /**
-   * Requirements:
+   * @dev A hook that is called before a token transfer occurs.
+   *
+   * When the contract is paused, these functions will not be callable. Follows the rules of hooks defined
+   * [here](https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+   *
+   * ##### Requirements:
    *
    * - the contract must not be paused.
    */

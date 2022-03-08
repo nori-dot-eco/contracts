@@ -1,5 +1,5 @@
 import type {
-  ConfigurableTaskDefinition,
+  ConfigurableTaskDefinition as OriginalConfigurableTaskDefinition,
   HardhatRuntimeEnvironment,
   Network,
   RunSuperFunction,
@@ -28,7 +28,6 @@ import { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
 import { ContractAddressOrInstance, UpgradeProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
 import { DeploymentsExtension as OriginalDeploymentsExtension } from 'hardhat-deploy/dist/types';
 
-
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
 
@@ -46,6 +45,15 @@ declare module 'hardhat/config' {
     action?: ActionType<ArgsT, TActionReturnType>
   ): ConfigurableTaskDefinition;
 
+  export function subtask<ArgsT extends TaskArguments, TActionReturnType = any>(
+    name: string, // todo
+    description?: string,
+    action?: ActionType<ArgsT, TActionReturnType>
+  ): ConfigurableTaskDefinition;
+
+  type ConfigurableTaskDefinition = OriginalConfigurableTaskDefinition & {  
+    setAction<ArgsT extends TaskArguments, TActionReturnType = any>(action: ActionType<ArgsT, TActionReturnType>): ConfigurableTaskDefinition;
+  }  
 }
 
 declare module 'hardhat/types/runtime' {
@@ -65,9 +73,6 @@ declare module 'hardhat/types/runtime' {
     namedSigners:  NamedSigners;
     namedAccounts: NamedAccounts;
   }
-
-  // type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
-
 }
 
 interface GenericDeployFunction {
@@ -164,6 +169,17 @@ declare global {
     network: Omit<Network, 'name'> & { name: keyof typeof networks };
     ethers: typeof ethers;
     deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
+    log: Console['log'];
+    ethernalSync: boolean; // todo figure out why we need to re-write types like this
+    ethernalTrace: boolean;
+    ethernalWorkspace: string;
+    ethernalResetOnStart: string;
+    ethernal: {
+      startListening: () => Promise<void>;
+      traceHandler: (trace: any, isMessageTraceFromACall: Boolean) => Promise<void>;
+      push: (contract: any) => Promise<void>;
+      resetWorkspace: (workspace: string) => Promise<void>;
+    };
   };
 
   interface CustomHardhatDeployFunction extends Partial<DeployFunction> {
