@@ -1000,10 +1000,16 @@ describe('LockedNori', () => {
         .withArgs(investor1, employee, CLIFF1_AMOUNT);
       await hardhat.network.provider.send('evm_mine');
 
-      expect(await lNori.totalSupply()).to.equal(GRANT_AMOUNT.sub(CLIFF1_AMOUNT));
-      expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT.sub(CLIFF1_AMOUNT));
+      expect(await lNori.totalSupply()).to.equal(
+        GRANT_AMOUNT.sub(CLIFF1_AMOUNT)
+      );
+      expect(await lNori.balanceOf(investor1)).to.equal(
+        GRANT_AMOUNT.sub(CLIFF1_AMOUNT)
+      );
       expect(await lNori.unlockedBalanceOf(investor1)).to.equal(0);
-      expect(await lNori.vestedBalanceOf(investor1)).to.equal(GRANT_AMOUNT.sub(CLIFF1_AMOUNT));
+      expect(await lNori.vestedBalanceOf(investor1)).to.equal(
+        GRANT_AMOUNT.sub(CLIFF1_AMOUNT)
+      );
 
       expect(await bpNori.totalSupply()).to.equal(bpNoriSupplyBeforeWithdrawl);
       expect(await bpNori.balanceOf(investor1)).to.equal(0);
@@ -1266,6 +1272,7 @@ describe('LockedNori', () => {
       grant.unlockCliff2Amount,
       BigNumber.from(0),
       grantAmount,
+      BigNumber.from(0),
     ];
     for (let i = 0; i < grantFromContract.length; i++) {
       expect(grantFromContract[i]).to.eq(
