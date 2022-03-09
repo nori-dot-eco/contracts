@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./ERC777PresetPausablePermissioned.sol";
 import "./BridgedPolygonNORI.sol";
-// import "hardhat/console.sol"; // todo
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
@@ -202,7 +201,11 @@ contract LockedNORI is
   /**
    * @dev Emitted on withdwal of fully unlocked tokens.
    */
-  event TokensClaimed(address indexed from, address indexed to, uint256 quantity);
+  event TokensClaimed(
+    address indexed from,
+    address indexed to,
+    uint256 quantity
+  );
 
   /**
    * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
@@ -225,10 +228,11 @@ contract LockedNORI is
       "lNORI: not BridgedPolygonNORI"
     );
     require(
-      hasRole(TOKEN_GRANTER_ROLE, operator) ||
-        hasRole(TOKEN_GRANTER_ROLE, from),
-      "lNORI: Sender must be TOKEN_GRANTER role"
+      hasRole(TOKEN_GRANTER_ROLE, from) || hasRole(TOKEN_GRANTER_ROLE, operator),
+      "lNORI: caller is missing role TOKEN_GRANTER_ROLE"
     );
+    address to = abi.decode(userData, (address));
+    require(to != address(0), "lNORI: token send missing required userData");
     _depositFor(amount, userData, operatorData);
   }
 
@@ -242,7 +246,10 @@ contract LockedNORI is
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    */
-  function withdrawTo(address recipient, uint256 amount) external returns (bool) {
+  function withdrawTo(address recipient, uint256 amount)
+    external
+    returns (bool)
+  {
     TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
     _bridgedPolygonNori.send(
@@ -462,10 +469,6 @@ contract LockedNORI is
     bytes calldata userData,
     bytes calldata operatorData
   ) internal returns (bool) {
-    // require(
-    //   hasRole(TOKEN_GRANTER_ROLE, tx.origin), // todo figure out how to make this safe
-    //   "lNORI: requires TOKEN_GRANTER_ROLE"
-    // );
     DepositForParams memory params = abi.decode(userData, (DepositForParams)); // todo error handling
     // If a startTime parameter is non-zero then set up a schedule
     if (params.startTime > 0) {
@@ -617,11 +620,11 @@ contract LockedNORI is
   }
 
   /**
-  * @dev Returns true if the there is a grant for *account* with a vesting schedule.
-  */
+   * @dev Returns true if the there is a grant for *account* with a vesting schedule.
+   */
   function _hasVestingSchedule(address account) private view returns (bool) {
-      TokenGrant storage grant = _grants[account];
-      return grant.exists && grant.vestingSchedule.startTime > 0;
+    TokenGrant storage grant = _grants[account];
+    return grant.exists && grant.vestingSchedule.startTime > 0;
   }
 
   /**

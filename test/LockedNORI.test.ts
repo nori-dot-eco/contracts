@@ -6,20 +6,22 @@ import { hre } from '@/utils/hre';
 import { formatTokenAmount } from '@/utils/units';
 import { deploy } from '@/deploy/0_deploy_contracts';
 
+interface TokenGrantUserData {
+  recipient: string;
+  startTime: number;
+  vestEndTime: number;
+  unlockEndTime: number;
+  cliff1Time: number;
+  cliff2Time: number;
+  vestCliff1Amount: ReturnType<typeof formatTokenAmount>;
+  vestCliff2Amount: ReturnType<typeof formatTokenAmount>;
+  unlockCliff1Amount: ReturnType<typeof formatTokenAmount>;
+  unlockCliff2Amount: ReturnType<typeof formatTokenAmount>;
+}
+
 interface TokenGrantOptions {
   grantAmount: ReturnType<typeof formatTokenAmount>;
-  grant: {
-    recipient: string;
-    startTime: number;
-    vestEndTime: number;
-    unlockEndTime: number;
-    cliff1Time: number;
-    cliff2Time: number;
-    vestCliff1Amount: ReturnType<typeof formatTokenAmount>;
-    vestCliff2Amount: ReturnType<typeof formatTokenAmount>;
-    unlockCliff1Amount: ReturnType<typeof formatTokenAmount>;
-    unlockCliff2Amount: ReturnType<typeof formatTokenAmount>;
-  };
+  grant: TokenGrantUserData;
 }
 
 const NOW = Math.floor(Date.now() / 1_000);
@@ -156,6 +158,24 @@ const linearParams = ({
   };
 };
 
+const formatGrantUserData = (grant: TokenGrantUserData): any => {
+  return hre.ethers.utils.defaultAbiCoder.encode(
+    [
+      'address',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+    ],
+    Object.values(grant)
+  );
+};
+
 const setupWithGrant = hardhat.deployments.createFixture(
   async (
     _,
@@ -170,21 +190,7 @@ const setupWithGrant = hardhat.deployments.createFixture(
       },
     } as TokenGrantOptions;
     const { bpNori, lNori, ...rest } = await setupTest();
-    const userData = hre.ethers.utils.defaultAbiCoder.encode(
-      [
-        'address',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-      ],
-      Object.values(grant)
-    );
+    const userData = formatGrantUserData(grant);
 
     // eslint-disable-next-line jest/no-standalone-expect
     expect(await bpNori.send(lNori.address, grantAmount, userData))
@@ -530,7 +536,41 @@ describe('LockedNori', () => {
               ].toLowerCase()} is missing role ${roleId}`
             );
           });
+          it(`accounts with the role "${role}" can send bpNori whilst accounts without the role "${role}" cannot`, async () => {
+            const { bpNori, lNori } = await setupTest();
+            const roleId = await lNori[role]();
+            expect(
+              await lNori.hasRole(roleId, namedAccounts[accountWithoutRole])
+            ).to.be.false;
+            const { grant, grantAmount } = employeeParams();
+            await expect(
+              bpNori
+                .connect(namedSigners[accountWithRole])
+                .send(lNori.address, grantAmount, formatGrantUserData(grant))
+            )
+              .to.emit(lNori, 'TokenGrantCreated')
+              .withArgs(
+                grant.recipient,
+                grantAmount,
+                grant.startTime,
+                grant.vestEndTime,
+                grant.unlockEndTime
+              );
+            await expect(bpNori.send(namedAccounts[accountWithoutRole], grantAmount, '0x'));
+            const userData = hre.ethers.utils.defaultAbiCoder.encode(
+                ['address', 'uint256'],
+                [namedAccounts[accountWithoutRole], 0]
+              );
+            await expect(
+              bpNori
+                .connect(namedSigners[accountWithoutRole])
+                .send(lNori.address, grantAmount, userData)
+            ).to.be.revertedWith(
+              `lNORI: caller is missing role TOKEN_GRANTER_ROLE`
+            );
+          });
         });
+
         // (
         //     {
         //       role: 'PAUSER_ROLE',
