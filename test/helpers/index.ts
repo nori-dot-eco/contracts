@@ -34,7 +34,7 @@ export const setupTestEnvironment = hre.deployments.createFixture(
     await mockDepositNoriToPolygon({
       hre,
       contracts,
-      amount: formatTokenAmount(500_000_000),
+      amount: formatTokenAmount(100_000_000),
       to: hre.namedAccounts.admin,
       signer: hre.namedSigners.admin,
     });

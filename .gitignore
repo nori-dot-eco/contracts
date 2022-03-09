@@ -81,6 +81,7 @@ workspace.code-workspace
 # hardhat
 *.dbg.*
 cache
+dist
 artifacts/*
 !artifacts/contracts
 .openzeppelin/unknown-*.json

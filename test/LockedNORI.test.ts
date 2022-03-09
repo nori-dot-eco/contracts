@@ -32,7 +32,7 @@ const CLIFF2_OFFSET = 10_000;
 const END_OFFSET = 100_000;
 const DELTA = 1_000; // useful offset to place time before / after the inflection points
 const GRANT_AMOUNT = formatTokenAmount(1_000);
-const INITIAL_SUPPLY = formatTokenAmount(500_000_000);
+const INITIAL_SUPPLY = formatTokenAmount(100_000_000); // comes from polygon helper
 
 const defaultParams = ({
   startTime = NOW,
@@ -581,6 +581,7 @@ describe('LockedNori', () => {
   it('Functions like ERC20Wrapped when no grant is present', async () => {
     const { bpNori, lNori } = await setupTest();
     const { admin, investor1 } = global.hre.namedAccounts;
+    const initialSupply = await bpNori.totalSupply();
     const adminBalance = await bpNori.balanceOf(admin);
     expect(await bpNori.balanceOf(investor1)).to.equal(0);
     const depositAmount = formatTokenAmount(10_000);
@@ -608,7 +609,7 @@ describe('LockedNori', () => {
         .withdrawTo(investor1, depositAmount)
     ).to.emit(lNori, 'TokensClaimed');
     expect(await lNori.totalSupply()).to.equal(0);
-    expect(await bpNori.totalSupply()).to.equal(INITIAL_SUPPLY);
+    expect(await bpNori.totalSupply()).to.equal(initialSupply);
   });
 
   it('Should return zero before startTime', async () => {
@@ -620,7 +621,6 @@ describe('LockedNori', () => {
     expect((await lNori.getGrant(investor1)).grantAmount).to.equal(
       GRANT_AMOUNT
     );
-    expect(await bpNori.totalSupply()).to.equal(INITIAL_SUPPLY);
     await expect(
       lNori
         .connect(await hre.ethers.getSigner(investor1))
@@ -1272,11 +1272,12 @@ describe('LockedNori', () => {
       grant.unlockCliff2Amount,
       BigNumber.from(0),
       grantAmount,
+      BigNumber.from(0),
     ];
     for (let i = 0; i < grantFromContract.length; i++) {
       expect(grantFromContract[i]).to.eq(
         expected[i],
-        `${i}: ${expected[i].toString()} == ${grantFromContract[i].toString()}`
+        `${i}: ${(expected[i]).toString()} == ${grantFromContract[i].toString()}`
       );
     }
   });
