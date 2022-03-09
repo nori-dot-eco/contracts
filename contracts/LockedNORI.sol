@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./ERC777PresetPausablePermissioned.sol";
 import "./BridgedPolygonNORI.sol";
+// import "hardhat/console.sol"; // todo
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
@@ -105,6 +106,7 @@ contract LockedNORI is
     uint256 grantAmount;
     uint256 claimedAmount;
     uint256 originalAmount;
+    uint256 lastRevocationTime;
     bool exists;
   }
 
@@ -122,6 +124,7 @@ contract LockedNORI is
     uint256 unlockCliff2Amount;
     uint256 claimedAmount;
     uint256 originalAmount;
+    uint256 lastRevocationTime;
   }
 
   struct CreateTokenGrantParams {
@@ -199,7 +202,11 @@ contract LockedNORI is
   /**
    * @dev Emitted on withdwal of fully unlocked tokens.
    */
-  event TokensClaimed(address indexed from, address indexed to, uint256 quantity);
+  event TokensClaimed(
+    address indexed from,
+    address indexed to,
+    uint256 quantity
+  );
 
   /**
    * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
@@ -235,7 +242,10 @@ contract LockedNORI is
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    */
-  function withdrawTo(address recipient, uint256 amount) external returns (bool) {
+  function withdrawTo(address recipient, uint256 amount)
+    external
+    returns (bool)
+  {
     TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
     _bridgedPolygonNori.send(
@@ -345,7 +355,7 @@ contract LockedNORI is
    * @notice Returns all governing settings for a grant.
    */
   function getGrant(address account)
-    external
+    public
     view
     returns (TokenGrantDetail memory)
   {
@@ -364,7 +374,8 @@ contract LockedNORI is
         grant.lockupSchedule.cliffs[0].amount,
         grant.lockupSchedule.cliffs[1].amount,
         grant.claimedAmount,
-        grant.originalAmount
+        grant.originalAmount,
+        grant.lastRevocationTime
       );
   }
 
@@ -465,11 +476,7 @@ contract LockedNORI is
     );
     require(
       address(params.recipient) != address(0),
-      "lNORI: Recipient cannot be zero address"
-    );
-    require(
-      address(params.recipient) != _msgSender(),
-      "lNORI: Recipient cannot be grant admin"
+      "Recipient cannot be zero address"
     );
     require(!_grants[params.recipient].exists, "lNORI: Grant already exists");
     TokenGrant storage grant = _grants[params.recipient];
@@ -526,7 +533,7 @@ contract LockedNORI is
     TokenGrant storage grant = _grants[from];
     require(grant.exists, "lNORI: no grant exists");
     require(
-      _hasVestingSchedule(from),
+      grant.vestingSchedule.startTime > 0,
       "lNORI: no vesting schedule for this grant"
     );
     require(
@@ -544,6 +551,7 @@ contract LockedNORI is
       quantityRevoked = revocableQuantity;
     }
     grant.grantAmount = grant.grantAmount - quantityRevoked;
+    grant.lastRevocationTime = atTime;
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
@@ -590,14 +598,6 @@ contract LockedNORI is
   }
 
   /**
-  * @dev Returns true if the there is a grant for *account* with a vesting schedule.
-  */
-  function _hasVestingSchedule(address account) private view returns (bool) {
-      TokenGrant storage grant = _grants[account];
-      return grant.exists && grant.vestingSchedule.startTime > 0;
-  }
-
-  /**
    * @dev Vested balance less any claimed amount at `atTime` (implementation)
    *
    * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
@@ -612,7 +612,7 @@ contract LockedNORI is
     TokenGrant storage grant = _grants[account];
     uint256 balance = this.balanceOf(account);
     if (grant.exists) {
-      if (_hasVestingSchedule(account)) {
+      if (grant.vestingSchedule.startTime > 0) {
         balance =
           MathUpgradeable.min(
             grant.vestingSchedule.availableAmount(atTime),
@@ -640,14 +640,11 @@ contract LockedNORI is
   {
     TokenGrant storage grant = _grants[account];
     uint256 balance = this.balanceOf(account);
-    uint256 vestedBalance = _hasVestingSchedule(account)
-      ? grant.vestingSchedule.availableAmount(atTime)
-      : grant.grantAmount;
     if (grant.exists) {
       balance =
         MathUpgradeable.min(
           MathUpgradeable.min(
-            vestedBalance,
+            grant.vestingSchedule.availableAmount(atTime),
             grant.lockupSchedule.availableAmount(atTime)
           ),
           grant.grantAmount
