@@ -184,8 +184,8 @@ contract LockedNORI is
    */
   event TokenGrantCreated(
     address indexed recipient,
-    uint256 amount,
-    uint256 startTime,
+    uint256 indexed amount,
+    uint256 indexed startTime,
     uint256 vestEndTime,
     uint256 unlockEndTime
   );
@@ -193,12 +193,16 @@ contract LockedNORI is
   /**
    * @dev Emitted on when the vesting portion of an active grant is terminated.
    */
-  event UnvestedTokensRevoked(uint256 atTime, address from, uint256 quantity);
+  event UnvestedTokensRevoked(
+    uint256 indexed atTime,
+    address indexed from,
+    uint256 indexed quantity
+  );
 
   /**
    * @dev Emitted on withdwal of fully unlocked tokens.
    */
-  event TokensClaimed(address account, uint256 quantity);
+  event TokensClaimed(address indexed from, address indexed to, uint256 quantity);
 
   /**
    * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
@@ -229,20 +233,22 @@ contract LockedNORI is
    * @dev This function burns `amount` of wrapped tokens and withdraws them to the corresponding {BridgedPolygonNORI}
    * tokens.
    *
+   * Burns unlocked tokens from sender and sends them to *recipient*
+   *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    */
-  function withdrawTo(address account, uint256 amount) external returns (bool) {
-    TokenGrant storage grant = _grants[account];
+  function withdrawTo(address recipient, uint256 amount) external returns (bool) {
+    TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
-      account,
+      recipient,
       amount,
       ""
     );
     grant.claimedAmount += amount;
-    emit TokensClaimed(account, amount);
+    emit TokensClaimed(_msgSender(), recipient, amount);
     return true;
   }
 
@@ -481,7 +487,11 @@ contract LockedNORI is
     );
     require(
       address(params.recipient) != address(0),
-      "Recipient cannot be zero address"
+      "lNORI: Recipient cannot be zero address"
+    );
+    require(
+      address(params.recipient) != _msgSender(),
+      "lNORI: Recipient cannot be grant admin"
     );
     require(!_grants[params.recipient].exists, "lNORI: Grant already exists");
     TokenGrant storage grant = _grants[params.recipient];
@@ -538,7 +548,7 @@ contract LockedNORI is
     TokenGrant storage grant = _grants[from];
     require(grant.exists, "lNORI: no grant exists");
     require(
-      grant.vestingSchedule.startTime > 0,
+      _hasVestingSchedule(from),
       "lNORI: no vesting schedule for this grant"
     );
     require(
@@ -603,6 +613,14 @@ contract LockedNORI is
   }
 
   /**
+  * @dev Returns true if the there is a grant for *account* with a vesting schedule.
+  */
+  function _hasVestingSchedule(address account) private view returns (bool) {
+      TokenGrant storage grant = _grants[account];
+      return grant.exists && grant.vestingSchedule.startTime > 0;
+  }
+
+  /**
    * @dev Vested balance less any claimed amount at `atTime` (implementation)
    *
    * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
@@ -617,7 +635,7 @@ contract LockedNORI is
     TokenGrant storage grant = _grants[account];
     uint256 balance = this.balanceOf(account);
     if (grant.exists) {
-      if (grant.vestingSchedule.startTime > 0) {
+      if (_hasVestingSchedule(account)) {
         balance =
           MathUpgradeable.min(
             grant.vestingSchedule.availableAmount(atTime),
@@ -645,11 +663,14 @@ contract LockedNORI is
   {
     TokenGrant storage grant = _grants[account];
     uint256 balance = this.balanceOf(account);
+    uint256 vestedBalance = _hasVestingSchedule(account)
+      ? grant.vestingSchedule.availableAmount(atTime)
+      : grant.grantAmount;
     if (grant.exists) {
       balance =
         MathUpgradeable.min(
           MathUpgradeable.min(
-            grant.vestingSchedule.availableAmount(atTime),
+            vestedBalance,
             grant.lockupSchedule.availableAmount(atTime)
           ),
           grant.grantAmount

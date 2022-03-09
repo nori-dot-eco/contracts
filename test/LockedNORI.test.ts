@@ -807,8 +807,8 @@ describe('LockedNori', () => {
     it('Should unlock the full grant at endtime', async () => {
       // now == endTime
       const { bpNori, lNori, grantAmount, grant } = await setupWithGrant();
-      const { investor1 } = await hre.getNamedAccounts();
-      const addr1Signer = await hre.ethers.getSigner(investor1);
+      const { investor1 } = hre.namedAccounts;
+      const { investor1: investor1Signer } = hre.namedSigners;
       await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
         grant.unlockEndTime,
       ]);
@@ -818,10 +818,12 @@ describe('LockedNori', () => {
       expect(await lNori.unlockedBalanceOf(investor1)).to.equal(grantAmount);
       const withdrawlAmount = hre.ethers.utils.parseUnits((100).toString());
       expect(
-        await lNori.connect(addr1Signer).withdrawTo(investor1, withdrawlAmount)
+        await lNori
+          .connect(investor1Signer)
+          .withdrawTo(investor1, withdrawlAmount)
       )
         .to.emit(lNori, 'TokensClaimed')
-        .withArgs(investor1, withdrawlAmount)
+        .withArgs(investor1, investor1, withdrawlAmount)
         .to.emit(lNori, 'Burned')
         .withArgs(investor1, investor1, withdrawlAmount, '0x', '0x')
         .to.emit(lNori, 'Transfer')
@@ -848,7 +850,7 @@ describe('LockedNori', () => {
       );
       expect(
         await lNori
-          .connect(addr1Signer)
+          .connect(investor1Signer)
           .withdrawTo(investor1, grantAmount.sub(withdrawlAmount))
       ).to.emit(lNori, 'Transfer');
       expect(await lNori.balanceOf(investor1)).to.equal(0);
@@ -958,6 +960,56 @@ describe('LockedNori', () => {
       expect(await lNori.unlockedBalanceOf(grant.recipient)).to.equal(
         grantAmount
       );
+    });
+  });
+
+  describe('Unlocking without vesting', () => {
+    it('Should unlock cliff1', async () => {
+      // cliff1 < now < cliff2
+      const { lNori } = await setupWithGrant(investorParams());
+      const { investor1 } = hre.namedAccounts;
+      await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
+        NOW + CLIFF1_OFFSET + DELTA,
+      ]);
+      await hardhat.network.provider.send('evm_mine');
+      expect(await lNori.unlockedBalanceOf(investor1)).to.equal(CLIFF1_AMOUNT);
+      expect(await lNori.vestedBalanceOf(investor1)).to.equal(GRANT_AMOUNT);
+      expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
+    });
+  });
+
+  describe('withdrawTo', () => {
+    it('Can withdraw to a different address', async () => {
+      // cliff1 < now < cliff2
+      const { bpNori, lNori } = await setupWithGrant(investorParams());
+      const { investor1, employee } = hre.namedAccounts;
+      await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
+        NOW + CLIFF1_OFFSET + DELTA,
+      ]);
+      await hardhat.network.provider.send('evm_mine');
+      expect(await lNori.unlockedBalanceOf(investor1)).to.equal(CLIFF1_AMOUNT);
+      expect(await lNori.vestedBalanceOf(investor1)).to.equal(GRANT_AMOUNT);
+      expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
+
+      const bpNoriSupplyBeforeWithdrawl = await bpNori.totalSupply();
+
+      await expect(
+        lNori
+          .connect(hre.namedSigners.investor1)
+          .withdrawTo(employee, CLIFF1_AMOUNT)
+      )
+        .to.emit(lNori, 'TokensClaimed')
+        .withArgs(investor1, employee, CLIFF1_AMOUNT);
+      await hardhat.network.provider.send('evm_mine');
+
+      expect(await lNori.totalSupply()).to.equal(GRANT_AMOUNT.sub(CLIFF1_AMOUNT));
+      expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT.sub(CLIFF1_AMOUNT));
+      expect(await lNori.unlockedBalanceOf(investor1)).to.equal(0);
+      expect(await lNori.vestedBalanceOf(investor1)).to.equal(GRANT_AMOUNT.sub(CLIFF1_AMOUNT));
+
+      expect(await bpNori.totalSupply()).to.equal(bpNoriSupplyBeforeWithdrawl);
+      expect(await bpNori.balanceOf(investor1)).to.equal(0);
+      expect(await bpNori.balanceOf(employee)).to.equal(CLIFF1_AMOUNT);
     });
   });
 

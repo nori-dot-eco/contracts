@@ -31,6 +31,7 @@ const goerli: NetworkUserConfig = {
 const mumbai: NetworkUserConfig = {
   url: `https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}`,
   accounts: { mnemonic: STAGING_MNEMONIC },
+  gasPrice: 35000000000,
 };
 
 const polygon: NetworkUserConfig = {
