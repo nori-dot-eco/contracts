@@ -413,6 +413,7 @@ contract LockedNORI is
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
+    __ERC777PresetPausablePermissioned_init_unchained();
     __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
     _bridgedPolygonNori = BridgedPolygonNORI(
       address(bridgedPolygonNoriAddress)
@@ -422,9 +423,9 @@ contract LockedNORI is
       ERC777_TOKENS_RECIPIENT_HASH,
       address(this)
     );
-    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo why doesnt grantRole work
+//    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo why doesnt grantRole work
     _setupRole(TOKEN_GRANTER_ROLE, _msgSender()); // todo why doesnt grantRole work
-    _setupRole(PAUSER_ROLE, _msgSender()); // todo why doesnt grantRole work
+//    _setupRole(PAUSER_ROLE, _msgSender()); // todo why doesnt grantRole work
   }
 
   /**
@@ -474,12 +475,20 @@ contract LockedNORI is
     if (params.startTime > 0) {
       _createGrant(amount, userData);
     }
+    require(
+      _grants[params.recipient].exists,
+      "lNORI: Cannot deposit without a grant"
+    );
     super._mint(params.recipient, amount, userData, operatorData);
     return true;
   }
 
   /**
    * @dev Sets up a vesting + lockup schedule for recipient (implementation).
+   *
+   * All grants must include a lockup schedule and can optionally *also*
+   * include a vesting schedule.  Tokens are withdrawble once they are
+   * vested *and* unlocked.
    *
    * This will be invoked via the `tokensReceived` callback for cases
    * where we have the tokens in hand at the time we set up the grant.
@@ -491,6 +500,14 @@ contract LockedNORI is
     CreateTokenGrantParams memory params = abi.decode(
       userData,
       (CreateTokenGrantParams)
+    );
+    require(
+      params.startTime < params.unlockEndTime,
+      "lNORI: unlockEndTime cannot be before startTime"
+    );
+    require(
+      block.timestamp < params.unlockEndTime,
+      "lNORI: unlockEndTime cannot be in the past"
     );
     require(
       address(params.recipient) != address(0),
