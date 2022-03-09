@@ -213,8 +213,8 @@ contract LockedNORI is
    * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
    */
   function tokensReceived(
-    address,
-    address,
+    address operator,
+    address from,
     address,
     uint256 amount,
     bytes calldata userData,
@@ -223,8 +223,12 @@ contract LockedNORI is
     require(
       msg.sender == address(_bridgedPolygonNori),
       "lNORI: not BridgedPolygonNORI"
-    ); // todo verify this can only be invoked by the nori contract
-    // todo restrict such that only admin can invoke this function
+    );
+    require(
+      hasRole(TOKEN_GRANTER_ROLE, operator) ||
+        hasRole(TOKEN_GRANTER_ROLE, from),
+      "lNORI: Sender must be TOKEN_GRANTER role"
+    );
     _depositFor(amount, userData, operatorData);
   }
 
