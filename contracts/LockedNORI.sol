@@ -106,8 +106,8 @@ contract LockedNORI is
     uint256 grantAmount;
     uint256 claimedAmount;
     uint256 originalAmount;
-    uint256 lastRevocationTime;
     bool exists;
+    uint256 lastRevocationTime;
   }
 
   struct TokenGrantDetail {
@@ -202,7 +202,11 @@ contract LockedNORI is
   /**
    * @dev Emitted on withdwal of fully unlocked tokens.
    */
-  event TokensClaimed(address indexed from, address indexed to, uint256 quantity);
+  event TokensClaimed(
+    address indexed from,
+    address indexed to,
+    uint256 quantity
+  );
 
   /**
    * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
@@ -238,7 +242,10 @@ contract LockedNORI is
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    */
-  function withdrawTo(address recipient, uint256 amount) external returns (bool) {
+  function withdrawTo(address recipient, uint256 amount)
+    external
+    returns (bool)
+  {
     TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
     _bridgedPolygonNori.send(
@@ -613,11 +620,11 @@ contract LockedNORI is
   }
 
   /**
-  * @dev Returns true if the there is a grant for *account* with a vesting schedule.
-  */
+   * @dev Returns true if the there is a grant for *account* with a vesting schedule.
+   */
   function _hasVestingSchedule(address account) private view returns (bool) {
-      TokenGrant storage grant = _grants[account];
-      return grant.exists && grant.vestingSchedule.startTime > 0;
+    TokenGrant storage grant = _grants[account];
+    return grant.exists && grant.vestingSchedule.startTime > 0;
   }
 
   /**
