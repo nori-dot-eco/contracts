@@ -398,7 +398,7 @@ contract LockedNORI is
   }
 
   // todo document expected initialzation state
-  function initialize(IERC777Upgradeable bridgedPolygonNoriAddress)
+  function initialize(BridgedPolygonNORI bridgedPolygonNoriAddress)
     public
     initializer
   {
@@ -411,9 +411,7 @@ contract LockedNORI is
     __Pausable_init_unchained();
     __ERC777PresetPausablePermissioned_init_unchained();
     __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
-    _bridgedPolygonNori = BridgedPolygonNORI(
-      address(bridgedPolygonNoriAddress)
-    );
+    _bridgedPolygonNori = bridgedPolygonNoriAddress;
     _ERC1820_REGISTRY.setInterfaceImplementer(
       address(this),
       ERC777_TOKENS_RECIPIENT_HASH,
