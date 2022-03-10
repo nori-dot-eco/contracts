@@ -202,7 +202,11 @@ contract LockedNORI is
   /**
    * @dev Emitted on withdwal of fully unlocked tokens.
    */
-  event TokensClaimed(address indexed from, address indexed to, uint256 quantity);
+  event TokensClaimed(
+    address indexed from,
+    address indexed to,
+    uint256 quantity
+  );
 
   /**
    * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
@@ -238,7 +242,10 @@ contract LockedNORI is
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    */
-  function withdrawTo(address recipient, uint256 amount) external returns (bool) {
+  function withdrawTo(address recipient, uint256 amount)
+    external
+    returns (bool)
+  {
     TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
     _bridgedPolygonNori.send(
@@ -402,6 +409,7 @@ contract LockedNORI is
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
+    __ERC777PresetPausablePermissioned_init_unchained();
     __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
     _bridgedPolygonNori = BridgedPolygonNORI(
       address(bridgedPolygonNoriAddress)
@@ -411,9 +419,7 @@ contract LockedNORI is
       ERC777_TOKENS_RECIPIENT_HASH,
       address(this)
     );
-    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo why doesnt grantRole work
-    _setupRole(TOKEN_GRANTER_ROLE, _msgSender()); // todo why doesnt grantRole work
-    _setupRole(PAUSER_ROLE, _msgSender()); // todo why doesnt grantRole work
+    _grantRole(TOKEN_GRANTER_ROLE, _msgSender());
   }
 
   /**
@@ -613,11 +619,11 @@ contract LockedNORI is
   }
 
   /**
-  * @dev Returns true if the there is a grant for *account* with a vesting schedule.
-  */
+   * @dev Returns true if the there is a grant for *account* with a vesting schedule.
+   */
   function _hasVestingSchedule(address account) private view returns (bool) {
-      TokenGrant storage grant = _grants[account];
-      return grant.exists && grant.vestingSchedule.startTime > 0;
+    TokenGrant storage grant = _grants[account];
+    return grant.exists && grant.vestingSchedule.startTime > 0;
   }
 
   /**
