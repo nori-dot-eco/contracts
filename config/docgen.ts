@@ -4,8 +4,8 @@ import type { HardhatUserConfig } from 'hardhat/types';
 
 export const docgen: HardhatUserConfig['docgen'] = {
   collapseNewlines: false,
-  templates: [path.join(__dirname, '../docs/templates')],
-  pages: (item, file) => {
+  templates: path.join(__dirname, '../docs/templates'),
+  pages: (item, _file) => {
     return [
       'FIFOMarket',
       'NORI',
