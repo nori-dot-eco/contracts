@@ -14,6 +14,7 @@ struct Schedule {
   uint256 totalAmount;
   mapping(uint256 => Cliff) cliffs;
   uint256 cliffCount;
+  uint256 totalCliffAmount;
 }
 
 /**
@@ -69,27 +70,13 @@ library ScheduleUtils {
     }
     require(time <= schedule.endTime, "Cliffs cannot end after schedule");
     require(
-      allCliffAmounts(schedule) + amount <= schedule.totalAmount,
+      schedule.totalCliffAmount + amount <= schedule.totalAmount,
       "cliff amounts exceed total"
     );
     schedule.cliffs[schedule.cliffCount].time = time;
     schedule.cliffs[schedule.cliffCount].amount = amount;
     schedule.cliffCount += 1;
-  }
-
-  /**
-   * @dev The sum of all cliff amounts in *schedule*
-   */
-  function allCliffAmounts(Schedule storage schedule)
-    internal
-    view
-    returns (uint256)
-  {
-    uint256 cliffAmounts;
-    for (uint256 i = 0; i < schedule.cliffCount; i++) {
-      cliffAmounts += schedule.cliffs[i].amount;
-    }
-    return cliffAmounts;
+    schedule.totalCliffAmount += amount;
   }
 
   /**
@@ -121,8 +108,8 @@ library ScheduleUtils {
   ) internal view returns (uint256) {
     uint256 rampTotalAmount;
     // could happen if unvested tokens were revoked
-    if (schedule.totalAmount >= allCliffAmounts(schedule)) {
-      rampTotalAmount = schedule.totalAmount - allCliffAmounts(schedule);
+    if (schedule.totalAmount >= schedule.totalCliffAmount) {
+      rampTotalAmount = schedule.totalAmount - schedule.totalCliffAmount;
     } // else 0
     if (atTime >= schedule.endTime) {
       return rampTotalAmount;
