@@ -60,20 +60,21 @@ library ScheduleUtils {
     uint256 time,
     uint256 amount
   ) internal {
+    uint256 cliffCount = schedule.cliffCount;
     if (schedule.cliffCount == 0) {
       require(time >= schedule.startTime, "Cliff before schedule start");
     } else {
       require(
-        time >= schedule.cliffs[schedule.cliffCount - 1].time,
+        time >= schedule.cliffs[cliffCount - 1].time,
         "Cliffs not chronological"
       );
     }
     require(time <= schedule.endTime, "Cliffs cannot end after schedule");
     require(
       schedule.totalCliffAmount + amount <= schedule.totalAmount,
-      "cliff amounts exceed total"
+      "Cliff amounts exceed total"
     );
-    Cliff storage cliff = schedule.cliffs[schedule.cliffCount];
+    Cliff storage cliff = schedule.cliffs[cliffCount];
     cliff.time = time;
     cliff.amount = amount;
     schedule.cliffCount += 1;
