@@ -8,7 +8,7 @@ contract NORI is ERC777PresetPausablePermissioned {
     __NORI_init();
     _mint(
       _msgSender(),
-      500000000 * 10**18, // 500,000,000 NORI
+      500_000_000 * 10**18, // 500,000,000 NORI
       "",
       ""
     );
