@@ -413,7 +413,6 @@ contract LockedNORI is
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
-    __ERC777PresetPausablePermissioned_init_unchained();
     __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
     _bridgedPolygonNori = BridgedPolygonNORI(
       address(bridgedPolygonNoriAddress)
@@ -423,9 +422,9 @@ contract LockedNORI is
       ERC777_TOKENS_RECIPIENT_HASH,
       address(this)
     );
-//    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo why doesnt grantRole work
+    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo why doesnt grantRole work
     _setupRole(TOKEN_GRANTER_ROLE, _msgSender()); // todo why doesnt grantRole work
-//    _setupRole(PAUSER_ROLE, _msgSender()); // todo why doesnt grantRole work
+    _setupRole(PAUSER_ROLE, _msgSender()); // todo why doesnt grantRole work
   }
 
   /**
@@ -500,14 +499,6 @@ contract LockedNORI is
     CreateTokenGrantParams memory params = abi.decode(
       userData,
       (CreateTokenGrantParams)
-    );
-    require(
-      params.startTime < params.unlockEndTime,
-      "lNORI: unlockEndTime cannot be before startTime"
-    );
-    require(
-      block.timestamp < params.unlockEndTime,
-      "lNORI: unlockEndTime cannot be in the past"
     );
     require(
       address(params.recipient) != address(0),
