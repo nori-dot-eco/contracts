@@ -120,11 +120,10 @@ library ScheduleUtils {
       rampStartTime = schedule.cliffs[schedule.cliffCount - 1].time;
     }
     uint256 rampTotalTime = schedule.endTime - rampStartTime;
-    int256 rampTimeElapsed = int256(atTime) - int256(rampStartTime);
-    return
-      rampTimeElapsed <= 0
-        ? 0
-        : (rampTotalAmount * uint256(rampTimeElapsed)) / rampTotalTime;
+    if (atTime < rampStartTime) {
+        return 0;
+    }
+    return rampTotalAmount * (atTime - rampStartTime) / rampTotalTime;
   }
 
   /**
