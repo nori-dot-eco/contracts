@@ -88,7 +88,8 @@ library ScheduleUtils {
     returns (uint256)
   {
     uint256 available = 0;
-    for (uint256 i = 0; i < schedule.cliffCount; i++) {
+    uint256 cliffCount = schedule.cliffCount;
+    for (uint256 i = 0; i < cliffCount; i++) {
       if (atTime >= schedule.cliffs[i].time) {
         available += schedule.cliffs[i].amount;
       }
