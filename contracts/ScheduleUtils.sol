@@ -73,8 +73,9 @@ library ScheduleUtils {
       schedule.totalCliffAmount + amount <= schedule.totalAmount,
       "cliff amounts exceed total"
     );
-    schedule.cliffs[schedule.cliffCount].time = time;
-    schedule.cliffs[schedule.cliffCount].amount = amount;
+    Cliff storage cliff = schedule.cliffs[schedule.cliffCount];
+    cliff.time = time;
+    cliff.amount = amount;
     schedule.cliffCount += 1;
     schedule.totalCliffAmount += amount;
   }
