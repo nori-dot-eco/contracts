@@ -474,12 +474,20 @@ contract LockedNORI is
     if (params.startTime > 0) {
       _createGrant(amount, userData);
     }
+    require(
+      _grants[params.recipient].exists,
+      "lNORI: Cannot deposit without a grant"
+    );
     super._mint(params.recipient, amount, userData, operatorData);
     return true;
   }
 
   /**
    * @dev Sets up a vesting + lockup schedule for recipient (implementation).
+   *
+   * All grants must include a lockup schedule and can optionally *also*
+   * include a vesting schedule.  Tokens are withdrawble once they are
+   * vested *and* unlocked.
    *
    * This will be invoked via the `tokensReceived` callback for cases
    * where we have the tokens in hand at the time we set up the grant.
