@@ -10,7 +10,9 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
  * @title A wrapped BridgedPolygonNORI token contract for vesting and lockup
+ *
  * @author Nori Inc.
+ *
  * @notice Based on the mechanics of a wrapped ERC-777 token, this contract layers schedules over the withdrawal
  * functionality to implement _vesting_ (a revocable grant)
  * and _lockup_ (an irrevocable timelock on utility).
@@ -107,6 +109,7 @@ contract LockedNORI is
     uint256 claimedAmount;
     uint256 originalAmount;
     uint256 lastRevocationTime;
+    uint256 lastQuantityRevoked;
     bool exists;
   }
 
@@ -125,6 +128,7 @@ contract LockedNORI is
     uint256 claimedAmount;
     uint256 originalAmount;
     uint256 lastRevocationTime;
+    uint256 lastQuantityRevoked;
   }
 
   struct CreateTokenGrantParams {
@@ -153,6 +157,7 @@ contract LockedNORI is
   /**
    * @notice Used to register the ERC777TokensRecipient recipient interface in the
    * ERC-1820 registry
+   *
    * @dev Registering that LockedNORI implements the ERC777TokensRecipient interface with the registry is a
    * requiremnt to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
    * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
@@ -173,6 +178,7 @@ contract LockedNORI is
   /**
    * @notice The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection registry
    * contract
+   *
    * @dev Registering that LockedNORI implements the ERC777TokensRecipient interface with the registry is a
    * requiremnt to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
    * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
@@ -191,7 +197,7 @@ contract LockedNORI is
   );
 
   /**
-   * @dev Emitted on when the vesting portion of an active grant is terminated.
+   * @notice Emitted on when the vesting portion of an active grant is terminated.
    */
   event UnvestedTokensRevoked(
     uint256 indexed atTime,
@@ -200,12 +206,17 @@ contract LockedNORI is
   );
 
   /**
-   * @dev Emitted on withdwal of fully unlocked tokens.
+   * @notice Emitted on withdwal of fully unlocked tokens.
    */
-  event TokensClaimed(address indexed from, address indexed to, uint256 quantity);
+  event TokensClaimed(
+    address indexed from,
+    address indexed to,
+    uint256 quantity
+  );
 
   /**
    * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
+   *
    * @dev Sending BridgedPolygonNORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard
    * because this contract is a registered ERC777 tokens recipient.
    *
@@ -230,6 +241,7 @@ contract LockedNORI is
 
   /**
    * @notice Unwrap BridgedPolygonNORI tokens and makes them available for use in the BridgedPolygonNORI contract
+   *
    * @dev This function burns `amount` of wrapped tokens and withdraws them to the corresponding {BridgedPolygonNORI}
    * tokens.
    *
@@ -238,7 +250,10 @@ contract LockedNORI is
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    */
-  function withdrawTo(address recipient, uint256 amount) external returns (bool) {
+  function withdrawTo(address recipient, uint256 amount)
+    external
+    returns (bool)
+  {
     TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
     _bridgedPolygonNori.send(
@@ -254,6 +269,7 @@ contract LockedNORI is
 
   /**
    * @notice Sets up a vesting + lockup schedule for recipient.
+   *
    * @dev This function can be used as an alternative way to set up a grant that doesn't require
    * wrapping BridgedPolygonNORI first.
    *
@@ -291,42 +307,52 @@ contract LockedNORI is
   }
 
   /**
-   * @dev revokeUnvestedTokens: Truncates a vesting grant.
+   * @notice batchRevokeUnvestedTokenAmounts: Truncates a batch of vesting grants of amounts in a single go
    *
-   * Transfers any unvested tokens in `from`'s grant to `to`
+   * @dev To revoke all remaining revokable/unvested tokens in a batch, set the amount to 0 in the `amounts` array.
+   *
+   * Transfers any unvested tokens in `fromAccounts`'s grant to `to`
    * and reduces the total grant size.
    *
    * No change is made to balances that have vested but not yet been claimed
    * whether locked or not.
+   *
+   * ##### Requirements:
+   * - Can only be used when the caller has the `TOKEN_GRANTER_ROLE` role
+   * - fromAccounts.length == toAccounts.length == atTimes.length
+   * - The requirements of _beforeTokenTransfer apply to this function
+   * - atTimes.length == amounts.length
    */
-  function revokeUnvestedTokens(
-    address from,
-    address to,
-    uint256 atTime
-  ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
-    _revokeUnvestedTokens(from, to, atTime, 0);
+  function batchRevokeUnvestedTokenAmounts(
+    address[] calldata fromAccounts,
+    address[] calldata toAccounts,
+    uint256[] calldata atTimes,
+    uint256[] calldata amounts
+  ) external onlyRole(TOKEN_GRANTER_ROLE) {
+    require(
+      fromAccounts.length == toAccounts.length,
+      "lNORI: fromAccounts and toAccounts length mismatch"
+    );
+    require(
+      toAccounts.length == atTimes.length,
+      "lNORI: toAccounts and atTimes length mismatch"
+    );
+    require(
+      atTimes.length == amounts.length,
+      "lNORI: atTimes and amounts length mismatch"
+    );
+    for (uint256 i = 0; i < fromAccounts.length; i++) {
+      _revokeUnvestedTokens(
+        fromAccounts[i],
+        toAccounts[i],
+        atTimes[i],
+        amounts[i]
+      );
+    }
   }
 
   /**
-   * @dev revokeUnvestedTokenAmount: Truncates a vesting grant.
-   *
-   * Transfers any unvested tokens in `from`'s grant to `to`
-   * and reduces the total grant size.
-   *
-   * No change is made to balances that have vested but not yet been claimed
-   * whether locked or not.
-   */
-  function revokeUnvestedTokenAmount(
-    address from,
-    address to,
-    uint256 atTime,
-    uint256 amount
-  ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
-    _revokeUnvestedTokens(from, to, atTime, amount);
-  }
-
-  /**
-   * @dev Number of unvested tokens that were revoked if any.
+   * @notice Number of unvested tokens that were revoked if any.
    */
   function quantityRevokedFrom(address account)
     external
@@ -338,14 +364,41 @@ contract LockedNORI is
   }
 
   /**
-   * @dev Vested balance less any claimed amount at current block timestamp.
+   * @notice Vested balance less any claimed amount at current block timestamp.
    */
   function vestedBalanceOf(address account) external view returns (uint256) {
     return _vestedBalanceOf(account, block.timestamp);
   }
 
+  // todo document expected initialzation state
+  function initialize(IERC777Upgradeable bridgedPolygonNoriAddress)
+    public
+    initializer
+  {
+    address[] memory operators = new address[](1);
+    operators[0] = _msgSender();
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    __Pausable_init_unchained();
+    __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
+    _bridgedPolygonNori = BridgedPolygonNORI(
+      address(bridgedPolygonNoriAddress)
+    );
+    _ERC1820_REGISTRY.setInterfaceImplementer(
+      address(this),
+      ERC777_TOKENS_RECIPIENT_HASH,
+      address(this)
+    );
+    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo why doesnt grantRole work
+    _setupRole(TOKEN_GRANTER_ROLE, _msgSender()); // todo why doesnt grantRole work
+    _setupRole(PAUSER_ROLE, _msgSender()); // todo why doesnt grantRole work
+  }
+
   /**
    * @notice Returns all governing settings for multiple grants
+   *
    * @dev If a grant does not exist for an account, the resulting grant will be zeroed out in the return value
    */
   function batchGetGrant(address[] calldata accounts)
@@ -386,38 +439,21 @@ contract LockedNORI is
         grant.lockupSchedule.cliffs[1].amount,
         grant.claimedAmount,
         grant.originalAmount,
-        grant.lastRevocationTime
+        grant.lastRevocationTime,
+        grant.lastQuantityRevoked
       );
   }
 
-  // todo document expected initialzation state
-  function initialize(IERC777Upgradeable bridgedPolygonNoriAddress)
-    public
-    initializer
-  {
-    address[] memory operators = new address[](1);
-    operators[0] = _msgSender();
-    __Context_init_unchained();
-    __ERC165_init_unchained();
-    __AccessControl_init_unchained();
-    __AccessControlEnumerable_init_unchained();
-    __Pausable_init_unchained();
-    __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
-    _bridgedPolygonNori = BridgedPolygonNORI(
-      address(bridgedPolygonNoriAddress)
-    );
-    _ERC1820_REGISTRY.setInterfaceImplementer(
-      address(this),
-      ERC777_TOKENS_RECIPIENT_HASH,
-      address(this)
-    );
-    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo why doesnt grantRole work
-    _setupRole(TOKEN_GRANTER_ROLE, _msgSender()); // todo why doesnt grantRole work
-    _setupRole(PAUSER_ROLE, _msgSender()); // todo why doesnt grantRole work
+  /**
+   * @notice Unlocked balance less any claimed amount at current block timestamp.
+   */
+  function unlockedBalanceOf(address account) public view returns (uint256) {
+    return _unlockedBalanceOf(account, block.timestamp);
   }
 
   /**
    * @notice Overridden standard ERC777.burn that will always revert
+   *
    * @dev This function is not currently supported from external callers so we override it so that we can revert.
    */
   function burn(uint256, bytes memory) public pure override {
@@ -426,6 +462,7 @@ contract LockedNORI is
 
   /**
    * @notice Overridden standard ERC777.operatorBurn that will always revert
+   *
    * @dev This function is not currently supported from external callers so we override it so that we can revert.
    */
   function operatorBurn(
@@ -438,14 +475,8 @@ contract LockedNORI is
   }
 
   /**
-   * @dev Unlocked balance less any claimed amount at current block timestamp.
-   */
-  function unlockedBalanceOf(address account) public view returns (uint256) {
-    return _unlockedBalanceOf(account, block.timestamp);
-  }
-
-  /**
    * @dev Wraps minting of wrapper token and grant setup.
+   *
    * @param amount uint256 Quantity of `_bridgedPolygonNori` to deposit
    * @param userData CreateTokenGrantParams or DepositForParams
    * @param operatorData bytes extra information provided by the operator (if any)
@@ -567,6 +598,7 @@ contract LockedNORI is
     }
     grant.grantAmount = grant.grantAmount - quantityRevoked;
     grant.lastRevocationTime = atTime;
+    grant.lastQuantityRevoked = quantityRevoked;
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
@@ -579,6 +611,7 @@ contract LockedNORI is
 
   /**
    * @notice Hook that is called before send, transfer, mint, and burn. Used used to disable transferring locked nori.
+   *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
    *
@@ -613,15 +646,7 @@ contract LockedNORI is
   }
 
   /**
-  * @dev Returns true if the there is a grant for *account* with a vesting schedule.
-  */
-  function _hasVestingSchedule(address account) private view returns (bool) {
-      TokenGrant storage grant = _grants[account];
-      return grant.exists && grant.vestingSchedule.startTime > 0;
-  }
-
-  /**
-   * @dev Vested balance less any claimed amount at `atTime` (implementation)
+   * @notice Vested balance less any claimed amount at `atTime` (implementation)
    *
    * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
    * grant amount. This is done to preserve the behavior of the vesting schedule despite a reduction in the total
@@ -678,5 +703,13 @@ contract LockedNORI is
         grant.claimedAmount;
     }
     return balance;
+  }
+
+  /**
+   * @notice Returns true if the there is a grant for *account* with a vesting schedule.
+   */
+  function _hasVestingSchedule(address account) private view returns (bool) {
+    TokenGrant storage grant = _grants[account];
+    return grant.exists && grant.vestingSchedule.startTime > 0;
   }
 }
