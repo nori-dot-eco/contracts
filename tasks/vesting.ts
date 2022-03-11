@@ -1,3 +1,6 @@
+import path from 'path';
+import { readFileSync } from 'fs';
+
 import * as yup from 'yup';
 import csv from 'csvtojson';
 import { task, subtask, types } from 'hardhat/config';
@@ -497,12 +500,14 @@ export const TASK = {
       commit,
       account,
       action,
+      file,
     }: {
       diff: boolean;
       expand: boolean;
       commit: string;
       account: number;
       action: 'update' | 'account' | 'revoke' | 'create';
+      file: string;
     },
     _: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -515,7 +520,15 @@ export const TASK = {
     const bpNori = getBridgedPolygonNori({ network: hre.network.name, signer });
     const lNori = getLockedNori({ network: hre.network.name, signer });
     const runSubtask = hre.run as RunVestingWithSubTasks;
-    const githubGrants = await runSubtask('get-github', { commit });
+    let githubGrants: Grants['github'];
+    if (file) {
+      hre.log('Reading grants from file');
+      githubGrants = readFileSync(file, { encoding: 'utf8' }) as any;
+      console.log({ githubGrants });
+    } else {
+      hre.log('Reading grants from github commit:', commit);
+      githubGrants = await runSubtask('get-github', { commit });
+    }
     if (showDiff || expand) {
       await runSubtask('diff', {
         grants: { github: githubGrants },
@@ -679,8 +692,8 @@ const GET_GITHUB_SUBTASK = {
     const githubGrants: ParsedGrant = parsed.reduce((acc, val): ParsedGrant => {
       // todo throw error if dupe
       return { ...acc, [val.recipient]: val };
-    }, {} as ParsedGrant);
-    await grantSchema.validate(githubGrants); // todo verify working
+    }, {} as ParsedGrant); // todo parse csv subtask
+    await grantSchema.validate(githubGrants); // todo validate subtask
     return githubGrants;
   },
 } as const;
@@ -903,7 +916,7 @@ const REVOKE_SUBTASK = {
       if (result.status === 1) {
         hre.log(
           chalk.bold.bgWhiteBright.black(
-            `ℹ️ Revoked ${grantRevocationDiffs.length} grants (tx: ${result.transactionHash})`
+            `ℹ️  Revoked ${grantRevocationDiffs.length} grants (tx: ${result.transactionHash})`
           )
         );
       } else {
@@ -934,6 +947,12 @@ task(TASK.name, TASK.description, TASK.run)
     0,
     types.int
   )
+  .addOptionalParam(
+    'file',
+    'Use a file instead of github',
+    path.join(__dirname, '../grants.csv'),
+    types.string
+  )
   .addFlag(DIFF_SUBTASK.name, DIFF_SUBTASK.description)
   .addFlag(
     'expand',
@@ -954,4 +973,3 @@ subtask(
 );
 subtask(REVOKE_SUBTASK.name, REVOKE_SUBTASK.description, REVOKE_SUBTASK.run);
 // todo --dry-run using CONTRACT.callStatic.methodName
-// todo --file (for local debugging)

@@ -92,3 +92,6 @@ typechain-types
 
 # gas-reporter
 gasReporterOutput.json
+
+# local grants for the hardhat vesting task
+grants.csv
