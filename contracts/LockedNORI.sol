@@ -105,8 +105,8 @@ contract LockedNORI is
     uint256 grantAmount;
     uint256 claimedAmount;
     uint256 originalAmount;
-    uint256 lastRevocationTime;
     bool exists;
+    uint256 lastRevocationTime;
   }
 
   struct TokenGrantDetail {
@@ -224,7 +224,7 @@ contract LockedNORI is
     bytes calldata operatorData
   ) external override {
     require(
-      msg.sender == address(_bridgedPolygonNori),
+      _msgSender() == address(_bridgedPolygonNori),
       "lNORI: not BridgedPolygonNORI"
     );
     require(
@@ -471,6 +471,7 @@ contract LockedNORI is
   ) internal returns (bool) {
     DepositForParams memory params = abi.decode(userData, (DepositForParams)); // todo error handling
     // If a startTime parameter is non-zero then set up a schedule
+    // Validation happens inside _createGrant
     if (params.startTime > 0) {
       _createGrant(amount, userData);
     }
@@ -507,6 +508,14 @@ contract LockedNORI is
     require(
       address(params.recipient) != _msgSender(),
       "lNORI: Recipient cannot be grant admin"
+    );
+    require(
+      params.startTime < params.unlockEndTime,
+      "lNORI: unlockEndTime cannot be before startTime"
+    );
+    require(
+      block.timestamp < params.unlockEndTime,
+      "lNORI: unlockEndTime cannot be in the past"
     );
     require(!_grants[params.recipient].exists, "lNORI: Grant already exists");
     TokenGrant storage grant = _grants[params.recipient];
