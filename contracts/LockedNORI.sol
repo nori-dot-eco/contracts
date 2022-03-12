@@ -331,10 +331,9 @@ contract LockedNORI is
   function revokeUnvestedTokenAmount(
     address from,
     address to,
-    uint256 atTime,
     uint256 amount
   ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
-    _revokeUnvestedTokens(from, to, atTime, amount);
+    _revokeUnvestedTokens(from, to, block.timestamp, amount);
   }
 
   /**
