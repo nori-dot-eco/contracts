@@ -76,6 +76,6 @@ contract BridgedPolygonNORI is NORI {
     // solhint-disable-previous-line func-name-mixedcase
     address childChainManagerProxy
   ) internal onlyInitializing {
-    _setupRole(DEPOSITOR_ROLE, childChainManagerProxy); // todo try grantRole
+    _grantRole(DEPOSITOR_ROLE, childChainManagerProxy);
   }
 }

@@ -228,7 +228,8 @@ contract LockedNORI is
       "lNORI: not BridgedPolygonNORI"
     );
     require(
-      hasRole(TOKEN_GRANTER_ROLE, from) || hasRole(TOKEN_GRANTER_ROLE, operator),
+      hasRole(TOKEN_GRANTER_ROLE, from) ||
+        hasRole(TOKEN_GRANTER_ROLE, operator),
       "lNORI: caller is missing role TOKEN_GRANTER_ROLE"
     );
     address to = abi.decode(userData, (address));
@@ -330,10 +331,9 @@ contract LockedNORI is
   function revokeUnvestedTokenAmount(
     address from,
     address to,
-    uint256 atTime,
     uint256 amount
   ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
-    _revokeUnvestedTokens(from, to, atTime, amount);
+    _revokeUnvestedTokens(from, to, block.timestamp, amount);
   }
 
   /**
@@ -402,7 +402,7 @@ contract LockedNORI is
   }
 
   // todo document expected initialzation state
-  function initialize(IERC777Upgradeable bridgedPolygonNoriAddress)
+  function initialize(BridgedPolygonNORI bridgedPolygonNoriAddress)
     public
     initializer
   {
@@ -413,18 +413,15 @@ contract LockedNORI is
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
+    __ERC777PresetPausablePermissioned_init_unchained();
     __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
-    _bridgedPolygonNori = BridgedPolygonNORI(
-      address(bridgedPolygonNoriAddress)
-    );
+    _bridgedPolygonNori = bridgedPolygonNoriAddress;
     _ERC1820_REGISTRY.setInterfaceImplementer(
       address(this),
       ERC777_TOKENS_RECIPIENT_HASH,
       address(this)
     );
-    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo why doesnt grantRole work
-    _setupRole(TOKEN_GRANTER_ROLE, _msgSender()); // todo why doesnt grantRole work
-    _setupRole(PAUSER_ROLE, _msgSender()); // todo why doesnt grantRole work
+    _grantRole(TOKEN_GRANTER_ROLE, _msgSender());
   }
 
   /**
