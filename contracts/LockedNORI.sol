@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./ERC777PresetPausablePermissioned.sol";
 import "./BridgedPolygonNORI.sol";
-// import "hardhat/console.sol"; // todo
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
@@ -106,8 +105,8 @@ contract LockedNORI is
     uint256 grantAmount;
     uint256 claimedAmount;
     uint256 originalAmount;
-    uint256 lastRevocationTime;
     bool exists;
+    uint256 lastRevocationTime;
   }
 
   struct TokenGrantDetail {
@@ -217,18 +216,24 @@ contract LockedNORI is
    * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
    */
   function tokensReceived(
-    address,
-    address,
+    address operator,
+    address from,
     address,
     uint256 amount,
     bytes calldata userData,
     bytes calldata operatorData
   ) external override {
     require(
-      msg.sender == address(_bridgedPolygonNori),
+      _msgSender() == address(_bridgedPolygonNori),
       "lNORI: not BridgedPolygonNORI"
-    ); // todo verify this can only be invoked by the nori contract
-    // todo restrict such that only admin can invoke this function
+    );
+    require(
+      hasRole(TOKEN_GRANTER_ROLE, from) ||
+        hasRole(TOKEN_GRANTER_ROLE, operator),
+      "lNORI: caller is missing role TOKEN_GRANTER_ROLE"
+    );
+    address to = abi.decode(userData, (address));
+    require(to != address(0), "lNORI: token send missing required userData");
     _depositFor(amount, userData, operatorData);
   }
 
@@ -462,21 +467,26 @@ contract LockedNORI is
     bytes calldata userData,
     bytes calldata operatorData
   ) internal returns (bool) {
-    // require(
-    //   hasRole(TOKEN_GRANTER_ROLE, tx.origin), // todo figure out how to make this safe
-    //   "lNORI: requires TOKEN_GRANTER_ROLE"
-    // );
     DepositForParams memory params = abi.decode(userData, (DepositForParams)); // todo error handling
     // If a startTime parameter is non-zero then set up a schedule
+    // Validation happens inside _createGrant
     if (params.startTime > 0) {
       _createGrant(amount, userData);
     }
+    require(
+      _grants[params.recipient].exists,
+      "lNORI: Cannot deposit without a grant"
+    );
     super._mint(params.recipient, amount, userData, operatorData);
     return true;
   }
 
   /**
    * @dev Sets up a vesting + lockup schedule for recipient (implementation).
+   *
+   * All grants must include a lockup schedule and can optionally *also*
+   * include a vesting schedule.  Tokens are withdrawble once they are
+   * vested *and* unlocked.
    *
    * This will be invoked via the `tokensReceived` callback for cases
    * where we have the tokens in hand at the time we set up the grant.
@@ -496,6 +506,14 @@ contract LockedNORI is
     require(
       address(params.recipient) != _msgSender(),
       "lNORI: Recipient cannot be grant admin"
+    );
+    require(
+      params.startTime < params.unlockEndTime,
+      "lNORI: unlockEndTime cannot be before startTime"
+    );
+    require(
+      block.timestamp < params.unlockEndTime,
+      "lNORI: unlockEndTime cannot be in the past"
     );
     require(!_grants[params.recipient].exists, "lNORI: Grant already exists");
     TokenGrant storage grant = _grants[params.recipient];

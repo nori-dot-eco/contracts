@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 
@@ -62,17 +62,23 @@ library ScheduleUtils {
   ) internal {
     uint256 cliffCount = schedule.cliffCount;
     if (schedule.cliffCount == 0) {
-      require(time >= schedule.startTime, "Cliff before schedule start");
+      require(
+        time >= schedule.startTime,
+        "ScheduleUtils: Cliff before schedule start"
+      );
     } else {
       require(
         time >= schedule.cliffs[cliffCount - 1].time,
-        "Cliffs not chronological"
+        "ScheduleUtils: Cliffs not chronological"
       );
     }
-    require(time <= schedule.endTime, "Cliffs cannot end after schedule");
+    require(
+      time <= schedule.endTime,
+      "ScheduleUtils: Cliffs cannot end after schedule"
+    );
     require(
       schedule.totalCliffAmount + amount <= schedule.totalAmount,
-      "Cliff amounts exceed total"
+      "ScheduleUtils: Cliff amounts exceed total"
     );
     Cliff storage cliff = schedule.cliffs[cliffCount];
     cliff.time = time;
@@ -122,10 +128,10 @@ library ScheduleUtils {
       rampStartTime = schedule.cliffs[schedule.cliffCount - 1].time;
     }
     uint256 rampTotalTime = schedule.endTime - rampStartTime;
-    if (atTime < rampStartTime) {
-        return 0;
-    }
-    return rampTotalAmount * (atTime - rampStartTime) / rampTotalTime;
+    return
+      atTime < rampStartTime
+        ? 0
+        : (rampTotalAmount * (atTime - rampStartTime)) / rampTotalTime;
   }
 
   /**
