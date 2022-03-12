@@ -39,6 +39,13 @@ contract BridgedPolygonNORI is NORI {
   }
 
   /**
+   * @notice overrides the NORI initializer so that it reverts and is never initialized with a call to the mint function
+   */
+  function initialize() public override initializer {
+    revert("BridgedPolygonNORI: disallowed");
+  }
+
+  /**
    * @notice Initializer variant that embeds the linearized calls to all parent initializers.
    * @dev Follows the multiple inheritance initializer rules defined [here](
    * https://docs.openzeppelin.com/contracts/3.x/upgradeable#multiple-inheritance). As a consequence,

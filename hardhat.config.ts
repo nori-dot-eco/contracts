@@ -86,7 +86,6 @@ extendEnvironment(async (hre) => {
     const proxyAddress =
       contractsConfig[hre.network.name as 'hardhat']?.[contractName]
         ?.proxyAddress;
-    console.log({ proxyAddress, force: process.env.FORCE_PROXY_DEPLOYMENT });
     const contractCode = await hre.ethers.provider.getCode(proxyAddress);
     let contract: InstanceOfContract<TContract>;
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
