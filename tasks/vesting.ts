@@ -501,13 +501,15 @@ export const TASK = {
       account,
       action,
       file,
+      asJson,
     }: {
-      diff: boolean;
-      expand: boolean;
-      commit: string;
-      account: number;
-      action: 'update' | 'account' | 'revoke' | 'create';
-      file: string;
+      diff?: boolean;
+      expand?: boolean;
+      commit?: string;
+      account?: number;
+      action?: 'update' | 'account' | 'revoke' | 'create';
+      file?: string;
+      asJson?: boolean;
     },
     _: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -516,6 +518,15 @@ export const TASK = {
       revoke: action === 'revoke',
       create: action === 'create',
     };
+    if ((!account && account !== 0) || account < 0 || account > 10) {
+      throw new Error('Invalid account/signer index');
+    }
+    if (asJson && !showDiff && !expand) {
+      throw new Error(
+        'You must specify --asJson or --expand when using --as-json'
+      );
+    }
+
     const signer = (await hre.ethers.getSigners())[account];
     const bpNori = getBridgedPolygonNori({ network: hre.network.name, signer });
     const lNori = getLockedNori({ network: hre.network.name, signer });
@@ -524,7 +535,6 @@ export const TASK = {
     if (file) {
       hre.log('Reading grants from file');
       githubGrants = readFileSync(file, { encoding: 'utf8' }) as any;
-      console.log({ githubGrants });
     } else {
       hre.log('Reading grants from github commit:', commit);
       githubGrants = await runSubtask('get-github', { commit });
@@ -534,6 +544,7 @@ export const TASK = {
         grants: { github: githubGrants },
         lNori,
         expand,
+        asJson,
       });
     }
     if (update || create) {
@@ -556,6 +567,20 @@ export const TASK = {
   },
 } as const;
 
+const getDiff = ({
+  grants: { github: githubGrants, blockchain: blockchainGrants },
+  expand,
+  asJson,
+}: {
+  grants: Grants;
+  expand?: boolean;
+  asJson?: boolean;
+}): string | Record<string, unknown> => {
+  return asJson
+    ? diff(blockchainGrants, githubGrants, { full: Boolean(expand) })
+    : diffString(blockchainGrants, githubGrants, { full: Boolean(expand) });
+};
+
 const DIFF_SUBTASK = {
   name: 'diff',
   description:
@@ -565,10 +590,12 @@ const DIFF_SUBTASK = {
       grants: { github: githubGrants },
       expand,
       lNori,
+      asJson,
     }: {
       lNori: LockedNORI;
       grants: Pick<Grants, 'github'>;
-      expand: boolean;
+      expand?: boolean;
+      asJson?: boolean;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -577,7 +604,12 @@ const DIFF_SUBTASK = {
       grants: { githubGrants },
       lNori,
     });
-    hre.log(diffString(blockchainGrants, githubGrants, { full: expand }));
+    const grantsDiff = getDiff({
+      grants: { blockchain: blockchainGrants, github: githubGrants },
+      expand,
+      asJson,
+    });
+    hre.log(grantsDiff);
   },
 } as const;
 
@@ -947,17 +979,13 @@ task(TASK.name, TASK.description, TASK.run)
     0,
     types.int
   )
-  .addOptionalParam(
-    'file',
-    'Use a file instead of github',
-    path.join(__dirname, '../grants.csv'),
-    types.string
-  )
+  .addOptionalParam('file', 'Use a file instead of github')
   .addFlag(DIFF_SUBTASK.name, DIFF_SUBTASK.description)
   .addFlag(
     'expand',
     'Print expanded information (including a full diff when using the --diff flag)'
-  );
+  )
+  .addFlag('asJson', 'Prints diff as JSON');
 
 subtask(DIFF_SUBTASK.name, DIFF_SUBTASK.description, DIFF_SUBTASK.run);
 subtask(UPDATE_SUBTASK.name, UPDATE_SUBTASK.description, UPDATE_SUBTASK.run);

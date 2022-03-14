@@ -62,6 +62,18 @@ contract ERC777PresetPausablePermissioned is
       recipients.length == amounts.length,
       "ERC777PresetPausablePermissioned: recipient and amount length mismatch"
     );
+    require(
+      amounts.length == userData.length,
+      "ERC777PresetPausablePermissioned: amounts and userData length mismatch"
+    );
+    require(
+      userData.length == operatorData.length,
+      "ERC777PresetPausablePermissioned: userData and operatorData length mismatch"
+    );
+    require(
+      operatorData.length == requireReceptionAck.length,
+      "ERC777PresetPausablePermissioned: operatorData and requireReceptionAck length mismatch"
+    );
     for (uint256 i = 0; i < recipients.length; i++) {
       _send(
         _msgSender(),

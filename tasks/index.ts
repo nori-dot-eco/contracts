@@ -24,7 +24,12 @@ import { TASK as DEFENDER_TASK } from './defender';
 import { TASK as VESTING_TASK } from './vesting';
 
 interface Task {
-  run: ActionType<Record<string, unknown>, any>;
+  run: ActionType<
+    {
+      run: ActionType<{}, any>;
+    },
+    any
+  >;
 }
 
 export const TASKS = {

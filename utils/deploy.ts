@@ -50,7 +50,7 @@ export const verifyContracts = async ({
         return hre.run('verify:verify', {
           address: await hre.upgrades.erc1967.getImplementationAddress(address),
           constructorArguments: [],
-        });
+        } as any);
       })
     );
     log('Verified contracts');
@@ -224,7 +224,7 @@ export const addContractsToDefender = async ({
   if (hre.network.name !== 'hardhat') {
     await hre.run('defender:add', {
       contractNames: Object.keys(contracts).map((name) => name), // todo delete existing contracts from defender and re-add
-    });
+    } as any);
   }
 };
 
