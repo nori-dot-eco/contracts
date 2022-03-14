@@ -3,16 +3,20 @@ import type { BridgedPolygonNORI__factory } from '../typechain-types';
 import type { BridgedPolygonNORI } from '@/typechain-types/BridgedPolygonNORI';
 import type { Contracts } from '@/utils/deploy';
 import type { ContractInstances } from '@/test/helpers';
-import { expect, mockDepositNoriToPolygon } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
+import {
+  expect,
+  mockDepositNoriToPolygon,
+  createFixture,
+} from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
 import { formatTokenAmount } from '@/utils/units';
 import { deploy } from '@/deploy/0_deploy_contracts';
 
-// todo use hardhat-deploy fixtures (https://github.com/wighawag/hardhat-deploy#3-hardhat-test) (requires this to be fixed: https://github.com/cgewecke/hardhat-gas-reporter/issues/86)
-const setupTest = hre.deployments.createFixture(
-  async (): Promise<
-    ContractInstances & { hre: CustomHardHatRuntimeEnvironment }
-  > => {
-    const hre = global.hre;
+const setupTest = createFixture(
+  async (
+    hre: CustomHardHatRuntimeEnvironment
+  ): Promise<ContractInstances & { hre: CustomHardHatRuntimeEnvironment }> => {
+    // todo use setupTestEnvironment from test utils
+    hre.ethernalSync = false;
     const contracts = (await deploy(hre)) as Required<Contracts>;
     await mockDepositNoriToPolygon({
       hre,

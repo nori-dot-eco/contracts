@@ -2,8 +2,6 @@ import '@nomiclabs/hardhat-waffle';
 import '@openzeppelin/hardhat-upgrades';
 import '@nomiclabs/hardhat-ethers';
 import 'hardhat-ethernal';
-import '@nomiclabs/hardhat-ethers';
-import "hardhat-ethernal";
 import 'hardhat-deploy';
 import '@tenderly/hardhat-tenderly';
 import '@typechain/hardhat';
@@ -20,11 +18,13 @@ import '@/config/environment';
 import { extendEnvironment } from 'hardhat/config';
 import type { BaseContract, ContractFactory } from 'ethers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
+
 import * as contractsConfig from '../contracts.json';
+
 import { log } from '@/utils/log';
 
-
-extendEnvironment(async (hre) => {// todo move to @/extensions/signers, @extensions/deployments
+extendEnvironment(async (hre) => {
+  // todo move to @/extensions/signers, @extensions/deployments
   hre.log = console.log;
 
   const accounts = (await hre.getNamedAccounts()) as NamedAccounts;
@@ -41,7 +41,7 @@ extendEnvironment(async (hre) => {// todo move to @/extensions/signers, @extensi
   if (process.env.LOG && process.env.LOG !== 'false') {
     await hre.network.provider.send('hardhat_setLoggingEnabled', [true]);
   }
-  
+
   hre.ethernalSync = Boolean(
     hre.network.name === 'hardhat' &&
       process.env.ETHERNAL &&

@@ -136,7 +136,7 @@ declare global {
   type DeepPartial<T> = {
     [P in keyof T]?: DeepPartial<T[P]>;
   };
-  var hre: CustomHardHatRuntimeEnvironment;
+  var hre: CustomHardHatRuntimeEnvironment; // todo remove from global types to prevent usage
   type ContractNames =
     | 'FIFOMarket'
     | 'NORI'
@@ -154,7 +154,7 @@ declare global {
       name: ContractNames,
       signerOrOptions?: Signer | FactoryOptions
     ): Promise<TContractFactory>;
-  };
+  }; // todo remove from global types to prevent usage
 
   type CustomHardHatRuntimeEnvironment = Omit<
     HardhatRuntimeEnvironment,

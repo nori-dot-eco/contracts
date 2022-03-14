@@ -107,9 +107,9 @@ contract LockedNORI is
     uint256 grantAmount;
     uint256 claimedAmount;
     uint256 originalAmount;
+    bool exists;
     uint256 lastRevocationTime;
     uint256 lastQuantityRevoked;
-    bool exists;
   }
 
   struct TokenGrantDetail {
@@ -314,7 +314,9 @@ contract LockedNORI is
   /**
    * @notice batchRevokeUnvestedTokenAmounts: Truncates a batch of vesting grants of amounts in a single go
    *
-   * @dev To revoke all remaining revokable/unvested tokens in a batch, set the amount to 0 in the `amounts` array.
+   * @dev
+   * - To revoke all remaining revokable/unvested tokens in a batch, set the amount to 0 in the `amounts` array.
+   * - To revoke tokens at the current block timestamp, set atTimes to 0 in the `amounts` array.
    *
    * Transfers any unvested tokens in `fromAccounts`'s grant to `to`
    * and reduces the total grant size.
@@ -378,6 +380,29 @@ contract LockedNORI is
     return _vestedBalanceOf(account, block.timestamp);
   }
 
+  // todo document expected initialzation state
+  function initialize(BridgedPolygonNORI bridgedPolygonNoriAddress)
+    public
+    initializer
+  {
+    address[] memory operators = new address[](1);
+    operators[0] = _msgSender();
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    __Pausable_init_unchained();
+    __ERC777PresetPausablePermissioned_init_unchained();
+    __ERC777_init_unchained("Locked NORI", "lNORI", operators);
+    _bridgedPolygonNori = bridgedPolygonNoriAddress;
+    _ERC1820_REGISTRY.setInterfaceImplementer(
+      address(this),
+      ERC777_TOKENS_RECIPIENT_HASH,
+      address(this)
+    );
+    _grantRole(TOKEN_GRANTER_ROLE, _msgSender());
+  }
+
   /**
    * @notice Returns all governing settings for multiple grants
    *
@@ -431,29 +456,6 @@ contract LockedNORI is
    */
   function unlockedBalanceOf(address account) public view returns (uint256) {
     return _unlockedBalanceOf(account, block.timestamp);
-  }
-
-  // todo document expected initialzation state
-  function initialize(BridgedPolygonNORI bridgedPolygonNoriAddress)
-    public
-    initializer
-  {
-    address[] memory operators = new address[](1);
-    operators[0] = _msgSender();
-    __Context_init_unchained();
-    __ERC165_init_unchained();
-    __AccessControl_init_unchained();
-    __AccessControlEnumerable_init_unchained();
-    __Pausable_init_unchained();
-    __ERC777PresetPausablePermissioned_init_unchained();
-    __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
-    _bridgedPolygonNori = bridgedPolygonNoriAddress;
-    _ERC1820_REGISTRY.setInterfaceImplementer(
-      address(this),
-      ERC777_TOKENS_RECIPIENT_HASH,
-      address(this)
-    );
-    _grantRole(TOKEN_GRANTER_ROLE, _msgSender());
   }
 
   /**
@@ -593,20 +595,23 @@ contract LockedNORI is
     address to,
     uint256 atTime,
     uint256 amount
-  ) internal {
+  ) internal onlyRole(TOKEN_GRANTER_ROLE) {
     TokenGrant storage grant = _grants[from];
     require(grant.exists, "lNORI: no grant exists");
     require(
       _hasVestingSchedule(from),
       "lNORI: no vesting schedule for this grant"
     );
-    // atTime of zero indicates a revocation by amount.
-    uint256 resolvedTime = atTime == 0 && amount > 0 ? block.timestamp : atTime;
+    uint256 revocationTime = atTime == 0 && amount > 0
+      ? block.timestamp
+      : atTime; // atTime of zero indicates a revocation by amount
     require(
-      resolvedTime >= block.timestamp,
+      revocationTime >= block.timestamp,
       "lNORI: Revocation cannot be in the past"
     );
-    uint256 vestedBalance = grant.vestingSchedule.availableAmount(resolvedTime);
+    uint256 vestedBalance = grant.vestingSchedule.availableAmount(
+      revocationTime
+    );
     require(vestedBalance < grant.grantAmount, "lNORI: tokens already vested");
     uint256 revocableQuantity = grant.grantAmount - vestedBalance;
     uint256 quantityRevoked;
@@ -619,16 +624,16 @@ contract LockedNORI is
       quantityRevoked = revocableQuantity;
     }
     grant.grantAmount = grant.grantAmount - quantityRevoked;
-    grant.lastRevocationTime = resolvedTime;
+    grant.lastRevocationTime = revocationTime;
     grant.lastQuantityRevoked = quantityRevoked;
+    super._burn(from, quantityRevoked, "", "");
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
       quantityRevoked,
       ""
     );
-    super._burn(from, quantityRevoked, "", "");
-    emit UnvestedTokensRevoked(resolvedTime, from, quantityRevoked);
+    emit UnvestedTokensRevoked(revocationTime, from, quantityRevoked);
   }
 
   /**
@@ -668,7 +673,16 @@ contract LockedNORI is
   }
 
   /**
-   * @dev Vested balance less any claimed amount at `atTime` (implementation)
+   * @notice Vested balance less any claimed amount at `atTime` (implementation)
+   * @dev Returns true if the there is a grant for *account* with a vesting schedule.
+   */
+  function _hasVestingSchedule(address account) private view returns (bool) {
+    TokenGrant storage grant = _grants[account];
+    return grant.exists && grant.vestingSchedule.startTime > 0;
+  }
+
+  /**
+   * @notice Vested balance less any claimed amount at `atTime` (implementation)
    *
    * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
    * grant amount. This is done to preserve the behavior of the vesting schedule despite a reduction in the total
@@ -725,13 +739,5 @@ contract LockedNORI is
         grant.claimedAmount;
     }
     return balance;
-  }
-
-  /**
-   * @notice Returns true if the there is a grant for *account* with a vesting schedule.
-   */
-  function _hasVestingSchedule(address account) private view returns (bool) {
-    TokenGrant storage grant = _grants[account];
-    return grant.exists && grant.vestingSchedule.startTime > 0;
   }
 }

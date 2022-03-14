@@ -52,7 +52,8 @@
     "sinon-chai": "^3.7.0",
     "yup": "1.0.0-beta.3",
     "json-diff": "^0.7.1",
-    "@types/json-diff": "^0.7.0"
+    "@types/json-diff": "^0.7.0",
+    "@nori-dot-com/math": "^1.6.0"
   },
   "files": [
     "build",
@@ -63,9 +64,9 @@
   ],
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
-    "test": "FORCE_PROXY_DEPLOYMENT=true MINT=false ETHERNAL=false LOG=false hardhat test --parallel",
-    "test:gas": "REPORT_GAS=true FORCE_PROXY_DEPLOYMENT=true MINT=false ETHERNAL=false LOG=false hardhat test",
-    "test:coverage": "FORCE_PROXY_DEPLOYMENT=true MINT=false ETHERNAL=false hardhat coverage --solcoverjs ./.solcover.js",
+    "test": "MINT=false ETHERNAL=false LOG=false hardhat test --parallel",
+    "test:gas": "REPORT_GAS=true MINT=false ETHERNAL=false LOG=false hardhat test",
+    "test:coverage": "MINT=false ETHERNAL=false hardhat coverage --solcoverjs ./.solcover.js",
     "prepare": "yarn build",
     "build": "hardhat compile"
   }
