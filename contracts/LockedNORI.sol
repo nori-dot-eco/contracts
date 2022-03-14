@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./ERC777PresetPausablePermissioned.sol";
 import "./BridgedPolygonNORI.sol";
-// import "hardhat/console.sol"; // todo
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
@@ -224,18 +223,24 @@ contract LockedNORI is
    * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
    */
   function tokensReceived(
-    address,
-    address,
+    address operator,
+    address from,
     address,
     uint256 amount,
     bytes calldata userData,
     bytes calldata operatorData
   ) external override {
     require(
-      msg.sender == address(_bridgedPolygonNori),
+      _msgSender() == address(_bridgedPolygonNori),
       "lNORI: not BridgedPolygonNORI"
-    ); // todo verify this can only be invoked by the nori contract
-    // todo restrict such that only admin can invoke this function
+    );
+    require(
+      hasRole(TOKEN_GRANTER_ROLE, from) ||
+        hasRole(TOKEN_GRANTER_ROLE, operator),
+      "lNORI: caller is missing role TOKEN_GRANTER_ROLE"
+    );
+    address to = abi.decode(userData, (address));
+    require(to != address(0), "lNORI: token send missing required userData");
     _depositFor(amount, userData, operatorData);
   }
 
@@ -317,6 +322,9 @@ contract LockedNORI is
    * No change is made to balances that have vested but not yet been claimed
    * whether locked or not.
    *
+   * For revocation by amount regardless of time (must by <= unvested amount):
+   *    *atTime* should be pase.  Amount must be present.
+   *
    * ##### Requirements:
    * - Can only be used when the caller has the `TOKEN_GRANTER_ROLE` role
    * - fromAccounts.length == toAccounts.length == atTimes.length
@@ -368,32 +376,6 @@ contract LockedNORI is
    */
   function vestedBalanceOf(address account) external view returns (uint256) {
     return _vestedBalanceOf(account, block.timestamp);
-  }
-
-  // todo document expected initialzation state
-  function initialize(IERC777Upgradeable bridgedPolygonNoriAddress)
-    public
-    initializer
-  {
-    address[] memory operators = new address[](1);
-    operators[0] = _msgSender();
-    __Context_init_unchained();
-    __ERC165_init_unchained();
-    __AccessControl_init_unchained();
-    __AccessControlEnumerable_init_unchained();
-    __Pausable_init_unchained();
-    __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
-    _bridgedPolygonNori = BridgedPolygonNORI(
-      address(bridgedPolygonNoriAddress)
-    );
-    _ERC1820_REGISTRY.setInterfaceImplementer(
-      address(this),
-      ERC777_TOKENS_RECIPIENT_HASH,
-      address(this)
-    );
-    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo why doesnt grantRole work
-    _setupRole(TOKEN_GRANTER_ROLE, _msgSender()); // todo why doesnt grantRole work
-    _setupRole(PAUSER_ROLE, _msgSender()); // todo why doesnt grantRole work
   }
 
   /**
@@ -451,6 +433,29 @@ contract LockedNORI is
     return _unlockedBalanceOf(account, block.timestamp);
   }
 
+  // todo document expected initialzation state
+  function initialize(BridgedPolygonNORI bridgedPolygonNoriAddress)
+    public
+    initializer
+  {
+    address[] memory operators = new address[](1);
+    operators[0] = _msgSender();
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    __Pausable_init_unchained();
+    __ERC777PresetPausablePermissioned_init_unchained();
+    __ERC777_init_unchained("Locked BridgedPolygonNORI", "lNORI", operators);
+    _bridgedPolygonNori = bridgedPolygonNoriAddress;
+    _ERC1820_REGISTRY.setInterfaceImplementer(
+      address(this),
+      ERC777_TOKENS_RECIPIENT_HASH,
+      address(this)
+    );
+    _grantRole(TOKEN_GRANTER_ROLE, _msgSender());
+  }
+
   /**
    * @notice Overridden standard ERC777.burn that will always revert
    *
@@ -489,21 +494,26 @@ contract LockedNORI is
     bytes calldata userData,
     bytes calldata operatorData
   ) internal returns (bool) {
-    // require(
-    //   hasRole(TOKEN_GRANTER_ROLE, tx.origin), // todo figure out how to make this safe
-    //   "lNORI: requires TOKEN_GRANTER_ROLE"
-    // );
     DepositForParams memory params = abi.decode(userData, (DepositForParams)); // todo error handling
     // If a startTime parameter is non-zero then set up a schedule
+    // Validation happens inside _createGrant
     if (params.startTime > 0) {
       _createGrant(amount, userData);
     }
+    require(
+      _grants[params.recipient].exists,
+      "lNORI: Cannot deposit without a grant"
+    );
     super._mint(params.recipient, amount, userData, operatorData);
     return true;
   }
 
   /**
    * @dev Sets up a vesting + lockup schedule for recipient (implementation).
+   *
+   * All grants must include a lockup schedule and can optionally *also*
+   * include a vesting schedule.  Tokens are withdrawble once they are
+   * vested *and* unlocked.
    *
    * This will be invoked via the `tokensReceived` callback for cases
    * where we have the tokens in hand at the time we set up the grant.
@@ -523,6 +533,14 @@ contract LockedNORI is
     require(
       address(params.recipient) != _msgSender(),
       "lNORI: Recipient cannot be grant admin"
+    );
+    require(
+      params.startTime < params.unlockEndTime,
+      "lNORI: unlockEndTime cannot be before startTime"
+    );
+    require(
+      block.timestamp < params.unlockEndTime,
+      "lNORI: unlockEndTime cannot be in the past"
     );
     require(!_grants[params.recipient].exists, "lNORI: Grant already exists");
     TokenGrant storage grant = _grants[params.recipient];
@@ -582,14 +600,18 @@ contract LockedNORI is
       _hasVestingSchedule(from),
       "lNORI: no vesting schedule for this grant"
     );
+    // atTime of zero indicates a revocation by amount.
+    uint256 resolvedTime = atTime == 0 && amount > 0 ? block.timestamp : atTime;
     require(
-      atTime >= block.timestamp,
+      resolvedTime >= block.timestamp,
       "lNORI: Revocation cannot be in the past"
     );
-    uint256 vestedBalance = grant.vestingSchedule.availableAmount(atTime);
+    uint256 vestedBalance = grant.vestingSchedule.availableAmount(resolvedTime);
     require(vestedBalance < grant.grantAmount, "lNORI: tokens already vested");
     uint256 revocableQuantity = grant.grantAmount - vestedBalance;
     uint256 quantityRevoked;
+    // amount of zero indicates revocation by time.  Amount becomes all remaining tokens
+    // at *atTime*
     if (amount > 0) {
       require(amount <= revocableQuantity, "lNORI: too few unvested tokens");
       quantityRevoked = amount;
@@ -597,7 +619,7 @@ contract LockedNORI is
       quantityRevoked = revocableQuantity;
     }
     grant.grantAmount = grant.grantAmount - quantityRevoked;
-    grant.lastRevocationTime = atTime;
+    grant.lastRevocationTime = resolvedTime;
     grant.lastQuantityRevoked = quantityRevoked;
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
@@ -606,7 +628,7 @@ contract LockedNORI is
       ""
     );
     super._burn(from, quantityRevoked, "", "");
-    emit UnvestedTokensRevoked(atTime, from, quantityRevoked);
+    emit UnvestedTokensRevoked(resolvedTime, from, quantityRevoked);
   }
 
   /**
@@ -646,7 +668,7 @@ contract LockedNORI is
   }
 
   /**
-   * @notice Vested balance less any claimed amount at `atTime` (implementation)
+   * @dev Vested balance less any claimed amount at `atTime` (implementation)
    *
    * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
    * grant amount. This is done to preserve the behavior of the vesting schedule despite a reduction in the total

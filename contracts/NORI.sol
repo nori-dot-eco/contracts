@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.12;
 
 import "./ERC777PresetPausablePermissioned.sol";
 
 contract NORI is ERC777PresetPausablePermissioned {
-  function initialize() public initializer {
+  function initialize() public virtual initializer {
     __NORI_init();
     _mint(
       _msgSender(),
-      500000000 * 10**18, // 500,000,000 NORI
+      500_000_000 * 10**18, // 500,000,000 NORI
       "",
       ""
     );

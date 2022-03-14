@@ -3,21 +3,24 @@ import { BigNumber } from 'ethers';
 import type { LockedNORI } from '@/typechain-types/LockedNORI';
 import { expect, hardhat, setupTestEnvironment } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
 import { formatTokenAmount } from '@/utils/units';
+import { namedAccounts, namedSigners } from '../utils/hre';
+
+interface TokenGrantUserData {
+  recipient: string;
+  startTime: number;
+  vestEndTime: number;
+  unlockEndTime: number;
+  cliff1Time: number;
+  cliff2Time: number;
+  vestCliff1Amount: ReturnType<typeof formatTokenAmount>;
+  vestCliff2Amount: ReturnType<typeof formatTokenAmount>;
+  unlockCliff1Amount: ReturnType<typeof formatTokenAmount>;
+  unlockCliff2Amount: ReturnType<typeof formatTokenAmount>;
+}
 
 interface TokenGrantOptions {
   grantAmount: ReturnType<typeof formatTokenAmount>;
-  grant: {
-    recipient: string;
-    startTime: number;
-    vestEndTime: number;
-    unlockEndTime: number;
-    cliff1Time: number;
-    cliff2Time: number;
-    vestCliff1Amount: ReturnType<typeof formatTokenAmount>;
-    vestCliff2Amount: ReturnType<typeof formatTokenAmount>;
-    unlockCliff1Amount: ReturnType<typeof formatTokenAmount>;
-    unlockCliff2Amount: ReturnType<typeof formatTokenAmount>;
-  };
+  grant: TokenGrantUserData;
 }
 
 const NOW = Math.floor(Date.now() / 1_000);
@@ -130,6 +133,24 @@ const linearParams = ({
   };
 };
 
+const formatGrantUserData = (grant: TokenGrantUserData): any => {
+  return hre.ethers.utils.defaultAbiCoder.encode(
+    [
+      'address',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+    ],
+    Object.values(grant)
+  );
+};
+
 const setupWithGrant = hardhat.deployments.createFixture(
   async (
     _,
@@ -144,21 +165,7 @@ const setupWithGrant = hardhat.deployments.createFixture(
       },
     } as TokenGrantOptions;
     const { bpNori, lNori, ...rest } = await setupTest();
-    const userData = hre.ethers.utils.defaultAbiCoder.encode(
-      [
-        'address',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-      ],
-      Object.values(grant)
-    );
+    const userData = formatGrantUserData(grant);
 
     // eslint-disable-next-line jest/no-standalone-expect
     expect(await bpNori.send(lNori.address, grantAmount, userData))
@@ -342,21 +349,24 @@ describe('LockedNori', () => {
     });
 
     it(`will not allow tokens to be deposited when the contract is paused`, async () => {
-      const { lNori, bpNori } = await setupTest();
+      const { lNori, bpNori, grant } = await setupGrantWithDirectCall();
       const userData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'uint256'],
-        [global.hre.namedAccounts.investor1, 0]
+        [global.hre.namedAccounts.supplier, 0]
       );
       await expect(
-        bpNori
-          .connect(global.hre.namedSigners.admin)
-          .send(lNori.address, formatTokenAmount(10_000), userData)
+        bpNori.send(lNori.address, formatTokenAmount(10_000), userData)
       ).to.emit(lNori, 'Minted');
       await expect(
-        lNori
-          .connect(global.hre.namedSigners.investor1)
-          .approve(global.hre.namedAccounts.admin, formatTokenAmount(10_000))
-      ).to.emit(lNori, 'Approval');
+        bpNori
+          .connect(global.hre.namedSigners.supplier)
+          .authorizeOperator(global.hre.namedAccounts.admin)
+      ).to.emit(bpNori, 'AuthorizedOperator');
+
+      await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
+        grant.unlockEndTime,
+      ]);
+      await hardhat.network.provider.send('evm_mine');
 
       await expect(
         lNori.connect(global.hre.namedSigners.admin).pause()
@@ -378,14 +388,57 @@ describe('LockedNori', () => {
             '0x'
           )
       ).revertedWith('Pausable: paused');
+    });
+
+    it(`will not allow tokens to be withdrawn when the contract is paused`, async () => {
+      const { lNori, bpNori, grant } = await setupGrantWithDirectCall();
+      const userData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'uint256'],
+        [global.hre.namedAccounts.supplier, 0]
+      );
+      await expect(
+        bpNori.send(lNori.address, formatTokenAmount(10_000), userData)
+      ).to.emit(lNori, 'Minted');
+      await expect(
+        lNori
+          .connect(global.hre.namedSigners.supplier)
+          .approve(global.hre.namedAccounts.admin, formatTokenAmount(10_000))
+      ).to.emit(lNori, 'Approval');
+      await expect(
+        bpNori
+          .connect(global.hre.namedSigners.supplier)
+          .authorizeOperator(global.hre.namedAccounts.admin)
+      ).to.emit(bpNori, 'AuthorizedOperator');
+
+      await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
+        grant.unlockEndTime,
+      ]);
+      await hardhat.network.provider.send('evm_mine');
+
+      await expect(lNori.connect(global.hre.namedSigners.admin).pause()).to.emit(
+        lNori,
+        'Paused'
+      );
+
+      await expect(
+        lNori
+          .connect(global.hre.namedSigners.admin)
+          .operatorSend(
+            global.hre.namedAccounts.supplier,
+            lNori.address,
+            formatTokenAmount(1),
+            userData,
+            '0x'
+          )
+      ).revertedWith('Pausable: paused');
 
       await expect(
         lNori
           .connect(global.hre.namedSigners.admin)
           .transferFrom(
-            global.hre.namedAccounts.investor1,
+            global.hre.namedAccounts.supplier,
             global.hre.namedAccounts.admin,
-            formatTokenAmount(10_000)
+            formatTokenAmount(1)
           )
       ).revertedWith('Pausable: paused');
     });
@@ -443,10 +496,11 @@ describe('LockedNori', () => {
             expect(
               await lNori
                 .connect(global.hre.namedSigners[accountWithRole])
-                .revokeUnvestedTokens(
-                  grant.recipient,
-                  global.hre.namedAccounts.admin,
-                  NOW + DELTA
+                .batchRevokeUnvestedTokenAmounts(
+                  [grant.recipient],
+                  [global.hre.namedAccounts.admin],
+                  [NOW + DELTA],
+                  [0]
                 )
             )
               .to.emit(lNori, 'UnvestedTokensRevoked')
@@ -459,10 +513,11 @@ describe('LockedNori', () => {
             await expect(
               lNori
                 .connect(global.hre.namedSigners[accountWithoutRole])
-                .revokeUnvestedTokens(
-                  grant.recipient,
-                  global.hre.namedAccounts.admin,
-                  NOW + DELTA
+                .batchRevokeUnvestedTokenAmounts(
+                  [grant.recipient],
+                  [global.hre.namedAccounts.admin],
+                  [NOW + DELTA],
+                  [0]
                 )
             ).to.be.revertedWith(
               `AccessControl: account ${global.hre.namedAccounts[
@@ -527,7 +582,43 @@ describe('LockedNori', () => {
               ].toLowerCase()} is missing role ${roleId}`
             );
           });
+          it(`accounts with the role "${role}" can send bpNori whilst accounts without the role "${role}" cannot`, async () => {
+            const { bpNori, lNori } = await setupTest();
+            const roleId = await lNori[role]();
+            expect(
+              await lNori.hasRole(roleId, global.hre.namedAccounts[accountWithoutRole])
+            ).to.be.false;
+            const { grant, grantAmount } = employeeParams();
+            await expect(
+              bpNori
+                .connect(global.hre.namedSigners[accountWithRole])
+                .send(lNori.address, grantAmount, formatGrantUserData(grant))
+            )
+              .to.emit(lNori, 'TokenGrantCreated')
+              .withArgs(
+                grant.recipient,
+                grantAmount,
+                grant.startTime,
+                grant.vestEndTime,
+                grant.unlockEndTime
+              );
+            await expect(
+              bpNori.send(global.hre.namedAccounts[accountWithoutRole], grantAmount, '0x')
+            );
+            const userData = hre.ethers.utils.defaultAbiCoder.encode(
+              ['address', 'uint256'],
+              [global.hre.namedAccounts[accountWithoutRole], 0]
+            );
+            await expect(
+              bpNori
+                .connect(global.hre.namedSigners[accountWithoutRole])
+                .send(lNori.address, grantAmount, userData)
+            ).to.be.revertedWith(
+              `lNORI: caller is missing role TOKEN_GRANTER_ROLE`
+            );
+          });
         });
+
         // (
         //     {
         //       role: 'PAUSER_ROLE',
@@ -578,38 +669,18 @@ describe('LockedNori', () => {
     });
   });
 
-  it('Functions like ERC20Wrapped when no grant is present', async () => {
+  it('Prevents wrapping bpNori when no grant is present', async () => {
     const { bpNori, lNori } = await setupTest();
     const { admin, investor1 } = global.hre.namedAccounts;
-    const initialSupply = await bpNori.totalSupply();
-    const adminBalance = await bpNori.balanceOf(admin);
     expect(await bpNori.balanceOf(investor1)).to.equal(0);
-    const depositAmount = formatTokenAmount(10_000);
+    const depositAmount = formatTokenAmount(10);
     const userData = hre.ethers.utils.defaultAbiCoder.encode(
       ['address', 'uint256'],
       [investor1, 0]
     );
-    expect(await bpNori.send(lNori.address, depositAmount, userData))
-      .to.emit(bpNori, 'Sent')
-      .withArgs(admin, admin, lNori.address, depositAmount, userData, '0x')
-      .to.emit(lNori, 'Transfer')
-      .withArgs(hre.ethers.constants.AddressZero, investor1, depositAmount);
-    expect(await bpNori.balanceOf(admin)).to.equal(
-      adminBalance.sub(depositAmount)
-    );
-    expect(await lNori.balanceOf(admin)).to.equal(0);
-    // With no lockup schedule balanceOf == wrapped quantity
-    // and vestedBalanceOf == unlockedBalanceOf == 0
-    expect(await lNori.balanceOf(investor1)).to.equal(depositAmount);
-    expect(await lNori.vestedBalanceOf(investor1)).to.equal(depositAmount);
-    expect(await lNori.unlockedBalanceOf(investor1)).to.equal(depositAmount);
-    expect(
-      await lNori
-        .connect(global.hre.namedSigners.investor1)
-        .withdrawTo(investor1, depositAmount)
-    ).to.emit(lNori, 'TokensClaimed');
-    expect(await lNori.totalSupply()).to.equal(0);
-    expect(await bpNori.totalSupply()).to.equal(initialSupply);
+    await expect(
+      bpNori.send(lNori.address, depositAmount, userData)
+    ).to.be.revertedWith('lNORI: Cannot deposit without a grant');
   });
 
   it('Should return zero before startTime', async () => {
@@ -1041,10 +1112,11 @@ describe('LockedNori', () => {
       await expect(
         lNori
           .connect(await hre.ethers.getSigner(admin))
-          .revokeUnvestedTokens(
-            employee,
-            admin,
-            grant.startTime + VEST_REVOKED_OFFSET
+          .batchRevokeUnvestedTokenAmounts(
+            [employee],
+            [admin],
+            [grant.startTime + VEST_REVOKED_OFFSET],
+            [0]
           )
       )
         .to.emit(lNori, 'UnvestedTokensRevoked')
@@ -1121,24 +1193,25 @@ describe('LockedNori', () => {
       );
       const { employee, admin } = await hre.getNamedAccounts();
 
+      await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
+        grant.startTime + VEST_REVOKED_OFFSET,
+      ]);
+      await hardhat.network.provider.send('evm_mine');
+
       const quantityToRevoke = 1000;
       const newBalance = grantAmount.sub(quantityToRevoke);
       await expect(
         lNori
           .connect(await hre.ethers.getSigner(admin))
-          .revokeUnvestedTokenAmount(
-            employee,
-            admin,
-            grant.startTime + VEST_REVOKED_OFFSET,
-            quantityToRevoke
+          .batchRevokeUnvestedTokenAmounts(
+            [employee],
+            [admin],
+            [0],
+            [quantityToRevoke]
           )
       )
         .to.emit(lNori, 'UnvestedTokensRevoked')
-        .withArgs(
-          grant.startTime + VEST_REVOKED_OFFSET,
-          employee,
-          quantityToRevoke
-        );
+        .withArgs(expect(Number), employee, quantityToRevoke);
 
       expect(await lNori.balanceOf(employee)).to.equal(newBalance);
       expect(await lNori.totalSupply()).to.eq(newBalance);
@@ -1157,20 +1230,25 @@ describe('LockedNori', () => {
       );
       const { admin } = hre.namedAccounts;
 
+      await hardhat.network.provider.send('evm_setNextBlockTimestamp', [
+        grant.startTime + DELTA,
+      ]);
+      await hardhat.network.provider.send('evm_mine');
+
       const quantityToRevoke = 100;
       const newBalance = grantAmount.sub(quantityToRevoke);
       await expect(
         lNori
           .connect(await hre.ethers.getSigner(admin))
-          .revokeUnvestedTokenAmount(
-            grant.recipient,
-            admin,
-            grant.startTime + DELTA,
-            quantityToRevoke
+          .batchRevokeUnvestedTokenAmounts(
+            [grant.recipient],
+            [admin],
+            [0],
+            [quantityToRevoke]
           )
       )
         .to.emit(lNori, 'UnvestedTokensRevoked')
-        .withArgs(grant.startTime + DELTA, grant.recipient, quantityToRevoke);
+        .withArgs(expect(Number), grant.recipient, quantityToRevoke);
 
       expect(await lNori.balanceOf(grant.recipient)).to.equal(newBalance);
 
@@ -1178,15 +1256,15 @@ describe('LockedNori', () => {
       await expect(
         lNori
           .connect(await hre.ethers.getSigner(admin))
-          .revokeUnvestedTokenAmount(
-            grant.recipient,
-            admin,
-            grant.startTime + DELTA,
-            quantityToRevoke
+          .batchRevokeUnvestedTokenAmounts(
+            [grant.recipient],
+            [admin],
+            [0],
+            [quantityToRevoke]
           )
       )
         .to.emit(lNori, 'UnvestedTokensRevoked')
-        .withArgs(grant.startTime + DELTA, grant.recipient, quantityToRevoke);
+        .withArgs(expect(Number), grant.recipient, quantityToRevoke);
 
       expect(await lNori.balanceOf(grant.recipient)).to.equal(
         postRevocationBalance
@@ -1209,11 +1287,11 @@ describe('LockedNori', () => {
       await expect(
         lNori
           .connect(await hre.ethers.getSigner(global.hre.namedAccounts.admin))
-          .revokeUnvestedTokenAmount(
-            global.hre.namedAccounts.employee,
-            global.hre.namedAccounts.admin,
-            grant.startTime + VEST_REVOKED_OFFSET,
-            quantityToRevoke
+          .batchRevokeUnvestedTokenAmounts(
+            [grant.recipient],
+            [global.hre.namedAccounts.admin],
+            [0],
+            [quantityToRevoke]
           )
       ).to.revertedWith('lNORI: too few unvested tokens');
       expect(await lNori.balanceOf(grant.recipient)).to.equal(grantAmount);
@@ -1227,17 +1305,16 @@ describe('LockedNori', () => {
       await expect(
         lNori
           .connect(await hre.ethers.getSigner(global.hre.namedAccounts.admin))
-          .revokeUnvestedTokenAmount(
-            grant.recipient,
-            global.hre.namedAccounts.admin,
-            grant.startTime - DELTA,
-            100
+          .batchRevokeUnvestedTokenAmounts(
+            [grant.recipient],
+            [global.hre.namedAccounts.admin],
+            [grant.startTime - DELTA],
+            [0]
           )
       ).to.revertedWith('lNORI: Revocation cannot be in the past');
       expect(await lNori.balanceOf(grant.recipient)).to.equal(grantAmount);
       expect(await lNori.totalSupply()).to.eq(grantAmount);
     });
-
     it('Should revert when revoking from a non-vesting grant', async () => {
       const { lNori, grantAmount, grant } = await setupWithGrant(
         investorParams()
@@ -1245,11 +1322,11 @@ describe('LockedNori', () => {
       await expect(
         lNori
           .connect(await hre.ethers.getSigner(global.hre.namedAccounts.admin))
-          .revokeUnvestedTokenAmount(
-            grant.recipient,
-            global.hre.namedAccounts.admin,
-            grant.startTime + DELTA,
-            100
+          .batchRevokeUnvestedTokenAmounts(
+            [grant.recipient],
+            [global.hre.namedAccounts.admin],
+            [0],
+            [100]
           )
       ).to.revertedWith('lNORI: no vesting schedule for this grant');
       expect(await lNori.balanceOf(grant.recipient)).to.equal(grantAmount);
@@ -1261,7 +1338,7 @@ describe('LockedNori', () => {
     const { lNori, grant, grantAmount } = await setupWithGrant(
       employeeParams()
     );
-    const { employee } = await hre.getNamedAccounts();
+    const { employee } = global.hre.namedAccounts;
     const grantFromContract = await lNori.getGrant(employee);
 
     const expected = [
@@ -1279,11 +1356,12 @@ describe('LockedNori', () => {
       BigNumber.from(0),
       grantAmount,
       BigNumber.from(0),
+      BigNumber.from(0),
     ];
     for (let i = 0; i < grantFromContract.length; i++) {
       expect(grantFromContract[i]).to.eq(
         expected[i],
-        `${i}: ${(expected[i]).toString()} == ${grantFromContract[i].toString()}`
+        `${i}: ${expected[i].toString()} == ${grantFromContract[i].toString()}`
       );
     }
   });

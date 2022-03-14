@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 
@@ -14,6 +14,7 @@ struct Schedule {
   uint256 totalAmount;
   mapping(uint256 => Cliff) cliffs;
   uint256 cliffCount;
+  uint256 totalCliffAmount;
 }
 
 /**
@@ -59,37 +60,31 @@ library ScheduleUtils {
     uint256 time,
     uint256 amount
   ) internal {
+    uint256 cliffCount = schedule.cliffCount;
     if (schedule.cliffCount == 0) {
-      require(time >= schedule.startTime, "Cliff before schedule start");
+      require(
+        time >= schedule.startTime,
+        "ScheduleUtils: Cliff before schedule start"
+      );
     } else {
       require(
-        time >= schedule.cliffs[schedule.cliffCount - 1].time,
-        "Cliffs not chronological"
+        time >= schedule.cliffs[cliffCount - 1].time,
+        "ScheduleUtils: Cliffs not chronological"
       );
     }
-    require(time <= schedule.endTime, "Cliffs cannot end after schedule");
     require(
-      allCliffAmounts(schedule) + amount <= schedule.totalAmount,
-      "cliff amounts exceed total"
+      time <= schedule.endTime,
+      "ScheduleUtils: Cliffs cannot end after schedule"
     );
-    schedule.cliffs[schedule.cliffCount].time = time;
-    schedule.cliffs[schedule.cliffCount].amount = amount;
+    require(
+      schedule.totalCliffAmount + amount <= schedule.totalAmount,
+      "ScheduleUtils: Cliff amounts exceed total"
+    );
+    Cliff storage cliff = schedule.cliffs[cliffCount];
+    cliff.time = time;
+    cliff.amount = amount;
     schedule.cliffCount += 1;
-  }
-
-  /**
-   * @dev The sum of all cliff amounts in *schedule*
-   */
-  function allCliffAmounts(Schedule storage schedule)
-    internal
-    view
-    returns (uint256)
-  {
-    uint256 cliffAmounts;
-    for (uint256 i = 0; i < schedule.cliffCount; i++) {
-      cliffAmounts += schedule.cliffs[i].amount;
-    }
-    return cliffAmounts;
+    schedule.totalCliffAmount += amount;
   }
 
   /**
@@ -101,7 +96,8 @@ library ScheduleUtils {
     returns (uint256)
   {
     uint256 available = 0;
-    for (uint256 i = 0; i < schedule.cliffCount; i++) {
+    uint256 cliffCount = schedule.cliffCount;
+    for (uint256 i = 0; i < cliffCount; i++) {
       if (atTime >= schedule.cliffs[i].time) {
         available += schedule.cliffs[i].amount;
       }
@@ -121,8 +117,8 @@ library ScheduleUtils {
   ) internal view returns (uint256) {
     uint256 rampTotalAmount;
     // could happen if unvested tokens were revoked
-    if (schedule.totalAmount >= allCliffAmounts(schedule)) {
-      rampTotalAmount = schedule.totalAmount - allCliffAmounts(schedule);
+    if (schedule.totalAmount >= schedule.totalCliffAmount) {
+      rampTotalAmount = schedule.totalAmount - schedule.totalCliffAmount;
     } // else 0
     if (atTime >= schedule.endTime) {
       return rampTotalAmount;
@@ -132,11 +128,10 @@ library ScheduleUtils {
       rampStartTime = schedule.cliffs[schedule.cliffCount - 1].time;
     }
     uint256 rampTotalTime = schedule.endTime - rampStartTime;
-    int256 rampTimeElapsed = int256(atTime) - int256(rampStartTime);
     return
-      rampTimeElapsed <= 0
+      atTime < rampStartTime
         ? 0
-        : (rampTotalAmount * uint256(rampTimeElapsed)) / rampTotalTime;
+        : (rampTotalAmount * (atTime - rampStartTime)) / rampTotalTime;
   }
 
   /**
