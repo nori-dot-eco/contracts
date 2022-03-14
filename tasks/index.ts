@@ -21,8 +21,9 @@ import { TASK as NORI_TASK } from './nori';
 import { TASK as LOCKED_NORI_TASK } from './locked-nori';
 import { TASK as BRIDGED_POLYGON_NORI_TASK } from './bridged-polygon-nori';
 import { TASK as DEFENDER_TASK } from './defender';
-import { TASK as VESTING_TASK } from './vesting';
+import { GET_VESTING_TASK } from './vesting';
 
+const VESTING_TASK = GET_VESTING_TASK();
 interface Task {
   run: ActionType<
     {
@@ -31,6 +32,8 @@ interface Task {
     any
   >;
 }
+
+// // todo importing currently breaks the build, so we define the interface here instead https://github.com/dethcrypto/TypeChain/issues/371
 
 export const TASKS = {
   [TASK_VERIFY_VERIFY]: {} as {

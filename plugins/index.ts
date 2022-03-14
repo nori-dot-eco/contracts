@@ -11,9 +11,9 @@ import 'hardhat-gas-reporter';
 import 'solidity-docgen';
 import '@nomiclabs/hardhat-solhint';
 import 'solidity-coverage';
-import '@/tasks';
 import 'tsconfig-paths/register';
 import '@/config/environment';
+import '@/tasks/index';
 
 import { extendEnvironment } from 'hardhat/config';
 import type { BaseContract, ContractFactory } from 'ethers';

@@ -11,11 +11,10 @@ import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 import { formatTokenAmount } from '../utils/units';
+// @ts-ignore // https://github.com/dethcrypto/TypeChain/issues/371#issuecomment-1032397470
 import type { BridgedPolygonNORI, LockedNORI } from '../typechain-types';
 
 import { getOctokit } from './utils/github';
-
-import { getBridgedPolygonNori, getLockedNori } from '@/utils/contracts';
 
 // // README
 // // This script is for reading in a CSV file of token grants with unlocking schedules.
@@ -490,82 +489,96 @@ type RunVestingWithSubTasks = <TTaskName extends string>(
   >
 >;
 
-export const TASK = {
-  name: 'vesting',
-  description: 'Utilities for handling vesting',
-  run: async (
-    {
-      diff: showDiff,
-      expand,
-      commit,
-      account,
-      action,
-      file,
-      asJson,
-    }: {
-      diff?: boolean;
-      expand?: boolean;
-      commit?: string;
-      account?: number;
-      action?: 'update' | 'account' | 'revoke' | 'create';
-      file?: string;
-      asJson?: boolean;
-    },
-    _: CustomHardHatRuntimeEnvironment
-  ): Promise<void> => {
-    const { update, revoke, create } = {
-      update: action === 'update',
-      revoke: action === 'revoke',
-      create: action === 'create',
-    };
-    if ((!account && account !== 0) || account < 0 || account > 10) {
-      throw new Error('Invalid account/signer index');
-    }
-    if (asJson && !showDiff && !expand) {
-      throw new Error(
-        'You must specify --asJson or --expand when using --as-json'
-      );
-    }
-
-    const signer = (await hre.ethers.getSigners())[account];
-    const bpNori = getBridgedPolygonNori({ network: hre.network.name, signer });
-    const lNori = getLockedNori({ network: hre.network.name, signer });
-    const runSubtask = hre.run as RunVestingWithSubTasks;
-    let githubGrants: Grants['github'];
-    if (file) {
-      hre.log('Reading grants from file');
-      githubGrants = readFileSync(file, { encoding: 'utf8' }) as any;
-    } else {
-      hre.log('Reading grants from github commit:', commit);
-      githubGrants = await runSubtask('get-github', { commit });
-    }
-    if (showDiff || expand) {
-      await runSubtask('diff', {
-        grants: { github: githubGrants },
-        lNori,
+/**
+ * We use a function here instead to address type issues resulting from race conditions in typechain
+ *
+ * @todo
+ * @see https://github.com/dethcrypto/TypeChain/issues/371#issuecomment-1032397470
+ */
+export const GET_VESTING_TASK = () =>
+  ({
+    name: 'vesting',
+    description: 'Utilities for handling vesting',
+    run: async (
+      {
+        diff: showDiff,
         expand,
+        commit,
+        account,
+        action,
+        file,
         asJson,
-      });
-    }
-    if (update || create) {
-      await runSubtask('update', {
-        grants: { github: githubGrants },
-        bpNori,
-        lNori,
-      });
-    }
-    if (update || revoke) {
-      await runSubtask('revoke', {
-        grants: { github: githubGrants },
-        lNori,
+      }: {
+        diff?: boolean;
+        expand?: boolean;
+        commit?: string;
+        account?: number;
+        action?: 'update' | 'account' | 'revoke' | 'create';
+        file?: string;
+        asJson?: boolean;
+      },
+      _: CustomHardHatRuntimeEnvironment
+    ): Promise<void> => {
+      const { update, revoke, create } = {
+        update: action === 'update',
+        revoke: action === 'revoke',
+        create: action === 'create',
+      };
+      if ((!account && account !== 0) || account < 0 || account > 10) {
+        throw new Error('Invalid account/signer index');
+      }
+      if (asJson && !showDiff && !expand) {
+        throw new Error(
+          'You must specify --asJson or --expand when using --as-json'
+        );
+      }
+
+      const signer = (await hre.ethers.getSigners())[account];
+      const { getBridgedPolygonNori, getLockedNori } = await import(
+        '@/utils/contracts'
+      );
+
+      const bpNori = getBridgedPolygonNori({
+        network: hre.network.name,
         signer,
       });
-    }
-    if (!expand && !showDiff && !update && !create && !revoke) {
-      hre.log('No action selected.  Use --help for options.');
-    }
-  },
-} as const;
+      const lNori = getLockedNori({ network: hre.network.name, signer });
+      const runSubtask = hre.run as RunVestingWithSubTasks;
+      let githubGrants: Grants['github'];
+      if (file) {
+        hre.log('Reading grants from file');
+        githubGrants = readFileSync(file, { encoding: 'utf8' }) as any;
+      } else {
+        hre.log('Reading grants from github commit:', commit);
+        githubGrants = await runSubtask('get-github', { commit });
+      }
+      if (showDiff || expand) {
+        await runSubtask('diff', {
+          grants: { github: githubGrants },
+          lNori,
+          expand,
+          asJson,
+        });
+      }
+      if (update || create) {
+        await runSubtask('update', {
+          grants: { github: githubGrants },
+          bpNori,
+          lNori,
+        });
+      }
+      if (update || revoke) {
+        await runSubtask('revoke', {
+          grants: { github: githubGrants },
+          lNori,
+          signer,
+        });
+      }
+      if (!expand && !showDiff && !update && !create && !revoke) {
+        hre.log('No action selected.  Use --help for options.');
+      }
+    },
+  } as const);
 
 const getDiff = ({
   grants: { github: githubGrants, blockchain: blockchainGrants },
@@ -617,7 +630,12 @@ const GET_GITHUB_SUBTASK = {
   name: 'get-github',
   description: 'Get all grants from github CSV',
   run: async (
-    { commit }: Pick<Parameters<typeof TASK['run']>[0], 'commit'>,
+    {
+      commit,
+    }: Pick<
+      Parameters<Awaited<ReturnType<typeof GET_VESTING_TASK>>['run']>[0],
+      'commit'
+    >,
     _hre: CustomHardHatRuntimeEnvironment
   ): Promise<ParsedGrant> => {
     const { data } = await getOctokit().rest.repos.getContent({
@@ -747,7 +765,7 @@ const GET_BLOCKCHAIN_SUBTASK = {
   ): Promise<ParsedGrant> => {
     const blockchainGrants = (
       await lNori.batchGetGrant(Object.keys(githubGrants))
-    ).reduce((acc, grant): ParsedGrant => {
+    ).reduce((acc: ParsedGrant, grant: any): ParsedGrant => {
       return grant.recipient === hre.ethers.constants.AddressZero
         ? acc
         : {
@@ -959,45 +977,47 @@ const REVOKE_SUBTASK = {
     }
   },
 } as const;
+(() => {
+  const { name, description, run } = GET_VESTING_TASK();
+  task(name, description, run)
+    .addOptionalPositionalParam(
+      'action',
+      'The action to perform: create | revoke | update',
+      undefined,
+      types.string
+    )
+    .addOptionalParam(
+      'commit',
+      'Use the grants known by a particular GitHub commit',
+      'master',
+      types.string
+    )
+    .addOptionalParam(
+      'account',
+      'The account index to connect using',
+      0,
+      types.int
+    )
+    .addOptionalParam('file', 'Use a file instead of github')
+    .addFlag(DIFF_SUBTASK.name, DIFF_SUBTASK.description)
+    .addFlag(
+      'expand',
+      'Print expanded information (including a full diff when using the --diff flag)'
+    )
+    .addFlag('asJson', 'Prints diff as JSON');
 
-task(TASK.name, TASK.description, TASK.run)
-  .addOptionalPositionalParam(
-    'action',
-    'The action to perform: create | revoke | update',
-    undefined,
-    types.string
-  )
-  .addOptionalParam(
-    'commit',
-    'Use the grants known by a particular GitHub commit',
-    'master',
-    types.string
-  )
-  .addOptionalParam(
-    'account',
-    'The account index to connect using',
-    0,
-    types.int
-  )
-  .addOptionalParam('file', 'Use a file instead of github')
-  .addFlag(DIFF_SUBTASK.name, DIFF_SUBTASK.description)
-  .addFlag(
-    'expand',
-    'Print expanded information (including a full diff when using the --diff flag)'
-  )
-  .addFlag('asJson', 'Prints diff as JSON');
-
-subtask(DIFF_SUBTASK.name, DIFF_SUBTASK.description, DIFF_SUBTASK.run);
-subtask(UPDATE_SUBTASK.name, UPDATE_SUBTASK.description, UPDATE_SUBTASK.run);
-subtask(
-  GET_GITHUB_SUBTASK.name,
-  GET_GITHUB_SUBTASK.description,
-  GET_GITHUB_SUBTASK.run
-);
-subtask(
-  GET_BLOCKCHAIN_SUBTASK.name,
-  GET_BLOCKCHAIN_SUBTASK.description,
-  GET_BLOCKCHAIN_SUBTASK.run
-);
-subtask(REVOKE_SUBTASK.name, REVOKE_SUBTASK.description, REVOKE_SUBTASK.run);
-// todo --dry-run using CONTRACT.callStatic.methodName
+  subtask(DIFF_SUBTASK.name, DIFF_SUBTASK.description, DIFF_SUBTASK.run);
+  subtask(UPDATE_SUBTASK.name, UPDATE_SUBTASK.description, UPDATE_SUBTASK.run);
+  subtask(
+    GET_GITHUB_SUBTASK.name,
+    GET_GITHUB_SUBTASK.description,
+    GET_GITHUB_SUBTASK.run
+  );
+  subtask(
+    GET_BLOCKCHAIN_SUBTASK.name,
+    GET_BLOCKCHAIN_SUBTASK.description,
+    GET_BLOCKCHAIN_SUBTASK.run
+  );
+  subtask(REVOKE_SUBTASK.name, REVOKE_SUBTASK.description, REVOKE_SUBTASK.run);
+  // todo --dry-run using CONTRACT.callStatic.methodName
+})();
