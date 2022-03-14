@@ -47,6 +47,7 @@ const mainnet: NetworkUserConfig = {
 export const networks = {
   hardhat,
   localhost,
+  ...(STAGING_MNEMONIC && { goerli, mumbai }),
   ...(INFURA_STAGING_KEY && STAGING_MNEMONIC && { goerli, mumbai }),
   ...(INFURA_STAGING_KEY && PROD_MNEMONIC && { mainnet, polygon }),
 } as const;
