@@ -3,7 +3,7 @@ import type { HardhatUserConfig } from 'hardhat/types';
 export const solidity: HardhatUserConfig['solidity'] = {
   compilers: [
     {
-      version: '0.8.10',
+      version: '0.8.12',
       settings: {
         optimizer: {
           enabled: true,

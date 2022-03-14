@@ -51,7 +51,7 @@
   /** END FILE WATCHER OPTIONS */
 
   /** BEGIN SOLIDITY OPTIONS */
-  "solidity.compileUsingRemoteVersion": "^v0.8.10",
+  "solidity.compileUsingRemoteVersion": "v0.8.12+commit.f00d7308",
   /** END SOLIDITY OPTIONS */
 
   /** BEGIN CYPRESS OPTIONS */

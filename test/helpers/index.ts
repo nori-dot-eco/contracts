@@ -7,9 +7,8 @@ import type {
   BridgedPolygonNORI,
 } from '../../typechain-types';
 
-import { mockDepositNoriToPolygon } from './polygon'; // todo deprecate exported hardhat, use hre from @/utils
+import { mockDepositNoriToPolygon } from './polygon';
 
-import { hre } from '@/utils/hre';
 import { formatTokenAmount } from '@/utils/units';
 import { deploy } from '@/deploy/0_deploy_contracts';
 import type { Contracts } from '@/utils/deploy';
@@ -27,8 +26,31 @@ export interface ContractInstances {
   lNori: LockedNORI;
 }
 
-export const setupTestEnvironment = hre.deployments.createFixture(
-  async (): Promise<ContractInstances> => {
+export const getLatestBlockTime = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<number> => {
+  return (await hre.ethers.provider.getBlock('latest')).timestamp;
+};
+
+export const advanceTime = async ({
+  hre,
+  timestamp,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  timestamp: number;
+}): Promise<void> => {
+  await hre.network.provider.send('evm_setNextBlockTimestamp', [timestamp]);
+  await hre.network.provider.send('hardhat_mine');
+};
+
+export const createFixture = global.hre.deployments.createFixture; // todo use hardhat-deploy fixtures (https://github.com/wighawag/hardhat-deploy#3-hardhat-test) (requires this to be fixed: https://github.com/cgewecke/hardhat-gas-reporter/issues/86)
+
+export const setupTestEnvironment = createFixture(
+  async (
+    hre
+  ): Promise<ContractInstances & { hre: CustomHardHatRuntimeEnvironment }> => {
     hre.ethernalSync = false;
     const contracts = (await deploy(hre)) as Required<Contracts>;
     await mockDepositNoriToPolygon({
@@ -39,6 +61,7 @@ export const setupTestEnvironment = hre.deployments.createFixture(
       signer: hre.namedSigners.admin,
     });
     return {
+      hre,
       nori: contracts.NORI,
       bpNori: contracts.BridgedPolygonNORI,
       removal: contracts.Removal,
