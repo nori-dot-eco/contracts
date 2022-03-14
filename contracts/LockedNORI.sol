@@ -324,6 +324,9 @@ contract LockedNORI is
    * No change is made to balances that have vested but not yet been claimed
    * whether locked or not.
    *
+   * For revocation by amount regardless of time (must by <= unvested amount):
+   *    *atTime* should be pase.  Amount must be present.
+   *
    * ##### Requirements:
    * - Can only be used when the caller has the `TOKEN_GRANTER_ROLE` role
    * - fromAccounts.length == toAccounts.length == atTimes.length
@@ -593,13 +596,15 @@ contract LockedNORI is
     uint256 atTime,
     uint256 amount
   ) internal onlyRole(TOKEN_GRANTER_ROLE) {
-    uint256 revocationTime = atTime == 0 ? block.timestamp : atTime;
     TokenGrant storage grant = _grants[from];
     require(grant.exists, "lNORI: no grant exists");
     require(
       _hasVestingSchedule(from),
       "lNORI: no vesting schedule for this grant"
     );
+    uint256 revocationTime = atTime == 0 && amount > 0
+      ? block.timestamp
+      : atTime; // atTime of zero indicates a revocation by amount
     require(
       revocationTime >= block.timestamp,
       "lNORI: Revocation cannot be in the past"
@@ -610,6 +615,8 @@ contract LockedNORI is
     require(vestedBalance < grant.grantAmount, "lNORI: tokens already vested");
     uint256 revocableQuantity = grant.grantAmount - vestedBalance;
     uint256 quantityRevoked;
+    // amount of zero indicates revocation by time.  Amount becomes all remaining tokens
+    // at *atTime*
     if (amount > 0) {
       require(amount <= revocableQuantity, "lNORI: too few unvested tokens");
       quantityRevoked = amount;

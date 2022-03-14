@@ -1325,7 +1325,7 @@ describe('LockedNori', () => {
     const { lNori, grant, grantAmount, hre } = await setupWithGrant((params) =>
       employeeParams(params)
     );
-    const { employee } = await hre.getNamedAccounts();
+    const { employee } = hre.namedAccounts;
     const grantFromContract = await lNori.getGrant(employee);
     expect(grantFromContract.grantAmount).to.eq(grantAmount);
     expect(grantFromContract.recipient).to.eq(employee);
