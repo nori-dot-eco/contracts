@@ -33,8 +33,6 @@ interface Task {
   >;
 }
 
-// // todo importing currently breaks the build, so we define the interface here instead https://github.com/dethcrypto/TypeChain/issues/371
-
 export const TASKS = {
   [TASK_VERIFY_VERIFY]: {} as {
     run: ActionType<

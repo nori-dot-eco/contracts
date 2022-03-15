@@ -3,9 +3,10 @@
   "plugins": ["prettier"],
   "rules": {
     "prettier/prettier": "error",
-    "ordering": "warn",
+    "ordering": "error",
     "private-vars-leading-underscore": ["warn", { "strict": false }],
-    "function-max-lines": ["warn", 100],
+    "function-max-lines": ["warn", 120],
+    "max-line-length": ["error", 120],
     "code-complexity": ["warn", 7],
     "compiler-version": ["error", "^0.8.0"]
   }
