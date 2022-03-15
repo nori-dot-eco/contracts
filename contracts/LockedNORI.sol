@@ -394,29 +394,6 @@ contract LockedNORI is
     return grantDetails;
   }
 
-  // todo document expected initialzation state
-  function initialize(BridgedPolygonNORI bridgedPolygonNoriAddress)
-    public
-    initializer
-  {
-    address[] memory operators = new address[](1);
-    operators[0] = _msgSender();
-    __Context_init_unchained();
-    __ERC165_init_unchained();
-    __AccessControl_init_unchained();
-    __AccessControlEnumerable_init_unchained();
-    __Pausable_init_unchained();
-    __ERC777PresetPausablePermissioned_init_unchained();
-    __ERC777_init_unchained("Locked NORI", "lNORI", operators);
-    _bridgedPolygonNori = bridgedPolygonNoriAddress;
-    _ERC1820_REGISTRY.setInterfaceImplementer(
-      address(this),
-      ERC777_TOKENS_RECIPIENT_HASH,
-      address(this)
-    );
-    _grantRole(TOKEN_GRANTER_ROLE, _msgSender());
-  }
-
   /**
    * @notice Returns all governing settings for a grant.
    */
@@ -444,6 +421,29 @@ contract LockedNORI is
         grant.lastRevocationTime,
         grant.lastQuantityRevoked
       );
+  }
+
+  // todo document expected initialzation state
+  function initialize(BridgedPolygonNORI bridgedPolygonNoriAddress)
+    public
+    initializer
+  {
+    address[] memory operators = new address[](1);
+    operators[0] = _msgSender();
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    __Pausable_init_unchained();
+    __ERC777PresetPausablePermissioned_init_unchained();
+    __ERC777_init_unchained("Locked NORI", "lNORI", operators);
+    _bridgedPolygonNori = bridgedPolygonNoriAddress;
+    _ERC1820_REGISTRY.setInterfaceImplementer(
+      address(this),
+      ERC777_TOKENS_RECIPIENT_HASH,
+      address(this)
+    );
+    _grantRole(TOKEN_GRANTER_ROLE, _msgSender());
   }
 
   /**
