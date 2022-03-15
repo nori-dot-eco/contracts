@@ -1,4 +1,4 @@
-import type { ActionType } from 'hardhat/types';
+import type { ActionType } from 'hardhat/config';
 import {
   TASK_VERIFY,
   TASK_VERIFY_GET_MINIMUM_BUILD,
@@ -21,24 +21,34 @@ import { TASK as NORI_TASK } from './nori';
 import { TASK as LOCKED_NORI_TASK } from './locked-nori';
 import { TASK as BRIDGED_POLYGON_NORI_TASK } from './bridged-polygon-nori';
 import { TASK as DEFENDER_TASK } from './defender';
+import { GET_VESTING_TASK } from './vesting';
 
+const VESTING_TASK = GET_VESTING_TASK();
 interface Task {
-  run: ActionType<unknown>;
+  run: ActionType<
+    {
+      run: ActionType<{}, any>;
+    },
+    any
+  >;
 }
 
 export const TASKS = {
   [TASK_VERIFY_VERIFY]: {} as {
-    run: ActionType<{
-      address: string;
-      // constructor args given as positional params
-      constructorArgsParams: string[];
-      // Filename of constructor arguments module
-      constructorArgs?: string;
-      // Fully qualified name of the contract
-      contract?: string;
-      // Filename of libraries module
-      libraries?: string;
-    }>;
+    run: ActionType<
+      {
+        address: string;
+        // constructor args given as positional params
+        constructorArgsParams: string[];
+        // Filename of constructor arguments module
+        constructorArgs?: string;
+        // Fully qualified name of the contract
+        contract?: string;
+        // Filename of libraries module
+        libraries?: string;
+      },
+      any
+    >;
   },
   [TASK_VERIFY]: {} as Task,
   [TASK_VERIFY_GET_MINIMUM_BUILD]: {} as Task,
@@ -58,4 +68,5 @@ export const TASKS = {
   [LOCKED_NORI_TASK.name]: { ...LOCKED_NORI_TASK },
   [BRIDGED_POLYGON_NORI_TASK.name]: { ...BRIDGED_POLYGON_NORI_TASK },
   [DEFENDER_TASK.name]: { ...DEFENDER_TASK },
+  [VESTING_TASK.name]: { ...VESTING_TASK },
 } as const;

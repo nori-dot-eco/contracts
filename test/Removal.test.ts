@@ -1,14 +1,18 @@
 import type { ContractInstances } from '@/test/helpers';
 import { deploy } from '@/deploy/0_deploy_contracts';
-import { expect, hardhat } from '@/test/helpers';
-import { hre } from '@/utils/hre';
+import { expect, createFixture } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 import type { Contracts } from '@/utils/deploy';
 
-const setupTest = hre.deployments.createFixture(
-  async (): Promise<ContractInstances> => {
+const setupTest = createFixture(
+  async (
+    hre
+  ): Promise<ContractInstances & { hre: CustomHardHatRuntimeEnvironment }> => {
+    // todo replace with setupTestEnvironment
+    hre.ethernalSync = false;
     const contracts = (await deploy(hre)) as Required<Contracts>;
     return {
+      hre,
       nori: contracts.NORI,
       bpNori: contracts.BridgedPolygonNORI,
       removal: contracts.Removal,
@@ -22,14 +26,14 @@ const setupTest = hre.deployments.createFixture(
 describe('Removal', () => {
   describe('Minting removals', () => {
     it('should mint a batch of removals without listing any', async () => {
-      const { fifoMarket, removal } = await setupTest();
+      const { fifoMarket, removal, hre } = await setupTest();
       const removalBalances = [100, 200, 300, 400].map((balance) =>
         formatTokenAmount(balance)
       );
       const expectedMarketSupply = 0;
       const removalVintages = [2018, 2019, 2020, 2021];
       const listNow = false;
-      const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
@@ -72,7 +76,7 @@ describe('Removal', () => {
       const expectedMarketSupply = 1000;
       const removalVintages = [2018, 2019, 2020, 2021];
       const listNow = true;
-      const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
@@ -115,7 +119,7 @@ describe('Removal', () => {
       );
       const removalVintages = [2018, 2019, 2020];
       const listNow = false;
-      const packedData = hardhat.ethers.utils.defaultAbiCoder.encode(
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2018",
+    "target": "es2022",
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
@@ -12,6 +12,8 @@
     "types": ["chai", "jest"],
     "paths": {
       "@/tasks": ["./tasks/index.ts"],
+      "@/tasks/*": ["./tasks/*"],
+      "@/tasks/utils": ["./tasks/utils/*"],
       "@/test/helpers": ["./test/helpers/index.ts"],
       "@/plugins": ["./plugins/index.ts"],
       "@/contracts.json": ["./contracts.json"],
