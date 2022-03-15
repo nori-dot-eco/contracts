@@ -223,8 +223,8 @@ contract LockedNORI is
    * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
    */
   function tokensReceived(
-    address operator,
-    address from,
+    address sender,
+    address,
     address,
     uint256 amount,
     bytes calldata userData,
@@ -235,8 +235,8 @@ contract LockedNORI is
       "lNORI: not BridgedPolygonNORI"
     );
     require(
-      hasRole(TOKEN_GRANTER_ROLE, operator),
-      "lNORI: caller is missing role TOKEN_GRANTER_ROLE"
+      hasRole(TOKEN_GRANTER_ROLE, sender),
+      "lNORI: sender is missing role TOKEN_GRANTER_ROLE"
     );
     address to = abi.decode(userData, (address));
     require(to != address(0), "lNORI: token send missing required userData");
