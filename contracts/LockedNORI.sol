@@ -253,6 +253,7 @@ contract LockedNORI is
    * Burns unlocked tokens from sender and sends them to *recipient*
    *
    * ##### Requirements:
+   *
    * - Can only be used when the contract is not paused.
    */
   function withdrawTo(address recipient, uint256 amount)
@@ -279,9 +280,9 @@ contract LockedNORI is
    * wrapping BridgedPolygonNORI first.
    *
    * ##### Requirements:
+   *
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `TOKEN_GRANTER_ROLE` role
-   *
    */
   function createGrant(
     uint256 amount,
