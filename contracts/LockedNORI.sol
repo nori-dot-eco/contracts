@@ -223,8 +223,8 @@ contract LockedNORI is
    * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
    */
   function tokensReceived(
-    address operator,
-    address from,
+    address sender,
+    address,
     address,
     uint256 amount,
     bytes calldata userData,
@@ -235,9 +235,8 @@ contract LockedNORI is
       "lNORI: not BridgedPolygonNORI"
     );
     require(
-      hasRole(TOKEN_GRANTER_ROLE, from) ||
-        hasRole(TOKEN_GRANTER_ROLE, operator),
-      "lNORI: caller is missing role TOKEN_GRANTER_ROLE"
+      hasRole(TOKEN_GRANTER_ROLE, sender),
+      "lNORI: sender is missing role TOKEN_GRANTER_ROLE"
     );
     address to = abi.decode(userData, (address));
     require(to != address(0), "lNORI: token send missing required userData");
@@ -318,7 +317,7 @@ contract LockedNORI is
    * @dev Transfers any unvested tokens in `fromAccounts`'s grant to `to` and reduces the total grant size. No change
    * is made to balances that have vested but not yet been claimed whether locked or not.
    *
-   * The behavior of this function can be used in two additional ways:
+   * The behavior of this function can be used in two specific ways:
    * - To revoke all remaining revokable tokens in a batch (regardless of time), set amount to 0 in the `amounts` array.
    * - To revoke tokens at the current block timestamp, set atTimes to 0 in the `amounts` array.
    *
@@ -333,7 +332,7 @@ contract LockedNORI is
     address[] calldata toAccounts,
     uint256[] calldata atTimes,
     uint256[] calldata amounts
-  ) external {
+  ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
     require(
       fromAccounts.length == toAccounts.length,
       "lNORI: fromAccounts and toAccounts length mismatch"
@@ -470,34 +469,10 @@ contract LockedNORI is
   }
 
   /**
-   * @notice Unlocked balance less any claimed amount
-   *
-   * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
-   * grant amount. This is done to preserve the behavior of the unlock schedule despite a reduction in the total
-   * quantity of tokens vesting.  i.o.w The rate of unlocking does not change after calling `revokeUnvestedTokens`
+   * @notice Unlocked balance less any claimed amount at current block timestamp.
    */
-  function _unlockedBalanceOf(address account, uint256 atTime)
-    internal
-    view
-    returns (uint256)
-  {
-    TokenGrant storage grant = _grants[account];
-    uint256 balance = this.balanceOf(account);
-    uint256 vestedBalance = _hasVestingSchedule(account)
-      ? grant.vestingSchedule.availableAmount(atTime)
-      : grant.grantAmount;
-    if (grant.exists) {
-      balance =
-        MathUpgradeable.min(
-          MathUpgradeable.min(
-            vestedBalance,
-            grant.lockupSchedule.availableAmount(atTime)
-          ),
-          grant.grantAmount
-        ) -
-        grant.claimedAmount;
-    }
-    return balance;
+  function unlockedBalanceOf(address account) public view returns (uint256) {
+    return _unlockedBalanceOf(account, block.timestamp);
   }
 
   /**
@@ -613,7 +588,7 @@ contract LockedNORI is
     address to,
     uint256 atTime,
     uint256 amount
-  ) internal whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
+  ) internal {
     TokenGrant storage grant = _grants[from];
     require(grant.exists, "lNORI: no grant exists");
     require(
@@ -730,9 +705,33 @@ contract LockedNORI is
   }
 
   /**
-   * @notice Unlocked balance less any claimed amount at current block timestamp.
+   * @notice Unlocked balance less any claimed amount
+   *
+   * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
+   * grant amount. This is done to preserve the behavior of the unlock schedule despite a reduction in the total
+   * quantity of tokens vesting.  i.o.w The rate of unlocking does not change after calling `revokeUnvestedTokens`
    */
-  function unlockedBalanceOf(address account) public view returns (uint256) {
-    return _unlockedBalanceOf(account, block.timestamp);
+  function _unlockedBalanceOf(address account, uint256 atTime)
+    internal
+    view
+    returns (uint256)
+  {
+    TokenGrant storage grant = _grants[account];
+    uint256 balance = this.balanceOf(account);
+    uint256 vestedBalance = _hasVestingSchedule(account)
+      ? grant.vestingSchedule.availableAmount(atTime)
+      : grant.grantAmount;
+    if (grant.exists) {
+      balance =
+        MathUpgradeable.min(
+          MathUpgradeable.min(
+            vestedBalance,
+            grant.lockupSchedule.availableAmount(atTime)
+          ),
+          grant.grantAmount
+        ) -
+        grant.claimedAmount;
+    }
+    return balance;
   }
 }
