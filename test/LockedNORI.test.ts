@@ -636,7 +636,7 @@ describe('LockedNori', () => {
                 .connect(namedSigners[accountWithoutRole])
                 .send(lNori.address, grantAmount, userData)
             ).to.be.revertedWith(
-              `lNORI: caller is missing role TOKEN_GRANTER_ROLE`
+              `lNORI: sender is missing role TOKEN_GRANTER_ROLE`
             );
           });
         });
