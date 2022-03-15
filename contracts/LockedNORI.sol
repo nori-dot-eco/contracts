@@ -447,13 +447,6 @@ contract LockedNORI is
   }
 
   /**
-   * @notice Unlocked balance less any claimed amount at current block timestamp.
-   */
-  function unlockedBalanceOf(address account) public view returns (uint256) {
-    return _unlockedBalanceOf(account, block.timestamp);
-  }
-
-  /**
    * @notice Overridden standard ERC777.burn that will always revert
    *
    * @dev This function is not currently supported from external callers so we override it so that we can revert.
@@ -734,5 +727,12 @@ contract LockedNORI is
       }
     }
     return balance;
+  }
+
+  /**
+   * @notice Unlocked balance less any claimed amount at current block timestamp.
+   */
+  function unlockedBalanceOf(address account) public view returns (uint256) {
+    return _unlockedBalanceOf(account, block.timestamp);
   }
 }
