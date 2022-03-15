@@ -763,6 +763,7 @@ const GET_BLOCKCHAIN_SUBTASK = {
     },
     _hre: CustomHardHatRuntimeEnvironment
   ): Promise<ParsedGrant> => {
+    console.log({ githubGrants });
     const blockchainGrants = (
       await lNori.batchGetGrant(Object.keys(githubGrants))
     ).reduce((acc: ParsedGrant, grant: any): ParsedGrant => {
