@@ -52,7 +52,7 @@ jobs:
       - run:
           name: Run Contract Tests and Collect Coverage
           command: |
-            REPORT_GAS=true yarn run test:coverage
+            yarn run test:coverage
       - coveralls/upload
 
   run-gas-reporter:
