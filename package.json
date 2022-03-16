@@ -69,6 +69,7 @@
     "test:coverage": "hardhat coverage --solcoverjs ./.solcover.js",
     "prepare": "yarn build",
     "build": "hardhat compile",
-    "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean"
+    "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
+    "deploy": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat deploy"
   }
 }
