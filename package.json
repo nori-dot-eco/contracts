@@ -68,6 +68,7 @@
     "test:gas": "REPORT_GAS=true MINT=false ETHERNAL=false LOG=false hardhat test",
     "test:coverage": "MINT=false ETHERNAL=false hardhat coverage --solcoverjs ./.solcover.js",
     "prepare": "yarn build",
-    "build": "hardhat compile"
+    "build": "hardhat compile",
+    "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean"
   }
 }
