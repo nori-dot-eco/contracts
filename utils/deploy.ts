@@ -25,7 +25,7 @@ import {
   STAGING_DEPLOYMENT_ADDRESS,
 } from '@/constants/addresses';
 import { mockDepositNoriToPolygon } from '@/test/helpers';
-import { log } from '@/utils/log';
+import { trace } from '@/utils/log';
 
 export interface Contracts {
   Removal?: Removal;
@@ -44,7 +44,7 @@ export const verifyContracts = async ({
   contracts: Contracts;
 }): Promise<void> => {
   if (hre.network.name !== 'hardhat') {
-    log('Verifying contracts');
+    trace('Verifying contracts');
     await Promise.allSettled(
       Object.values(contracts).map(async ({ address }) => {
         return hre.run('verify:verify', {
@@ -53,7 +53,7 @@ export const verifyContracts = async ({
         } as any);
       })
     );
-    log('Verified contracts');
+    trace('Verified contracts');
   }
 };
 
@@ -62,7 +62,7 @@ export const writeContractsConfig = ({
 }: {
   contracts: Contracts;
 }): void => {
-  log('Writing contracts.json config', hre.network.name);
+  trace('Writing contracts.json config', hre.network.name);
   writeJsonSync(
     path.join(__dirname, '../contracts.json'),
     {
@@ -76,7 +76,7 @@ export const writeContractsConfig = ({
     },
     { spaces: 2 }
   );
-  log('Wrote contracts.json config');
+  trace('Wrote contracts.json config');
 };
 
 export const configureDeploymentSettings = async ({
@@ -137,7 +137,9 @@ export const deployContracts = async ({
       })
     : undefined;
   const fifoMarketInstance =
-    removalInstance && certificateInstance && bridgedPolygonNoriInstance
+    removalInstance != null &&
+    certificateInstance != null &&
+    bridgedPolygonNoriInstance != null
       ? await hre.deployOrUpgradeProxy<FIFOMarket, FIFOMarket__factory>({
           contractName: 'FIFOMarket',
           args: [
@@ -152,22 +154,23 @@ export const deployContracts = async ({
           },
         })
       : undefined;
-  const lNoriInstance = bridgedPolygonNoriInstance
-    ? await hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
-        contractName: 'LockedNORI',
-        args: [bridgedPolygonNoriInstance.address],
-        options: { initializer: 'initialize(address)' },
-      })
-    : undefined;
+  const lNoriInstance =
+    bridgedPolygonNoriInstance != null
+      ? await hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
+          contractName: 'LockedNORI',
+          args: [bridgedPolygonNoriInstance.address],
+          options: { initializer: 'initialize(address)' },
+        })
+      : undefined;
   return {
-    ...(noriInstance && { NORI: noriInstance }),
-    ...(bridgedPolygonNoriInstance && {
+    ...(noriInstance != null && { NORI: noriInstance }),
+    ...(bridgedPolygonNoriInstance != null && {
       BridgedPolygonNORI: bridgedPolygonNoriInstance,
     }),
-    ...(removalInstance && { Removal: removalInstance }),
-    ...(certificateInstance && { Certificate: certificateInstance }),
-    ...(fifoMarketInstance && { FIFOMarket: fifoMarketInstance }),
-    ...(lNoriInstance && { LockedNORI: lNoriInstance }),
+    ...(removalInstance != null && { Removal: removalInstance }),
+    ...(certificateInstance != null && { Certificate: certificateInstance }),
+    ...(fifoMarketInstance != null && { FIFOMarket: fifoMarketInstance }),
+    ...(lNoriInstance != null && { LockedNORI: lNoriInstance }),
   };
 };
 
@@ -204,13 +207,13 @@ export const pushContractsToEthernal = async ({
   contracts: Contracts;
 }): Promise<void> => {
   if (hre.ethernalSync) {
-    log('pushing contracts to ethernal');
+    trace('pushing contracts to ethernal');
     await Promise.allSettled(
       Object.entries(contracts).map(async ([name, { address }]) => {
         return hre.ethernal.push({ name, address });
       })
     );
-    log('pushed contracts to ethernal');
+    trace('pushed contracts to ethernal');
   }
 };
 
@@ -241,12 +244,16 @@ export const seedContracts = async ({
   hre: CustomHardHatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
-  if (contracts.Certificate && contracts.FIFOMarket) {
+  if (contracts.Certificate != null && contracts.FIFOMarket != null) {
     await contracts.Certificate?.addMinter(contracts.FIFOMarket?.address); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
-    log('Added FIFOMarket as a minter of Certificate');
+    trace('Added FIFOMarket as a minter of Certificate');
   }
   if (process.env.MINT && process.env.MINT !== 'false') {
-    if (contracts.Certificate && contracts.FIFOMarket && contracts.Removal) {
+    if (
+      contracts.Certificate != null &&
+      contracts.FIFOMarket != null &&
+      contracts.Removal != null
+    ) {
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
@@ -258,11 +265,11 @@ export const seedContracts = async ({
         [2018],
         packedData
       );
-      log('Listed 100 NRTs for sale in FIFOMarket');
+      trace('Listed 100 NRTs for sale in FIFOMarket');
     }
     if (
-      contracts.BridgedPolygonNORI &&
-      contracts.NORI &&
+      contracts.BridgedPolygonNORI != null &&
+      contracts.NORI != null &&
       hre.network.name === 'hardhat'
     ) {
       await mockDepositNoriToPolygon({
@@ -275,7 +282,7 @@ export const seedContracts = async ({
         to: hre.namedAccounts.admin,
         signer: hre.namedSigners.admin,
       });
-      log(
+      trace(
         'Mock deposited 500_000_000 NORI into BridgedPolygonNORI for the admin account'
       );
       await contracts.BridgedPolygonNORI.connect(hre.namedSigners.admin).send(
@@ -284,7 +291,7 @@ export const seedContracts = async ({
         formatTokenAmount(1_000_000),
         hre.ethers.utils.formatBytes32String('0x0')
       );
-      log(
+      trace(
         'Sent some BridgedPolygonNORI from the admin account to the buyer account'
       );
     }

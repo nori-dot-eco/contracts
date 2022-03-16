@@ -27,6 +27,9 @@ export const config: HardhatUserConfig = {
   defender,
   gasReporter,
   solidity,
+  mocha: {
+    parallel: true,
+  },
 };
 
 export default config;
