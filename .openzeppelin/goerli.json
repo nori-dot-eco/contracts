@@ -651,7 +651,7 @@
             "label": "_roleMembers",
             "offset": 0,
             "slot": "251",
-            "type": "t_mapping(t_bytes32,t_struct(AddressSet)3259_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(AddressSet)3171_storage)",
             "contract": "AccessControlEnumerableUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol:22"
           },
@@ -721,7 +721,7 @@
             "label": "mapping(address => uint256)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_bytes32,t_struct(AddressSet)3259_storage)": {
+          "t_mapping(t_bytes32,t_struct(AddressSet)3171_storage)": {
             "label": "mapping(bytes32 => struct EnumerableSetUpgradeable.AddressSet)",
             "numberOfBytes": "32"
           },
@@ -737,12 +737,12 @@
             "label": "string",
             "numberOfBytes": "32"
           },
-          "t_struct(AddressSet)3259_storage": {
+          "t_struct(AddressSet)3171_storage": {
             "label": "struct EnumerableSetUpgradeable.AddressSet",
             "members": [
               {
                 "label": "_inner",
-                "type": "t_struct(Set)2958_storage",
+                "type": "t_struct(Set)2870_storage",
                 "offset": 0,
                 "slot": "0"
               }
@@ -767,7 +767,7 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(Set)2958_storage": {
+          "t_struct(Set)2870_storage": {
             "label": "struct EnumerableSetUpgradeable.Set",
             "members": [
               {
