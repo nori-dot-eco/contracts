@@ -28,7 +28,7 @@ export const config: HardhatUserConfig = {
   gasReporter,
   solidity,
   mocha: {
-    parallel: true,
+    parallel: !Boolean(process.env.CI),
   },
 };
 

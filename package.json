@@ -64,8 +64,8 @@
   ],
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
-    "test": "hardhat test --parallel",
-    "test:gas": "yarn test --report-gas",
+    "test": "hardhat test",
+    "test:gas": "hardhat test --report-gas",
     "test:coverage": "hardhat coverage --solcoverjs ./.solcover.js",
     "prepare": "yarn build",
     "build": "hardhat compile",
