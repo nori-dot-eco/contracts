@@ -38,7 +38,11 @@ extendEnvironment(async (hre) => {
   hre.namedSigners = namedSigners;
   hre.namedAccounts = accounts;
 
-  if (process.env.LOG && process.env.LOG !== 'false') {
+  if (
+    process.env.LOG &&
+    process.env.LOG !== 'false' &&
+    ['hardhat', 'localhost'].includes(hre.network.name)
+  ) {
     await hre.network.provider.send('hardhat_setLoggingEnabled', [true]);
   }
 
@@ -79,7 +83,11 @@ extendEnvironment(async (hre) => {
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
       contractName
     );
-    if (contractCode === '0x' || process.env.FORCE_PROXY_DEPLOYMENT) {
+    if (
+      contractCode === '0x' ||
+      (process.env.FORCE_PROXY_DEPLOYMENT &&
+        process.env.FORCE_PROXY_DEPLOYMENT !== 'false')
+    ) {
       log('Deploying proxy and instance', contractName);
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,
