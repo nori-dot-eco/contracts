@@ -12,6 +12,7 @@ import { defender } from '@/config/defender';
 import { gasReporter } from '@/config/gas-reporter';
 import { solidity } from '@/config/solidity';
 import { docgen } from '@/config/docgen';
+import { mocha } from '@/config/mocha';
 
 export const config: HardhatUserConfig = {
   tenderly,
@@ -27,9 +28,7 @@ export const config: HardhatUserConfig = {
   defender,
   gasReporter,
   solidity,
-  mocha: {
-    parallel: !Boolean(process.env.CI),
-  },
+  mocha,
 };
 
 export default config;
