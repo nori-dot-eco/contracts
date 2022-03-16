@@ -170,6 +170,7 @@ declare global {
     ethers: typeof ethers;
     deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
     log: Console['log'];
+    trace: Console['log'];
     ethernalSync: boolean; // todo figure out why we need to re-write types like this
     ethernalTrace: boolean;
     ethernalWorkspace: string;

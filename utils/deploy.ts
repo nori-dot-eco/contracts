@@ -25,7 +25,6 @@ import {
   STAGING_DEPLOYMENT_ADDRESS,
 } from '@/constants/addresses';
 import { mockDepositNoriToPolygon } from '@/test/helpers';
-import { trace } from '@/utils/log';
 
 export interface Contracts {
   Removal?: Removal;
@@ -44,7 +43,7 @@ export const verifyContracts = async ({
   contracts: Contracts;
 }): Promise<void> => {
   if (hre.network.name !== 'hardhat') {
-    trace('Verifying contracts');
+    hre.trace('Verifying contracts');
     await Promise.allSettled(
       Object.values(contracts).map(async ({ address }) => {
         return hre.run('verify:verify', {
@@ -53,7 +52,7 @@ export const verifyContracts = async ({
         } as any);
       })
     );
-    trace('Verified contracts');
+    hre.trace('Verified contracts');
   }
 };
 
@@ -62,7 +61,7 @@ export const writeContractsConfig = ({
 }: {
   contracts: Contracts;
 }): void => {
-  trace('Writing contracts.json config', hre.network.name);
+  hre.trace('Writing contracts.json config', hre.network.name);
   writeJsonSync(
     path.join(__dirname, '../contracts.json'),
     {
@@ -76,7 +75,7 @@ export const writeContractsConfig = ({
     },
     { spaces: 2 }
   );
-  trace('Wrote contracts.json config');
+  hre.trace('Wrote contracts.json config');
 };
 
 export const configureDeploymentSettings = async ({
@@ -207,13 +206,13 @@ export const pushContractsToEthernal = async ({
   contracts: Contracts;
 }): Promise<void> => {
   if (hre.ethernalSync) {
-    trace('pushing contracts to ethernal');
+    hre.trace('pushing contracts to ethernal');
     await Promise.allSettled(
       Object.entries(contracts).map(async ([name, { address }]) => {
         return hre.ethernal.push({ name, address });
       })
     );
-    trace('pushed contracts to ethernal');
+    hre.trace('pushed contracts to ethernal');
   }
 };
 
@@ -246,7 +245,7 @@ export const seedContracts = async ({
 }): Promise<void> => {
   if (contracts.Certificate != null && contracts.FIFOMarket != null) {
     await contracts.Certificate?.addMinter(contracts.FIFOMarket?.address); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
-    trace('Added FIFOMarket as a minter of Certificate');
+    hre.trace('Added FIFOMarket as a minter of Certificate');
   }
   if (process.env.MINT && process.env.MINT !== 'false') {
     if (
@@ -265,7 +264,7 @@ export const seedContracts = async ({
         [2018],
         packedData
       );
-      trace('Listed 100 NRTs for sale in FIFOMarket');
+      hre.trace('Listed 100 NRTs for sale in FIFOMarket');
     }
     if (
       contracts.BridgedPolygonNORI != null &&
@@ -282,7 +281,7 @@ export const seedContracts = async ({
         to: hre.namedAccounts.admin,
         signer: hre.namedSigners.admin,
       });
-      trace(
+      hre.trace(
         'Mock deposited 500_000_000 NORI into BridgedPolygonNORI for the admin account'
       );
       await contracts.BridgedPolygonNORI.connect(hre.namedSigners.admin).send(
@@ -291,7 +290,7 @@ export const seedContracts = async ({
         formatTokenAmount(1_000_000),
         hre.ethers.utils.formatBytes32String('0x0')
       );
-      trace(
+      hre.trace(
         'Sent some BridgedPolygonNORI from the admin account to the buyer account'
       );
     }
