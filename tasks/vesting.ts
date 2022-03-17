@@ -772,7 +772,6 @@ const GET_BLOCKCHAIN_SUBTASK = {
             ...acc,
             [grant.recipient]: {
               recipient: grant.recipient,
-              // grantAmount: grant.originalAmount.toString(),
               originalAmount: grant.originalAmount.toString(),
               startTime: grant.startTime.toNumber(),
               vestEndTime: grant.vestEndTime.toNumber(),
@@ -862,7 +861,7 @@ const UPDATE_SUBTASK = {
         ]
       );
     };
-    if (grantDiffs.length) {
+    if (grantDiffs.length > 0) {
       const recipients = grantDiffs.map((_) => lNori.address);
       const amounts = grantDiffs.map((grant) =>
         BigNumber.from(grant.originalAmount.__new ?? grant.originalAmount)
@@ -934,7 +933,7 @@ const REVOKE_SUBTASK = {
         `Found ${grantRevocationDiffs.length} grants that needs revocation`
       )
     );
-    if (grantRevocationDiffs.length) {
+    if (grantRevocationDiffs.length > 0) {
       const fromAccounts = grantRevocationDiffs.map(
         (grant: any) => grant.recipient
       );

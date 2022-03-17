@@ -21,11 +21,12 @@ import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/uti
 
 import * as contractsConfig from '../contracts.json';
 
-import { log } from '@/utils/log';
+import { trace, log } from '@/utils/log';
 
 extendEnvironment(async (hre) => {
   // todo move to @/extensions/signers, @extensions/deployments
-  hre.log = console.log;
+  hre.log = log;
+  hre.trace = trace;
 
   const accounts = (await hre.getNamedAccounts()) as NamedAccounts;
   const namedSigners: NamedSigners = Object.fromEntries(
@@ -38,18 +39,9 @@ extendEnvironment(async (hre) => {
   hre.namedSigners = namedSigners;
   hre.namedAccounts = accounts;
 
-  if (
-    process.env.LOG &&
-    process.env.LOG !== 'false' &&
-    ['hardhat', 'localhost'].includes(hre.network.name)
-  ) {
-    await hre.network.provider.send('hardhat_setLoggingEnabled', [true]);
-  }
-
   hre.ethernalSync = Boolean(
     hre.network.name === 'hardhat' &&
       process.env.ETHERNAL &&
-      process.env.ETHERNAL !== 'false' &&
       process.env.ETHERNAL_EMAIL &&
       process.env.ETHERNAL_PASSWORD
   );
@@ -83,30 +75,29 @@ extendEnvironment(async (hre) => {
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
       contractName
     );
-    if (
-      contractCode === '0x' ||
-      (process.env.FORCE_PROXY_DEPLOYMENT &&
-        process.env.FORCE_PROXY_DEPLOYMENT !== 'false')
-    ) {
-      log('Deploying proxy and instance', contractName);
+    if (contractCode === '0x' || process.env.FORCE_PROXY_DEPLOYMENT) {
+      hre.trace('Deploying proxy and instance', contractName); // todo use hre.trace (variant of hre.log requiring env.TRACE === true)
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,
         args,
         options
       );
-      log('Deployed proxy and instance', contractName, contract.address);
+      hre.trace('Deployed proxy and instance', contractName, contract.address);
     } else {
-      log('Found existing proxy, attempting to upgrade instance', contractName);
+      hre.trace(
+        'Found existing proxy, attempting to upgrade instance',
+        contractName
+      );
       contract = await hre.upgrades.upgradeProxy<TContract>(
         proxyAddress,
         contractFactory
         // options
       );
-      log('Upgraded instance', contractName, contract.address);
+      hre.trace('Upgraded instance', contractName, contract.address);
     }
-    log('awaiting deployment transaction', contractName);
+    hre.trace('awaiting deployment transaction', contractName);
     await contract.deployed();
-    log('successful deployment transaction', contractName);
+    hre.trace('successful deployment transaction', contractName);
     return contract;
   };
   hre.deployOrUpgradeProxy = deployOrUpgradeProxy;
