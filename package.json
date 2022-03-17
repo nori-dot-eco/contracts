@@ -53,7 +53,11 @@
     "yup": "1.0.0-beta.3",
     "json-diff": "^0.7.1",
     "@types/json-diff": "^0.7.0",
-    "@nori-dot-com/math": "^1.6.0"
+    "@nori-dot-com/math": "^1.6.0",
+    "dotenv-parse-variables": "^2.0.0",
+    "@types/dotenv-parse-variables": "^2.0.1",
+    "@types/dotenv-defaults": "^2.0.1",
+    "dotenv-defaults": "^5.0.0"
   },
   "files": [
     "build",

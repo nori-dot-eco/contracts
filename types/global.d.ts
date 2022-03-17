@@ -19,13 +19,15 @@ import type {
   FactoryOptions,
   HardhatEthersHelpers,
 } from '@nomiclabs/hardhat-ethers/types';
-
 import type { namedAccounts } from '@/config/accounts';
 import type { networks } from '@/config/networks';
 
 import type { TASKS } from '@/tasks';
 import { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
-import { ContractAddressOrInstance, UpgradeProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
+import {
+  ContractAddressOrInstance,
+  UpgradeProxyOptions,
+} from '@openzeppelin/hardhat-upgrades/dist/utils';
 import { DeploymentsExtension as OriginalDeploymentsExtension } from 'hardhat-deploy/dist/types';
 
 declare module 'hardhat/config' {
@@ -51,18 +53,20 @@ declare module 'hardhat/config' {
     action?: ActionType<ArgsT, TActionReturnType>
   ): ConfigurableTaskDefinition;
 
-  type ConfigurableTaskDefinition = OriginalConfigurableTaskDefinition & {  
-    setAction<ArgsT extends TaskArguments, TActionReturnType = any>(action: ActionType<ArgsT, TActionReturnType>): ConfigurableTaskDefinition;
-  }  
+  type ConfigurableTaskDefinition = OriginalConfigurableTaskDefinition & {
+    setAction<ArgsT extends TaskArguments, TActionReturnType = any>(
+      action: ActionType<ArgsT, TActionReturnType>
+    ): ConfigurableTaskDefinition;
+  };
 }
 
 declare module 'hardhat/types/runtime' {
-  interface DeploymentsExtension extends Omit<OriginalDeploymentsExtension ,'createFixture'>{
+  interface DeploymentsExtension
+    extends Omit<OriginalDeploymentsExtension, 'createFixture'> {
     createFixture<T, O>(
       func: FixtureFunc<T, O>,
       id?: string
     ): (options?: O) => Promise<T>;
-  
   }
   type FixtureFunc<T, O> = (
     env: CustomHardHatRuntimeEnvironment,
@@ -70,7 +74,7 @@ declare module 'hardhat/types/runtime' {
   ) => Promise<T>;
   export interface HardhatRuntimeEnvironment {
     deployments: DeploymentsExtension;
-    namedSigners:  NamedSigners;
+    namedSigners: NamedSigners;
     namedAccounts: NamedAccounts;
   }
 }
@@ -101,14 +105,11 @@ interface GenericUpgradeFunction {
     proxy: ContractAddressOrInstance,
     ImplFactory: TFactory,
     opts?: UpgradeProxyOptions
-  ): Promise<InstanceOfContract<TC>>;  
+  ): Promise<InstanceOfContract<TC>>;
 }
 
 interface DeployOrUpgradeProxyFunction {
-  <
-  TContract extends BaseContract,
-  TFactory extends ContractFactory
-  >({
+  <TContract extends BaseContract, TFactory extends ContractFactory>({
     contractName,
     args,
     options,
@@ -118,7 +119,6 @@ interface DeployOrUpgradeProxyFunction {
     options?: DeployProxyOptions;
   }): Promise<InstanceOfContract<TContract>>;
 }
-
 
 interface CustomHardhatUpgrades extends HardhatUpgrades {
   deployProxy: GenericDeployFunction; // overridden because of a mismatch in ethers types
@@ -177,7 +177,10 @@ declare global {
     ethernalResetOnStart: string;
     ethernal: {
       startListening: () => Promise<void>;
-      traceHandler: (trace: any, isMessageTraceFromACall: Boolean) => Promise<void>;
+      traceHandler: (
+        trace: any,
+        isMessageTraceFromACall: Boolean
+      ) => Promise<void>;
       push: (contract: any) => Promise<void>;
       resetWorkspace: (workspace: string) => Promise<void>;
     };
@@ -193,10 +196,22 @@ declare global {
       INFURA_STAGING_KEY?: string;
       TENDERLY_USERNAME?: string;
       TENDERLY_PROJECT?: string;
-      ETHERNAL?: string;
       ETHERNAL_EMAIL?: string;
       ETHERNAL_PASSWORD?: string;
+      ETHERNAL: boolean;
       ETHERSCAN_API_KEY?: string;
+      POLYGONSCAN_API_KEY?: string;
+      DEFENDER_API_KEY?: string;
+      DEFENDER_API_SECRET?: string;
+      REPORT_GAS: boolean;
+      COINMARKETCAP_API_KEY?: string;
+      GITHUB_PERSONAL_ACCESS_TOKEN?: string;
+      MINT: boolean;
+      TRACE: boolean;
+      FORCE_PROXY_DEPLOYMENT: boolean;
+      LOG_HARDHAT_NETWORK: boolean;
+      REPORT_GAS_FILE?: string;
+      FAIL: boolean;
     }
   }
 }

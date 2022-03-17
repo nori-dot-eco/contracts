@@ -247,7 +247,7 @@ export const seedContracts = async ({
     await contracts.Certificate?.addMinter(contracts.FIFOMarket?.address); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
     hre.trace('Added FIFOMarket as a minter of Certificate');
   }
-  if (process.env.MINT && process.env.MINT !== 'false') {
+  if (process.env.MINT) {
     if (
       contracts.Certificate != null &&
       contracts.FIFOMarket != null &&

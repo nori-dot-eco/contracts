@@ -7,7 +7,6 @@ import { validateTestEnvironment } from '@/tasks/utils/validate-environment';
 interface TestTaskOverrideParameters {
   reportGas: boolean;
 }
-
 export const TASK = {
   name: TASK_TEST,
   description: 'Runs mocha tests',
@@ -16,14 +15,18 @@ export const TASK = {
     hre: CustomHardHatRuntimeEnvironment,
     runSuper: RunSuperFunction<typeof taskArgs>
   ) => {
-    const { REPORT_GAS } = process.env;
+    const { REPORT_GAS, FAIL } = process.env;
+
+    if (FAIL) {
+      throw new Error('FAIL!');
+    }
     validateTestEnvironment();
-    if (Boolean(taskArgs?.reportGas) || REPORT_GAS === 'true') {
+    if (Boolean(taskArgs?.reportGas) || REPORT_GAS) {
       hre.log(
         'Setting process.env.REPORT_GAS to true',
         `Previous value: ${REPORT_GAS}`
       );
-      process.env.REPORT_GAS = 'true';
+      process.env.REPORT_GAS = true;
     }
     return runSuper(taskArgs);
   },

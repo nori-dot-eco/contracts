@@ -1,3 +1,11 @@
-import dotenv from 'dotenv';
+import dotenvParseVariables from 'dotenv-parse-variables';
+import dotenv from 'dotenv-defaults';
 
-dotenv.config();
+const env = dotenv.config();
+
+if (env.error != null || env.parsed == null) throw env.error;
+
+process.env = {
+  ...process.env,
+  ...dotenvParseVariables(env.parsed),
+} as typeof global.process.env;

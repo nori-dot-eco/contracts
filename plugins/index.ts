@@ -42,7 +42,6 @@ extendEnvironment(async (hre) => {
   hre.ethernalSync = Boolean(
     hre.network.name === 'hardhat' &&
       process.env.ETHERNAL &&
-      process.env.ETHERNAL !== 'false' &&
       process.env.ETHERNAL_EMAIL &&
       process.env.ETHERNAL_PASSWORD
   );
@@ -76,11 +75,7 @@ extendEnvironment(async (hre) => {
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
       contractName
     );
-    if (
-      contractCode === '0x' ||
-      Boolean(process.env.FORCE_PROXY_DEPLOYMENT) ||
-      process.env.FORCE_PROXY_DEPLOYMENT?.toLowerCase() !== 'false'
-    ) {
+    if (contractCode === '0x' || process.env.FORCE_PROXY_DEPLOYMENT) {
       hre.trace('Deploying proxy and instance', contractName); // todo use hre.trace (variant of hre.log requiring env.TRACE === true)
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,

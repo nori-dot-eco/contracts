@@ -1,9 +1,6 @@
 export const trace = (...consoleArgs: unknown[]): void => {
-  if (
-    Boolean(process.env.TRACE) &&
-    process.env.TRACE?.toLowerCase() !== 'false'
-  ) {
-    console.log(...consoleArgs);
+  if (process.env.TRACE) {
+    console.log(...consoleArgs); // todo consider using ethers Logger https://docs.ethers.io/v5/api/utils/logger/#logging
   }
 };
 
