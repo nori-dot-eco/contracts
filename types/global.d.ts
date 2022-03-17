@@ -29,6 +29,7 @@ import {
   UpgradeProxyOptions,
 } from '@openzeppelin/hardhat-upgrades/dist/utils';
 import { DeploymentsExtension as OriginalDeploymentsExtension } from 'hardhat-deploy/dist/types';
+import { HardhatUserConfig } from 'hardhat/types';
 
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
@@ -160,6 +161,7 @@ declare global {
     HardhatRuntimeEnvironment,
     'getNamedAccounts' | 'run' | 'upgrades' | 'ethers'
   > & {
+    config: HardhatUserConfig;
     getNamedAccounts: () => Promise<typeof namedAccounts>;
     run: (
       name: keyof typeof TASKS,
