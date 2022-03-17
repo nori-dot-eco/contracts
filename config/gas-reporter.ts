@@ -9,8 +9,8 @@ export const gasReporter: HardhatUserConfig['gasReporter'] = {
   gasPriceApi:
     'https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice',
   ...(Boolean(COINMARKETCAP_API_KEY) && { COINMARKETCAP_API_KEY }),
-  ...(Boolean(REPORT_GAS_FILE) && {
-    outputFile: REPORT_GAS_FILE || 'gasReporterOutput.json',
+  ...(Boolean(REPORT_GAS) && {
+    outputFile: REPORT_GAS_FILE ?? 'gasReporterOutput.json',
   }),
   maxMethodDiff: 1,
 };
