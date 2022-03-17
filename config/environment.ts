@@ -12,5 +12,3 @@ process.env = Object.fromEntries(
     } as any)
   ).map(([k, v]) => [k, (v as string)?.toLowerCase?.() === 'null' ? null : v])
 ) as typeof global.process.env;
-
-console.log({ env: process.env });
