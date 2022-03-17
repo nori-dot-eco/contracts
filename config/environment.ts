@@ -6,6 +6,6 @@ const env = dotenv.config();
 if (env.error != null || env.parsed == null) throw env.error;
 
 process.env = {
-  ...process.env,
+  ...env,
   ...dotenvParseVariables(env.parsed),
 } as typeof global.process.env;

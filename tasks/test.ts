@@ -15,11 +15,7 @@ export const TASK = {
     hre: CustomHardHatRuntimeEnvironment,
     runSuper: RunSuperFunction<typeof taskArgs>
   ) => {
-    const { REPORT_GAS, FAIL } = process.env;
-
-    if (FAIL) {
-      throw new Error('FAIL!');
-    }
+    const { REPORT_GAS } = process.env;
     validateTestEnvironment();
     if (Boolean(taskArgs?.reportGas) || REPORT_GAS) {
       hre.log(
