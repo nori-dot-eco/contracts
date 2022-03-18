@@ -1,4 +1,3 @@
-import path from 'path';
 import { readFileSync } from 'fs';
 
 import * as yup from 'yup';
@@ -9,12 +8,15 @@ import chalk from 'chalk';
 import { diff, diffString } from 'json-diff';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import type { CSVParseParam } from 'csvtojson/v2/Parameters';
+import { isAddress } from 'ethers/lib/utils';
+import moment from 'moment';
 
-import { formatTokenAmount } from '../utils/units';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore // https://github.com/dethcrypto/TypeChain/issues/371#issuecomment-1032397470
-import type { BridgedPolygonNORI, LockedNORI } from '../typechain-types';
-
-import { getOctokit } from './utils/github';
+import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
+import { getOctokit } from '@/tasks/utils/github';
+import { formatEthereumTime, formatTokenString } from '@/utils/units';
 
 // // README
 // // This script is for reading in a CSV file of token grants with unlocking schedules.
@@ -355,95 +357,69 @@ import { getOctokit } from './utils/github';
 //   return regTime.test(time) && !isNaN(d);
 // }
 
-// // isValidAmount()
-// // returns true or false given a string, allows up to 18 decimal places
-// const isValidAmount:(a: string): boolean =>{
-//   // valid currency amounts have up to 18 decimal places
-//   const regAmt = /^[0-9,]*\.?[0-9]{0,18}$/;
-//   const i: bigint = intAmount(a);
-//   return regAmt.test(a) && !isNaN(Number(i));
-// }
+interface Validations {
+  [key: string]: {
+    [Property in keyof yup.TestConfig]: yup.TestConfig[Property];
+  } & {
+    test: (value: any, opts?: { path: string }) => boolean;
+    message: (path: any) => any;
+  };
+}
 
-// // intAmount()
-// // converts a token amount string to an integer times (10^18)
-// const intAmount:(a: string): bigint =>{
-//   const i = BigInt(shiftDecimal(a));
-//   return i;
-// }
-// // shiftDecimal()
-// // similar to multiplying by (10^18), but operates on a string from CSV format
-// const shiftDecimal:(a: string): string =>{
-//   // remove any commas (the RegExp above allows commas to the left of the decimal)
-//   const nocommas: string = a.replace(/,/g, '');
-//   let result: string;
-//   if (nocommas.indexOf('.') === -1) {
-//     result = nocommas.concat(zeroes(18));
-//   } else {
-//     let decimals: string = nocommas.substring(nocommas.indexOf('.') + 1);
-//     if (decimals.length < 18) {
-//       decimals = decimals.concat(zeroes(18 - decimals.length));
-//     }
-//     result = nocommas.substring(0, nocommas.indexOf('.')).concat(decimals);
-//   }
-//   return result;
-// }
+export const validation: Validations = {
+  isBigNumberString: {
+    message: (d) => `${d.path} must be BigNumberish`,
+    test: (value) => isBigNumberish(value),
+  },
+  isWalletAddress: {
+    message: (d) =>
+      `${d.path} must be a wallet address and the same value as the parent key`,
+    test: (value, opts) => {
+      const hasSameValueAsParentKey =
+        Boolean(opts?.path) && opts?.path.split('.')[0] === value;
+      return (
+        typeof value === 'string' && hasSameValueAsParentKey && isAddress(value)
+      );
+    },
+  },
+  isWithinFiveYears: {
+    message: (d) => `${d.path} is not a date within 5 years from today`,
+    test: (value) => {
+      return (
+        typeof value === 'number' &&
+        moment(value * 1_000).isBefore(moment().add(5, 'years'))
+      );
+    },
+  },
+};
 
-// // zeroes()
-// // return a string of a given number of zeroes
-// const zeroes = (i: number): string => {
-//   let zeroes = '';
-//   while (zeroes.length < i) {
-//     zeroes = zeroes.concat('0');
-//   }
-//   return zeroes;
-// };
+const { isWalletAddress, isBigNumberString } = validation;
 
-// // is ValidAddr()
-// // returns true or false for a valid wallet address from a CSV field string
-// const isValidAddr = (a: string): boolean => {
-//   // valid addresses start with "0x" and have 20 bytes in hexadecimal
-//   // note: we don't test the checksum or confirm this wallet exists on Polygon
-//   const regAddr = /^(0x){1}[0-9a-fA-F]{40}$/;
-//   return regAddr.test(a);
-// };
-
-// // fatalErr()
-// // output an error message to the console and exit
-// const fatalErr = (err: string) => {
-//   console.error(err);
-//   process.exit(1);
-// };
-
-const isBigNumberString = yup.string().test((v) => isBigNumberish(v));
-
-const grantSchema = yup.lazy((details) => {
+export const grantSchema = yup.lazy((data) => {
   // todo further constrain
   return yup.object(
     Object.fromEntries(
-      Object.keys(details).map((key) => [
+      Object.keys(data).map((key) => [
         key,
         yup.object({
-          recipient: yup.string().required(),
-          // grantAmount: isBigNumberString.required(),
-          originalAmount: isBigNumberString.required(),
+          recipient: yup.string().test(isWalletAddress).required(),
+          originalAmount: yup.string().test(isBigNumberString).required(),
           startTime: yup.number().required(),
           vestEndTime: yup.number().required(),
           unlockEndTime: yup.number().required(),
           cliff1Time: yup.number().required(),
           cliff2Time: yup.number().required(),
-          vestCliff1Amount: isBigNumberString.required(),
-          vestCliff2Amount: isBigNumberString.required(),
-          unlockCliff1Amount: isBigNumberString.required(),
-          unlockCliff2Amount: isBigNumberString.required(),
+          vestCliff1Amount: yup.string().test(isBigNumberString).required(),
+          vestCliff2Amount: yup.string().test(isBigNumberString).required(),
+          unlockCliff1Amount: yup.string().test(isBigNumberString).required(),
+          unlockCliff2Amount: yup.string().test(isBigNumberString).required(),
           lastRevocationTime: yup.number().required(),
-          lastQuantityRevoked: isBigNumberString.required(),
+          lastQuantityRevoked: yup.string().test(isBigNumberString).required(),
         }),
       ])
     )
   );
 });
-
-type ParsedGrant = yup.InferType<typeof grantSchema>;
 
 type ParseGrantFunction<
   TReturnType extends
@@ -452,13 +428,14 @@ type ParseGrantFunction<
     | 'number'
     | 'string'
 > = TReturnType extends keyof ParsedGrant[keyof ParsedGrant]
-  ? (arg: string) => ParsedGrant[string][TReturnType]
+  ? (
+      item: string,
+      head: string,
+      resultRow: unknown,
+      row: string[],
+      columnIndex: number
+    ) => ParsedGrant[string][TReturnType]
   : ParsedGrant;
-
-interface Grants {
-  github: ParsedGrant;
-  blockchain: ParsedGrant;
-}
 
 type RunVestingWithSubTasks = <TTaskName extends string>(
   name: TTaskName,
@@ -488,6 +465,13 @@ type RunVestingWithSubTasks = <TTaskName extends string>(
       : never
   >
 >;
+
+type ParsedGrant = yup.InferType<typeof grantSchema>;
+
+interface Grants {
+  github: ParsedGrant;
+  blockchain: ParsedGrant;
+}
 
 /**
  * We use a function here instead to address type issues resulting from race conditions in typechain
@@ -590,8 +574,45 @@ const getDiff = ({
   asJson?: boolean;
 }): string | Record<string, unknown> => {
   return asJson
-    ? diff(blockchainGrants, githubGrants, { full: Boolean(expand) })
-    : diffString(blockchainGrants, githubGrants, { full: Boolean(expand) });
+    ? diff(blockchainGrants, githubGrants, { full: expand })
+    : diffString(blockchainGrants, githubGrants, { full: expand });
+};
+
+type ColParser = CSVParseParam['colParser'];
+
+interface CsvParser extends ColParser {
+  recipient: 'string'; // todo is ethereum address
+  contactUUID: 'omit';
+  originalAmount: ParseGrantFunction<'originalAmount'>;
+  startTime: ParseGrantFunction<'startTime'>;
+  vestEndTime: ParseGrantFunction<'vestEndTime'>;
+  unlockEndTime: ParseGrantFunction<'unlockEndTime'>;
+  cliff1Time: ParseGrantFunction<'cliff1Time'>;
+  cliff2Time: ParseGrantFunction<'cliff2Time'>;
+  vestCliff1Amount: ParseGrantFunction<'vestCliff1Amount'>;
+  vestCliff2Amount: ParseGrantFunction<'vestCliff2Amount'>;
+  unlockCliff1Amount: ParseGrantFunction<'unlockCliff1Amount'>;
+  unlockCliff2Amount: ParseGrantFunction<'unlockCliff2Amount'>;
+  lastRevocationTime: ParseGrantFunction<'lastRevocationTime'>;
+  lastQuantityRevoked: ParseGrantFunction<'lastQuantityRevoked'>;
+}
+
+const csvParser: CsvParser = {
+  recipient: 'string',
+  contactUUID: 'omit',
+  originalAmount: (item) => formatTokenString(item).toString(), // todo validate (> 0)
+  startTime: (item) => formatEthereumTime(item === '' ? 1_000 : item), // todo can we stop creating grants that have start times in the past?  // todo only if vestEndTimeIsAlso ===''  // todo validate
+  vestEndTime: (item) => formatEthereumTime(item === '' ? 1_000 : item), // todo validate
+  unlockEndTime: (item) => formatEthereumTime(item), // todo validate
+  cliff1Time: (item) => formatEthereumTime(item), // todo validate
+  cliff2Time: (item) => formatEthereumTime(item), // todo validate
+  vestCliff1Amount: (item) => formatTokenString(item ?? '0'), // todo validate
+  vestCliff2Amount: (item) => formatTokenString(item ?? '0'), // todo validate
+  unlockCliff1Amount: (item) => formatTokenString(item ?? '0'), // todo validate
+  unlockCliff2Amount: (item) => formatTokenString(item ?? '0'), // todo validate
+  lastRevocationTime: (item) => (Boolean(item) ? formatEthereumTime(item) : 0), // todo validate,
+  lastQuantityRevoked: (item) =>
+    formatTokenString(['', 'ALL'].includes(item) ? '0' : item), // todo validate // todo mathjs  // todo, if grant doesn't exist, don't allow revoking
 };
 
 const DIFF_SUBTASK = {
@@ -649,91 +670,7 @@ const GET_GITHUB_SUBTASK = {
     });
     const parsed = await csv({
       checkColumn: true,
-      colParser: {
-        recipient: (item) => {
-          if (!item) {
-            throw new Error('Invalid row without a recipient column');
-          }
-          return item; // todo validate
-        },
-        contactUUID: 'omit',
-        // grantAmount: (item) => {
-        //   return formatTokenAmount(Number(item ?? 0)).toString(); // todo validate
-        // },
-        originalAmount: (item) => {
-          return formatTokenAmount(Number(item)).toString(); // todo validate (> 0)
-        },
-        startTime: (item) => {
-          let startTime: number;
-          if (item === '') {
-            startTime = new Date(1_000).getTime() / 1_000; // todo only if vestEndTimeIsAlso ===''
-          } else {
-            startTime = new Date(item).getTime() / 1_000;
-          }
-          return startTime; // todo validate // todo mathjs
-        },
-        vestEndTime: (item) => {
-          let vestEndTime: number;
-          if (item === '') {
-            vestEndTime = 0; // todo only if startTime === ''
-          } else {
-            vestEndTime = new Date(item).getTime() / 1_000;
-          }
-          return vestEndTime; // todo validate // todo mathjs
-        },
-        unlockEndTime: (item) => {
-          return new Date(item).getTime() / 1_000; // todo validate // todo mathjs
-        },
-        cliff1Time: (item) => {
-          return item ? new Date(item).getTime() / 1_000 : 0; // todo validate // todo mathjs
-        },
-        cliff2Time: (item) => {
-          return item ? new Date(item).getTime() / 1_000 : 0; // todo validate // todo mathjs
-        },
-        vestCliff1Amount: (item) => {
-          return formatTokenAmount(Number(item ?? 0)).toString(); // todo validate
-        },
-        vestCliff2Amount: (item) => {
-          return formatTokenAmount(Number(item ?? 0)).toString(); // todo validate
-        },
-        unlockCliff1Amount: (item) => {
-          return formatTokenAmount(Number(item ?? 0)).toString(); // todo validate
-        },
-        unlockCliff2Amount: (item) => {
-          return formatTokenAmount(Number(item ?? 0)).toString(); // todo validate
-        },
-        lastRevocationTime: (item) => {
-          return item ? new Date(item).getTime() / 1_000 : 0; // todo validate
-        },
-        lastQuantityRevoked: (item) => {
-          // todo, if grant doesn't exist, don't allow revoking
-          let lastQuantityRevoked: number;
-          if (item === '') {
-            lastQuantityRevoked = 0;
-          } else if (item === 'ALL') {
-            lastQuantityRevoked = 0;
-          } else {
-            lastQuantityRevoked = Number(item); // todo if number
-          }
-          return formatTokenAmount(lastQuantityRevoked).toString(); // todo validate // todo mathjs
-        },
-      } as {
-        recipient: ParseGrantFunction<'recipient'>;
-        contactUUID: 'omit';
-        // grantAmount: ParseGrantFunction<'grantAmount'>;
-        originalAmount: ParseGrantFunction<'originalAmount'>;
-        startTime: ParseGrantFunction<'startTime'>;
-        vestEndTime: ParseGrantFunction<'vestEndTime'>;
-        unlockEndTime: ParseGrantFunction<'unlockEndTime'>;
-        cliff1Time: ParseGrantFunction<'cliff1Time'>;
-        cliff2Time: ParseGrantFunction<'cliff2Time'>;
-        vestCliff1Amount: ParseGrantFunction<'vestCliff1Amount'>;
-        vestCliff2Amount: ParseGrantFunction<'vestCliff2Amount'>;
-        unlockCliff1Amount: ParseGrantFunction<'unlockCliff1Amount'>;
-        unlockCliff2Amount: ParseGrantFunction<'unlockCliff2Amount'>;
-        lastRevocationTime: ParseGrantFunction<'lastRevocationTime'>;
-        lastQuantityRevoked: ParseGrantFunction<'lastQuantityRevoked'>;
-      },
+      colParser: csvParser,
     })
       .subscribe(undefined, (err) => {
         throw err;
@@ -782,8 +719,8 @@ const GET_BLOCKCHAIN_SUBTASK = {
               vestCliff2Amount: grant.vestCliff2Amount.toString(),
               unlockCliff1Amount: grant.unlockCliff1Amount.toString(),
               unlockCliff2Amount: grant.unlockCliff2Amount.toString(),
-              lastRevocationTime: grant.lastRevocationTime.toNumber(), // todo
-              lastQuantityRevoked: grant.lastQuantityRevoked.toString(), // todo
+              lastRevocationTime: grant.lastRevocationTime.toNumber(),
+              lastQuantityRevoked: grant.lastQuantityRevoked.toString(),
             },
           };
     }, {} as ParsedGrant) as ParsedGrant;

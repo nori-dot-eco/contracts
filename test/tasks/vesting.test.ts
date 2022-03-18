@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import moment from 'moment';
 import type { Octokit } from '@octokit/rest';
+
+import { grantSchema, validation } from '../../tasks/vesting';
+import { formatEthereumTime, formatTokenString } from '../../utils/units';
 
 import * as github from '@/tasks/utils/github';
 import { expect, setupTestEnvironment, sinon } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
@@ -21,6 +25,93 @@ const sandbox = sinon.createSandbox();
 describe('vesting task', () => {
   afterEach(() => {
     sandbox.restore();
+  });
+  describe('validation', () => {
+    describe('isWithinFiveYears', () => {
+      describe('pass', () => {
+        // it('should return true if within five years', () => {
+        //   expect(validation.isWithinFiveYears.test(moment().unix())).to.be.true;
+        // });
+      });
+      describe('fail', () => {
+        it('should return false if not within five years', () => {
+          expect(
+            validation.isWithinFiveYears.test(
+              moment().add(5, 'years').add(1, 'day').unix()
+            )
+          ).to.be.false;
+        });
+      });
+    });
+  });
+  1647572003;
+  describe('grantSchema', () => {
+    describe('validation', () => {
+      describe('valid', () => {
+        it('should return true for a valid grant schema', async () => {
+          const grant = {
+            '0xDD66B46910918B2F442D6b75C6E55631ad678c99': {
+              recipient: '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
+              originalAmount: formatTokenString('0'),
+              startTime: formatEthereumTime('0'),
+              vestEndTime: formatEthereumTime('0'),
+              unlockEndTime: formatEthereumTime('0'),
+              cliff1Time: formatEthereumTime('0'),
+              cliff2Time: formatEthereumTime('0'),
+              vestCliff1Amount: formatTokenString('0'),
+              vestCliff2Amount: formatTokenString('0'),
+              unlockCliff1Amount: formatTokenString('0'),
+              unlockCliff2Amount: formatTokenString('0'),
+              lastRevocationTime: 0,
+              lastQuantityRevoked: formatTokenString('0'),
+            },
+          };
+          expect(await grantSchema.validate(grant)).to.deep.eq(grant);
+        });
+      });
+      // describe('invalid', () => {
+      //   // todo
+      // });
+      // it('should return true for a valid grant schema', async () => {
+      //   await expect(grantSchema.validate({ recipient: 1 })).to.become({}); // todo fails, expect obj
+      // });
+      describe('schema paths', () => {
+        describe('recipient', () => {
+          // describe('valid', () => {
+          //   it("should pass when the recipient is a valid ethereum address with the same value as the parent object's key", async () => {});
+          // });
+          describe('invalid', () => {
+            // it('string', async () => {})
+            // it('defined', async () => {})
+            // it('isWalletAddress', async () => {})
+            it("should fail when the recipient is not the same value as the parent object's key", async () => {
+              const grant = {
+                '0xDD66B46910918B2F442D6b75C6E55631ad678c99': {
+                  recipient: '0x465d5a3fFeA4CD109043499Fa576c3E16f918463',
+                  originalAmount: formatTokenString('0'),
+                  startTime: formatEthereumTime('0'),
+                  vestEndTime: formatEthereumTime('0'),
+                  unlockEndTime: formatEthereumTime('0'),
+                  cliff1Time: formatEthereumTime('0'),
+                  cliff2Time: formatEthereumTime('0'),
+                  vestCliff1Amount: formatTokenString('0'),
+                  vestCliff2Amount: formatTokenString('0'),
+                  unlockCliff1Amount: formatTokenString('0'),
+                  unlockCliff2Amount: formatTokenString('0'),
+                  lastRevocationTime: 0,
+                  lastQuantityRevoked: formatTokenString('0'),
+                },
+              };
+              await expect(grantSchema.validate(grant)).rejectedWith(
+                validation.isWalletAddress.message({
+                  path: '0xDD66B46910918B2F442D6b75C6E55631ad678c99.recipient',
+                })
+              ); // todo fails, expect obj
+            });
+          });
+        });
+      });
+    });
   });
   describe('flags', () => {
     describe('diff', () => {
