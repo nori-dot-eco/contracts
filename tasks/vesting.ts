@@ -25,62 +25,9 @@ import { formatEthereumTime, formatTokenString } from '@/utils/units';
 // // This is only for grants that have an unlocking schedule with 1 or 2 cliffs; optionally
 // // they may also have a vesting schedule.
 
-// // Configuration
-// const grantFilePath = './csv-examples/grants-with-unlocking_v4.csv';
-
-// // CSV token grants data interface
-// // this has more optional properties than our smart contract grant constructor
-// interface GrantFromCSV {
-//   walletAddress: string;
-//   amount: bigint;
-//   startTime: string;
-//   vestEndTime?: string;
-//   unlockEndTime: string;
-//   cliff1Time: string;
-//   cliff2Time?: string;
-//   vestCliff1Amount?: bigint;
-//   vestCliff2Amount?: bigint;
-//   unlockCliff1Amount?: bigint;
-//   unlockCliff2Amount?: bigint;
-//   lastRevocationTime?: string;
-// }
-// type GrantsFromCSV = GrantFromCSV[];
-
-// // Load grants from CSV
-// let raw = '';
-// try {
-//   raw = fs.readFileSync(grantFilePath, 'utf8');
-// } catch (err) {
-//   console.error(err);
-// }
-
-// // Parse grants from CSV
-// const csv = parse(raw, { columns: true });
-// const grants: GrantsFromCSV = [];
-// const wallets: { [key: string]: number } = {};
-// csv.forEach( (row: any) => {
-//   validateGrant(row);
-//   const grant: GrantFromCSV = grantFromRow(row);
-//   grants.push(grant);
-//   // console.log('Got a valid row for wallet: ' + row.walletAddress);
-// });
-// console.log(`Success! Read ${grants.length} grants from CSV`);
-
-// // validateGrant()
 // // checks for valid data in a single row from a CSV file;
 // // once any invalid data is found, prints an error and exits
 // const validateGrant= (row: any)=> {
-//   // walletAddress - required to be valid and unique
-
-//   if (!isValidAddr(row.walletAddress)) {
-//     fatalErr(`Invalid walletAddress: ${row.walletAddress}`);
-//   }
-//   if (wallets[row.walletAddress] === 1) {
-//     fatalErr(`Duplicate walletAddress: ${row.walletAddress}`);
-//   } else {
-//     wallets[row.walletAddress] = 1;
-//   }
-//   // contactUUID - ignore (not required)
 //   // amount - required to be valid up to 18 decimal places
 //   if (!('amount' in row)) {
 //     fatalErr('Invalid row without an amount column');
@@ -357,24 +304,24 @@ import { formatEthereumTime, formatTokenString } from '@/utils/units';
 //   return regTime.test(time) && !isNaN(d);
 // }
 
-interface Validations {
-  [key: string]: {
-    [Property in keyof yup.TestConfig]: yup.TestConfig[Property];
-  } & {
-    test: (value: any, opts?: { path: string }) => boolean;
-    message: (path: any) => any;
-  };
-}
+// interface Validations {
+//   [key: string]: {
+//     [Property in keyof yup.TestConfig]: yup.TestConfig[Property];
+//   } & {
+//     test: (value: any, opts?: { path: string }) => boolean;
+//     message: (path: any) => any;
+//   };
+// }
 
-export const validation: Validations = {
+export const validation = {
   isBigNumberString: {
-    message: (d) => `${d.path} must be BigNumberish`,
-    test: (value) => isBigNumberish(value),
+    message: (d: { path: string }) => `${d.path} must be BigNumberish`,
+    test: (value: unknown, _opts?: { path: string }) => isBigNumberish(value),
   },
   isWalletAddress: {
-    message: (d) =>
+    message: (d: { path: string }) =>
       `${d.path} must be a wallet address and the same value as the parent key`,
-    test: (value, opts) => {
+    test: (value: unknown, opts: { path: string }) => {
       const hasSameValueAsParentKey =
         Boolean(opts?.path) && opts?.path.split('.')[0] === value;
       return (
@@ -383,15 +330,16 @@ export const validation: Validations = {
     },
   },
   isWithinFiveYears: {
-    message: (d) => `${d.path} is not a date within 5 years from today`,
-    test: (value) => {
+    message: (d: { path: string }) =>
+      `${d.path} is not a date within 5 years from today`,
+    test: (value: unknown, _opts?: { path: string }) => {
       return (
         typeof value === 'number' &&
         moment(value * 1_000).isBefore(moment().add(5, 'years'))
       );
     },
   },
-};
+} as const;
 
 const { isWalletAddress, isBigNumberString } = validation;
 
@@ -466,8 +414,9 @@ type RunVestingWithSubTasks = <TTaskName extends string>(
   >
 >;
 
-type ParsedGrant = yup.InferType<typeof grantSchema>;
+export type ParsedGrant = yup.InferType<typeof grantSchema>;
 
+export type GrantList = ParsedGrant[keyof ParsedGrant][];
 interface Grants {
   github: ParsedGrant;
   blockchain: ParsedGrant;
@@ -516,12 +465,10 @@ export const GET_VESTING_TASK = () =>
           'You must specify --asJson or --expand when using --as-json'
         );
       }
-
       const signer = (await hre.ethers.getSigners())[account];
       const { getBridgedPolygonNori, getLockedNori } = await import(
         '@/utils/contracts'
       );
-
       const bpNori = getBridgedPolygonNori({
         network: hre.network.name,
         signer,
@@ -581,7 +528,7 @@ const getDiff = ({
 type ColParser = CSVParseParam['colParser'];
 
 interface CsvParser extends ColParser {
-  recipient: 'string'; // todo is ethereum address
+  recipient: 'string';
   contactUUID: 'omit';
   originalAmount: ParseGrantFunction<'originalAmount'>;
   startTime: ParseGrantFunction<'startTime'>;
@@ -647,6 +594,19 @@ const DIFF_SUBTASK = {
   },
 } as const;
 
+export const grantListToObject = ({
+  listOfGrants,
+}: {
+  listOfGrants: GrantList;
+}): ParsedGrant => {
+  return listOfGrants.reduce((acc, val): ParsedGrant => {
+    if (Boolean(acc[val.recipient])) {
+      throw new Error('Found duplicate recipient address in grants');
+    }
+    return { ...acc, [val.recipient]: val };
+  }, {} as ParsedGrant);
+};
+
 const GET_GITHUB_SUBTASK = {
   name: 'get-github',
   description: 'Get all grants from github CSV',
@@ -668,7 +628,7 @@ const GET_GITHUB_SUBTASK = {
       repo: 'grants',
       path: 'grants.csv',
     });
-    const parsed = await csv({
+    const listOfGrants: GrantList = await csv({
       checkColumn: true,
       colParser: csvParser,
     })
@@ -676,11 +636,8 @@ const GET_GITHUB_SUBTASK = {
         throw err;
       })
       .fromString(data.toString());
-    const githubGrants: ParsedGrant = parsed.reduce((acc, val): ParsedGrant => {
-      // todo throw error if dupe
-      return { ...acc, [val.recipient]: val };
-    }, {} as ParsedGrant); // todo parse csv subtask
-    await grantSchema.validate(githubGrants); // todo validate subtask
+    const githubGrants: ParsedGrant = grantListToObject({ listOfGrants });
+    await grantSchema.validate(githubGrants);
     return githubGrants;
   },
 } as const;

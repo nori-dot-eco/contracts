@@ -2,9 +2,9 @@
 import moment from 'moment';
 import type { Octokit } from '@octokit/rest';
 
-import { grantSchema, validation } from '../../tasks/vesting';
-import { formatEthereumTime, formatTokenString } from '../../utils/units';
-
+import type { GrantList } from '@/tasks/vesting';
+import { grantListToObject, grantSchema, validation } from '@/tasks/vesting';
+import { formatEthereumTime, formatTokenString } from '@/utils/units';
 import * as github from '@/tasks/utils/github';
 import { expect, setupTestEnvironment, sinon } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
 
@@ -26,6 +26,34 @@ describe('vesting task', () => {
   afterEach(() => {
     sandbox.restore();
   });
+  describe('grantListToObject', () => {
+    describe('pass', () => {
+      it('should parse a list of grants into an object keyed by the wallet address of a grant recipient', () => {
+        const grant = {
+          recipient: '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
+        };
+        expect(
+          grantListToObject({
+            listOfGrants: [grant] as unknown as GrantList,
+          })
+        ).to.deep.equal({
+          [grant.recipient]: grant,
+        });
+      });
+    });
+    describe('fail', () => {
+      it('should fail when there are duplicate addresses in the list of grants', () => {
+        const grant = {
+          recipient: '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
+        };
+        expect(() =>
+          grantListToObject({
+            listOfGrants: [grant, grant] as unknown as GrantList,
+          })
+        ).to.throw('duplicate');
+      });
+    });
+  });
   describe('validation', () => {
     describe('isWithinFiveYears', () => {
       describe('pass', () => {
@@ -43,8 +71,33 @@ describe('vesting task', () => {
         });
       });
     });
+    describe('isWalletAddress', () => {
+      describe('pass', () => {
+        it('should return true if it is a valid wallet address', () => {
+          expect(
+            validation.isWalletAddress.test(
+              '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
+              { path: '0xDD66B46910918B2F442D6b75C6E55631ad678c99.recipient' }
+            )
+          ).to.be.true;
+        });
+      });
+      describe('fail', () => {
+        it('should return false if not a valid wallet address', () => {
+          expect(
+            validation.isWalletAddress.test('0x1234', {
+              path: '0xDD66B46910918B2F442D6b75C6E55631ad678c99.recipient',
+            })
+          ).to.be.false;
+          expect(
+            validation.isWalletAddress.test(1234, {
+              path: '0xDD66B46910918B2F442D6b75C6E55631ad678c99.recipient',
+            })
+          ).to.be.false;
+        });
+      });
+    });
   });
-  1647572003;
   describe('grantSchema', () => {
     describe('validation', () => {
       describe('valid', () => {
