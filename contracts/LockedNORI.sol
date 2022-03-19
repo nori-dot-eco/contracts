@@ -128,6 +128,7 @@ contract LockedNORI is
     uint256 originalAmount;
     uint256 lastRevocationTime;
     uint256 lastQuantityRevoked;
+    bool exists;
   }
 
   struct CreateTokenGrantParams {
@@ -418,7 +419,8 @@ contract LockedNORI is
         grant.claimedAmount,
         grant.originalAmount,
         grant.lastRevocationTime,
-        grant.lastQuantityRevoked
+        grant.lastQuantityRevoked,
+        grant.exists
       );
   }
 

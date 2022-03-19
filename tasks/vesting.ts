@@ -16,8 +16,8 @@ import moment from 'moment';
 // @ts-ignore // https://github.com/dethcrypto/TypeChain/issues/371#issuecomment-1032397470
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import { getOctokit } from '@/tasks/utils/github';
-import { formatEthereumTime, formatTokenString } from '@/utils/units';
-
+import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
+// todo cleanup (move utils to utils folder)
 // // README
 // // This script is for reading in a CSV file of token grants with unlocking schedules.
 // // A sample file format is part of NO-1463:
@@ -28,13 +28,6 @@ import { formatEthereumTime, formatTokenString } from '@/utils/units';
 // // checks for valid data in a single row from a CSV file;
 // // once any invalid data is found, prints an error and exits
 // const validateGrant= (row: any)=> {
-//   // amount - required to be valid up to 18 decimal places
-//   if (!('amount' in row)) {
-//     fatalErr('Invalid row without an amount column');
-//   }
-//   if (!isValidAmount(row.amount)) {
-//     fatalErr(`Invalid amount: ${row.amount}`);
-//   }
 //   // startTime - required ISO8601
 //   if (!('startTime' in row)) {
 //     fatalErr('Invalid row without a startTime column');
@@ -304,24 +297,37 @@ import { formatEthereumTime, formatTokenString } from '@/utils/units';
 //   return regTime.test(time) && !isNaN(d);
 // }
 
-// interface Validations {
-//   [key: string]: {
-//     [Property in keyof yup.TestConfig]: yup.TestConfig[Property];
-//   } & {
-//     test: (value: any, opts?: { path: string }) => boolean;
-//     message: (path: any) => any;
-//   };
-// }
+const unsignedIntegerStringRegex = /^[0-9]+$/;
+
+const isPositiveNumber = (n: number): void => {
+  if (
+    typeof n !== 'number' ||
+    Number.isNaN(n) ||
+    !Number.isFinite(n) ||
+    n <= 0
+  ) {
+    throw new Error('Expected positive number');
+  }
+};
 
 export const validation = {
+  isUnsignedIntegerString: {
+    message: (d: { path: string; value?: unknown }): string =>
+      `${d.path} must be an unsigned integer string. Value: ${d.value}.`,
+    test: (value: unknown, _opts?: { path: string }): boolean =>
+      typeof value === 'string' &&
+      Boolean(value.match(unsignedIntegerStringRegex)), // todo can be yup.matches(integerStringRegex)
+  },
   isBigNumberString: {
-    message: (d: { path: string }) => `${d.path} must be BigNumberish`,
-    test: (value: unknown, _opts?: { path: string }) => isBigNumberish(value),
+    message: (d: { path: string; value?: unknown }): string =>
+      `${d.path} must be BigNumberish. Value: ${d.value}.`,
+    test: (value: unknown, _opts?: { path: string }): boolean =>
+      typeof value === 'string' && isBigNumberish(value),
   },
   isWalletAddress: {
-    message: (d: { path: string }) =>
-      `${d.path} must be a wallet address and the same value as the parent key`,
-    test: (value: unknown, opts: { path: string }) => {
+    message: (d: { path: string; value?: unknown }): string =>
+      `${d.path} must be a wallet address and the same value as the parent key. Value: ${d.value}.`,
+    test: (value: unknown, opts: { path: string }): boolean => {
       const hasSameValueAsParentKey =
         Boolean(opts?.path) && opts?.path.split('.')[0] === value;
       return (
@@ -329,40 +335,100 @@ export const validation = {
       );
     },
   },
-  isWithinFiveYears: {
-    message: (d: { path: string }) =>
-      `${d.path} is not a date within 5 years from today`,
-    test: (value: unknown, _opts?: { path: string }) => {
-      return (
-        typeof value === 'number' &&
-        moment(value * 1_000).isBefore(moment().add(5, 'years'))
-      );
-    },
+  isBeforeMaxYears: ({ maxFutureYears }: { maxFutureYears: number }) => {
+    isPositiveNumber(maxFutureYears); // todo
+    return {
+      // todo should only be validated against new grants
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} is not a date within ${maxFutureYears} years from today. Value: ${d.value}.`,
+      test: (value: unknown, _opts?: { path: string }): boolean => {
+        return (
+          typeof value === 'number' &&
+          evmTimeToUtc(value).isBefore(moment().add(maxFutureYears, 'years')) &&
+          evmTimeToUtc(value).isBefore('2100')
+        );
+      },
+    };
+  },
+  isAfterYearsAgo: ({ minimumPastYears }: { minimumPastYears: number }) => {
+    // todo test
+    isPositiveNumber(minimumPastYears);
+    return {
+      // todo should only be validated against new grants
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} is not a date after ${minimumPastYears} year ago today. Value: ${d.value}.`,
+      test: (value: unknown, _opts?: { path: string }): boolean => {
+        return (
+          typeof value === 'number' &&
+          evmTimeToUtc(value).isAfter(moment().subtract(1, 'years')) &&
+          evmTimeToUtc(value).isAfter('2021')
+        );
+      },
+    };
   },
 } as const;
 
-const { isWalletAddress, isBigNumberString } = validation;
+const {
+  isWalletAddress,
+  isBigNumberString,
+  isBeforeMaxYears,
+  isUnsignedIntegerString,
+  isAfterYearsAgo,
+} = validation;
 
+const requiredNumber = yup.number().required(); // todo move to validations object using .isValid
+const requiredString = yup.string().required(); // todo move to validations object using .isValid
+const requiredPositiveBigNumberString = requiredString // todo move to validations object using .isValid
+  .test(isUnsignedIntegerString)
+  .test(isBigNumberString);
+
+const isTimeWithinReasonableDateRange = ({
+  // todo move to validations object using .isValid
+  minimumPastYears,
+  maxFutureYears,
+}: {
+  minimumPastYears: number;
+  maxFutureYears: number;
+}): yup.NumberSchema<number, yup.AnyObject, undefined, ''> =>
+  requiredNumber
+    .test(isAfterYearsAgo({ minimumPastYears }))
+    .test(isBeforeMaxYears({ maxFutureYears }));
+
+// todo grantDiffSchema so that we can validate diffs (primarily useful for validating that a date is within -1...+10 years from the date it is being created)
 export const grantSchema = yup.lazy((data) => {
-  // todo further constrain
   return yup.object(
     Object.fromEntries(
       Object.keys(data).map((key) => [
         key,
         yup.object({
-          recipient: yup.string().test(isWalletAddress).required(),
-          originalAmount: yup.string().test(isBigNumberString).required(),
-          startTime: yup.number().required(),
-          vestEndTime: yup.number().required(),
-          unlockEndTime: yup.number().required(),
-          cliff1Time: yup.number().required(),
-          cliff2Time: yup.number().required(),
-          vestCliff1Amount: yup.string().test(isBigNumberString).required(),
-          vestCliff2Amount: yup.string().test(isBigNumberString).required(),
-          unlockCliff1Amount: yup.string().test(isBigNumberString).required(),
-          unlockCliff2Amount: yup.string().test(isBigNumberString).required(),
-          lastRevocationTime: yup.number().required(),
-          lastQuantityRevoked: yup.string().test(isBigNumberString).required(),
+          recipient: requiredString.test(isWalletAddress),
+          originalAmount: requiredPositiveBigNumberString,
+          startTime: isTimeWithinReasonableDateRange({
+            minimumPastYears: 1, // todo fix this so it only validates maxFutureYears on the blockchain v github diff
+            maxFutureYears: 1, // todo test
+          }), // todo test 1 year future only
+          vestEndTime: isTimeWithinReasonableDateRange({
+            minimumPastYears: 1, // todo test
+            maxFutureYears: 10, // todo test
+          }),
+          unlockEndTime: isTimeWithinReasonableDateRange({
+            minimumPastYears: 1, // todo test
+            maxFutureYears: 10, // todo test
+          }),
+          cliff1Time: isTimeWithinReasonableDateRange({
+            minimumPastYears: 1, // todo test
+            maxFutureYears: 10, // todo test
+          }),
+          cliff2Time: isTimeWithinReasonableDateRange({
+            minimumPastYears: 1, // todo test
+            maxFutureYears: 10, // todo test
+          }),
+          vestCliff1Amount: requiredPositiveBigNumberString, // todo isWithinReasonableDateRange
+          vestCliff2Amount: requiredPositiveBigNumberString, // todo isWithinReasonableDateRange
+          unlockCliff1Amount: requiredPositiveBigNumberString, // todo isWithinReasonableDateRange
+          unlockCliff2Amount: requiredPositiveBigNumberString, // todo isWithinReasonableDateRange
+          lastRevocationTime: requiredNumber.min(0),
+          lastQuantityRevoked: requiredPositiveBigNumberString, // todo isWithinReasonableDateRange
         }),
       ])
     )
@@ -370,12 +436,8 @@ export const grantSchema = yup.lazy((data) => {
 });
 
 type ParseGrantFunction<
-  TReturnType extends
-    | keyof ParsedGrant[keyof ParsedGrant]
-    | 'omit'
-    | 'number'
-    | 'string'
-> = TReturnType extends keyof ParsedGrant[keyof ParsedGrant]
+  TReturnType extends keyof Grant | 'omit' | 'number' | 'string'
+> = TReturnType extends keyof Grant
   ? (
       item: string,
       head: string,
@@ -416,7 +478,10 @@ type RunVestingWithSubTasks = <TTaskName extends string>(
 
 export type ParsedGrant = yup.InferType<typeof grantSchema>;
 
-export type GrantList = ParsedGrant[keyof ParsedGrant][];
+export type Grant = ParsedGrant[keyof ParsedGrant];
+
+export type GrantList = Grant[];
+
 interface Grants {
   github: ParsedGrant;
   blockchain: ParsedGrant;
@@ -520,7 +585,7 @@ const getDiff = ({
   expand?: boolean;
   asJson?: boolean;
 }): string | Record<string, unknown> => {
-  return asJson
+  return Boolean(asJson)
     ? diff(blockchainGrants, githubGrants, { full: expand })
     : diffString(blockchainGrants, githubGrants, { full: expand });
 };
@@ -544,22 +609,40 @@ interface CsvParser extends ColParser {
   lastQuantityRevoked: ParseGrantFunction<'lastQuantityRevoked'>;
 }
 
-const csvParser: CsvParser = {
+export const csvParser: CsvParser = {
   recipient: 'string',
   contactUUID: 'omit',
   originalAmount: (item) => formatTokenString(item).toString(), // todo validate (> 0)
-  startTime: (item) => formatEthereumTime(item === '' ? 1_000 : item), // todo can we stop creating grants that have start times in the past?  // todo only if vestEndTimeIsAlso ===''  // todo validate
-  vestEndTime: (item) => formatEthereumTime(item === '' ? 1_000 : item), // todo validate
-  unlockEndTime: (item) => formatEthereumTime(item), // todo validate
-  cliff1Time: (item) => formatEthereumTime(item), // todo validate
-  cliff2Time: (item) => formatEthereumTime(item), // todo validate
-  vestCliff1Amount: (item) => formatTokenString(item ?? '0'), // todo validate
-  vestCliff2Amount: (item) => formatTokenString(item ?? '0'), // todo validate
-  unlockCliff1Amount: (item) => formatTokenString(item ?? '0'), // todo validate
-  unlockCliff2Amount: (item) => formatTokenString(item ?? '0'), // todo validate
-  lastRevocationTime: (item) => (Boolean(item) ? formatEthereumTime(item) : 0), // todo validate,
+  startTime: (item) => utcToEvmTime(item), // todo can we stop creating grants that have start times in the past?  // todo only if vestEndTimeIsAlso ===''  // todo validate
+  vestEndTime: (item) => (Boolean(item) ? utcToEvmTime(item) : 0), // todo validate
+  unlockEndTime: (item) => utcToEvmTime(item), // todo validate
+  cliff1Time: (item) => utcToEvmTime(item), // todo validate
+  cliff2Time: (item) => utcToEvmTime(item), // todo validate
+  vestCliff1Amount: (item) => formatTokenString(item ?? '0').toString(), // todo validate
+  vestCliff2Amount: (item) => formatTokenString(item ?? '0').toString(), // todo validate
+  unlockCliff1Amount: (item) => formatTokenString(item ?? '0').toString(), // todo validate
+  unlockCliff2Amount: (item) => formatTokenString(item ?? '0').toString(), // todo validate
+  lastRevocationTime: (item) => (Boolean(item) ? utcToEvmTime(item) : 0), // todo validate,
   lastQuantityRevoked: (item) =>
-    formatTokenString(['', 'ALL'].includes(item) ? '0' : item), // todo validate // todo mathjs  // todo, if grant doesn't exist, don't allow revoking
+    formatTokenString(['', 'ALL'].includes(item) ? '0' : item).toString(), // todo validate // todo mathjs  // todo, if grant doesn't exist, don't allow revoking
+};
+
+export const grantCsvToList = async ({
+  data,
+  opts,
+}: {
+  data: string;
+  opts?: Partial<Omit<CSVParseParam, 'colParser'>>;
+}): Promise<GrantList> => {
+  const dataP = (await csv({
+    ...opts,
+    colParser: csvParser,
+  })
+    .subscribe(undefined, (err) => {
+      throw err;
+    })
+    .fromString(data)) as GrantList;
+  return dataP;
 };
 
 const DIFF_SUBTASK = {
@@ -628,14 +711,10 @@ const GET_GITHUB_SUBTASK = {
       repo: 'grants',
       path: 'grants.csv',
     });
-    const listOfGrants: GrantList = await csv({
-      checkColumn: true,
-      colParser: csvParser,
-    })
-      .subscribe(undefined, (err) => {
-        throw err;
-      })
-      .fromString(data.toString());
+    const listOfGrants: GrantList = await grantCsvToList({
+      data: data.toString(),
+      opts: { checkColumn: true },
+    });
     const githubGrants: ParsedGrant = grantListToObject({ listOfGrants });
     await grantSchema.validate(githubGrants);
     return githubGrants;
@@ -678,7 +757,8 @@ const GET_BLOCKCHAIN_SUBTASK = {
               unlockCliff2Amount: grant.unlockCliff2Amount.toString(),
               lastRevocationTime: grant.lastRevocationTime.toNumber(),
               lastQuantityRevoked: grant.lastQuantityRevoked.toString(),
-            },
+              exists: grant.exists,
+            } as any,
           };
     }, {} as ParsedGrant) as ParsedGrant;
     return blockchainGrants;
@@ -705,14 +785,27 @@ const UPDATE_SUBTASK = {
       grants: { githubGrants },
       lNori,
     });
-    const diffs = Object.values(
+    const grantDiffs: any[] = Object.entries(
       diff(blockchainGrants, githubGrants, { full: true })
-    );
-    const grantDiffs: any[] = Object.values(diffs).filter((d: any) => {
-      return Object.entries(d).find(
-        ([k, v]: [any, any]) =>
-          k !== 'lastRevocationTime' && k !== 'lastQuantityRevoked' && v.__new
-      );
+    ).filter(([dk, d]: [any, any]) => {
+      return Object.entries(d).find(([k, v]: [any, any]) => {
+        // todo throw if startTime.__new and !== 0
+        /**  grants that do not vest always have a vestEndTime of 0 */
+        // const changedVestEndTime = Boolean(
+        //   k === 'vestEndTime' &&
+        //     Boolean(v) &&
+        //     v.__old === 0 &&
+        //     v.__new !== 0 &&
+        //     Boolean(d.exists__deleted)
+        // );
+        return Boolean(
+          Boolean(v) &&
+            k !== 'lastRevocationTime' &&
+            k !== 'lastQuantityRevoked' &&
+            v.__new
+          //  &&            !Boolean('exists__deleted' in d)
+        );
+      });
     });
     hre.log(
       chalk.bold.bgWhiteBright.black(
