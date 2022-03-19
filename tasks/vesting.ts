@@ -669,7 +669,41 @@ const DIFF_SUBTASK = {
       lNori,
     });
     const grantsDiff = getDiff({
-      grants: { blockchain: blockchainGrants, github: githubGrants },
+      grants: {
+        blockchain: Object.fromEntries(
+          Object.entries(blockchainGrants).reduce((prev, [k1, v1]) => {
+            const {
+              exists,
+              vestEndTime,
+              startTime,
+              lastQuantityRevoked,
+              ...rest
+            } = v1 as any;
+            return [
+              ...prev,
+              [
+                k1,
+                {
+                  vestEndTime:
+                    vestEndTime === 0 &&
+                    githubGrants[k1].vestEndTime === githubGrants[k1].startTime
+                      ? githubGrants[k1].vestEndTime
+                      : vestEndTime,
+                  ...(lastQuantityRevoked && {
+                    lastQuantityRevoked:
+                      githubGrants[k1].lastQuantityRevoked !== '0'
+                        ? lastQuantityRevoked
+                        : '0',
+                  }),
+                  startTime,
+                  ...rest,
+                },
+              ],
+            ];
+          }, [] as any)
+        ),
+        github: githubGrants,
+      },
       expand,
       asJson,
     });
@@ -785,28 +819,25 @@ const UPDATE_SUBTASK = {
       grants: { githubGrants },
       lNori,
     });
-    const grantDiffs: any[] = Object.entries(
-      diff(blockchainGrants, githubGrants, { full: true })
-    ).filter(([dk, d]: [any, any]) => {
-      return Object.entries(d).find(([k, v]: [any, any]) => {
-        // todo throw if startTime.__new and !== 0
-        /**  grants that do not vest always have a vestEndTime of 0 */
-        // const changedVestEndTime = Boolean(
-        //   k === 'vestEndTime' &&
-        //     Boolean(v) &&
-        //     v.__old === 0 &&
-        //     v.__new !== 0 &&
-        //     Boolean(d.exists__deleted)
-        // );
-        return Boolean(
-          Boolean(v) &&
-            k !== 'lastRevocationTime' &&
-            k !== 'lastQuantityRevoked' &&
-            v.__new
-          //  &&            !Boolean('exists__deleted' in d)
-        );
-      });
-    });
+    const grantDiffs: any[] = Object.values(
+      Object.fromEntries(
+        Object.entries(
+          diff(blockchainGrants, githubGrants, { full: true })
+        ).filter(([dk, d]: [any, any]) => {
+          return Object.entries(d).find(([k, v]: [any, any]) => {
+            // todo throw if startTime.__new and !== 0
+            const defaults = Boolean(
+              !(blockchainGrants[dk] as any).exists &&
+                Boolean(v) &&
+                k !== 'lastRevocationTime' &&
+                k !== 'lastQuantityRevoked' &&
+                v?.__new
+            );
+            return defaults;
+          });
+        })
+      )
+    );
     hre.log(
       chalk.bold.bgWhiteBright.black(
         `Found ${grantDiffs.length} grants that need updating`
