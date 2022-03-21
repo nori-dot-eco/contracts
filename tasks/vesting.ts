@@ -17,16 +17,9 @@ import moment from 'moment';
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import { getOctokit } from '@/tasks/utils/github';
 import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
-// todo cleanup (move utils to utils folder)
-// // README
-// // This script is for reading in a CSV file of token grants with unlocking schedules.
-// // A sample file format is part of NO-1463:
-// // https://docs.google.com/spreadsheets/d/1NC-jlGSxY6i7IM6v_u7HpZAerO1Hrh-sFaQpLuzm0uI/edit#gid=834947403
-// // This is only for grants that have an unlocking schedule with 1 or 2 cliffs; optionally
-// // they may also have a vesting schedule.
 
-// // checks for valid data in a single row from a CSV file;
-// // once any invalid data is found, prints an error and exits
+// todo cleanup (move utils to utils folder)
+
 // const validateGrant= (row: any)=> {
 //     if (Date.parse(row.vestEndTime) < Date.parse(row.startTime)) {
 //       fatalErr(
@@ -234,41 +227,6 @@ import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
 //   }
 // }
 
-// // GrantFromCSV()
-// // constructs and returns a grant data object given a row from CSV format
-// const grantFromRow = (row: any): GrantFromCSV =>{
-//   const grant: GrantFromCSV = {
-//     walletAddress: row.walletAddress,
-//     amount: intAmount(row.amount),
-//     startTime: row.startTime,
-//     unlockEndTime: row.unlockEndTime,
-//     cliff1Time: row.cliff1Time,
-//   };
-//   if ('vestEndTime' in row && row.vestEndTime !== '') {
-//     grant.vestEndTime = row.vestEndTime;
-//     grant.vestCliff1Amount = row.vestCliff1Amount;
-//   }
-//   if ('unlockCliff1Amount' in row && row.unlockCliff1Amount !== '') {
-//     grant.unlockCliff1Amount = row.unlockCliff1Amount;
-//   }
-//   if ('cliff2Time' in row && row.cliff2Time !== '') {
-//     grant.cliff2Time = row.cliff2Time;
-//     grant.unlockCliff2Amount = row.unlockCliff2Amount;
-//   }
-//   if (
-//     'vestEndTime' in row &&
-//     row.vestEndTime !== '' &&
-//     'cliff2Time' in row &&
-//     row.cliff2Time !== ''
-//   ) {
-//     grant.vestCliff2Amount = row.vestCliff2Amount;
-//   }
-//   if ('lastRevocationTime' in row && row.lastRevocationTime !== '') {
-//     grant.lastRevocationTime = row.lastRevocationTime;
-//   }
-//   return grant;
-// }
-
 const UINT_STRING_MATCHER = /^[0-9]+$/;
 
 export const validations = {
@@ -389,43 +347,36 @@ export const rules = {
       .test(validations.walletAddressIsSameAsParentKey()),
 } as const;
 
-const {
-  isWalletAddress,
-  requiredPositiveInteger,
-  requiredPositiveBigNumberString,
-  isTimeWithinReasonableDateRange,
-} = rules;
-
 export const grantSchema = yup
   .object({
-    recipient: isWalletAddress(),
-    originalAmount: requiredPositiveBigNumberString(),
-    startTime: isTimeWithinReasonableDateRange({
+    recipient: rules.isWalletAddress(),
+    originalAmount: rules.requiredPositiveBigNumberString(),
+    startTime: rules.isTimeWithinReasonableDateRange({
       minimumPastYears: 1, // todo fix this so it only validates maxFutureYears on the blockchain v github diff
       maxFutureYears: 1,
     }), // todo test 1 year future only
-    vestEndTime: isTimeWithinReasonableDateRange({
+    vestEndTime: rules.isTimeWithinReasonableDateRange({
       minimumPastYears: 1,
       maxFutureYears: 10,
     }),
-    unlockEndTime: isTimeWithinReasonableDateRange({
+    unlockEndTime: rules.isTimeWithinReasonableDateRange({
       minimumPastYears: 1,
       maxFutureYears: 10,
     }),
-    cliff1Time: isTimeWithinReasonableDateRange({
+    cliff1Time: rules.isTimeWithinReasonableDateRange({
       minimumPastYears: 1,
       maxFutureYears: 10,
     }),
-    cliff2Time: isTimeWithinReasonableDateRange({
+    cliff2Time: rules.isTimeWithinReasonableDateRange({
       minimumPastYears: 1,
       maxFutureYears: 10,
     }),
-    vestCliff1Amount: requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
-    vestCliff2Amount: requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
-    unlockCliff1Amount: requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
-    unlockCliff2Amount: requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
-    lastRevocationTime: requiredPositiveInteger(),
-    lastQuantityRevoked: requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
+    vestCliff1Amount: rules.requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
+    vestCliff2Amount: rules.requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
+    unlockCliff1Amount: rules.requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
+    unlockCliff2Amount: rules.requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
+    lastRevocationTime: rules.requiredPositiveInteger(),
+    lastQuantityRevoked: rules.requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
   })
   .strict()
   .noUnknown();
