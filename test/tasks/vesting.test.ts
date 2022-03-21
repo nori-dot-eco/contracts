@@ -364,12 +364,12 @@ describe('vesting task', () => {
         });
         expect(hre.log).to.have.been.calledWith({
           '0xDD66B46910918B2F442D6b75C6E55631ad678c99': {
+            vestEndTime: { __old: 0, __new: 1783987200 },
+            startTime: { __old: 0, __new: 1657756800 },
             originalAmount: {
               __old: '0',
               __new: '46425588600000000000000',
             },
-            startTime: { __old: 0, __new: 1657756800 },
-            vestEndTime: { __old: 0, __new: 1783987200 },
             unlockEndTime: { __old: 0, __new: 1815523200 },
             cliff1Time: { __old: 0, __new: 1689292800 },
             cliff2Time: { __old: 0, __new: 1705190400 },
@@ -391,12 +391,12 @@ describe('vesting task', () => {
             },
           },
           '0x465d5a3fFeA4CD109043499Fa576c3E16f918463': {
+            vestEndTime: { __old: 0, __new: 1657756800 },
+            startTime: { __old: 0, __new: 1657756800 },
             originalAmount: {
               __old: '0',
               __new: '73000000000000000000000',
             },
-            startTime: { __old: 0, __new: 1657756800 },
-            vestEndTime: { __old: 0, __new: 1657756800 },
             unlockEndTime: { __old: 0, __new: 1689292800 },
             cliff1Time: { __old: 0, __new: 1689292800 },
             cliff2Time: { __old: 0, __new: 1689292800 },
@@ -406,9 +406,9 @@ describe('vesting task', () => {
             },
           },
           '0x3254678253467832548762382348765342765342': {
-            originalAmount: { __old: '0', __new: '120000000000000000000' },
-            startTime: { __old: 0, __new: 1657756800 },
             vestEndTime: { __old: 0, __new: 1657756800 },
+            startTime: { __old: 0, __new: 1657756800 },
+            originalAmount: { __old: '0', __new: '120000000000000000000' },
             unlockEndTime: { __old: 0, __new: 1689292800 },
             cliff1Time: { __old: 0, __new: 1689292800 },
             cliff2Time: { __old: 0, __new: 1689292800 },
@@ -418,12 +418,12 @@ describe('vesting task', () => {
             },
           },
           '0x8eB185e20A9B7b31bd48DA19E834B93bE952795E': {
+            vestEndTime: { __old: 0, __new: 1657756800 },
+            startTime: { __old: 0, __new: 1657756800 },
             originalAmount: {
               __old: '0',
               __new: '6454545000000000000000000',
             },
-            startTime: { __old: 0, __new: 1657756800 },
-            vestEndTime: { __old: 0, __new: 1657756800 },
             unlockEndTime: { __old: 0, __new: 1783987200 },
             cliff1Time: { __old: 0, __new: 1689292800 },
             cliff2Time: { __old: 0, __new: 1705190400 },
@@ -437,12 +437,12 @@ describe('vesting task', () => {
             },
           },
           '0x6b9d03759E9F14a641f0703fBD84F1F726159B6B': {
+            vestEndTime: { __old: 0, __new: 1657756800 },
+            startTime: { __old: 0, __new: 1657756800 },
             originalAmount: {
               __old: '0',
               __new: '20000000000000000000000000',
             },
-            startTime: { __old: 0, __new: 1657756800 },
-            vestEndTime: { __old: 0, __new: 1657756800 },
             unlockEndTime: { __old: 0, __new: 1815523200 },
             cliff1Time: { __old: 0, __new: 1689292800 },
             cliff2Time: { __old: 0, __new: 1705190400 },
@@ -456,12 +456,12 @@ describe('vesting task', () => {
             },
           },
           '0xBd6E6A75c7A51cfdf08DDf2f538ceB221835839b': {
+            vestEndTime: { __old: 0, __new: 1804032000 },
+            startTime: { __old: 0, __new: 1677801600 },
             originalAmount: {
               __old: '0',
               __new: '50000000000000000000000',
             },
-            startTime: { __old: 0, __new: 1677801600 },
-            vestEndTime: { __old: 0, __new: 1804032000 },
             unlockEndTime: { __old: 0, __new: 1835654400 },
             cliff1Time: { __old: 0, __new: 1709424000 },
             cliff2Time: { __old: 0, __new: 1725321600 },
@@ -483,12 +483,12 @@ describe('vesting task', () => {
             },
           },
           '0x8aBFd8375DA1521E70d23988eb5a6efA799C15ea': {
+            vestEndTime: { __old: 0, __new: 1657756800 },
+            startTime: { __old: 0, __new: 1657756800 },
             originalAmount: {
               __old: '0',
               __new: '14010600000000000000000',
             },
-            startTime: { __old: 0, __new: 1657756800 },
-            vestEndTime: { __old: 0, __new: 1657756800 },
             unlockEndTime: { __old: 0, __new: 1854057600 },
             cliff1Time: { __old: 0, __new: 1854057600 },
             cliff2Time: { __old: 0, __new: 1854057600 },
@@ -498,12 +498,12 @@ describe('vesting task', () => {
             },
           },
           '0x6029424b26feFfe2879E88C62e8130dC418e64D9': {
+            vestEndTime: { __old: 0, __new: 1836259200 },
+            startTime: { __old: 0, __new: 1678406400 },
             originalAmount: {
               __old: '0',
               __new: '52000000000000000000000',
             },
-            startTime: { __old: 0, __new: 1678406400 },
-            vestEndTime: { __old: 0, __new: 1836259200 },
             unlockEndTime: { __old: 0, __new: 1867795200 },
             cliff1Time: { __old: 0, __new: 1741564800 },
             cliff2Time: { __old: 0, __new: 1757462400 },

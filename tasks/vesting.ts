@@ -614,7 +614,7 @@ export const csvParser: CsvParser = {
   contactUUID: 'omit',
   originalAmount: (item) => formatTokenString(item).toString(), // todo validate (> 0)
   startTime: (item) => utcToEvmTime(item), // todo can we stop creating grants that have start times in the past?  // todo only if vestEndTimeIsAlso ===''  // todo validate
-  vestEndTime: (item) => (Boolean(item) ? utcToEvmTime(item) : 0), // todo validate
+  vestEndTime: (item) => utcToEvmTime(item), // todo validate
   unlockEndTime: (item) => utcToEvmTime(item), // todo validate
   cliff1Time: (item) => utcToEvmTime(item), // todo validate
   cliff2Time: (item) => utcToEvmTime(item), // todo validate
@@ -673,18 +673,19 @@ const DIFF_SUBTASK = {
         blockchain: Object.fromEntries(
           Object.entries(blockchainGrants).reduce((prev, [k1, v1]) => {
             const {
-              exists,
               vestEndTime,
               startTime,
               lastQuantityRevoked,
+              exists,
               ...rest
-            } = v1 as any;
+            } = v1 as any; // todo blockchain grants schema (additional exists property)
             return [
               ...prev,
               [
                 k1,
                 {
                   vestEndTime:
+                    exists &&
                     vestEndTime === 0 &&
                     githubGrants[k1].vestEndTime === githubGrants[k1].startTime
                       ? githubGrants[k1].vestEndTime
