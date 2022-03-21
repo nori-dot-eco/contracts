@@ -28,29 +28,12 @@ import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
 // // checks for valid data in a single row from a CSV file;
 // // once any invalid data is found, prints an error and exits
 // const validateGrant= (row: any)=> {
-//   // startTime - required ISO8601
-//   if (!('startTime' in row)) {
-//     fatalErr('Invalid row without a startTime column');
-//   }
-//   if (!isValidTime(row.startTime)) {
-//     fatalErr(`Invalid startTime: ${row.startTime}`);
-//   }
-//   // vestEndTime - optional but must be valid if present
-//   if (!('vestEndTime' in row)) {
-//     fatalErr('Invalid row without a vestEndTime column');
-//   }
-//   if (row.vestEndTime === '') {
-//     // no vesting for this grant; later we check that vestAmounts are also empty
-//   } else {
-//     if (!isValidTime(row.vestEndTime)) {
-//       fatalErr(`Invalid vestEndTime: ${row.vestEndTime}`);
-//     }
 //     if (Date.parse(row.vestEndTime) < Date.parse(row.startTime)) {
 //       fatalErr(
 //         `Invalid vesting timing with vestEndTime before startTime: ${row.vestEndTime}, ${row.startTime}`
 //       );
 //     }
-//   }
+//
 //   // unlockEndTime - required and must be after startTime and vestEndTime
 //   if (!('unlockEndTime' in row)) {
 //     fatalErr('Invalid row without an unlockEndTime column');
@@ -286,152 +269,171 @@ import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
 //   return grant;
 // }
 
-// // isValidTime()
-// // returns true or false given a string with an ISO8601 datetime
-// const isValidTime:(time: string): boolean =>{
-//   // valid time in ISO8601 UTC without milliseconds
-//   const regTime =
-//     /^20\d{2}-([0]\d|1[0-2])-([0-2]\d|3[01])T[0-2]\d:[0-5]\d:[0-5]\dZ$/;
-//   // and it must be good enough for Date.parse()
-//   const d: number = Date.parse(time);
-//   return regTime.test(time) && !isNaN(d);
-// }
+const UINT_STRING_MATCHER = /^[0-9]+$/;
 
-const unsignedIntegerStringRegex = /^[0-9]+$/;
-
-const isPositiveNumber = (n: number): void => {
-  if (
-    typeof n !== 'number' ||
-    Number.isNaN(n) ||
-    !Number.isFinite(n) ||
-    n <= 0
-  ) {
-    throw new Error('Expected positive number');
-  }
-};
-
-export const validation = {
-  isUnsignedIntegerString: {
-    message: (d: { path: string; value?: unknown }): string =>
-      `${d.path} must be an unsigned integer string. Value: ${d.value}.`,
-    test: (value: unknown, _opts?: { path: string }): boolean =>
-      typeof value === 'string' &&
-      Boolean(value.match(unsignedIntegerStringRegex)), // todo can be yup.matches(integerStringRegex)
+export const validations = {
+  isValidEvmMoment: () => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} must be a valid EVM timestamp. Value: ${d.value}.`,
+      test: (value: unknown, _opts?: { path: string }): boolean =>
+        typeof value === 'number' &&
+        yup.number().strict().min(0).integer().isValidSync(value) &&
+        moment(evmTimeToUtc(value)).isValid(),
+    };
   },
-  isBigNumberString: {
-    message: (d: { path: string; value?: unknown }): string =>
-      `${d.path} must be BigNumberish. Value: ${d.value}.`,
-    test: (value: unknown, _opts?: { path: string }): boolean =>
-      typeof value === 'string' && isBigNumberish(value),
+  isBigNumberish: () => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} must be BigNumberish. Value: ${d.value}.`,
+      test: (value: unknown, _opts?: { path: string }): boolean =>
+        typeof value === 'string' && isBigNumberish(value),
+    };
   },
-  isWalletAddress: {
-    message: (d: { path: string; value?: unknown }): string =>
-      `${d.path} must be a wallet address and the same value as the parent key. Value: ${d.value}.`,
-    test: (value: unknown, opts: { path: string }): boolean => {
-      const hasSameValueAsParentKey =
-        Boolean(opts?.path) && opts?.path.split('.')[0] === value;
-      return (
-        typeof value === 'string' && hasSameValueAsParentKey && isAddress(value)
-      );
-    },
+  walletAddressIsSameAsParentKey: () => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} must be the same value as the parent key. Value: ${d.value}.`,
+      test: (value: unknown, opts: { path: string }): boolean => {
+        const hasSameValueAsParentKey =
+          opts?.path === '' ||
+          (Boolean(opts?.path) && opts?.path.split('.')[0] === value);
+        return typeof value === 'string' && hasSameValueAsParentKey;
+      },
+    };
+  },
+  isWalletAddress: () => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} must be a wallet address. Value: ${d.value}.`,
+      test: (value: unknown, _opts?: { path: string }): boolean => {
+        return typeof value === 'string' && isAddress(value);
+      },
+    };
   },
   isBeforeMaxYears: ({ maxFutureYears }: { maxFutureYears: number }) => {
-    isPositiveNumber(maxFutureYears); // todo
     return {
       // todo should only be validated against new grants
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} is not a date within ${maxFutureYears} years from today. Value: ${d.value}.`,
       test: (value: unknown, _opts?: { path: string }): boolean => {
+        const maxFutureYearsIsUint = yup
+          .number()
+          .integer()
+          .positive()
+          .min(0)
+          .required()
+          .strict()
+          .isValidSync(maxFutureYears);
         return (
           typeof value === 'number' &&
+          maxFutureYearsIsUint &&
           evmTimeToUtc(value).isBefore(moment().add(maxFutureYears, 'years')) &&
-          evmTimeToUtc(value).isBefore('2100')
+          evmTimeToUtc(value).isBefore('2100') // todo separate to rule
         );
       },
     };
   },
   isAfterYearsAgo: ({ minimumPastYears }: { minimumPastYears: number }) => {
-    // todo test
-    isPositiveNumber(minimumPastYears);
     return {
       // todo should only be validated against new grants
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} is not a date after ${minimumPastYears} year ago today. Value: ${d.value}.`,
       test: (value: unknown, _opts?: { path: string }): boolean => {
+        const minimumPastYearsIsUint = yup
+          .number()
+          .integer()
+          .positive()
+          .min(0)
+          .required()
+          .strict()
+          .isValidSync(minimumPastYears);
         return (
           typeof value === 'number' &&
-          evmTimeToUtc(value).isAfter(moment().subtract(1, 'years')) &&
-          evmTimeToUtc(value).isAfter('2021')
+          minimumPastYearsIsUint &&
+          evmTimeToUtc(value).isAfter(
+            moment().subtract(minimumPastYears, 'years')
+          ) &&
+          evmTimeToUtc(value).isAfter('2020') // todo separate to rule
         );
       },
     };
   },
 } as const;
 
+export const rules = {
+  requiredPositiveInteger: () =>
+    yup.number().integer().positive().min(0).required().strict(),
+  requiredString: () => yup.string().required().strict(),
+  requiredPositiveBigNumberString: () =>
+    rules
+      .requiredString() // todo move to validations object using .isValid
+      .matches(UINT_STRING_MATCHER)
+      .test(validations.isBigNumberish()),
+  isTimeWithinReasonableDateRange: ({
+    minimumPastYears,
+    maxFutureYears,
+  }: {
+    minimumPastYears: number;
+    maxFutureYears: number;
+  }): yup.NumberSchema<number, yup.AnyObject, undefined, ''> =>
+    rules
+      .requiredPositiveInteger()
+      .test(validations.isValidEvmMoment())
+      .test(validations.isAfterYearsAgo({ minimumPastYears }))
+      .test(validations.isBeforeMaxYears({ maxFutureYears })),
+  isWalletAddress: () =>
+    rules
+      .requiredString()
+      .test(validations.isWalletAddress())
+      .test(validations.walletAddressIsSameAsParentKey()),
+} as const;
+
 const {
   isWalletAddress,
-  isBigNumberString,
-  isBeforeMaxYears,
-  isUnsignedIntegerString,
-  isAfterYearsAgo,
-} = validation;
+  requiredPositiveInteger,
+  requiredPositiveBigNumberString,
+  isTimeWithinReasonableDateRange,
+} = rules;
 
-const requiredNumber = yup.number().required(); // todo move to validations object using .isValid
-const requiredString = yup.string().required(); // todo move to validations object using .isValid
-const requiredPositiveBigNumberString = requiredString // todo move to validations object using .isValid
-  .test(isUnsignedIntegerString)
-  .test(isBigNumberString);
-
-const isTimeWithinReasonableDateRange = ({
-  // todo move to validations object using .isValid
-  minimumPastYears,
-  maxFutureYears,
-}: {
-  minimumPastYears: number;
-  maxFutureYears: number;
-}): yup.NumberSchema<number, yup.AnyObject, undefined, ''> =>
-  requiredNumber
-    .test(isAfterYearsAgo({ minimumPastYears }))
-    .test(isBeforeMaxYears({ maxFutureYears }));
+export const grantSchema = yup
+  .object({
+    recipient: isWalletAddress(),
+    originalAmount: requiredPositiveBigNumberString(),
+    startTime: isTimeWithinReasonableDateRange({
+      minimumPastYears: 1, // todo fix this so it only validates maxFutureYears on the blockchain v github diff
+      maxFutureYears: 1,
+    }), // todo test 1 year future only
+    vestEndTime: isTimeWithinReasonableDateRange({
+      minimumPastYears: 1,
+      maxFutureYears: 10,
+    }),
+    unlockEndTime: isTimeWithinReasonableDateRange({
+      minimumPastYears: 1,
+      maxFutureYears: 10,
+    }),
+    cliff1Time: isTimeWithinReasonableDateRange({
+      minimumPastYears: 1,
+      maxFutureYears: 10,
+    }),
+    cliff2Time: isTimeWithinReasonableDateRange({
+      minimumPastYears: 1,
+      maxFutureYears: 10,
+    }),
+    vestCliff1Amount: requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
+    vestCliff2Amount: requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
+    unlockCliff1Amount: requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
+    unlockCliff2Amount: requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
+    lastRevocationTime: requiredPositiveInteger(),
+    lastQuantityRevoked: requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
+  })
+  .strict()
+  .noUnknown();
 
 // todo grantDiffSchema so that we can validate diffs (primarily useful for validating that a date is within -1...+10 years from the date it is being created)
-export const grantSchema = yup.lazy((data) => {
+export const grantsSchema = yup.lazy((data) => {
   return yup.object(
-    Object.fromEntries(
-      Object.keys(data).map((key) => [
-        key,
-        yup.object({
-          recipient: requiredString.test(isWalletAddress),
-          originalAmount: requiredPositiveBigNumberString,
-          startTime: isTimeWithinReasonableDateRange({
-            minimumPastYears: 1, // todo fix this so it only validates maxFutureYears on the blockchain v github diff
-            maxFutureYears: 1, // todo test
-          }), // todo test 1 year future only
-          vestEndTime: isTimeWithinReasonableDateRange({
-            minimumPastYears: 1, // todo test
-            maxFutureYears: 10, // todo test
-          }),
-          unlockEndTime: isTimeWithinReasonableDateRange({
-            minimumPastYears: 1, // todo test
-            maxFutureYears: 10, // todo test
-          }),
-          cliff1Time: isTimeWithinReasonableDateRange({
-            minimumPastYears: 1, // todo test
-            maxFutureYears: 10, // todo test
-          }),
-          cliff2Time: isTimeWithinReasonableDateRange({
-            minimumPastYears: 1, // todo test
-            maxFutureYears: 10, // todo test
-          }),
-          vestCliff1Amount: requiredPositiveBigNumberString, // todo isWithinReasonableDateRange
-          vestCliff2Amount: requiredPositiveBigNumberString, // todo isWithinReasonableDateRange
-          unlockCliff1Amount: requiredPositiveBigNumberString, // todo isWithinReasonableDateRange
-          unlockCliff2Amount: requiredPositiveBigNumberString, // todo isWithinReasonableDateRange
-          lastRevocationTime: requiredNumber.min(0),
-          lastQuantityRevoked: requiredPositiveBigNumberString, // todo isWithinReasonableDateRange
-        }),
-      ])
-    )
+    Object.fromEntries(Object.keys(data).map((key) => [key, grantSchema]))
   );
 });
 
@@ -476,7 +478,7 @@ type RunVestingWithSubTasks = <TTaskName extends string>(
   >
 >;
 
-export type ParsedGrant = yup.InferType<typeof grantSchema>;
+export type ParsedGrant = yup.InferType<typeof grantsSchema>;
 
 export type Grant = ParsedGrant[keyof ParsedGrant];
 
@@ -751,7 +753,7 @@ const GET_GITHUB_SUBTASK = {
       opts: { checkColumn: true },
     });
     const githubGrants: ParsedGrant = grantListToObject({ listOfGrants });
-    await grantSchema.validate(githubGrants);
+    await grantsSchema.validate(githubGrants);
     return githubGrants;
   },
 } as const;
