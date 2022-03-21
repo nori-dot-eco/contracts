@@ -271,7 +271,7 @@ export const validations = {
   },
   isBeforeMaxYears: ({ maxFutureYears }: { maxFutureYears: number }) => {
     return {
-      // todo should only be validated against new grants
+      // todo should only be validated against new grants (e.g., validate against grant diff)
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} is not a date within ${maxFutureYears} years from today. Value: ${d.value}.`,
       test: (value: unknown, _opts?: { path: string }): boolean => {
@@ -287,14 +287,14 @@ export const validations = {
           typeof value === 'number' &&
           maxFutureYearsIsUint &&
           evmTimeToUtc(value).isBefore(moment().add(maxFutureYears, 'years')) &&
-          evmTimeToUtc(value).isBefore('2100') // todo separate to rule
+          evmTimeToUtc(value).isBefore('2100') // todo separate validation
         );
       },
     };
   },
   isAfterYearsAgo: ({ minimumPastYears }: { minimumPastYears: number }) => {
     return {
-      // todo should only be validated against new grants
+      // todo should only be validated against new grants (e.g., validate against grant diff)
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} is not a date after ${minimumPastYears} year ago today. Value: ${d.value}.`,
       test: (value: unknown, _opts?: { path: string }): boolean => {
@@ -312,7 +312,7 @@ export const validations = {
           evmTimeToUtc(value).isAfter(
             moment().subtract(minimumPastYears, 'years')
           ) &&
-          evmTimeToUtc(value).isAfter('2020') // todo separate to rule
+          evmTimeToUtc(value).isAfter('2021') // todo separate validation
         );
       },
     };
@@ -325,7 +325,7 @@ export const rules = {
   requiredString: () => yup.string().required().strict(),
   requiredPositiveBigNumberString: () =>
     rules
-      .requiredString() // todo move to validations object using .isValid
+      .requiredString()
       .matches(UINT_STRING_MATCHER)
       .test(validations.isBigNumberish()),
   isTimeWithinReasonableDateRange: ({
@@ -352,7 +352,7 @@ export const grantSchema = yup
     recipient: rules.isWalletAddress(),
     originalAmount: rules.requiredPositiveBigNumberString(),
     startTime: rules.isTimeWithinReasonableDateRange({
-      minimumPastYears: 1, // todo fix this so it only validates maxFutureYears on the blockchain v github diff
+      minimumPastYears: 1,
       maxFutureYears: 1,
     }), // todo test 1 year future only
     vestEndTime: rules.isTimeWithinReasonableDateRange({
@@ -475,10 +475,10 @@ export const GET_VESTING_TASK = () =>
         revoke: action === 'revoke',
         create: action === 'create',
       };
-      if ((!account && account !== 0) || account < 0 || account > 10) {
+      if (typeof account !== 'number' || account < 0 || account > 10) {
         throw new Error('Invalid account/signer index');
       }
-      if (asJson && !showDiff && !expand) {
+      if (Boolean(asJson) && !Boolean(showDiff) && !Boolean(expand)) {
         throw new Error(
           'You must specify --asJson or --expand when using --as-json'
         );
@@ -494,14 +494,14 @@ export const GET_VESTING_TASK = () =>
       const lNori = getLockedNori({ network: hre.network.name, signer });
       const runSubtask = hre.run as RunVestingWithSubTasks;
       let githubGrants: Grants['github'];
-      if (file) {
+      if (typeof file === 'string') {
         hre.log('Reading grants from file');
-        githubGrants = readFileSync(file, { encoding: 'utf8' }) as any;
+        githubGrants = readFileSync(file, { encoding: 'utf8' }) as any; // todo type
       } else {
         hre.log('Reading grants from github commit:', commit);
         githubGrants = await runSubtask('get-github', { commit });
       }
-      if (showDiff || expand) {
+      if (Boolean(showDiff) || Boolean(expand)) {
         await runSubtask('diff', {
           grants: { github: githubGrants },
           lNori,
@@ -523,7 +523,13 @@ export const GET_VESTING_TASK = () =>
           signer,
         });
       }
-      if (!expand && !showDiff && !update && !create && !revoke) {
+      if (
+        !Boolean(expand) &&
+        !Boolean(showDiff) &&
+        !update &&
+        !create &&
+        !revoke
+      ) {
         hre.log('No action selected.  Use --help for options.');
       }
     },
@@ -566,18 +572,18 @@ export const csvParser: CsvParser = {
   recipient: 'string',
   contactUUID: 'omit',
   originalAmount: (item) => formatTokenString(item).toString(), // todo validate (> 0)
-  startTime: (item) => utcToEvmTime(item), // todo can we stop creating grants that have start times in the past?  // todo only if vestEndTimeIsAlso ===''  // todo validate
-  vestEndTime: (item) => utcToEvmTime(item), // todo validate
-  unlockEndTime: (item) => utcToEvmTime(item), // todo validate
-  cliff1Time: (item) => utcToEvmTime(item), // todo validate
-  cliff2Time: (item) => utcToEvmTime(item), // todo validate
-  vestCliff1Amount: (item) => formatTokenString(item ?? '0').toString(), // todo validate
-  vestCliff2Amount: (item) => formatTokenString(item ?? '0').toString(), // todo validate
-  unlockCliff1Amount: (item) => formatTokenString(item ?? '0').toString(), // todo validate
-  unlockCliff2Amount: (item) => formatTokenString(item ?? '0').toString(), // todo validate
-  lastRevocationTime: (item) => (Boolean(item) ? utcToEvmTime(item) : 0), // todo validate,
+  startTime: (item) => utcToEvmTime(item),
+  vestEndTime: (item) => utcToEvmTime(item),
+  unlockEndTime: (item) => utcToEvmTime(item),
+  cliff1Time: (item) => utcToEvmTime(item),
+  cliff2Time: (item) => utcToEvmTime(item),
+  vestCliff1Amount: (item) => formatTokenString(item ?? '0').toString(),
+  vestCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
+  unlockCliff1Amount: (item) => formatTokenString(item ?? '0').toString(),
+  unlockCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
+  lastRevocationTime: (item) => (Boolean(item) ? utcToEvmTime(item) : 0),
   lastQuantityRevoked: (item) =>
-    formatTokenString(['', 'ALL'].includes(item) ? '0' : item).toString(), // todo validate // todo mathjs  // todo, if grant doesn't exist, don't allow revoking
+    formatTokenString(['', 'ALL'].includes(item) ? '0' : item).toString(), // todo, if grant doesn't exist, don't allow revoking
 };
 
 export const grantCsvToList = async ({
