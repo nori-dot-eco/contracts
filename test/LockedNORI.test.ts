@@ -302,22 +302,22 @@ describe('LockedNori', () => {
           },
           postSetupHook: undefined,
         },
-        {
-          method: 'burnFrom',
-          pausableFunction: async ({ lNori, hre }: PausableFunctionParams) => {
-            return lNori
-              .connect(hre.namedSigners.admin)
-              .approve(hre.namedAccounts.investor1, formatTokenAmount(1));
-          },
-          postSetupHook: async ({ lNori, hre }: PausableFunctionParams) => {
-            await lNori
-              .connect(hre.namedSigners.investor1)
-              .approve(
-                hre.namedAccounts.admin,
-                hre.ethers.utils.parseEther((1).toString())
-              );
-          },
-        },
+        // {
+        //   method: 'burnFrom',
+        //   pausableFunction: async ({ lNori, hre }: PausableFunctionParams) => {
+        //     return lNori
+        //       .connect(hre.namedSigners.admin)
+        //       .approve(hre.namedAccounts.investor1, formatTokenAmount(1));
+        //   },
+        //   postSetupHook: async ({ lNori, hre }: PausableFunctionParams) => {
+        //     await lNori
+        //       .connect(hre.namedSigners.investor1)
+        //       .approve(
+        //         hre.namedAccounts.admin,
+        //         hre.ethers.utils.parseEther((1).toString())
+        //       );
+        //   },
+        // },
         {
           method: 'grantRole',
           pausableFunction: async ({ lNori, hre }: PausableFunctionParams) => {
@@ -430,11 +430,6 @@ describe('LockedNori', () => {
           .connect(namedSigners.supplier)
           .approve(namedAccounts.admin, formatTokenAmount(10_000))
       ).to.emit(lNori, 'Approval');
-      await expect(
-        bpNori
-          .connect(namedSigners.supplier)
-          .authorizeOperator(namedAccounts.admin)
-      ).to.emit(bpNori, 'AuthorizedOperator');
 
       await advanceTime({ hre, timestamp: grant.unlockEndTime });
 
@@ -442,18 +437,6 @@ describe('LockedNori', () => {
         lNori,
         'Paused'
       );
-
-      await expect(
-        lNori
-          .connect(namedSigners.admin)
-          .operatorSend(
-            namedAccounts.supplier,
-            lNori.address,
-            formatTokenAmount(1),
-            userData,
-            '0x'
-          )
-      ).revertedWith('Pausable: paused');
 
       await expect(
         lNori
@@ -640,20 +623,6 @@ describe('LockedNori', () => {
             );
           });
         });
-
-        // (
-        //     {
-        //       role: 'PAUSER_ROLE',
-        //       accountWithRole: namedSigners.admin,
-        //       accountWithoutRole: namedSigners.investor1,
-        //     },
-        //     {
-        //       role: 'DEFAULT_ADMIN_ROLE',
-        //       accountWithRole: namedSigners.admin,
-        //       accountWithoutRole: namedSigners.investor1,
-        //     },
-        //   ] as const
-        // ).forEach(({ role }) => {});
       });
     });
   });
@@ -676,15 +645,14 @@ describe('LockedNori', () => {
   });
 
   describe('authorizeOperator', () => {
-    it(`Will authorize the operator`, async () => {
+    it(`Will revert with operator actions disabled`, async () => {
       const { lNori, hre } = await setupWithGrant();
       await expect(
         lNori
           .connect(hre.namedSigners.investor1)
           .authorizeOperator(hre.namedAccounts.investor2)
       )
-        .to.emit(lNori, 'AuthorizedOperator')
-        .withArgs(hre.namedAccounts.investor2, hre.namedAccounts.investor1);
+        .to.revertedWith('lNORI: operator actions disabled');
     });
   });
 
@@ -780,7 +748,7 @@ describe('LockedNori', () => {
       expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
       await expect(
         lNori.connect(addr1Signer).send(investor2, 1, '0x')
-      ).to.be.revertedWith('lNORI: insufficient balance');
+      ).to.be.revertedWith('lNORI: send disabled');
       expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
       expect(await lNori.totalSupply()).to.equal(GRANT_AMOUNT);
       expect(await bpNori.balanceOf(investor1)).to.equal(0);
@@ -792,7 +760,7 @@ describe('LockedNori', () => {
       const addr1Signer = await hre.ethers.getSigner(investor1);
       await expect(
         lNori.connect(addr1Signer).transfer(investor2, 1)
-      ).to.be.revertedWith('lNORI: insufficient balance');
+      ).to.be.revertedWith('lNORI: transfer disabled');
       expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
       expect(await lNori.totalSupply()).to.equal(GRANT_AMOUNT);
       expect(await bpNori.balanceOf(investor1)).to.equal(0);
@@ -809,7 +777,7 @@ describe('LockedNori', () => {
       );
       await expect(
         lNori.operatorSend(investor1, investor2, 1, '0x', '0x')
-      ).to.be.revertedWith('lNORI: insufficient balance');
+      ).to.be.revertedWith('lNORI: operator actions disabled');
       expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
       expect(await lNori.totalSupply()).to.equal(GRANT_AMOUNT);
       expect(await bpNori.balanceOf(investor1)).to.equal(0);
