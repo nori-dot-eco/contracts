@@ -626,8 +626,7 @@ describe('LockedNori', () => {
         lNori
           .connect(hre.namedSigners.investor1)
           .authorizeOperator(hre.namedAccounts.investor2)
-      )
-        .to.revertedWith('lNORI: operator actions disabled');
+      ).to.revertedWith('lNORI: operator actions disabled');
     });
   });
 
@@ -746,7 +745,9 @@ describe('LockedNori', () => {
       const { admin, investor1, investor2 } = await hre.getNamedAccounts();
       const addr1Signer = await hre.ethers.getSigner(investor1);
       expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
-      await expect(lNori.connect(addr1Signer).authorizeOperator(admin)).to.be.revertedWith('lNORI: operator actions disabled');
+      await expect(
+        lNori.connect(addr1Signer).authorizeOperator(admin)
+      ).to.be.revertedWith('lNORI: operator actions disabled');
       await expect(
         lNori.operatorSend(investor1, investor2, 1, '0x', '0x')
       ).to.be.revertedWith('lNORI: operatorSend disabled');
@@ -760,7 +761,9 @@ describe('LockedNori', () => {
       const { admin, investor1, investor2 } = await hre.getNamedAccounts();
       const addr1Signer = await hre.ethers.getSigner(investor1);
       expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
-      await expect(lNori.connect(addr1Signer).approve(admin, 1)).to.be.revertedWith('lNORI: operator actions disabled');
+      await expect(
+        lNori.connect(addr1Signer).approve(admin, 1)
+      ).to.be.revertedWith('lNORI: operator actions disabled');
       await expect(
         lNori.transferFrom(investor1, investor2, 1)
       ).to.be.revertedWith('lNORI: transferFrom disabled');
