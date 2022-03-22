@@ -67,20 +67,21 @@ contract Removal is
 
   function extractValue(
     uint256 tokenId,
-    uint256 fieldLength,
-    uint256 bytesOffsetFromRight,
+    uint256 numBitsFieldLength,
+    uint256 numBitsOffsetFromRight
   ) private view returns (uint256) {
-    bytes32 mask = bytes32(2**(fieldLength * 8) - 1) << (bytesOffsetFromRight * 8);
+    bytes32 mask = bytes32(2**(numBitsFieldLength) - 1) <<
+      (numBitsOffsetFromRight);
     bytes32 maskedValue = bytes32(tokenId) & mask;
-    return uint256(maskedValue >> (bytesOffsetFromRight * 8));
+    return uint256(maskedValue >> (numBitsOffsetFromRight));
   }
 
   function vintageFromTokenId(uint256 tokenId) public view returns (uint256) {
-    return extractValue(tokenId, 4, 0);
+    return extractValue(tokenId, 4 * 8, 0);
   }
 
   function parcelIdFromTokenId(uint256 tokenId) public view returns (uint256) {
-    return extractValue(tokenId, 8, 4);
+    return extractValue(tokenId, 8 * 8, 4 * 8);
   }
 
   /**

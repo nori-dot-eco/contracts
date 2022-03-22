@@ -176,7 +176,7 @@ describe('Removal', () => {
 
       const vintage = 2018;
       // const parcelId = 6530799039938560;
-      const parcelId = 42;
+      const parcelId = 6530799039938560;
       // const tokenId = 0x000007e2;
       const padding = ethers.utils.zeroPad(ethers.utils.hexlify(0), 20);
       const vintageUint8 = ethers.utils.zeroPad(
