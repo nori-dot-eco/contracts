@@ -587,6 +587,11 @@ contract LockedNORI is
    * before the point of revocation.  Anytime a vesting or unlock schedule is in
    * play the corresponding balance functions need to take care to never return
    * more than the grant amount less the claimed amount.
+   *
+   * Unlike in the `claim` function, here we burn {LockedNORI} from the grant holder but
+   * send that {BridgedPolygonNORI} back to Nori's treasury or an address of Nori's
+   * choosing (the *to* address).  The *claimedAmount* is not changed because this is
+   * not a claim operation.
    */
   function _revokeUnvestedTokens(
     address from,
