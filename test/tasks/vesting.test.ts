@@ -190,15 +190,7 @@ describe('vesting task', () => {
   afterEach(() => {
     sandbox.restore();
   });
-  it('yup playground', () => {
-    // todo rm
-    const schema = yup.number().required();
-    [null, undefined].forEach((v) =>
-      expect(() => schema.validateSync(v, { strict: true })).throws(
-        'this is a required field'
-      )
-    );
-  });
+
   describe('grantListToObject', () => {
     describe('pass', () => {
       it('should parse a list of grants into an object keyed by the wallet address of a grant recipient', () => {

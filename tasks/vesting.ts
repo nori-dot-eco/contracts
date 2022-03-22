@@ -9,7 +9,7 @@ import { diff, diffString } from 'json-diff';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import type { CSVParseParam } from 'csvtojson/v2/Parameters';
-import { isAddress } from 'ethers/lib/utils';
+import { isAddress, getAddress } from 'ethers/lib/utils';
 import moment from 'moment';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -18,375 +18,74 @@ import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import { getOctokit } from '@/tasks/utils/github';
 import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
 
-// todo cleanup (move utils to utils folder)
-
-// const validateGrant= (row: any)=> {
-//     if (Date.parse(row.vestEndTime) < Date.parse(row.startTime)) {
-//       fatalErr(
-//         `Invalid vesting timing with vestEndTime before startTime: ${row.vestEndTime}, ${row.startTime}`
-//       );
-//     }
-//
-//   // unlockEndTime - required and must be after startTime and vestEndTime
-//   if (!('unlockEndTime' in row)) {
-//     fatalErr('Invalid row without an unlockEndTime column');
-//   }
-//   if (!isValidTime(row.unlockEndTime)) {
-//     fatalErr(`Invalid unlockEndTime: ${row.unlockEndTime}`);
-//   }
-//   if (Date.parse(row.unlockEndTime) < Date.parse(row.startTime)) {
-//     fatalErr(
-//       `Invalid timing with unlockEndTime before startTime: ${row.unlockEndTime}, ${row.startTime}`
-//     );
-//   }
-//   if (!(row.vestEndtime === '')) {
-//     if (Date.parse(row.unlockEndTime) < Date.parse(row.vestEndTime)) {
-//       fatalErr(
-//         `Invalid timing with unlockEndTime before vestEndTime: ${row.unlockEndTime}, ${row.vestEndTime}`
-//       );
-//     }
-//   }
-//   // cliff1Time - required and can be same as startTime
-//   if (!('cliff1Time' in row)) {
-//     fatalErr('Invalid row without a cliff1Time column');
-//   }
-//   if (!isValidTime(row.cliff1Time)) {
-//     fatalErr(`Invalid cliff1Time: ${row.cliff1Time}`);
-//   }
-//   if (Date.parse(row.cliff1Time) < Date.parse(row.startTime)) {
-//     fatalErr(
-//       `Invalid timing with cliff1Time before startTime: ${row.cliff1Time}, ${row.startTime}`
-//     );
-//   }
-//   if (Date.parse(row.cliff1Time) > Date.parse(row.unlockEndTime)) {
-//     fatalErr(
-//       `Invalid timing with cliff1Time after unlockEndTime: ${row.cliff1Time}, ${row.unlockEndTime}`
-//     );
-//   }
-//   if (!(row.vestEndtime === '')) {
-//     if (Date.parse(row.cliff1Time) > Date.parse(row.vestEndTime)) {
-//       fatalErr(
-//         `Invalid timing with cliff1Time after vestEndTime: ${row.cliff1Time}, ${row.vestEndTime}`
-//       );
-//     }
-//   }
-//   // cliff2Time - optional, but if provided must come after cliff1Time before end times
-//   if (!('cliff2Time' in row)) {
-//     fatalErr('Invalid row without a cliff2Time column');
-//   }
-//   if (row.cliff2Time === '') {
-//     // no cliff 2 for this grant
-//   } else {
-//     if (!isValidTime(row.cliff2Time)) {
-//       fatalErr(`Invalid cliff2Time: ${row.cliff2Time}`);
-//     }
-//     if (Date.parse(row.cliff2Time) < Date.parse(row.startTime)) {
-//       fatalErr(
-//         `Invalid timing with cliff2Time before startTime: ${row.cliff2Time}, ${row.startTime}`
-//       );
-//     }
-//     if (Date.parse(row.cliff2Time) < Date.parse(row.cliff1Time)) {
-//       fatalErr(
-//         `Invalid timing with cliff2Time before cliff1Time: ${row.cliff2Time}, ${row.cliff1Time}`
-//       );
-//     }
-//     if (Date.parse(row.cliff2Time) > Date.parse(row.unlockEndTime)) {
-//       fatalErr(
-//         `Invalid timing with cliff2Time after unlockEndTime: ${row.cliff2Time}, ${row.unlockEndTime}`
-//       );
-//     }
-//     if (!(row.vestEndtime === '')) {
-//       if (Date.parse(row.cliff2Time) > Date.parse(row.vestEndTime)) {
-//         fatalErr(
-//           `Invalid timing with cliff2Time after vestEndTime: ${row.cliff2Time}, ${row.vestEndTime}`
-//         );
-//       }
-//     }
-//   }
-//   // vestCliff1Amount - if there is vesting, this can be any amount up to total amount
-//   if (!('vestCliff1Amount' in row)) {
-//     fatalErr('Invalid row without a vestCliff1Amount column');
-//   }
-//   if (!(row.vestEndTime === '')) {
-//     if (!isValidAmount(row.vestCliff1Amount)) {
-//       fatalErr(
-//         `Valid vestCliff1Amount is required because this grant has vesting: ${row.vestCliff1Amount}`
-//       );
-//     }
-//     if (intAmount(row.vestCliff1Amount) > intAmount(row.amount)) {
-//       fatalErr(
-//         `Invalid vestCliff1Amount larger than grant amount: ${row.vestCliff1Amount}, ${row.amount}`
-//       );
-//     }
-//   } else if (!(row.vestCliff1Amount === '')) {
-//     fatalErr(
-//       'Invalid grant has a vestCliff1Amount when there is no vestEndTime'
-//     );
-//   }
-//   // vestCliff2Amount - if there is a cliff 2 and vesting, this can be between vestCliff1Amount and total amount
-//   if (!('vestCliff2Amount' in row)) {
-//     fatalErr('Invalid row without a vestCliff2Amount column');
-//   }
-//   if (row.vestEndTime === '' || row.cliff2Time === '') {
-//     if (!(row.vestCliff2Amount === '')) {
-//       fatalErr(
-//         'Invalid grant has a vestCliff2Amount when there is no vesting or cliff 2'
-//       );
-//     }
-//   } else {
-//     if (!isValidAmount(row.vestCliff2Amount)) {
-//       fatalErr(
-//         `Valid vestCliff2Amount is required because this grant has vesting and cliff 2: ${row.vestCliff2Amount}`
-//       );
-//     }
-//     if (intAmount(row.vestCliff2Amount) > intAmount(row.amount)) {
-//       fatalErr(
-//         `Invalid vestCliff2Amount larger than grant amount: ${row.vestCliff2Amount}, ${row.amount}`
-//       );
-//     }
-//     if (intAmount(row.vestCliff2Amount) < intAmount(row.vestCliff1Amount)) {
-//       fatalErr(
-//         `Invalid vestCliff2Amount smaller than vestCliff1Amount: ${row.vestCliff2Amount}, ${row.vestCliff1Amount}`
-//       );
-//     }
-//   }
-//   // unlockCliff1Amount - optional, and if provided it must be less than vestCliff1Amount
-//   if (!('unlockCliff1Amount' in row)) {
-//     fatalErr('Invalid row without a unlockCliff1Amount column');
-//   }
-//   if (row.unlockCliff1Amount === '') {
-//     // no cliff 1 amount for this grant
-//     if (Date.parse(row.cliff1Time) > Date.parse(row.startTime)) {
-//       fatalErr(
-//         'Invalid grant has no unlockCliff1Amount but has a cliff1Time later than startTime'
-//       );
-//     }
-//   } else {
-//     if (!isValidAmount(row.unlockCliff1Amount)) {
-//       fatalErr(`Invalid unlockCliff1Amount: ${row.unlockCliff1Amount}`);
-//     }
-//     if (intAmount(row.unlockCliff1Amount) > intAmount(row.amount)) {
-//       fatalErr(
-//         `Invalid unlockCliff1Amount larger than grant amount: ${row.unlockCliff1Amount}, ${row.amount}`
-//       );
-//     }
-//     if (!(row.vestEndTime === '')) {
-//       if (intAmount(row.vestCliff1Amount) < intAmount(row.unlockCliff1Amount)) {
-//         fatalErr(
-//           `Invalid unlockCliff1Amount larger than vestCliff1Amount: ${row.unlockCliff1Amount}, ${row.vestCliff1Amount}`
-//         );
-//       }
-//     }
-//   }
-//   // unlockCliff2Amount - optional, and must be less than vestCliff2Amount
-//   if (!('unlockCliff2Amount' in row)) {
-//     fatalErr('Invalid row without a unlockCliff2Amount column');
-//   }
-//   if (row.cliff2Time === '') {
-//     // no cliff 2 for this grant
-//     if (!(row.unlockCliff2Amount === '')) {
-//       fatalErr('Invalid grant has unlockCliff2Amount when there is no cliff 2');
-//     }
-//   } else {
-//     if (!isValidAmount(row.unlockCliff2Amount)) {
-//       fatalErr(`Invalid unlockCliff2Amount: ${row.unlockCliff2Amount}`);
-//     }
-//     if (intAmount(row.unlockCliff2Amount) > intAmount(row.amount)) {
-//       fatalErr(
-//         `Invalid unlockCliff2Amount larger than grant amount: ${row.unlockCliff2Amount}, ${row.amount}`
-//       );
-//     }
-//     if (intAmount(row.unlockCliff2Amount) < intAmount(row.unlockCliff1Amount)) {
-//       fatalErr(
-//         `Invalid unlockCliff2Amount smaller than unlockCliff1Amount: ${row.unlockCliff2Amount}, ${row.unlockCliff1Amount}`
-//       );
-//     }
-//     if (!(row.vestEndTime === '')) {
-//       if (intAmount(row.vestCliff2Amount) < intAmount(row.unlockCliff2Amount)) {
-//         fatalErr(
-//           `Invalid unlockCliff2Amount larger than vestCliff2Amount: ${row.unlockCliff2Amount}, ${row.vestCliff2Amount}`
-//         );
-//       }
-//     }
-//   }
-//   // lastRevocationTime - optional
-//   if ('lastRevocationTime' in row && !(row.lastRevocationTime === '')) {
-//     if (!isValidTime(row.lastRevocationTime)) {
-//       fatalErr(`Invalid lastRevocationTime: ${row.lastRevocationTime}`);
-//     }
-//     if (Date.parse(row.lastRevocationTime) < Date.parse(row.startTime)) {
-//       fatalErr(
-//         `Invalid lastRevocationTime before startTime: ${row.lastRevocationTime}, ${row.startTime}`
-//       );
-//     }
-//     if (Date.parse(row.lastRevocationTime) > Date.parse(row.vestEndTime)) {
-//       fatalErr(
-//         `Invalid lastRevocationTime after vestEndTime: ${row.lastRevocationTime}, ${row.vestEndTime}`
-//       );
-//     }
-//   }
-// }
-
-const UINT_STRING_MATCHER = /^[0-9]+$/;
-
-export const validations = {
-  isValidEvmMoment: () => {
-    return {
-      message: (d: { path: string; value?: unknown }): string =>
-        `${d.path} must be a valid EVM timestamp. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean =>
-        typeof value === 'number' &&
-        yup.number().strict().min(0).integer().isValidSync(value) &&
-        moment(evmTimeToUtc(value)).isValid(),
-    };
-  },
-  isBigNumberish: () => {
-    return {
-      message: (d: { path: string; value?: unknown }): string =>
-        `${d.path} must be BigNumberish. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean =>
-        typeof value === 'string' && isBigNumberish(value),
-    };
-  },
-  walletAddressIsSameAsParentKey: () => {
-    return {
-      message: (d: { path: string; value?: unknown }): string =>
-        `${d.path} must be the same value as the parent key. Value: ${d.value}.`,
-      test: (value: unknown, opts: { path: string }): boolean => {
-        const hasSameValueAsParentKey =
-          opts?.path === '' ||
-          (Boolean(opts?.path) && opts?.path.split('.')[0] === value);
-        return typeof value === 'string' && hasSameValueAsParentKey;
-      },
-    };
-  },
-  isWalletAddress: () => {
-    return {
-      message: (d: { path: string; value?: unknown }): string =>
-        `${d.path} must be a wallet address. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
-        return typeof value === 'string' && isAddress(value);
-      },
-    };
-  },
-  isBeforeMaxYears: ({ maxFutureYears }: { maxFutureYears: number }) => {
-    return {
-      // todo should only be validated against new grants (e.g., validate against grant diff)
-      message: (d: { path: string; value?: unknown }): string =>
-        `${d.path} is not a date within ${maxFutureYears} years from today. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
-        const maxFutureYearsIsUint = yup
-          .number()
-          .integer()
-          .positive()
-          .min(0)
-          .required()
-          .strict()
-          .isValidSync(maxFutureYears);
-        return (
-          typeof value === 'number' &&
-          maxFutureYearsIsUint &&
-          evmTimeToUtc(value).isBefore(moment().add(maxFutureYears, 'years')) &&
-          evmTimeToUtc(value).isBefore('2100') // todo separate validation
-        );
-      },
-    };
-  },
-  isAfterYearsAgo: ({ minimumPastYears }: { minimumPastYears: number }) => {
-    return {
-      // todo should only be validated against new grants (e.g., validate against grant diff)
-      message: (d: { path: string; value?: unknown }): string =>
-        `${d.path} is not a date after ${minimumPastYears} year ago today. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
-        const minimumPastYearsIsUint = yup
-          .number()
-          .integer()
-          .positive()
-          .min(0)
-          .required()
-          .strict()
-          .isValidSync(minimumPastYears);
-        return (
-          typeof value === 'number' &&
-          minimumPastYearsIsUint &&
-          evmTimeToUtc(value).isAfter(
-            moment().subtract(minimumPastYears, 'years')
-          ) &&
-          evmTimeToUtc(value).isAfter('2021') // todo separate validation
-        );
-      },
-    };
-  },
-} as const;
-
-export const rules = {
-  requiredPositiveInteger: () =>
-    yup.number().integer().positive().min(0).required().strict(),
-  requiredString: () => yup.string().required().strict(),
-  requiredPositiveBigNumberString: () =>
-    rules
-      .requiredString()
-      .matches(UINT_STRING_MATCHER)
-      .test(validations.isBigNumberish()),
-  isTimeWithinReasonableDateRange: ({
-    minimumPastYears,
-    maxFutureYears,
-  }: {
-    minimumPastYears: number;
-    maxFutureYears: number;
-  }): yup.NumberSchema<number, yup.AnyObject, undefined, ''> =>
-    rules
-      .requiredPositiveInteger()
-      .test(validations.isValidEvmMoment())
-      .test(validations.isAfterYearsAgo({ minimumPastYears }))
-      .test(validations.isBeforeMaxYears({ maxFutureYears })),
-  isWalletAddress: () =>
-    rules
-      .requiredString()
-      .test(validations.isWalletAddress())
-      .test(validations.walletAddressIsSameAsParentKey()),
-} as const;
-
-export const grantSchema = yup
-  .object({
-    recipient: rules.isWalletAddress(),
-    originalAmount: rules.requiredPositiveBigNumberString(),
-    startTime: rules.isTimeWithinReasonableDateRange({
-      minimumPastYears: 1,
-      maxFutureYears: 1,
-    }), // todo test 1 year future only
-    vestEndTime: rules.isTimeWithinReasonableDateRange({
-      minimumPastYears: 1,
-      maxFutureYears: 10,
-    }),
-    unlockEndTime: rules.isTimeWithinReasonableDateRange({
-      minimumPastYears: 1,
-      maxFutureYears: 10,
-    }),
-    cliff1Time: rules.isTimeWithinReasonableDateRange({
-      minimumPastYears: 1,
-      maxFutureYears: 10,
-    }),
-    cliff2Time: rules.isTimeWithinReasonableDateRange({
-      minimumPastYears: 1,
-      maxFutureYears: 10,
-    }),
-    vestCliff1Amount: rules.requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
-    vestCliff2Amount: rules.requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
-    unlockCliff1Amount: rules.requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
-    unlockCliff2Amount: rules.requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
-    lastRevocationTime: rules.requiredPositiveInteger(),
-    lastQuantityRevoked: rules.requiredPositiveBigNumberString(), // todo isWithinReasonableDateRange
-  })
-  .strict()
-  .noUnknown();
-
-// todo grantDiffSchema so that we can validate diffs (primarily useful for validating that a date is within -1...+10 years from the date it is being created)
-export const grantsSchema = yup.lazy((data) => {
-  return yup.object(
-    Object.fromEntries(Object.keys(data).map((key) => [key, grantSchema]))
-  );
-});
+// todo cleanup: move utils to utils folder)
+// todo cli: --dry-run using contract.callStatic.methodName
+// todo cli: rename update command name with update-and-revoke
+// todo cli: add optional param to allow a revoking tokens to a different address than the first signer index
+// todo cli: add fireblocks support
+// todo cli tests: test remaining untested flags and command combos
+// todo tests: test against remaining grants listed in google sheets CSV
+// todo grantSchema test: originalAmount exists
+// todo grantSchema test: originalAmount is positive uint bignumber string
+// todo grantSchema test: originalAmount > 0
+// todo grantSchema validation: originalAmount isWithinReasonableBigNumberRange
+// todo grantSchema validation: vestEndTime > startTime
+// todo grantSchema validation: unlockEndTime exists
+// todo grantSchema validation: unlockEndTime date validation
+// todo grantSchema validation: unlockEndTime > startTime
+// todo grantSchema validation: unlockEndTime > vestEndTime
+// todo grantSchema validation: vestEndTime exists
+// todo grantSchema validation: vestEndTime date validation
+// todo grantSchema validation: cliff1Time exists
+// todo grantSchema validation: cliff1Time date validation
+// todo grantSchema validation: cliff1Time > startTime
+// todo grantSchema validation: cliff1Time < unlockEndTime
+// todo grantSchema validation: cliff1Time < vestEndTime
+// todo grantSchema validation: cliff2Time is optional
+// todo grantSchema validation: cliff2Time date validation
+// todo grantSchema validation: cliff2Time date validation > startTime
+// todo grantSchema validation: cliff2Time date validation > cliff1 time
+// todo grantSchema validation: cliff2Time date validation < unlockEndTime
+// todo grantSchema validation: vestEndTime exists
+// todo grantSchema validation: vestEndTime date validation
+// todo grantSchema validation: vestEndTime >= startTime
+// todo grantSchema validation: vestCliff1Amount is optional
+// todo grantSchema validation: vestCliff1Amount is positive uint bignumber string
+// todo grantSchema validation: vestCliff1Amount exists only if vestEndTime exists and if vestCliff1Time exists
+// todo grantSchema validation: vestCliff1Amount <= originalAmount
+// todo grantSchema validation: vestCliff1Amount isWithinReasonableBigNumberRange
+// todo grantSchema validation: vestCliff2Amount is optional
+// todo grantSchema validation: vestCliff2Amount is positive uint bignumber string
+// todo grantSchema validation: vestCliff2Amount exists only if vestEndTime exists and if vestCliff1Time exists and if vest1CliffAmount exists
+// todo grantSchema validation: vestCliff2Amount > vestCliff1Amount (cumulative)
+// todo grantSchema validation: vestCliff2Amount exists only if vestEndTime exists and if vestCliff2Time exists
+// todo grantSchema validation: vestCliff2Amount <= originalAmount
+// todo grantSchema validation: vestCliff2Amount isWithinReasonableBigNumberRange
+// todo grantSchema validation: unlockCliff1Amount is positive uint bignumber string
+// todo grantSchema validation: unlockCliff1Amount <= originalAmount
+// todo grantSchema validation: unlockCliff2Amount <= originalAmount
+// todo grantSchema validation: unlockCliff2Amount > unlockCliff1Amount (cumulative)
+// todo grantSchema validation: unlockCliff2Amount is positive uint bignumber string
+// todo grantSchema validation: unlockCliff2Amount isWithinReasonableBigNumberRange
+// todo grantSchema validation: lastRevocationTime is optional
+// todo grantSchema validation: lastRevocationTime date validation
+// todo grantSchema validation: lastRevocationTime > startTime
+// todo grantSchema validation: lastRevocationTime < vestEndTime
+// todo grantSchema validation: lastRevocationTime is undefined if lastQuantityRevoked is set
+// todo grantSchema validation: lastQuantityRevoked is optional
+// todo grantSchema validation: lastQuantityRevoked is positive uint bignumber string
+// todo grantSchema validation: lastQuantityRevoked isWithinReasonableBigNumberRange
+// todo grantSchema validation: lastQuantityRevoked is undefined if lastRevocationTime is set
+// todo grantSchema validation: evmTimeToUtc(value).isBefore('2100') should be separated from isBeforeMaxYears
+// todo grantSchema validation: evmTimeToUtc(value).isAfter('2021') should be separated from isAfterYearsAgo
+// todo diffSchema validation: create schema that adds validation for blockchain grants vs github grant diffs
+// todo diffSchema validation: isBeforeMaxYears should only be run on diff schema since it relies on the number of years from the date the CLI is being run
+// todo diffSchema validation: isBeforeMaxYears should only be run on diff schema since it relies on the number of years from the date the CLI is being run
+// todo diffSchema validation: lastQuantityRevoked only allowed if grant exists
+// todo diffSchema validation: if startTime.__old !== 0, startTime.__new should never exist
+// todo blockchainGrantsSchema: set to grantSchema with one additional exists property
+// todo types: global subtask types  (e.g., RunVestingWithSubTasks)
+// todo types: replace `any` types
 
 type ParseGrantFunction<
   TReturnType extends keyof Grant | 'omit' | 'number' | 'string'
@@ -440,10 +139,262 @@ interface Grants {
   blockchain: ParsedGrant;
 }
 
+type ColParser = CSVParseParam['colParser'];
+
+interface CsvParser extends ColParser {
+  recipient: ParseGrantFunction<'recipient'>;
+  contactUUID: 'omit';
+  originalAmount: ParseGrantFunction<'originalAmount'>;
+  startTime: ParseGrantFunction<'startTime'>;
+  vestEndTime: ParseGrantFunction<'vestEndTime'>;
+  unlockEndTime: ParseGrantFunction<'unlockEndTime'>;
+  cliff1Time: ParseGrantFunction<'cliff1Time'>;
+  cliff2Time: ParseGrantFunction<'cliff2Time'>;
+  vestCliff1Amount: ParseGrantFunction<'vestCliff1Amount'>;
+  vestCliff2Amount: ParseGrantFunction<'vestCliff2Amount'>;
+  unlockCliff1Amount: ParseGrantFunction<'unlockCliff1Amount'>;
+  unlockCliff2Amount: ParseGrantFunction<'unlockCliff2Amount'>;
+  lastRevocationTime: ParseGrantFunction<'lastRevocationTime'>;
+  lastQuantityRevoked: ParseGrantFunction<'lastQuantityRevoked'>;
+}
+
+const UINT_STRING_MATCHER = /^[0-9]+$/;
+
+export const validations = {
+  isValidEvmMoment: () => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} must be a valid EVM timestamp. Value: ${d.value}.`,
+      test: (value: unknown, _opts?: { path: string }): boolean =>
+        typeof value === 'number' &&
+        yup.number().strict().min(0).integer().isValidSync(value) &&
+        moment(evmTimeToUtc(value)).isValid(),
+    };
+  },
+  isBigNumberish: () => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} must be BigNumberish. Value: ${d.value}.`,
+      test: (value: unknown, _opts?: { path: string }): boolean =>
+        typeof value === 'string' && isBigNumberish(value),
+    };
+  },
+  walletAddressIsSameAsParentKey: () => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} must be the same value as the parent key. Value: ${d.value}.`,
+      test: (value: unknown, opts: { path: string }): boolean => {
+        const hasSameValueAsParentKey =
+          opts?.path === '' ||
+          (Boolean(opts?.path) && opts?.path.split('.')[0] === value);
+        return typeof value === 'string' && hasSameValueAsParentKey;
+      },
+    };
+  },
+  isWalletAddress: () => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} must be a wallet address. Value: ${d.value}.`,
+      test: (value: unknown, _opts?: { path: string }): boolean => {
+        return typeof value === 'string' && isAddress(value);
+      },
+    };
+  },
+  isBeforeMaxYears: ({ maxFutureYears }: { maxFutureYears: number }) => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} is not a date within ${maxFutureYears} years from today. Value: ${d.value}.`,
+      test: (value: unknown, _opts?: { path: string }): boolean => {
+        const maxFutureYearsIsUint = yup
+          .number()
+          .integer()
+          .positive()
+          .min(0)
+          .required()
+          .strict()
+          .isValidSync(maxFutureYears);
+        return (
+          typeof value === 'number' &&
+          maxFutureYearsIsUint &&
+          evmTimeToUtc(value).isBefore(moment().add(maxFutureYears, 'years')) &&
+          evmTimeToUtc(value).isBefore('2100')
+        );
+      },
+    };
+  },
+  isAfterYearsAgo: ({ minimumPastYears }: { minimumPastYears: number }) => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} is not a date after ${minimumPastYears} year ago today. Value: ${d.value}.`,
+      test: (value: unknown, _opts?: { path: string }): boolean => {
+        const minimumPastYearsIsUint = yup
+          .number()
+          .integer()
+          .positive()
+          .min(0)
+          .required()
+          .strict()
+          .isValidSync(minimumPastYears);
+        return (
+          typeof value === 'number' &&
+          minimumPastYearsIsUint &&
+          evmTimeToUtc(value).isAfter(
+            moment().subtract(minimumPastYears, 'years')
+          ) &&
+          evmTimeToUtc(value).isAfter('2021')
+        );
+      },
+    };
+  },
+} as const;
+
+export const rules = {
+  requiredPositiveInteger: () =>
+    yup.number().integer().positive().min(0).required().strict(),
+  requiredString: () => yup.string().required().strict(),
+  requiredPositiveBigNumberString: () =>
+    rules
+      .requiredString()
+      .matches(UINT_STRING_MATCHER)
+      .test(validations.isBigNumberish()),
+  isTimeWithinReasonableDateRange: ({
+    minimumPastYears,
+    maxFutureYears,
+  }: {
+    minimumPastYears: number;
+    maxFutureYears: number;
+  }): yup.NumberSchema<number, yup.AnyObject, undefined, ''> =>
+    rules
+      .requiredPositiveInteger()
+      .test(validations.isValidEvmMoment())
+      .test(validations.isAfterYearsAgo({ minimumPastYears }))
+      .test(validations.isBeforeMaxYears({ maxFutureYears })),
+  isWalletAddress: () =>
+    rules
+      .requiredString()
+      .test(validations.isWalletAddress())
+      .test(validations.walletAddressIsSameAsParentKey()),
+} as const;
+
+export const grantSchema = yup
+  .object({
+    recipient: rules.isWalletAddress(),
+    originalAmount: rules.requiredPositiveBigNumberString(),
+    startTime: rules.isTimeWithinReasonableDateRange({
+      minimumPastYears: 1,
+      maxFutureYears: 1,
+    }),
+    vestEndTime: rules.isTimeWithinReasonableDateRange({
+      minimumPastYears: 1,
+      maxFutureYears: 10,
+    }),
+    unlockEndTime: rules.isTimeWithinReasonableDateRange({
+      minimumPastYears: 1,
+      maxFutureYears: 10,
+    }),
+    cliff1Time: rules.isTimeWithinReasonableDateRange({
+      minimumPastYears: 1,
+      maxFutureYears: 10,
+    }),
+    cliff2Time: rules.isTimeWithinReasonableDateRange({
+      minimumPastYears: 1,
+      maxFutureYears: 10,
+    }),
+    vestCliff1Amount: rules.requiredPositiveBigNumberString(),
+    vestCliff2Amount: rules.requiredPositiveBigNumberString(),
+    unlockCliff1Amount: rules.requiredPositiveBigNumberString(),
+    unlockCliff2Amount: rules.requiredPositiveBigNumberString(),
+    lastRevocationTime: rules.requiredPositiveInteger(),
+    lastQuantityRevoked: rules.requiredPositiveBigNumberString(),
+  })
+  .strict()
+  .noUnknown();
+
+export const grantsSchema = yup.lazy((data) => {
+  return yup.object(
+    Object.fromEntries(Object.keys(data).map((key) => [key, grantSchema]))
+  );
+});
+
+const getDiff = ({
+  grants: { github: githubGrants, blockchain: blockchainGrants },
+  expand,
+  asJson,
+}: {
+  grants: Grants;
+  expand?: boolean;
+  asJson?: boolean;
+}): string | Record<string, unknown> => {
+  return Boolean(asJson)
+    ? diff(blockchainGrants, githubGrants, { full: expand })
+    : diffString(blockchainGrants, githubGrants, { full: expand });
+};
+
+export const csvParser: CsvParser = {
+  recipient: (item) => getAddress(item),
+  contactUUID: 'omit',
+  originalAmount: (item) => formatTokenString(item).toString(),
+  startTime: (item) => utcToEvmTime(item),
+  vestEndTime: (item) => utcToEvmTime(item),
+  unlockEndTime: (item) => utcToEvmTime(item),
+  cliff1Time: (item) => utcToEvmTime(item),
+  cliff2Time: (item) => utcToEvmTime(item),
+  vestCliff1Amount: (item) => formatTokenString(item ?? '0').toString(),
+  vestCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
+  unlockCliff1Amount: (item) => formatTokenString(item ?? '0').toString(),
+  unlockCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
+  lastRevocationTime: (item) => (Boolean(item) ? utcToEvmTime(item) : 0),
+  lastQuantityRevoked: (item) =>
+    formatTokenString(['', 'ALL'].includes(item) ? '0' : item).toString(),
+};
+
+export const grantListToObject = ({
+  listOfGrants,
+}: {
+  listOfGrants: GrantList;
+}): ParsedGrant => {
+  return listOfGrants.reduce((acc, val): ParsedGrant => {
+    if (Boolean(acc[val.recipient])) {
+      throw new Error('Found duplicate recipient address in grants');
+    }
+    return { ...acc, [val.recipient]: val };
+  }, {} as ParsedGrant);
+};
+
+export const grantCsvToList = async ({
+  data,
+  opts,
+}: {
+  data: string;
+  opts?: Partial<Omit<CSVParseParam, 'colParser'>>;
+}): Promise<GrantList> => {
+  const dataP = (await csv({
+    ...opts,
+    colParser: csvParser,
+  })
+    .subscribe(undefined, (err) => {
+      throw err;
+    })
+    .fromString(data)) as GrantList;
+  return dataP;
+};
+
+const grantCsvToObject = async ({
+  data,
+}: {
+  data: string;
+}): Promise<ParsedGrant> => {
+  const listOfGrants: GrantList = await grantCsvToList({
+    data: data.toString(),
+    opts: { checkColumn: true },
+  });
+  const grants: ParsedGrant = grantListToObject({ listOfGrants });
+  return grants;
+};
+
 /**
  * We use a function here instead to address type issues resulting from race conditions in typechain
  *
- * @todo
  * @see https://github.com/dethcrypto/TypeChain/issues/371#issuecomment-1032397470
  */
 export const GET_VESTING_TASK = () =>
@@ -493,14 +444,18 @@ export const GET_VESTING_TASK = () =>
       });
       const lNori = getLockedNori({ network: hre.network.name, signer });
       const runSubtask = hre.run as RunVestingWithSubTasks;
-      let githubGrants: Grants['github'];
+      let githubGrantsCsv: string;
       if (typeof file === 'string') {
         hre.log('Reading grants from file');
-        githubGrants = readFileSync(file, { encoding: 'utf8' }) as any; // todo type
+        githubGrantsCsv = readFileSync(file, { encoding: 'utf8' });
       } else {
         hre.log('Reading grants from github commit:', commit);
-        githubGrants = await runSubtask('get-github', { commit });
+        githubGrantsCsv = await runSubtask('get-github', { commit });
       }
+      const githubGrants: Grants['github'] = await grantCsvToObject({
+        data: githubGrantsCsv,
+      });
+      await grantsSchema.validate(githubGrants);
       if (Boolean(showDiff) || Boolean(expand)) {
         await runSubtask('diff', {
           grants: { github: githubGrants },
@@ -535,75 +490,6 @@ export const GET_VESTING_TASK = () =>
     },
   } as const);
 
-const getDiff = ({
-  grants: { github: githubGrants, blockchain: blockchainGrants },
-  expand,
-  asJson,
-}: {
-  grants: Grants;
-  expand?: boolean;
-  asJson?: boolean;
-}): string | Record<string, unknown> => {
-  return Boolean(asJson)
-    ? diff(blockchainGrants, githubGrants, { full: expand })
-    : diffString(blockchainGrants, githubGrants, { full: expand });
-};
-
-type ColParser = CSVParseParam['colParser'];
-
-interface CsvParser extends ColParser {
-  recipient: 'string';
-  contactUUID: 'omit';
-  originalAmount: ParseGrantFunction<'originalAmount'>;
-  startTime: ParseGrantFunction<'startTime'>;
-  vestEndTime: ParseGrantFunction<'vestEndTime'>;
-  unlockEndTime: ParseGrantFunction<'unlockEndTime'>;
-  cliff1Time: ParseGrantFunction<'cliff1Time'>;
-  cliff2Time: ParseGrantFunction<'cliff2Time'>;
-  vestCliff1Amount: ParseGrantFunction<'vestCliff1Amount'>;
-  vestCliff2Amount: ParseGrantFunction<'vestCliff2Amount'>;
-  unlockCliff1Amount: ParseGrantFunction<'unlockCliff1Amount'>;
-  unlockCliff2Amount: ParseGrantFunction<'unlockCliff2Amount'>;
-  lastRevocationTime: ParseGrantFunction<'lastRevocationTime'>;
-  lastQuantityRevoked: ParseGrantFunction<'lastQuantityRevoked'>;
-}
-
-export const csvParser: CsvParser = {
-  recipient: 'string',
-  contactUUID: 'omit',
-  originalAmount: (item) => formatTokenString(item).toString(), // todo validate (> 0)
-  startTime: (item) => utcToEvmTime(item),
-  vestEndTime: (item) => utcToEvmTime(item),
-  unlockEndTime: (item) => utcToEvmTime(item),
-  cliff1Time: (item) => utcToEvmTime(item),
-  cliff2Time: (item) => utcToEvmTime(item),
-  vestCliff1Amount: (item) => formatTokenString(item ?? '0').toString(),
-  vestCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
-  unlockCliff1Amount: (item) => formatTokenString(item ?? '0').toString(),
-  unlockCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
-  lastRevocationTime: (item) => (Boolean(item) ? utcToEvmTime(item) : 0),
-  lastQuantityRevoked: (item) =>
-    formatTokenString(['', 'ALL'].includes(item) ? '0' : item).toString(), // todo, if grant doesn't exist, don't allow revoking
-};
-
-export const grantCsvToList = async ({
-  data,
-  opts,
-}: {
-  data: string;
-  opts?: Partial<Omit<CSVParseParam, 'colParser'>>;
-}): Promise<GrantList> => {
-  const dataP = (await csv({
-    ...opts,
-    colParser: csvParser,
-  })
-    .subscribe(undefined, (err) => {
-      throw err;
-    })
-    .fromString(data)) as GrantList;
-  return dataP;
-};
-
 const DIFF_SUBTASK = {
   name: 'diff',
   description:
@@ -637,19 +523,19 @@ const DIFF_SUBTASK = {
               lastQuantityRevoked,
               exists,
               ...rest
-            } = v1 as any; // todo blockchain grants schema (additional exists property)
+            } = v1 as any;
             return [
               ...prev,
               [
                 k1,
                 {
                   vestEndTime:
-                    exists &&
+                    Boolean(exists) &&
                     vestEndTime === 0 &&
                     githubGrants[k1].vestEndTime === githubGrants[k1].startTime
                       ? githubGrants[k1].vestEndTime
                       : vestEndTime,
-                  ...(lastQuantityRevoked && {
+                  ...(Boolean(lastQuantityRevoked) && {
                     lastQuantityRevoked:
                       githubGrants[k1].lastQuantityRevoked !== '0'
                         ? lastQuantityRevoked
@@ -671,19 +557,6 @@ const DIFF_SUBTASK = {
   },
 } as const;
 
-export const grantListToObject = ({
-  listOfGrants,
-}: {
-  listOfGrants: GrantList;
-}): ParsedGrant => {
-  return listOfGrants.reduce((acc, val): ParsedGrant => {
-    if (Boolean(acc[val.recipient])) {
-      throw new Error('Found duplicate recipient address in grants');
-    }
-    return { ...acc, [val.recipient]: val };
-  }, {} as ParsedGrant);
-};
-
 const GET_GITHUB_SUBTASK = {
   name: 'get-github',
   description: 'Get all grants from github CSV',
@@ -695,7 +568,7 @@ const GET_GITHUB_SUBTASK = {
       'commit'
     >,
     _hre: CustomHardHatRuntimeEnvironment
-  ): Promise<ParsedGrant> => {
+  ): Promise<string> => {
     const { data } = await getOctokit().rest.repos.getContent({
       mediaType: {
         format: 'raw',
@@ -705,13 +578,7 @@ const GET_GITHUB_SUBTASK = {
       repo: 'grants',
       path: 'grants.csv',
     });
-    const listOfGrants: GrantList = await grantCsvToList({
-      data: data.toString(),
-      opts: { checkColumn: true },
-    });
-    const githubGrants: ParsedGrant = grantListToObject({ listOfGrants });
-    await grantsSchema.validate(githubGrants);
-    return githubGrants;
+    return data.toString();
   },
 } as const;
 
@@ -785,15 +652,13 @@ const UPDATE_SUBTASK = {
           diff(blockchainGrants, githubGrants, { full: true })
         ).filter(([dk, d]: [any, any]) => {
           return Object.entries(d).find(([k, v]: [any, any]) => {
-            // todo throw if startTime.__new and !== 0
-            const defaults = Boolean(
-              !(blockchainGrants[dk] as any).exists &&
-                Boolean(v) &&
-                k !== 'lastRevocationTime' &&
-                k !== 'lastQuantityRevoked' &&
-                v?.__new
-            );
-            return defaults;
+            const isDifferent =
+              !Boolean((blockchainGrants[dk] as any)?.exists) &&
+              Boolean(v) &&
+              k !== 'lastRevocationTime' &&
+              k !== 'lastQuantityRevoked' &&
+              v?.__new;
+            return isDifferent;
           });
         })
       )
@@ -876,7 +741,6 @@ const UPDATE_SUBTASK = {
 } as const;
 
 const REVOKE_SUBTASK = {
-  // todo --updateAndRevoke flag
   name: 'revoke',
   description: 'Revokes grants on-chain',
   run: async (
@@ -891,7 +755,7 @@ const REVOKE_SUBTASK = {
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
-    const runSubtask = hre.run as RunVestingWithSubTasks; // todo why do i need this
+    const runSubtask = hre.run as RunVestingWithSubTasks;
     const blockchainGrants = await runSubtask('get-blockchain', {
       grants: { githubGrants },
       lNori,
@@ -902,7 +766,7 @@ const REVOKE_SUBTASK = {
     const grantRevocationDiffs: any[] = Object.values(
       diffs.filter(
         (d: any) =>
-          d.lastRevocationTime.__new ||
+          Boolean(d.lastRevocationTime.__new) ||
           (d.lastQuantityRevoked.__new === '0' && d.lastRevocationTime.__new)
       )
     );
@@ -912,20 +776,17 @@ const REVOKE_SUBTASK = {
       )
     );
     if (grantRevocationDiffs.length > 0) {
-      const fromAccounts = grantRevocationDiffs.map(
-        (grant: any) => grant.recipient
-      );
+      const fromAccounts = grantRevocationDiffs.map((grant) => grant.recipient);
       const toAccounts = Array(grantRevocationDiffs.length).fill(
         signer.address
-      ); // todo use flag to allow different to address for admin
+      );
       const atTimes = grantRevocationDiffs.map(
         (grant) => grant.lastRevocationTime.__new ?? grant.lastRevocationTime
       );
-      const amounts = grantRevocationDiffs.map(
-        (grant) =>
-          BigNumber.from(
-            grant.lastQuantityRevoked.__new ?? grant.lastQuantityRevoked
-          ) // todo maybe throw error if this is not set to prevent mistakenly revoking full grant?
+      const amounts = grantRevocationDiffs.map((grant) =>
+        BigNumber.from(
+          grant.lastQuantityRevoked.__new ?? grant.lastQuantityRevoked
+        )
       );
       const batchRevokeUnvestedTokenAmountsTx =
         await lNori.batchRevokeUnvestedTokenAmounts(
@@ -996,5 +857,4 @@ const REVOKE_SUBTASK = {
     GET_BLOCKCHAIN_SUBTASK.run
   );
   subtask(REVOKE_SUBTASK.name, REVOKE_SUBTASK.description, REVOKE_SUBTASK.run);
-  // todo --dry-run using CONTRACT.callStatic.methodName
 })();
