@@ -19,8 +19,6 @@ import { getOctokit } from '@/tasks/utils/github';
 import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
 
 // todo cleanup: move utils to utils folder)
-// todo cli: --dry-run using contract.callStatic.methodName
-// todo cli: rename update command name with update-and-revoke
 // todo cli: add optional param to allow a revoking tokens to a different address than the first signer index
 // todo cli: add fireblocks support
 // todo cli tests: test remaining untested flags and command combos
@@ -103,8 +101,8 @@ type RunVestingWithSubTasks = <TTaskName extends string>(
   name: TTaskName,
   taskArguments: typeof name extends typeof DIFF_SUBTASK['name']
     ? Parameters<typeof DIFF_SUBTASK['run']>[0]
-    : typeof name extends typeof UPDATE_SUBTASK['name']
-    ? Parameters<typeof UPDATE_SUBTASK['run']>[0]
+    : typeof name extends typeof CREATE_SUBTASK['name']
+    ? Parameters<typeof CREATE_SUBTASK['run']>[0]
     : typeof name extends typeof GET_GITHUB_SUBTASK['name']
     ? Parameters<typeof GET_GITHUB_SUBTASK['run']>[0]
     : typeof name extends typeof GET_BLOCKCHAIN_SUBTASK['name']
@@ -116,8 +114,8 @@ type RunVestingWithSubTasks = <TTaskName extends string>(
   ReturnType<
     typeof name extends typeof DIFF_SUBTASK['name']
       ? typeof DIFF_SUBTASK['run']
-      : typeof name extends typeof UPDATE_SUBTASK['name']
-      ? typeof UPDATE_SUBTASK['run']
+      : typeof name extends typeof CREATE_SUBTASK['name']
+      ? typeof CREATE_SUBTASK['run']
       : typeof name extends typeof GET_GITHUB_SUBTASK['name']
       ? typeof GET_GITHUB_SUBTASK['run']
       : typeof name extends typeof GET_BLOCKCHAIN_SUBTASK['name']
@@ -410,19 +408,21 @@ export const GET_VESTING_TASK = () =>
         action,
         file,
         asJson,
+        dryRun,
       }: {
         diff?: boolean;
         expand?: boolean;
         commit?: string;
         account?: number;
-        action?: 'update' | 'account' | 'revoke' | 'create';
+        action?: 'createAndRevoke' | 'revoke' | 'create';
         file?: string;
         asJson?: boolean;
+        dryRun?: boolean;
       },
       _: CustomHardHatRuntimeEnvironment
     ): Promise<void> => {
-      const { update, revoke, create } = {
-        update: action === 'update',
+      const { createAndRevoke, revoke, create } = {
+        createAndRevoke: action === 'createAndRevoke',
         revoke: action === 'revoke',
         create: action === 'create',
       };
@@ -464,24 +464,26 @@ export const GET_VESTING_TASK = () =>
           asJson,
         });
       }
-      if (update || create) {
-        await runSubtask('update', {
+      if (createAndRevoke || create) {
+        await runSubtask('create', {
           grants: { github: githubGrants },
           bpNori,
           lNori,
+          dryRun,
         });
       }
-      if (update || revoke) {
+      if (createAndRevoke || revoke) {
         await runSubtask('revoke', {
           grants: { github: githubGrants },
           lNori,
           signer,
+          dryRun,
         });
       }
       if (
         !Boolean(expand) &&
         !Boolean(showDiff) &&
-        !update &&
+        !createAndRevoke &&
         !create &&
         !revoke
       ) {
@@ -626,18 +628,20 @@ const GET_BLOCKCHAIN_SUBTASK = {
   },
 } as const;
 
-const UPDATE_SUBTASK = {
-  name: 'update',
-  description: 'Update grants on-chain',
+const CREATE_SUBTASK = {
+  name: 'create',
+  description: 'Create grants on-chain',
   run: async (
     {
       grants: { github: githubGrants },
       bpNori,
       lNori,
+      dryRun,
     }: {
       grants: Pick<Grants, 'github'>;
       bpNori: BridgedPolygonNORI;
       lNori: LockedNORI;
+      dryRun?: boolean;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -712,29 +716,44 @@ const UPDATE_SUBTASK = {
       const userData = grantDiffs.map((grant) => buildUserData({ grant }));
       const operatorData = grantDiffs.map((_) => '0x');
       const requireReceptionAck = grantDiffs.map((_) => true);
-      const batchCreateGrantsTx = await bpNori.batchSend(
-        recipients,
-        amounts,
-        userData,
-        operatorData,
-        requireReceptionAck
-      );
-      const result = await batchCreateGrantsTx.wait();
-      hre.log(
-        chalk.bold.bgWhiteBright.black(
-          `⏰ Waiting for transaction (tx: ${batchCreateGrantsTx.hash})`
-        )
-      );
-      if (result.status === 1) {
+      if (!Boolean(dryRun)) {
+        const batchCreateGrantsTx = await bpNori.batchSend(
+          recipients,
+          amounts,
+          userData,
+          operatorData,
+          requireReceptionAck
+        );
+        const result = await batchCreateGrantsTx.wait();
         hre.log(
           chalk.bold.bgWhiteBright.black(
-            `🎉 Created ${grantDiffs.length} grants (tx: ${result.transactionHash})`
+            `⏰ Waiting for transaction (tx: ${batchCreateGrantsTx.hash})`
           )
         );
+        if (result.status === 1) {
+          hre.log(
+            chalk.bold.bgWhiteBright.black(
+              `🎉 Created ${grantDiffs.length} grants (tx: ${result.transactionHash})`
+            )
+          );
+        } else {
+          const error = `💀 Failed to create ${grantDiffs.length} grants (tx: ${result.transactionHash})`;
+          hre.log(chalk.bold.bgWhiteBright.red(error));
+          throw new Error(error);
+        }
       } else {
-        const error = `💀 Failed to create ${grantDiffs.length} grants (tx: ${result.transactionHash})`;
-        hre.log(chalk.bold.bgWhiteBright.red(error));
-        throw new Error(error);
+        try {
+          await bpNori.callStatic.batchSend(
+            recipients,
+            amounts,
+            userData,
+            operatorData,
+            requireReceptionAck
+          );
+          hre.log(chalk.bold.bgWhiteBright.black(`🎉 Dry run was successful!`));
+        } catch (e) {
+          hre.log(chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, e));
+        }
       }
     }
   },
@@ -748,10 +767,12 @@ const REVOKE_SUBTASK = {
       grants: { github: githubGrants },
       lNori,
       signer,
+      dryRun,
     }: {
       grants: Pick<Grants, 'github'>;
       lNori: LockedNORI;
       signer: SignerWithAddress;
+      dryRun?: boolean;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -788,39 +809,56 @@ const REVOKE_SUBTASK = {
           grant.lastQuantityRevoked.__new ?? grant.lastQuantityRevoked
         )
       );
-      const batchRevokeUnvestedTokenAmountsTx =
-        await lNori.batchRevokeUnvestedTokenAmounts(
-          fromAccounts,
-          toAccounts,
-          atTimes,
-          amounts
-        );
-      const result = await batchRevokeUnvestedTokenAmountsTx.wait();
-      hre.log(
-        chalk.bold.bgWhiteBright.black(
-          `⏰ Waiting for transaction (tx: ${batchRevokeUnvestedTokenAmountsTx.hash})`
-        )
-      );
-      if (result.status === 1) {
+      if (!Boolean(dryRun)) {
+        const batchRevokeUnvestedTokenAmountsTx =
+          await lNori.batchRevokeUnvestedTokenAmounts(
+            fromAccounts,
+            toAccounts,
+            atTimes,
+            amounts
+          );
+        const result = await batchRevokeUnvestedTokenAmountsTx.wait();
         hre.log(
           chalk.bold.bgWhiteBright.black(
-            `ℹ️  Revoked ${grantRevocationDiffs.length} grants (tx: ${result.transactionHash})`
+            `⏰ Waiting for transaction (tx: ${batchRevokeUnvestedTokenAmountsTx.hash})`
           )
         );
+        if (result.status === 1) {
+          hre.log(
+            chalk.bold.bgWhiteBright.black(
+              `ℹ️  Revoked ${grantRevocationDiffs.length} grants (tx: ${result.transactionHash})`
+            )
+          );
+        } else {
+          const error = `💀 Failed to revoke ${grantRevocationDiffs.length} grants (tx: ${result.transactionHash})`;
+          hre.log(chalk.bold.bgWhiteBright.red(error));
+          throw new Error(error);
+        }
       } else {
-        const error = `💀 Failed to revoke ${grantRevocationDiffs.length} grants (tx: ${result.transactionHash})`;
-        hre.log(chalk.bold.bgWhiteBright.red(error));
-        throw new Error(error);
+        try {
+          await lNori.callStatic.batchRevokeUnvestedTokenAmounts(
+            fromAccounts,
+            toAccounts,
+            atTimes,
+            amounts
+          );
+          hre.log(
+            chalk.bold.bgWhiteBright.black(`🎉  Dry run was successful!`)
+          );
+        } catch (e) {
+          hre.log(chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, e));
+        }
       }
     }
   },
 } as const;
+
 (() => {
   const { name, description, run } = GET_VESTING_TASK();
   task(name, description, run)
     .addOptionalPositionalParam(
       'action',
-      'The action to perform: create | revoke | update',
+      'The action to perform: revoke | create | createAndRevoke',
       undefined,
       types.string
     )
@@ -837,6 +875,7 @@ const REVOKE_SUBTASK = {
       types.int
     )
     .addOptionalParam('file', 'Use a file instead of github')
+    .addFlag('dryRun', 'simulate the transaction without actually sending it')
     .addFlag(DIFF_SUBTASK.name, DIFF_SUBTASK.description)
     .addFlag(
       'expand',
@@ -845,7 +884,7 @@ const REVOKE_SUBTASK = {
     .addFlag('asJson', 'Prints diff as JSON');
 
   subtask(DIFF_SUBTASK.name, DIFF_SUBTASK.description, DIFF_SUBTASK.run);
-  subtask(UPDATE_SUBTASK.name, UPDATE_SUBTASK.description, UPDATE_SUBTASK.run);
+  subtask(CREATE_SUBTASK.name, CREATE_SUBTASK.description, CREATE_SUBTASK.run);
   subtask(
     GET_GITHUB_SUBTASK.name,
     GET_GITHUB_SUBTASK.description,
