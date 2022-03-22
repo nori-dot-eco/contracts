@@ -168,4 +168,37 @@ describe('Removal', () => {
       });
     });
   });
+  describe('bytes fun', () => {
+    it('should get the vintage', async () => {
+      // const { removal } = await setupTest();
+      const Removal = await ethers.getContractFactory('Removal');
+      const removal = await Removal.deploy();
+
+      const vintage = 2018;
+      // const parcelId = 6530799039938560;
+      const parcelId = 42;
+      // const tokenId = 0x000007e2;
+      const padding = ethers.utils.zeroPad(ethers.utils.hexlify(0), 20);
+      const vintageUint8 = ethers.utils.zeroPad(
+        ethers.utils.hexlify(vintage),
+        4
+      );
+      const parcelIdUint8 = ethers.utils.zeroPad(
+        ethers.utils.hexlify(parcelId),
+        8
+      );
+      const tokenId = new Uint8Array([
+        ...padding,
+        ...parcelIdUint8,
+        ...vintageUint8,
+      ]);
+      console.log('tokenId hex', tokenId.toString());
+      const retrievedVintage = await removal.vintageFromTokenId(tokenId);
+      const retrievedParcelId = await removal.parcelIdFromTokenId(tokenId);
+      console.log('retrieved vintage: ', retrievedVintage);
+      console.log('retrieved parcelId: ', retrievedParcelId);
+      expect(retrievedVintage).equal(vintage.toString());
+      expect(retrievedParcelId).equal(parcelId.toString());
+    });
+  });
 });
