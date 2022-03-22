@@ -174,31 +174,81 @@ describe('Removal', () => {
       const Removal = await ethers.getContractFactory('Removal');
       const removal = await Removal.deploy();
 
+      const asciiToUint8Array = (str: string): Uint8Array => {
+        const chars = [];
+        for (let i = 0; i < str.length; ++i) {
+          chars.push(str.charCodeAt(i));
+        }
+        return new Uint8Array(chars);
+      };
+
+      const address = '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450';
+      const parcelId = 99039938560; // TODO figure out how we want to force a real datastore ID from 8 bytes into 5
       const vintage = 2018;
-      // const parcelId = 6530799039938560;
-      const parcelId = 6530799039938560;
-      // const tokenId = 0x000007e2;
-      const padding = ethers.utils.zeroPad(ethers.utils.hexlify(0), 20);
-      const vintageUint8 = ethers.utils.zeroPad(
-        ethers.utils.hexlify(vintage),
-        4
-      );
+      const country = 'US';
+      const state = 'IA';
+      const methodology = 2;
+      const methodologyVersion = 1;
+
+      const addressUint8 = ethers.utils.arrayify(address);
       const parcelIdUint8 = ethers.utils.zeroPad(
         ethers.utils.hexlify(parcelId),
-        8
+        5
       );
+      const vintageUint8 = ethers.utils.zeroPad(
+        ethers.utils.hexlify(vintage),
+        2
+      );
+
+      const countryUint8 = asciiToUint8Array(country);
+      const stateUint8 = asciiToUint8Array(state);
+      const methodologyAndVersionUint8 = ethers.utils.zeroPad(
+        `0x${methodology.toString(16)}${methodologyVersion.toString(16)}`,
+        1
+      );
+
       const tokenId = new Uint8Array([
-        ...padding,
+        ...addressUint8,
         ...parcelIdUint8,
         ...vintageUint8,
+        ...countryUint8,
+        ...stateUint8,
+        ...methodologyAndVersionUint8,
       ]);
       console.log('tokenId hex', tokenId.toString());
-      const retrievedVintage = await removal.vintageFromTokenId(tokenId);
+
+      const retrievedAddress = await removal.supplierAddressFromTokenId(
+        tokenId
+      );
       const retrievedParcelId = await removal.parcelIdFromTokenId(tokenId);
-      console.log('retrieved vintage: ', retrievedVintage);
+      const retrievedVintage = await removal.vintageFromTokenId(tokenId);
+      const retrievedCountryCode = await removal.countryCodeFromTokenId(
+        tokenId
+      );
+      const retrievedStateCode = await removal.stateCodeFromTokenId(tokenId);
+      const retrievedMethodology = await removal.methodologyFromTokenId(
+        tokenId
+      );
+      const retrievedMethodologyVersion =
+        await removal.methodologyVersionFromTokenId(tokenId);
+
+      console.log('retrieved address: ', retrievedAddress);
       console.log('retrieved parcelId: ', retrievedParcelId);
-      expect(retrievedVintage).equal(vintage.toString());
+      console.log('retrieved vintage: ', retrievedVintage);
+      console.log('retrieved countryCode: ', retrievedCountryCode);
+      console.log('retrieved stateCode: ', retrievedStateCode);
+      console.log('retrieved methodology: ', retrievedMethodology);
+      console.log(
+        'retrieved methodology version: ',
+        retrievedMethodologyVersion
+      );
+      expect(retrievedAddress).equal(address);
       expect(retrievedParcelId).equal(parcelId.toString());
+      expect(retrievedVintage).equal(vintage.toString());
+      expect(retrievedCountryCode).equal(country);
+      expect(retrievedStateCode).equal(state);
+      expect(retrievedMethodology).equal(methodology);
+      expect(retrievedMethodologyVersion).equal(methodologyVersion);
     });
   });
 });

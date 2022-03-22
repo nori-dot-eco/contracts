@@ -76,12 +76,60 @@ contract Removal is
     return uint256(maskedValue >> (numBitsOffsetFromRight));
   }
 
-  function vintageFromTokenId(uint256 tokenId) public view returns (uint256) {
-    return extractValue(tokenId, 4 * 8, 0);
+  function supplierAddressFromTokenId(uint256 tokenId)
+    public
+    view
+    returns (address)
+  {
+    return address(uint160(extractValue(tokenId, 20 * 8, 12 * 8)));
   }
 
   function parcelIdFromTokenId(uint256 tokenId) public view returns (uint256) {
-    return extractValue(tokenId, 8 * 8, 4 * 8);
+    return extractValue(tokenId, 5 * 8, 7 * 8);
+  }
+
+  function vintageFromTokenId(uint256 tokenId) public view returns (uint256) {
+    return extractValue(tokenId, 2 * 8, 5 * 8);
+  }
+
+  function countryCodeFromTokenId(uint256 tokenId)
+    public
+    view
+    returns (string memory)
+  {
+    bytes32 extractedCode = bytes32(extractValue(tokenId, 2 * 8, 3 * 8));
+    bytes memory bytesArray = new bytes(2);
+    bytesArray[0] = extractedCode[30];
+    bytesArray[1] = extractedCode[31];
+    return string(bytesArray);
+  }
+
+  function stateCodeFromTokenId(uint256 tokenId)
+    public
+    view
+    returns (string memory)
+  {
+    bytes32 extractedCode = bytes32(extractValue(tokenId, 2 * 8, 1 * 8));
+    bytes memory bytesArray = new bytes(2);
+    bytesArray[0] = extractedCode[30];
+    bytesArray[1] = extractedCode[31];
+    return string(bytesArray);
+  }
+
+  function methodologyFromTokenId(uint256 tokenId)
+    public
+    view
+    returns (uint256)
+  {
+    return extractValue(tokenId, 8, 0) >> 4;
+  }
+
+  function methodologyVersionFromTokenId(uint256 tokenId)
+    public
+    view
+    returns (uint256)
+  {
+    return extractValue(tokenId, 8, 0) & 3;
   }
 
   /**
