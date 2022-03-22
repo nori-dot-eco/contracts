@@ -745,11 +745,15 @@ contract LockedNORI is
   }
 
   function _beforeOperatorChange(address, uint256) internal override pure {
-      revert('lNORI: operator actions disable');
+      revert('lNORI: operator actions disabled');
   }
 
   function send(address, uint256, bytes memory) public override pure {
       revert("lNORI: send disabled");
+  }
+
+  function operatorSend(address, address, uint256, bytes memory, bytes memory) public override pure {
+      revert("lNORI: operatorSend disabled");
   }
 
   function transfer(address, uint256) public override pure returns (bool) {
