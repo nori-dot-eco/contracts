@@ -244,31 +244,34 @@ contract LockedNORI is
   }
 
   /**
-   * @notice Unwrap BridgedPolygonNORI tokens and makes them available for use in the BridgedPolygonNORI contract
+   * @notice Claim unlocked tokens: Unwrap BridgedPolygonNORI tokens and
+   * makes them available for use in the BridgedPolygonNORI contract.
    *
-   * @dev This function burns `amount` of wrapped tokens and withdraws them to the corresponding {BridgedPolygonNORI}
-   * tokens.
+   * @dev This function burns `amount` of {LockedNORI} and transfers `amount`
+   * of {BridgedPolygonNORI} from the {LockedNORI} contract's balance to
+   * `_msgSender()`'s balance.
    *
-   * Burns unlocked tokens from sender and sends them to *recipient*
+   * Enforcement of the availability of wrapped and unlocked tokens
+   * for the `_burn` call happens in `_beforeTokenTransfer`
    *
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
    */
-  function withdrawTo(address recipient, uint256 amount)
+  function claim(uint256 amount)
     external
     returns (bool)
   {
     TokenGrant storage grant = _grants[_msgSender()];
-    super._burn(_msgSender(), amount, "", "");
+    super._burn(_msgSender(), amount, "", ""); 
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
-      recipient,
+      _msgSender(),
       amount,
       ""
     );
     grant.claimedAmount += amount;
-    emit TokensClaimed(_msgSender(), recipient, amount);
+    emit TokensClaimed(_msgSender(), _msgSender(), amount);
     return true;
   }
 
@@ -575,7 +578,9 @@ contract LockedNORI is
   }
 
   /**
-   * @notice Truncates a vesting grant
+   * @notice Truncates a vesting grant.  This is an *admin* operation callable
+   * only by addresses having TOKEN_GRANTER_ROLE
+   * (enforced in `batchRevokeUnvestedTokenAmounts`)
    *
    * @dev The implementation never updates underlying schedules (vesting or unlock)
    * but only the grant amount.  This avoids changing the behavior of the grant

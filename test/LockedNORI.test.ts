@@ -714,7 +714,7 @@ describe('LockedNori', () => {
     await expect(
       lNori
         .connect(await hre.ethers.getSigner(investor1))
-        .withdrawTo(investor1, 1)
+        .claim(1)
     ).to.be.revertedWith('lNORI: insufficient balance');
   });
 
@@ -870,7 +870,7 @@ describe('LockedNori', () => {
       await expect(
         lNori
           .connect(addr1Signer)
-          .withdrawTo(investor1, hre.ethers.utils.parseUnits((500).toString()))
+          .claim(hre.ethers.utils.parseUnits((500).toString()))
       ).to.be.revertedWith('lNORI: insufficient balance');
     });
 
@@ -903,7 +903,7 @@ describe('LockedNori', () => {
       expect(
         await lNori
           .connect(investor1Signer)
-          .withdrawTo(investor1, withdrawlAmount)
+          .claim(withdrawlAmount)
       )
         .to.emit(lNori, 'TokensClaimed')
         .withArgs(investor1, investor1, withdrawlAmount)
@@ -934,7 +934,7 @@ describe('LockedNori', () => {
       expect(
         await lNori
           .connect(investor1Signer)
-          .withdrawTo(investor1, grantAmount.sub(withdrawlAmount))
+          .claim(grantAmount.sub(withdrawlAmount))
       ).to.emit(lNori, 'Transfer');
       expect(await lNori.balanceOf(investor1)).to.equal(0);
       expect(await lNori.vestedBalanceOf(investor1)).to.equal(0);
@@ -1037,46 +1037,6 @@ describe('LockedNori', () => {
       expect(await lNori.unlockedBalanceOf(investor1)).to.equal(CLIFF1_AMOUNT);
       expect(await lNori.vestedBalanceOf(investor1)).to.equal(GRANT_AMOUNT);
       expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
-    });
-  });
-
-  describe('withdrawTo', () => {
-    it('Can withdraw to a different address', async () => {
-      // cliff1 < now < cliff2
-      const { bpNori, lNori, hre, grant } = await setupWithGrant((params) =>
-        investorParams(params)
-      );
-      const { investor1, employee } = hre.namedAccounts;
-      await advanceTime({ hre, timestamp: grant.cliff1Time + DELTA });
-      expect(await lNori.unlockedBalanceOf(investor1)).to.equal(CLIFF1_AMOUNT);
-      expect(await lNori.vestedBalanceOf(investor1)).to.equal(GRANT_AMOUNT);
-      expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
-
-      const bpNoriSupplyBeforeWithdrawl = await bpNori.totalSupply();
-
-      await expect(
-        lNori
-          .connect(hre.namedSigners.investor1)
-          .withdrawTo(employee, CLIFF1_AMOUNT)
-      )
-        .to.emit(lNori, 'TokensClaimed')
-        .withArgs(investor1, employee, CLIFF1_AMOUNT);
-      // await hre.network.provider.send('evm_mine'); // todo remove?
-
-      expect(await lNori.totalSupply()).to.equal(
-        GRANT_AMOUNT.sub(CLIFF1_AMOUNT)
-      );
-      expect(await lNori.balanceOf(investor1)).to.equal(
-        GRANT_AMOUNT.sub(CLIFF1_AMOUNT)
-      );
-      expect(await lNori.unlockedBalanceOf(investor1)).to.equal(0);
-      expect(await lNori.vestedBalanceOf(investor1)).to.equal(
-        GRANT_AMOUNT.sub(CLIFF1_AMOUNT)
-      );
-
-      expect(await bpNori.totalSupply()).to.equal(bpNoriSupplyBeforeWithdrawl);
-      expect(await bpNori.balanceOf(investor1)).to.equal(0);
-      expect(await bpNori.balanceOf(employee)).to.equal(CLIFF1_AMOUNT);
     });
   });
 
