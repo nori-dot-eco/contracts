@@ -421,7 +421,7 @@ describe('LockedNori', () => {
             namedAccounts.admin,
             formatTokenAmount(1)
           )
-      ).revertedWith('Pausable: paused');
+      ).revertedWith('lNORI: transferFrom disabled');
     });
   });
 
