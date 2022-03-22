@@ -244,8 +244,7 @@ contract LockedNORI is
   }
 
   /**
-   * @notice Claim unlocked tokens: Unwrap BridgedPolygonNORI tokens and
-   * makes them available for use in the BridgedPolygonNORI contract.
+   * @notice Claim unlocked tokens.
    *
    * @dev This function burns `amount` of {LockedNORI} and transfers `amount`
    * of {BridgedPolygonNORI} from the {LockedNORI} contract's balance to
