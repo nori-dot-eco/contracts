@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
-import "hardhat/console.sol"; // todo
+// import "hardhat/console.sol"; // todo
 
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
@@ -25,7 +25,7 @@ contract Removal is
 
   struct Vintage {
     address supplier;
-    uint16 vintage;
+    uint256 vintage;
     // todo: location
     // todo: methodology
     // todo: supplier name
@@ -36,6 +36,7 @@ contract Removal is
     bool list;
   }
 
+  mapping(uint256 => uint256) public orderedTokenIds;
   mapping(uint256 => Vintage) private _vintages;
   uint256 private _latestTokenId;
   string public name; // todo why did I add this
@@ -139,32 +140,31 @@ contract Removal is
    * token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
    * token id 2 URI points to vintage information (e.g., 2020) nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
    * @param to The supplier address
-   * @param vintages The token ids to use for this batch of removals. // TODO switch this back to ids
-   *            The id itself encodes the removal's vintage, a parcel identifier, a methodology identifer, methodology version, and isolocation
    * @param amounts Each removal's tonnes of CO2 formatted as wei
+   * @param ids The token ids to use for this batch of removals.
+   *            The id itself encodes the removal's vintage, a parcel identifier, a methodology identifer, methodology version, and isolocation
    * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals came.
    */
   function mintBatch(
     address to,
     uint256[] memory amounts,
-    uint256[] memory vintages, // replace with ids
+    uint256[] memory ids,
     bytes memory data
   ) public override {
     // todo require vintage is within valid year range and doesn't already exist
+    // todo require tokenId is unique
     BatchMintRemovalsData memory decodedData = abi.decode(
       data,
       (BatchMintRemovalsData)
     );
-
-    uint256[] memory ids = new uint256[](vintages.length);
-    for (uint256 i = 0; i < vintages.length; i++) {
-      ids[i] = _latestTokenId + i;
-      _vintages[_latestTokenId + i] = Vintage({
-        vintage: uint16(vintages[i]),
+    for (uint256 i = 0; i < ids.length; i++) {
+      orderedTokenIds[_latestTokenId] = ids[i];
+      _latestTokenId += 1;
+      _vintages[ids[i]] = Vintage({ // TODO can we get rid of this struct entirely, at least until more data is required for a given removal?
+        vintage: vintageFromTokenId(ids[i]),
         supplier: to
       });
     }
-    _latestTokenId = ids[ids.length - 1] + 1;
     super.mintBatch(to, ids, amounts, data);
 
     setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach

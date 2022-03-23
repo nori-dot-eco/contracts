@@ -31,18 +31,17 @@ describe('Removal', () => {
         formatTokenAmount(balance)
       );
       const expectedMarketSupply = 0;
-      const removalVintages = [2018, 2019, 2020, 2021];
+      const tokenIds = [0, 1, 2, 3];
       const listNow = false;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const tokenIds = [0, 1, 2, 3];
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,
           removalBalances,
-          removalVintages,
+          tokenIds,
           packedData
         )
       )
@@ -74,18 +73,17 @@ describe('Removal', () => {
         formatTokenAmount(balance)
       );
       const expectedMarketSupply = 1000;
-      const removalVintages = [2018, 2019, 2020, 2021];
+      const tokenIds = [10, 11, 12, 13];
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const tokenIds = [0, 1, 2, 3];
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,
           removalBalances,
-          removalVintages,
+          tokenIds,
           packedData
         )
       )
@@ -117,18 +115,17 @@ describe('Removal', () => {
       const removalBalances = [100, 200, 300].map((balance) =>
         formatTokenAmount(balance)
       );
-      const removalVintages = [2018, 2019, 2020];
+      const tokenIds = [4321, 12344, 7892];
       const listNow = false;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const tokenIds = [0, 1, 2];
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,
           removalBalances,
-          removalVintages,
+          tokenIds,
           packedData
         )
       )

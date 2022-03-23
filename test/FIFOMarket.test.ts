@@ -212,11 +212,9 @@ describe('FIFOMarket', () => {
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const removalBalances = [];
-      const vintages = [];
       const tokenIds = [];
       for (let i = 0; i <= 20; i++) {
         removalBalances.push(hre.ethers.utils.parseUnits('50'));
-        vintages.push(2018);
         tokenIds.push(i);
       }
 
@@ -233,7 +231,7 @@ describe('FIFOMarket', () => {
         [fifoMarket.address, list]
       );
       await Promise.all([
-        removal.mintBatch(supplier, removalBalances, vintages, packedData),
+        removal.mintBatch(supplier, removalBalances, tokenIds, packedData),
       ]);
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
@@ -309,19 +307,19 @@ describe('FIFOMarket', () => {
         removal.mintBatch(
           namedAccounts.supplier,
           [hre.ethers.utils.parseUnits(removalBalance1)],
-          [2018],
+          [1],
           packedData
         ),
         removal.mintBatch(
           namedAccounts.investor1,
           [hre.ethers.utils.parseUnits(removalBalance2)],
-          [2018],
+          [2],
           packedData
         ),
         removal.mintBatch(
           namedAccounts.investor2,
           [hre.ethers.utils.parseUnits(removalBalance3)],
-          [2018],
+          [3],
           packedData
         ),
       ]);
