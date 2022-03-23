@@ -127,6 +127,14 @@ interface CustomHardhatUpgrades extends HardhatUpgrades {
 }
 
 declare global {
+  interface ClassType<T> {
+    new (...args: any[]): T;
+  }
+
+  type Constructor = new (...args: any[]) => {};
+
+  type ClassInstance<T> = InstanceType<ClassType<T>>;
+  
   type RequiredKeys<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
   type InstanceOfContract<TContract extends Contract> = ReturnType<
     TContract['attach']

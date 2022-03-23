@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+
 import moment from 'moment';
 import type { Octokit } from '@octokit/rest';
-import * as yup from 'yup';
 
+import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import type { GrantList, ParsedGrant } from '@/tasks/vesting';
 import {
   grantSchema,
@@ -14,6 +15,7 @@ import {
 } from '@/tasks/vesting';
 import { utcToEvmTime } from '@/utils/units';
 import * as github from '@/tasks/utils/github';
+import * as contractUtils from '@/utils/contracts';
 import { expect, setupTestEnvironment, sinon } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
 
 const MOCK_VESTING_HEADER = [
@@ -747,6 +749,57 @@ describe('vesting task', () => {
     });
   });
   describe('flags', () => {
+    describe('dry-run', () => {
+      it('should use callStatic', async () => {
+        const { hre, lNori, bpNori } = await setupTestEnvironment();
+        sandbox.replace(
+          github,
+          'getOctokit',
+          sandbox.fake.returns({
+            rest: {
+              repos: {
+                getContent: () => {
+                  return {
+                    data: MOCK_GITHUB_VESTING_DATA.join('\r\n'),
+                  };
+                },
+              },
+            },
+          } as Partial<typeof Octokit> as Octokit)
+        );
+        const getBridgedPolygonNori = sandbox.fake.returns({
+          ...bpNori,
+          batchSend: sandbox.spy(),
+          callStatic: {
+            ...bpNori.callStatic,
+            batchSend: sandbox.spy(),
+          },
+        } as DeepPartial<BridgedPolygonNORI> as BridgedPolygonNORI);
+        const getLockedNori = sandbox.fake.returns({
+          ...lNori,
+          batchRevokeUnvestedTokenAmounts: sandbox.spy(),
+          callStatic: {
+            ...lNori.callStatic,
+            batchRevokeUnvestedTokenAmounts: sandbox.spy(),
+          },
+        } as DeepPartial<LockedNORI> as LockedNORI);
+        sandbox.replace(
+          contractUtils,
+          'getBridgedPolygonNori',
+          getBridgedPolygonNori
+        );
+        sandbox.replace(contractUtils, 'getLockedNori', getLockedNori);
+        await hre.run('vesting', {
+          action: 'createAndRevoke',
+          dryRun: true,
+        });
+        expect(getBridgedPolygonNori().callStatic.batchSend).calledOnce;
+        expect(getLockedNori().callStatic.batchRevokeUnvestedTokenAmounts)
+          .calledOnce;
+        expect(getBridgedPolygonNori().batchSend).callCount(0);
+        expect(getLockedNori().batchRevokeUnvestedTokenAmounts).callCount(0);
+      });
+    });
     describe('diff', () => {
       it('should list vesting schedules', async () => {
         const { hre } = await setupTestEnvironment();
