@@ -1,5 +1,4 @@
 import { BigNumber } from 'ethers';
-// import { unit } from '@nori-dot-com/math'; // todo use for seconds (requires publishing new version to npm)
 
 import type { LockedNORI } from '@/typechain-types/LockedNORI';
 import {
@@ -7,7 +6,7 @@ import {
   setupTestEnvironment,
   advanceTime,
   getLatestBlockTime,
-} from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
+} from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 
 interface TokenGrantUserData {
@@ -340,7 +339,7 @@ describe('LockedNori', () => {
     ).forEach(({ method, pausableFunction, postSetupHook }) => {
       it(`will disable the function ${method}`, async () => {
         const { lNori, hre } = await setupTest();
-        if (postSetupHook) {
+        if (postSetupHook != null) {
           await postSetupHook({ lNori, hre });
         }
         await lNori.connect(hre.namedSigners.admin).pause();
