@@ -26,6 +26,64 @@ export interface ContractInstances {
   lNori: LockedNORI;
 }
 
+const asciiToUint8Array = (str: string): Uint8Array => {
+  const chars = [];
+  for (let i = 0; i < str.length; ++i) {
+    chars.push(str.charCodeAt(i));
+  }
+  return new Uint8Array(chars);
+};
+
+export const createRemovalTokenId = (
+  options?: Partial<{
+    address: string;
+    parcelId: number;
+    vintage: number;
+    country: string;
+    state: string;
+    methodology: number;
+    methodologyVersion: number;
+  }>
+): Uint8Array => {
+  const defaultValues = {
+    address: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
+    parcelId: 99039938560,
+    vintage: 2018,
+    country: 'US',
+    state: 'IA',
+    methodology: 2,
+    methodologyVersion: 1,
+  };
+
+  const data = { ...defaultValues, ...options };
+
+  const addressUint8 = ethers.utils.arrayify(data.address);
+  const parcelIdUint8 = ethers.utils.zeroPad(
+    ethers.utils.hexlify(data.parcelId),
+    5
+  );
+  const vintageUint8 = ethers.utils.zeroPad(
+    ethers.utils.hexlify(data.vintage),
+    2
+  );
+
+  const countryUint8 = asciiToUint8Array(data.country);
+  const stateUint8 = asciiToUint8Array(data.state);
+  const methodologyAndVersionUint8 = ethers.utils.zeroPad(
+    `0x${data.methodology.toString(16)}${data.methodologyVersion.toString(16)}`,
+    1
+  );
+
+  return new Uint8Array([
+    ...addressUint8,
+    ...parcelIdUint8,
+    ...vintageUint8,
+    ...countryUint8,
+    ...stateUint8,
+    ...methodologyAndVersionUint8,
+  ]);
+};
+
 export const getLatestBlockTime = async ({
   hre,
 }: {

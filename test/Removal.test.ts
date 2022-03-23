@@ -1,6 +1,6 @@
 import type { ContractInstances } from '@/test/helpers';
+import { createRemovalTokenId, expect, createFixture } from '@/test/helpers';
 import { deploy } from '@/deploy/0_deploy_contracts';
-import { expect, createFixture } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 import type { Contracts } from '@/utils/deploy';
 
@@ -168,87 +168,49 @@ describe('Removal', () => {
       });
     });
   });
-  describe('bytes fun', () => {
-    it('should get the vintage', async () => {
-      // const { removal } = await setupTest();
+  describe('Token ids', () => {
+    it('can be separated into their component fields', async () => {
       const Removal = await ethers.getContractFactory('Removal');
       const removal = await Removal.deploy();
 
-      const asciiToUint8Array = (str: string): Uint8Array => {
-        const chars = [];
-        for (let i = 0; i < str.length; ++i) {
-          chars.push(str.charCodeAt(i));
-        }
-        return new Uint8Array(chars);
+      const expectedValues = {
+        address: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
+        parcelId: 99039938560,
+        vintage: 2018,
+        country: 'US',
+        state: 'IA',
+        methodology: 2,
+        methodologyVersion: 1,
       };
 
-      const address = '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450';
-      const parcelId = 99039938560; // TODO figure out how we want to force a real datastore ID from 8 bytes into 5
-      const vintage = 2018;
-      const country = 'US';
-      const state = 'IA';
-      const methodology = 2;
-      const methodologyVersion = 1;
+      const tokenId = createRemovalTokenId(expectedValues);
 
-      const addressUint8 = ethers.utils.arrayify(address);
-      const parcelIdUint8 = ethers.utils.zeroPad(
-        ethers.utils.hexlify(parcelId),
-        5
-      );
-      const vintageUint8 = ethers.utils.zeroPad(
-        ethers.utils.hexlify(vintage),
-        2
-      );
-
-      const countryUint8 = asciiToUint8Array(country);
-      const stateUint8 = asciiToUint8Array(state);
-      const methodologyAndVersionUint8 = ethers.utils.zeroPad(
-        `0x${methodology.toString(16)}${methodologyVersion.toString(16)}`,
-        1
-      );
-
-      const tokenId = new Uint8Array([
-        ...addressUint8,
-        ...parcelIdUint8,
-        ...vintageUint8,
-        ...countryUint8,
-        ...stateUint8,
-        ...methodologyAndVersionUint8,
+      const [
+        retrievedAddress,
+        retrievedParcelId,
+        retrievedVintage,
+        retrievedCountryCode,
+        retrievedStateCode,
+        retrievedMethodology,
+        retrievedMethodologyVersion,
+      ] = await Promise.all([
+        removal.supplierAddressFromTokenId(tokenId),
+        removal.parcelIdFromTokenId(tokenId),
+        removal.vintageFromTokenId(tokenId),
+        removal.countryCodeFromTokenId(tokenId),
+        removal.stateCodeFromTokenId(tokenId),
+        removal.methodologyFromTokenId(tokenId),
+        removal.methodologyVersionFromTokenId(tokenId),
       ]);
-      console.log('tokenId hex', tokenId.toString());
-
-      const retrievedAddress = await removal.supplierAddressFromTokenId(
-        tokenId
+      expect(retrievedAddress).equal(expectedValues.address);
+      expect(retrievedParcelId).equal(expectedValues.parcelId.toString());
+      expect(retrievedVintage).equal(expectedValues.vintage.toString());
+      expect(retrievedCountryCode).equal(expectedValues.country);
+      expect(retrievedStateCode).equal(expectedValues.state);
+      expect(retrievedMethodology).equal(expectedValues.methodology);
+      expect(retrievedMethodologyVersion).equal(
+        expectedValues.methodologyVersion
       );
-      const retrievedParcelId = await removal.parcelIdFromTokenId(tokenId);
-      const retrievedVintage = await removal.vintageFromTokenId(tokenId);
-      const retrievedCountryCode = await removal.countryCodeFromTokenId(
-        tokenId
-      );
-      const retrievedStateCode = await removal.stateCodeFromTokenId(tokenId);
-      const retrievedMethodology = await removal.methodologyFromTokenId(
-        tokenId
-      );
-      const retrievedMethodologyVersion =
-        await removal.methodologyVersionFromTokenId(tokenId);
-
-      console.log('retrieved address: ', retrievedAddress);
-      console.log('retrieved parcelId: ', retrievedParcelId);
-      console.log('retrieved vintage: ', retrievedVintage);
-      console.log('retrieved countryCode: ', retrievedCountryCode);
-      console.log('retrieved stateCode: ', retrievedStateCode);
-      console.log('retrieved methodology: ', retrievedMethodology);
-      console.log(
-        'retrieved methodology version: ',
-        retrievedMethodologyVersion
-      );
-      expect(retrievedAddress).equal(address);
-      expect(retrievedParcelId).equal(parcelId.toString());
-      expect(retrievedVintage).equal(vintage.toString());
-      expect(retrievedCountryCode).equal(country);
-      expect(retrievedStateCode).equal(state);
-      expect(retrievedMethodology).equal(methodology);
-      expect(retrievedMethodologyVersion).equal(methodologyVersion);
     });
   });
 });
