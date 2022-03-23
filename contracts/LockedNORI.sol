@@ -244,12 +244,14 @@ contract LockedNORI is
   }
 
   /**
-   * @notice Unwrap BridgedPolygonNORI tokens and makes them available for use in the BridgedPolygonNORI contract
+   * @notice Claim unlocked tokens and withdraw them to *to* address.
    *
-   * @dev This function burns `amount` of wrapped tokens and withdraws them to the corresponding {BridgedPolygonNORI}
-   * tokens.
+   * @dev This function burns `amount` of `LockedNORI` and transfers `amount`
+   * of `BridgedPolygonNORI` from the `LockedNORI` contract's balance to
+   * `_msgSender()`'s balance.
    *
-   * Burns unlocked tokens from sender and sends them to *recipient*
+   * Enforcement of the availability of wrapped and unlocked tokens
+   * for the `_burn` call happens in `_beforeTokenTransfer`
    *
    * ##### Requirements:
    *
@@ -575,13 +577,20 @@ contract LockedNORI is
   }
 
   /**
-   * @notice Truncates a vesting grant
+   * @notice Truncates a vesting grant.
+   * This is an *admin* operation callable only by addresses having TOKEN_GRANTER_ROLE
+   * (enforced in `batchRevokeUnvestedTokenAmounts`)
    *
    * @dev The implementation never updates underlying schedules (vesting or unlock)
    * but only the grant amount.  This avoids changing the behavior of the grant
    * before the point of revocation.  Anytime a vesting or unlock schedule is in
    * play the corresponding balance functions need to take care to never return
    * more than the grant amount less the claimed amount.
+   *
+   * Unlike in the `claim` function, here we burn `LockedNORI` from the grant holder but
+   * send that `BridgedPolygonNORI` back to Nori's treasury or an address of Nori's
+   * choosing (the *to* address).  The *claimedAmount* is not changed because this is
+   * not a claim operation.
    */
   function _revokeUnvestedTokens(
     address from,
@@ -733,5 +742,39 @@ contract LockedNORI is
         grant.claimedAmount;
     }
     return balance;
+  }
+
+  function _beforeOperatorChange(address, uint256) internal pure override {
+    revert("lNORI: operator actions disabled");
+  }
+
+  function send(
+    address,
+    uint256,
+    bytes memory
+  ) public pure override {
+    revert("lNORI: send disabled");
+  }
+
+  function operatorSend(
+    address,
+    address,
+    uint256,
+    bytes memory,
+    bytes memory
+  ) public pure override {
+    revert("lNORI: operatorSend disabled");
+  }
+
+  function transfer(address, uint256) public pure override returns (bool) {
+    revert("lNORI: transfer disabled");
+  }
+
+  function transferFrom(
+    address,
+    address,
+    uint256
+  ) public pure override returns (bool) {
+    revert("lNORI: transferFrom disabled");
   }
 }
