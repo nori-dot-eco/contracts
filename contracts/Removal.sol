@@ -23,36 +23,35 @@ contract Removal is
 {
   using SafeMathUpgradeable for uint256;
 
-  struct Vintage {
-    address supplier;
-    uint256 vintage;
-    // todo: location
-    // todo: methodology
-    // todo: supplier name
-  }
-
   struct BatchMintRemovalsData {
     address marketAddress;
     bool list;
   }
 
-  mapping(uint256 => uint256) public orderedTokenIds;
-  mapping(uint256 => Vintage) private _vintages;
+  uint256 constant _BITS_PER_BYTE = 8;
+  uint256 constant _ADDRESS_FIELD_LENGTH = 20;
+  uint256 constant _ADDRESS_OFFSET = 12;
+  uint256 constant _PARCEL_ID_FIELD_LENGTH = 5;
+  uint256 constant _PARCEL_ID_OFFSET = 7;
+  uint256 constant _VINTAGE_FIELD_LENGTH = 2;
+  uint256 constant _VINTAGE_OFFSET = 5;
+  uint256 constant _COUNTRY_CODE_FIELD_LENGTH = 2;
+  uint256 constant _COUNTRY_CODE_OFFSET = 3;
+  uint256 constant _STATE_CODE_FIELD_LENGTH = 2;
+  uint256 constant _STATE_CODE_OFFSET = 1;
+  uint256 constant _METHODOLOGY_DATA_FIELD_LENGTH = 1;
+  uint256 constant _METHODOLOGY_DATA_OFFSET = 0;
+
   uint256 private _latestTokenId;
   string public name; // todo why did I add this
+  mapping(uint256 => uint256) public orderedTokenIds;
+  mapping(uint256 => bool) private _tokenIds;
 
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
     _latestTokenId = 0;
     name = "Removal";
-  }
-
-  /**
-   * @dev returns the removal vintage data for a given removal token ID
-   */
-  function vintage(uint256 removalId) public view returns (Vintage memory) {
-    return _vintages[removalId];
   }
 
   /**
@@ -68,13 +67,13 @@ contract Removal is
 
   function extractValue(
     uint256 tokenId,
-    uint256 numBitsFieldLength,
-    uint256 numBitsOffsetFromRight
+    uint256 numBytesFieldLength,
+    uint256 numBytesOffsetFromRight
   ) private view returns (uint256) {
-    bytes32 mask = bytes32(2**(numBitsFieldLength) - 1) <<
-      (numBitsOffsetFromRight);
+    bytes32 mask = bytes32(2**(numBytesFieldLength * _BITS_PER_BYTE) - 1) <<
+      (numBytesOffsetFromRight * _BITS_PER_BYTE);
     bytes32 maskedValue = bytes32(tokenId) & mask;
-    return uint256(maskedValue >> (numBitsOffsetFromRight));
+    return uint256(maskedValue >> (numBytesOffsetFromRight * _BITS_PER_BYTE));
   }
 
   function supplierAddressFromTokenId(uint256 tokenId)
@@ -82,15 +81,18 @@ contract Removal is
     view
     returns (address)
   {
-    return address(uint160(extractValue(tokenId, 20 * 8, 12 * 8)));
+    return
+      address(
+        uint160(extractValue(tokenId, _ADDRESS_FIELD_LENGTH, _ADDRESS_OFFSET))
+      );
   }
 
   function parcelIdFromTokenId(uint256 tokenId) public view returns (uint256) {
-    return extractValue(tokenId, 5 * 8, 7 * 8);
+    return extractValue(tokenId, _PARCEL_ID_FIELD_LENGTH, _PARCEL_ID_OFFSET);
   }
 
   function vintageFromTokenId(uint256 tokenId) public view returns (uint256) {
-    return extractValue(tokenId, 2 * 8, 5 * 8);
+    return extractValue(tokenId, _VINTAGE_FIELD_LENGTH, _VINTAGE_OFFSET);
   }
 
   function countryCodeFromTokenId(uint256 tokenId)
@@ -98,7 +100,9 @@ contract Removal is
     view
     returns (string memory)
   {
-    bytes32 extractedCode = bytes32(extractValue(tokenId, 2 * 8, 3 * 8));
+    bytes32 extractedCode = bytes32(
+      extractValue(tokenId, _COUNTRY_CODE_FIELD_LENGTH, _COUNTRY_CODE_OFFSET)
+    );
     bytes memory bytesArray = new bytes(2);
     bytesArray[0] = extractedCode[30];
     bytesArray[1] = extractedCode[31];
@@ -110,7 +114,9 @@ contract Removal is
     view
     returns (string memory)
   {
-    bytes32 extractedCode = bytes32(extractValue(tokenId, 2 * 8, 1 * 8));
+    bytes32 extractedCode = bytes32(
+      extractValue(tokenId, _STATE_CODE_FIELD_LENGTH, _STATE_CODE_OFFSET)
+    );
     bytes memory bytesArray = new bytes(2);
     bytesArray[0] = extractedCode[30];
     bytesArray[1] = extractedCode[31];
@@ -122,7 +128,12 @@ contract Removal is
     view
     returns (uint256)
   {
-    return extractValue(tokenId, 8, 0) >> 4;
+    return
+      extractValue(
+        tokenId,
+        _METHODOLOGY_DATA_FIELD_LENGTH,
+        _METHODOLOGY_DATA_OFFSET
+      ) >> 4; // methodology encoded in the first nibble
   }
 
   function methodologyVersionFromTokenId(uint256 tokenId)
@@ -130,7 +141,12 @@ contract Removal is
     view
     returns (uint256)
   {
-    return extractValue(tokenId, 8, 0) & 3;
+    return
+      extractValue(
+        tokenId,
+        _METHODOLOGY_DATA_FIELD_LENGTH,
+        _METHODOLOGY_DATA_OFFSET
+      ) & 3; // methodology version encoded in the second nibble
   }
 
   /**
@@ -151,19 +167,16 @@ contract Removal is
     uint256[] memory ids,
     bytes memory data
   ) public override {
-    // todo require vintage is within valid year range and doesn't already exist
-    // todo require tokenId is unique
+    // todo Additional validation of fields of tokenId for valid ranges?
     BatchMintRemovalsData memory decodedData = abi.decode(
       data,
       (BatchMintRemovalsData)
     );
     for (uint256 i = 0; i < ids.length; i++) {
+      require(!_tokenIds[ids[i]], "Token id already exists"); // todo can the duplicate token id be reported here?
+      _tokenIds[ids[i]] = true;
       orderedTokenIds[_latestTokenId] = ids[i];
       _latestTokenId += 1;
-      _vintages[ids[i]] = Vintage({ // TODO can we get rid of this struct entirely, at least until more data is required for a given removal?
-        vintage: vintageFromTokenId(ids[i]),
-        supplier: to
-      });
     }
     super.mintBatch(to, ids, amounts, data);
 

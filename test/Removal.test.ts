@@ -108,6 +108,26 @@ describe('Removal', () => {
         formatTokenAmount(expectedMarketSupply).toString()
       );
     });
+    it('should not mint a removal with a duplicate token id', async () => {
+      const { fifoMarket, removal, hre } = await setupTest();
+      const removalBalances = [100, 200, 300].map((balance) =>
+        formatTokenAmount(balance)
+      );
+      const tokenIds = [0, 1, 1]; // duplicate token id
+      const listNow = false;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, listNow]
+      );
+      await expect(
+        removal.mintBatch(
+          hre.namedAccounts.supplier,
+          removalBalances,
+          tokenIds,
+          packedData
+        )
+      ).revertedWith('Token id already exists');
+    });
   });
   describe('Listing removals for sale', () => {
     it('should list pre-minted removals for sale in the atomic marketplace', async () => {

@@ -5,6 +5,7 @@ import { formatTokenAmount } from '@/utils/units';
 import type { Contracts } from '@/utils/deploy';
 import type { ContractInstances } from '@/test/helpers';
 import {
+  createRemovalTokenId,
   expect,
   chai,
   mockDepositNoriToPolygon,
@@ -72,7 +73,7 @@ describe('FIFOMarket', () => {
         removal.mintBatch(
           supplier,
           [hre.ethers.utils.parseUnits(totalAvailableSupply)],
-          [2018],
+          [createRemovalTokenId({ address: supplier })],
           packedData
         ),
       ]);
@@ -130,7 +131,11 @@ describe('FIFOMarket', () => {
         }
       );
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
-
+      const tokenIds = [
+        createRemovalTokenId({ address: supplier, vintage: 2018 }),
+        createRemovalTokenId({ address: supplier, vintage: 2019 }),
+        createRemovalTokenId({ address: supplier, vintage: 2020 }),
+      ];
       const removalBalance1 = '3';
       const removalBalance2 = '3';
       const removalBalance3 = '4';
@@ -153,7 +158,7 @@ describe('FIFOMarket', () => {
             hre.ethers.utils.parseUnits(removalBalance2),
             hre.ethers.utils.parseUnits(removalBalance3),
           ],
-          [2018, 2019, 2017],
+          tokenIds,
           packedData
         ),
       ]);
@@ -215,7 +220,7 @@ describe('FIFOMarket', () => {
       const tokenIds = [];
       for (let i = 0; i <= 20; i++) {
         removalBalances.push(hre.ethers.utils.parseUnits('50'));
-        tokenIds.push(i);
+        tokenIds.push(createRemovalTokenId({ address: supplier, parcelId: i })); // use i as parcelId to ensure unique token ids
       }
 
       const purchaseAmount = '1000'; // purchase all supply
@@ -307,19 +312,19 @@ describe('FIFOMarket', () => {
         removal.mintBatch(
           namedAccounts.supplier,
           [hre.ethers.utils.parseUnits(removalBalance1)],
-          [1],
+          [createRemovalTokenId({ address: namedAccounts.supplier })],
           packedData
         ),
         removal.mintBatch(
           namedAccounts.investor1,
           [hre.ethers.utils.parseUnits(removalBalance2)],
-          [2],
+          [createRemovalTokenId({ address: namedAccounts.investor1 })],
           packedData
         ),
         removal.mintBatch(
           namedAccounts.investor2,
           [hre.ethers.utils.parseUnits(removalBalance3)],
-          [3],
+          [createRemovalTokenId({ address: namedAccounts.investor2 })],
           packedData
         ),
       ]);
