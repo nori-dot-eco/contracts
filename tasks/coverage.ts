@@ -1,3 +1,4 @@
+import type { ActionType } from 'hardhat/config';
 import { task } from 'hardhat/config';
 import type { RunSuperFunction } from 'hardhat/types';
 
@@ -7,7 +8,7 @@ export const TASK = {
   name: 'coverage',
   description: 'Generates a code coverage report for tests',
   run: async (
-    taskArgs: Record<string, unknown>,
+    taskArgs: Parameters<ActionType<unknown, unknown>>,
     hre: CustomHardHatRuntimeEnvironment,
     runSuper: RunSuperFunction<typeof taskArgs>
   ) => {

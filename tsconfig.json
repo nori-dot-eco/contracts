@@ -23,7 +23,8 @@
       "@/utils/*": ["./utils/*"],
       "@/constants/*": ["./constants/*"],
       "@/deploy/*": ["./deploy/*"],
-      "@/typechain-types/*": ["./typechain-types/*"]
+      "@/typechain-types/*": ["./typechain-types/*"],
+      "@/typechain-types": ["./typechain-types/index.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.d.ts", "./.eslintrc.js", ".solcover.js"]

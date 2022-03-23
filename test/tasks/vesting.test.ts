@@ -1,16 +1,21 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+
 import moment from 'moment';
 import type { Octokit } from '@octokit/rest';
 
+import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import type { GrantList, ParsedGrant } from '@/tasks/vesting';
 import {
+  grantSchema,
   grantCsvToList,
   grantListToObject,
-  grantSchema,
-  validation,
+  grantsSchema,
+  validations,
+  rules,
 } from '@/tasks/vesting';
 import { utcToEvmTime } from '@/utils/units';
 import * as github from '@/tasks/utils/github';
+import * as contractUtils from '@/utils/contracts';
 import { expect, setupTestEnvironment, sinon } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
 
 const MOCK_VESTING_HEADER = [
@@ -182,9 +187,12 @@ const createTestGrants = async (
 const sandbox = sinon.createSandbox();
 
 describe('vesting task', () => {
+  // todo consider using it.foreach
+
   afterEach(() => {
     sandbox.restore();
   });
+
   describe('grantListToObject', () => {
     describe('pass', () => {
       it('should parse a list of grants into an object keyed by the wallet address of a grant recipient', () => {
@@ -213,32 +221,230 @@ describe('vesting task', () => {
       });
     });
   });
-  describe('validation', () => {
-    describe('isUnsignedIntegerString', () => {
+  describe('rules', () => {
+    describe('isTimeWithinReasonableDateRange', () => {
       describe('pass', () => {
-        it('should pass if the argument is a valid integer string', () => {
-          expect(validation.isUnsignedIntegerString.test('12345')).to.be.true;
+        it('should return true if it is within a reasonable date range', () => {
+          [{ maxFutureYears: 10, minimumPastYears: 2 }].forEach(
+            ({ maxFutureYears, minimumPastYears }) => {
+              expect(
+                rules
+                  .isTimeWithinReasonableDateRange({
+                    maxFutureYears,
+                    minimumPastYears,
+                  })
+                  .isValidSync(
+                    utcToEvmTime(moment().add(maxFutureYears - 1, 'years'))
+                  )
+              ).to.be.true;
+              expect(
+                rules
+                  .isTimeWithinReasonableDateRange({
+                    maxFutureYears,
+                    minimumPastYears,
+                  })
+                  .isValidSync(
+                    utcToEvmTime(
+                      moment().subtract(minimumPastYears - 1, 'years')
+                    )
+                  )
+              ).to.be.true;
+            }
+          );
         });
       });
       describe('fail', () => {
-        it('should fail if the argument is not a valid integer string', () => {
-          ['-1', 1.2, [], {}, 'abc', '1abc'].forEach(
-            (v) =>
-              expect(validation.isUnsignedIntegerString.test(v)).to.be.false
+        it('should return false if it is not within a reasonable date range', () => {
+          [{ maxFutureYears: 10, minimumPastYears: 2 }].forEach(
+            ({ maxFutureYears, minimumPastYears }) => {
+              expect(
+                rules
+                  .isTimeWithinReasonableDateRange({
+                    maxFutureYears,
+                    minimumPastYears,
+                  })
+                  .isValidSync(
+                    utcToEvmTime(
+                      moment().add(maxFutureYears, 'years').add('1', 'day')
+                    )
+                  )
+              ).to.be.false;
+              expect(
+                rules
+                  .isTimeWithinReasonableDateRange({
+                    maxFutureYears,
+                    minimumPastYears,
+                  })
+                  .isValidSync(
+                    utcToEvmTime(
+                      moment()
+                        .subtract(minimumPastYears, 'years')
+                        .subtract('1', 'day')
+                    )
+                  )
+              ).to.be.false;
+            }
           );
         });
       });
     });
-    describe('isBigNumberString', () => {
+    describe('isWalletAddress', () => {
+      describe('pass', () => {
+        it('should return true if it passes isWalletAddress validation', () => {
+          ['0xDD66B46910918B2F442D6b75C6E55631ad678c99'].forEach(
+            (v) => expect(rules.isWalletAddress().isValidSync(v)).to.be.true
+          );
+        });
+      });
+      describe('fail', () => {
+        it('should return false if it fails isWalletAddress validation', () => {
+          ['0x1234', 1234, [], {}].forEach(
+            (v) => expect(rules.isWalletAddress().isValidSync(v)).to.be.false
+          );
+        });
+      });
+    });
+    describe('requiredPositiveBigNumberString', () => {
       describe('pass', () => {
         it('should pass if the argument is a valid bignumber string', () => {
-          expect(validation.isBigNumberString.test('12345')).to.be.true;
+          ['12345', '0'].forEach(
+            (v) =>
+              expect(rules.requiredPositiveBigNumberString().isValidSync(v)).to
+                .be.true
+          );
         });
       });
       describe('fail', () => {
         it('should fail if the argument is not a valid bignumber string', () => {
-          ['', 1.2, [], {}, 'abc', '1abc'].forEach(
-            (v) => expect(validation.isBigNumberString.test(v)).to.be.false
+          ['', '1.1', 1.2, -1, -1.1, null, undefined, [], {}, 'abc'].forEach(
+            (v) =>
+              expect(rules.requiredPositiveBigNumberString().isValidSync(v)).to
+                .be.false
+          );
+        });
+      });
+    });
+    describe('requiredString', () => {
+      describe('pass', () => {
+        it('should pass if the argument passes requiredString validation', () => {
+          ['abc', '1', '-1', '1.1', '0'].forEach(
+            (v) => expect(rules.requiredString().isValidSync(v)).to.be.true
+          );
+        });
+      });
+      describe('fail', () => {
+        it('should fail if the argument fails requiredString validation', () => {
+          [-1, 1.01, -1.01, '', {}, [], null, undefined].forEach(
+            (v) => expect(rules.requiredString().isValidSync(v)).to.be.false
+          );
+        });
+      });
+    });
+    describe('requiredPositiveInteger', () => {
+      describe('pass', () => {
+        it('should pass if the argument passes requiredPositiveInteger validation', () => {
+          [0, 1].forEach(
+            (v) =>
+              expect(rules.requiredPositiveInteger().isValidSync(v)).to.be.true
+          );
+        });
+      });
+      describe('fail', () => {
+        it('should fail if the argument fails requiredPositiveInteger validation', () => {
+          ['-1', 'abc', -1, 1.01, -1.01, '', {}, [], null, undefined].forEach(
+            (v) =>
+              expect(rules.requiredPositiveInteger().isValidSync(v)).to.be.false
+          );
+        });
+      });
+    });
+  });
+  describe('validations', () => {
+    describe('isValidEvmMoment', () => {
+      describe('pass', () => {
+        it('should pass if the argument passes isValidEvmMoment validation', () => {
+          [
+            utcToEvmTime(moment()),
+            utcToEvmTime('2022-03-21T20:45:29.496Z'),
+            utcToEvmTime('2022-03-21'),
+            1,
+            0,
+          ].forEach(
+            (v) => expect(validations.isValidEvmMoment().test(v)).to.be.true
+          );
+        });
+      });
+      describe('fail', () => {
+        it('should fail if the argument fails isValidEvmMoment validation', () => {
+          [
+            null,
+            undefined,
+            true,
+            false,
+            1.1,
+            -1,
+            -1.1,
+            '1',
+            '1.1',
+            '-1',
+            '-1.1',
+            '',
+            'a',
+            '2022-13-21',
+          ].forEach(
+            (v) => expect(validations.isValidEvmMoment().test(v)).to.be.false
+          );
+        });
+      });
+    });
+    describe('walletAddressIsSameAsParentKey', () => {
+      describe('pass', () => {
+        it('should pass if the argument passes walletAddressIsSameAsParentKey validation', () => {
+          [
+            {
+              value: '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
+              path: '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
+            },
+          ].forEach(
+            ({ value, path }) =>
+              expect(
+                validations
+                  .walletAddressIsSameAsParentKey()
+                  .test(value, { path })
+              ).to.be.true
+          );
+        });
+      });
+      describe('fail', () => {
+        it('should fail if the argument fails walletAddressIsSameAsParentKey validation', () => {
+          [
+            {
+              value: '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
+              path: '0x465d5a3fFeA4CD109043499Fa576c3E16f918463',
+            },
+          ].forEach(
+            ({ value, path }) =>
+              expect(
+                validations
+                  .walletAddressIsSameAsParentKey()
+                  .test(value, { path })
+              ).to.be.false
+          );
+        });
+      });
+    });
+    describe('isBigNumberish', () => {
+      describe('pass', () => {
+        it('should pass if the argument passes isBigNumberish validation', () => {
+          ['1', '-1', '0'].forEach(
+            (v) => expect(validations.isBigNumberish().test(v)).to.be.true
+          );
+        });
+      });
+      describe('fail', () => {
+        it('should fail if the argument fails isBigNumberish validation', () => {
+          ['a', '-1.1', -1, 1.1, -1.1, 1, '', {}, [], null, undefined].forEach(
+            (v) => expect(validations.isBigNumberish().test(v)).to.be.false
           );
         });
       });
@@ -248,7 +454,7 @@ describe('vesting task', () => {
         it('should return true if within 10 years', () => {
           const maxFutureYears = 10;
           expect(
-            validation
+            validations
               .isBeforeMaxYears({ maxFutureYears })
               .test(utcToEvmTime(moment().add(maxFutureYears - 1, 'years')))
           ).to.be.true;
@@ -258,9 +464,38 @@ describe('vesting task', () => {
         it('should return false if not within 10 years', () => {
           const maxFutureYears = 10;
           expect(
-            validation
+            validations
               .isBeforeMaxYears({ maxFutureYears })
               .test(moment().add(maxFutureYears, 'years').add(1, 'day').unix())
+          ).to.be.false;
+        });
+      });
+    });
+    describe('isAfterYearsAgo', () => {
+      describe('pass', () => {
+        it('should return true if value is within 2 year ago from today', () => {
+          const minimumPastYears = 2;
+          expect(
+            validations
+              .isAfterYearsAgo({ minimumPastYears })
+              .test(
+                utcToEvmTime(moment().subtract(minimumPastYears - 1, 'years'))
+              )
+          ).to.be.true;
+        });
+      });
+      describe('fail', () => {
+        it('should return false if value is not within 2 year ago from today', () => {
+          const minimumPastYears = 2;
+          expect(
+            validations
+              .isAfterYearsAgo({ minimumPastYears })
+              .test(
+                moment()
+                  .subtract(minimumPastYears, 'years')
+                  .subtract(1, 'day')
+                  .unix()
+              )
           ).to.be.false;
         });
       });
@@ -268,80 +503,303 @@ describe('vesting task', () => {
     describe('isWalletAddress', () => {
       describe('pass', () => {
         it('should return true if it is a valid wallet address', () => {
-          expect(
-            validation.isWalletAddress.test(
-              '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
-              { path: '0xDD66B46910918B2F442D6b75C6E55631ad678c99.recipient' }
-            )
-          ).to.be.true;
+          ['0xDD66B46910918B2F442D6b75C6E55631ad678c99'].forEach(
+            (v) => expect(validations.isWalletAddress().test(v)).to.be.true
+          );
         });
       });
       describe('fail', () => {
         it('should return false if not a valid wallet address', () => {
           ['0x1234', 1234, [], {}].forEach(
-            (v) =>
-              expect(
-                validation.isWalletAddress.test(v, {
-                  path: '0xDD66B46910918B2F442D6b75C6E55631ad678c99.recipient',
-                })
-              ).to.be.false
+            (v) => expect(validations.isWalletAddress().test(v)).to.be.false
           );
         });
       });
     });
   });
   describe('grantSchema', () => {
+    // describe('valid', () => {});
+    // describe('invalid', () => {});
+    describe('schema paths', () => {
+      describe('unlockEndTime', () => {
+        describe('valid', () => {
+          it('should pass when unlockEndTime is defined', () => {
+            [utcToEvmTime(moment())].forEach((v) =>
+              expect(
+                grantSchema.validateSyncAt('unlockEndTime', {
+                  unlockEndTime: v,
+                })
+              ).to.eq(v)
+            );
+          });
+        });
+        describe('invalid', () => {
+          it('should fail when unlockEndTime is missing', () => {
+            [null, undefined].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('unlockEndTime', {
+                  unlockEndTime: v,
+                })
+              ).throws('unlockEndTime is a required field')
+            );
+          });
+          it('should fail when unlockEndTime is not a uint', () => {
+            [{}, [], '', '1', '-1', -1, 1.1, false, true].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('unlockEndTime', {
+                  unlockEndTime: v,
+                })
+              ).throws(
+                typeof v === 'number' && Number.isInteger(v)
+                  ? 'unlockEndTime must be greater than or equal'
+                  : `unlockEndTime must be ${
+                      typeof v === 'number' && !Number.isInteger(v)
+                        ? 'an integer'
+                        : 'a `number`'
+                    }`
+              )
+            );
+          });
+        });
+      });
+      describe('cliff1Time', () => {
+        describe('valid', () => {
+          it('should pass when cliff1Time is defined', () => {
+            [utcToEvmTime(moment())].forEach((v) =>
+              expect(
+                grantSchema.validateSyncAt('cliff1Time', { cliff1Time: v })
+              ).to.eq(v)
+            );
+          });
+        });
+        describe('invalid', () => {
+          it('should fail when cliff1Time is missing', () => {
+            [null, undefined].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('cliff1Time', { cliff1Time: v })
+              ).throws('cliff1Time is a required field')
+            );
+          });
+          it('should fail when cliff1Time is not a uint', () => {
+            [{}, [], '', '1', '-1', -1, 1.1, false, true].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('cliff1Time', { cliff1Time: v })
+              ).throws(
+                typeof v === 'number' && Number.isInteger(v)
+                  ? 'cliff1Time must be greater than or equal'
+                  : `cliff1Time must be ${
+                      typeof v === 'number' && !Number.isInteger(v)
+                        ? 'an integer'
+                        : 'a `number`'
+                    }`
+              )
+            );
+          });
+        });
+      });
+      describe('cliff2Time', () => {
+        describe('valid', () => {
+          it('should pass when cliff2Time is defined', () => {
+            [utcToEvmTime(moment())].forEach((v) =>
+              expect(
+                grantSchema.validateSyncAt('cliff2Time', { cliff2Time: v })
+              ).to.eq(v)
+            );
+          });
+        });
+        describe('invalid', () => {
+          it('should fail when cliff2Time is missing', () => {
+            [null, undefined].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('cliff2Time', { cliff2Time: v })
+              ).throws('cliff2Time is a required field')
+            );
+          });
+          it('should fail when cliff2Time is not a uint', () => {
+            [{}, [], '', '1', '-1', -1, 1.1, false, true].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('cliff2Time', { cliff2Time: v })
+              ).throws(
+                typeof v === 'number' && Number.isInteger(v)
+                  ? 'cliff2Time must be greater than or equal'
+                  : `cliff2Time must be ${
+                      typeof v === 'number' && !Number.isInteger(v)
+                        ? 'an integer'
+                        : 'a `number`'
+                    }`
+              )
+            );
+          });
+        });
+      });
+      describe('startTime', () => {
+        describe('valid', () => {
+          it('should pass when startTime is defined', () => {
+            [utcToEvmTime(moment())].forEach((v) =>
+              expect(
+                grantSchema.validateSyncAt('startTime', { startTime: v })
+              ).to.eq(v)
+            );
+          });
+        });
+        describe('invalid', () => {
+          it('should fail when startTime is missing', () => {
+            [null, undefined].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('startTime', { startTime: v })
+              ).throws('startTime is a required field')
+            );
+          });
+          it('should fail when startTime is not a uint', () => {
+            [{}, [], '', '1', '-1', -1, 1.1, false, true].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('startTime', { startTime: v })
+              ).throws(
+                typeof v === 'number' && Number.isInteger(v)
+                  ? 'startTime must be greater than or equal'
+                  : `startTime must be ${
+                      typeof v === 'number' && !Number.isInteger(v)
+                        ? 'an integer'
+                        : 'a `number`'
+                    }`
+              )
+            );
+          });
+        });
+      });
+      describe('vestEndTime', () => {
+        describe('valid', () => {
+          it('should pass when vestEndTime is defined', () => {
+            [utcToEvmTime(moment())].forEach((v) =>
+              expect(
+                grantSchema.validateSyncAt('vestEndTime', { vestEndTime: v })
+              ).to.eq(v)
+            );
+          });
+        });
+        describe('invalid', () => {
+          it('should fail when vestEndTime is missing', () => {
+            [null, undefined].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('vestEndTime', { vestEndTime: v })
+              ).throws('vestEndTime is a required field')
+            );
+          });
+          it('should fail when vestEndTime is not a positive uint', () => {
+            [{}, [], '', '1', '-1', -1, 1.1, false, true].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('vestEndTime', { vestEndTime: v })
+              ).throws(
+                typeof v === 'number' && Number.isInteger(v)
+                  ? 'vestEndTime must be greater than or equal'
+                  : `vestEndTime must be ${
+                      typeof v === 'number' && !Number.isInteger(v)
+                        ? 'an integer'
+                        : 'a `number`'
+                    }`
+              )
+            );
+          });
+        });
+      });
+      describe('recipient', () => {
+        // describe('valid', () => {
+        //   it("should pass when the recipient is a valid ethereum address with the same value as the parent object's key", async () => {});
+        // });
+        describe('invalid', () => {
+          it("should fail when the recipient is not the same value as the parent object's key", async () => {
+            const data = MOCK_GITHUB_VESTING_GRANTS[0];
+            const {
+              grantList: [grant],
+            } = await createTestGrants({
+              data: [data],
+            });
+            const originalRecipient = grant.recipient;
+            expect(grant.recipient).to.not.eq(MOCK_GITHUB_VESTING_GRANTS[1][0]);
+            grant.recipient = MOCK_GITHUB_VESTING_GRANTS[1][0];
+            // todo .each test known invalid variants
+            await expect(
+              grantsSchema.validate({ [originalRecipient]: grant })
+            ).rejectedWith(
+              validations.walletAddressIsSameAsParentKey().message({
+                path: `${originalRecipient}.recipient`,
+                value: MOCK_GITHUB_VESTING_GRANTS[1][0],
+              })
+            );
+          });
+        });
+      });
+    });
+  });
+  describe('grantsSchema', () => {
     describe('validation', () => {
       describe('valid', () => {
         it('should return true for a valid grant schema', async () => {
           // todo .each test known valid variants
           const { grants } = await createTestGrants();
-          expect(await grantSchema.validate(grants)).to.deep.eq(grants);
+          expect(await grantsSchema.validate(grants)).to.deep.eq(grants);
         });
       });
       // describe('invalid', () => {
       //   // todo
       // });
       // it('should return true for a valid grant schema', async () => {
-      //   await expect(grantSchema.validate({ recipient: 1 })).to.become({});
+      //   await expect(grantsSchema.validate({ recipient: 1 })).to.become({});
       // });
-      describe('schema paths', () => {
-        describe('recipient', () => {
-          // describe('valid', () => {
-          //   it("should pass when the recipient is a valid ethereum address with the same value as the parent object's key", async () => {});
-          // });
-          describe('invalid', () => {
-            // it('string', async () => {})
-            // it('defined', async () => {})
-            // it('isWalletAddress', async () => {})
-            it("should fail when the recipient is not the same value as the parent object's key", async () => {
-              const data = MOCK_GITHUB_VESTING_GRANTS[0];
-              const {
-                grantList: [grant],
-              } = await createTestGrants({
-                data: [data],
-              });
-              const originalRecipient = grant.recipient;
-              expect(grant.recipient).to.not.eq(
-                MOCK_GITHUB_VESTING_GRANTS[1][0]
-              );
-              grant.recipient = MOCK_GITHUB_VESTING_GRANTS[1][0];
-              // todo .each test known invalid variants
-              await expect(
-                grantSchema.validate({ [originalRecipient]: grant })
-              ).rejectedWith(
-                validation.isWalletAddress.message({
-                  path: `${originalRecipient}.recipient`,
-                  value: MOCK_GITHUB_VESTING_GRANTS[1][0],
-                })
-              );
-            });
-          });
-        });
-      });
     });
   });
   describe('flags', () => {
+    describe('dry-run', () => {
+      it('should use callStatic', async () => {
+        const { hre, lNori, bpNori } = await setupTestEnvironment();
+        sandbox.replace(
+          github,
+          'getOctokit',
+          sandbox.fake.returns({
+            rest: {
+              repos: {
+                getContent: () => {
+                  return {
+                    data: MOCK_GITHUB_VESTING_DATA.join('\r\n'),
+                  };
+                },
+              },
+            },
+          } as Partial<typeof Octokit> as Octokit)
+        );
+        const getBridgedPolygonNori = sandbox.fake.returns({
+          ...bpNori,
+          batchSend: sandbox.spy(),
+          callStatic: {
+            ...bpNori.callStatic,
+            batchSend: sandbox.spy(),
+          },
+        } as DeepPartial<BridgedPolygonNORI> as BridgedPolygonNORI);
+        const getLockedNori = sandbox.fake.returns({
+          ...lNori,
+          batchRevokeUnvestedTokenAmounts: sandbox.spy(),
+          callStatic: {
+            ...lNori.callStatic,
+            batchRevokeUnvestedTokenAmounts: sandbox.spy(),
+          },
+        } as DeepPartial<LockedNORI> as LockedNORI);
+        sandbox.replace(
+          contractUtils,
+          'getBridgedPolygonNori',
+          getBridgedPolygonNori
+        );
+        sandbox.replace(contractUtils, 'getLockedNori', getLockedNori);
+        await hre.run('vesting', {
+          action: 'createAndRevoke',
+          dryRun: true,
+        });
+        expect(getBridgedPolygonNori().callStatic.batchSend).calledOnce;
+        expect(getLockedNori().callStatic.batchRevokeUnvestedTokenAmounts)
+          .calledOnce;
+        expect(getBridgedPolygonNori().batchSend).callCount(0);
+        expect(getLockedNori().batchRevokeUnvestedTokenAmounts).callCount(0);
+      });
+    });
     describe('diff', () => {
       it('should list vesting schedules', async () => {
         const { hre } = await setupTestEnvironment();
