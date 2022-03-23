@@ -42,7 +42,7 @@ contract Removal is
   uint256 constant _METHODOLOGY_DATA_FIELD_LENGTH = 1;
   uint256 constant _METHODOLOGY_DATA_OFFSET = 0;
 
-  uint256 private _latestTokenId;
+  uint256 private _tokenIdCounter;
   string public name; // todo why did I add this
   mapping(uint256 => uint256) public orderedTokenIds;
   mapping(uint256 => bool) private _tokenIds;
@@ -50,7 +50,7 @@ contract Removal is
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
-    _latestTokenId = 0;
+    _tokenIdCounter = 0;
     name = "Removal";
   }
 
@@ -158,7 +158,7 @@ contract Removal is
    * @param to The supplier address
    * @param amounts Each removal's tonnes of CO2 formatted as wei
    * @param ids The token ids to use for this batch of removals.
-   *            The id itself encodes the removal's vintage, a parcel identifier, a methodology identifer, methodology version, and isolocation
+   *            The id itself encodes the supplier's ethereum address, a parcel identifier, the vintage, country code, state code, methodology identifer, and methodology version
    * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals came.
    */
   function mintBatch(
@@ -175,8 +175,8 @@ contract Removal is
     for (uint256 i = 0; i < ids.length; i++) {
       require(!_tokenIds[ids[i]], "Token id already exists"); // todo can the duplicate token id be reported here?
       _tokenIds[ids[i]] = true;
-      orderedTokenIds[_latestTokenId] = ids[i];
-      _latestTokenId += 1;
+      orderedTokenIds[_tokenIdCounter] = ids[i];
+      _tokenIdCounter += 1;
     }
     super.mintBatch(to, ids, amounts, data);
 
