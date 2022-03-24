@@ -530,7 +530,7 @@ contract LockedNORI is
       "lNORI: Recipient cannot be zero address"
     );
     require(
-      address(params.recipient) != _msgSender(),
+      !hasRole(TOKEN_GRANTER_ROLE, params.recipient),
       "lNORI: Recipient cannot be grant admin"
     );
     require(
