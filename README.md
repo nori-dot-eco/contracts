@@ -135,27 +135,25 @@ Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openz
 
 ### Standard test addresses
 
-TODO: Add the canonical names used in tests (see `accounts.ts`)
-
-- Account #0: 0x465d5a3ffea4cd109043499fa576c3e16f918463 (1000000 ETH)
+- Account #0 (admin): 0x465d5a3ffea4cd109043499fa576c3e16f918463 (1000000 ETH)
 
 - Account #1: 0x8eb185e20a9b7b31bd48da19e834b93be952795e (1000000 ETH)
 
-- Account #2: 0x6b9d03759e9f14a641f0703fbd84f1f726159b6b (1000000 ETH)
+- Account #2 (supplier): 0x6b9d03759e9f14a641f0703fbd84f1f726159b6b (1000000 ETH)
 
 - Account #3: 0xbd6e6a75c7a51cfdf08ddf2f538ceb221835839b (1000000 ETH)
 
-- Account #4: 0x8abfd8375da1521e70d23988eb5a6efa799c15ea (1000000 ETH)
+- Account #4 (investor1): 0x8abfd8375da1521e70d23988eb5a6efa799c15ea (1000000 ETH)
 
-- Account #5: 0x6029424b26feffe2879e88c62e8130dc418e64d9 (1000000 ETH)
+- Account #5 (investor2): 0x6029424b26feffe2879e88c62e8130dc418e64d9 (1000000 ETH)
 
-- Account #6: 0x0ee3e1d93121c989c94f3e9cf9f9b655ad2cd3cf (1000000 ETH)
+- Account #6 (buyer): 0x0ee3e1d93121c989c94f3e9cf9f9b655ad2cd3cf (1000000 ETH)
 
-- Account #7: 0x533df4b74a18a84f5d9287ed9c5afcbb59dbed1f (0 ETH)
+- Account #7 (employee): 0x533df4b74a18a84f5d9287ed9c5afcbb59dbed1f (0 ETH)
 
-- Account #8: 0x9b9add2d2f759219c60b89a859ef658b8b8280c9 (1000000 ETH)
+- Account #8 (mockPolygonBridge): 0x9b9add2d2f759219c60b89a859ef658b8b8280c9 (1000000 ETH)
 
-- Account #9: 0xf31c29b01ef18a3d9726b99ad0e9692e498cf5f8 (0 ETH)
+- Account #9 (noriWallet): 0xf31c29b01ef18a3d9726b99ad0e9692e498cf5f8 (0 ETH)
 
 ### CLI
 
