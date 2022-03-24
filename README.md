@@ -45,7 +45,7 @@ NB: hardhat running locally in a separate process (see `Running and deploying to
 
 Same contracts as _localhost_
 
-You would rarely target this network from the CLI except when running tests because it starts a fresh in-process hardhat node that exists when the CLI command completes.
+You would rarely target this network from the CLI except when running tests because it starts a fresh in-process hardhat node that exits when the CLI command completes.
 
 ## Development
 
