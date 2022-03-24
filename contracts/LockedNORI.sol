@@ -779,4 +779,12 @@ contract LockedNORI is
   ) public pure override returns (bool) {
     revert("lNORI: transferFrom disabled");
   }
+
+  function _beforeRoleChange(bytes32 role, address account) override internal virtual {
+    super._beforeRoleChange(role, account);
+    if (role == TOKEN_GRANTER_ROLE) {
+        require (!_grants[account].exists, "lNORI: Cannot assign role to a grant holder address");
+    }
+  }
+
 }

@@ -659,6 +659,14 @@ describe('LockedNori', () => {
     ).to.be.revertedWith('lNORI: insufficient balance');
   });
 
+  describe('grantRole', () => {
+      it('should fail to grant TOKEN_GRANTER_ROLE to an address having a grant', async () => {
+        const { lNori, hre } = await setupWithGrant();
+        await expect(lNori.grantRole(await lNori.TOKEN_GRANTER_ROLE(), hre.namedAccounts.investor1))
+            .to.be.revertedWith("lNORI: Cannot assign role to a grant holder address");
+      });
+  });
+
   describe('createGrant', () => {
     it('Should fail to create a second grant for an address', async () => {
       const { lNori, hre } = await setupTest();
@@ -710,6 +718,32 @@ describe('LockedNori', () => {
             grant.unlockCliff2Amount
           )
       ).to.be.revertedWith('lNORI: Grant already exists');
+    });
+
+    it('Should fail to create a grant for an address having TOKEN_GRANTER_ROLE', async () => {
+      const { lNori, hre } = await setupTest();
+      const { grant, grantAmount } = employeeParams({
+        hre,
+        startTime: await getLatestBlockTime({ hre }),
+      });
+      const { namedSigners } = hre;
+      await expect(
+        lNori
+          .connect(namedSigners['admin'])
+          .createGrant(
+            grantAmount,
+            hre.namedAccounts.admin,
+            grant.startTime,
+            grant.vestEndTime,
+            grant.unlockEndTime,
+            grant.cliff1Time,
+            grant.cliff2Time,
+            grant.vestCliff1Amount,
+            grant.vestCliff2Amount,
+            grant.unlockCliff1Amount,
+            grant.unlockCliff2Amount
+          )
+      ).to.be.revertedWith('lNORI: Recipient cannot be grant admin');
     });
   });
 
