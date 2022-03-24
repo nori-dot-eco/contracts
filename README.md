@@ -37,6 +37,7 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 - Certificate
 - Removal
 - FIFOMarket
+- NORI
 
 NB: hardhat running locally in a separate process (see `Running and deploying to a local testnet`)
 
