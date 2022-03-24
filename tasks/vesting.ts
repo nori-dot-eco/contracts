@@ -431,7 +431,7 @@ export const GET_VESTING_TASK = () =>
       }
       if (Boolean(asJson) && !Boolean(showDiff) && !Boolean(expand)) {
         throw new Error(
-          'You must specify --asJson or --expand when using --as-json'
+          'You must specify --diff or --expand when using --as-json'
         );
       }
       const signer = (await hre.ethers.getSigners())[account];
@@ -716,6 +716,7 @@ const CREATE_SUBTASK = {
       const userData = grantDiffs.map((grant) => buildUserData({ grant }));
       const operatorData = grantDiffs.map((_) => '0x');
       const requireReceptionAck = grantDiffs.map((_) => true);
+      hre.log(`Total bpNORI to lock: ${ethers.utils.formatEther(amounts.reduce((acc, v) => acc.add(v)))}`);
       if (!Boolean(dryRun)) {
         const batchCreateGrantsTx = await bpNori.batchSend(
           recipients,
