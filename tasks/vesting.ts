@@ -625,7 +625,7 @@ const GET_BLOCKCHAIN_SUBTASK = {
           };
     }, {} as ParsedGrant) as ParsedGrant;
     const actualAmounts =  Object.values(rawBlockchainGrants).map(
-        ({grantAmount}) => grantAmount).reduce((acc, v) => acc.add(v));
+        ({grantAmount, claimedAmount}) => grantAmount.sub(claimedAmount)).reduce((acc, v) => acc.add(v));
     if (!totalSupply.eq(actualAmounts)) {
         hre.log("WARNING: total supply of LockedNORI does not equal the amounts of all grants.",
         " Was a line removed from grants CSV?");
