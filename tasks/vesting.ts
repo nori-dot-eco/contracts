@@ -586,7 +586,7 @@ const GET_GITHUB_SUBTASK = {
 
 const GET_BLOCKCHAIN_SUBTASK = {
   name: 'get-blockchain',
-  description: 'Get all grants from on-chain',
+  description: 'Get all grants from on-chain and coerce them into the schema of our github grants CSV',
   run: async (
     {
       grants: { githubGrants },
@@ -599,9 +599,9 @@ const GET_BLOCKCHAIN_SUBTASK = {
     },
     _hre: CustomHardHatRuntimeEnvironment
   ): Promise<ParsedGrant> => {
-    const blockchainGrants = (
-      await lNori.batchGetGrant(Object.keys(githubGrants))
-    ).reduce((acc: ParsedGrant, grant: any): ParsedGrant => {
+    const totalSupply = await lNori.totalSupply();
+    const rawBlockchainGrants = await lNori.batchGetGrant(Object.keys(githubGrants));
+    const blockchainGrants = rawBlockchainGrants.reduce((acc: ParsedGrant, grant: any): ParsedGrant => {
       return grant.recipient === hre.ethers.constants.AddressZero
         ? acc
         : {
@@ -624,6 +624,14 @@ const GET_BLOCKCHAIN_SUBTASK = {
             } as any,
           };
     }, {} as ParsedGrant) as ParsedGrant;
+    const actualAmounts =  Object.values(rawBlockchainGrants).map(
+        ({grantAmount}) => grantAmount).reduce((acc, v) => acc.add(v));
+    if (!totalSupply.eq(actualAmounts)) {
+        hre.log("WARNING: total supply of LockedNORI does not equal the amounts of all grants.",
+        " Was a line removed from grants CSV?");
+        hre.log(`Total supply: ${ethers.utils.formatEther(totalSupply)}`);
+        hre.log(`Total amount of grants provided: ${ethers.utils.formatEther(actualAmounts)}`);
+    }
     return blockchainGrants;
   },
 } as const;
