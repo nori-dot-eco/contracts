@@ -133,6 +133,22 @@ Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openz
 
 ## Additional tooling notes
 
+### Connecting to your local node from Metamask
+
+- RPC URL: `http://localhost:8545`
+- Chain ID: 9001
+
+### Ethernal
+
+[Ethernal](https://app.tryethernal.com/) is an etherscan style interface for your local hardhat node. Sign up for a free account and run your local node with the following extra variables to have contract ABIs and transactions synced there for viewing / interacting with.
+
+```
+ETHERNAL=true \
+ETHERNAL_EMAIL="you@nori.com" \
+ETHERNAL_PASSWORD="xxxxxx_yyyyyyyy" \
+MINT=true hardhat node
+```
+
 ### Standard test addresses
 
 - Account #0 (admin): 0x465d5a3ffea4cd109043499fa576c3e16f918463 (1000000 ETH)
@@ -158,3 +174,9 @@ Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openz
 ### CLI
 
 Install hardhat [shorthand and autocomplete](https://hardhat.org/guides/shorthand.html)
+
+## Deployment Notes
+
+When deploying contract to `polygon` or `mumbai` enmsure you have `POYGONSCAN_API_KEY`
+set in your `.env` so that the deploy process can upload the contract sources and ABI
+to polygonscan.
