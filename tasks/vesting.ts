@@ -6,7 +6,10 @@ import { task, subtask, types } from 'hardhat/config';
 import { BigNumber } from 'ethers';
 import chalk from 'chalk';
 import { diff, diffString } from 'json-diff';
-import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
+import {
+  BigNumberish,
+  isBigNumberish,
+} from '@ethersproject/bignumber/lib/bignumber';
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import type { CSVParseParam } from 'csvtojson/v2/Parameters';
 import { isAddress, getAddress } from 'ethers/lib/utils';
@@ -22,49 +25,7 @@ import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
 // todo cli: add optional param to allow a revoking tokens to a different address than the first signer index
 // todo cli: add fireblocks support
 // todo cli tests: test remaining untested flags and command combos
-// todo tests: test against remaining grants listed in google sheets CSV
-// todo grantSchema test: originalAmount exists
-// todo grantSchema test: originalAmount is positive uint bignumber string
-// todo grantSchema test: originalAmount > 0
 // todo grantSchema validation: originalAmount isWithinReasonableBigNumberRange
-// todo grantSchema validation: vestEndTime > startTime
-// todo grantSchema validation: unlockEndTime exists
-// todo grantSchema validation: unlockEndTime date validation
-// todo grantSchema validation: unlockEndTime > startTime
-// todo grantSchema validation: unlockEndTime > vestEndTime
-// todo grantSchema validation: vestEndTime exists
-// todo grantSchema validation: vestEndTime date validation
-// todo grantSchema validation: cliff1Time exists
-// todo grantSchema validation: cliff1Time date validation
-// todo grantSchema validation: cliff1Time > startTime
-// todo grantSchema validation: cliff1Time < unlockEndTime
-// todo grantSchema validation: cliff1Time < vestEndTime
-// todo grantSchema validation: cliff2Time is optional
-// todo grantSchema validation: cliff2Time date validation
-// todo grantSchema validation: cliff2Time date validation > startTime
-// todo grantSchema validation: cliff2Time date validation > cliff1 time
-// todo grantSchema validation: cliff2Time date validation < unlockEndTime
-// todo grantSchema validation: vestEndTime exists
-// todo grantSchema validation: vestEndTime date validation
-// todo grantSchema validation: vestEndTime >= startTime
-// todo grantSchema validation: vestCliff1Amount is optional
-// todo grantSchema validation: vestCliff1Amount is positive uint bignumber string
-// todo grantSchema validation: vestCliff1Amount exists only if vestEndTime exists and if vestCliff1Time exists
-// todo grantSchema validation: vestCliff1Amount <= originalAmount
-// todo grantSchema validation: vestCliff1Amount isWithinReasonableBigNumberRange
-// todo grantSchema validation: vestCliff2Amount is optional
-// todo grantSchema validation: vestCliff2Amount is positive uint bignumber string
-// todo grantSchema validation: vestCliff2Amount exists only if vestEndTime exists and if vestCliff1Time exists and if vest1CliffAmount exists
-// todo grantSchema validation: vestCliff2Amount > vestCliff1Amount (cumulative)
-// todo grantSchema validation: vestCliff2Amount exists only if vestEndTime exists and if vestCliff2Time exists
-// todo grantSchema validation: vestCliff2Amount <= originalAmount
-// todo grantSchema validation: vestCliff2Amount isWithinReasonableBigNumberRange
-// todo grantSchema validation: unlockCliff1Amount is positive uint bignumber string
-// todo grantSchema validation: unlockCliff1Amount <= originalAmount
-// todo grantSchema validation: unlockCliff2Amount <= originalAmount
-// todo grantSchema validation: unlockCliff2Amount > unlockCliff1Amount (cumulative)
-// todo grantSchema validation: unlockCliff2Amount is positive uint bignumber string
-// todo grantSchema validation: unlockCliff2Amount isWithinReasonableBigNumberRange
 // todo grantSchema validation: lastRevocationTime is optional
 // todo grantSchema validation: lastRevocationTime date validation
 // todo grantSchema validation: lastRevocationTime > startTime
@@ -177,6 +138,23 @@ export const validations = {
         typeof value === 'string' && isBigNumberish(value),
     };
   },
+  isNonZero: () => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} must be > 0. Value: ${d.value}.`,
+      test: (value: BigNumberish, _opts?: { path: string }): boolean =>
+        BigNumber.from(value).gt(0),
+    };
+  },
+  isBigNumberLTE: (other: BigNumberish) => {
+    return {
+      message: (d: { path: string; value?: unknown }): string =>
+        `${d.path} must be BigNumberish less than or equal to: ${other}`,
+      test: (value: unknown, _opts?: { path: string }): boolean => {
+        return isBigNumberish(value) && BigNumber.from(value).lte(other);
+      },
+    };
+  },
   walletAddressIsSameAsParentKey: () => {
     return {
       message: (d: { path: string; value?: unknown }): string =>
@@ -255,6 +233,10 @@ export const rules = {
       .requiredString()
       .matches(UINT_STRING_MATCHER)
       .test(validations.isBigNumberish()),
+  requiredPositiveNonZeroBigNumberString: () =>
+      rules
+        .requiredPositiveBigNumberString()
+        .test(validations.isNonZero()),
   isTimeWithinReasonableDateRange: ({
     minimumPastYears,
     maxFutureYears,
@@ -277,31 +259,111 @@ export const rules = {
 export const grantSchema = yup
   .object({
     recipient: rules.isWalletAddress(),
-    originalAmount: rules.requiredPositiveBigNumberString(),
+    originalAmount: rules.requiredPositiveNonZeroBigNumberString(),
     startTime: rules.isTimeWithinReasonableDateRange({
       minimumPastYears: 1,
-      maxFutureYears: 1,
+      maxFutureYears: 2,
     }),
-    vestEndTime: rules.isTimeWithinReasonableDateRange({
-      minimumPastYears: 1,
-      maxFutureYears: 10,
-    }),
-    unlockEndTime: rules.isTimeWithinReasonableDateRange({
-      minimumPastYears: 1,
-      maxFutureYears: 10,
-    }),
-    cliff1Time: rules.isTimeWithinReasonableDateRange({
-      minimumPastYears: 1,
-      maxFutureYears: 10,
-    }),
-    cliff2Time: rules.isTimeWithinReasonableDateRange({
-      minimumPastYears: 1,
-      maxFutureYears: 10,
-    }),
-    vestCliff1Amount: rules.requiredPositiveBigNumberString(),
-    vestCliff2Amount: rules.requiredPositiveBigNumberString(),
-    unlockCliff1Amount: rules.requiredPositiveBigNumberString(),
-    unlockCliff2Amount: rules.requiredPositiveBigNumberString(),
+    vestEndTime: rules
+      .requiredPositiveInteger()
+      .when('startTime', ([startTime], schema, value) => {
+        if (value > 0) {
+          return schema
+            .min(startTime)
+            .test(validations.isBeforeMaxYears({ maxFutureYears: 10 }));
+        }
+        return schema;
+      }),
+    unlockEndTime: rules
+      .isTimeWithinReasonableDateRange({
+        minimumPastYears: 1,
+        maxFutureYears: 10,
+      })
+      .when(
+        ['vestEndTime', 'startTime'],
+        ([vestEndTime, startTime], schema) => {
+          return schema.min(Math.max(vestEndTime, startTime));
+        }
+      ),
+    cliff1Time: rules
+      .isTimeWithinReasonableDateRange({
+        minimumPastYears: 1,
+        maxFutureYears: 10,
+      })
+      .when('startTime', ([startTime], schema) => {
+        return schema.min(startTime);
+      }),
+    cliff2Time: rules
+      .isTimeWithinReasonableDateRange({
+        minimumPastYears: 1,
+        maxFutureYears: 10,
+      })
+      .when('cliff1Time', ([cliff1Time], schema) => {
+        return schema.min(cliff1Time);
+      }),
+    vestCliff1Amount: rules
+      .requiredPositiveBigNumberString()
+      .when(
+        ['originalAmount', 'vestEndTime', 'startTime'],
+        ([originalAmount, vestEndTime, startTime], schema, value) => {
+          if (value > 0 && vestEndTime > startTime) {
+            return schema.test(validations.isBigNumberLTE(originalAmount));
+          }
+          return schema;
+        }
+      ),
+    vestCliff2Amount: rules
+      .requiredPositiveBigNumberString()
+      .when(
+        ['originalAmount', 'vestCliff1Amount', 'vestEndTime', 'startTime'],
+        (
+          [originalAmount, vestCliff1Amount, vestEndTime, startTime],
+          schema,
+          value
+        ) => {
+          if (value > 0 && vestEndTime > startTime) {
+            return schema.test(
+              validations.isBigNumberLTE(
+                BigNumber.from(originalAmount).sub(vestCliff1Amount)
+              )
+            );
+          }
+          return schema;
+        }
+      ),
+    unlockCliff1Amount: rules
+      .requiredPositiveBigNumberString()
+      .when(
+        ['vestCliff1Amount', 'originalAmount'],
+        ([vestCliff1Amount, originalAmount], schema) => {
+          if (vestCliff1Amount > 0) {
+            return schema.test(validations.isBigNumberLTE(vestCliff1Amount));
+          }
+          return schema.test(validations.isBigNumberLTE(originalAmount));
+        }
+      ),
+    unlockCliff2Amount: rules
+      .requiredPositiveBigNumberString()
+      .when(
+        ['vestCliff1Amount', 'vestCliff2Amount', 'unlockCliff1Amount', 'originalAmount'],
+        ([vestCliff1Amount, vestCliff2Amount, unlockCliff1Amount, originalAmount], schema) => {
+          if (vestCliff1Amount > 0) {
+            return schema.test(
+                validations.isBigNumberLTE(
+                BigNumber.from(vestCliff1Amount)
+                    .add(vestCliff2Amount)
+                    .sub(unlockCliff1Amount)
+                )
+            );
+          }
+          return schema.test(
+            validations.isBigNumberLTE(
+            BigNumber.from(originalAmount)
+                .sub(unlockCliff1Amount)
+            )
+        );
+        }
+      ),
     lastRevocationTime: rules.requiredPositiveInteger(),
     lastQuantityRevoked: rules.requiredPositiveBigNumberString(),
   })
@@ -333,10 +395,10 @@ export const csvParser: CsvParser = {
   contactUUID: 'omit',
   originalAmount: (item) => formatTokenString(item).toString(),
   startTime: (item) => utcToEvmTime(item),
-  vestEndTime: (item) => utcToEvmTime(item),
+  vestEndTime: (item) => utcToEvmTime(item ?? '0'),
   unlockEndTime: (item) => utcToEvmTime(item),
-  cliff1Time: (item) => utcToEvmTime(item),
-  cliff2Time: (item) => utcToEvmTime(item),
+  cliff1Time: (item) => utcToEvmTime(item ?? '0'),
+  cliff2Time: (item) => utcToEvmTime(item ?? '0'),
   vestCliff1Amount: (item) => formatTokenString(item ?? '0').toString(),
   vestCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
   unlockCliff1Amount: (item) => formatTokenString(item ?? '0').toString(),
@@ -353,7 +415,9 @@ export const grantListToObject = ({
 }): ParsedGrant => {
   return listOfGrants.reduce((acc, val): ParsedGrant => {
     if (Boolean(acc[val.recipient])) {
-      throw new Error('Found duplicate recipient address in grants');
+      throw new Error(
+        `Found duplicate recipient address in grants ${val.recipient}`
+      );
     }
     return { ...acc, [val.recipient]: val };
   }, {} as ParsedGrant);
@@ -370,9 +434,17 @@ export const grantCsvToList = async ({
     ...opts,
     colParser: csvParser,
   })
-    .subscribe(undefined, (err) => {
-      throw err;
-    })
+    .subscribe(
+      // Post process rows once they're read in but before final validation
+      (row: Grant) => {
+        row.cliff1Time = row.cliff1Time === 0 ? row.startTime : row.cliff1Time;
+        row.cliff2Time = row.cliff2Time === 0 ? row.cliff1Time : row.cliff2Time;
+        // row.vestEndTime = row.vestEndTime === 0 ? row.startTime : row.vestEndTime;
+      },
+      (err) => {
+        throw err;
+      }
+    )
     .fromString(data)) as GrantList;
   return dataP;
 };
@@ -586,7 +658,8 @@ const GET_GITHUB_SUBTASK = {
 
 const GET_BLOCKCHAIN_SUBTASK = {
   name: 'get-blockchain',
-  description: 'Get all grants from on-chain and coerce them into the schema of our github grants CSV',
+  description:
+    'Get all grants from on-chain and coerce them into the schema of our github grants CSV',
   run: async (
     {
       grants: { githubGrants },
@@ -600,37 +673,49 @@ const GET_BLOCKCHAIN_SUBTASK = {
     _hre: CustomHardHatRuntimeEnvironment
   ): Promise<ParsedGrant> => {
     const totalSupply = await lNori.totalSupply();
-    const rawBlockchainGrants = await lNori.batchGetGrant(Object.keys(githubGrants));
-    const blockchainGrants = rawBlockchainGrants.reduce((acc: ParsedGrant, grant: any): ParsedGrant => {
-      return grant.recipient === hre.ethers.constants.AddressZero
-        ? acc
-        : {
-            ...acc,
-            [grant.recipient]: {
-              recipient: grant.recipient,
-              originalAmount: grant.originalAmount.toString(),
-              startTime: grant.startTime.toNumber(),
-              vestEndTime: grant.vestEndTime.toNumber(),
-              unlockEndTime: grant.unlockEndTime.toNumber(),
-              cliff1Time: grant.cliff1Time.toNumber(),
-              cliff2Time: grant.cliff2Time.toNumber(),
-              vestCliff1Amount: grant.vestCliff1Amount.toString(),
-              vestCliff2Amount: grant.vestCliff2Amount.toString(),
-              unlockCliff1Amount: grant.unlockCliff1Amount.toString(),
-              unlockCliff2Amount: grant.unlockCliff2Amount.toString(),
-              lastRevocationTime: grant.lastRevocationTime.toNumber(),
-              lastQuantityRevoked: grant.lastQuantityRevoked.toString(),
-              exists: grant.exists,
-            } as any,
-          };
-    }, {} as ParsedGrant) as ParsedGrant;
-    const actualAmounts =  Object.values(rawBlockchainGrants).map(
-        ({grantAmount, claimedAmount}) => grantAmount.sub(claimedAmount)).reduce((acc, v) => acc.add(v));
+    const rawBlockchainGrants = await lNori.batchGetGrant(
+      Object.keys(githubGrants)
+    );
+    const blockchainGrants = rawBlockchainGrants.reduce(
+      (acc: ParsedGrant, grant: any): ParsedGrant => {
+        return grant.recipient === hre.ethers.constants.AddressZero
+          ? acc
+          : {
+              ...acc,
+              [grant.recipient]: {
+                recipient: grant.recipient,
+                originalAmount: grant.originalAmount.toString(),
+                startTime: grant.startTime.toNumber(),
+                vestEndTime: grant.vestEndTime.toNumber(),
+                unlockEndTime: grant.unlockEndTime.toNumber(),
+                cliff1Time: grant.cliff1Time.toNumber(),
+                cliff2Time: grant.cliff2Time.toNumber(),
+                vestCliff1Amount: grant.vestCliff1Amount.toString(),
+                vestCliff2Amount: grant.vestCliff2Amount.toString(),
+                unlockCliff1Amount: grant.unlockCliff1Amount.toString(),
+                unlockCliff2Amount: grant.unlockCliff2Amount.toString(),
+                lastRevocationTime: grant.lastRevocationTime.toNumber(),
+                lastQuantityRevoked: grant.lastQuantityRevoked.toString(),
+                exists: grant.exists,
+              } as any,
+            };
+      },
+      {} as ParsedGrant
+    ) as ParsedGrant;
+    const actualAmounts = Object.values(rawBlockchainGrants)
+      .map(({ grantAmount, claimedAmount }) => grantAmount.sub(claimedAmount))
+      .reduce((acc, v) => acc.add(v));
     if (!totalSupply.eq(actualAmounts)) {
-        hre.log("WARNING: total supply of LockedNORI does not equal the amounts of all grants.",
-        " Was a line removed from grants CSV?");
-        hre.log(`Total supply: ${ethers.utils.formatEther(totalSupply)}`);
-        hre.log(`Total amount of grants provided: ${ethers.utils.formatEther(actualAmounts)}`);
+      hre.log(
+        'WARNING: total supply of LockedNORI does not equal the amounts of all grants.',
+        ' Was a line removed from grants CSV?'
+      );
+      hre.log(`Total supply: ${ethers.utils.formatEther(totalSupply)}`);
+      hre.log(
+        `Total amount of grants provided: ${ethers.utils.formatEther(
+          actualAmounts
+        )}`
+      );
     }
     return blockchainGrants;
   },
@@ -724,7 +809,11 @@ const CREATE_SUBTASK = {
       const userData = grantDiffs.map((grant) => buildUserData({ grant }));
       const operatorData = grantDiffs.map((_) => '0x');
       const requireReceptionAck = grantDiffs.map((_) => true);
-      hre.log(`Total bpNORI to lock: ${ethers.utils.formatEther(amounts.reduce((acc, v) => acc.add(v)))}`);
+      hre.log(
+        `Total bpNORI to lock: ${ethers.utils.formatEther(
+          amounts.reduce((acc, v) => acc.add(v))
+        )}`
+      );
       if (!Boolean(dryRun)) {
         const batchCreateGrantsTx = await bpNori.batchSend(
           recipients,

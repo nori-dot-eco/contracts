@@ -550,7 +550,7 @@ contract LockedNORI is
       require(
         params.vestCliff1Amount >= params.unlockCliff1Amount ||
           params.vestCliff2Amount >= params.unlockCliff2Amount,
-        "lNORI: unlock cliff < vest cliff"
+        "lNORI: unlock cliff > vest cliff"
       );
       grant.vestingSchedule.totalAmount = amount;
       grant.vestingSchedule.startTime = params.startTime;
