@@ -55,8 +55,8 @@ type ParseGrantFunction<
       resultRow: unknown,
       row: string[],
       columnIndex: number
-    ) => ParsedGrant[string][TReturnType]
-  : ParsedGrant;
+    ) => ParsedGrants[string][TReturnType]
+  : ParsedGrants;
 
 type RunVestingWithSubTasks = <TTaskName extends string>(
   name: TTaskName,
@@ -87,15 +87,15 @@ type RunVestingWithSubTasks = <TTaskName extends string>(
   >
 >;
 
-export type ParsedGrant = yup.InferType<typeof grantsSchema>;
+export type ParsedGrants = yup.InferType<typeof grantsSchema>;
 
-export type Grant = ParsedGrant[keyof ParsedGrant];
+export type Grant = ParsedGrants[keyof ParsedGrants];
 
 export type GrantList = Grant[];
 
 interface Grants {
-  github: ParsedGrant;
-  blockchain: ParsedGrant;
+  github: ParsedGrants;
+  blockchain: ParsedGrants;
 }
 
 type ColParser = CSVParseParam['colParser'];
@@ -422,15 +422,15 @@ export const grantListToObject = ({
   listOfGrants,
 }: {
   listOfGrants: GrantList;
-}): ParsedGrant => {
-  return listOfGrants.reduce((acc, val): ParsedGrant => {
+}): ParsedGrants => {
+  return listOfGrants.reduce((acc, val): ParsedGrants => {
     if (Boolean(acc[val.recipient])) {
       throw new Error(
         `Found duplicate recipient address in grants ${val.recipient}`
       );
     }
     return { ...acc, [val.recipient]: val };
-  }, {} as ParsedGrant);
+  }, {} as ParsedGrants);
 };
 
 export const grantCsvToList = async ({
@@ -463,12 +463,12 @@ const grantCsvToObject = async ({
   data,
 }: {
   data: string;
-}): Promise<ParsedGrant> => {
+}): Promise<ParsedGrants> => {
   const listOfGrants: GrantList = await grantCsvToList({
     data: data.toString(),
     opts: { checkColumn: true },
   });
-  const grants: ParsedGrant = grantListToObject({ listOfGrants });
+  const grants: ParsedGrants = grantListToObject({ listOfGrants });
   return grants;
 };
 
@@ -681,12 +681,12 @@ const GET_BLOCKCHAIN_SUBTASK = {
       };
     },
     _hre: CustomHardHatRuntimeEnvironment
-  ): Promise<ParsedGrant> => {
+  ): Promise<ParsedGrants> => {
     const totalSupply = await lNori.totalSupply();
     const rawBlockchainGrants: LockedNORI.TokenGrantDetailStructOutput[] =
       await lNori.batchGetGrant(Object.keys(githubGrants));
     const blockchainGrants = rawBlockchainGrants.reduce(
-      (acc: ParsedGrant, grant: any): ParsedGrant => {
+      (acc: ParsedGrants, grant: any): ParsedGrants => {
         return grant.recipient === hre.ethers.constants.AddressZero
           ? acc
           : {
@@ -709,8 +709,8 @@ const GET_BLOCKCHAIN_SUBTASK = {
               } as any,
             };
       },
-      {} as ParsedGrant
-    ) as ParsedGrant;
+      {} as ParsedGrants
+    ) as ParsedGrants;
     const actualAmounts = Object.values(rawBlockchainGrants)
       .map(({ grantAmount, claimedAmount }) => grantAmount.sub(claimedAmount))
       .reduce((acc, v) => acc.add(v));

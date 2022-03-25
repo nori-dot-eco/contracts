@@ -4,7 +4,7 @@ import moment from 'moment';
 import type { Octokit } from '@octokit/rest';
 
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
-import type { GrantList, ParsedGrant } from '@/tasks/vesting';
+import type { GrantList, ParsedGrants } from '@/tasks/vesting';
 import {
   grantSchema,
   grantCsvToList,
@@ -176,7 +176,7 @@ const createTestGrants = async (
   { data = MOCK_GITHUB_VESTING_GRANTS }: { data: string[][] } = {
     data: MOCK_GITHUB_VESTING_GRANTS,
   }
-): Promise<{ grants: ParsedGrant; grantList: GrantList }> => {
+): Promise<{ grants: ParsedGrants; grantList: GrantList }> => {
   const listOfGrants = await grantCsvToList({
     data: [MOCK_VESTING_HEADER, ...data.map((d) => d.join(','))].join('\r\n'),
   });
