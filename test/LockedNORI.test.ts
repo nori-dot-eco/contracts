@@ -1361,13 +1361,13 @@ describe('LockedNori', () => {
         );
       };
       const unnamedAccounts = await ethers.provider.listAccounts();
-      const recipients = [...Array(10)].map((_) => lNori.address);
-      const amounts = [...Array(10)].map((_) => grantAmount);
-      const userData = [...Array(10)].map((_, i) =>
-        buildUserData({ recipient: unnamedAccounts[i] })
+      const recipients = [...Array(9)].map((_) => lNori.address);
+      const amounts = [...Array(9)].map((_) => grantAmount);
+      const userData = [...Array(9)].map((_, i) =>
+        buildUserData({ recipient: unnamedAccounts[i+1] })
       ); // todo
-      const operatorData = [...Array(10)].map((_) => '0x');
-      const requireReceptionAck = [...Array(10)].map((_) => true);
+      const operatorData = [...Array(9)].map((_) => '0x');
+      const requireReceptionAck = [...Array(9)].map((_) => true);
       await expect(
         bpNori.batchSend(
           recipients,
