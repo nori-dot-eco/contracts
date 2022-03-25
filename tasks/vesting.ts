@@ -234,9 +234,7 @@ export const rules = {
       .matches(UINT_STRING_MATCHER)
       .test(validations.isBigNumberish()),
   requiredPositiveNonZeroBigNumberString: () =>
-      rules
-        .requiredPositiveBigNumberString()
-        .test(validations.isNonZero()),
+    rules.requiredPositiveBigNumberString().test(validations.isNonZero()),
   isTimeWithinReasonableDateRange: ({
     minimumPastYears,
     maxFutureYears,
@@ -345,23 +343,35 @@ export const grantSchema = yup
     unlockCliff2Amount: rules
       .requiredPositiveBigNumberString()
       .when(
-        ['vestCliff1Amount', 'vestCliff2Amount', 'unlockCliff1Amount', 'originalAmount'],
-        ([vestCliff1Amount, vestCliff2Amount, unlockCliff1Amount, originalAmount], schema) => {
+        [
+          'vestCliff1Amount',
+          'vestCliff2Amount',
+          'unlockCliff1Amount',
+          'originalAmount',
+        ],
+        (
+          [
+            vestCliff1Amount,
+            vestCliff2Amount,
+            unlockCliff1Amount,
+            originalAmount,
+          ],
+          schema
+        ) => {
           if (vestCliff1Amount > 0) {
             return schema.test(
-                validations.isBigNumberLTE(
+              validations.isBigNumberLTE(
                 BigNumber.from(vestCliff1Amount)
-                    .add(vestCliff2Amount)
-                    .sub(unlockCliff1Amount)
-                )
+                  .add(vestCliff2Amount)
+                  .sub(unlockCliff1Amount)
+              )
             );
           }
           return schema.test(
             validations.isBigNumberLTE(
-            BigNumber.from(originalAmount)
-                .sub(unlockCliff1Amount)
+              BigNumber.from(originalAmount).sub(unlockCliff1Amount)
             )
-        );
+          );
         }
       ),
     lastRevocationTime: rules.requiredPositiveInteger(),
@@ -673,9 +683,8 @@ const GET_BLOCKCHAIN_SUBTASK = {
     _hre: CustomHardHatRuntimeEnvironment
   ): Promise<ParsedGrant> => {
     const totalSupply = await lNori.totalSupply();
-    const rawBlockchainGrants = await lNori.batchGetGrant(
-      Object.keys(githubGrants)
-    );
+    const rawBlockchainGrants: LockedNORI.TokenGrantDetailStructOutput[] =
+      await lNori.batchGetGrant(Object.keys(githubGrants));
     const blockchainGrants = rawBlockchainGrants.reduce(
       (acc: ParsedGrant, grant: any): ParsedGrant => {
         return grant.recipient === hre.ethers.constants.AddressZero
