@@ -530,7 +530,7 @@ contract LockedNORI is
       "lNORI: Recipient cannot be zero address"
     );
     require(
-      address(params.recipient) != _msgSender(),
+      !hasRole(TOKEN_GRANTER_ROLE, params.recipient),
       "lNORI: Recipient cannot be grant admin"
     );
     require(
@@ -550,7 +550,7 @@ contract LockedNORI is
       require(
         params.vestCliff1Amount >= params.unlockCliff1Amount ||
           params.vestCliff2Amount >= params.unlockCliff2Amount,
-        "lNORI: unlock cliff < vest cliff"
+        "lNORI: unlock cliff > vest cliff"
       );
       grant.vestingSchedule.totalAmount = amount;
       grant.vestingSchedule.startTime = params.startTime;
@@ -779,4 +779,12 @@ contract LockedNORI is
   ) public pure override returns (bool) {
     revert("lNORI: transferFrom disabled");
   }
+
+  function _beforeRoleChange(bytes32 role, address account) override internal virtual {
+    super._beforeRoleChange(role, account);
+    if (role == TOKEN_GRANTER_ROLE) {
+        require (!_grants[account].exists, "lNORI: Cannot assign role to a grant holder address");
+    }
+  }
+
 }

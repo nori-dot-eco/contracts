@@ -4,7 +4,7 @@ import moment from 'moment';
 import type { Octokit } from '@octokit/rest';
 
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
-import type { GrantList, ParsedGrant } from '@/tasks/vesting';
+import type { GrantList, ParsedGrants } from '@/tasks/vesting';
 import {
   grantSchema,
   grantCsvToList,
@@ -176,7 +176,7 @@ const createTestGrants = async (
   { data = MOCK_GITHUB_VESTING_GRANTS }: { data: string[][] } = {
     data: MOCK_GITHUB_VESTING_GRANTS,
   }
-): Promise<{ grants: ParsedGrant; grantList: GrantList }> => {
+): Promise<{ grants: ParsedGrants; grantList: GrantList }> => {
   const listOfGrants = await grantCsvToList({
     data: [MOCK_VESTING_HEADER, ...data.map((d) => d.join(','))].join('\r\n'),
   });
@@ -528,6 +528,8 @@ describe('vesting task', () => {
               expect(
                 grantSchema.validateSyncAt('unlockEndTime', {
                   unlockEndTime: v,
+                  vestEndTime: v,
+                  startTime: v,
                 })
               ).to.eq(v)
             );
@@ -544,7 +546,7 @@ describe('vesting task', () => {
             );
           });
           it('should fail when unlockEndTime is not a uint', () => {
-            [{}, [], '', '1', '-1', -1, 1.1, false, true].forEach((v) =>
+            [{}, [], '', '1', '-1', 1.1, false, true].forEach((v) =>
               expect(() =>
                 grantSchema.validateSyncAt('unlockEndTime', {
                   unlockEndTime: v,
@@ -560,14 +562,28 @@ describe('vesting task', () => {
               )
             );
           });
+          it('should fail when unlockEndTime is negative', () => {
+            [-1].forEach((v) =>
+              expect(() =>
+                grantSchema.validateSyncAt('unlockEndTime', {
+                  unlockEndTime: v,
+                })
+              ).throws(
+                'unlockEndTime must be a valid EVM timestamp. Value: -1.'
+              )
+            );
+          });
         });
       });
       describe('cliff1Time', () => {
         describe('valid', () => {
-          it('should pass when cliff1Time is defined', () => {
+          it('should pass when cliff1Time is defined and >= startTime', () => {
             [utcToEvmTime(moment())].forEach((v) =>
               expect(
-                grantSchema.validateSyncAt('cliff1Time', { cliff1Time: v })
+                grantSchema.validateSyncAt('cliff1Time', {
+                  cliff1Time: v,
+                  startTime: v,
+                })
               ).to.eq(v)
             );
           });
@@ -581,7 +597,7 @@ describe('vesting task', () => {
             );
           });
           it('should fail when cliff1Time is not a uint', () => {
-            [{}, [], '', '1', '-1', -1, 1.1, false, true].forEach((v) =>
+            [{}, [], '', '1', '-1', 1.1, false, true].forEach((v) =>
               expect(() =>
                 grantSchema.validateSyncAt('cliff1Time', { cliff1Time: v })
               ).throws(
@@ -599,10 +615,13 @@ describe('vesting task', () => {
       });
       describe('cliff2Time', () => {
         describe('valid', () => {
-          it('should pass when cliff2Time is defined', () => {
+          it('should pass when cliff2Time is defined and >= cliff1Time', () => {
             [utcToEvmTime(moment())].forEach((v) =>
               expect(
-                grantSchema.validateSyncAt('cliff2Time', { cliff2Time: v })
+                grantSchema.validateSyncAt('cliff2Time', {
+                  cliff2Time: v,
+                  cliff1Time: v,
+                })
               ).to.eq(v)
             );
           });
@@ -616,7 +635,7 @@ describe('vesting task', () => {
             );
           });
           it('should fail when cliff2Time is not a uint', () => {
-            [{}, [], '', '1', '-1', -1, 1.1, false, true].forEach((v) =>
+            [{}, [], '', '1', '-1', 1.1, false, true].forEach((v) =>
               expect(() =>
                 grantSchema.validateSyncAt('cliff2Time', { cliff2Time: v })
               ).throws(
