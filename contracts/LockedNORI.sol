@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.12;
+pragma solidity =0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
@@ -128,6 +128,7 @@ contract LockedNORI is
     uint256 originalAmount;
     uint256 lastRevocationTime;
     uint256 lastQuantityRevoked;
+    bool exists;
   }
 
   struct CreateTokenGrantParams {
@@ -420,7 +421,8 @@ contract LockedNORI is
         grant.claimedAmount,
         grant.originalAmount,
         grant.lastRevocationTime,
-        grant.lastQuantityRevoked
+        grant.lastQuantityRevoked,
+        grant.exists
       );
   }
 
@@ -528,7 +530,7 @@ contract LockedNORI is
       "lNORI: Recipient cannot be zero address"
     );
     require(
-      address(params.recipient) != _msgSender(),
+      !hasRole(TOKEN_GRANTER_ROLE, params.recipient),
       "lNORI: Recipient cannot be grant admin"
     );
     require(
@@ -548,7 +550,7 @@ contract LockedNORI is
       require(
         params.vestCliff1Amount >= params.unlockCliff1Amount ||
           params.vestCliff2Amount >= params.unlockCliff2Amount,
-        "lNORI: unlock cliff < vest cliff"
+        "lNORI: unlock cliff > vest cliff"
       );
       grant.vestingSchedule.totalAmount = amount;
       grant.vestingSchedule.startTime = params.startTime;
@@ -777,4 +779,12 @@ contract LockedNORI is
   ) public pure override returns (bool) {
     revert("lNORI: transferFrom disabled");
   }
+
+  function _beforeRoleChange(bytes32 role, address account) override internal virtual {
+    super._beforeRoleChange(role, account);
+    if (role == TOKEN_GRANTER_ROLE) {
+        require (!_grants[account].exists, "lNORI: Cannot assign role to a grant holder address");
+    }
+  }
+
 }
