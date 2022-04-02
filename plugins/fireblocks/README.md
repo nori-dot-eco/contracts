@@ -25,6 +25,7 @@ TODO:
 - [ ] Test with a human approval in the loop
 - [ ] Move network to chain mapping to Nori's config file
 - [ ] Expose other sdk client params that may be relevant (i.e. asset)
+- [ ] Use type 2 transaction format / gas semantics
 
 ## Usage
 

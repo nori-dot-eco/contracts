@@ -18,7 +18,6 @@ import { TransactionStatus, FireblocksSDK } from 'fireblocks-sdk';
 import { EthersCustomBridge } from './from-upstream/fireblocks-bridge';
 import { Chain } from './from-upstream/chain';
 import { keccak256 } from 'ethers/lib/utils';
-import { JsonRpcSigner } from 'ethers/node_modules/@ethersproject/providers';
 const logger = new Logger('Fireblocks signer');
 
 export class FireblocksSigner extends Signer implements TypedDataSigner {
@@ -26,9 +25,6 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
   readonly chain!: Chain;
   readonly vaultAccountId!: string;
   readonly _bridge: EthersCustomBridge;
-  declare readonly _address: string;
-  declare readonly _index: number;
-  declare readonly provider: JsonRpcProvider;
 
   constructor(
     fireblocksApiClient: FireblocksSDK,
@@ -38,10 +34,6 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
   ) {
     logger.checkNew(new.target, FireblocksSigner);
     super();
-    // Placeholders to maintain compatibility with JsonRpcSigner
-    defineReadOnly(this, '_address', "");
-    defineReadOnly(this, '_index', 0);
-    //
     defineReadOnly(this, 'fireblocksApiClient', fireblocksApiClient);
     defineReadOnly(this, 'chain', chain);
     defineReadOnly(this, 'vaultAccountId', vaultAccountId || "0");
@@ -215,24 +207,5 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       provider,
       this.vaultAccountId
     );
-  }
-
-  // Placeholders to maintain compatibility with JsonRpcSigner
-  connectUnchecked(): JsonRpcSigner {
-    throw Error('Unchecked transactions not supported');
-  }
-
-  sendUncheckedTransaction(
-    transaction: Deferrable<TransactionRequest>
-  ): Promise<string> {
-    throw Error('Unchecked transactions not supported');
-  }
-
-  async _legacySignMessage(message: Bytes | string): Promise<string> {
-    throw Error('Legacy signing not supported');
-  }
-
-  async unlock(password: string): Promise<boolean> {
-    throw Error('Unlock not supported');
   }
 }
