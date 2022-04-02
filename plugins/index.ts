@@ -2,6 +2,7 @@ import '@nomiclabs/hardhat-waffle';
 import '@openzeppelin/hardhat-defender';
 import '@openzeppelin/hardhat-upgrades';
 import '@nomiclabs/hardhat-ethers';
+import './fireblocks';
 import 'hardhat-ethernal';
 import 'hardhat-deploy';
 import '@tenderly/hardhat-tenderly';
@@ -22,22 +23,34 @@ import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/uti
 import * as contractsConfig from '../contracts.json';
 
 import { trace, log } from '@/utils/log';
+import { lazyFunction, lazyObject } from 'hardhat/plugins';
+import { namedAccounts } from '../config/accounts';
 
-extendEnvironment(async (hre) => {
+const getNamedSigners = (hre: CustomHardHatRuntimeEnvironment): NamedSigners => {
+  return Object.fromEntries(
+    Object.entries(namedAccounts).map(([accountName, address]) => {
+      return [accountName, hre.waffle.provider.getSigner(address)];
+    })
+  ) as NamedSigners;
+};
+
+// extendEnvrironment cannot take async functions ...
+extendEnvironment((hre) => {
   // todo move to @/extensions/signers, @extensions/deployments
   hre.log = log;
   hre.trace = trace;
 
-  const accounts = (await hre.getNamedAccounts()) as NamedAccounts;
-  const namedSigners: NamedSigners = Object.fromEntries(
-    await Promise.all(
-      Object.entries(accounts).map(async ([accountName, address]) => {
-        return [accountName, await hre.waffle.provider.getSigner(address)];
-      })
-    )
-  );
-  hre.namedSigners = namedSigners;
-  hre.namedAccounts = accounts;
+  if (hre.config.fireblocks.apiKey) {
+    hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
+    hre.log('Installed fireblocks signers');
+  } else {
+    hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
+    hre.log('Installed ethers provider default signers');
+  }
+
+  // for testing only
+  hre.namedSigners = getNamedSigners(hre);
+  hre.namedAccounts = namedAccounts;
 
   hre.ethernalSync = Boolean(
     hre.network.name === 'hardhat' &&
@@ -74,7 +87,8 @@ extendEnvironment(async (hre) => {
     const contractCode = await hre.ethers.provider.getCode(proxyAddress);
     let contract: InstanceOfContract<TContract>;
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
-      contractName
+      contractName,
+      (await hre.getSigners())[0]
     );
     if (contractCode === '0x' || process.env.FORCE_PROXY_DEPLOYMENT) {
       hre.log('Deploying proxy and instance', contractName); // todo use hre.trace (variant of hre.log requiring env.TRACE === true)
@@ -91,7 +105,7 @@ extendEnvironment(async (hre) => {
       );
       contract = await hre.upgrades.upgradeProxy<TContract>(
         proxyAddress,
-        contractFactory,
+        contractFactory
         // options
       );
       hre.log('Upgraded instance', contractName, contract.address);

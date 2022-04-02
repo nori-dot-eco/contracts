@@ -13,7 +13,7 @@ import type {
   ethers as defaultEthers,
 } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
-import type { JsonRpcSigner } from '@ethersproject/providers';
+import { JsonRpcSigner } from '@ethersproject/providers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
   FactoryOptions,
@@ -178,6 +178,7 @@ declare global {
     upgrades: CustomHardhatUpgrades;
     network: Omit<Network, 'name'> & { name: keyof typeof networks };
     ethers: typeof ethers;
+    getSigners: () => Promise<Signer[]>;
     deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
     log: Console['log'];
     trace: Console['log'];
