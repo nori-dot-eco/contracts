@@ -1,5 +1,5 @@
 import type { ContractInstances } from '@/test/helpers';
-import { createRemovalTokenId, expect, createFixture } from '@/test/helpers';
+import { expect, createFixture } from '@/test/helpers';
 import { deploy } from '@/deploy/0_deploy_contracts';
 import { formatTokenAmount } from '@/utils/units';
 import type { Contracts } from '@/utils/deploy';
@@ -183,51 +183,6 @@ describe('Removal', () => {
       balances.forEach((balance, tokenId) => {
         expect(balance).to.equal(removalBalances[tokenId].toString());
       });
-    });
-  });
-  describe('Token ids', () => {
-    it('can be separated into their component fields', async () => {
-      const Removal = await ethers.getContractFactory('Removal');
-      const removal = await Removal.deploy();
-
-      const expectedValues = {
-        address: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-        parcelId: 99039938560,
-        vintage: 2018,
-        country: 'US',
-        state: 'IA',
-        methodology: 2,
-        methodologyVersion: 1,
-      };
-
-      const tokenId = createRemovalTokenId(expectedValues);
-
-      const [
-        retrievedAddress,
-        retrievedParcelId,
-        retrievedVintage,
-        retrievedCountryCode,
-        retrievedStateCode,
-        retrievedMethodology,
-        retrievedMethodologyVersion,
-      ] = await Promise.all([
-        removal.supplierAddressFromTokenId(tokenId),
-        removal.parcelIdFromTokenId(tokenId),
-        removal.vintageFromTokenId(tokenId),
-        removal.countryCodeFromTokenId(tokenId),
-        removal.stateCodeFromTokenId(tokenId),
-        removal.methodologyFromTokenId(tokenId),
-        removal.methodologyVersionFromTokenId(tokenId),
-      ]);
-      expect(retrievedAddress).equal(expectedValues.address);
-      expect(retrievedParcelId).equal(expectedValues.parcelId.toString());
-      expect(retrievedVintage).equal(expectedValues.vintage.toString());
-      expect(retrievedCountryCode).equal(expectedValues.country);
-      expect(retrievedStateCode).equal(expectedValues.state);
-      expect(retrievedMethodology).equal(expectedValues.methodology);
-      expect(retrievedMethodologyVersion).equal(
-        expectedValues.methodologyVersion
-      );
     });
   });
 });

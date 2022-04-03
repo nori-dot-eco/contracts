@@ -10,6 +10,8 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820Registry
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
+import {RemovalUtils} from "./RemovalUtils.sol";
+
 import "hardhat/console.sol"; // todo
 
 // todo emit events
@@ -24,6 +26,8 @@ contract FIFOMarket is
   ERC1155HolderUpgradeable,
   IERC777RecipientUpgradeable
 {
+  using RemovalUtils for *;
+
   IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
   Certificate private _certificate;
@@ -125,7 +129,7 @@ contract FIFOMarket is
     address[] memory suppliers = new address[](_queueLength());
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
-      address supplier = _removal.supplierAddressFromTokenId(_queue[i]);
+      address supplier = RemovalUtils.supplierAddressFromTokenId(_queue[i]);
       if (remainingAmountToFill < removalAmount) {
         ids[i] = _queue[i];
         amounts[i] = remainingAmountToFill;

@@ -28,24 +28,10 @@ contract Removal is
     bool list;
   }
 
-  uint256 constant _BITS_PER_BYTE = 8;
-  uint256 constant _ADDRESS_FIELD_LENGTH = 20;
-  uint256 constant _ADDRESS_OFFSET = 12;
-  uint256 constant _PARCEL_ID_FIELD_LENGTH = 5;
-  uint256 constant _PARCEL_ID_OFFSET = 7;
-  uint256 constant _VINTAGE_FIELD_LENGTH = 2;
-  uint256 constant _VINTAGE_OFFSET = 5;
-  uint256 constant _COUNTRY_CODE_FIELD_LENGTH = 2;
-  uint256 constant _COUNTRY_CODE_OFFSET = 3;
-  uint256 constant _STATE_CODE_FIELD_LENGTH = 2;
-  uint256 constant _STATE_CODE_OFFSET = 1;
-  uint256 constant _METHODOLOGY_DATA_FIELD_LENGTH = 1;
-  uint256 constant _METHODOLOGY_DATA_OFFSET = 0;
-
   uint256 private _tokenIdCounter;
   string public name; // todo why did I add this
-  mapping(uint256 => uint256) public orderedTokenIds;
-  mapping(uint256 => bool) private _tokenIds;
+  mapping(uint256 => uint256) public indexToTokenId;
+  mapping(uint256 => bool) private _tokenIdExists;
 
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
@@ -65,92 +51,9 @@ contract Removal is
     _setApprovalForAll(owner, operator, approved);
   }
 
-  function extractValue(
-    uint256 tokenId,
-    uint256 numBytesFieldLength,
-    uint256 numBytesOffsetFromRight
-  ) private view returns (uint256) {
-    bytes32 mask = bytes32(2**(numBytesFieldLength * _BITS_PER_BYTE) - 1) <<
-      (numBytesOffsetFromRight * _BITS_PER_BYTE);
-    bytes32 maskedValue = bytes32(tokenId) & mask;
-    return uint256(maskedValue >> (numBytesOffsetFromRight * _BITS_PER_BYTE));
-  }
-
-  function supplierAddressFromTokenId(uint256 tokenId)
-    public
-    view
-    returns (address)
-  {
-    return
-      address(
-        uint160(extractValue(tokenId, _ADDRESS_FIELD_LENGTH, _ADDRESS_OFFSET))
-      );
-  }
-
-  function parcelIdFromTokenId(uint256 tokenId) public view returns (uint256) {
-    return extractValue(tokenId, _PARCEL_ID_FIELD_LENGTH, _PARCEL_ID_OFFSET);
-  }
-
-  function vintageFromTokenId(uint256 tokenId) public view returns (uint256) {
-    return extractValue(tokenId, _VINTAGE_FIELD_LENGTH, _VINTAGE_OFFSET);
-  }
-
-  function countryCodeFromTokenId(uint256 tokenId)
-    public
-    view
-    returns (string memory)
-  {
-    bytes32 extractedCode = bytes32(
-      extractValue(tokenId, _COUNTRY_CODE_FIELD_LENGTH, _COUNTRY_CODE_OFFSET)
-    );
-    bytes memory bytesArray = new bytes(2);
-    bytesArray[0] = extractedCode[30];
-    bytesArray[1] = extractedCode[31];
-    return string(bytesArray);
-  }
-
-  function stateCodeFromTokenId(uint256 tokenId)
-    public
-    view
-    returns (string memory)
-  {
-    bytes32 extractedCode = bytes32(
-      extractValue(tokenId, _STATE_CODE_FIELD_LENGTH, _STATE_CODE_OFFSET)
-    );
-    bytes memory bytesArray = new bytes(2);
-    bytesArray[0] = extractedCode[30];
-    bytesArray[1] = extractedCode[31];
-    return string(bytesArray);
-  }
-
-  function methodologyFromTokenId(uint256 tokenId)
-    public
-    view
-    returns (uint256)
-  {
-    return
-      extractValue(
-        tokenId,
-        _METHODOLOGY_DATA_FIELD_LENGTH,
-        _METHODOLOGY_DATA_OFFSET
-      ) >> 4; // methodology encoded in the first nibble
-  }
-
-  function methodologyVersionFromTokenId(uint256 tokenId)
-    public
-    view
-    returns (uint256)
-  {
-    return
-      extractValue(
-        tokenId,
-        _METHODOLOGY_DATA_FIELD_LENGTH,
-        _METHODOLOGY_DATA_OFFSET
-      ) & 3; // methodology version encoded in the second nibble
-  }
-
   /**
-   * @dev mints multiple removals at once (for a single supplier). If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
+   * @dev mints multiple removals at once (for a single supplier).
+   * If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
    * amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
    * token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
    * token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
@@ -173,9 +76,9 @@ contract Removal is
       (BatchMintRemovalsData)
     );
     for (uint256 i = 0; i < ids.length; i++) {
-      require(!_tokenIds[ids[i]], "Token id already exists"); // todo can the duplicate token id be reported here?
-      _tokenIds[ids[i]] = true;
-      orderedTokenIds[_tokenIdCounter] = ids[i];
+      require(!_tokenIdExists[ids[i]], "Token id already exists"); // todo can the duplicate token id be reported here?
+      _tokenIdExists[ids[i]] = true;
+      indexToTokenId[_tokenIdCounter] = ids[i];
       _tokenIdCounter += 1;
     }
     super.mintBatch(to, ids, amounts, data);
