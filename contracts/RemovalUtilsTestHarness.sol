@@ -12,6 +12,27 @@ import {RemovalUtils} from "./RemovalUtils.sol";
 contract RemovalTestHarness {
   using RemovalUtils for *;
 
+  function createTokenIdV0(
+    uint256 methodology,
+    uint256 methodologyVersion,
+    uint256 vintage,
+    string memory country,
+    string memory admin1,
+    address supplierAddress,
+    uint256 parcelId
+  ) public pure returns (uint256) {
+    return
+      RemovalUtils.createTokenIdV0(
+        methodology,
+        methodologyVersion,
+        vintage,
+        country,
+        admin1,
+        supplierAddress,
+        parcelId
+      );
+  }
+
   function versionFromTokenId(uint256 tokenId) public pure returns (uint256) {
     return RemovalUtils.versionFromTokenId(tokenId);
   }

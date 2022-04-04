@@ -1,6 +1,6 @@
 import type { RemovalTestHarness } from '../typechain-types/RemovalTestHarness';
 
-import { createRemovalTokenId, expect } from '@/test/helpers';
+import { expect } from '@/test/helpers';
 
 const setupTest = hre.deployments.createFixture(
   async (
@@ -21,10 +21,10 @@ const setupTest = hre.deployments.createFixture(
 );
 
 describe('RemovalUtils', () => {
-  it('can extract the data fields encoded in a removal token id', async () => {
+  it('can create a token id from the component fields and decode the token id', async () => {
     const { removalTestHarness: harness } = await setupTest();
 
-    const expectedValues = {
+    const removalData = {
       version: 0,
       methodology: 2,
       methodologyVersion: 1,
@@ -35,7 +35,15 @@ describe('RemovalUtils', () => {
       parcelId: 99039930,
     };
 
-    const tokenId = createRemovalTokenId(expectedValues);
+    const tokenId = await harness.createTokenIdV0(
+      removalData.methodology,
+      removalData.methodologyVersion,
+      removalData.vintage,
+      removalData.country,
+      removalData.admin1,
+      removalData.address,
+      removalData.parcelId
+    );
 
     const [
       retrievedVersion,
@@ -56,15 +64,13 @@ describe('RemovalUtils', () => {
       harness.supplierAddressFromTokenId(tokenId),
       harness.parcelIdFromTokenId(tokenId),
     ]);
-    expect(retrievedVersion).equal(expectedValues.version);
-    expect(retrievedMethodology).equal(expectedValues.methodology);
-    expect(retrievedMethodologyVersion).equal(
-      expectedValues.methodologyVersion
-    );
-    expect(retrievedVintage).equal(expectedValues.vintage.toString());
-    expect(retrievedCountryCode).equal(expectedValues.country);
-    expect(retrievedAdmin1Code).equal(expectedValues.admin1);
-    expect(retrievedAddress).equal(expectedValues.address);
-    expect(retrievedParcelId).equal(expectedValues.parcelId.toString());
+    expect(retrievedVersion).equal(removalData.version);
+    expect(retrievedMethodology).equal(removalData.methodology);
+    expect(retrievedMethodologyVersion).equal(removalData.methodologyVersion);
+    expect(retrievedVintage).equal(removalData.vintage.toString());
+    expect(retrievedCountryCode).equal(removalData.country);
+    expect(retrievedAdmin1Code).equal(removalData.admin1);
+    expect(retrievedAddress).equal(removalData.address);
+    expect(retrievedParcelId).equal(removalData.parcelId.toString());
   });
 });

@@ -34,6 +34,7 @@ const asciiToUint8Array = (str: string): Uint8Array => {
   return new Uint8Array(chars);
 };
 
+// TODO can we get rid of this now that the solidity library can create removal tokenids?
 export const createRemovalTokenId = (
   options?: Partial<{
     version: number;

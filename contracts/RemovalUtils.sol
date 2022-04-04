@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 
 struct UnpackedRemovalId {
   address supplierAddress;
-  // TODO
+  // TODO create and use a struct for args?
 }
 
 uint256 constant _BITS_PER_BYTE = 8;
@@ -27,47 +27,48 @@ uint256 constant _ADDRESS_OFFSET = 4;
 uint256 constant _PARCEL_ID_OFFSET = 0;
 
 /**
- * @dev Library encapsulating the logic around decoding removal token ids.
+ * @dev Library encapsulating the logic around encoding and decoding removal token ids.
  *
  * The token ids used for a given ERC1155 token in Removal.sol encode information about the carbon removal
  * in the following format:
- * TODO: is this up to date?
  *
- * [---------- 20 bytes---------- ][----5 bytes----][--2 bytes--][--2 bytes--][--2 bytes--][1byte]
- *  ------ supplier address -----------parcel id------ vintage------country------admin1-----meth & version
+ * [1byte][1byte][--2 bytes--][--2 bytes--][--2 bytes--][----------- 20 bytes------------- ][------4 bytes------]
+ * tokIdV--meth&v---vintage------country------admin1------------ supplier address --------------parcel id------
  *
- * TODO: should these functions be internal? public?
- * NOTE: All methods are internal so this library gets inlined into the consuming
- * contract and does not need to be deployed separately.
- *
- * TODO update for removal utils
- * Designed to be used i.e.:
- *
- * ```
- *  using RemovalUtils for Schedule;
- *
- *  mapping(address => Schedule) schedules = Schedules;
- *  Schedule s = schedules[account];
- *  s.startTime = 1644436100;
- *  s.endTime = 1645436100;
- *  s.totalAmount = 1000000;
- *  s.addCliff(1644436200, 50000);
- *  s.amountAvailable(1644436200);
- * ```
  *
  */
 library RemovalUtils {
-  // function createTokenIdV0(
-  //   uint256 methodology,
-  //   uint256 methodologyVersion,
-  //   uint256 vintage,
-  //   string memory country,
-  //   string memory admin1,
-  //   address supplierAddress,
-  //   uint256 parcelId
-  // ) internal pure returns (uint256) {
-  //   return 0;
-  // }
+  function createTokenIdV0(
+    uint256 methodology,
+    uint256 methodologyVersion,
+    uint256 vintage,
+    string memory country,
+    string memory admin1,
+    address supplierAddress,
+    uint256 parcelId
+  ) internal pure returns (uint256) {
+    bytes memory countryBytes = bytes(country);
+    bytes memory admin1Bytes = bytes(admin1);
+    require(countryBytes.length == 2, "Country code must be two characters");
+    require(admin1Bytes.length == 2, "Admin1 code must be two characters");
+    uint256 methodologyData = (methodology << 4) | methodologyVersion;
+
+    return
+      0 |
+      (methodologyData << (_METHODOLOGY_DATA_OFFSET * _BITS_PER_BYTE)) |
+      (vintage << (_VINTAGE_OFFSET * _BITS_PER_BYTE)) |
+      ((uint256(uint8(countryBytes[0])) <<
+        (_COUNTRY_CODE_OFFSET * _BITS_PER_BYTE + _BITS_PER_BYTE)) |
+        (uint256(uint8(countryBytes[1])) <<
+          (_COUNTRY_CODE_OFFSET * _BITS_PER_BYTE))) |
+      ((uint256(uint8(admin1Bytes[0])) <<
+        (_ADMIN1_CODE_OFFSET * _BITS_PER_BYTE + _BITS_PER_BYTE)) |
+        (uint256(uint8(admin1Bytes[1])) <<
+          (_ADMIN1_CODE_OFFSET * _BITS_PER_BYTE))) |
+      (uint256(uint160(supplierAddress)) <<
+        (_ADDRESS_OFFSET * _BITS_PER_BYTE)) |
+      (parcelId << (_PARCEL_ID_OFFSET * _BITS_PER_BYTE));
+  }
 
   function versionFromTokenId(uint256 tokenId) internal pure returns (uint256) {
     return
