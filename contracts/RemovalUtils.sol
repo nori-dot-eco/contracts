@@ -17,8 +17,8 @@ uint256 constant _VINTAGE_FIELD_LENGTH = 2;
 uint256 constant _VINTAGE_OFFSET = 5;
 uint256 constant _COUNTRY_CODE_FIELD_LENGTH = 2;
 uint256 constant _COUNTRY_CODE_OFFSET = 3;
-uint256 constant _STATE_CODE_FIELD_LENGTH = 2;
-uint256 constant _STATE_CODE_OFFSET = 1;
+uint256 constant _ADMIN1_CODE_FIELD_LENGTH = 2;
+uint256 constant _ADMIN1_CODE_OFFSET = 1;
 uint256 constant _METHODOLOGY_DATA_FIELD_LENGTH = 1;
 uint256 constant _METHODOLOGY_DATA_OFFSET = 0;
 
@@ -30,7 +30,7 @@ uint256 constant _METHODOLOGY_DATA_OFFSET = 0;
  * TODO: is this up to date?
  *
  * [---------- 20 bytes---------- ][----5 bytes----][--2 bytes--][--2 bytes--][--2 bytes--][1byte]
- *  ------ supplier address -----------parcel id------ vintage------country------state-----meth & version
+ *  ------ supplier address -----------parcel id------ vintage------country------admin1-----meth & version
  *
  * TODO: should these functions be internal? public?
  * NOTE: All methods are internal so this library gets inlined into the consuming
@@ -90,13 +90,13 @@ library RemovalUtils {
     return string(bytesArray);
   }
 
-  function stateCodeFromTokenId(uint256 tokenId)
+  function admin1CodeFromTokenId(uint256 tokenId)
     internal
     pure
     returns (string memory)
   {
     bytes32 extractedCode = bytes32(
-      _extractValue(tokenId, _STATE_CODE_FIELD_LENGTH, _STATE_CODE_OFFSET)
+      _extractValue(tokenId, _ADMIN1_CODE_FIELD_LENGTH, _ADMIN1_CODE_OFFSET)
     );
     bytes memory bytesArray = new bytes(2);
     bytesArray[0] = extractedCode[30];

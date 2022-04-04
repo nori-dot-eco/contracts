@@ -29,7 +29,7 @@ describe('RemovalUtils', () => {
       parcelId: 99039938560,
       vintage: 2018,
       country: 'US',
-      state: 'IA',
+      admin1: 'IA',
       methodology: 2,
       methodologyVersion: 1,
     };
@@ -41,7 +41,7 @@ describe('RemovalUtils', () => {
       retrievedParcelId,
       retrievedVintage,
       retrievedCountryCode,
-      retrievedStateCode,
+      retrievedAdmin1Code,
       retrievedMethodology,
       retrievedMethodologyVersion,
     ] = await Promise.all([
@@ -49,7 +49,7 @@ describe('RemovalUtils', () => {
       harness.parcelIdFromTokenId(tokenId),
       harness.vintageFromTokenId(tokenId),
       harness.countryCodeFromTokenId(tokenId),
-      harness.stateCodeFromTokenId(tokenId),
+      harness.admin1CodeFromTokenId(tokenId),
       harness.methodologyFromTokenId(tokenId),
       harness.methodologyVersionFromTokenId(tokenId),
     ]);
@@ -57,7 +57,7 @@ describe('RemovalUtils', () => {
     expect(retrievedParcelId).equal(expectedValues.parcelId.toString());
     expect(retrievedVintage).equal(expectedValues.vintage.toString());
     expect(retrievedCountryCode).equal(expectedValues.country);
-    expect(retrievedStateCode).equal(expectedValues.state);
+    expect(retrievedAdmin1Code).equal(expectedValues.admin1);
     expect(retrievedMethodology).equal(expectedValues.methodology);
     expect(retrievedMethodologyVersion).equal(
       expectedValues.methodologyVersion

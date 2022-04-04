@@ -36,12 +36,12 @@ contract RemovalTestHarness {
     return RemovalUtils.countryCodeFromTokenId(tokenId);
   }
 
-  function stateCodeFromTokenId(uint256 tokenId)
+  function admin1CodeFromTokenId(uint256 tokenId)
     public
     pure
     returns (string memory)
   {
-    return RemovalUtils.stateCodeFromTokenId(tokenId);
+    return RemovalUtils.admin1CodeFromTokenId(tokenId);
   }
 
   function methodologyFromTokenId(uint256 tokenId)
