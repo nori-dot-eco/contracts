@@ -40,7 +40,7 @@ export const createRemovalTokenId = (
     parcelId: number;
     vintage: number;
     country: string;
-    state: string;
+    admin1: string;
     methodology: number;
     methodologyVersion: number;
   }>
@@ -50,7 +50,7 @@ export const createRemovalTokenId = (
     parcelId: 99039938560,
     vintage: 2018,
     country: 'US',
-    state: 'IA',
+    admin1: 'IA',
     methodology: 2,
     methodologyVersion: 1,
   };
@@ -68,7 +68,7 @@ export const createRemovalTokenId = (
   );
 
   const countryUint8 = asciiToUint8Array(data.country);
-  const stateUint8 = asciiToUint8Array(data.state);
+  const admin1Uint8 = asciiToUint8Array(data.admin1);
   const methodologyAndVersionUint8 = ethers.utils.zeroPad(
     `0x${data.methodology.toString(16)}${data.methodologyVersion.toString(16)}`,
     1
@@ -79,7 +79,7 @@ export const createRemovalTokenId = (
     ...parcelIdUint8,
     ...vintageUint8,
     ...countryUint8,
-    ...stateUint8,
+    ...admin1Uint8,
     ...methodologyAndVersionUint8,
   ]);
 };

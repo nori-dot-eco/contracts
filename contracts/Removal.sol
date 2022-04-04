@@ -77,6 +77,7 @@ contract Removal is
     );
     for (uint256 i = 0; i < ids.length; i++) {
       require(!_tokenIdExists[ids[i]], "Token id already exists"); // todo can the duplicate token id be reported here?
+
       _tokenIdExists[ids[i]] = true;
       indexToTokenId[_tokenIdCounter] = ids[i];
       _tokenIdCounter += 1;
