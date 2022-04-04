@@ -12,16 +12,24 @@ import {RemovalUtils} from "./RemovalUtils.sol";
 contract RemovalTestHarness {
   using RemovalUtils for *;
 
-  function supplierAddressFromTokenId(uint256 tokenId)
-    public
-    pure
-    returns (address)
-  {
-    return RemovalUtils.supplierAddressFromTokenId(tokenId);
+  function versionFromTokenId(uint256 tokenId) public pure returns (uint256) {
+    return RemovalUtils.versionFromTokenId(tokenId);
   }
 
-  function parcelIdFromTokenId(uint256 tokenId) public pure returns (uint256) {
-    return RemovalUtils.parcelIdFromTokenId(tokenId);
+  function methodologyFromTokenId(uint256 tokenId)
+    public
+    pure
+    returns (uint256)
+  {
+    return RemovalUtils.methodologyFromTokenId(tokenId);
+  }
+
+  function methodologyVersionFromTokenId(uint256 tokenId)
+    public
+    pure
+    returns (uint256)
+  {
+    return RemovalUtils.methodologyVersionFromTokenId(tokenId);
   }
 
   function vintageFromTokenId(uint256 tokenId) public pure returns (uint256) {
@@ -44,19 +52,15 @@ contract RemovalTestHarness {
     return RemovalUtils.admin1CodeFromTokenId(tokenId);
   }
 
-  function methodologyFromTokenId(uint256 tokenId)
+  function supplierAddressFromTokenId(uint256 tokenId)
     public
     pure
-    returns (uint256)
+    returns (address)
   {
-    return RemovalUtils.methodologyFromTokenId(tokenId);
+    return RemovalUtils.supplierAddressFromTokenId(tokenId);
   }
 
-  function methodologyVersionFromTokenId(uint256 tokenId)
-    public
-    pure
-    returns (uint256)
-  {
-    return RemovalUtils.methodologyVersionFromTokenId(tokenId);
+  function parcelIdFromTokenId(uint256 tokenId) public pure returns (uint256) {
+    return RemovalUtils.parcelIdFromTokenId(tokenId);
   }
 }

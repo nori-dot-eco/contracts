@@ -9,18 +9,22 @@ struct UnpackedRemovalId {
 }
 
 uint256 constant _BITS_PER_BYTE = 8;
-uint256 constant _ADDRESS_FIELD_LENGTH = 20;
-uint256 constant _ADDRESS_OFFSET = 12;
-uint256 constant _PARCEL_ID_FIELD_LENGTH = 5;
-uint256 constant _PARCEL_ID_OFFSET = 7;
-uint256 constant _VINTAGE_FIELD_LENGTH = 2;
-uint256 constant _VINTAGE_OFFSET = 5;
-uint256 constant _COUNTRY_CODE_FIELD_LENGTH = 2;
-uint256 constant _COUNTRY_CODE_OFFSET = 3;
-uint256 constant _ADMIN1_CODE_FIELD_LENGTH = 2;
-uint256 constant _ADMIN1_CODE_OFFSET = 1;
+
+uint256 constant _TOKEN_ID_VERSION_FIELD_LENGTH = 1;
 uint256 constant _METHODOLOGY_DATA_FIELD_LENGTH = 1;
-uint256 constant _METHODOLOGY_DATA_OFFSET = 0;
+uint256 constant _VINTAGE_FIELD_LENGTH = 2;
+uint256 constant _COUNTRY_CODE_FIELD_LENGTH = 2;
+uint256 constant _ADMIN1_CODE_FIELD_LENGTH = 2;
+uint256 constant _ADDRESS_FIELD_LENGTH = 20;
+uint256 constant _PARCEL_ID_FIELD_LENGTH = 4;
+
+uint256 constant _TOKEN_ID_VERSION_OFFSET = 31;
+uint256 constant _METHODOLOGY_DATA_OFFSET = 30;
+uint256 constant _VINTAGE_OFFSET = 28;
+uint256 constant _COUNTRY_CODE_OFFSET = 26;
+uint256 constant _ADMIN1_CODE_OFFSET = 24;
+uint256 constant _ADDRESS_OFFSET = 4;
+uint256 constant _PARCEL_ID_OFFSET = 0;
 
 /**
  * @dev Library encapsulating the logic around decoding removal token ids.
@@ -53,23 +57,51 @@ uint256 constant _METHODOLOGY_DATA_OFFSET = 0;
  *
  */
 library RemovalUtils {
-  function supplierAddressFromTokenId(uint256 tokenId)
-    internal
-    pure
-    returns (address)
-  {
+  // function createTokenIdV0(
+  //   uint256 methodology,
+  //   uint256 methodologyVersion,
+  //   uint256 vintage,
+  //   string memory country,
+  //   string memory admin1,
+  //   address supplierAddress,
+  //   uint256 parcelId
+  // ) internal pure returns (uint256) {
+  //   return 0;
+  // }
+
+  function versionFromTokenId(uint256 tokenId) internal pure returns (uint256) {
     return
-      address(
-        uint160(_extractValue(tokenId, _ADDRESS_FIELD_LENGTH, _ADDRESS_OFFSET))
+      _extractValue(
+        tokenId,
+        _TOKEN_ID_VERSION_FIELD_LENGTH,
+        _TOKEN_ID_VERSION_OFFSET
       );
   }
 
-  function parcelIdFromTokenId(uint256 tokenId)
+  function methodologyFromTokenId(uint256 tokenId)
     internal
     pure
     returns (uint256)
   {
-    return _extractValue(tokenId, _PARCEL_ID_FIELD_LENGTH, _PARCEL_ID_OFFSET);
+    return
+      _extractValue(
+        tokenId,
+        _METHODOLOGY_DATA_FIELD_LENGTH,
+        _METHODOLOGY_DATA_OFFSET
+      ) >> 4; // methodology encoded in the first nibble
+  }
+
+  function methodologyVersionFromTokenId(uint256 tokenId)
+    internal
+    pure
+    returns (uint256)
+  {
+    return
+      _extractValue(
+        tokenId,
+        _METHODOLOGY_DATA_FIELD_LENGTH,
+        _METHODOLOGY_DATA_OFFSET
+      ) & 7; // methodology version encoded in the second nibble
   }
 
   function vintageFromTokenId(uint256 tokenId) internal pure returns (uint256) {
@@ -104,30 +136,23 @@ library RemovalUtils {
     return string(bytesArray);
   }
 
-  function methodologyFromTokenId(uint256 tokenId)
+  function supplierAddressFromTokenId(uint256 tokenId)
     internal
     pure
-    returns (uint256)
+    returns (address)
   {
     return
-      _extractValue(
-        tokenId,
-        _METHODOLOGY_DATA_FIELD_LENGTH,
-        _METHODOLOGY_DATA_OFFSET
-      ) >> 4; // methodology encoded in the first nibble
+      address(
+        uint160(_extractValue(tokenId, _ADDRESS_FIELD_LENGTH, _ADDRESS_OFFSET))
+      );
   }
 
-  function methodologyVersionFromTokenId(uint256 tokenId)
+  function parcelIdFromTokenId(uint256 tokenId)
     internal
     pure
     returns (uint256)
   {
-    return
-      _extractValue(
-        tokenId,
-        _METHODOLOGY_DATA_FIELD_LENGTH,
-        _METHODOLOGY_DATA_OFFSET
-      ) & 7; // methodology version encoded in the second nibble
+    return _extractValue(tokenId, _PARCEL_ID_FIELD_LENGTH, _PARCEL_ID_OFFSET);
   }
 
   function _extractValue(

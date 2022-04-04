@@ -36,31 +36,35 @@ const asciiToUint8Array = (str: string): Uint8Array => {
 
 export const createRemovalTokenId = (
   options?: Partial<{
-    address: string;
-    parcelId: number;
+    version: number;
+    methodology: number;
+    methodologyVersion: number;
     vintage: number;
     country: string;
     admin1: string;
-    methodology: number;
-    methodologyVersion: number;
+    address: string;
+    parcelId: number;
   }>
 ): Uint8Array => {
   const defaultValues = {
-    address: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-    parcelId: 99039938560,
+    version: 0,
+    methodology: 2,
+    methodologyVersion: 1,
     vintage: 2018,
     country: 'US',
     admin1: 'IA',
-    methodology: 2,
-    methodologyVersion: 1,
+    address: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
+    parcelId: 99039930,
   };
 
   const data = { ...defaultValues, ...options };
-
-  const addressUint8 = ethers.utils.arrayify(data.address);
-  const parcelIdUint8 = ethers.utils.zeroPad(
-    ethers.utils.hexlify(data.parcelId),
-    5
+  const versionUint8 = ethers.utils.zeroPad(
+    ethers.utils.hexlify(data.version),
+    1
+  );
+  const methodologyAndVersionUint8 = ethers.utils.zeroPad(
+    `0x${data.methodology.toString(16)}${data.methodologyVersion.toString(16)}`,
+    1
   );
   const vintageUint8 = ethers.utils.zeroPad(
     ethers.utils.hexlify(data.vintage),
@@ -69,18 +73,20 @@ export const createRemovalTokenId = (
 
   const countryUint8 = asciiToUint8Array(data.country);
   const admin1Uint8 = asciiToUint8Array(data.admin1);
-  const methodologyAndVersionUint8 = ethers.utils.zeroPad(
-    `0x${data.methodology.toString(16)}${data.methodologyVersion.toString(16)}`,
-    1
+  const addressUint8 = ethers.utils.arrayify(data.address);
+  const parcelIdUint8 = ethers.utils.zeroPad(
+    ethers.utils.hexlify(data.parcelId),
+    4
   );
 
   return new Uint8Array([
-    ...addressUint8,
-    ...parcelIdUint8,
+    ...versionUint8,
+    ...methodologyAndVersionUint8,
     ...vintageUint8,
     ...countryUint8,
     ...admin1Uint8,
-    ...methodologyAndVersionUint8,
+    ...addressUint8,
+    ...parcelIdUint8,
   ]);
 };
 
