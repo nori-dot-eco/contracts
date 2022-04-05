@@ -47,7 +47,7 @@ describe('RemovalUtils', () => {
 
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0,
-      methodology: 2,
+      methodology: 1,
       methodologyVersion: 1,
       vintage: 2018,
       country: 'US',

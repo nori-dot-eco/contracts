@@ -1,3 +1,5 @@
+import type { BigNumber } from 'ethers';
+
 import type {
   Certificate,
   FIFOMarket,
@@ -6,6 +8,7 @@ import type {
   NORI,
   BridgedPolygonNORI,
 } from '../../typechain-types';
+import type { UnpackedRemovalIdV0Struct } from '../../typechain-types/Removal';
 
 import { mockDepositNoriToPolygon } from './polygon';
 
@@ -71,3 +74,37 @@ export const setupTestEnvironment = createFixture(
     };
   }
 );
+
+export const createRemovalTokenId = async (
+  removalInstance: Removal,
+  options?: Partial<UnpackedRemovalIdV0Struct>
+): Promise<BigNumber> => {
+  const defaultRemovalData: UnpackedRemovalIdV0Struct = {
+    idVersion: 0,
+    methodology: 1,
+    methodologyVersion: 1,
+    vintage: 2018,
+    country: 'US',
+    admin1: 'IA',
+    supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
+    subIdentifier: 99039930, // parcel id
+  };
+  const removalData = { ...defaultRemovalData, ...options };
+  const abiEncodedRemovalData = hre.ethers.utils.defaultAbiCoder.encode(
+    [
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'string',
+      'string',
+      'address',
+      'uint256',
+    ],
+    Object.values(removalData)
+  );
+  const removalId = await removalInstance.createRemovalId(
+    abiEncodedRemovalData
+  );
+  return removalId;
+};
