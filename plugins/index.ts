@@ -17,7 +17,7 @@ import '@/config/environment';
 import '@/tasks/index';
 
 import { extendEnvironment } from 'hardhat/config';
-import type { BaseContract, ContractFactory } from 'ethers';
+import type { BaseContract, ContractFactory, Signer } from 'ethers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
 
 import * as contractsConfig from '../contracts.json';
@@ -26,6 +26,7 @@ import { trace, log } from '@/utils/log';
 import { lazyFunction, lazyObject } from 'hardhat/plugins';
 import { namedAccounts } from '../config/accounts';
 import { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
+import { FireblocksSigner } from './fireblocks/fireblocks-signer';
 
 const getNamedSigners = (
   hre: CustomHardHatRuntimeEnvironment
@@ -83,7 +84,7 @@ extendEnvironment((hre) => {
     args: unknown[];
     options?: FactoryOptions;
   }): Promise<InstanceOfContract<TContract>> => {
-    const signer = (await hre.getSigners())[0];
+    const signer: Signer = (await hre.getSigners())[0];
     hre.log(
       `deployNonUpgradeable: ${contractName} from address ${await signer.getAddress()}`
     );
@@ -92,10 +93,20 @@ extendEnvironment((hre) => {
       contractName,
       { ...options, signer }
     );
+    // TODO: Do this properly
+    try {
+      (signer as FireblocksSigner).setNextTransactionMemo(
+        `Deploy ${contractName}`
+      );
+    } catch (e) {}
     contract = (await contractFactory.deploy(
       ...args
     )) as InstanceOfContract<TContract>;
-    hre.log('Deployed non upgradeable contract', contractName, contract.address);
+    hre.log(
+      'Deployed non upgradeable contract',
+      contractName,
+      contract.address
+    );
     return contract;
   };
   hre.deployNonUpgradeable = deployNonUpgradeable;
@@ -114,8 +125,7 @@ extendEnvironment((hre) => {
   }): Promise<InstanceOfContract<TContract>> => {
     // todo use proposeUpgrade
     const proxyAddress =
-      contractsConfig[hre.network.name as 'hardhat']?.[contractName]
-        ?.proxyAddress;
+      contractsConfig[hre.network.name]?.[contractName]?.proxyAddress;
     let contractCode = '0x';
     if (proxyAddress) {
       try {
@@ -136,6 +146,12 @@ extendEnvironment((hre) => {
     );
     if (contractCode === '0x' || process.env.FORCE_PROXY_DEPLOYMENT) {
       hre.log('Deploying proxy and instance', contractName); // todo use hre.trace (variant of hre.log requiring env.TRACE === true)
+      // TODO: Do this properly
+      try {
+        (signer as FireblocksSigner).setNextTransactionMemo(
+          `Deploy proxy and instance for ${contractName}`
+        );
+      } catch (e) {}
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,
         args,
@@ -147,6 +163,11 @@ extendEnvironment((hre) => {
         'Found existing proxy, attempting to upgrade instance',
         contractName
       );
+      try {
+        (signer as FireblocksSigner).setNextTransactionMemo(
+          `Upgrade contract instance for ${contractName}`
+        );
+      } catch (e) {}
       contract = await hre.upgrades.upgradeProxy<TContract>(
         proxyAddress,
         contractFactory
