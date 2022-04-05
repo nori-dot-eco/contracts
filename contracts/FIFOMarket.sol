@@ -129,7 +129,7 @@ contract FIFOMarket is
     address[] memory suppliers = new address[](_queueLength());
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
-      address supplier = RemovalUtils.supplierAddressFromTokenId(_queue[i]);
+      address supplier = RemovalUtils.supplierAddressFromRemovalId(_queue[i]);
       if (remainingAmountToFill < removalAmount) {
         ids[i] = _queue[i];
         amounts[i] = remainingAmountToFill;

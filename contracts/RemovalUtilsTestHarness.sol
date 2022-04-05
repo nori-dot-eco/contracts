@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.13;
 
-import {RemovalUtils} from "./RemovalUtils.sol";
+import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 
 /**
  * @dev Testbed contract for testing RemovalUtils library.
@@ -12,76 +12,83 @@ import {RemovalUtils} from "./RemovalUtils.sol";
 contract RemovalTestHarness {
   using RemovalUtils for *;
 
-  function createTokenIdV0(
-    uint256 methodology,
-    uint256 methodologyVersion,
-    uint256 vintage,
-    string memory country,
-    string memory admin1,
-    address supplierAddress,
-    uint256 parcelId
-  ) public pure returns (uint256) {
-    return
-      RemovalUtils.createTokenIdV0(
-        methodology,
-        methodologyVersion,
-        vintage,
-        country,
-        admin1,
-        supplierAddress,
-        parcelId
-      );
-  }
-
-  function versionFromTokenId(uint256 tokenId) public pure returns (uint256) {
-    return RemovalUtils.versionFromTokenId(tokenId);
-  }
-
-  function methodologyFromTokenId(uint256 tokenId)
+  function createRemovalId(bytes calldata removalData)
     public
     pure
     returns (uint256)
   {
-    return RemovalUtils.methodologyFromTokenId(tokenId);
+    return RemovalUtils.createRemovalId(removalData);
   }
 
-  function methodologyVersionFromTokenId(uint256 tokenId)
+  function unpackRemovalId(uint256 removalId)
+    public
+    pure
+    returns (UnpackedRemovalIdV0 memory)
+  {
+    return RemovalUtils.unpackRemovalId(removalId);
+  }
+
+  function versionFromRemovalId(uint256 removalId)
     public
     pure
     returns (uint256)
   {
-    return RemovalUtils.methodologyVersionFromTokenId(tokenId);
+    return RemovalUtils.versionFromRemovalId(removalId);
   }
 
-  function vintageFromTokenId(uint256 tokenId) public pure returns (uint256) {
-    return RemovalUtils.vintageFromTokenId(tokenId);
+  function methodologyFromRemovalId(uint256 removalId)
+    public
+    pure
+    returns (uint256)
+  {
+    return RemovalUtils.methodologyFromRemovalId(removalId);
   }
 
-  function countryCodeFromTokenId(uint256 tokenId)
+  function methodologyVersionFromRemovalId(uint256 removalId)
+    public
+    pure
+    returns (uint256)
+  {
+    return RemovalUtils.methodologyVersionFromRemovalId(removalId);
+  }
+
+  function vintageFromRemovalId(uint256 removalId)
+    public
+    pure
+    returns (uint256)
+  {
+    return RemovalUtils.vintageFromRemovalId(removalId);
+  }
+
+  function countryCodeFromRemovalId(uint256 removalId)
     public
     pure
     returns (string memory)
   {
-    return RemovalUtils.countryCodeFromTokenId(tokenId);
+    return RemovalUtils.countryCodeFromRemovalId(removalId);
   }
 
-  function admin1CodeFromTokenId(uint256 tokenId)
+  function admin1CodeFromRemovalId(uint256 removalId)
     public
     pure
     returns (string memory)
   {
-    return RemovalUtils.admin1CodeFromTokenId(tokenId);
+    return RemovalUtils.admin1CodeFromRemovalId(removalId);
   }
 
-  function supplierAddressFromTokenId(uint256 tokenId)
+  function supplierAddressFromRemovalId(uint256 removalId)
     public
     pure
     returns (address)
   {
-    return RemovalUtils.supplierAddressFromTokenId(tokenId);
+    return RemovalUtils.supplierAddressFromRemovalId(removalId);
   }
 
-  function parcelIdFromTokenId(uint256 tokenId) public pure returns (uint256) {
-    return RemovalUtils.parcelIdFromTokenId(tokenId);
+  function subIdentifierFromRemovalId(uint256 removalId)
+    public
+    pure
+    returns (uint256)
+  {
+    return RemovalUtils.subIdentifierFromRemovalId(removalId);
   }
 }

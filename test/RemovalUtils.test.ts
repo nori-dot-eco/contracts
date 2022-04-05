@@ -1,4 +1,8 @@
-import type { RemovalTestHarness } from '../typechain-types/RemovalTestHarness';
+import type {
+  RemovalTestHarness,
+  UnpackedRemovalIdV0Struct,
+  UnpackedRemovalIdV0StructOutput,
+} from '../typechain-types/RemovalTestHarness';
 
 import { expect } from '@/test/helpers';
 
@@ -20,57 +24,58 @@ const setupTest = hre.deployments.createFixture(
   }
 );
 
+const formatRemovalIdData = (
+  removalData: UnpackedRemovalIdV0Struct
+): string => {
+  return hre.ethers.utils.defaultAbiCoder.encode(
+    [
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'string',
+      'string',
+      'address',
+      'uint256',
+    ],
+    Object.values(removalData)
+  );
+};
 describe('RemovalUtils', () => {
   it('can create a token id from the component fields and decode the token id', async () => {
     const { removalTestHarness: harness } = await setupTest();
 
-    const removalData = {
-      version: 0,
+    const removalData: UnpackedRemovalIdV0Struct = {
+      idVersion: 0,
       methodology: 2,
       methodologyVersion: 1,
       vintage: 2018,
       country: 'US',
       admin1: 'IA',
-      address: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-      parcelId: 99039930,
+      supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
+      subIdentifier: 99039930, // parcel id
     };
 
-    const tokenId = await harness.createTokenIdV0(
-      removalData.methodology,
-      removalData.methodologyVersion,
-      removalData.vintage,
-      removalData.country,
-      removalData.admin1,
-      removalData.address,
-      removalData.parcelId
+    const removalId = await harness.createRemovalId(
+      formatRemovalIdData(removalData)
     );
 
-    const [
-      retrievedVersion,
-      retrievedMethodology,
-      retrievedMethodologyVersion,
-      retrievedVintage,
-      retrievedCountryCode,
-      retrievedAdmin1Code,
-      retrievedAddress,
-      retrievedParcelId,
-    ] = await Promise.all([
-      harness.versionFromTokenId(tokenId),
-      harness.methodologyFromTokenId(tokenId),
-      harness.methodologyVersionFromTokenId(tokenId),
-      harness.vintageFromTokenId(tokenId),
-      harness.countryCodeFromTokenId(tokenId),
-      harness.admin1CodeFromTokenId(tokenId),
-      harness.supplierAddressFromTokenId(tokenId),
-      harness.parcelIdFromTokenId(tokenId),
-    ]);
-    expect(retrievedVersion).equal(removalData.version);
-    expect(retrievedMethodology).equal(removalData.methodology);
-    expect(retrievedMethodologyVersion).equal(removalData.methodologyVersion);
-    expect(retrievedVintage).equal(removalData.vintage.toString());
-    expect(retrievedCountryCode).equal(removalData.country);
-    expect(retrievedAdmin1Code).equal(removalData.admin1);
-    expect(retrievedAddress).equal(removalData.address);
-    expect(retrievedParcelId).equal(removalData.parcelId.toString());
+    const unpackedRemovalId: UnpackedRemovalIdV0StructOutput =
+      await harness.unpackRemovalId(removalId);
+
+    expect(unpackedRemovalId.idVersion).equal(removalData.idVersion);
+    expect(unpackedRemovalId.methodology).equal(removalData.methodology);
+    expect(unpackedRemovalId.methodologyVersion).equal(
+      removalData.methodologyVersion
+    );
+    expect(unpackedRemovalId.vintage).equal(removalData.vintage.toString());
+    expect(unpackedRemovalId.country).equal(removalData.country);
+    expect(unpackedRemovalId.admin1).equal(removalData.admin1);
+    expect(unpackedRemovalId.supplierAddress).equal(
+      removalData.supplierAddress
+    );
+    expect(unpackedRemovalId.subIdentifier).equal(
+      removalData.subIdentifier.toString()
+    );
   });
 });
