@@ -1,7 +1,6 @@
 import type { HardhatUserConfig } from 'hardhat/types';
 
 const { FIREBLOCKS_API_KEY, FIREBLOCKS_SECRET_KEY_PATH, FIREBLOCKS_VAULT_ID } = process.env;
-console.log(FIREBLOCKS_API_KEY);
 export const fireblocks: HardhatUserConfig['fireblocks'] =
     FIREBLOCKS_API_KEY && FIREBLOCKS_SECRET_KEY_PATH
     ? {

@@ -28,7 +28,10 @@ import {
   ContractAddressOrInstance,
   UpgradeProxyOptions,
 } from '@openzeppelin/hardhat-upgrades/dist/utils';
-import { DeploymentsExtension as OriginalDeploymentsExtension } from 'hardhat-deploy/dist/types';
+import {
+  DeploymentsExtension as OriginalDeploymentsExtension,
+  DeployFunction as HardhatDeployFunction,
+} from 'hardhat-deploy/dist/types';
 import { HardhatUserConfig } from 'hardhat/types';
 
 declare module 'hardhat/config' {
@@ -121,6 +124,18 @@ interface DeployOrUpgradeProxyFunction {
   }): Promise<InstanceOfContract<TContract>>;
 }
 
+interface DeployNonUpgradeableFunction {
+  <TContract extends BaseContract, TFactory extends ContractFactory>({
+    contractName,
+    args,
+    options,
+  }: {
+    contractName: ContractNames;
+    args: unknown[];
+    options?: FactoryOptions;
+  }): Promise<InstanceOfContract<TContract>>;
+}
+
 interface CustomHardhatUpgrades extends HardhatUpgrades {
   deployProxy: GenericDeployFunction; // overridden because of a mismatch in ethers types
   upgradeProxy: GenericUpgradeFunction; // overridden because of a mismatch in ethers types
@@ -134,7 +149,7 @@ declare global {
   type Constructor = new (...args: any[]) => {};
 
   type ClassInstance<T> = InstanceType<ClassType<T>>;
-  
+
   type RequiredKeys<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
   type InstanceOfContract<TContract extends Contract> = ReturnType<
     TContract['attach']
@@ -152,7 +167,8 @@ declare global {
     | 'Removal'
     | 'Certificate'
     | 'LockedNORI'
-    | 'BridgedPolygonNORI';
+    | 'BridgedPolygonNORI'
+    | 'ScheduleTestHarness';
   var ethers: Omit<
     typeof defaultEthers & HardhatEthersHelpers,
     'getContractFactory'
@@ -180,6 +196,7 @@ declare global {
     ethers: typeof ethers;
     getSigners: () => Promise<Signer[]>;
     deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
+    deployNonUpgradeable: DeployNonUpgradeableFunction;
     log: Console['log'];
     trace: Console['log'];
     ethernalSync: boolean; // todo figure out why we need to re-write types like this
@@ -197,7 +214,7 @@ declare global {
     };
   };
 
-  interface CustomHardhatDeployFunction extends Partial<DeployFunction> {
+  interface CustomHardhatDeployFunction extends HardhatDeployFunction {
     (hre: CustomHardHatRuntimeEnvironment): Promise<unknown>;
   }
 

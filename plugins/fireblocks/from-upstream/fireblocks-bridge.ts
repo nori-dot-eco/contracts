@@ -65,6 +65,7 @@ export class EthersCustomBridge extends BaseBridge {
         }
       },
     };
+    // console.log(JSON.stringify(txArguments));
     return this.params.fireblocksApiClient.createTransaction(txArguments);
   }
 }

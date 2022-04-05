@@ -15,6 +15,8 @@ import type {
   LockedNORI__factory,
   BridgedPolygonNORI,
   BridgedPolygonNORI__factory,
+  ScheduleTestHarness,
+  ScheduleTestHarness__factory,
 } from '../typechain-types';
 import contractsConfig from '../contracts.json';
 
@@ -23,6 +25,7 @@ import {
   MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
   POLYGON_CHILD_CHAIN_MANAGER_PROXY,
   STAGING_DEPLOYMENT_ADDRESS,
+  PROD_DEPLOYMENT_ADDRESS,
 } from '@/constants/addresses';
 import { mockDepositNoriToPolygon } from '@/test/helpers';
 
@@ -33,6 +36,7 @@ export interface Contracts {
   FIFOMarket?: FIFOMarket;
   LockedNORI?: LockedNORI;
   Certificate?: Certificate;
+  ScheduleTestHarness?: ScheduleTestHarness;
 }
 
 export const verifyContracts = async ({
@@ -66,12 +70,19 @@ export const writeContractsConfig = ({
     path.join(__dirname, '../contracts.json'),
     {
       ...contractsConfig,
-      [hre.network.name]: Object.fromEntries(
-        Object.entries(contracts).map(([name, { address: proxyAddress }]) => [
-          name,
-          { proxyAddress },
-        ])
-      ),
+      [hre.network.name]: {
+        ...contractsConfig[hre.network.name],
+        ...Object.fromEntries(
+          Object.entries(contracts).map(([name, contract]) => {
+            const proxyAddress = contract?.address;
+            if (proxyAddress) {
+                // TODO: Incorrect for upgraeable
+                return [name, { proxyAddress }];
+            }
+            return [];
+          })
+        ),
+      },
     },
     { spaces: 2 }
   );
@@ -94,51 +105,61 @@ export const configureDeploymentSettings = async ({
 
 export const deployContracts = async ({
   hre,
+  contracts,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
+  contracts: ContractNames[];
 }): Promise<Contracts> => {
   const isPolygonNetwork = ['mumbai', 'polygon', 'hardhat'].includes(
     hre.network.name
   );
+  const isMainNetwork = ['mainnet', 'goerli'].includes(hre.network.name);
+  const isTestnet = ['mumbai', 'goerli'].includes(hre.network.name);
+  const isLocalNetwork = ['hardhat', 'localhost'].includes(hre.network.name);
   const noriInstance =
-    !isPolygonNetwork || hre.network.name === 'hardhat'
+    (isMainNetwork || isLocalNetwork) && contracts.includes('NORI')
       ? await hre.deployOrUpgradeProxy<NORI, NORI__factory>({
           contractName: 'NORI',
           args: [],
         })
       : undefined;
-  const removalInstance = isPolygonNetwork
-    ? await hre.deployOrUpgradeProxy<Removal, Removal__factory>({
-        contractName: 'Removal',
-        args: [],
-        options: { initializer: 'initialize()' },
-      })
-    : undefined;
-  const certificateInstance = isPolygonNetwork
-    ? await hre.deployOrUpgradeProxy<Certificate, Certificate__factory>({
-        contractName: 'Certificate',
-        args: [],
-        options: { initializer: 'initialize()' },
-      })
-    : undefined;
-  const bridgedPolygonNoriInstance = isPolygonNetwork
-    ? await hre.deployOrUpgradeProxy<
-        BridgedPolygonNORI,
-        BridgedPolygonNORI__factory
-      >({
-        contractName: 'BridgedPolygonNORI',
-        args: [
-          hre.network.name === 'polygon'
-            ? POLYGON_CHILD_CHAIN_MANAGER_PROXY
-            : MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
-        ],
-        options: { initializer: 'initialize(address)' },
-      })
-    : undefined;
+  const removalInstance =
+    (isPolygonNetwork || isLocalNetwork) && contracts.includes('Removal')
+      ? await hre.deployOrUpgradeProxy<Removal, Removal__factory>({
+          contractName: 'Removal',
+          args: [],
+          options: { initializer: 'initialize()' },
+        })
+      : undefined;
+  const certificateInstance =
+    (isPolygonNetwork || isLocalNetwork) && contracts.includes('Certificate')
+      ? await hre.deployOrUpgradeProxy<Certificate, Certificate__factory>({
+          contractName: 'Certificate',
+          args: [],
+          options: { initializer: 'initialize()' },
+        })
+      : undefined;
+  const bridgedPolygonNoriInstance =
+    (isPolygonNetwork || isLocalNetwork) &&
+    contracts.includes('BridgedPolygonNORI')
+      ? await hre.deployOrUpgradeProxy<
+          BridgedPolygonNORI,
+          BridgedPolygonNORI__factory
+        >({
+          contractName: 'BridgedPolygonNORI',
+          args: [
+            hre.network.name === 'polygon'
+              ? POLYGON_CHILD_CHAIN_MANAGER_PROXY
+              : MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
+          ],
+          options: { initializer: 'initialize(address)' },
+        })
+      : undefined;
   const fifoMarketInstance =
     removalInstance != null &&
     certificateInstance != null &&
-    bridgedPolygonNoriInstance != null
+    bridgedPolygonNoriInstance != null &&
+    contracts.includes('FIFOMarket')
       ? await hre.deployOrUpgradeProxy<FIFOMarket, FIFOMarket__factory>({
           contractName: 'FIFOMarket',
           args: [
@@ -154,11 +175,21 @@ export const deployContracts = async ({
         })
       : undefined;
   const lNoriInstance =
-    bridgedPolygonNoriInstance != null
+    bridgedPolygonNoriInstance != null && contracts.includes('LockedNORI')
       ? await hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
           contractName: 'LockedNORI',
           args: [bridgedPolygonNoriInstance.address],
           options: { initializer: 'initialize(address)' },
+        })
+      : undefined;
+  const scheduleTestHarnessInstance =
+    isTestnet !== null && contracts.includes('ScheduleTestHarness')
+      ? await hre.deployNonUpgradeable<
+          ScheduleTestHarness,
+          ScheduleTestHarness__factory
+        >({
+          contractName: 'ScheduleTestHarness',
+          args: [],
         })
       : undefined;
   return {
@@ -170,6 +201,9 @@ export const deployContracts = async ({
     ...(certificateInstance != null && { Certificate: certificateInstance }),
     ...(fifoMarketInstance != null && { FIFOMarket: fifoMarketInstance }),
     ...(lNoriInstance != null && { LockedNORI: lNoriInstance }),
+    ...(scheduleTestHarnessInstance !== null && {
+      ScheduleTestHarness: scheduleTestHarnessInstance,
+    }),
   };
 };
 
@@ -181,16 +215,16 @@ export const validateDeployment = ({
   if (['polygon', 'mainnet'].includes(hre.network.name)) {
     throw new Error('You cannot deploy to mainnet yet');
   }
-  if (
-    (['goerli', 'mumbai'].includes(hre.network.name) &&
-      hre.namedAccounts.admin !== STAGING_DEPLOYMENT_ADDRESS) ||
-    (['polygon', 'mainnet'].includes(hre.network.name) &&
-      hre.namedAccounts.admin !== STAGING_DEPLOYMENT_ADDRESS)
-  ) {
-    throw new Error(
-      `You can only deploy to ${hre.network.name} using the admin account`
-    );
-  }
+  //   if (
+  //     (['goerli', 'mumbai'].includes(hre.network.name) &&
+  //       hre.namedAccounts.admin !== STAGING_DEPLOYMENT_ADDRESS) ||
+  //     (['polygon', 'mainnet'].includes(hre.network.name) &&
+  //       hre.namedAccounts.admin !== PROD_DEPLOYMENT_ADDRESS)
+  //   ) {
+  //     throw new Error(
+  //       `You can only deploy to ${hre.network.name} using the admin account. (${hre.namedAccounts.admin})`
+  //     );
+  //   }
 };
 
 /**

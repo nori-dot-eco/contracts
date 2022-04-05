@@ -10,7 +10,6 @@ import type {
 import { mockDepositNoriToPolygon } from './polygon';
 
 import { formatTokenAmount } from '@/utils/units';
-import { deploy } from '@/deploy/0_deploy_contracts';
 import type { Contracts } from '@/utils/deploy';
 
 export * from './chai';
@@ -52,7 +51,18 @@ export const setupTestEnvironment = createFixture(
     hre
   ): Promise<ContractInstances & { hre: CustomHardHatRuntimeEnvironment }> => {
     hre.ethernalSync = false;
-    const contracts = (await deploy(hre)) as Required<Contracts>;
+    const deployments = (await
+        hre.deployments.fixture(['NORI', 'BridgedPolygonNORI', 'LockedNORI', 
+        'FIFOMarket', 'Certificate', 'Removal'])
+    );
+    const contracts = {
+        NORI: await hre.ethers.getContractAt('NORI', deployments['NORI'].address),
+        BridgedPolygonNORI: await hre.ethers.getContractAt('BridgedPolygonNORI', deployments['BridgedPolygonNORI'].address),
+        LockedNORI: await hre.ethers.getContractAt('LockedNORI', deployments['LockedNORI'].address),
+        FIFOMarket: await hre.ethers.getContractAt('FIFOMarket', deployments['FIFOMarket'].address),
+        Removal: await hre.ethers.getContractAt('Removal', deployments['Removal'].address),
+        Certificate: await hre.ethers.getContractAt('Certificate', deployments['Removal'].address),
+    } as Required<Contracts>;
     await mockDepositNoriToPolygon({
       hre,
       contracts,
