@@ -149,8 +149,8 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       keccak256(unsignedTx).substring(2),
       `Raw signing request: ${this.memo}`
     );
-    // This doesn't actually give back the hash for a raw tx but it
-    // does tell us when the status has settled in fireblocks.
+    // There isn't really a transaxtion hash in raw signing but this
+    // does tell us when the request status has settled in fireblocks.
     await this._bridge.waitForTxHash(txInfo.id);
     const txDetail = await this.fireblocksApiClient.getTransactionById(
       txInfo.id
@@ -193,7 +193,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     let txHash: string;
     let baseTx: UnsignedTransaction;
     if (transaction.to) {
-      // looks like a contract interaction (fireblocks doesn't yet support type 2 for contract calls)
+      // looks like a contract interaction 
       baseTx = await this._populateTransaction(transaction, 0);
       txHash = await this._signTransaction(baseTx);
     } else {

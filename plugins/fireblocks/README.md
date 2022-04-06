@@ -20,12 +20,12 @@ And help center docs
 
 TODO:
 
-- [ ] Test deployments and upgrades.
+- [x] Test deployments and upgrades.
 - [ ] Test with a human approval in the loop
 - [ ] Move network to chain mapping to Nori's config file
 - [ ] Expose other sdk client params that may be relevant (i.e. asset)
-- [ ] Use type 2 transaction format / gas semantics
-- [ ] Expose a way to populate the note field
+- [x] Use type 2 transaction format / gas semantics (only partially supported in FB, works for raw signing but not contract calls.)
+- [x] Expose a way to populate the note field
 
 ## Usage
 

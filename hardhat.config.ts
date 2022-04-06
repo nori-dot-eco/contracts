@@ -5,7 +5,7 @@ import '@/plugins';
 import type { HardhatUserConfig } from 'hardhat/types';
 
 import { etherscan } from '@/config/etherscan';
-// import { tenderly } from '@/config/tenderly';
+import { tenderly } from '@/config/tenderly';
 import { networks } from '@/config/networks';
 import { namedAccounts } from '@/config/accounts';
 import { defender } from '@/config/defender';
@@ -16,7 +16,7 @@ import { mocha } from '@/config/mocha';
 import { fireblocks } from '@/config/fireblocks';
 
 export const config: HardhatUserConfig = {
-  // tenderly,
+  tenderly,
   paths: {
     deploy: 'deploy',
     deployments: 'deployments',

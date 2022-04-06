@@ -5,7 +5,7 @@ import '@nomiclabs/hardhat-ethers';
 import './fireblocks';
 import 'hardhat-ethernal';
 import 'hardhat-deploy';
-//import '@tenderly/hardhat-tenderly';
+import '@tenderly/hardhat-tenderly';
 import '@typechain/hardhat';
 import '@nomiclabs/hardhat-etherscan';
 import 'hardhat-gas-reporter';
@@ -160,9 +160,9 @@ extendEnvironment((hre) => {
       hre.log('Deployed proxy and instance', contractName, contract.address);
     } else {
       hre.log(
-        'Found existing proxy at',
+        'Found existing proxy at:',
         proxyAddress,
-        '-- attempting to upgrade instance',
+        ' attempting to upgrade instance',
         contractName
       );
       try {

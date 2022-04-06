@@ -76,7 +76,7 @@ export const writeContractsConfig = ({
           Object.entries(contracts).map(([name, contract]) => {
             const proxyAddress = contract?.address;
             if (proxyAddress) {
-                // TODO: Incorrect for upgraeable
+                // TODO: Not correct for non upgraeable
                 return [name, { proxyAddress }];
             }
             return [];
@@ -215,16 +215,6 @@ export const validateDeployment = ({
   if (['polygon', 'mainnet'].includes(hre.network.name)) {
     throw new Error('You cannot deploy to mainnet yet');
   }
-  //   if (
-  //     (['goerli', 'mumbai'].includes(hre.network.name) &&
-  //       hre.namedAccounts.admin !== STAGING_DEPLOYMENT_ADDRESS) ||
-  //     (['polygon', 'mainnet'].includes(hre.network.name) &&
-  //       hre.namedAccounts.admin !== PROD_DEPLOYMENT_ADDRESS)
-  //   ) {
-  //     throw new Error(
-  //       `You can only deploy to ${hre.network.name} using the admin account. (${hre.namedAccounts.admin})`
-  //     );
-  //   }
 };
 
 /**

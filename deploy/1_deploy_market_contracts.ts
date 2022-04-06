@@ -28,4 +28,4 @@ export const deploy: DeployFunction = async (env) => {
 export default deploy;
 deploy.tags = ['market', 'FIFOMarket', 'Certificate', 'Removal'];
 deploy.dependencies = ['assets'];
-deploy.skip = async (hre) => true;
+// deploy.skip = async (hre) => true;
