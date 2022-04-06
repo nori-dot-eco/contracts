@@ -71,30 +71,38 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
   }
 
   async _populateTransaction(
-    transaction: Deferrable<TransactionRequest>
+    transaction: Deferrable<TransactionRequest>,
+    type: number = 2
   ): Promise<UnsignedTransaction> {
     const feeData = await this.provider?.getFeeData();
     const tx = await this.populateTransaction({
-      type: 2,
+      type,
+      ...transaction,
       gasLimit:
         transaction.gasLimit !== undefined
           ? BigNumber.from(await transaction.gasLimit).mul(2)
           : BigNumber.from(15000000),
-      // gasPrice: feeData!.gasPrice || undefined,
-      maxFeePerGas:
-        transaction.maxFeePerGas !== undefined
-          ? BigNumber.from(transaction.maxFeePerGas)
-          : feeData?.maxFeePerGas || undefined,
-      maxPriorityFeePerGas:
-        transaction.maxPriorityFeePerGas !== undefined
-          ? BigNumber.from(transaction.maxPriorityFeePerGas)
-          : feeData?.maxPriorityFeePerGas || undefined,
-      ...transaction,
+      ...(type === 2 && {
+        maxFeePerGas:
+          transaction.maxFeePerGas !== undefined
+            ? BigNumber.from(await transaction.maxFeePerGas)
+            : feeData?.maxFeePerGas || undefined,
+        maxPriorityFeePerGas:
+          transaction.maxPriorityFeePerGas !== undefined
+            ? BigNumber.from(await transaction.maxPriorityFeePerGas)
+            : feeData?.maxPriorityFeePerGas || undefined,
+      }),
+      ...(type !== 2 && {
+        gasPrice: feeData!.gasPrice || undefined,
+      }),
     });
     console.log(
       `Signing Request: ${JSON.stringify({
         nonce: tx.nonce,
+        type: tx.type,
+        to: tx.to,
         gasLimit: tx.gasLimit?.toString(),
+        gasPrice: tx.gasPrice?.toString(),
         maxFeePerGas: tx.maxFeePerGas?.toString(),
         maxPriorityFeePerGas: tx.maxPriorityFeePerGas?.toString(),
       })}`
@@ -115,7 +123,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
   async _signTransaction(transaction: UnsignedTransaction): Promise<string> {
     const txInfo = await this._bridge.sendTransaction(
       transaction as PopulatedTransaction,
-      `Contract call: ${this.memo}`
+      `${this.memo}`
     );
     await this._bridge.waitForTxHash(txInfo.id);
     const txDetail = await this.fireblocksApiClient.getTransactionById(
@@ -134,7 +142,6 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       maxFeePerGas: transaction.maxFeePerGas,
       maxPriorityFeePerGas: transaction.maxPriorityFeePerGas,
       nonce: transaction.nonce,
-      // to: transaction.to || undefined,
       value: transaction.value,
     };
     const unsignedTx = ethers.utils.serializeTransaction(baseTx);
@@ -142,7 +149,6 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       keccak256(unsignedTx).substring(2),
       `Raw signing request: ${this.memo}`
     );
-    this.memo = '';
     // This doesn't actually give back the hash for a raw tx but it
     // does tell us when the status has settled in fireblocks.
     await this._bridge.waitForTxHash(txInfo.id);
@@ -166,13 +172,15 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
   async signTransaction(
     transaction: Deferrable<TransactionRequest>
   ): Promise<string> {
-    const baseTx = await this._populateTransaction(transaction);
+    let baseTx;
     let tx;
-    if (baseTx.to) {
+    if (transaction.to) {
       // looks like a contract interaction
+      baseTx = await this._populateTransaction(transaction, 0);
       tx = await this._signTransaction(baseTx);
     } else {
       // looks like a deploy
+      baseTx = await this._populateTransaction(transaction, 2);
       tx = await this._signRawTransaction(baseTx);
     }
     return tx;
@@ -182,24 +190,28 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     transaction: Deferrable<TransactionRequest>
   ): Promise<TransactionResponse> {
     this._checkProvider('sendTransaction');
-    const baseTx = await this._populateTransaction(transaction);
     let txHash: string;
-    if (baseTx.to) {
-      // looks like a contract interaction
+    let baseTx: UnsignedTransaction;
+    if (transaction.to) {
+      // looks like a contract interaction (fireblocks doesn't yet support type 2 for contract calls)
+      baseTx = await this._populateTransaction(transaction, 0);
       txHash = await this._signTransaction(baseTx);
     } else {
       // looks like a deploy
+      baseTx = await this._populateTransaction(transaction, 2);
       const tx = await this._signRawTransaction(baseTx);
       try {
-      const txResponse = await this.provider!.sendTransaction(tx);
-      txHash = txResponse.hash;
+        const txResponse = await this.provider!.sendTransaction(tx);
+        txHash = txResponse.hash;
       } catch (e) {
-        console.log(`Error forwarding signed raw txn to provider (type: ${typeof e})`);
+        console.log(
+          `Error forwarding signed raw txn to provider (type: ${typeof e})`
+        );
         try {
           const body = JSON.parse((<any>e).body);
           console.log(`Error message: ${body.message}`);
         } catch (e2) {
-            console.log('cannot parse error');
+          console.log('cannot parse error');
         }
         throw e;
       }

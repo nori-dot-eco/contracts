@@ -125,7 +125,7 @@ extendEnvironment((hre) => {
   }): Promise<InstanceOfContract<TContract>> => {
     // todo use proposeUpgrade
     const proxyAddress =
-      contractsConfig[hre.network.name]?.[contractName]?.proxyAddress;
+      contractsConfig[hre.network.name as 'hardhat']?.[contractName]?.proxyAddress;
     let contractCode = '0x';
     if (proxyAddress) {
       try {
@@ -160,7 +160,9 @@ extendEnvironment((hre) => {
       hre.log('Deployed proxy and instance', contractName, contract.address);
     } else {
       hre.log(
-        'Found existing proxy, attempting to upgrade instance',
+        'Found existing proxy at',
+        proxyAddress,
+        '-- attempting to upgrade instance',
         contractName
       );
       try {
@@ -175,9 +177,9 @@ extendEnvironment((hre) => {
       );
       hre.log('Upgraded instance', contractName, contract.address);
     }
-    hre.trace('awaiting deployment transaction', contractName);
+    hre.trace('...awaiting deployment transaction', contractName);
     await contract.deployed();
-    hre.log('successful deployment transaction', contractName);
+    hre.log('...successful deployment transaction', contractName);
     return contract;
   };
   hre.deployOrUpgradeProxy = deployOrUpgradeProxy;
