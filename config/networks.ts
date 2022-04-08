@@ -44,7 +44,7 @@ const mumbai: NetworkUserConfig = {
 };
 
 const polygon: NetworkUserConfig = {
-  url: `https://polygon.infura.io/v3/${INFURA_PROD_KEY}`,
+  url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROD_KEY}`,
   live: true,
   tags: ['polyon', 'prod'],
 };

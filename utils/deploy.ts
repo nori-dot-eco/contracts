@@ -49,7 +49,9 @@ export const verifyContracts = async ({
   if (hre.network.name !== 'hardhat') {
     hre.trace('Verifying contracts');
     await Promise.allSettled(
-      Object.values(contracts).map(async ({ address }) => {
+      Object.entries(contracts)
+      .filter((_, value) => value !== undefined)
+      .map(async ([_name, { address }]) => {
         return hre.run('verify:verify', {
           address: await hre.upgrades.erc1967.getImplementationAddress(address),
           constructorArguments: [],
@@ -73,14 +75,16 @@ export const writeContractsConfig = ({
       [hre.network.name]: {
         ...contractsConfig[hre.network.name],
         ...Object.fromEntries(
-          Object.entries(contracts).map(([name, contract]) => {
-            const proxyAddress = contract?.address;
-            if (proxyAddress) {
+          Object.entries(contracts)
+            .filter((_, value) => value !== undefined)
+            .map(([name, contract]) => {
+              const proxyAddress = contract?.address;
+              if (proxyAddress) {
                 // TODO: Not correct for non upgraeable
                 return [name, { proxyAddress }];
-            }
-            return [];
-          })
+              }
+              return [];
+            })
         ),
       },
     },
@@ -212,9 +216,9 @@ export const validateDeployment = ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
 }): void => {
-  if (['polygon', 'mainnet'].includes(hre.network.name)) {
-    throw new Error('You cannot deploy to mainnet yet');
-  }
+  //   if (['polygon', 'mainnet'].includes(hre.network.name)) {
+  //     throw new Error('You cannot deploy to mainnet yet');
+  //   }
 };
 
 /**
@@ -232,9 +236,11 @@ export const pushContractsToEthernal = async ({
   if (hre.ethernalSync) {
     hre.trace('pushing contracts to ethernal');
     await Promise.allSettled(
-      Object.entries(contracts).map(async ([name, { address }]) => {
-        return hre.ethernal.push({ name, address });
-      })
+      Object.entries(contracts)
+        .filter(([_, value]) => value !== undefined)
+        .map(async ([name, { address }]) => {
+          return hre.ethernal.push({ name, address });
+        })
     );
     hre.trace('pushed contracts to ethernal');
   }
@@ -249,7 +255,9 @@ export const addContractsToDefender = async ({
 }): Promise<void> => {
   if (hre.network.name !== 'hardhat') {
     await hre.run('defender:add', {
-      contractNames: Object.keys(contracts).map((name) => name), // todo delete existing contracts from defender and re-add
+      contractNames: Object.entries(contracts)
+        .filter(([_, value]) => value !== undefined)
+        .map(([name, _]) => name), // todo delete existing contracts from defender and re-add
     } as any);
   }
 };
