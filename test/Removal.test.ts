@@ -1,27 +1,5 @@
-import type { ContractInstances } from '@/test/helpers';
-import { deploy } from '@/deploy/0_deploy_contracts';
-import { expect, createFixture } from '@/test/helpers';
+import { expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/utils/deploy';
-
-const setupTest = createFixture(
-  async (
-    hre
-  ): Promise<ContractInstances & { hre: CustomHardHatRuntimeEnvironment }> => {
-    // todo replace with setupTestEnvironment
-    hre.ethernalSync = false;
-    const contracts = (await deploy(hre)) as Required<Contracts>;
-    return {
-      hre,
-      nori: contracts.NORI,
-      bpNori: contracts.BridgedPolygonNORI,
-      removal: contracts.Removal,
-      certificate: contracts.Certificate,
-      fifoMarket: contracts.FIFOMarket,
-      lNori: contracts.LockedNORI,
-    };
-  }
-);
 
 describe('Removal', () => {
   describe('Minting removals', () => {

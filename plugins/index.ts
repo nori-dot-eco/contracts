@@ -24,15 +24,26 @@ import * as contractsConfig from '../contracts.json';
 
 import { trace, log } from '@/utils/log';
 import { lazyFunction, lazyObject } from 'hardhat/plugins';
-import { namedAccounts } from '../config/accounts';
+import { namedAccountIndices } from '../config/accounts';
 import { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
 import { FireblocksSigner } from './fireblocks/fireblocks-signer';
+
+const getNamedAccounts = (
+    hre: CustomHardHatRuntimeEnvironment
+    ): NamedAccounts => {
+        const waffleWallets = hre.waffle.provider.getWallets();
+        return Object.fromEntries(
+            Object.entries(namedAccountIndices).map(([accountName, index]) => {
+              return [accountName, waffleWallets[index].address];
+            })
+          ) as unknown as NamedAccounts;
+    };
 
 const getNamedSigners = (
   hre: CustomHardHatRuntimeEnvironment
 ): NamedSigners => {
   return Object.fromEntries(
-    Object.entries(namedAccounts).map(([accountName, address]) => {
+    Object.entries(namedAccountIndices).map(([accountName, address]) => {
       return [accountName, hre.waffle.provider.getSigner(address)];
     })
   ) as NamedSigners;
@@ -55,7 +66,7 @@ extendEnvironment((hre) => {
 
   // for testing only
   hre.namedSigners = getNamedSigners(hre);
-  hre.namedAccounts = namedAccounts;
+  hre.namedAccounts = getNamedAccounts(hre);
 
   hre.ethernalSync = Boolean(
     hre.network.name === 'hardhat' &&
@@ -157,7 +168,7 @@ extendEnvironment((hre) => {
         args,
         options
       );
-      hre.log('Deployed proxy and instance', contractName, contract.address);
+      hre.log('Deployed proxy and instance', contractName, 'at', contract.address);
     } else {
       hre.log(
         'Found existing proxy at:',
@@ -175,7 +186,7 @@ extendEnvironment((hre) => {
         contractFactory
         // options
       );
-      hre.log('Upgraded instance', contractName, contract.address);
+      hre.log('Upgraded instance', contractName, 'at', contract.address);
     }
     hre.trace('...awaiting deployment transaction', contractName);
     await contract.deployed();

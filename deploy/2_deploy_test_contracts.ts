@@ -17,7 +17,7 @@ export const deploy: DeployFunction = async (env) => {
   console.log(`2_deploy_test_contracts`);
   validateDeployment({ hre });
   await configureDeploymentSettings({ hre });
-  const contracts = await deployContracts({ hre, contracts: ['ScheduleTestHarness']});
+  const contracts = await deployContracts({ hre, contractNames: ['ScheduleTestHarness']});
   await seedContracts({ hre, contracts });
   await pushContractsToEthernal({ hre, contracts });
   writeContractsConfig({ contracts });

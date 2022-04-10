@@ -50,13 +50,15 @@ export const verifyContracts = async ({
     hre.trace('Verifying contracts');
     await Promise.allSettled(
       Object.entries(contracts)
-      .filter((_, value) => value !== undefined)
-      .map(async ([_name, { address }]) => {
-        return hre.run('verify:verify', {
-          address: await hre.upgrades.erc1967.getImplementationAddress(address),
-          constructorArguments: [],
-        } as any);
-      })
+        .filter((_, value) => value !== undefined)
+        .map(async ([_name, { address }]) => {
+          return hre.run('verify:verify', {
+            address: await hre.upgrades.erc1967.getImplementationAddress(
+              address
+            ),
+            constructorArguments: [],
+          } as any);
+        })
     );
     hre.trace('Verified contracts');
   }
@@ -107,12 +109,69 @@ export const configureDeploymentSettings = async ({
   }
 };
 
-export const deployContracts = async ({
+export const deployMarketContracts = async ({
   hre,
+  contractNames,
   contracts,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-  contracts: ContractNames[];
+  contractNames: ContractNames[];
+  contracts: Contracts;
+}): Promise<Contracts> => {
+  const isPolygonNetwork = ['mumbai', 'polygon', 'hardhat'].includes(
+    hre.network.name
+  );
+  const isLocalNetwork = ['hardhat', 'localhost'].includes(hre.network.name);
+  const removalInstance =
+    (isPolygonNetwork || isLocalNetwork) && contractNames.includes('Removal')
+      ? await hre.deployOrUpgradeProxy<Removal, Removal__factory>({
+          contractName: 'Removal',
+          args: [],
+          options: { initializer: 'initialize()' },
+        })
+      : undefined;
+  const certificateInstance =
+    (isPolygonNetwork || isLocalNetwork) &&
+    contractNames.includes('Certificate')
+      ? await hre.deployOrUpgradeProxy<Certificate, Certificate__factory>({
+          contractName: 'Certificate',
+          args: [],
+          options: { initializer: 'initialize()' },
+        })
+      : undefined;
+  const fifoMarketInstance =
+    removalInstance != null &&
+    certificateInstance != null &&
+    contracts.BridgedPolygonNORI != null &&
+    contractNames.includes('FIFOMarket')
+      ? await hre.deployOrUpgradeProxy<FIFOMarket, FIFOMarket__factory>({
+          contractName: 'FIFOMarket',
+          args: [
+            removalInstance.address,
+            contracts.BridgedPolygonNORI!.address,
+            certificateInstance.address,
+            hre.namedAccounts.noriWallet,
+            15,
+          ],
+          options: {
+            initializer: 'initialize(address,address,address,address,uint256)',
+          },
+        })
+      : undefined;
+  return {
+    ...contracts,
+    ...(removalInstance != null && { Removal: removalInstance }),
+    ...(certificateInstance != null && { Certificate: certificateInstance }),
+    ...(fifoMarketInstance != null && { FIFOMarket: fifoMarketInstance }),
+  };
+};
+
+export const deployContracts = async ({
+  hre,
+  contractNames: contracts,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  contractNames: ContractNames[];
 }): Promise<Contracts> => {
   const isPolygonNetwork = ['mumbai', 'polygon', 'hardhat'].includes(
     hre.network.name
@@ -125,22 +184,6 @@ export const deployContracts = async ({
       ? await hre.deployOrUpgradeProxy<NORI, NORI__factory>({
           contractName: 'NORI',
           args: [],
-        })
-      : undefined;
-  const removalInstance =
-    (isPolygonNetwork || isLocalNetwork) && contracts.includes('Removal')
-      ? await hre.deployOrUpgradeProxy<Removal, Removal__factory>({
-          contractName: 'Removal',
-          args: [],
-          options: { initializer: 'initialize()' },
-        })
-      : undefined;
-  const certificateInstance =
-    (isPolygonNetwork || isLocalNetwork) && contracts.includes('Certificate')
-      ? await hre.deployOrUpgradeProxy<Certificate, Certificate__factory>({
-          contractName: 'Certificate',
-          args: [],
-          options: { initializer: 'initialize()' },
         })
       : undefined;
   const bridgedPolygonNoriInstance =
@@ -157,25 +200,6 @@ export const deployContracts = async ({
               : MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
           ],
           options: { initializer: 'initialize(address)' },
-        })
-      : undefined;
-  const fifoMarketInstance =
-    removalInstance != null &&
-    certificateInstance != null &&
-    bridgedPolygonNoriInstance != null &&
-    contracts.includes('FIFOMarket')
-      ? await hre.deployOrUpgradeProxy<FIFOMarket, FIFOMarket__factory>({
-          contractName: 'FIFOMarket',
-          args: [
-            removalInstance.address,
-            bridgedPolygonNoriInstance.address,
-            certificateInstance.address,
-            hre.namedAccounts.noriWallet,
-            15,
-          ],
-          options: {
-            initializer: 'initialize(address,address,address,address,uint256)',
-          },
         })
       : undefined;
   const lNoriInstance =
@@ -201,9 +225,6 @@ export const deployContracts = async ({
     ...(bridgedPolygonNoriInstance != null && {
       BridgedPolygonNORI: bridgedPolygonNoriInstance,
     }),
-    ...(removalInstance != null && { Removal: removalInstance }),
-    ...(certificateInstance != null && { Certificate: certificateInstance }),
-    ...(fifoMarketInstance != null && { FIFOMarket: fifoMarketInstance }),
     ...(lNoriInstance != null && { LockedNORI: lNoriInstance }),
     ...(scheduleTestHarnessInstance !== null && {
       ScheduleTestHarness: scheduleTestHarnessInstance,
@@ -260,6 +281,24 @@ export const addContractsToDefender = async ({
         .map(([name, _]) => name), // todo delete existing contracts from defender and re-add
     } as any);
   }
+};
+
+export const saveDeployments = async ({
+  hre,
+  contracts,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  contracts: Contracts;
+}): Promise<void> => {
+  hre.trace('saving deployments');
+  await Promise.allSettled(
+    Object.entries(contracts)
+      .filter(([_, value]) => value !== undefined)
+      .map(async ([name, contract]) => {
+        return hre.deployments.save(name, contract);
+      })
+  );
+  hre.trace('saved deployments');
 };
 
 /**

@@ -19,7 +19,7 @@ import type {
   FactoryOptions,
   HardhatEthersHelpers,
 } from '@nomiclabs/hardhat-ethers/types';
-import type { namedAccounts } from '@/config/accounts';
+import type { namedAccountIndices } from '@/config/accounts';
 import type { networks } from '@/config/networks';
 
 import type { TASKS } from '@/tasks';
@@ -33,6 +33,7 @@ import {
   DeployFunction as HardhatDeployFunction,
 } from 'hardhat-deploy/dist/types';
 import { HardhatUserConfig } from 'hardhat/types';
+import { Address } from 'hardhat-deploy/types';
 
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
@@ -155,7 +156,8 @@ declare global {
     TContract['attach']
   >;
   type TypeChainBaseContract = BaseContract & { contractName: string };
-  type NamedAccounts = typeof namedAccounts;
+  type NamedAccountIndices = typeof namedAccountIndices;
+  type NamedAccounts = { [Property in keyof NamedAccountIndices]: Address };
   type NamedSigners = { [Property in keyof NamedAccounts]: JsonRpcSigner };
   type DeepPartial<T> = {
     [P in keyof T]?: DeepPartial<T[P]>;
@@ -183,10 +185,9 @@ declare global {
 
   type CustomHardHatRuntimeEnvironment = Omit<
     HardhatRuntimeEnvironment,
-    'getNamedAccounts' | 'run' | 'upgrades' | 'ethers'
+    'run' | 'upgrades' | 'ethers'
   > & {
     config: HardhatUserConfig;
-    getNamedAccounts: () => Promise<typeof namedAccounts>;
     run: (
       name: keyof typeof TASKS,
       taskArguments?: Parameters<typeof TASKS[typeof name]['run']>[0]
