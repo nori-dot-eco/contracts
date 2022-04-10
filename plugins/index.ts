@@ -29,15 +29,19 @@ import { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
 import { FireblocksSigner } from './fireblocks/fireblocks-signer';
 
 const getNamedAccounts = (
-    hre: CustomHardHatRuntimeEnvironment
-    ): NamedAccounts => {
-        const waffleWallets = hre.waffle.provider.getWallets();
-        return Object.fromEntries(
-            Object.entries(namedAccountIndices).map(([accountName, index]) => {
-              return [accountName, waffleWallets[index].address];
-            })
-          ) as unknown as NamedAccounts;
-    };
+  hre: CustomHardHatRuntimeEnvironment
+): NamedAccounts => {
+  if (hre.network.name === 'hardhat') {
+    const waffleWallets = hre.waffle.provider.getWallets();
+    return Object.fromEntries(
+      Object.entries(namedAccountIndices).map(([accountName, index]) => {
+        return [accountName, waffleWallets[index].address];
+      })
+    ) as unknown as NamedAccounts;
+  } else {
+    return {} as unknown as NamedAccounts;
+  }
+};
 
 const getNamedSigners = (
   hre: CustomHardHatRuntimeEnvironment
@@ -136,7 +140,8 @@ extendEnvironment((hre) => {
   }): Promise<InstanceOfContract<TContract>> => {
     // todo use proposeUpgrade
     const proxyAddress =
-      contractsConfig[hre.network.name as 'hardhat']?.[contractName]?.proxyAddress;
+      contractsConfig[hre.network.name as 'hardhat']?.[contractName]
+        ?.proxyAddress;
     let contractCode = '0x';
     if (proxyAddress) {
       try {
@@ -168,7 +173,12 @@ extendEnvironment((hre) => {
         args,
         options
       );
-      hre.log('Deployed proxy and instance', contractName, 'at', contract.address);
+      hre.log(
+        'Deployed proxy and instance',
+        contractName,
+        'at',
+        contract.address
+      );
     } else {
       hre.log(
         'Found existing proxy at:',
