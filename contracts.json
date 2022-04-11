@@ -53,13 +53,13 @@
       "proxyAddress": "0x0000000000000000000000000000000000000000"
     },
     "BridgedPolygonNORI": {
-      "proxyAddress": "0x0000000000000000000000000000000000000000"
+      "proxyAddress": "0x8cf6E82919f69aE382DEf8f94e581a43Ce1E70C1"
     },
     "FIFOMarket": {
       "proxyAddress": "0x0000000000000000000000000000000000000000"
     },
     "LockedNORI": {
-      "proxyAddress": "0x0000000000000000000000000000000000000000"
+      "proxyAddress": "0xCcFfFA6c2a030821331cC113b63babDC60BfF82A"
     }
   },
   "mainnet": {
