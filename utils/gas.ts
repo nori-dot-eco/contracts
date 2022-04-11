@@ -22,12 +22,12 @@ const defaultGasPricesSettings: { [key: number]: GasPrice } = {
     maxPriorityFeePerGas: 60,
   },
   1: {
-    maxFeePerGas: 53,
-    maxPriorityFeePerGas: 3,
+    maxFeePerGas: 80,
+    maxPriorityFeePerGas: 2,
   },
   5: {
-    maxFeePerGas: 53,
-    maxPriorityFeePerGas: 3,
+    maxFeePerGas: 70,
+    maxPriorityFeePerGas: 2,
   },
 };
 

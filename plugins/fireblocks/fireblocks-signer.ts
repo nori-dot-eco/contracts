@@ -10,7 +10,7 @@ import {
   TransactionRequest,
   TransactionResponse,
 } from '@ethersproject/providers';
-import { Logger } from '@ethersproject/logger';
+import { ErrorCode, Logger } from '@ethersproject/logger';
 import { Deferrable, defineReadOnly } from '@ethersproject/properties';
 import { Bytes } from '@ethersproject/bytes';
 import { BigNumber, ethers, PopulatedTransaction } from 'ethers';
@@ -78,10 +78,16 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     // This is just hardcoded to 25 gwei in the JsonRPCProvider implementation :(
     // const feeData = await this.provider?.getFeeData();
     const feeData = getGasPriceSettings(this._bridge.getChainId());
-    const gasEstimate = await this.provider?.estimateGas(transaction);
+    let gasEstimate;
+    try {
+      gasEstimate = await this.provider?.estimateGas(transaction);
+    } catch (e: any) {
+      console.log('Error estimating gas', e.code);
+      gasEstimate = BigNumber.from(3000000); // 3M fallback (dangerous, improve this!)
+    }
     const gasLimit = transaction.gasLimit !== undefined
         ? BigNumber.from(await transaction.gasLimit)
-        : gasEstimate?.mul(2) || BigNumber.from(1000000); // 1M fallback
+        : gasEstimate?.add(100000);
     const maxPriority =
       transaction.maxPriorityFeePerGas !== undefined
         ? ethers.utils.parseUnits(`${transaction.maxPriorityFeePerGas!}`, 'gwei')
