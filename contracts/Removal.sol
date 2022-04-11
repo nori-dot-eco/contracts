@@ -23,7 +23,7 @@ contract Removal is
   ERC1155SupplyUpgradeable
 {
   using SafeMathUpgradeable for uint256;
-  using RemovalUtils for *;
+  using RemovalUtils for uint256;
 
   struct BatchMintRemovalsData {
     address marketAddress;
@@ -66,71 +66,39 @@ contract Removal is
     pure
     returns (UnpackedRemovalIdV0 memory)
   {
-    return RemovalUtils.unpackRemovalId(removalId);
+    return removalId.unpackRemovalId();
   }
 
-  function versionFromRemovalId(uint256 removalId)
-    public
-    pure
-    returns (uint256)
-  {
-    return RemovalUtils.versionFromRemovalId(removalId);
+  function version(uint256 removalId) public pure returns (uint256) {
+    return removalId.version();
   }
 
-  function methodologyFromRemovalId(uint256 removalId)
-    public
-    pure
-    returns (uint256)
-  {
-    return RemovalUtils.methodologyFromRemovalId(removalId);
+  function methodology(uint256 removalId) public pure returns (uint256) {
+    return removalId.methodology();
   }
 
-  function methodologyVersionFromRemovalId(uint256 removalId)
-    public
-    pure
-    returns (uint256)
-  {
-    return RemovalUtils.methodologyVersionFromRemovalId(removalId);
+  function methodologyVersion(uint256 removalId) public pure returns (uint256) {
+    return removalId.methodologyVersion();
   }
 
-  function vintageFromRemovalId(uint256 removalId)
-    public
-    pure
-    returns (uint256)
-  {
-    return RemovalUtils.vintageFromRemovalId(removalId);
+  function vintage(uint256 removalId) public pure returns (uint256) {
+    return removalId.vintage();
   }
 
-  function countryCodeFromRemovalId(uint256 removalId)
-    public
-    pure
-    returns (string memory)
-  {
-    return RemovalUtils.countryCodeFromRemovalId(removalId);
+  function countryCode(uint256 removalId) public pure returns (string memory) {
+    return removalId.countryCode();
   }
 
-  function admin1CodeFromRemovalId(uint256 removalId)
-    public
-    pure
-    returns (string memory)
-  {
-    return RemovalUtils.admin1CodeFromRemovalId(removalId);
+  function admin1Code(uint256 removalId) public pure returns (string memory) {
+    return removalId.admin1Code();
   }
 
-  function supplierAddressFromRemovalId(uint256 removalId)
-    public
-    pure
-    returns (address)
-  {
-    return RemovalUtils.supplierAddressFromRemovalId(removalId);
+  function supplierAddress(uint256 removalId) public pure returns (address) {
+    return removalId.supplierAddress();
   }
 
-  function subIdentifierFromRemovalId(uint256 removalId)
-    public
-    pure
-    returns (uint256)
-  {
-    return RemovalUtils.subIdentifierFromRemovalId(removalId);
+  function subIdentifier(uint256 removalId) public pure returns (uint256) {
+    return removalId.subIdentifier();
   }
 
   /**

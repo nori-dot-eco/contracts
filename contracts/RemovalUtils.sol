@@ -42,6 +42,7 @@ uint256 constant _SUBID_OFFSET = 0;
  * [1byte][1byte][--2 bytes--][--2 bytes--][--2 bytes--][----------- 20 bytes------------- ][------4 bytes------]
  * tokIdV--meth&v---vintage------country------admin1------------ supplier address --------------subidentifier--
  *
+ * For methodology 1 (regenerative ag), the subidentifier serves as a parcel identifier.
  *
  */
 library RemovalUtils {
@@ -87,14 +88,14 @@ library RemovalUtils {
     pure
     returns (UnpackedRemovalIdV0 memory)
   {
-    uint256 version = versionFromRemovalId(removalId);
-    uint256 methodology = methodologyFromRemovalId(removalId);
-    uint256 methodologyVersion = methodologyVersionFromRemovalId(removalId);
-    uint256 vintage = vintageFromRemovalId(removalId);
-    string memory country = countryCodeFromRemovalId(removalId);
-    string memory admin1 = admin1CodeFromRemovalId(removalId);
-    address supplierAddress = supplierAddressFromRemovalId(removalId);
-    uint256 subIdentifier = subIdentifierFromRemovalId(removalId);
+    uint256 version = version(removalId);
+    uint256 methodology = methodology(removalId);
+    uint256 methodologyVersion = methodologyVersion(removalId);
+    uint256 vintage = vintage(removalId);
+    string memory country = countryCode(removalId);
+    string memory admin1 = admin1Code(removalId);
+    address supplierAddress = supplierAddress(removalId);
+    uint256 subIdentifier = subIdentifier(removalId);
 
     return
       UnpackedRemovalIdV0(
@@ -109,20 +110,12 @@ library RemovalUtils {
       );
   }
 
-  function versionFromRemovalId(uint256 removalId)
-    internal
-    pure
-    returns (uint256)
-  {
+  function version(uint256 removalId) internal pure returns (uint256) {
     return
       _extractValue(removalId, _ID_VERSION_FIELD_LENGTH, _ID_VERSION_OFFSET);
   }
 
-  function methodologyFromRemovalId(uint256 removalId)
-    internal
-    pure
-    returns (uint256)
-  {
+  function methodology(uint256 removalId) internal pure returns (uint256) {
     return
       _extractValue(
         removalId,
@@ -131,7 +124,7 @@ library RemovalUtils {
       ) >> 4; // methodology encoded in the first nibble
   }
 
-  function methodologyVersionFromRemovalId(uint256 removalId)
+  function methodologyVersion(uint256 removalId)
     internal
     pure
     returns (uint256)
@@ -144,15 +137,11 @@ library RemovalUtils {
       ) & 7; // methodology version encoded in the second nibble
   }
 
-  function vintageFromRemovalId(uint256 removalId)
-    internal
-    pure
-    returns (uint256)
-  {
+  function vintage(uint256 removalId) internal pure returns (uint256) {
     return _extractValue(removalId, _VINTAGE_FIELD_LENGTH, _VINTAGE_OFFSET);
   }
 
-  function countryCodeFromRemovalId(uint256 removalId)
+  function countryCode(uint256 removalId)
     internal
     pure
     returns (string memory)
@@ -166,11 +155,7 @@ library RemovalUtils {
     return string(bytesArray);
   }
 
-  function admin1CodeFromRemovalId(uint256 removalId)
-    internal
-    pure
-    returns (string memory)
-  {
+  function admin1Code(uint256 removalId) internal pure returns (string memory) {
     bytes32 extractedCode = bytes32(
       _extractValue(removalId, _ADMIN1_CODE_FIELD_LENGTH, _ADMIN1_CODE_OFFSET)
     );
@@ -180,11 +165,7 @@ library RemovalUtils {
     return string(bytesArray);
   }
 
-  function supplierAddressFromRemovalId(uint256 removalId)
-    internal
-    pure
-    returns (address)
-  {
+  function supplierAddress(uint256 removalId) internal pure returns (address) {
     return
       address(
         uint160(
@@ -193,11 +174,7 @@ library RemovalUtils {
       );
   }
 
-  function subIdentifierFromRemovalId(uint256 removalId)
-    internal
-    pure
-    returns (uint256)
-  {
+  function subIdentifier(uint256 removalId) internal pure returns (uint256) {
     return _extractValue(removalId, _SUBID_FIELD_LENGTH, _SUBID_OFFSET);
   }
 
