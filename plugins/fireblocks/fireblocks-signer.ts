@@ -17,7 +17,7 @@ import { BigNumber, ethers, PopulatedTransaction } from 'ethers';
 import { TransactionStatus, FireblocksSDK } from 'fireblocks-sdk';
 import { EthersCustomBridge } from './from-upstream/fireblocks-bridge';
 import { Chain } from './from-upstream/chain';
-import { keccak256, UnsignedTransaction } from 'ethers/lib/utils';
+import { hexlify, keccak256, toUtf8Bytes, UnsignedTransaction } from 'ethers/lib/utils';
 import { getGasPriceSettings } from '../../utils/gas';
 const log = new Logger('fireblocks signer');
 
@@ -67,8 +67,28 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     });
   }
 
-  signMessage(message: Bytes | string): Promise<string> {
-    return this._fail('FireblocksSigner cannot sign messages', 'signMessage');
+  async signMessage(message: Bytes | string): Promise<string> {
+    const data = ((typeof(message) === "string") ? toUtf8Bytes(message): message);
+    return await this._signMessage(data);
+  }
+
+  async _signMessage(message: Bytes): Promise<string> {
+    const txInfo = await this._bridge.sendRawTransaction(
+      hexlify(message).substring(2),
+      `Message signing request: ${this.memo}`
+    );
+    // There isn't really a transaction hash in raw signing but this
+    // does tell us when the request status has settled in fireblocks.
+    await this._bridge.waitForTxHash(txInfo.id);
+    const txDetail = await this.fireblocksApiClient.getTransactionById(
+      txInfo.id
+    );
+    if (txDetail.status !== TransactionStatus.COMPLETED) {
+      log.debug(txDetail);
+      throw new Error(`Transaction failed: ${JSON.stringify(txDetail)}`);
+    }
+    const sig = await txDetail.signedMessages![0].signature;
+    return sig.fullSig;
   }
 
   async _populateTransaction(
