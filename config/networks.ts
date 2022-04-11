@@ -37,6 +37,7 @@ const goerli: NetworkUserConfig = {
 };
 
 const mumbai: NetworkUserConfig = {
+  chainId: 80001,
   url: `https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}`,
   gasPrice: 35000000000,
   live: true,
@@ -44,13 +45,17 @@ const mumbai: NetworkUserConfig = {
 };
 
 const polygon: NetworkUserConfig = {
+  chainId: 137,
   url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROD_KEY}`,
+  gasPrice: 50000000000,
   live: true,
   tags: ['polyon', 'prod'],
 };
 
 const mainnet: NetworkUserConfig = {
+  chainId: 1,
   url: `https://mainnet.infura.io/v3/${INFURA_PROD_KEY}`,
+  gasPrice: 50000000000,
   live: true,
   tags: ['mainnet', 'prod'],
 };

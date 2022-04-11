@@ -108,12 +108,10 @@ extendEnvironment((hre) => {
       contractName,
       { ...options, signer }
     );
-    // TODO: Do this properly
-    try {
-      (signer as FireblocksSigner).setNextTransactionMemo(
-        `Deploy ${contractName}`
-      );
-    } catch (e) {}
+    const fireblocksSigner = signer as FireblocksSigner;
+    if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
+        fireblocksSigner.setNextTransactionMemo(`Deploy ${contractName}`);
+    }
     contract = (await contractFactory.deploy(
       ...args
     )) as InstanceOfContract<TContract>;
@@ -162,12 +160,10 @@ extendEnvironment((hre) => {
     );
     if (contractCode === '0x' || process.env.FORCE_PROXY_DEPLOYMENT) {
       hre.log('Deploying proxy and instance', contractName); // todo use hre.trace (variant of hre.log requiring env.TRACE === true)
-      // TODO: Do this properly
-      try {
-        (signer as FireblocksSigner).setNextTransactionMemo(
-          `Deploy proxy and instance for ${contractName}`
-        );
-      } catch (e) {}
+      const fireblocksSigner = signer as FireblocksSigner;
+      if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
+          fireblocksSigner.setNextTransactionMemo(`Deploy proxy and instance for ${contractName}`);
+      }
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,
         args,
@@ -186,11 +182,10 @@ extendEnvironment((hre) => {
         ' attempting to upgrade instance',
         contractName
       );
-      try {
-        (signer as FireblocksSigner).setNextTransactionMemo(
-          `Upgrade contract instance for ${contractName}`
-        );
-      } catch (e) {}
+      const fireblocksSigner = signer as FireblocksSigner;
+      if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
+          fireblocksSigner.setNextTransactionMemo(`Upgrade contract instance for ${contractName}`);
+      }
       contract = await hre.upgrades.upgradeProxy<TContract>(
         proxyAddress,
         contractFactory

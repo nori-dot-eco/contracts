@@ -24,6 +24,7 @@ import { TASK as DEFENDER_TASK } from './defender';
 import { GET_VESTING_TASK } from './vesting';
 import { TASK as TEST_TASK } from './test';
 import { TASK as COVERAGE_TASK } from './coverage';
+import { TASK as FORCE_UPGRADE_TASK } from './force-ugrade';
 
 const VESTING_TASK = GET_VESTING_TASK();
 interface Task {
@@ -73,4 +74,5 @@ export const TASKS = {
   [VESTING_TASK.name]: { ...VESTING_TASK },
   [TEST_TASK.name]: { ...TEST_TASK },
   [COVERAGE_TASK.name]: { ...COVERAGE_TASK },
+  [FORCE_UPGRADE_TASK.name]: { ...FORCE_UPGRADE_TASK },
 } as const;

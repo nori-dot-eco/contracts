@@ -18,6 +18,7 @@ import { TransactionStatus, FireblocksSDK } from 'fireblocks-sdk';
 import { EthersCustomBridge } from './from-upstream/fireblocks-bridge';
 import { Chain } from './from-upstream/chain';
 import { keccak256, UnsignedTransaction } from 'ethers/lib/utils';
+import { getGasPriceSettings } from '../../utils/gas';
 const log = new Logger('fireblocks signer');
 
 export class FireblocksSigner extends Signer implements TypedDataSigner {
@@ -31,7 +32,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     fireblocksApiClient: FireblocksSDK,
     chain: Chain = Chain.POLYGON,
     provider: JsonRpcProvider,
-    vaultAccountId?: string
+    vaultAccountId?: string,
   ) {
     log.checkNew(new.target, FireblocksSigner);
     super();
@@ -74,26 +75,31 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     transaction: Deferrable<TransactionRequest>,
     type: number = 2
   ): Promise<UnsignedTransaction> {
-    const feeData = await this.provider?.getFeeData();
+    // This is just hardcoded to 25 gwei in the JsonRPCProvider implementation :(
+    // const feeData = await this.provider?.getFeeData();
+    const feeData = getGasPriceSettings(this._bridge.getChainId());
+    const gasEstimate = await this.provider?.estimateGas(transaction);
+    const gasLimit = transaction.gasLimit !== undefined
+        ? BigNumber.from(await transaction.gasLimit)
+        : gasEstimate?.mul(2) || BigNumber.from(1000000); // 1M fallback
+    const maxPriority =
+      transaction.maxPriorityFeePerGas !== undefined
+        ? ethers.utils.parseUnits(`${transaction.maxPriorityFeePerGas!}`, 'gwei')
+        : ethers.utils.parseUnits(`${feeData?.maxPriorityFeePerGas}`, 'gwei') || undefined;
+    const maxFee =
+      transaction.maxFeePerGas !== undefined
+        ? ethers.utils.parseUnits(`${await transaction.maxFeePerGas!}`, 'gwei')
+        : ethers.utils.parseUnits(`${feeData?.maxFeePerGas!}`, 'gwei') || undefined;
     const tx = await this.populateTransaction({
       type,
       ...transaction,
-      gasLimit:
-        transaction.gasLimit !== undefined
-          ? BigNumber.from(await transaction.gasLimit).mul(2)
-          : BigNumber.from(15000000),
+      gasLimit,
       ...(type === 2 && {
-        maxFeePerGas:
-          transaction.maxFeePerGas !== undefined
-            ? BigNumber.from(await transaction.maxFeePerGas)
-            : feeData?.maxFeePerGas || undefined,
-        maxPriorityFeePerGas:
-          transaction.maxPriorityFeePerGas !== undefined
-            ? BigNumber.from(await transaction.maxPriorityFeePerGas)
-            : feeData?.maxPriorityFeePerGas || undefined,
+        maxFeePerGas: maxFee,
+        maxPriorityFeePerGas: maxPriority,
       }),
       ...(type !== 2 && {
-        gasPrice: feeData!.gasPrice || undefined,
+        gasPrice: maxFee!.add(maxPriority!),
       }),
     });
     console.log(
@@ -193,7 +199,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     let txHash: string;
     let baseTx: UnsignedTransaction;
     if (transaction.to) {
-      // looks like a contract interaction 
+      // looks like a contract interaction
       baseTx = await this._populateTransaction(transaction, 0);
       txHash = await this._signTransaction(baseTx);
     } else {
@@ -201,6 +207,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       baseTx = await this._populateTransaction(transaction, 2);
       const tx = await this._signRawTransaction(baseTx);
       try {
+        console.log(`Submitting signed transaction to the network`);
         const txResponse = await this.provider!.sendTransaction(tx);
         txHash = txResponse.hash;
       } catch (e) {
