@@ -74,7 +74,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
 
   async _signMessage(message: Bytes): Promise<string> {
     const txInfo = await this._bridge.sendRawTransaction(
-      hexlify(message).substring(2),
+      keccak256(message).substring(2),
       `Message signing request: ${this.memo}`
     );
     // There isn't really a transaction hash in raw signing but this
