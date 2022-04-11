@@ -27,6 +27,7 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 ### mainnet (ethereum L1)
 
 - NORI
+  - 0x961760Ad1bEd52bf4d79aa4b1558E7F9d72071e4
 
 ### goerli (ethereum L1 testnet)
 
