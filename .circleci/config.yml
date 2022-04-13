@@ -6,7 +6,7 @@ defaults: &defaults
   environment:
     NODE_ENV: test
   docker:
-    - image: cimg/node:16.14.2
+    - image: cimg/node:14.19.1
 
 jobs:
   setup-contract-tests:
@@ -23,7 +23,7 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            sudo apt -y install libsecret-1-0
+            sudo apt-get update && sudo apt -y install libsecret-1-0
             if [ ! -d "node_modules" ]; then
               for i in 1 2; do
                 yarn install --prefer-offline && break || sleep 15;
@@ -53,7 +53,7 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            sudo apt -y install libsecret-1-0
+            sudo apt-get update && sudo apt -y install libsecret-1-0
       - run:
           name: Run Contract Tests and Collect Coverage
           command: |
@@ -74,7 +74,7 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            sudo apt -y install libsecret-1-0
+            sudo apt-get update && sudo apt -y install libsecret-1-0
       - run:
           name: Submit gas report
           command: |
