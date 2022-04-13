@@ -32,7 +32,7 @@ contract Removal is
 
   uint256 private _tokenIdCounter;
   string public name; // todo why did I add this
-  mapping(uint256 => uint256) public indexToTokenId;
+  mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
   mapping(uint256 => bool) private _tokenIdExists;
 
   function initialize() public virtual initializer {
@@ -55,7 +55,7 @@ contract Removal is
 
   function createRemovalId(bytes calldata removalData)
     public
-    pure
+    view
     returns (uint256)
   {
     return RemovalUtils.createRemovalId(removalData);
@@ -69,38 +69,6 @@ contract Removal is
     return removalId.unpackRemovalId();
   }
 
-  function version(uint256 removalId) public pure returns (uint256) {
-    return removalId.version();
-  }
-
-  function methodology(uint256 removalId) public pure returns (uint256) {
-    return removalId.methodology();
-  }
-
-  function methodologyVersion(uint256 removalId) public pure returns (uint256) {
-    return removalId.methodologyVersion();
-  }
-
-  function vintage(uint256 removalId) public pure returns (uint256) {
-    return removalId.vintage();
-  }
-
-  function countryCode(uint256 removalId) public pure returns (string memory) {
-    return removalId.countryCode();
-  }
-
-  function admin1Code(uint256 removalId) public pure returns (string memory) {
-    return removalId.admin1Code();
-  }
-
-  function supplierAddress(uint256 removalId) public pure returns (address) {
-    return removalId.supplierAddress();
-  }
-
-  function subIdentifier(uint256 removalId) public pure returns (uint256) {
-    return removalId.subIdentifier();
-  }
-
   /**
    * @dev mints multiple removals at once (for a single supplier).
    * If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
@@ -110,8 +78,8 @@ contract Removal is
    * token id 2 URI points to vintage information (e.g., 2020) nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
    * @param to The supplier address
    * @param amounts Each removal's tonnes of CO2 formatted as wei
-   * @param ids The token ids to use for this batch of removals.
-   *            The id itself encodes the supplier's ethereum address, a parcel identifier, the vintage, country code, state code, methodology identifer, and methodology version
+   * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address, a parcel identifier,
+   * the vintage, country code, state code, methodology identifer, and methodology version.
    * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals came.
    */
   function mintBatch(
