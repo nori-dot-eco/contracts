@@ -32,7 +32,7 @@ jobs:
             fi
       - run:
           name: Run Tests
-          command: yarn test
+          command: yarn && yarn test
       - save_cache:
           key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
           paths:
