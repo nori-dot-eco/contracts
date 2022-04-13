@@ -17,7 +17,11 @@ import { BigNumber, ethers, PopulatedTransaction } from 'ethers';
 import { TransactionStatus, FireblocksSDK } from 'fireblocks-sdk';
 import { EthersCustomBridge } from './from-upstream/fireblocks-bridge';
 import { Chain } from './from-upstream/chain';
-import { hexlify, keccak256, toUtf8Bytes, UnsignedTransaction } from 'ethers/lib/utils';
+import {
+  keccak256,
+  toUtf8Bytes,
+  UnsignedTransaction,
+} from 'ethers/lib/utils';
 import { getGasPriceSettings } from '../../utils/gas';
 const log = new Logger('fireblocks signer');
 
@@ -32,7 +36,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     fireblocksApiClient: FireblocksSDK,
     chain: Chain = Chain.POLYGON,
     provider: JsonRpcProvider,
-    vaultAccountId?: string,
+    vaultAccountId?: string
   ) {
     log.checkNew(new.target, FireblocksSigner);
     super();
@@ -49,17 +53,21 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
 
   async getAddress(): Promise<string> {
     try {
-        const addresses = await this.fireblocksApiClient.getDepositAddresses(
+      const addresses = await this.fireblocksApiClient.getDepositAddresses(
         this.vaultAccountId,
         this._bridge.assetId
+      );
+      if (addresses.length === 0) {
+        throw new Error(
+          `Fireblocks signer: asset ${this._bridge.assetId} unavailable.  Wrong credentials?`
         );
-        if (addresses.length === 0) {
-            throw new Error(`Fireblocks signer: asset ${this._bridge.assetId} unavailable.  Wrong credentials?`);
-        }
-        return ethers.utils.getAddress(addresses[0].address);
+      }
+      return ethers.utils.getAddress(addresses[0].address);
     } catch (e) {
-        console.log(`Fireblocks signer: Failed to load addresses for vault ${this.vaultAccountId} and asset ${this._bridge.assetId}`);
-        throw(e);
+      console.log(
+        `Fireblocks signer: Failed to load addresses for vault ${this.vaultAccountId} and asset ${this._bridge.assetId}`
+      );
+      throw e;
     }
   }
 
@@ -67,26 +75,32 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     this.memo = memo;
   }
 
-  _fail(message: string, operation: string): Promise<any> {
-    return Promise.resolve().then(() => {
-      log.throwError(message, Logger.errors.UNSUPPORTED_OPERATION, {
-        operation: operation,
-      });
+  async _fail(message: string, operation: string): Promise<any> {
+    log.throwError(message, Logger.errors.UNSUPPORTED_OPERATION, {
+      operation: operation,
     });
   }
 
   async signMessage(message: Bytes | string): Promise<string> {
-    const data = ((typeof(message) === "string") ? toUtf8Bytes(message): message);
+    const data = typeof message === 'string' ? toUtf8Bytes(message) : message;
     return await this._signMessage(data);
   }
 
+  /**
+   * _signMessage: Internal implementation of raw message signing.
+   *
+   * There isn't a transaction hash returned in the in raw signing result
+   * but the `waitForTxHash` call does tell us when the request status has
+   * completed approval and signing in fireblocks.
+   *
+   * @param message - the message to sign
+   * @returns Message signature.
+   */
   async _signMessage(message: Bytes): Promise<string> {
     const txInfo = await this._bridge.sendRawTransaction(
       keccak256(message).substring(2),
       `Message signing request: ${this.memo}`
     );
-    // There isn't really a transaction hash in raw signing but this
-    // does tell us when the request status has settled in fireblocks.
     await this._bridge.waitForTxHash(txInfo.id);
     const txDetail = await this.fireblocksApiClient.getTransactionById(
       txInfo.id
@@ -97,18 +111,28 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     }
     const sig = await txDetail.signedMessages![0].signature;
     return ethers.utils.joinSignature({
-        r: `0x${sig.r!}`,
-        v: sig.v,
-        s: `0x${sig.s}`,
+      r: `0x${sig.r!}`,
+      v: sig.v,
+      s: `0x${sig.s}`,
     });
   }
 
+  /**
+   * _populateTransaction - Internal wrapper around ethers populateTransaction function.
+   * 
+   * Figures out gas pricing and limits.
+   * 
+   * Ideally this would lean more heavily on the JsonRPCProvider but for the moment there
+   * is a hardcoded setting of 25 gwei internally which fails on mumbai / polygon now.
+   * 
+   * @param transaction 
+   * @param type 
+   * @returns 
+   */
   async _populateTransaction(
     transaction: Deferrable<TransactionRequest>,
     type: number = 2
   ): Promise<UnsignedTransaction> {
-    // This is just hardcoded to 25 gwei in the JsonRPCProvider implementation :(
-    // const feeData = await this.provider?.getFeeData();
     const feeData = getGasPriceSettings(this._bridge.getChainId());
     let gasEstimate;
     try {
@@ -117,17 +141,23 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       console.log('Error estimating gas', e.code);
       gasEstimate = BigNumber.from(3000000); // 3M fallback (dangerous, improve this!)
     }
-    const gasLimit = transaction.gasLimit !== undefined
+    const gasLimit =
+      transaction.gasLimit !== undefined
         ? BigNumber.from(await transaction.gasLimit)
         : gasEstimate?.add(100000);
     const maxPriority =
       transaction.maxPriorityFeePerGas !== undefined
-        ? ethers.utils.parseUnits(`${transaction.maxPriorityFeePerGas!}`, 'gwei')
-        : ethers.utils.parseUnits(`${feeData?.maxPriorityFeePerGas}`, 'gwei') || undefined;
+        ? ethers.utils.parseUnits(
+            `${transaction.maxPriorityFeePerGas!}`,
+            'gwei'
+          )
+        : ethers.utils.parseUnits(`${feeData?.maxPriorityFeePerGas}`, 'gwei') ||
+          undefined;
     const maxFee =
       transaction.maxFeePerGas !== undefined
         ? ethers.utils.parseUnits(`${await transaction.maxFeePerGas!}`, 'gwei')
-        : ethers.utils.parseUnits(`${feeData?.maxFeePerGas!}`, 'gwei') || undefined;
+        : ethers.utils.parseUnits(`${feeData?.maxFeePerGas!}`, 'gwei') ||
+          undefined;
     const tx = await this.populateTransaction({
       type,
       ...transaction,
@@ -177,6 +207,16 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     return txDetail.txHash;
   }
 
+    /**
+   * _signRawTransaction: Internal implementation of raw transaction signing.
+   *
+   * There isn't a transaction hash returned in the in raw signing result
+   * but the `waitForTxHash` call does tell us when the request status has
+   * completed approval and signing in fireblocks.
+   *
+   * @param message - the message to sign
+   * @returns Message signature.
+   */
   async _signRawTransaction(transaction: UnsignedTransaction): Promise<string> {
     const baseTx: ethers.utils.UnsignedTransaction = {
       type: 2,
@@ -191,10 +231,8 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     const unsignedTx = ethers.utils.serializeTransaction(baseTx);
     const txInfo = await this._bridge.sendRawTransaction(
       keccak256(unsignedTx).substring(2),
-      `Raw signing request: ${this.memo}`
+      `Raw transaction signing request: ${this.memo}`
     );
-    // There isn't really a transaxtion hash in raw signing but this
-    // does tell us when the request status has settled in fireblocks.
     await this._bridge.waitForTxHash(txInfo.id);
     const txDetail = await this.fireblocksApiClient.getTransactionById(
       txInfo.id
