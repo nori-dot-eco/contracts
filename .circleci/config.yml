@@ -23,13 +23,16 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            sudo apt-get update && sudo apt -y install libsecret-1-0
+            sudo apt -y install libsecret-1-0
             if [ ! -d "node_modules" ]; then
               for i in 1 2; do
                 yarn install --prefer-offline && break || sleep 15;
               done
               git checkout yarn.lock
             fi
+      - run:
+          name: Run Tests
+          command: yarn test
       - save_cache:
           key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
           paths:
@@ -47,8 +50,10 @@ jobs:
           command: |
             echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+      - run:
+          name: Install Dependencies
+          command: |
             sudo apt -y install libsecret-1-0
-      #       yarn # todo move to a shared setup step
       - run:
           name: Run Contract Tests and Collect Coverage
           command: |
@@ -66,8 +71,10 @@ jobs:
           command: |
             echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+      - run:
+          name: Install Dependencies
+          command: |
             sudo apt -y install libsecret-1-0
-      #       yarn # todo move to a shared setup step
       - run:
           name: Submit gas report
           command: |
