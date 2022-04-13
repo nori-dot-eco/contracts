@@ -48,11 +48,19 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
   }
 
   async getAddress(): Promise<string> {
-    const addresses = await this.fireblocksApiClient.getDepositAddresses(
-      this.vaultAccountId,
-      this._bridge.assetId
-    );
-    return ethers.utils.getAddress(addresses[0].address);
+    try {
+        const addresses = await this.fireblocksApiClient.getDepositAddresses(
+        this.vaultAccountId,
+        this._bridge.assetId
+        );
+        if (addresses.length === 0) {
+            throw new Error(`Fireblocks signer: asset ${this._bridge.assetId} unavailable.  Wrong credentials?`);
+        }
+        return ethers.utils.getAddress(addresses[0].address);
+    } catch (e) {
+        console.log(`Fireblocks signer: Failed to load addresses for vault ${this.vaultAccountId} and asset ${this._bridge.assetId}`);
+        throw(e);
+    }
   }
 
   setNextTransactionMemo(memo: string): void {
