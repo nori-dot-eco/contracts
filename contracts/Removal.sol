@@ -53,20 +53,28 @@ contract Removal is
     _setApprovalForAll(owner, operator, approved);
   }
 
+  /**
+   * @notice Packs data about a removal into a 256-bit token id for the removal.
+   * @dev Performs some possible validations on the data before attempting to create the id.
+   * @param removalData removal data encoded as bytes, with the first byte storing the version.
+   */
   function createRemovalId(bytes calldata removalData)
     public
-    view
+    pure
     returns (uint256)
   {
     return RemovalUtils.createRemovalId(removalData);
   }
 
-  function unpackRemovalId(uint256 removalId)
+  /**
+   * @notice Unpacks a V0 removal id into its component data.
+   */
+  function unpackRemovalIdV0(uint256 removalId)
     public
     pure
     returns (UnpackedRemovalIdV0 memory)
   {
-    return removalId.unpackRemovalId();
+    return removalId.unpackRemovalIdV0();
   }
 
   /**

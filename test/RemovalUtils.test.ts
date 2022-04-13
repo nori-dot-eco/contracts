@@ -65,7 +65,7 @@ describe('RemovalUtils', () => {
     );
 
     const unpackedRemovalId: UnpackedRemovalIdV0StructOutput =
-      await harness.unpackRemovalId(removalId);
+      await harness.unpackRemovalIdV0(removalId);
 
     expect(unpackedRemovalId.idVersion).equal(removalData.idVersion);
     expect(unpackedRemovalId.methodology).equal(removalData.methodology);
@@ -107,7 +107,7 @@ describe('RemovalUtils', () => {
     );
 
     const unpackedRemovalId: UnpackedRemovalIdV0StructOutput =
-      await harness.unpackRemovalId(removalId);
+      await harness.unpackRemovalIdV0(removalId);
 
     expect(unpackedRemovalId.idVersion).equal(removalData.idVersion);
     expect(unpackedRemovalId.methodology).equal(removalData.methodology);
@@ -168,7 +168,7 @@ describe('RemovalUtils', () => {
     };
 
     expect(
-     harness.createRemovalId(formatRemovalIdData(removalData))
+      harness.createRemovalId(formatRemovalIdData(removalData))
     ).revertedWith('Methodology too large');
   });
   it('will revert if the location data includes characters that are not capital letters', async () => {

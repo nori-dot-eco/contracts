@@ -50,6 +50,11 @@ uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
  *
  */
 library RemovalUtils {
+  /**
+   * @notice Packs data about a removal into a 256-bit token id for the removal.
+   * @dev Performs some possible validations on the data before attempting to create the id.
+   * @param removalData removal data encoded as bytes, with the first byte storing the version.
+   */
   function createRemovalId(bytes calldata removalData)
     internal
     pure
@@ -111,7 +116,10 @@ library RemovalUtils {
       (uint256(params.subIdentifier) << (_SUBID_OFFSET * _BITS_PER_BYTE));
   }
 
-  function unpackRemovalId(uint256 removalId)
+  /**
+   * @notice Unpacks a V0 removal id into its component data.
+   */
+  function unpackRemovalIdV0(uint256 removalId)
     internal
     pure
     returns (UnpackedRemovalIdV0 memory)
@@ -129,6 +137,9 @@ library RemovalUtils {
       );
   }
 
+  /**
+   * @notice Extracts and returns the version field of a removal token id.
+   */
   function version(uint256 removalId) internal pure returns (uint8) {
     return
       uint8(
@@ -136,6 +147,9 @@ library RemovalUtils {
       );
   }
 
+  /**
+   * @notice Extracts and returns the methodology field of a removal token id.
+   */
   function methodology(uint256 removalId) internal pure returns (uint8) {
     return
       uint8(
@@ -147,6 +161,9 @@ library RemovalUtils {
       ); // methodology encoded in the first nibble
   }
 
+  /**
+   * @notice Extracts and returns the methodology version field of a removal token id.
+   */
   function methodologyVersion(uint256 removalId) internal pure returns (uint8) {
     return
       uint8(
@@ -158,11 +175,17 @@ library RemovalUtils {
       ); // methodology version encoded in the second nibble
   }
 
+  /**
+   * @notice Extracts and returns the vintage field of a removal token id.
+   */
   function vintage(uint256 removalId) internal pure returns (uint16) {
     return
       uint16(_extractValue(removalId, _VINTAGE_FIELD_LENGTH, _VINTAGE_OFFSET));
   }
 
+  /**
+   * @notice Extracts and returns the country code field of a removal token id.
+   */
   function countryCode(uint256 removalId) internal pure returns (bytes2) {
     return
       bytes2(
@@ -176,6 +199,9 @@ library RemovalUtils {
       );
   }
 
+  /**
+   * @notice Extracts and returns the admin1 field of a removal token id.
+   */
   function admin1Code(uint256 removalId) internal pure returns (bytes2) {
     return
       bytes2(
@@ -189,6 +215,9 @@ library RemovalUtils {
       );
   }
 
+  /**
+   * @notice Extracts and returns the supplier address field of a removal token id.
+   */
   function supplierAddress(uint256 removalId) internal pure returns (address) {
     return
       address(
@@ -198,10 +227,16 @@ library RemovalUtils {
       );
   }
 
+  /**
+   * @notice Extracts and returns the subIdentifier field of a removal token id.
+   */
   function subIdentifier(uint256 removalId) internal pure returns (uint32) {
     return uint32(_extractValue(removalId, _SUBID_FIELD_LENGTH, _SUBID_OFFSET));
   }
 
+  /**
+   * @dev Extracts a field of the specified length in bytes, at the specified location, from a removal id.
+   */
   function _extractValue(
     uint256 removalId,
     uint256 numBytesFieldLength,

@@ -20,12 +20,12 @@ contract RemovalTestHarness {
     return RemovalUtils.createRemovalId(removalData);
   }
 
-  function unpackRemovalId(uint256 removalId)
+  function unpackRemovalIdV0(uint256 removalId)
     public
     pure
     returns (UnpackedRemovalIdV0 memory)
   {
-    return removalId.unpackRemovalId();
+    return removalId.unpackRemovalIdV0();
   }
 
   function version(uint256 removalId) public pure returns (uint8) {
