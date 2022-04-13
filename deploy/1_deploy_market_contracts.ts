@@ -15,7 +15,7 @@ import { getContractsFromDeployments } from '../test/helpers/index';
 export const deploy: DeployFunction = async (env) => {
   const hre: CustomHardHatRuntimeEnvironment = env as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(LogLevel.DEBUG);
-  console.log(`1_deploy_market_contracts`);
+  hre.log(`1_deploy_market_contracts`);
   validateDeployment({ hre });
   await configureDeploymentSettings({ hre });
   const dependentContracts = await getContractsFromDeployments(hre);
@@ -31,4 +31,3 @@ export const deploy: DeployFunction = async (env) => {
 export default deploy;
 deploy.tags = ['market', 'FIFOMarket', 'Certificate', 'Removal'];
 deploy.dependencies = ['assets'];
-// deploy.skip = async (hre) => true;

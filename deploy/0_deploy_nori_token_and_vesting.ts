@@ -14,7 +14,7 @@ import { Logger, LogLevel } from '@ethersproject/logger';
 export const deploy: CustomHardhatDeployFunction = async (env) => {
   const hre: CustomHardHatRuntimeEnvironment = env as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(LogLevel.DEBUG);
-  console.log(`0_deploy_nori_token_and_vesting`);
+  hre.log(`0_deploy_nori_token_and_vesting`);
   validateDeployment({ hre });
   await configureDeploymentSettings({ hre });
   const contracts = await deployContracts({ hre, contractNames: ['NORI', 'BridgedPolygonNORI', 'LockedNORI'] });

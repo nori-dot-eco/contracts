@@ -14,7 +14,7 @@ import { DeployFunction } from 'hardhat-deploy/types';
 export const deploy: DeployFunction = async (env) => {
   const hre: CustomHardHatRuntimeEnvironment = env as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(LogLevel.DEBUG);
-  console.log(`2_deploy_test_contracts`);
+  hre.log(`2_deploy_test_contracts`);
   validateDeployment({ hre });
   await configureDeploymentSettings({ hre });
   const contracts = await deployContracts({ hre, contractNames: ['ScheduleTestHarness']});

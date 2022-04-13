@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 import '@nomiclabs/hardhat-ethers';
 import fs from 'fs';
 import { extendConfig, extendEnvironment } from 'hardhat/config';

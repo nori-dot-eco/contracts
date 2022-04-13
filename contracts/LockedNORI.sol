@@ -601,7 +601,7 @@ contract LockedNORI is
     uint256 amount
   ) internal {
     require((atTime == 0 && amount > 0) || (atTime > 0 && amount == 0),
-      "lNORI: Must specify a revocation time or aan amount not both");
+      "lNORI: Must specify a revocation time or an amount not both");
     TokenGrant storage grant = _grants[from];
     require(grant.exists, "lNORI: no grant exists");
     require(
