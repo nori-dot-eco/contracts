@@ -86,4 +86,4 @@ workflows:
             - setup-contract-tests
       - run-gas-reporter:
           requires:
-            - setup-contract-tests
+            - run-tests
