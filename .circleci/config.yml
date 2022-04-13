@@ -6,7 +6,7 @@ defaults: &defaults
   environment:
     NODE_ENV: test
   docker:
-    - image: cimg/node:14.18
+    - image: cimg/node:16.14.2
 
 jobs:
   setup-contract-tests:
