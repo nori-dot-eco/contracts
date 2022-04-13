@@ -88,7 +88,6 @@ contract Removal is
     uint256[] memory ids,
     bytes memory data
   ) public override {
-    // todo Additional validation of fields of tokenId for valid ranges?
     BatchMintRemovalsData memory decodedData = abi.decode(
       data,
       (BatchMintRemovalsData)
@@ -109,7 +108,7 @@ contract Removal is
   }
 
   /**
-   * @dev used to initiate a sale of removals by transferring the removals to the
+   * @dev used to initiate a sale of removals by transferring the removals to the market contract
    */
   function safeBatchTransferFrom(
     address _from,

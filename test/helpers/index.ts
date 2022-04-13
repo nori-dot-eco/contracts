@@ -9,6 +9,7 @@ import type {
   BridgedPolygonNORI,
 } from '../../typechain-types';
 import type { UnpackedRemovalIdV0Struct } from '../../typechain-types/Removal';
+import { asciiStringToHexString } from '../../utils/bytes';
 
 import { mockDepositNoriToPolygon } from './polygon';
 
@@ -84,22 +85,22 @@ export const createRemovalTokenId = async (
     methodology: 1,
     methodologyVersion: 1,
     vintage: 2018,
-    country: 'US',
-    admin1: 'IA',
+    country: asciiStringToHexString('US'),
+    admin1: asciiStringToHexString('IA'),
     supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
     subIdentifier: 99039930, // parcel id
   };
   const removalData = { ...defaultRemovalData, ...options };
   const abiEncodedRemovalData = hre.ethers.utils.defaultAbiCoder.encode(
     [
-      'uint256',
-      'uint256',
-      'uint256',
-      'uint256',
-      'string',
-      'string',
+      'uint8',
+      'uint8',
+      'uint8',
+      'uint16',
+      'bytes2',
+      'bytes2',
       'address',
-      'uint256',
+      'uint32',
     ],
     Object.values(removalData)
   );

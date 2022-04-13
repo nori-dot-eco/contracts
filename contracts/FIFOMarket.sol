@@ -26,7 +26,7 @@ contract FIFOMarket is
   ERC1155HolderUpgradeable,
   IERC777RecipientUpgradeable
 {
-  using RemovalUtils for *;
+  using RemovalUtils for uint256;
 
   IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
@@ -129,7 +129,7 @@ contract FIFOMarket is
     address[] memory suppliers = new address[](_queueLength());
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
-      address supplier = RemovalUtils.supplierAddress(_queue[i]);
+      address supplier = _queue[i].supplierAddress();
       if (remainingAmountToFill < removalAmount) {
         ids[i] = _queue[i];
         amounts[i] = remainingAmountToFill;
