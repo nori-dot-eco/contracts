@@ -4,7 +4,7 @@ import {
   verifyContracts,
   writeContractsConfig,
   pushContractsToEthernal,
-  deployContracts,
+  deployAssetContracts,
   seedContracts,
   addContractsToDefender,
   saveDeployments,
@@ -17,7 +17,7 @@ export const deploy: CustomHardhatDeployFunction = async (env) => {
   hre.log(`0_deploy_nori_token_and_vesting`);
   validateDeployment({ hre });
   await configureDeploymentSettings({ hre });
-  const contracts = await deployContracts({ hre, contractNames: ['NORI', 'BridgedPolygonNORI', 'LockedNORI'] });
+  const contracts = await deployAssetContracts({ hre, contractNames: ['NORI', 'BridgedPolygonNORI', 'LockedNORI'] });
   await seedContracts({ hre, contracts });
   await pushContractsToEthernal({ hre, contracts });
   writeContractsConfig({ contracts });

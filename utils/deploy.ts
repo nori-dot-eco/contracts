@@ -166,7 +166,7 @@ export const deployMarketContracts = async ({
   };
 };
 
-export const deployContracts = async ({
+export const deployAssetContracts = async ({
   hre,
   contractNames: contracts,
 }: {
@@ -177,7 +177,6 @@ export const deployContracts = async ({
     hre.network.name
   );
   const isMainNetwork = ['mainnet', 'goerli'].includes(hre.network.name);
-  const isTestnet = ['mumbai', 'goerli'].includes(hre.network.name);
   const isLocalNetwork = ['hardhat', 'localhost'].includes(hre.network.name);
   const noriInstance =
     (isMainNetwork || isLocalNetwork) && contracts.includes('NORI')
@@ -210,6 +209,23 @@ export const deployContracts = async ({
           options: { initializer: 'initialize(address)' },
         })
       : undefined;
+  return {
+    ...(noriInstance != null && { NORI: noriInstance }),
+    ...(bridgedPolygonNoriInstance != null && {
+      BridgedPolygonNORI: bridgedPolygonNoriInstance,
+    }),
+    ...(lNoriInstance != null && { LockedNORI: lNoriInstance }),
+  };
+};
+
+export const deployTestContracts = async ({
+  hre,
+  contractNames: contracts,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  contractNames: ContractNames[];
+}): Promise<Contracts> => {
+  const isTestnet = ['mumbai', 'goerli'].includes(hre.network.name);
   const scheduleTestHarnessInstance =
     isTestnet !== null && contracts.includes('ScheduleTestHarness')
       ? await hre.deployNonUpgradeable<
@@ -221,11 +237,6 @@ export const deployContracts = async ({
         })
       : undefined;
   return {
-    ...(noriInstance != null && { NORI: noriInstance }),
-    ...(bridgedPolygonNoriInstance != null && {
-      BridgedPolygonNORI: bridgedPolygonNoriInstance,
-    }),
-    ...(lNoriInstance != null && { LockedNORI: lNoriInstance }),
     ...(scheduleTestHarnessInstance !== null && {
       ScheduleTestHarness: scheduleTestHarnessInstance,
     }),
@@ -236,11 +247,7 @@ export const validateDeployment = ({
   hre,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-}): void => {
-  //   if (['polygon', 'mainnet'].includes(hre.network.name)) {
-  //     throw new Error('You cannot deploy to mainnet yet');
-  //   }
-};
+}): void => {};
 
 /**
  * Note: the named contracts in the ethernal UI are the proxies.

@@ -44,8 +44,6 @@ export const advanceTime = async ({
   await hre.network.provider.send('hardhat_mine');
 };
 
-// export const createFixture = global.hre.deployments.createFixture; // todo use hardhat-deploy fixtures (https://github.com/wighawag/hardhat-deploy#3-hardhat-test) (requires this to be fixed: https://github.com/cgewecke/hardhat-gas-reporter/issues/86)
-
 export const getContractsFromDeployments = async (
   hre: CustomHardHatRuntimeEnvironment
 ): Promise<Required<Contracts>> => {

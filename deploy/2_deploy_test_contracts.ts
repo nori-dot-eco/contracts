@@ -4,7 +4,7 @@ import {
   verifyContracts,
   writeContractsConfig,
   pushContractsToEthernal,
-  deployContracts,
+  deployTestContracts,
   seedContracts,
   addContractsToDefender,
 } from '@/utils/deploy';
@@ -17,7 +17,7 @@ export const deploy: DeployFunction = async (env) => {
   hre.log(`2_deploy_test_contracts`);
   validateDeployment({ hre });
   await configureDeploymentSettings({ hre });
-  const contracts = await deployContracts({ hre, contractNames: ['ScheduleTestHarness']});
+  const contracts = await deployTestContracts({ hre, contractNames: ['ScheduleTestHarness']});
   await seedContracts({ hre, contracts });
   await pushContractsToEthernal({ hre, contracts });
   writeContractsConfig({ contracts });
