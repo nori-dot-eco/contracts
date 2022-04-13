@@ -33,6 +33,9 @@ uint256 constant _ADMIN1_CODE_OFFSET = 24;
 uint256 constant _ADDRESS_OFFSET = 4;
 uint256 constant _SUBID_OFFSET = 0;
 
+uint256 constant _ASCII_CAP_LETTER_MIN_VAL = 65;
+uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
+
 /**
  * @dev Library encapsulating the logic around encoding and decoding removal token ids.
  *
@@ -64,11 +67,33 @@ library RemovalUtils {
       (UnpackedRemovalIdV0)
     );
 
-    require(params.methodology <= 2**4 - 1, "Metholodogy > 15");
-    require(params.methodologyVersion <= 2**4 - 1, "Metholodogy version > 15");
+    require(params.methodology <= 2**4 - 1, "Metholodogy too large");
+    require(
+      params.methodologyVersion <= 2**4 - 1,
+      "Metholodogy version too large"
+    );
 
-    // TODO: additional field validation & tests for validation logic
-    // TODO: how should we handle case sensitivity for country and state codes? normalize?
+    uint256 countryFirstLetter = uint256(uint16(params.country)) >>
+      _BITS_PER_BYTE;
+    uint256 countrySecondLetter = uint256(uint16(params.country)) &
+      uint256(2**8 - 1);
+    uint256 admin1FirstLetter = uint256(uint16(params.admin1)) >>
+      _BITS_PER_BYTE;
+    uint256 admin1SecondLetter = uint256(uint16(params.admin1)) &
+      uint256(2**8 - 1);
+
+    require(
+      countryFirstLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
+        countryFirstLetter <= _ASCII_CAP_LETTER_MAX_VAL &&
+        countrySecondLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
+        countrySecondLetter <= _ASCII_CAP_LETTER_MAX_VAL &&
+        admin1FirstLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
+        admin1FirstLetter <= _ASCII_CAP_LETTER_MAX_VAL &&
+        admin1SecondLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
+        admin1SecondLetter <= _ASCII_CAP_LETTER_MAX_VAL,
+      "Invalid ASCII"
+    );
+
     uint256 methodologyData = (params.methodology << 4) |
       params.methodologyVersion;
 

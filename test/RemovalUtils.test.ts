@@ -92,7 +92,7 @@ describe('RemovalUtils', () => {
     const countryCodeString = 'ZZ';
     const admin1CodeString = 'ZZ';
     const removalData: UnpackedRemovalIdV0Struct = {
-      idVersion: 0, // only supported id version otherwise will revert
+      idVersion: 0, // can't max this field out bc 0 is only supported id version otherwise will revert
       methodology: 2 ** 4 - 1,
       methodologyVersion: 2 ** 4 - 1,
       vintage: 2 ** 16 - 1,
@@ -167,19 +167,28 @@ describe('RemovalUtils', () => {
       subIdentifier: 99039930,
     };
 
+    expect(
+     harness.createRemovalId(formatRemovalIdData(removalData))
+    ).revertedWith('Methodology too large');
+  });
+  it('will revert if the location data includes characters that are not capital letters', async () => {
+    const { removalTestHarness: harness } = await setupTest();
+
+    const countryCodeString = 'uS'; // lowercase letter
+    const admin1CodeString = 'IA';
+    const removalData: UnpackedRemovalIdV0Struct = {
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 1,
+      vintage: 2018,
+      country: asciiStringToHexString(countryCodeString),
+      admin1: asciiStringToHexString(admin1CodeString),
+      supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
+      subIdentifier: 99039930,
+    };
+
     await expect(
       harness.createRemovalId(formatRemovalIdData(removalData))
-    ).revertedWith('Methodology > 15');
+    ).revertedWith('Invalid ASCII');
   });
 });
-
-// test cases
-
-// submit a bytes encoding that makes it through but contains bad data??
-// methodology fields need to fit in a nibble
-// (what would we even be looking for in the parsed values though? valid ascii for the bytes for the country?
-// a vintage that isn't more than 100 years in the future? that the address is a valid ethereum address?)
-// the version, methodology data, and parcel Id can all really be anything
-
-// valid cases:
-// field values that are max for their bit lengths
