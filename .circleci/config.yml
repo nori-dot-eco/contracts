@@ -43,6 +43,13 @@ jobs:
       - restore_cache:
           key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
       - run:
+          name: Setup Environment
+          command: |
+            echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
+            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+            sudo apt -y install libsecret-1-0
+      #       yarn # todo move to a shared setup step
+      - run:
           name: Run Contract Tests and Collect Coverage
           command: |
             yarn run test:coverage
@@ -54,6 +61,13 @@ jobs:
       - checkout
       - restore_cache:
           key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+      - run:
+          name: Setup Environment
+          command: |
+            echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
+            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+            sudo apt -y install libsecret-1-0
+      #       yarn # todo move to a shared setup step
       - run:
           name: Submit gas report
           command: |
