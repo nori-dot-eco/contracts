@@ -11,10 +11,14 @@ export const TASK = {
     taskArgs: SignMessageTaskParameters,
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
-    const hashedMessage = ethers.utils.hashMessage(taskArgs.message);
     const signer = (await hre.getSigners())[0];
-    const signedMessage = await signer.signMessage(hashedMessage);
-    console.log(`Signed message:`, signedMessage);
+    const signature = await signer.signMessage(taskArgs.message);
+    console.log(`Message signature:`, signature);
+    if (ethers.utils.verifyMessage(taskArgs.message, signature)) {
+        console.log(`Verified`);
+    } else {
+        console.log(`Verification failed`);
+    }
   },
 } as const;
 

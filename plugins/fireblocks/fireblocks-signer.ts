@@ -88,7 +88,11 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       throw new Error(`Transaction failed: ${JSON.stringify(txDetail)}`);
     }
     const sig = await txDetail.signedMessages![0].signature;
-    return sig.fullSig;
+    return ethers.utils.joinSignature({
+        r: `0x${sig.r!}`,
+        v: sig.v,
+        s: `0x${sig.s}`,
+    });
   }
 
   async _populateTransaction(
