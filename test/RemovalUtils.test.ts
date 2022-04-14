@@ -48,14 +48,14 @@ describe('RemovalUtils', () => {
     const { removalTestHarness: harness } = await setupTest();
 
     const countryCodeString = 'US';
-    const admin1CodeString = 'IA';
+    const subdivisionCodeString = 'IA';
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 1,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
-      admin1: asciiStringToHexString(admin1CodeString),
+      subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
       subIdentifier: 99039930, // parcel id
     };
@@ -74,7 +74,7 @@ describe('RemovalUtils', () => {
     );
     expect(unpackedRemovalId.vintage).equal(removalData.vintage);
     expect(unpackedRemovalId.country).equal(removalData.country);
-    expect(unpackedRemovalId.admin1).equal(removalData.admin1);
+    expect(unpackedRemovalId.subdivision).equal(removalData.subdivision);
     expect(unpackedRemovalId.supplierAddress).equal(
       removalData.supplierAddress
     );
@@ -82,22 +82,22 @@ describe('RemovalUtils', () => {
     expect(hexStringToAsciiString(unpackedRemovalId.country)).equal(
       countryCodeString
     );
-    expect(hexStringToAsciiString(unpackedRemovalId.admin1)).equal(
-      admin1CodeString
+    expect(hexStringToAsciiString(unpackedRemovalId.subdivision)).equal(
+      subdivisionCodeString
     );
   });
   it('can create a token id from the component fields and decode the token id using maximum values for each field', async () => {
     const { removalTestHarness: harness } = await setupTest();
 
     const countryCodeString = 'ZZ';
-    const admin1CodeString = 'ZZ';
+    const subdivisionCodeString = 'ZZ';
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0, // can't max this field out bc 0 is only supported id version otherwise will revert
       methodology: 2 ** 4 - 1,
       methodologyVersion: 2 ** 4 - 1,
       vintage: 2 ** 16 - 1,
       country: asciiStringToHexString(countryCodeString),
-      admin1: asciiStringToHexString(admin1CodeString),
+      subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF', // ethers returns EIP55 mixed-case checksum encoding
       subIdentifier: 2 ** 32 - 1,
     };
@@ -116,7 +116,7 @@ describe('RemovalUtils', () => {
     );
     expect(unpackedRemovalId.vintage).equal(removalData.vintage);
     expect(unpackedRemovalId.country).equal(removalData.country);
-    expect(unpackedRemovalId.admin1).equal(removalData.admin1);
+    expect(unpackedRemovalId.subdivision).equal(removalData.subdivision);
     expect(unpackedRemovalId.supplierAddress).equal(
       removalData.supplierAddress
     );
@@ -124,22 +124,22 @@ describe('RemovalUtils', () => {
     expect(hexStringToAsciiString(unpackedRemovalId.country)).equal(
       countryCodeString
     );
-    expect(hexStringToAsciiString(unpackedRemovalId.admin1)).equal(
-      admin1CodeString
+    expect(hexStringToAsciiString(unpackedRemovalId.subdivision)).equal(
+      subdivisionCodeString
     );
   });
   it('will revert if the wrong number of bytes are passed to `createRemovalId`', async () => {
     const { removalTestHarness: harness } = await setupTest();
 
     const countryCodeString = 'US';
-    const admin1CodeString = 'IA';
+    const subdivisionCodeString = 'IA';
     const removalDataMissingParcelId = {
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 1,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
-      admin1: asciiStringToHexString(admin1CodeString),
+      subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
     };
     const encodedRemovalDataTooShort = hre.ethers.utils.defaultAbiCoder.encode(
@@ -155,14 +155,14 @@ describe('RemovalUtils', () => {
     const { removalTestHarness: harness } = await setupTest();
 
     const countryCodeString = 'US';
-    const admin1CodeString = 'IA';
+    const subdivisionCodeString = 'IA';
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0,
       methodology: 16, // too large
       methodologyVersion: 1,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
-      admin1: asciiStringToHexString(admin1CodeString),
+      subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
       subIdentifier: 99039930,
     };
@@ -175,14 +175,14 @@ describe('RemovalUtils', () => {
     const { removalTestHarness: harness } = await setupTest();
 
     const countryCodeString = 'uS'; // lowercase letter
-    const admin1CodeString = 'IA';
+    const subdivisionCodeString = 'IA';
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 1,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
-      admin1: asciiStringToHexString(admin1CodeString),
+      subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
       subIdentifier: 99039930,
     };

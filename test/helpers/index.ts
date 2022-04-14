@@ -86,7 +86,7 @@ export const createRemovalTokenId = async (
     methodologyVersion: 1,
     vintage: 2018,
     country: asciiStringToHexString('US'),
-    admin1: asciiStringToHexString('IA'),
+    subdivision: asciiStringToHexString('IA'),
     supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
     subIdentifier: 99039930, // parcel id
   };

@@ -9,7 +9,7 @@ struct UnpackedRemovalIdV0 {
   uint8 methodologyVersion;
   uint16 vintage;
   bytes2 country;
-  bytes2 admin1;
+  bytes2 subdivision;
   address supplierAddress;
   uint32 subIdentifier;
 }
@@ -44,7 +44,7 @@ uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
  *
  * Version 0:
  * [1byte][1byte][--2 bytes--][--2 bytes--][--2 bytes--][----------- 20 bytes------------- ][------4 bytes------]
- * tokIdV--meth&v---vintage------country------admin1------------ supplier address --------------subidentifier--
+ * tokIdV--meth&v---vintage------country------subdivision------------ supplier address --------------subidentifier--
  *
  * For methodology 1 (regenerative ag), the subidentifier serves as a parcel identifier.
  *
@@ -82,9 +82,9 @@ library RemovalUtils {
       _BITS_PER_BYTE;
     uint256 countrySecondLetter = uint256(uint16(params.country)) &
       uint256(2**8 - 1);
-    uint256 admin1FirstLetter = uint256(uint16(params.admin1)) >>
+    uint256 subdivisionFirstLetter = uint256(uint16(params.subdivision)) >>
       _BITS_PER_BYTE;
-    uint256 admin1SecondLetter = uint256(uint16(params.admin1)) &
+    uint256 subdivisionSecondLetter = uint256(uint16(params.subdivision)) &
       uint256(2**8 - 1);
 
     require(
@@ -92,10 +92,10 @@ library RemovalUtils {
         countryFirstLetter <= _ASCII_CAP_LETTER_MAX_VAL &&
         countrySecondLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
         countrySecondLetter <= _ASCII_CAP_LETTER_MAX_VAL &&
-        admin1FirstLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
-        admin1FirstLetter <= _ASCII_CAP_LETTER_MAX_VAL &&
-        admin1SecondLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
-        admin1SecondLetter <= _ASCII_CAP_LETTER_MAX_VAL,
+        subdivisionFirstLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
+        subdivisionFirstLetter <= _ASCII_CAP_LETTER_MAX_VAL &&
+        subdivisionSecondLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
+        subdivisionSecondLetter <= _ASCII_CAP_LETTER_MAX_VAL,
       "Invalid ASCII"
     );
 
@@ -109,7 +109,7 @@ library RemovalUtils {
       (uint256(params.vintage) << (_VINTAGE_OFFSET * _BITS_PER_BYTE)) |
       (uint256(uint16(params.country)) <<
         (_COUNTRY_CODE_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(uint16(params.admin1)) <<
+      (uint256(uint16(params.subdivision)) <<
         (_ADMIN1_CODE_OFFSET * _BITS_PER_BYTE)) |
       (uint256(uint160(params.supplierAddress)) <<
         (_ADDRESS_OFFSET * _BITS_PER_BYTE)) |
@@ -131,7 +131,7 @@ library RemovalUtils {
         methodologyVersion(removalId),
         vintage(removalId),
         countryCode(removalId),
-        admin1Code(removalId),
+        subdivisionCode(removalId),
         supplierAddress(removalId),
         subIdentifier(removalId)
       );
@@ -200,9 +200,9 @@ library RemovalUtils {
   }
 
   /**
-   * @notice Extracts and returns the admin1 field of a removal token id.
+   * @notice Extracts and returns the subdivision field of a removal token id.
    */
-  function admin1Code(uint256 removalId) internal pure returns (bytes2) {
+  function subdivisionCode(uint256 removalId) internal pure returns (bytes2) {
     return
       bytes2(
         uint16(

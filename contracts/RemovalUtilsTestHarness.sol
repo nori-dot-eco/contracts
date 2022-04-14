@@ -27,36 +27,4 @@ contract RemovalTestHarness {
   {
     return removalId.unpackRemovalIdV0();
   }
-
-  function version(uint256 removalId) public pure returns (uint8) {
-    return removalId.version();
-  }
-
-  function methodology(uint256 removalId) public pure returns (uint8) {
-    return removalId.methodology();
-  }
-
-  function methodologyVersion(uint256 removalId) public pure returns (uint8) {
-    return removalId.methodologyVersion();
-  }
-
-  function vintage(uint256 removalId) public pure returns (uint16) {
-    return removalId.vintage();
-  }
-
-  function countryCode(uint256 removalId) public pure returns (bytes2) {
-    return removalId.countryCode();
-  }
-
-  function admin1Code(uint256 removalId) public pure returns (bytes2) {
-    return removalId.admin1Code();
-  }
-
-  function supplierAddress(uint256 removalId) public pure returns (address) {
-    return removalId.supplierAddress();
-  }
-
-  function subIdentifier(uint256 removalId) public pure returns (uint32) {
-    return removalId.subIdentifier();
-  }
 }
