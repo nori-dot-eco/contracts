@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 
 // import "hardhat/console.sol"; // todo
 
@@ -22,36 +23,23 @@ contract Removal is
   ERC1155SupplyUpgradeable
 {
   using SafeMathUpgradeable for uint256;
-
-  struct Vintage {
-    address supplier;
-    uint16 vintage;
-    // todo: location
-    // todo: methodology
-    // todo: supplier name
-  }
+  using RemovalUtils for uint256;
 
   struct BatchMintRemovalsData {
     address marketAddress;
     bool list;
   }
 
-  mapping(uint256 => Vintage) private _vintages;
-  uint256 private _latestTokenId;
+  uint256 private _tokenIdCounter;
   string public name; // todo why did I add this
+  mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
+  mapping(uint256 => bool) private _tokenIdExists;
 
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
-    _latestTokenId = 0;
+    _tokenIdCounter = 0;
     name = "Removal";
-  }
-
-  /**
-   * @dev returns the removal vintage data for a given removal token ID
-   */
-  function vintage(uint256 removalId) public view returns (Vintage memory) {
-    return _vintages[removalId];
   }
 
   /**
@@ -66,39 +54,59 @@ contract Removal is
   }
 
   /**
-   * @dev mints multiple removals at once (for a single supplier) AND lists those removals for sale in the market.
-   * ids that will be auto assigned [0, 1, 2]
+   * @notice Packs data about a removal into a 256-bit token id for the removal.
+   * @dev Performs some possible validations on the data before attempting to create the id.
+   * @param removalData removal data encoded as bytes, with the first byte storing the version.
+   */
+  function createRemovalId(bytes calldata removalData)
+    public
+    pure
+    returns (uint256)
+  {
+    return RemovalUtils.createRemovalId(removalData);
+  }
+
+  /**
+   * @notice Unpacks a V0 removal id into its component data.
+   */
+  function unpackRemovalIdV0(uint256 removalId)
+    public
+    pure
+    returns (UnpackedRemovalIdV0 memory)
+  {
+    return removalId.unpackRemovalIdV0();
+  }
+
+  /**
+   * @dev mints multiple removals at once (for a single supplier).
+   * If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
    * amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
-   * vintages: [2018, 2019, 2020]
    * token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
    * token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
    * token id 2 URI points to vintage information (e.g., 2020) nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
    * @param to The supplier address
    * @param amounts Each removal's tonnes of CO2 formatted as wei
-   * @param vintages The year for each removal
+   * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address, a parcel identifier,
+   * the vintage, country code, state code, methodology identifer, and methodology version.
    * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals came.
    */
   function mintBatch(
     address to,
     uint256[] memory amounts,
-    uint256[] memory vintages,
+    uint256[] memory ids,
     bytes memory data
   ) public override {
-    // todo require vintage is within valid year range and doesn't already exist
     BatchMintRemovalsData memory decodedData = abi.decode(
       data,
       (BatchMintRemovalsData)
     );
+    for (uint256 i = 0; i < ids.length; i++) {
+      require(!_tokenIdExists[ids[i]], "Token id already exists"); // todo can the duplicate token id be reported here?
 
-    uint256[] memory ids = new uint256[](vintages.length);
-    for (uint256 i = 0; i < vintages.length; i++) {
-      ids[i] = _latestTokenId + i;
-      _vintages[_latestTokenId + i] = Vintage({
-        vintage: uint16(vintages[i]),
-        supplier: to
-      });
+      _tokenIdExists[ids[i]] = true;
+      indexToTokenId[_tokenIdCounter] = ids[i];
+      _tokenIdCounter += 1;
     }
-    _latestTokenId = ids[ids.length - 1] + 1;
     super.mintBatch(to, ids, amounts, data);
 
     setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
@@ -108,7 +116,7 @@ contract Removal is
   }
 
   /**
-   * @dev used to initiate a sale of removals by transferring the removals to the
+   * @dev used to initiate a sale of removals by transferring the removals to the market contract
    */
   function safeBatchTransferFrom(
     address _from,
