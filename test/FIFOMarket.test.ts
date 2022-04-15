@@ -6,6 +6,7 @@ import {
   chai,
   mockDepositNoriToPolygon,
   setupTest,
+  createRemovalTokenId,
 } from '@/test/helpers';
 
 const setupTestLocal = async (
@@ -55,12 +56,15 @@ describe('FIFOMarket', () => {
         ['address', 'bool'],
         [fifoMarket.address, list]
       );
+      const removalId = await createRemovalTokenId(removal, {
+        supplierAddress: supplier,
+      });
 
       await Promise.all([
         removal.mintBatch(
           supplier,
           [hre.ethers.utils.parseUnits(totalAvailableSupply)],
-          [2018],
+          [removalId],
           packedData
         ),
       ]);
@@ -118,7 +122,20 @@ describe('FIFOMarket', () => {
         }
       );
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
-
+      const tokenIds = await Promise.all([
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2018,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2019,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2020,
+        }),
+      ]);
       const removalBalance1 = '3';
       const removalBalance2 = '3';
       const removalBalance3 = '4';
@@ -141,7 +158,7 @@ describe('FIFOMarket', () => {
             hre.ethers.utils.parseUnits(removalBalance2),
             hre.ethers.utils.parseUnits(removalBalance3),
           ],
-          [2018, 2019, 2017],
+          tokenIds,
           packedData
         ),
       ]);
@@ -200,13 +217,17 @@ describe('FIFOMarket', () => {
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const removalBalances = [];
-      const vintages = [];
-      const tokenIds = [];
+      let tokenIds = [];
       for (let i = 0; i <= 20; i++) {
         removalBalances.push(hre.ethers.utils.parseUnits('50'));
-        vintages.push(2018);
-        tokenIds.push(i);
+        tokenIds.push(
+          createRemovalTokenId(removal, {
+            supplierAddress: supplier,
+            subIdentifier: i,
+          })
+        ); // use i as parcelId to ensure unique token ids
       }
+      tokenIds = await Promise.all(tokenIds);
 
       const purchaseAmount = '1000'; // purchase all supply
       const fee = '150';
@@ -221,7 +242,7 @@ describe('FIFOMarket', () => {
         [fifoMarket.address, list]
       );
       await Promise.all([
-        removal.mintBatch(supplier, removalBalances, vintages, packedData),
+        removal.mintBatch(supplier, removalBalances, tokenIds, packedData),
       ]);
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
@@ -297,19 +318,31 @@ describe('FIFOMarket', () => {
         removal.mintBatch(
           namedAccounts.supplier,
           [hre.ethers.utils.parseUnits(removalBalance1)],
-          [2018],
+          [
+            await createRemovalTokenId(removal, {
+              supplierAddress: namedAccounts.supplier,
+            }),
+          ],
           packedData
         ),
         removal.mintBatch(
           namedAccounts.investor1,
           [hre.ethers.utils.parseUnits(removalBalance2)],
-          [2018],
+          [
+            await createRemovalTokenId(removal, {
+              supplierAddress: namedAccounts.investor1,
+            }),
+          ],
           packedData
         ),
         removal.mintBatch(
           namedAccounts.investor2,
           [hre.ethers.utils.parseUnits(removalBalance3)],
-          [2018],
+          [
+            await createRemovalTokenId(removal, {
+              supplierAddress: namedAccounts.investor2,
+            }),
+          ],
           packedData
         ),
       ]);
