@@ -50,7 +50,7 @@ const polygon: NetworkUserConfig = {
   url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROD_KEY}`,
   gasPrice: 50000000000,
   live: true,
-  tags: ['polyon', 'prod'],
+  tags: ['polygon', 'prod'],
 };
 
 const mainnet: NetworkUserConfig = {
