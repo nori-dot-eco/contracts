@@ -84,7 +84,7 @@ cache
 dist
 artifacts/*
 !artifacts/contracts
-.openzeppelin/unknown-*.json
+.openzeppelin/unknown-9001.json
 !.openzeppelin/unknown-80001.json
 
 # typechain
@@ -92,6 +92,7 @@ typechain-types
 
 # gas-reporter
 gasReporterOutput.json
+gasReport.txt
 
 # local grants for the hardhat vesting task
 grants.csv

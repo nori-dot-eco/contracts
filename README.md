@@ -9,7 +9,9 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 ### polygon
 
 - BridgedPolygonNORI
+  - 0x8cf6E82919f69aE382DEf8f94e581a43Ce1E70C1
 - LockedNORI
+  - 0xCcFfFA6c2a030821331cC113b63babDC60BfF82A
 - Certificate
 - Removal
 - FIFOMarket
@@ -25,6 +27,7 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 ### mainnet (ethereum L1)
 
 - NORI
+  - 0x961760Ad1bEd52bf4d79aa4b1558E7F9d72071e4
 
 ### goerli (ethereum L1 testnet)
 
