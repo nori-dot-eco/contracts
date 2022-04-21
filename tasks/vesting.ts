@@ -10,7 +10,7 @@ import {
   BigNumberish,
   isBigNumberish,
 } from '@ethersproject/bignumber/lib/bignumber';
-import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { Signer } from '@ethersproject/abstract-signer';
 import type { CSVParseParam } from 'csvtojson/v2/Parameters';
 import { isAddress, getAddress } from 'ethers/lib/utils';
 import moment from 'moment';
@@ -508,7 +508,12 @@ export const GET_VESTING_TASK = () =>
         revoke: action === 'revoke',
         create: action === 'create',
       };
-      if (typeof account !== 'number' || account < 0 || account > 10) {
+      hre.log(`Account index: ${account}`);
+      if (
+        typeof account !== 'number' ||
+        account < 0 ||
+        account > 10
+      ) {
         throw new Error('Invalid account/signer index');
       }
       if (Boolean(asJson) && !Boolean(showDiff) && !Boolean(expand)) {
@@ -516,7 +521,7 @@ export const GET_VESTING_TASK = () =>
           'You must specify --diff or --expand when using --as-json'
         );
       }
-      const signer = (await hre.ethers.getSigners())[account];
+      const signer = (await hre.getSigners())[account];
       const { getBridgedPolygonNori, getLockedNori } = await import(
         '@/utils/contracts'
       );
@@ -525,6 +530,7 @@ export const GET_VESTING_TASK = () =>
         signer,
       });
       const lNori = getLockedNori({ network: hre.network.name, signer });
+      hre.log(`LockedNORI: ${lNori.address}`);
       const runSubtask = hre.run as RunVestingWithSubTasks;
       let githubGrantsCsv: string;
       if (typeof file === 'string') {
@@ -537,6 +543,7 @@ export const GET_VESTING_TASK = () =>
       const githubGrants: Grants['github'] = await grantCsvToObject({
         data: githubGrantsCsv,
       });
+      hre.log(`Grants obtained`);
       await grantsSchema.validate(githubGrants);
       if (Boolean(showDiff) || Boolean(expand)) {
         await runSubtask('diff', {
@@ -597,6 +604,7 @@ const DIFF_SUBTASK = {
       grants: { githubGrants },
       lNori,
     });
+    hre.log(`Blockchain grants: ${blockchainGrants}`);
     const grantsDiff = getDiff({
       grants: {
         blockchain: Object.fromEntries(
@@ -683,6 +691,7 @@ const GET_BLOCKCHAIN_SUBTASK = {
     _hre: CustomHardHatRuntimeEnvironment
   ): Promise<ParsedGrants> => {
     const totalSupply = await lNori.totalSupply();
+    hre.log(`Total supply: ${totalSupply}`);
     const rawBlockchainGrants: LockedNORI.TokenGrantDetailStructOutput[] =
       await lNori.batchGetGrant(Object.keys(githubGrants));
     const blockchainGrants = rawBlockchainGrants.reduce(
@@ -878,7 +887,7 @@ const REVOKE_SUBTASK = {
     }: {
       grants: Pick<Grants, 'github'>;
       lNori: LockedNORI;
-      signer: SignerWithAddress;
+      signer: Signer;
       dryRun?: boolean;
     },
     hre: CustomHardHatRuntimeEnvironment
@@ -906,7 +915,7 @@ const REVOKE_SUBTASK = {
     if (grantRevocationDiffs.length > 0) {
       const fromAccounts = grantRevocationDiffs.map((grant) => grant.recipient);
       const toAccounts = Array(grantRevocationDiffs.length).fill(
-        signer.address
+        await signer.getAddress()
       );
       const atTimes = grantRevocationDiffs.map(
         (grant) => grant.lastRevocationTime.__new ?? grant.lastRevocationTime

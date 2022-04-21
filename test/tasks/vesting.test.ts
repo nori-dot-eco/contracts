@@ -16,7 +16,7 @@ import {
 import { utcToEvmTime } from '@/utils/units';
 import * as github from '@/tasks/utils/github';
 import * as contractUtils from '@/utils/contracts';
-import { expect, setupTestEnvironment, sinon } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
+import { expect, setupTest, sinon } from '@/test/helpers'; // todo deprecate exported hardhat, use hre from @/utils
 
 const MOCK_VESTING_HEADER = [
   'recipient',
@@ -770,7 +770,7 @@ describe('vesting task', () => {
   describe('flags', () => {
     describe('dry-run', () => {
       it('should use callStatic', async () => {
-        const { hre, lNori, bpNori } = await setupTestEnvironment();
+        const { hre, lNori, bpNori } = await setupTest();
         sandbox.replace(
           github,
           'getOctokit',
@@ -821,7 +821,7 @@ describe('vesting task', () => {
     });
     describe('diff', () => {
       it('should list vesting schedules', async () => {
-        const { hre } = await setupTestEnvironment();
+        const { hre } = await setupTest();
         sandbox.stub(hre, 'log');
         const fake = sandbox.fake.returns({
           rest: {

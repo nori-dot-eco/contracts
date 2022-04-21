@@ -13,13 +13,13 @@ import type {
   ethers as defaultEthers,
 } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
-import type { JsonRpcSigner } from '@ethersproject/providers';
+import { JsonRpcSigner } from '@ethersproject/providers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
   FactoryOptions,
   HardhatEthersHelpers,
 } from '@nomiclabs/hardhat-ethers/types';
-import type { namedAccounts } from '@/config/accounts';
+import type { namedAccountIndices } from '@/config/accounts';
 import type { networks } from '@/config/networks';
 
 import type { TASKS } from '@/tasks';
@@ -28,8 +28,12 @@ import {
   ContractAddressOrInstance,
   UpgradeProxyOptions,
 } from '@openzeppelin/hardhat-upgrades/dist/utils';
-import { DeploymentsExtension as OriginalDeploymentsExtension } from 'hardhat-deploy/dist/types';
+import {
+  DeploymentsExtension as OriginalDeploymentsExtension,
+  DeployFunction as HardhatDeployFunction,
+} from 'hardhat-deploy/dist/types';
 import { HardhatUserConfig } from 'hardhat/types';
+import { Address } from 'hardhat-deploy/types';
 
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
@@ -121,6 +125,18 @@ interface DeployOrUpgradeProxyFunction {
   }): Promise<InstanceOfContract<TContract>>;
 }
 
+interface DeployNonUpgradeableFunction {
+  <TContract extends BaseContract, TFactory extends ContractFactory>({
+    contractName,
+    args,
+    options,
+  }: {
+    contractName: ContractNames;
+    args: unknown[];
+    options?: FactoryOptions;
+  }): Promise<InstanceOfContract<TContract>>;
+}
+
 interface CustomHardhatUpgrades extends HardhatUpgrades {
   deployProxy: GenericDeployFunction; // overridden because of a mismatch in ethers types
   upgradeProxy: GenericUpgradeFunction; // overridden because of a mismatch in ethers types
@@ -134,13 +150,14 @@ declare global {
   type Constructor = new (...args: any[]) => {};
 
   type ClassInstance<T> = InstanceType<ClassType<T>>;
-  
+
   type RequiredKeys<T, K extends keyof T> = Required<Pick<T, K>> & Omit<T, K>;
   type InstanceOfContract<TContract extends Contract> = ReturnType<
     TContract['attach']
   >;
   type TypeChainBaseContract = BaseContract & { contractName: string };
-  type NamedAccounts = typeof namedAccounts;
+  type NamedAccountIndices = typeof namedAccountIndices;
+  type NamedAccounts = { [Property in keyof NamedAccountIndices]: Address };
   type NamedSigners = { [Property in keyof NamedAccounts]: JsonRpcSigner };
   type DeepPartial<T> = {
     [P in keyof T]?: DeepPartial<T[P]>;
@@ -152,7 +169,8 @@ declare global {
     | 'Removal'
     | 'Certificate'
     | 'LockedNORI'
-    | 'BridgedPolygonNORI';
+    | 'BridgedPolygonNORI'
+    | 'ScheduleTestHarness';
   var ethers: Omit<
     typeof defaultEthers & HardhatEthersHelpers,
     'getContractFactory'
@@ -167,10 +185,9 @@ declare global {
 
   type CustomHardHatRuntimeEnvironment = Omit<
     HardhatRuntimeEnvironment,
-    'getNamedAccounts' | 'run' | 'upgrades' | 'ethers'
+    'run' | 'upgrades' | 'ethers'
   > & {
     config: HardhatUserConfig;
-    getNamedAccounts: () => Promise<typeof namedAccounts>;
     run: (
       name: keyof typeof TASKS,
       taskArguments?: Parameters<typeof TASKS[typeof name]['run']>[0]
@@ -178,7 +195,9 @@ declare global {
     upgrades: CustomHardhatUpgrades;
     network: Omit<Network, 'name'> & { name: keyof typeof networks };
     ethers: typeof ethers;
+    getSigners: () => Promise<Signer[]>;
     deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
+    deployNonUpgradeable: DeployNonUpgradeableFunction;
     log: Console['log'];
     trace: Console['log'];
     ethernalSync: boolean; // todo figure out why we need to re-write types like this
@@ -196,7 +215,7 @@ declare global {
     };
   };
 
-  interface CustomHardhatDeployFunction extends Partial<DeployFunction> {
+  interface CustomHardhatDeployFunction extends HardhatDeployFunction {
     (hre: CustomHardHatRuntimeEnvironment): Promise<unknown>;
   }
 

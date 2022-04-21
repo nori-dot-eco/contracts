@@ -3,7 +3,7 @@ import { BigNumber } from 'ethers';
 import type { LockedNORI } from '@/typechain-types/LockedNORI';
 import {
   expect,
-  setupTestEnvironment,
+  setupTest,
   advanceTime,
   getLatestBlockTime,
 } from '@/test/helpers';
@@ -41,8 +41,6 @@ interface PausableFunctionParams {
 }
 
 const NOW = Math.floor(Date.now() / 1_000);
-
-const setupTest = setupTestEnvironment; // todo rename (stop using alias)
 
 const CLIFF1_AMOUNT = formatTokenAmount(100);
 const CLIFF2_AMOUNT = formatTokenAmount(100);

@@ -83,6 +83,7 @@ workspace.code-workspace
 cache
 dist
 artifacts/*
+deployments/*
 !artifacts/contracts
 .openzeppelin/unknown-9001.json
 !.openzeppelin/unknown-80001.json
@@ -92,7 +93,7 @@ typechain-types
 
 # gas-reporter
 gasReporterOutput.json
-gasReport.txt
+gasreport.txt
 
 # local grants for the hardhat vesting task
 grants.csv

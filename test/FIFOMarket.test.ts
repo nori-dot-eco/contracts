@@ -1,54 +1,42 @@
 import type { BigNumberish } from 'ethers';
 
-import { deploy } from '@/deploy/0_deploy_contracts';
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/utils/deploy';
-import type { ContractInstances } from '@/test/helpers';
 import {
   expect,
   chai,
   mockDepositNoriToPolygon,
-  createFixture,
+  setupTest,
   createRemovalTokenId,
 } from '@/test/helpers';
 
-const setupTest = createFixture(
-  // todo use setupTestEnvironment
-  async (
-    hre,
-    {
-      buyerInitialBPNoriBalance = formatTokenAmount(1_000_000),
-    }: { buyerInitialBPNoriBalance: BigNumberish } = {
-      buyerInitialBPNoriBalance: formatTokenAmount(1_000_000),
-    }
-  ): Promise<ContractInstances & { hre: CustomHardHatRuntimeEnvironment }> => {
-    // todo replace with setupTestEnvironment
-    hre.ethernalSync = false;
-    const contracts = (await deploy(hre)) as Required<Contracts>;
-    await mockDepositNoriToPolygon({
-      hre,
-      contracts,
-      amount: buyerInitialBPNoriBalance,
-      to: hre.namedAccounts.buyer,
-      signer: hre.namedSigners.buyer,
-    });
-    return {
-      hre,
-      nori: contracts.NORI,
-      bpNori: contracts.BridgedPolygonNORI,
-      removal: contracts.Removal,
-      certificate: contracts.Certificate,
-      fifoMarket: contracts.FIFOMarket,
-      lNori: contracts.LockedNORI,
-    };
+const setupTestLocal = async (
+  {
+    buyerInitialBPNoriBalance = formatTokenAmount(1_000_000),
+  }: { buyerInitialBPNoriBalance: BigNumberish } = {
+    buyerInitialBPNoriBalance: formatTokenAmount(1_000_000),
   }
-);
+): Promise<Awaited<ReturnType<typeof setupTest>>> => {
+  const { hre, contracts, ...rest } = await setupTest();
+
+  await mockDepositNoriToPolygon({
+    hre,
+    contracts,
+    amount: buyerInitialBPNoriBalance,
+    to: hre.namedAccounts.buyer,
+    signer: hre.namedSigners.buyer,
+  });
+  return {
+    hre,
+    contracts,
+    ...rest,
+  };
+};
 
 describe('FIFOMarket', () => {
   describe('Successful purchases', () => {
     it('should purchase removals and mint a certificate when there is enough supply in a single removal', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTest(
+      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
         {
           buyerInitialBPNoriBalance,
         }
@@ -128,7 +116,7 @@ describe('FIFOMarket', () => {
     });
     it('should purchase removals and mint a certificate for a small purchase spanning several removals', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTest(
+      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
         {
           buyerInitialBPNoriBalance,
         }
@@ -221,7 +209,7 @@ describe('FIFOMarket', () => {
     });
     it('should purchase removals and mint a certificate for a large purchase spanning many removals', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTest(
+      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
         {
           buyerInitialBPNoriBalance,
         }
@@ -302,7 +290,7 @@ describe('FIFOMarket', () => {
     });
     it('should correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTest(
+      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
         {
           buyerInitialBPNoriBalance,
         }
@@ -432,7 +420,7 @@ describe('FIFOMarket', () => {
   describe('Unsuccessful purchases', () => {
     it('should revert when the queue is completely empty', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, certificate, fifoMarket, hre } = await setupTest({
+      const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
       });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
@@ -481,7 +469,7 @@ describe('FIFOMarket', () => {
     });
     it('should revert when the non-empty queue does not have enough supply to fill the order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTest(
+      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
         {
           buyerInitialBPNoriBalance,
         }
