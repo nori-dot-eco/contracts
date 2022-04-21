@@ -17,6 +17,9 @@
     },
     "LockedNORI": {
       "proxyAddress": "0x825Fff6bC67a7055DE62b0fB18676E3844Ac69dD"
+    },
+    "ScheduleTestHarness": {
+      "proxyAddress": "0x0000000000000000000000000000000000000000"
     }
   },
   "localhost": {
