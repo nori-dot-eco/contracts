@@ -57,7 +57,7 @@ jobs:
       - run:
           name: Run Contract Tests and Collect Coverage
           command: |
-            yarn build && run test:coverage
+            yarn build && yarn run test:coverage
       - coveralls/upload
 
   run-gas-reporter:
@@ -78,7 +78,7 @@ jobs:
       - run:
           name: Submit gas report
           command: |
-            yarn build && run test:gas && npx codechecks # todo figure out how to get coverage and gas reporter to run in the same commands to de-dupe test run
+            yarn build && yarn run test:gas && npx codechecks # todo figure out how to get coverage and gas reporter to run in the same commands to de-dupe test run
       - store_artifacts:
           path: gasReporterOutput.json
           destination: gasReporterOutput.json
