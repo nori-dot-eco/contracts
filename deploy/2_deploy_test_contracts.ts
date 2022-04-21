@@ -4,21 +4,26 @@ import {
   verifyContracts,
   writeContractsConfig,
   pushContractsToEthernal,
-  deployContracts,
+  deployTestContracts,
   seedContracts,
   addContractsToDefender,
 } from '@/utils/deploy';
+import { Logger, LogLevel } from '@ethersproject/logger';
+import { DeployFunction } from 'hardhat-deploy/types';
 
-export const deploy: CustomHardhatDeployFunction = async (hre) => {
+export const deploy: DeployFunction = async (env) => {
+  const hre: CustomHardHatRuntimeEnvironment = env as unknown as CustomHardHatRuntimeEnvironment;
+  Logger.setLogLevel(LogLevel.DEBUG);
+  hre.log(`2_deploy_test_contracts`);
   validateDeployment({ hre });
   await configureDeploymentSettings({ hre });
-  const contracts = await deployContracts({ hre });
+  const contracts = await deployTestContracts({ hre, contractNames: ['ScheduleTestHarness']});
   await seedContracts({ hre, contracts });
   await pushContractsToEthernal({ hre, contracts });
   writeContractsConfig({ contracts });
   await addContractsToDefender({ hre, contracts });
   await verifyContracts({ hre, contracts });
-  return contracts;
 };
 
 export default deploy;
+deploy.tags = ['test', 'ScheduleTestHarness'];

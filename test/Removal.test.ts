@@ -1,27 +1,5 @@
-import type { ContractInstances } from '@/test/helpers';
-import { deploy } from '@/deploy/0_deploy_contracts';
-import { expect, createFixture } from '@/test/helpers';
+import { expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/utils/deploy';
-
-const setupTest = createFixture(
-  async (
-    hre
-  ): Promise<ContractInstances & { hre: CustomHardHatRuntimeEnvironment }> => {
-    // todo replace with setupTestEnvironment
-    hre.ethernalSync = false;
-    const contracts = (await deploy(hre)) as Required<Contracts>;
-    return {
-      hre,
-      nori: contracts.NORI,
-      bpNori: contracts.BridgedPolygonNORI,
-      removal: contracts.Removal,
-      certificate: contracts.Certificate,
-      fifoMarket: contracts.FIFOMarket,
-      lNori: contracts.LockedNORI,
-    };
-  }
-);
 
 describe('Removal', () => {
   describe('Minting removals', () => {
@@ -31,18 +9,17 @@ describe('Removal', () => {
         formatTokenAmount(balance)
       );
       const expectedMarketSupply = 0;
-      const removalVintages = [2018, 2019, 2020, 2021];
+      const tokenIds = [0, 1, 2, 3];
       const listNow = false;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const tokenIds = [0, 1, 2, 3];
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,
           removalBalances,
-          removalVintages,
+          tokenIds,
           packedData
         )
       )
@@ -74,18 +51,17 @@ describe('Removal', () => {
         formatTokenAmount(balance)
       );
       const expectedMarketSupply = 1000;
-      const removalVintages = [2018, 2019, 2020, 2021];
+      const tokenIds = [10, 11, 12, 13];
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const tokenIds = [0, 1, 2, 3];
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,
           removalBalances,
-          removalVintages,
+          tokenIds,
           packedData
         )
       )
@@ -110,6 +86,26 @@ describe('Removal', () => {
         formatTokenAmount(expectedMarketSupply).toString()
       );
     });
+    it('should not mint a removal with a duplicate token id', async () => {
+      const { fifoMarket, removal, hre } = await setupTest();
+      const removalBalances = [100, 200, 300].map((balance) =>
+        formatTokenAmount(balance)
+      );
+      const tokenIds = [0, 1, 1]; // duplicate token id
+      const listNow = false;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, listNow]
+      );
+      await expect(
+        removal.mintBatch(
+          hre.namedAccounts.supplier,
+          removalBalances,
+          tokenIds,
+          packedData
+        )
+      ).revertedWith('Token id already exists');
+    });
   });
   describe('Listing removals for sale', () => {
     it('should list pre-minted removals for sale in the atomic marketplace', async () => {
@@ -117,18 +113,17 @@ describe('Removal', () => {
       const removalBalances = [100, 200, 300].map((balance) =>
         formatTokenAmount(balance)
       );
-      const removalVintages = [2018, 2019, 2020];
+      const tokenIds = [4321, 12344, 7892];
       const listNow = false;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [fifoMarket.address, listNow]
       );
-      const tokenIds = [0, 1, 2];
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,
           removalBalances,
-          removalVintages,
+          tokenIds,
           packedData
         )
       )

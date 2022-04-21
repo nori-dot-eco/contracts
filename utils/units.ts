@@ -15,10 +15,16 @@ export const formatTokenString = (
   if (typeof amount !== 'string') {
     throw new Error(`Expected string but received ${typeof amount}`);
   }
+  if (amount === "") {
+      amount = "0";
+  }
   return hre.ethers.utils.parseUnits(amount.toString(), 18);
 };
 
 export const utcToEvmTime = (date: string | number | moment.Moment): number => {
+  if (date === "") {
+      return 0;
+  }
   return moment(date).unix();
 };
 
