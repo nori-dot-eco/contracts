@@ -865,7 +865,7 @@ const REVOKE_SUBTASK = {
     .addOptionalParam(
       'commit',
       'Use the grants known by a particular GitHub commit',
-      'master',
+      'main',
       types.string
     )
     .addOptionalParam(
