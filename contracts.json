@@ -4,19 +4,19 @@
       "proxyAddress": "0xe35401Eb5078388D49f47d631a0ce0733a31A425"
     },
     "BridgedPolygonNORI": {
-      "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
-    },
-    "Removal": {
       "proxyAddress": "0x2CA5C6C765be11F44519Fc85Bf758723DC3C8cFC"
     },
-    "Certificate": {
-      "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
+    "Removal": {
+      "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
     },
-    "FIFOMarket": {
+    "Certificate": {
       "proxyAddress": "0xA85991C70a743ffcE508b2E520C685C9d8ea6F4d"
     },
-    "LockedNORI": {
+    "FIFOMarket": {
       "proxyAddress": "0x825Fff6bC67a7055DE62b0fB18676E3844Ac69dD"
+    },
+    "LockedNORI": {
+      "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
     },
     "ScheduleTestHarness": {
       "proxyAddress": "0x0000000000000000000000000000000000000000"
