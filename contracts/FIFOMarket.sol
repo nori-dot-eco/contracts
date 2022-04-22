@@ -37,6 +37,9 @@ contract FIFOMarket is
   uint256 private _queueNextInsertIndex;
   address private _noriFeeWallet;
   uint256 private _noriFee;
+  uint256[] private _amounts;
+  uint256[] private _ids;
+  address[] private _suppliers;
 
   function initialize(
     address removalAddress,
@@ -124,16 +127,13 @@ contract FIFOMarket is
       "FIFOMarket: This contract can only receive BridgedPolygonNORI"
     );
 
-    uint256[] memory ids = new uint256[](_queueLength());
-    uint256[] memory amounts = new uint256[](_queueLength());
-    address[] memory suppliers = new address[](_queueLength());
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
       address supplier = _queue[i].supplierAddress();
       if (remainingAmountToFill < removalAmount) {
-        ids[i] = _queue[i];
-        amounts[i] = remainingAmountToFill;
-        suppliers[i] = supplier;
+        _ids.push(_queue[i]);
+        _amounts.push(remainingAmountToFill);
+        _suppliers.push(supplier);
         remainingAmountToFill = 0;
       } else {
         if (
@@ -142,9 +142,9 @@ contract FIFOMarket is
         ) {
           revert("FIFOMarket: Not enough supply");
         }
-        ids[i] = _queue[i];
-        amounts[i] = removalAmount;
-        suppliers[i] = supplier;
+        _ids.push(_queue[i]);
+        _amounts.push(removalAmount);
+        _suppliers.push(supplier);
         remainingAmountToFill -= removalAmount;
       }
 
@@ -154,20 +154,23 @@ contract FIFOMarket is
     }
 
     bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
-    _certificate.mintBatch(recipient, ids, amounts, encodedCertificateAmount);
-    for (uint256 i = 0; i < ids.length; i++) {
-      if (amounts[i] == 0) {
+    _certificate.mintBatch(recipient, _ids, _amounts, encodedCertificateAmount);
+    for (uint256 i = 0; i < _ids.length; i++) {
+      if (_amounts[i] == 0) {
         break;
       }
-      if (amounts[i] == _removal.balanceOf(address(this), _queue[i])) {
+      if (_amounts[i] == _removal.balanceOf(address(this), _queue[i])) {
         _queueHeadIndex++;
       }
-      uint256 noriFee = (amounts[i] / 100) * _noriFee;
-      uint256 supplierFee = amounts[i];
+      uint256 noriFee = (_amounts[i] / 100) * _noriFee;
+      uint256 supplierFee = _amounts[i];
       _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
-      _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
+      _bridgedPolygonNori.transfer(_suppliers[i], supplierFee);
     }
-    _removal.burnBatch(address(this), ids, amounts);
+    _removal.burnBatch(address(this), _ids, _amounts);
+    delete _suppliers;
+    delete _ids;
+    delete _amounts;
   }
 
   function supportsInterface(bytes4 interfaceId)
