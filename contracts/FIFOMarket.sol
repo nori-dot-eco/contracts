@@ -168,16 +168,6 @@ contract FIFOMarket is
         remainingAmountToFill -= removalAmount;
       }
     }
-
-    for (
-      uint256 i = _queueHeadIndex;
-      i < _queueHeadIndex + numberOfRemovals;
-      i++
-    ) {
-      ids[i] = ids[i];
-      amounts[i] = amounts[i];
-    }
-
     bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
     _certificate.mintBatch(recipient, ids, amounts, encodedCertificateAmount);
     for (uint256 i = 0; i < ids.length; i++) {
