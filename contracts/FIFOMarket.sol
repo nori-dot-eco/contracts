@@ -107,8 +107,8 @@ contract FIFOMarket is
   ) external override {
     uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
     uint256 remainingAmountToFill = certificateAmount;
-
-    address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
+    // TODO: handle the case where someone invokes this function without operatorData
+    address recipient = abi.decode(userData, (address));
     require(
       _queueHeadIndex != _queueNextInsertIndex,
       "FIFOMarket: Not enough supply"
@@ -118,22 +118,16 @@ contract FIFOMarket is
       recipient != address(0),
       "FIFOMarket: Cannot mint to the 0 address"
     );
-    // todo verify this can only be invoked by the nori contract
+    // TODO: verify this can only be invoked by the nori contract
     require(
       msg.sender == address(_bridgedPolygonNori),
       "FIFOMarket: This contract can only receive BridgedPolygonNORI"
     );
 
-    uint256[] memory ids = new uint256[](_queueLength());
-    uint256[] memory amounts = new uint256[](_queueLength());
-    address[] memory suppliers = new address[](_queueLength());
+    uint256 numberOfRemovals = 0;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
-      address supplier = _queue[i].supplierAddress();
       if (remainingAmountToFill < removalAmount) {
-        ids[i] = _queue[i];
-        amounts[i] = remainingAmountToFill;
-        suppliers[i] = supplier;
         remainingAmountToFill = 0;
       } else {
         if (
@@ -142,23 +136,51 @@ contract FIFOMarket is
         ) {
           revert("FIFOMarket: Not enough supply");
         }
-        ids[i] = _queue[i];
-        amounts[i] = removalAmount;
-        suppliers[i] = supplier;
         remainingAmountToFill -= removalAmount;
       }
-
+      numberOfRemovals++;
       if (remainingAmountToFill == 0) {
         break;
       }
     }
 
+    uint256[] memory ids = new uint256[](numberOfRemovals);
+    uint256[] memory amounts = new uint256[](numberOfRemovals);
+    address[] memory suppliers = new address[](numberOfRemovals);
+    remainingAmountToFill = certificateAmount;
+
+    for (
+      uint256 i = _queueHeadIndex;
+      i < _queueHeadIndex + numberOfRemovals;
+      i++
+    ) {
+      uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
+      address supplier = _queue[i].supplierAddress();
+      if (i == numberOfRemovals - 1) {
+        ids[i] = _queue[i];
+        amounts[i] = remainingAmountToFill;
+        suppliers[i] = supplier;
+        remainingAmountToFill = 0;
+      } else {
+        ids[i] = _queue[i];
+        amounts[i] = removalAmount;
+        suppliers[i] = supplier;
+        remainingAmountToFill -= removalAmount;
+      }
+    }
+
+    for (
+      uint256 i = _queueHeadIndex;
+      i < _queueHeadIndex + numberOfRemovals;
+      i++
+    ) {
+      ids[i] = ids[i];
+      amounts[i] = amounts[i];
+    }
+
     bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
     _certificate.mintBatch(recipient, ids, amounts, encodedCertificateAmount);
     for (uint256 i = 0; i < ids.length; i++) {
-      if (amounts[i] == 0) {
-        break;
-      }
       if (amounts[i] == _removal.balanceOf(address(this), _queue[i])) {
         _queueHeadIndex++;
       }
