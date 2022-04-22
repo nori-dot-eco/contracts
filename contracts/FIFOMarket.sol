@@ -171,6 +171,9 @@ contract FIFOMarket is
     bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
     _certificate.mintBatch(recipient, ids, amounts, encodedCertificateAmount);
     for (uint256 i = 0; i < ids.length; i++) {
+      if (_amounts[i] == 0) {
+        break;
+      }
       if (amounts[i] == _removal.balanceOf(address(this), _queue[i])) {
         _queueHeadIndex++;
       }
