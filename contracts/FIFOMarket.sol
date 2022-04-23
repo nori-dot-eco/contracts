@@ -37,6 +37,17 @@ contract FIFOMarket is
   uint256 private _queueNextInsertIndex;
   address private _noriFeeWallet;
   uint256 private _noriFee;
+  uint256 public priorityRestrictedThreshold;
+
+  /**
+   * @notice Role allowing the purchase of supply when below the priority restricted threshold.
+   */
+  bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
+
+  /**
+   * @notice Emitted on setting of priorityRestrictedThreshold.
+   */
+  event PriorityRestrictedThresholdSet(uint256 threshold);
 
   function initialize(
     address removalAddress,
@@ -65,6 +76,17 @@ contract FIFOMarket is
     );
     _queueHeadIndex = 0;
     _queueNextInsertIndex = 0;
+    priorityRestrictedThreshold = 0;
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _grantRole(ALLOWLIST_ROLE, _msgSender()); // todo, do this here or have to do it explicitly after intialization?
+  }
+
+  function setPriorityRestrictedThreshold(uint256 threshold)
+    external
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    priorityRestrictedThreshold = threshold;
+    emit PriorityRestrictedThresholdSet(threshold);
   }
 
   function _queueLength() private view returns (uint256) {
@@ -99,12 +121,21 @@ contract FIFOMarket is
    */
   function tokensReceived(
     address,
-    address,
+    address from,
     address,
     uint256 amount,
     bytes calldata userData,
     bytes calldata
   ) external override {
+    // todo, this is a problem because as a call, the extreme expensiveness of numberOfNrtsInQueue
+    // isn't a problem, but as part of a purchase transaction, we cannot be iterating over the entire queue...
+    // We'll need to a way to keep a running balance to get this information.
+    if (numberOfNrtsInQueue() <= priorityRestrictedThreshold) {
+      require(
+        hasRole(ALLOWLIST_ROLE, from),
+        "Priority supply only and buyer not on allowlist"
+      );
+    }
     uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
     uint256 remainingAmountToFill = certificateAmount;
 

@@ -1,4 +1,5 @@
 import type { BigNumberish } from 'ethers';
+import { BigNumber } from 'ethers';
 
 import { formatTokenAmount } from '@/utils/units';
 import {
@@ -9,6 +10,7 @@ import {
   createRemovalTokenId,
 } from '@/test/helpers';
 
+// TODO optionally parameterize to create supply in market contract upon setup
 const setupTestLocal = async (
   {
     buyerInitialBPNoriBalance = formatTokenAmount(1_000_000),
@@ -33,14 +35,158 @@ const setupTestLocal = async (
 };
 
 describe('FIFOMarket', () => {
+  describe('initialization', () => {
+    describe('roles', () => {
+      (
+        [{ role: 'DEFAULT_ADMIN_ROLE' }, { role: 'ALLOWLIST_ROLE' }] as const
+      ).forEach(({ role }) => {
+        it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
+          const { fifoMarket, hre } = await setupTest();
+          expect(
+            await fifoMarket.hasRole(
+              await fifoMarket[role](),
+              hre.namedAccounts.admin
+            )
+          ).to.be.true;
+          expect(await fifoMarket.getRoleAdmin(await fifoMarket[role]())).to.eq(
+            await fifoMarket.DEFAULT_ADMIN_ROLE()
+          );
+          expect(
+            await fifoMarket.getRoleMemberCount(await fifoMarket[role]())
+          ).to.eq(1);
+        });
+      });
+    });
+  });
+  describe('role access', () => {
+    describe('roles', () => {
+      describe('DEFAULT_ADMIN_ROLE', () => {
+        [
+          {
+            role: 'DEFAULT_ADMIN_ROLE',
+            accountWithRole: 'admin',
+            accountWithoutRole: 'buyer',
+          } as const,
+        ].forEach(({ role, accountWithRole, accountWithoutRole }) => {
+          it(`accounts with the role "${role}" can set the priority restricted threshold while accounts without this role cannot`, async () => {
+            const { fifoMarket, hre } = await setupTest();
+
+            const { namedAccounts, namedSigners } = hre;
+            const roleId = await fifoMarket[role]();
+            expect(
+              await fifoMarket.hasRole(roleId, namedAccounts[accountWithRole])
+            ).to.be.true;
+
+            const newThreshold = ethers.utils.parseUnits('100');
+
+            expect(
+              await fifoMarket
+                .connect(namedSigners[accountWithRole])
+                .setPriorityRestrictedThreshold(newThreshold)
+            )
+              .to.emit(fifoMarket, 'PriorityRestrictedThresholdSet')
+              .withArgs(newThreshold);
+
+            expect(await fifoMarket.priorityRestrictedThreshold()).to.equal(
+              BigNumber.from(newThreshold)
+            );
+
+            await expect(
+              fifoMarket
+                .connect(namedSigners[accountWithoutRole])
+                .setPriorityRestrictedThreshold(newThreshold)
+            ).to.be.revertedWith(
+              `AccessControl: account ${namedAccounts[
+                accountWithoutRole
+              ].toLowerCase()} is missing role ${roleId}`
+            );
+          });
+        });
+      });
+      describe('ALLOWLIST_ROLE', () => {
+        [
+          {
+            role: 'ALLOWLIST_ROLE',
+            accountWithRole: 'admin',
+            accountWithoutRole: 'buyer',
+          } as const,
+        ].forEach(({ role, accountWithRole, accountWithoutRole }) => {
+          it(`accounts with the role "${role}" can purchase supply when inventory is below threshold while accounts without this role cannot`, async () => {
+            const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+            const { bpNori, removal, fifoMarket, hre } = await setupTestLocal({
+              buyerInitialBPNoriBalance,
+            });
+            const { namedAccounts, namedSigners } = hre;
+            const { supplier, buyer } = hre.namedAccounts;
+
+            const priorityRestrictedThreshold = '100';
+            const totalAvailableSupply = '50';
+
+            const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+              ['address', 'bool'],
+              [fifoMarket.address, true]
+            );
+            const removalId = await createRemovalTokenId(removal, {
+              supplierAddress: supplier,
+            });
+
+            await Promise.all([
+              removal.mintBatch(
+                supplier,
+                [hre.ethers.utils.parseUnits(totalAvailableSupply)],
+                [removalId],
+                packedData
+              ),
+            ]);
+
+            await fifoMarket.setPriorityRestrictedThreshold(
+              ethers.utils.parseUnits(priorityRestrictedThreshold)
+            );
+
+            await expect(
+              bpNori
+                .connect(namedSigners[accountWithoutRole])
+                .send(
+                  fifoMarket.address,
+                  hre.ethers.utils.parseUnits(totalAvailableSupply),
+                  hre.ethers.utils.hexZeroPad(buyer, 32)
+                )
+            ).to.be.revertedWith(
+              'Priority supply only and buyer not on allowlist'
+            );
+
+            const roleId = await fifoMarket[role]();
+            expect(
+              await fifoMarket.hasRole(
+                roleId,
+                namedAccounts[accountWithoutRole]
+              )
+            ).to.be.false;
+            expect(
+              await fifoMarket.hasRole(roleId, namedAccounts[accountWithRole])
+            ).to.be.true;
+
+            await expect(
+              bpNori
+                .connect(namedSigners[accountWithRole])
+                .send(
+                  fifoMarket.address,
+                  hre.ethers.utils.parseUnits(totalAvailableSupply),
+                  hre.ethers.utils.hexZeroPad(buyer, 32)
+                )
+            ).not.to.be.reverted;
+          });
+        });
+      });
+    });
+  });
   describe('Successful purchases', () => {
     it('should purchase removals and mint a certificate when there is enough supply in a single removal', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
-        {
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
           buyerInitialBPNoriBalance,
-        }
-      );
+        });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const totalAvailableSupply = '100';
@@ -116,11 +262,10 @@ describe('FIFOMarket', () => {
     });
     it('should purchase removals and mint a certificate for a small purchase spanning several removals', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
-        {
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
           buyerInitialBPNoriBalance,
-        }
-      );
+        });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
       const tokenIds = await Promise.all([
         createRemovalTokenId(removal, {
@@ -209,11 +354,10 @@ describe('FIFOMarket', () => {
     });
     it('should purchase removals and mint a certificate for a large purchase spanning many removals', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
-        {
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
           buyerInitialBPNoriBalance,
-        }
-      );
+        });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const removalBalances = [];
@@ -290,11 +434,10 @@ describe('FIFOMarket', () => {
     });
     it('should correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
-        {
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
           buyerInitialBPNoriBalance,
-        }
-      );
+        });
       const { namedAccounts } = hre;
 
       const removalBalance1 = '3';
@@ -469,11 +612,10 @@ describe('FIFOMarket', () => {
     });
     it('should revert when the non-empty queue does not have enough supply to fill the order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
-        {
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
           buyerInitialBPNoriBalance,
-        }
-      );
+        });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const totalAvailableSupply = '1';
