@@ -133,6 +133,9 @@ contract FIFOMarket is
   ) external override {
     // todo we need to treat totalSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s. priority reserved etc.
+    if (totalSupply == 0) {
+      revert("Market: Out of stock");
+    }
     if (totalSupply <= priorityRestrictedThreshold) {
       require(
         hasRole(ALLOWLIST_ROLE, from),
@@ -145,17 +148,14 @@ contract FIFOMarket is
     address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
     require(
       _queueHeadIndex != _queueNextInsertIndex,
-      "FIFOMarket: Not enough supply"
+      "Market: Not enough supply"
     );
-    require(recipient == address(recipient), "FIFOMarket: Invalid address");
-    require(
-      recipient != address(0),
-      "FIFOMarket: Cannot mint to the 0 address"
-    );
+    require(recipient == address(recipient), "Market: Invalid address");
+    require(recipient != address(0), "Market: Cannot mint to the 0 address");
     // todo verify this can only be invoked by the nori contract
     require(
       msg.sender == address(_bridgedPolygonNori),
-      "FIFOMarket: This contract can only receive BridgedPolygonNORI"
+      "Market: This contract can only receive BridgedPolygonNORI"
     );
 
     uint256[] memory ids = new uint256[](_queueLength());
@@ -174,7 +174,7 @@ contract FIFOMarket is
           i == _queueNextInsertIndex - 1 &&
           remainingAmountToFill > removalAmount
         ) {
-          revert("FIFOMarket: Not enough supply");
+          revert("Market: Not enough supply");
         }
         ids[i] = _queue[i];
         amounts[i] = removalAmount;

@@ -4,22 +4,48 @@ import { BigNumber } from 'ethers';
 import { formatTokenAmount } from '@/utils/units';
 import {
   expect,
-  chai,
   mockDepositNoriToPolygon,
   setupTest,
   createRemovalTokenId,
 } from '@/test/helpers';
 
-// TODO optionally parameterize to create supply in market contract upon setup
 const setupTestLocal = async (
   {
     buyerInitialBPNoriBalance = formatTokenAmount(1_000_000),
-  }: { buyerInitialBPNoriBalance: BigNumberish } = {
+    nrtsToListAmounts = [],
+  }: {
+    buyerInitialBPNoriBalance: BigNumberish;
+    nrtsToListAmounts?: number[];
+  } = {
     buyerInitialBPNoriBalance: formatTokenAmount(1_000_000),
+    nrtsToListAmounts: [],
   }
 ): Promise<Awaited<ReturnType<typeof setupTest>>> => {
-  const { hre, contracts, ...rest } = await setupTest();
+  const { hre, contracts, removal, fifoMarket, ...rest } = await setupTest();
 
+  if (nrtsToListAmounts.length > 0) {
+    const { supplier } = hre.namedAccounts;
+    const startingVintage = 2016;
+    const tokenIds = await Promise.all(
+      nrtsToListAmounts.map((_, i) => {
+        return createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: startingVintage + i,
+        });
+      })
+    );
+    const removalBalances = nrtsToListAmounts.map((amount) =>
+      hre.ethers.utils.parseUnits(amount.toString())
+    );
+
+    const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+      ['address', 'bool'],
+      [fifoMarket.address, true]
+    );
+    await Promise.all([
+      removal.mintBatch(supplier, removalBalances, tokenIds, packedData),
+    ]);
+  }
   await mockDepositNoriToPolygon({
     hre,
     contracts,
@@ -30,6 +56,8 @@ const setupTestLocal = async (
   return {
     hre,
     contracts,
+    removal,
+    fifoMarket,
     ...rest,
   };
 };
@@ -113,31 +141,15 @@ describe('FIFOMarket', () => {
         ].forEach(({ role, accountWithRole, accountWithoutRole }) => {
           it(`accounts with the role "${role}" can purchase supply when inventory is below threshold while accounts without this role cannot`, async () => {
             const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-            const { bpNori, removal, fifoMarket, hre } = await setupTestLocal({
+            const totalAvailableSupply = 50;
+            const { bpNori, fifoMarket, hre } = await setupTestLocal({
               buyerInitialBPNoriBalance,
+              nrtsToListAmounts: [totalAvailableSupply],
             });
             const { namedAccounts, namedSigners } = hre;
-            const { supplier, buyer } = hre.namedAccounts;
+            const { buyer } = hre.namedAccounts;
 
             const priorityRestrictedThreshold = '100';
-            const totalAvailableSupply = '50';
-
-            const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-              ['address', 'bool'],
-              [fifoMarket.address, true]
-            );
-            const removalId = await createRemovalTokenId(removal, {
-              supplierAddress: supplier,
-            });
-
-            await Promise.all([
-              removal.mintBatch(
-                supplier,
-                [hre.ethers.utils.parseUnits(totalAvailableSupply)],
-                [removalId],
-                packedData
-              ),
-            ]);
 
             await fifoMarket.setPriorityRestrictedThreshold(
               ethers.utils.parseUnits(priorityRestrictedThreshold)
@@ -148,7 +160,7 @@ describe('FIFOMarket', () => {
                 .connect(namedSigners[accountWithoutRole])
                 .send(
                   fifoMarket.address,
-                  hre.ethers.utils.parseUnits(totalAvailableSupply),
+                  hre.ethers.utils.parseUnits(totalAvailableSupply.toString()),
                   hre.ethers.utils.hexZeroPad(buyer, 32)
                 )
             ).to.be.revertedWith('Low supply and buyer not on allowlist');
@@ -169,7 +181,7 @@ describe('FIFOMarket', () => {
                 .connect(namedSigners[accountWithRole])
                 .send(
                   fifoMarket.address,
-                  hre.ethers.utils.parseUnits(totalAvailableSupply),
+                  hre.ethers.utils.parseUnits(totalAvailableSupply.toString()),
                   hre.ethers.utils.hexZeroPad(buyer, 32)
                 )
             ).not.to.be.reverted;
@@ -231,49 +243,17 @@ describe('FIFOMarket', () => {
     });
     it('should correctly report the number of NRTs for sale when there are multiple removals in inventory and some were purchased', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, fifoMarket, hre } = await setupTestLocal({
+      const nrtsToListAmounts = [5, 5, 5];
+      const { bpNori, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
+        nrtsToListAmounts,
       });
-      const { supplier, buyer } = hre.namedAccounts;
-      const tokenIds = await Promise.all([
-        createRemovalTokenId(removal, {
-          supplierAddress: supplier,
-          vintage: 2018,
-        }),
-        createRemovalTokenId(removal, {
-          supplierAddress: supplier,
-          vintage: 2019,
-        }),
-        createRemovalTokenId(removal, {
-          supplierAddress: supplier,
-          vintage: 2020,
-        }),
-      ]);
-      const removalBalance1 = '5';
-      const removalBalance2 = '5';
-      const removalBalance3 = '5';
-      const purchaseAmount = '10'; // purchase first two removals
-      const fee = '1.5';
-      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
-
-      const list = true;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [fifoMarket.address, list]
-      );
-      await Promise.all([
-        removal.mintBatch(
-          supplier,
-          [
-            hre.ethers.utils.parseUnits(removalBalance1),
-            hre.ethers.utils.parseUnits(removalBalance2),
-            hre.ethers.utils.parseUnits(removalBalance3),
-          ],
-          tokenIds,
-          packedData
-        ),
-      ]);
-
+      const { buyer } = hre.namedAccounts;
+      const purchaseAmount = 10; // purchase first two removals
+      const fee = 1.5;
+      const totalPrice = (purchaseAmount + fee).toString();
+      const expectedRemainingSupply =
+        nrtsToListAmounts.reduce((a, b) => a + b, 0) - purchaseAmount;
       await bpNori
         .connect(hre.namedSigners.buyer)
         .send(
@@ -282,7 +262,9 @@ describe('FIFOMarket', () => {
           hre.ethers.utils.hexZeroPad(buyer, 32)
         );
       expect(await fifoMarket.totalSupply()).to.equal(
-        BigNumber.from(hre.ethers.utils.parseUnits(removalBalance3))
+        BigNumber.from(
+          hre.ethers.utils.parseUnits(expectedRemainingSupply.toString())
+        )
       );
     });
     it('should correctly report the number of NRTs for sale when there is no inventory', async () => {
@@ -299,37 +281,19 @@ describe('FIFOMarket', () => {
   describe('Successful purchases', () => {
     it('should purchase removals and mint a certificate when there is enough supply in a single removal', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } =
-        await setupTestLocal({
-          buyerInitialBPNoriBalance,
-        });
+      const totalAvailableSupply = 100;
+      const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+        nrtsToListAmounts: [totalAvailableSupply],
+      });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
-      const totalAvailableSupply = '100';
       const purchaseAmount = '1';
       const fee = '.15';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
 
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
-
-      const list = true;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [fifoMarket.address, list]
-      );
-      const removalId = await createRemovalTokenId(removal, {
-        supplierAddress: supplier,
-      });
-
-      await Promise.all([
-        removal.mintBatch(
-          supplier,
-          [hre.ethers.utils.parseUnits(totalAvailableSupply)],
-          [removalId],
-          packedData
-        ),
-      ]);
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
 
@@ -378,51 +342,18 @@ describe('FIFOMarket', () => {
     });
     it('should purchase removals and mint a certificate for a small purchase spanning several removals', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } =
-        await setupTestLocal({
-          buyerInitialBPNoriBalance,
-        });
+      const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+        nrtsToListAmounts: [3, 3, 4],
+      });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
-      const tokenIds = await Promise.all([
-        createRemovalTokenId(removal, {
-          supplierAddress: supplier,
-          vintage: 2018,
-        }),
-        createRemovalTokenId(removal, {
-          supplierAddress: supplier,
-          vintage: 2019,
-        }),
-        createRemovalTokenId(removal, {
-          supplierAddress: supplier,
-          vintage: 2020,
-        }),
-      ]);
-      const removalBalance1 = '3';
-      const removalBalance2 = '3';
-      const removalBalance3 = '4';
+
       const purchaseAmount = '10'; // purchase all supply
       const fee = '1.5';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
 
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
-      const list = true;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [fifoMarket.address, list]
-      );
-      await Promise.all([
-        removal.mintBatch(
-          supplier,
-          [
-            hre.ethers.utils.parseUnits(removalBalance1),
-            hre.ethers.utils.parseUnits(removalBalance2),
-            hre.ethers.utils.parseUnits(removalBalance3),
-          ],
-          tokenIds,
-          packedData
-        ),
-      ]);
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
       expect(initialFifoSupply).to.equal(hre.ethers.utils.parseUnits('10'));
@@ -470,24 +401,19 @@ describe('FIFOMarket', () => {
     });
     it('should purchase removals and mint a certificate for a large purchase spanning many removals', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const numberOfRemovalsToCreate = 20;
+      const totalSupply = 1000;
+      const nrtsToListAmounts = [...Array(numberOfRemovalsToCreate).keys()].map(
+        (_) => {
+          return totalSupply / numberOfRemovalsToCreate;
+        }
+      );
       const { bpNori, removal, certificate, fifoMarket, hre } =
         await setupTestLocal({
           buyerInitialBPNoriBalance,
+          nrtsToListAmounts,
         });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
-
-      const removalBalances = [];
-      let tokenIds = [];
-      for (let i = 0; i <= 20; i++) {
-        removalBalances.push(hre.ethers.utils.parseUnits('50'));
-        tokenIds.push(
-          createRemovalTokenId(removal, {
-            supplierAddress: supplier,
-            subIdentifier: i,
-          })
-        ); // use i as parcelId to ensure unique token ids
-      }
-      tokenIds = await Promise.all(tokenIds);
 
       const purchaseAmount = '1000'; // purchase all supply
       const fee = '150';
@@ -495,15 +421,6 @@ describe('FIFOMarket', () => {
 
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
-
-      const list = true;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [fifoMarket.address, list]
-      );
-      await Promise.all([
-        removal.mintBatch(supplier, removalBalances, tokenIds, packedData),
-      ]);
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
       await bpNori
@@ -693,17 +610,15 @@ describe('FIFOMarket', () => {
 
       await Promise.all([]);
 
-      try {
-        await bpNori
+      await expect(
+        bpNori
           .connect(hre.namedSigners.buyer)
           .send(
             fifoMarket.address,
             hre.ethers.utils.parseUnits(totalPrice),
             hre.ethers.utils.hexZeroPad(buyer, 32)
-          );
-      } catch (err) {
-        chai.assert(err);
-      }
+          )
+      ).to.be.revertedWith('Market: Out of stock');
 
       // no balances should change and no certificate balance should be minted
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
@@ -728,13 +643,12 @@ describe('FIFOMarket', () => {
     });
     it('should revert when the non-empty queue does not have enough supply to fill the order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } =
-        await setupTestLocal({
-          buyerInitialBPNoriBalance,
-        });
+      const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+        nrtsToListAmounts: [1],
+      });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
-      const totalAvailableSupply = '1';
       const purchaseAmount = '2';
       const fee = '.3';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
@@ -742,29 +656,13 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const list = true;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [fifoMarket.address, list]
-      );
-      await Promise.all([
-        removal.mintBatch(
-          supplier,
-          [hre.ethers.utils.parseUnits(totalAvailableSupply)],
-          [2018],
-          packedData
-        ),
-      ]);
-
-      try {
-        await bpNori.connect(hre.namedSigners.buyer).send(
+      await expect(
+        bpNori.connect(hre.namedSigners.buyer).send(
           fifoMarket.address,
           hre.ethers.utils.parseUnits(totalPrice), // todo, perform fee calculation
           hre.ethers.utils.hexZeroPad(buyer, 32)
-        );
-      } catch (err) {
-        chai.assert(err);
-      }
+        )
+      ).to.be.revertedWith('Market: Not enough supply');
 
       // no balances should change and no certificate balance should be minted
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
