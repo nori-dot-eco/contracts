@@ -151,9 +151,7 @@ describe('FIFOMarket', () => {
                   hre.ethers.utils.parseUnits(totalAvailableSupply),
                   hre.ethers.utils.hexZeroPad(buyer, 32)
                 )
-            ).to.be.revertedWith(
-              'Priority supply only and buyer not on allowlist'
-            );
+            ).to.be.revertedWith('Low supply and buyer not on allowlist');
 
             const roleId = await fifoMarket[role]();
             expect(
@@ -178,6 +176,124 @@ describe('FIFOMarket', () => {
           });
         });
       });
+    });
+  });
+  // TODO add more tests when methods allow introspection of reserved and priority withheld removals
+  describe('inventory inspection', () => {
+    it('should correctly report the number of NRTs for sale when there are multiple removals in inventory', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { removal, fifoMarket, hre } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+      });
+      const { supplier } = hre.namedAccounts;
+      const tokenIds = await Promise.all([
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2018,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2019,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2020,
+        }),
+      ]);
+      const removalBalance1 = '3';
+      const removalBalance2 = '3';
+      const removalBalance3 = '4';
+      const totalSupply = '10';
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
+      await Promise.all([
+        removal.mintBatch(
+          supplier,
+          [
+            hre.ethers.utils.parseUnits(removalBalance1),
+            hre.ethers.utils.parseUnits(removalBalance2),
+            hre.ethers.utils.parseUnits(removalBalance3),
+          ],
+          tokenIds,
+          packedData
+        ),
+      ]);
+
+      const nrtsInQueueWei = await fifoMarket.numberOfNrtsInQueueComputed();
+      const retrievedTotalSupplyWei = await fifoMarket.totalSupply();
+      expect(nrtsInQueueWei.toString()).to.equal(
+        ethers.utils.parseUnits(BigNumber.from(totalSupply).toString())
+      );
+      expect(retrievedTotalSupplyWei).to.equal(nrtsInQueueWei);
+    });
+    it('should correctly report the number of NRTs for sale when there are multiple removals in inventory and some were purchased', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, removal, fifoMarket, hre } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+      });
+      const { supplier, buyer } = hre.namedAccounts;
+      const tokenIds = await Promise.all([
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2018,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2019,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2020,
+        }),
+      ]);
+      const removalBalance1 = '5';
+      const removalBalance2 = '5';
+      const removalBalance3 = '5';
+      const purchaseAmount = '10'; // purchase first two removals
+      const fee = '1.5';
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
+      await Promise.all([
+        removal.mintBatch(
+          supplier,
+          [
+            hre.ethers.utils.parseUnits(removalBalance1),
+            hre.ethers.utils.parseUnits(removalBalance2),
+            hre.ethers.utils.parseUnits(removalBalance3),
+          ],
+          tokenIds,
+          packedData
+        ),
+      ]);
+
+      await bpNori
+        .connect(hre.namedSigners.buyer)
+        .send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice),
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        );
+      expect(await fifoMarket.totalSupply()).to.equal(
+        BigNumber.from(hre.ethers.utils.parseUnits(removalBalance3))
+      );
+    });
+    it('should correctly report the number of NRTs for sale when there is no inventory', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { fifoMarket } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+      });
+      expect(await fifoMarket.numberOfNrtsInQueueComputed()).to.equal(
+        BigNumber.from(0)
+      );
+      expect(await fifoMarket.totalSupply()).to.equal(BigNumber.from(0));
     });
   });
   describe('Successful purchases', () => {
@@ -215,7 +331,7 @@ describe('FIFOMarket', () => {
         ),
       ]);
 
-      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
+      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
 
       await bpNori
         .connect(hre.namedSigners.buyer)
@@ -228,7 +344,7 @@ describe('FIFOMarket', () => {
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
       const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueue();
+      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
 
       expect(buyerFinalNoriBalance).to.equal(
         buyerInitialBPNoriBalance
@@ -308,7 +424,7 @@ describe('FIFOMarket', () => {
         ),
       ]);
 
-      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
+      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
       expect(initialFifoSupply).to.equal(hre.ethers.utils.parseUnits('10'));
       await bpNori
         .connect(hre.namedSigners.buyer)
@@ -320,7 +436,7 @@ describe('FIFOMarket', () => {
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
       const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueue();
+      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
 
       expect(buyerFinalNoriBalance).to.equal(
         buyerInitialBPNoriBalance
@@ -389,7 +505,7 @@ describe('FIFOMarket', () => {
         removal.mintBatch(supplier, removalBalances, tokenIds, packedData),
       ]);
 
-      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
+      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
       await bpNori
         .connect(hre.namedSigners.buyer)
         .send(
@@ -400,7 +516,7 @@ describe('FIFOMarket', () => {
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
       const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueue();
+      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
 
       expect(buyerFinalNoriBalance).to.equal(
         buyerInitialBPNoriBalance
@@ -490,7 +606,7 @@ describe('FIFOMarket', () => {
         ),
       ]);
 
-      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
+      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
 
       await bpNori
         .connect(hre.namedSigners.buyer)
@@ -514,7 +630,7 @@ describe('FIFOMarket', () => {
       const noriFinalNoriBalance = await bpNori.balanceOf(
         namedAccounts.noriWallet
       );
-      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueue();
+      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
 
       expect(buyerFinalNoriBalance).to.equal(
         buyerInitialBPNoriBalance

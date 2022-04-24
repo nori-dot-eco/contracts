@@ -38,9 +38,10 @@ contract FIFOMarket is
   address private _noriFeeWallet;
   uint256 private _noriFee;
   uint256 public priorityRestrictedThreshold;
+  uint256 public totalSupply;
 
   /**
-   * @notice Role allowing the purchase of supply when below the priority restricted threshold.
+   * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
    */
   bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
 
@@ -77,6 +78,7 @@ contract FIFOMarket is
     _queueHeadIndex = 0;
     _queueNextInsertIndex = 0;
     priorityRestrictedThreshold = 0;
+    totalSupply = 0;
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender()); // todo, do this here or have to do it explicitly after intialization?
   }
@@ -93,7 +95,7 @@ contract FIFOMarket is
     return _queueNextInsertIndex - _queueHeadIndex;
   }
 
-  function numberOfNrtsInQueue() public view returns (uint256) {
+  function numberOfNrtsInQueueComputed() public view returns (uint256) {
     uint256 nrtsInQueue = 0;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       nrtsInQueue += _removal.balanceOf(address(this), _queue[i]);
@@ -109,6 +111,8 @@ contract FIFOMarket is
     bytes memory
   ) public override returns (bytes4) {
     for (uint256 i = 0; i < ids.length; i++) {
+      uint256 removalAmount = _removal.balanceOf(address(this), ids[i]);
+      totalSupply += removalAmount;
       _queue[_queueNextInsertIndex] = (ids[i]);
       _queueNextInsertIndex++;
     }
@@ -127,13 +131,12 @@ contract FIFOMarket is
     bytes calldata userData,
     bytes calldata
   ) external override {
-    // todo, this is a problem because as a call, the extreme expensiveness of numberOfNrtsInQueue
-    // isn't a problem, but as part of a purchase transaction, we cannot be iterating over the entire queue...
-    // We'll need to a way to keep a running balance to get this information.
-    if (numberOfNrtsInQueue() <= priorityRestrictedThreshold) {
+    // todo we need to treat totalSupply in a more nuanced way when reservation of removals is implemented
+    // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s. priority reserved etc.
+    if (totalSupply <= priorityRestrictedThreshold) {
       require(
         hasRole(ALLOWLIST_ROLE, from),
-        "Priority supply only and buyer not on allowlist"
+        "Low supply and buyer not on allowlist"
       );
     }
     uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
@@ -190,6 +193,7 @@ contract FIFOMarket is
       if (amounts[i] == 0) {
         break;
       }
+      totalSupply -= amounts[i];
       if (amounts[i] == _removal.balanceOf(address(this), _queue[i])) {
         _queueHeadIndex++;
       }
