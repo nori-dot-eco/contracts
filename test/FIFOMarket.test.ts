@@ -194,46 +194,15 @@ describe('FIFOMarket', () => {
   describe('inventory inspection', () => {
     it('should correctly report the number of NRTs for sale when there are multiple removals in inventory', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { removal, fifoMarket, hre } = await setupTestLocal({
+      const nrtsToListAmounts = [3, 3, 4];
+      const { fifoMarket } = await setupTestLocal({
         buyerInitialBPNoriBalance,
+        nrtsToListAmounts,
       });
-      const { supplier } = hre.namedAccounts;
-      const tokenIds = await Promise.all([
-        createRemovalTokenId(removal, {
-          supplierAddress: supplier,
-          vintage: 2018,
-        }),
-        createRemovalTokenId(removal, {
-          supplierAddress: supplier,
-          vintage: 2019,
-        }),
-        createRemovalTokenId(removal, {
-          supplierAddress: supplier,
-          vintage: 2020,
-        }),
-      ]);
-      const removalBalance1 = '3';
-      const removalBalance2 = '3';
-      const removalBalance3 = '4';
-      const totalSupply = '10';
-      const list = true;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [fifoMarket.address, list]
-      );
-      await Promise.all([
-        removal.mintBatch(
-          supplier,
-          [
-            hre.ethers.utils.parseUnits(removalBalance1),
-            hre.ethers.utils.parseUnits(removalBalance2),
-            hre.ethers.utils.parseUnits(removalBalance3),
-          ],
-          tokenIds,
-          packedData
-        ),
-      ]);
 
+      const totalSupply = nrtsToListAmounts
+        .reduce((a, b) => a + b, 0)
+        .toString();
       const nrtsInQueueWei = await fifoMarket.numberOfNrtsInQueueComputed();
       const retrievedTotalSupplyWei = await fifoMarket.totalSupply();
       expect(nrtsInQueueWei.toString()).to.equal(
