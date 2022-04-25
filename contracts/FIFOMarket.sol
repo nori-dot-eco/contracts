@@ -103,10 +103,20 @@ contract FIFOMarket is
     return nrtsInQueue;
   }
 
-  function nextRemovalForSale() public view returns (uint256) {
+  function nextRemovalForSale(bool includePriorityRestrictedSupply)
+    public
+    view
+    returns (uint256)
+  {
     // todo if our queue ever becomes an array and not a map, we need to define behavior for empty queue
     // instead of trying to index into it (returning 0 if empty)
-    return _queue[_queueHeadIndex];
+    uint256 nextRemovalId = _queue[_queueHeadIndex];
+    if (!includePriorityRestrictedSupply) {
+      if (totalSupply <= priorityRestrictedThreshold) {
+        nextRemovalId = 0;
+      }
+    }
+    return nextRemovalId;
   }
 
   function onERC1155BatchReceived(
