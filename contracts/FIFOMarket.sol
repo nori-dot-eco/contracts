@@ -71,7 +71,6 @@ contract FIFOMarket is
     return _queueNextInsertIndex - _queueHeadIndex;
   }
 
-  // todo do we want this to report NRTs in either or wei? because removal token balances are denominated in wei
   function numberOfNrtsInQueue() public view returns (uint256) {
     uint256 nrtsInQueue = 0;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
@@ -81,8 +80,9 @@ contract FIFOMarket is
   }
 
   function nextRemovalForSale() public view returns (uint256) {
-    // todo if our queue ever becomes an array and not a map, we need to define behavior for empty queue
-    // instead of trying to index into it (returning 0 if empty)
+    if (_queueLength() == 0) {
+      return 0;
+    }
     return _queue[_queueHeadIndex];
   }
 

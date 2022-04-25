@@ -60,14 +60,12 @@ describe('FIFOMarket', () => {
         supplierAddress: supplier,
       });
 
-      await Promise.all([
-        removal.mintBatch(
-          supplier,
-          [hre.ethers.utils.parseUnits(totalAvailableSupply)],
-          [removalId],
-          packedData
-        ),
-      ]);
+      await removal.mintBatch(
+        supplier,
+        [hre.ethers.utils.parseUnits(totalAvailableSupply)],
+        [removalId],
+        packedData
+      );
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
 
@@ -149,18 +147,16 @@ describe('FIFOMarket', () => {
         ['address', 'bool'],
         [fifoMarket.address, list]
       );
-      await Promise.all([
-        removal.mintBatch(
-          supplier,
-          [
-            hre.ethers.utils.parseUnits(removalBalance1),
-            hre.ethers.utils.parseUnits(removalBalance2),
-            hre.ethers.utils.parseUnits(removalBalance3),
-          ],
-          tokenIds,
-          packedData
-        ),
-      ]);
+      await removal.mintBatch(
+        supplier,
+        [
+          hre.ethers.utils.parseUnits(removalBalance1),
+          hre.ethers.utils.parseUnits(removalBalance2),
+          hre.ethers.utils.parseUnits(removalBalance3),
+        ],
+        tokenIds,
+        packedData
+      );
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
       expect(initialFifoSupply).to.equal(hre.ethers.utils.parseUnits('10'));
@@ -239,9 +235,7 @@ describe('FIFOMarket', () => {
         ['address', 'bool'],
         [fifoMarket.address, list]
       );
-      await Promise.all([
-        removal.mintBatch(supplier, removalBalances, tokenIds, packedData),
-      ]);
+      await removal.mintBatch(supplier, removalBalances, tokenIds, packedData);
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueue();
       await bpNori
@@ -429,8 +423,6 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      await Promise.all([]);
-
       try {
         await bpNori
           .connect(hre.namedSigners.buyer)
@@ -485,14 +477,12 @@ describe('FIFOMarket', () => {
         ['address', 'bool'],
         [fifoMarket.address, list]
       );
-      await Promise.all([
-        removal.mintBatch(
-          supplier,
-          [hre.ethers.utils.parseUnits(totalAvailableSupply)],
-          [2018],
-          packedData
-        ),
-      ]);
+      await removal.mintBatch(
+        supplier,
+        [hre.ethers.utils.parseUnits(totalAvailableSupply)],
+        [2018],
+        packedData
+      );
 
       try {
         await bpNori.connect(hre.namedSigners.buyer).send(
@@ -545,14 +535,12 @@ describe('FIFOMarket', () => {
         supplierAddress: supplier,
       });
 
-      await Promise.all([
-        removal.mintBatch(
-          supplier,
-          [hre.ethers.utils.parseUnits(totalAvailableSupply)],
-          [removalId],
-          packedData
-        ),
-      ]);
+      await removal.mintBatch(
+        supplier,
+        [hre.ethers.utils.parseUnits(totalAvailableSupply)],
+        [removalId],
+        packedData
+      );
 
       expect(await fifoMarket.nextRemovalForSale()).to.equal(removalId);
     });
@@ -588,18 +576,16 @@ describe('FIFOMarket', () => {
         ['address', 'bool'],
         [fifoMarket.address, list]
       );
-      await Promise.all([
-        removal.mintBatch(
-          supplier,
-          [
-            hre.ethers.utils.parseUnits(removalBalance1),
-            hre.ethers.utils.parseUnits(removalBalance2),
-            hre.ethers.utils.parseUnits(removalBalance3),
-          ],
-          tokenIds,
-          packedData
-        ),
-      ]);
+      await removal.mintBatch(
+        supplier,
+        [
+          hre.ethers.utils.parseUnits(removalBalance1),
+          hre.ethers.utils.parseUnits(removalBalance2),
+          hre.ethers.utils.parseUnits(removalBalance3),
+        ],
+        tokenIds,
+        packedData
+      );
 
       await bpNori
         .connect(hre.namedSigners.buyer)
@@ -609,6 +595,58 @@ describe('FIFOMarket', () => {
           hre.ethers.utils.hexZeroPad(buyer, 32)
         );
       expect(await fifoMarket.nextRemovalForSale()).to.equal(tokenIds[2]);
+    });
+    it('should have defined behavior if there are multiple removals and all of them were purchased', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, removal, fifoMarket, hre } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+      });
+      const { supplier, buyer } = hre.namedAccounts;
+      const tokenIds = await Promise.all([
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2018,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2019,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2020,
+        }),
+      ]);
+      const removalBalance1 = '5';
+      const removalBalance2 = '5';
+      const removalBalance3 = '5';
+      const purchaseAmount = '15'; // purchase all removals
+      const fee = '2.25';
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
+      await removal.mintBatch(
+        supplier,
+        [
+          hre.ethers.utils.parseUnits(removalBalance1),
+          hre.ethers.utils.parseUnits(removalBalance2),
+          hre.ethers.utils.parseUnits(removalBalance3),
+        ],
+        tokenIds,
+        packedData
+      );
+
+      await bpNori
+        .connect(hre.namedSigners.buyer)
+        .send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice),
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        );
+      expect(await fifoMarket.nextRemovalForSale()).to.equal(BigNumber.from(0));
     });
     it('should have defined behavior if there is no inventory', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
