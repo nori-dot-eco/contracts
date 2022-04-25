@@ -202,6 +202,26 @@ describe('FIFOMarket', () => {
             BigNumber.from(0)
           );
         });
+        it('should have defined behavior if there are multiple removals and all of them were purchased', async () => {
+          const { bpNori, fifoMarket, hre } = await setupTestLocal({
+            nrtsToListAmounts: [5, 5, 5],
+          });
+          const { buyer } = hre.namedAccounts;
+          const purchaseAmount = 15; // purchase all removals
+          const fee = 2.25;
+          const totalPrice = purchaseAmount + fee;
+
+          await bpNori
+            .connect(hre.namedSigners.buyer)
+            .send(
+              fifoMarket.address,
+              hre.ethers.utils.parseUnits(totalPrice.toString()),
+              hre.ethers.utils.hexZeroPad(buyer, 32)
+            );
+          expect(await fifoMarket.nextRemovalForSale(true)).to.equal(
+            BigNumber.from(0)
+          );
+        });
       });
       describe('when inventory is above priority restricted threshold', () => {
         it('should correctly report the next removal for sale', async () => {
@@ -688,8 +708,6 @@ describe('FIFOMarket', () => {
 
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
-
-      await Promise.all([]);
 
       await expect(
         bpNori
