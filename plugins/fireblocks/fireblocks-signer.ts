@@ -144,7 +144,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     const gasLimit =
       transaction.gasLimit !== undefined
         ? BigNumber.from(await transaction.gasLimit)
-        : gasEstimate?.add(100000);
+        : gasEstimate;
     const maxPriority =
       transaction.maxPriorityFeePerGas !== undefined
         ? ethers.utils.parseUnits(

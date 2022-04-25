@@ -16,8 +16,8 @@ export interface GasPrice {
 // Sensible defaults -- TODO query the gas station services above
 const defaultGasPricesSettings: { [key: number]: GasPrice } = {
   137: {
-    maxFeePerGas: 60,
-    maxPriorityFeePerGas: 60,
+    maxFeePerGas: 35,
+    maxPriorityFeePerGas: 35,
   },
   80001: {
     maxFeePerGas: 30,
