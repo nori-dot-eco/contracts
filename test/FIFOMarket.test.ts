@@ -218,7 +218,7 @@ describe('FIFOMarket', () => {
 
       const removalBalances = [];
       let tokenIds = [];
-      for (let i = 0; i <= 20; i++) {
+      for (let i = 0; i <= 100; i++) {
         removalBalances.push(hre.ethers.utils.parseUnits('50'));
         tokenIds.push(
           createRemovalTokenId(removal, {
