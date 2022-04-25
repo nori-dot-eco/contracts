@@ -655,6 +655,99 @@ describe('FIFOMarket', () => {
       );
     });
   });
+
+  describe('nextRemovalForSale', () => {
+    it('should correctly report the next removal for sale if there is inventory', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { removal, fifoMarket, hre } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+      });
+      const { supplier } = hre.namedAccounts;
+      const totalAvailableSupply = '100';
+
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
+      const removalId = await createRemovalTokenId(removal, {
+        supplierAddress: supplier,
+      });
+
+      await Promise.all([
+        removal.mintBatch(
+          supplier,
+          [hre.ethers.utils.parseUnits(totalAvailableSupply)],
+          [removalId],
+          packedData
+        ),
+      ]);
+
+      expect(await fifoMarket.nextRemovalForSale()).to.equal(removalId);
+    });
+    it('should correctly report the next removal for sale if there are multiple removals and some were purchased', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, removal, fifoMarket, hre } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+      });
+      const { supplier, buyer } = hre.namedAccounts;
+      const tokenIds = await Promise.all([
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2018,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2019,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2020,
+        }),
+      ]);
+      const removalBalance1 = '5';
+      const removalBalance2 = '5';
+      const removalBalance3 = '5';
+      const purchaseAmount = '10'; // purchase first two removals
+      const fee = '1.5';
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
+      await Promise.all([
+        removal.mintBatch(
+          supplier,
+          [
+            hre.ethers.utils.parseUnits(removalBalance1),
+            hre.ethers.utils.parseUnits(removalBalance2),
+            hre.ethers.utils.parseUnits(removalBalance3),
+          ],
+          tokenIds,
+          packedData
+        ),
+      ]);
+
+      await bpNori
+        .connect(hre.namedSigners.buyer)
+        .send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice),
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        );
+      expect(await fifoMarket.nextRemovalForSale()).to.equal(tokenIds[2]);
+    });
+    it('should have defined behavior if there is no inventory', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { fifoMarket } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+      });
+
+      expect(await fifoMarket.nextRemovalForSale()).to.equal(BigNumber.from(0));
+    });
+  });
 });
 
 // TODO: check that removals are getting burned correctly?
