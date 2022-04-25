@@ -103,6 +103,13 @@ contract FIFOMarket is
     return nrtsInQueue;
   }
 
+  function totalUnrestrictedSupply() public view returns (uint256) {
+    if (totalSupply < priorityRestrictedThreshold) {
+      return 0;
+    }
+    return totalSupply - priorityRestrictedThreshold;
+  }
+
   function nextRemovalForSale(bool includePriorityRestrictedSupply)
     public
     view
