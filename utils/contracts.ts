@@ -22,7 +22,7 @@ export const getContract = async ({
     throw new Error(`Unsupported network: ${hre.network.name}`);
   }
   if (signer) {
-    contract.connect(signer);
+    return contract.connect(signer);
   }
   return contract;
 };
