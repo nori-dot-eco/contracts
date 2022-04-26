@@ -36,11 +36,10 @@ describe('FIFOMarket', () => {
   describe('Successful purchases', () => {
     it('should purchase removals and mint a certificate when there is enough supply in a single removal', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
-        {
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
           buyerInitialBPNoriBalance,
-        }
-      );
+        });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const totalAvailableSupply = '100';
@@ -116,11 +115,10 @@ describe('FIFOMarket', () => {
     });
     it('should purchase removals and mint a certificate for a small purchase spanning several removals', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
-        {
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
           buyerInitialBPNoriBalance,
-        }
-      );
+        });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
       const tokenIds = await Promise.all([
         createRemovalTokenId(removal, {
@@ -209,11 +207,10 @@ describe('FIFOMarket', () => {
     });
     it('should purchase removals and mint a certificate for a large purchase spanning many removals', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
-        {
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
           buyerInitialBPNoriBalance,
-        }
-      );
+        });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const removalBalances = [];
@@ -290,11 +287,10 @@ describe('FIFOMarket', () => {
     });
     it('should correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
-        {
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
           buyerInitialBPNoriBalance,
-        }
-      );
+        });
       const { namedAccounts } = hre;
 
       const removalBalance1 = '3';
@@ -469,11 +465,10 @@ describe('FIFOMarket', () => {
     });
     it('should revert when the non-empty queue does not have enough supply to fill the order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, removal, certificate, fifoMarket, hre } = await setupTestLocal(
-        {
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
           buyerInitialBPNoriBalance,
-        }
-      );
+        });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const totalAvailableSupply = '1';
@@ -494,6 +489,88 @@ describe('FIFOMarket', () => {
           supplier,
           [hre.ethers.utils.parseUnits(totalAvailableSupply)],
           [2018],
+          packedData
+        ),
+      ]);
+
+      try {
+        await bpNori.connect(hre.namedSigners.buyer).send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice), // todo, perform fee calculation
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        );
+      } catch (err) {
+        chai.assert(err);
+      }
+
+      // no balances should change and no certificate balance should be minted
+      const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
+      const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
+      const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
+
+      expect(buyerFinalNoriBalance).to.equal(
+        buyerInitialBPNoriBalance.toString()
+      );
+
+      expect(supplierFinalNoriBalance).to.equal(
+        hre.ethers.utils.parseUnits(supplierInitialNoriBalance).toString()
+      );
+
+      expect(noriFinalNoriBalance).to.equal(
+        hre.ethers.utils.parseUnits(noriInitialNoriBalance).toString()
+      );
+
+      expect(await certificate.balanceOf(buyer, 0)).to.equal(
+        hre.ethers.utils.parseUnits('0', 18)
+      );
+    });
+    it('should revert when a removal with an amount of 0 is used', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, removal, certificate, fifoMarket, hre } =
+        await setupTestLocal({
+          buyerInitialBPNoriBalance,
+        });
+      const { supplier, buyer, noriWallet } = hre.namedAccounts;
+
+      const tokenIds = await Promise.all([
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2018,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2019,
+        }),
+        createRemovalTokenId(removal, {
+          supplierAddress: supplier,
+          vintage: 2020,
+        }),
+      ]);
+
+      const removalBalance1 = '1';
+      const removalBalance2 = '0';
+      const removalBalance3 = '2';
+      const purchaseAmount = '3';
+      const fee = '.3';
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+
+      const supplierInitialNoriBalance = '0';
+      const noriInitialNoriBalance = '0';
+
+      const list = true;
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, list]
+      );
+      await Promise.all([
+        removal.mintBatch(
+          supplier,
+          [
+            hre.ethers.utils.parseUnits(removalBalance1),
+            hre.ethers.utils.parseUnits(removalBalance2),
+            hre.ethers.utils.parseUnits(removalBalance3),
+          ],
+          tokenIds,
           packedData
         ),
       ]);
