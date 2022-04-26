@@ -1,46 +1,70 @@
 import { Contract } from 'ethers';
 
 import type { BridgedPolygonNORI, LockedNORI } from '../typechain-types';
-import type { networks } from '../config/networks';
+import { Certificate } from '../typechain-types/Certificate';
 
-import * as contractsConfig from '@/contracts.json';
-import { abi as bridgedPolygonNoriAbi } from '@/artifacts/BridgedPolygonNORI.sol/BridgedPolygonNORI.json';
-import { abi as lockedNoriAbi } from '@/artifacts/LockedNORI.sol/LockedNORI.json';
-
-export const getBridgedPolygonNori = ({
+export const getContract = async ({
+  contractName,
+  hre,
   signer,
-  network,
 }: {
-  signer: ConstructorParameters<typeof Contract>[2];
-  network: keyof typeof networks;
-}): BridgedPolygonNORI => {
-  const contractsForNetwork = contractsConfig[network];
-  if (!('BridgedPolygonNORI' in contractsForNetwork)) {
-    throw new Error(`Unsupported network: ${network}`);
+  contractName: string;
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<Contract> => {
+  const contract = await hre.ethers.getContractAt(
+    contractName,
+    (
+      await hre.deployments.get(contractName)
+    ).address
+  );
+  if (!contract) {
+    throw new Error(`Unsupported network: ${hre.network.name}`);
   }
-  const bridgedPolygonNori = new Contract(
-    contractsForNetwork.BridgedPolygonNORI.proxyAddress,
-    bridgedPolygonNoriAbi,
-    signer
-  ) as BridgedPolygonNORI;
-  return bridgedPolygonNori;
+  if (signer) {
+    contract.connect(signer);
+  }
+  return contract;
 };
 
-export const getLockedNori = ({
+export const getBridgedPolygonNori = async ({
+  hre,
   signer,
-  network,
 }: {
-  signer: ConstructorParameters<typeof Contract>[2];
-  network: keyof typeof networks;
-}): LockedNORI => {
-  const contractsForNetwork = contractsConfig[network];
-  if (!('LockedNORI' in contractsForNetwork)) {
-    throw new Error(`Unsupported network: ${network}`);
-  }
-  const lockedNori = new Contract(
-    contractsForNetwork.LockedNORI.proxyAddress,
-    lockedNoriAbi,
-    signer
-  ) as LockedNORI;
-  return lockedNori;
+    hre: CustomHardHatRuntimeEnvironment;
+    signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<BridgedPolygonNORI> => {
+  return getContract({
+    contractName: 'BridgedPolygonNORI',
+    hre,
+    signer,
+  }) as Promise<BridgedPolygonNORI>;
 };
+
+export const getLockedNori = async ({
+    hre,
+    signer,
+  }: {
+      hre: CustomHardHatRuntimeEnvironment;
+      signer?: ConstructorParameters<typeof Contract>[2];
+  }): Promise<LockedNORI> => {
+    return getContract({
+      contractName: 'LockedNORI',
+      hre,
+      signer,
+    }) as Promise<LockedNORI>;
+  };
+
+  export const getCertificate = async ({
+    hre,
+    signer,
+  }: {
+      hre: CustomHardHatRuntimeEnvironment;
+      signer?: ConstructorParameters<typeof Contract>[2];
+  }): Promise<Certificate> => {
+    return getContract({
+      contractName: 'Certificate',
+      hre,
+      signer,
+    }) as Promise<Certificate>;
+  };

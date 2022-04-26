@@ -110,7 +110,7 @@ extendEnvironment((hre) => {
     );
     const fireblocksSigner = signer as FireblocksSigner;
     if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-        fireblocksSigner.setNextTransactionMemo(`Deploy ${contractName}`);
+      fireblocksSigner.setNextTransactionMemo(`Deploy ${contractName}`);
     }
     contract = (await contractFactory.deploy(
       ...args
@@ -137,9 +137,8 @@ extendEnvironment((hre) => {
     options?: DeployProxyOptions;
   }): Promise<InstanceOfContract<TContract>> => {
     // todo use proposeUpgrade
-    const proxyAddress =
-      contractsConfig[hre.network.name as 'hardhat']?.[contractName]
-        ?.proxyAddress;
+    const proxy = await hre.deployments.getOrNull(contractName);
+    const proxyAddress = proxy?.address;
     let contractCode = '0x';
     if (proxyAddress) {
       try {
@@ -162,7 +161,9 @@ extendEnvironment((hre) => {
       hre.log('Deploying proxy and instance', contractName); // todo use hre.trace (variant of hre.log requiring env.TRACE === true)
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-          fireblocksSigner.setNextTransactionMemo(`Deploy proxy and instance for ${contractName}`);
+        fireblocksSigner.setNextTransactionMemo(
+          `Deploy proxy and instance for ${contractName}`
+        );
       }
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,
@@ -184,14 +185,16 @@ extendEnvironment((hre) => {
       );
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-          fireblocksSigner.setNextTransactionMemo(`Upgrade contract instance for ${contractName}`);
+        fireblocksSigner.setNextTransactionMemo(
+          `Upgrade contract instance for ${contractName}`
+        );
       }
       contract = await hre.upgrades.upgradeProxy<TContract>(
-        proxyAddress,
+        proxyAddress!,
         contractFactory
         // options
       );
-      hre.log('Upgraded instance', contractName, 'at', contract.address);
+      hre.log('Upgraded instance if it changed');
     }
     hre.trace('...awaiting deployment transaction', contractName);
     await contract.deployed();

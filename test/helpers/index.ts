@@ -14,7 +14,7 @@ import { asciiStringToHexString } from '../../utils/bytes';
 import { mockDepositNoriToPolygon } from './polygon';
 
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/utils/deploy';
+import { Contracts, readContractsConfig } from '@/utils/deploy';
 
 export * from './chai';
 export * from './interfaces';
@@ -90,6 +90,48 @@ export const getContractsFromDeployments = async (
   return contracts;
 };
 
+export const getContractsFromConfig = async (
+    hre: CustomHardHatRuntimeEnvironment
+  ): Promise<Required<Contracts>> => {
+    const deployments = readContractsConfig()[hre.network.name];
+    const contracts = {
+      NORI: deployments['NORI']?.proxyAddress
+        ? await hre.ethers.getContractAt('NORI', deployments['NORI'].proxyAddress)
+        : undefined,
+      BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.proxyAddress
+        ? await hre.ethers.getContractAt(
+            'BridgedPolygonNORI',
+            deployments['BridgedPolygonNORI'].proxyAddress
+          )
+        : undefined,
+      LockedNORI: deployments['LockedNORI']?.proxyAddress
+        ? await hre.ethers.getContractAt(
+            'LockedNORI',
+            deployments['LockedNORI'].proxyAddress
+          )
+        : undefined,
+      FIFOMarket: deployments['FIFOMarket']?.proxyAddress
+        ? await hre.ethers.getContractAt(
+            'FIFOMarket',
+            deployments['FIFOMarket'].proxyAddress
+          )
+        : undefined,
+      Removal: deployments['Removal']?.proxyAddress
+        ? await hre.ethers.getContractAt(
+            'Removal',
+            deployments['Removal']?.proxyAddress
+          )
+        : undefined,
+      Certificate: deployments['Removal']?.proxyAddress
+        ? await hre.ethers.getContractAt(
+            'Certificate',
+            deployments['Certificate'].proxyAddress
+          )
+        : undefined,
+    } as Required<Contracts>;
+    return contracts;
+  };
+
 export const setupTest = global.hre.deployments.createFixture(
   async (
     hre
@@ -101,7 +143,7 @@ export const setupTest = global.hre.deployments.createFixture(
   > => {
     hre.ethernalSync = false;
     await hre.deployments.fixture(['assets', 'market']);
-    const contracts = await getContractsFromDeployments(hre);
+    const contracts = await getContractsFromConfig(hre);
     await mockDepositNoriToPolygon({
       hre,
       contracts,
