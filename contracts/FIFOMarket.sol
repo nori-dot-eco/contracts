@@ -180,11 +180,8 @@ contract FIFOMarket is
       batchedAmounts,
       encodedCertificateAmount
     );
-    for (uint256 i = 0; i < batchedIds.length; i++) {
-      if (
-        batchedAmounts[i] ==
-        _removal.balanceOf(address(this), _queue[_queueHeadIndex + i])
-      ) {
+    for (uint256 i = _queueHeadIndex; i < batchedIds.length; i++) {
+      if (batchedAmounts[i] == _removal.balanceOf(address(this), _queue[i])) {
         _queueHeadIndex++;
       }
       uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
