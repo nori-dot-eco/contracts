@@ -80,7 +80,7 @@ contract FIFOMarket is
     priorityRestrictedThreshold = 0;
     totalSupply = 0;
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _grantRole(ALLOWLIST_ROLE, _msgSender()); // todo, do this here or have to do it explicitly after intialization?
+    _grantRole(ALLOWLIST_ROLE, _msgSender());
   }
 
   function setPriorityRestrictedThreshold(uint256 threshold)
