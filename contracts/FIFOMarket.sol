@@ -181,10 +181,6 @@ contract FIFOMarket is
       encodedCertificateAmount
     );
     for (uint256 i = 0; i < batchedIds.length; i++) {
-      if (amounts[i] == 0) {
-        revert("FIFOMarket: Removal amount 0");
-      }
-
       if (batchedAmounts[i] == _removal.balanceOf(address(this), _queue[i])) {
         _queueHeadIndex++;
       }
