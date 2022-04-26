@@ -79,6 +79,13 @@ contract FIFOMarket is
     return nrtsInQueue;
   }
 
+  function nextRemovalForSale() public view returns (uint256) {
+    if (_queueLength() == 0) {
+      return 0;
+    }
+    return _queue[_queueHeadIndex];
+  }
+
   function onERC1155BatchReceived(
     address,
     address,
