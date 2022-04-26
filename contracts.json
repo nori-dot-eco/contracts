@@ -75,13 +75,13 @@
       "proxyAddress": "0x6E570A15C0C39b5F29388DEEa6ebda8CDDc40587"
     },
     "Removal": {
-      "proxyAddress": "0x56926bC62c83F5C74C03C7185cDE3Da270660dc7"
+      "proxyAddress": "0x0000000000000000000000000000000000000000"
     },
     "Certificate": {
-      "proxyAddress": "0x2285dcfCa8F6b93d323aF9aBEaa49Ce203CC6082"
+      "proxyAddress": "0x0000000000000000000000000000000000000000"
     },
     "FIFOMarket": {
-      "proxyAddress": "0x6b33BB24E413e754B3eC04293487F90dA178615F"
+      "proxyAddress": "0x0000000000000000000000000000000000000000"
     },
     "LockedNORI": {
       "proxyAddress": "0xCdcB43CB7B668F0C1cA04FE4b60DA7F8C62Be393"
