@@ -118,10 +118,11 @@ contract FIFOMarket is
     // todo if our queue ever becomes an array and not a map, we need to define behavior for empty queue
     // instead of trying to index into it (returning 0 if empty)
     uint256 nextRemovalId = _queue[_queueHeadIndex];
-    if (!includePriorityRestrictedSupply) {
-      if (totalSupply <= priorityRestrictedThreshold) {
-        nextRemovalId = 0;
-      }
+    if (
+      !includePriorityRestrictedSupply &&
+      totalSupply <= priorityRestrictedThreshold
+    ) {
+      nextRemovalId = 0;
     }
     return nextRemovalId;
   }
