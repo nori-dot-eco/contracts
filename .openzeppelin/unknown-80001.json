@@ -7046,7 +7046,7 @@
             "label": "_removal",
             "offset": 0,
             "slot": "302",
-            "type": "t_contract(Removal)9071",
+            "type": "t_contract(Removal)7589",
             "contract": "FIFOMarket",
             "src": "contracts/FIFOMarket.sol:32"
           },
@@ -7144,7 +7144,281 @@
             "label": "contract IERC1820RegistryUpgradeable",
             "numberOfBytes": "20"
           },
-          "t_contract(Removal)9071": {
+          "t_contract(Removal)7589": {
+            "label": "contract Removal",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(AddressSet)5634_storage)": {
+            "label": "mapping(bytes32 => struct EnumerableSetUpgradeable.AddressSet)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)179_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AddressSet)5634_storage": {
+            "label": "struct EnumerableSetUpgradeable.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)5333_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(RoleData)179_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Set)5333_storage": {
+            "label": "struct EnumerableSetUpgradeable.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_indexes",
+                "type": "t_mapping(t_bytes32,t_uint256)",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        }
+      }
+    },
+    "38f2f781be9bdaa379ac896977a33de59540c889a9e49a76786baf8a49c6af72": {
+      "address": "0x73353b30A197afB15781754089C876B911E5358C",
+      "txHash": "0xaf8b01d09f3e6530f38c46d47effb62c2d8cc30b038d41bb1d26c0eabc58d58d",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC165Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:41"
+          },
+          {
+            "label": "_roles",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)179_storage)",
+            "contract": "AccessControlUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "AccessControlUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:235"
+          },
+          {
+            "label": "_roleMembers",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_mapping(t_bytes32,t_struct(AddressSet)5634_storage)",
+            "contract": "AccessControlEnumerableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "AccessControlEnumerableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol:76"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1155ReceiverUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155ReceiverUpgradeable.sol:31"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1155HolderUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol:48"
+          },
+          {
+            "label": "_erc1820",
+            "offset": 0,
+            "slot": "301",
+            "type": "t_contract(IERC1820RegistryUpgradeable)4922",
+            "contract": "FIFOMarket",
+            "src": "contracts/FIFOMarket.sol:31"
+          },
+          {
+            "label": "_removal",
+            "offset": 0,
+            "slot": "302",
+            "type": "t_contract(Removal)9089",
+            "contract": "FIFOMarket",
+            "src": "contracts/FIFOMarket.sol:32"
+          },
+          {
+            "label": "_certificate",
+            "offset": 0,
+            "slot": "303",
+            "type": "t_contract(Certificate)6266",
+            "contract": "FIFOMarket",
+            "src": "contracts/FIFOMarket.sol:33"
+          },
+          {
+            "label": "_bridgedPolygonNori",
+            "offset": 0,
+            "slot": "304",
+            "type": "t_contract(BridgedPolygonNORI)6059",
+            "contract": "FIFOMarket",
+            "src": "contracts/FIFOMarket.sol:34"
+          },
+          {
+            "label": "_queue",
+            "offset": 0,
+            "slot": "305",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "FIFOMarket",
+            "src": "contracts/FIFOMarket.sol:35"
+          },
+          {
+            "label": "_queueHeadIndex",
+            "offset": 0,
+            "slot": "306",
+            "type": "t_uint256",
+            "contract": "FIFOMarket",
+            "src": "contracts/FIFOMarket.sol:36"
+          },
+          {
+            "label": "_queueNextInsertIndex",
+            "offset": 0,
+            "slot": "307",
+            "type": "t_uint256",
+            "contract": "FIFOMarket",
+            "src": "contracts/FIFOMarket.sol:37"
+          },
+          {
+            "label": "_noriFeeWallet",
+            "offset": 0,
+            "slot": "308",
+            "type": "t_address",
+            "contract": "FIFOMarket",
+            "src": "contracts/FIFOMarket.sol:38"
+          },
+          {
+            "label": "_noriFee",
+            "offset": 0,
+            "slot": "309",
+            "type": "t_uint256",
+            "contract": "FIFOMarket",
+            "src": "contracts/FIFOMarket.sol:39"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(BridgedPolygonNORI)6059": {
+            "label": "contract BridgedPolygonNORI",
+            "numberOfBytes": "20"
+          },
+          "t_contract(Certificate)6266": {
+            "label": "contract Certificate",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IERC1820RegistryUpgradeable)4922": {
+            "label": "contract IERC1820RegistryUpgradeable",
+            "numberOfBytes": "20"
+          },
+          "t_contract(Removal)9089": {
             "label": "contract Removal",
             "numberOfBytes": "20"
           },

@@ -24,6 +24,7 @@ export const deploy: DeployFunction = async (env) => {
   });
   const signer = (await hre.getSigners())[0]; 
   const certificate = await getCertificate({ hre, signer });
+  // TODO: Query first and only make this call if FIFOMarket is not already a minter.
   await certificate.addMinter(contract.address); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
   hre.trace('Added FIFOMarket as a minter of Certificate');
   await finalizeDeployments({ hre, contracts: { FIFOMarket: contract } });
@@ -33,9 +34,9 @@ export default deploy;
 deploy.tags = ['FIFOMarket', 'market'];
 deploy.dependencies = [
   'preconditions',
-//   'Removal',
-//   'Certificate',
-//   'BridgedPolygonNORI',
+  'Removal',
+  'Certificate',
+  'BridgedPolygonNORI',
   'seed',
 ];
 deploy.skip = async (hre) =>
