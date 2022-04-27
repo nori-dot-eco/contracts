@@ -38,6 +38,18 @@ contract FIFOMarket is
   uint256 private _queueNextInsertIndex;
   address private _noriFeeWallet;
   uint256 private _noriFee;
+  uint256 public priorityRestrictedThreshold;
+  uint256 public totalSupply;
+
+  /**
+   * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
+   */
+  bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
+
+  /**
+   * @notice Emitted on setting of priorityRestrictedThreshold.
+   */
+  event PriorityRestrictedThresholdSet(uint256 threshold);
 
   function initialize(
     address removalAddress,
@@ -66,6 +78,18 @@ contract FIFOMarket is
     );
     _queueHeadIndex = 0;
     _queueNextInsertIndex = 0;
+    priorityRestrictedThreshold = 0;
+    totalSupply = 0;
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _grantRole(ALLOWLIST_ROLE, _msgSender());
+  }
+
+  function setPriorityRestrictedThreshold(uint256 threshold)
+    external
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    priorityRestrictedThreshold = threshold;
+    emit PriorityRestrictedThresholdSet(threshold);
   }
 
   /**
@@ -85,7 +109,7 @@ contract FIFOMarket is
     return _queueNextInsertIndex - _queueHeadIndex;
   }
 
-  function numberOfNrtsInQueue() public view returns (uint256) {
+  function numberOfNrtsInQueueComputed() public view returns (uint256) {
     uint256 nrtsInQueue = 0;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       nrtsInQueue += _removal.balanceOf(address(this), _queue[i]);
@@ -93,11 +117,28 @@ contract FIFOMarket is
     return nrtsInQueue;
   }
 
-  function nextRemovalForSale() public view returns (uint256) {
-    if (_queueLength() == 0) {
+  function totalUnrestrictedSupply() public view returns (uint256) {
+    if (totalSupply < priorityRestrictedThreshold) {
       return 0;
     }
-    return _queue[_queueHeadIndex];
+    return totalSupply - priorityRestrictedThreshold;
+  }
+
+  function nextRemovalForSale(bool includePriorityRestrictedSupply)
+    public
+    view
+    returns (uint256)
+  {
+    // todo if our queue ever becomes an array and not a map, we need to define behavior for empty queue
+    // instead of trying to index into it (returning 0 if empty)
+    uint256 nextRemovalId = _queue[_queueHeadIndex];
+    if (
+      !includePriorityRestrictedSupply &&
+      totalSupply <= priorityRestrictedThreshold
+    ) {
+      nextRemovalId = 0;
+    }
+    return nextRemovalId;
   }
 
   function onERC1155BatchReceived(
@@ -108,6 +149,8 @@ contract FIFOMarket is
     bytes memory
   ) public override returns (bytes4) {
     for (uint256 i = 0; i < ids.length; i++) {
+      uint256 removalAmount = _removal.balanceOf(address(this), ids[i]);
+      totalSupply += removalAmount;
       _queue[_queueNextInsertIndex] = (ids[i]);
       _queueNextInsertIndex++;
     }
@@ -120,29 +163,37 @@ contract FIFOMarket is
    */
   function tokensReceived(
     address,
-    address,
+    address from,
     address,
     uint256 amount,
     bytes calldata userData,
     bytes calldata
   ) external override {
+    // todo we need to treat totalSupply in a more nuanced way when reservation of removals is implemented
+    // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s. priority reserved etc.
+    if (totalSupply == 0) {
+      revert("Market: Out of stock");
+    }
+    if (totalSupply <= priorityRestrictedThreshold) {
+      require(
+        hasRole(ALLOWLIST_ROLE, from),
+        "Low supply and buyer not on allowlist"
+      );
+    }
     uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
     uint256 remainingAmountToFill = certificateAmount;
 
     address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
     require(
       _queueHeadIndex != _queueNextInsertIndex,
-      "FIFOMarket: Not enough supply"
+      "Market: Not enough supply"
     );
-    require(recipient == address(recipient), "FIFOMarket: Invalid address");
-    require(
-      recipient != address(0),
-      "FIFOMarket: Cannot mint to the 0 address"
-    );
+    require(recipient == address(recipient), "Market: Invalid address");
+    require(recipient != address(0), "Market: Cannot mint to the 0 address");
     // todo verify this can only be invoked by the nori contract
     require(
       msg.sender == address(_bridgedPolygonNori),
-      "FIFOMarket: This contract can only receive BridgedPolygonNORI"
+      "Market: This contract can only receive BridgedPolygonNORI"
     );
 
     uint256[] memory ids = new uint256[](_queueLength());
@@ -164,7 +215,7 @@ contract FIFOMarket is
             i == _queueNextInsertIndex - 1 &&
             remainingAmountToFill > removalAmount
           ) {
-            revert("FIFOMarket: Not enough supply");
+            revert("Market: Not enough supply");
           }
           ids[i] = _queue[i];
           amounts[i] = removalAmount;
@@ -220,8 +271,9 @@ contract FIFOMarket is
           _queueHeadIndex++;
         }
         if (amounts[i] > 0) {
-          uint256 noriFee = (amounts[i] / 100) * _noriFee;
-          uint256 supplierFee = amounts[i];
+          totalSupply -= batchedAmounts[i];
+          uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
+          uint256 supplierFee = batchedAmounts[i];
           _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
           _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
         }
