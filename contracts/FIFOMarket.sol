@@ -271,9 +271,9 @@ contract FIFOMarket is
           _queueHeadIndex++;
         }
         if (amounts[i] > 0) {
-          totalSupply -= batchedAmounts[i];
-          uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
-          uint256 supplierFee = batchedAmounts[i];
+          totalSupply -= amounts[i];
+          uint256 noriFee = (amounts[i] / 100) * _noriFee;
+          uint256 supplierFee = amounts[i];
           _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
           _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
         }
