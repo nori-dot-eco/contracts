@@ -227,21 +227,20 @@ contract FIFOMarket is
           break;
         }
       } else {
-        numberOfUnusedRemovals++;
         ids[i] = _queue[i];
         amounts[i] = 0;
         suppliers[i] = supplier;
+        numberOfUnusedRemovals++;
       }
     }
 
     uint256[] memory batchedIds = new uint256[](numberOfUsedRemovals);
     uint256[] memory batchedAmounts = new uint256[](numberOfUsedRemovals);
     uint256 currentIndexOfBatch = 0;
-    for (
-      uint256 i = _queueHeadIndex;
-      i < _queueHeadIndex + numberOfUsedRemovals + numberOfUnusedRemovals;
-      i++
-    ) {
+    uint256 lastIndexOfUsedRemovals = _queueHeadIndex +
+      numberOfUsedRemovals +
+      numberOfUnusedRemovals;
+    for (uint256 i = _queueHeadIndex; i < lastIndexOfUsedRemovals; i++) {
       if (!_reserved[_queue[i]] && amounts[i] > 0) {
         batchedIds[currentIndexOfBatch] = ids[i];
         batchedAmounts[currentIndexOfBatch] = amounts[i];
@@ -260,17 +259,9 @@ contract FIFOMarket is
 
     bool isReservedRemovalFoundInQueue = false;
 
-    for (
-      uint256 i = _queueHeadIndex;
-      i < _queueHeadIndex + numberOfUsedRemovals + numberOfUnusedRemovals;
-      i++
-    ) {
+    for (uint256 i = _queueHeadIndex; i < lastIndexOfUsedRemovals; i++) {
       if (!_reserved[_queue[i]]) {
-        if (
-          !isReservedRemovalFoundInQueue &&
-          i <
-          _queueHeadIndex + numberOfUsedRemovals + numberOfUnusedRemovals - 1
-        ) {
+        if (!isReservedRemovalFoundInQueue && i < lastIndexOfUsedRemovals - 1) {
           _queueHeadIndex++;
         }
         if (amounts[i] > 0) {
