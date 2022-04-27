@@ -33,6 +33,7 @@ contract FIFOMarket is
   Certificate private _certificate;
   BridgedPolygonNORI private _bridgedPolygonNori;
   mapping(uint256 => uint256) private _queue;
+  mapping(uint256 => bool) private _reserved;
   uint256 private _queueHeadIndex;
   uint256 private _queueNextInsertIndex;
   address private _noriFeeWallet;
@@ -65,6 +66,19 @@ contract FIFOMarket is
     );
     _queueHeadIndex = 0;
     _queueNextInsertIndex = 0;
+  }
+
+  /**
+   * @notice Reserves a removal which prevents the removal from being used to mint a Certificate.
+   * @dev For removals that have not been explicitly marked as reserved, it is assumed that the removal is not reserved.
+   * @param removalId the removal to mark as reserved or unreserved.
+   * @param isReserved whether or not the removal is reserved.
+   */
+  function setRemovalAsReserved(uint256 removalId, bool isReserved)
+    public
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    _reserved[removalId] = isReserved;
   }
 
   function _queueLength() private view returns (uint256) {
@@ -134,61 +148,88 @@ contract FIFOMarket is
     uint256[] memory ids = new uint256[](_queueLength());
     uint256[] memory amounts = new uint256[](_queueLength());
     address[] memory suppliers = new address[](_queueLength());
-    uint256 numberOfRemovals = 0;
+    uint256 numberOfUsedRemovals = 0;
+    uint256 numberOfUnusedRemovals = 0;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
-      address supplier = _queue[i].supplierAddress();
-      if (remainingAmountToFill < removalAmount) {
-        ids[i] = _queue[i];
-        amounts[i] = remainingAmountToFill;
-        suppliers[i] = supplier;
-        remainingAmountToFill = 0;
-      } else {
-        if (
-          i == _queueNextInsertIndex - 1 &&
-          remainingAmountToFill > removalAmount
-        ) {
-          revert("FIFOMarket: Not enough supply");
+      if (!_reserved[_queue[i]] && removalAmount > 0) {
+        address supplier = _queue[i].supplierAddress();
+        if (remainingAmountToFill < removalAmount) {
+          ids[i] = _queue[i];
+          amounts[i] = remainingAmountToFill;
+          suppliers[i] = supplier;
+          remainingAmountToFill = 0;
+        } else {
+          if (
+            i == _queueNextInsertIndex - 1 &&
+            remainingAmountToFill > removalAmount
+          ) {
+            revert("FIFOMarket: Not enough supply");
+          }
+          ids[i] = _queue[i];
+          amounts[i] = removalAmount;
+          suppliers[i] = supplier;
+          remainingAmountToFill -= removalAmount;
         }
-        ids[i] = _queue[i];
-        amounts[i] = removalAmount;
-        suppliers[i] = supplier;
-        remainingAmountToFill -= removalAmount;
-      }
-      numberOfRemovals++;
-      if (remainingAmountToFill == 0) {
-        break;
+        numberOfUsedRemovals++;
+        if (remainingAmountToFill == 0) {
+          break;
+        }
+      } else {
+        numberOfUnusedRemovals++;
       }
     }
 
-    uint256[] memory batchedIds = new uint256[](numberOfRemovals);
-    uint256[] memory batchedAmounts = new uint256[](numberOfRemovals);
-
+    uint256[] memory batchedIds = new uint256[](numberOfUsedRemovals);
+    uint256[] memory batchedAmounts = new uint256[](numberOfUsedRemovals);
+    uint256 currentIndexOfBatch = 0;
     for (
       uint256 i = _queueHeadIndex;
-      i < _queueHeadIndex + numberOfRemovals;
+      i < _queueHeadIndex + numberOfUsedRemovals + numberOfUnusedRemovals;
       i++
     ) {
-      batchedIds[i] = ids[i];
-      batchedAmounts[i] = amounts[i];
+      if (!_reserved[_queue[i]] && amounts[i] > 0) {
+        batchedIds[currentIndexOfBatch] = ids[i];
+        batchedAmounts[currentIndexOfBatch] = amounts[i];
+        currentIndexOfBatch++;
+      }
     }
 
     bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
+
     _certificate.mintBatch(
       recipient,
       batchedIds,
       batchedAmounts,
       encodedCertificateAmount
     );
-    for (uint256 i = _queueHeadIndex; i < batchedIds.length; i++) {
-      if (batchedAmounts[i] == _removal.balanceOf(address(this), _queue[i])) {
-        _queueHeadIndex++;
+
+    bool isReservedRemovalFoundInQueue = false;
+
+    for (
+      uint256 i = _queueHeadIndex;
+      i < _queueHeadIndex + numberOfUsedRemovals + numberOfUnusedRemovals;
+      i++
+    ) {
+      if (!_reserved[_queue[i]]) {
+        if (
+          !isReservedRemovalFoundInQueue &&
+          i <
+          _queueHeadIndex + numberOfUsedRemovals + numberOfUnusedRemovals - 1
+        ) {
+          _queueHeadIndex++;
+        }
+        if (amounts[i] > 0) {
+          uint256 noriFee = (amounts[i] / 100) * _noriFee;
+          uint256 supplierFee = amounts[i];
+          _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
+          _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
+        }
+      } else if (isReservedRemovalFoundInQueue == false) {
+        isReservedRemovalFoundInQueue = true;
       }
-      uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
-      uint256 supplierFee = batchedAmounts[i];
-      _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
-      _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
     }
+
     _removal.burnBatch(address(this), batchedIds, batchedAmounts);
   }
 
