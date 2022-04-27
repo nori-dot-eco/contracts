@@ -255,7 +255,7 @@ export const finalizeDeployments = async ({
   await verifyContracts({ hre, contracts });
   await saveDeployments({
     hre,
-    deployments: contracts as Record<string, DeploymentSubmission>,
+    contracts,
   });
 };
 
@@ -303,17 +303,23 @@ export const addContractsToDefender = async ({
 // TODO: Would like to store more details of the deployment here like ABI
 export const saveDeployments = async ({
   hre,
-  deployments,
+  contracts,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-  deployments: Record<string, DeploymentSubmission>;
+  contracts: Contracts;
 }): Promise<void> => {
   hre.trace('saving deployments');
   await Promise.allSettled(
-    Object.entries(deployments)
+    Object.entries(contracts)
       .filter(([_, value]) => value !== undefined)
-      .map(async ([name, deployment]) => {
-        return hre.deployments.save(name, deployment);
+      .map(async ([name, contract]) => {
+        const { abi, bytecode, deployedBytecode } = await hre.artifacts.readArtifact(name);
+        return hre.deployments.save(name, {
+          abi,
+          address: contract.address,
+          bytecode,
+          deployedBytecode,
+        });
       })
   );
   hre.trace('saved deployments');
