@@ -38,9 +38,9 @@ const getNamedAccounts = (
       Object.entries(namedAccountIndices).map(([accountName, index]) => {
         return [accountName, waffleWallets[index].address];
       })
-    ) as unknown as NamedAccounts;
+    ) as NamedAccounts;
   } else {
-    return {} as unknown as NamedAccounts;
+    return {} as NamedAccounts;
   }
 };
 
@@ -49,9 +49,12 @@ const getNamedSigners = (
 ): NamedSigners => {
   return Object.fromEntries(
     Object.entries(namedAccountIndices).map(([accountName, address]) => {
-      return [accountName, hre.waffle.provider.getSigner(address)];
+      return [accountName, hre.waffle.provider.getSigner(address)] as [
+        keyof NamedSigners,
+        NamedSigners[keyof NamedSigners]
+      ];
     })
-  ) as unknown as NamedSigners;
+  ) as NamedSigners;
 };
 
 // extendEnvrironment cannot take async functions ...
