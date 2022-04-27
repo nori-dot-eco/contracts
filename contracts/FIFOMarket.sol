@@ -134,6 +134,7 @@ contract FIFOMarket is
     uint256[] memory ids = new uint256[](_queueLength());
     uint256[] memory amounts = new uint256[](_queueLength());
     address[] memory suppliers = new address[](_queueLength());
+    uint256 numberOfRemovals = 0;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
       address supplier = _queue[i].supplierAddress();
@@ -154,27 +155,41 @@ contract FIFOMarket is
         suppliers[i] = supplier;
         remainingAmountToFill -= removalAmount;
       }
-
+      numberOfRemovals++;
       if (remainingAmountToFill == 0) {
         break;
       }
     }
 
+    uint256[] memory batchedIds = new uint256[](numberOfRemovals);
+    uint256[] memory batchedAmounts = new uint256[](numberOfRemovals);
+
+    for (
+      uint256 i = _queueHeadIndex;
+      i < _queueHeadIndex + numberOfRemovals;
+      i++
+    ) {
+      batchedIds[i] = ids[i];
+      batchedAmounts[i] = amounts[i];
+    }
+
     bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
-    _certificate.mintBatch(recipient, ids, amounts, encodedCertificateAmount);
-    for (uint256 i = 0; i < ids.length; i++) {
-      if (amounts[i] == 0) {
-        break;
-      }
-      if (amounts[i] == _removal.balanceOf(address(this), _queue[i])) {
+    _certificate.mintBatch(
+      recipient,
+      batchedIds,
+      batchedAmounts,
+      encodedCertificateAmount
+    );
+    for (uint256 i = _queueHeadIndex; i < batchedIds.length; i++) {
+      if (batchedAmounts[i] == _removal.balanceOf(address(this), _queue[i])) {
         _queueHeadIndex++;
       }
-      uint256 noriFee = (amounts[i] / 100) * _noriFee;
-      uint256 supplierFee = amounts[i];
+      uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
+      uint256 supplierFee = batchedAmounts[i];
       _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
       _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
     }
-    _removal.burnBatch(address(this), ids, amounts);
+    _removal.burnBatch(address(this), batchedIds, batchedAmounts);
   }
 
   function supportsInterface(bytes4 interfaceId)
