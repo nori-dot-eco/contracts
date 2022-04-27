@@ -21,7 +21,7 @@ import type {
 
 import { formatTokenAmount } from '@/utils/units';
 import { mockDepositNoriToPolygon } from '@/test/helpers';
-import { Address, DeploymentSubmission } from 'hardhat-deploy/types';
+import { Address } from 'hardhat-deploy/types';
 
 export interface Contracts {
   Removal?: Removal;

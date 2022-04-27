@@ -1,7 +1,12 @@
 import { Contract } from 'ethers';
-
-import type { BridgedPolygonNORI, LockedNORI } from '../typechain-types';
-import { Certificate } from '../typechain-types/Certificate';
+import type {
+  BridgedPolygonNORI,
+  Certificate,
+  FIFOMarket,
+  LockedNORI,
+  NORI,
+  Removal,
+} from '../typechain-types';
 
 export const getContract = async ({
   contractName,
@@ -27,12 +32,13 @@ export const getContract = async ({
   return contract;
 };
 
+// TODO Is there a smarter way to do this typing dance?
 export const getBridgedPolygonNori = async ({
   hre,
   signer,
 }: {
-    hre: CustomHardHatRuntimeEnvironment;
-    signer?: ConstructorParameters<typeof Contract>[2];
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<BridgedPolygonNORI> => {
   return getContract({
     contractName: 'BridgedPolygonNORI',
@@ -41,30 +47,72 @@ export const getBridgedPolygonNori = async ({
   }) as Promise<BridgedPolygonNORI>;
 };
 
-export const getLockedNori = async ({
+export const getNORI = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<NORI> => {
+  return getContract({
+    contractName: 'NORI',
     hre,
     signer,
-  }: {
-      hre: CustomHardHatRuntimeEnvironment;
-      signer?: ConstructorParameters<typeof Contract>[2];
-  }): Promise<LockedNORI> => {
-    return getContract({
-      contractName: 'LockedNORI',
-      hre,
-      signer,
-    }) as Promise<LockedNORI>;
-  };
+  }) as Promise<NORI>;
+};
 
-  export const getCertificate = async ({
+export const getLockedNORI = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<LockedNORI> => {
+  return getContract({
+    contractName: 'LockedNORI',
     hre,
     signer,
-  }: {
-      hre: CustomHardHatRuntimeEnvironment;
-      signer?: ConstructorParameters<typeof Contract>[2];
-  }): Promise<Certificate> => {
-    return getContract({
-      contractName: 'Certificate',
-      hre,
-      signer,
-    }) as Promise<Certificate>;
-  };
+  }) as Promise<LockedNORI>;
+};
+
+export const getCertificate = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<Certificate> => {
+  return getContract({
+    contractName: 'Certificate',
+    hre,
+    signer,
+  }) as Promise<Certificate>;
+};
+
+export const getRemoval = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<Removal> => {
+  return getContract({
+    contractName: 'Removal',
+    hre,
+    signer,
+  }) as Promise<Removal>;
+};
+
+export const getFIFOMarket = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<FIFOMarket> => {
+  return getContract({
+    contractName: 'FIFOMarket',
+    hre,
+    signer,
+  }) as Promise<FIFOMarket>;
+};

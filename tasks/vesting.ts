@@ -522,14 +522,14 @@ export const GET_VESTING_TASK = () =>
         );
       }
       const signer = (await hre.getSigners())[account];
-      const { getBridgedPolygonNori, getLockedNori } = await import(
+      const { getBridgedPolygonNori, getLockedNORI } = await import(
         '@/utils/contracts'
       );
       const bpNori = await getBridgedPolygonNori({
         hre,
         signer,
       });
-      const lNori = await getLockedNori({ hre, signer });
+      const lNori = await getLockedNORI({ hre, signer });
       hre.log(`LockedNORI: ${lNori.address}`);
       const runSubtask = hre.run as RunVestingWithSubTasks;
       let githubGrantsCsv: string;
