@@ -84,5 +84,8 @@
     "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
     "deploy": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat deploy",
     "node:verbose": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat node"
+  },
+  "dependencies": {
+    "ethers": "^5.6.4"
   }
 }
