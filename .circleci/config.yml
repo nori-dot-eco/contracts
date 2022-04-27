@@ -31,7 +31,7 @@ jobs:
               git checkout yarn.lock
             fi
       - run:
-          name: Compile
+          name: Build typechain types
           command: TS_NODE_TRANSPILE_ONLY=1 hardhat typechain
       - run:
           name: Run Tests
@@ -58,6 +58,9 @@ jobs:
           command: |
             sudo apt-get update && sudo apt -y install libsecret-1-0
       - run:
+          name: Build typechain types
+          command: TS_NODE_TRANSPILE_ONLY=1 hardhat typechain
+      - run:
           name: Run Contract Tests and Collect Coverage
           command: |
             yarn build && yarn run test:coverage
@@ -78,6 +81,9 @@ jobs:
           name: Install Dependencies
           command: |
             sudo apt-get update && sudo apt -y install libsecret-1-0
+      - run:
+          name: Build typechain types
+          command: TS_NODE_TRANSPILE_ONLY=1 hardhat typechain
       - run:
           name: Submit gas report
           command: |
