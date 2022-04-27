@@ -368,12 +368,12 @@ export const seedContracts = async ({
           BridgedPolygonNORI: contracts.BridgedPolygonNORI,
           NORI: contracts.NORI,
         },
-        amount: formatTokenAmount(500_000_000),
+        amount: formatTokenAmount(100_000_000),
         to: hre.namedAccounts.admin,
         signer: hre.namedSigners.admin,
       });
       hre.trace(
-        'Mock deposited 500_000_000 NORI into BridgedPolygonNORI for the admin account'
+        'Mock deposited 100_000_000 NORI into BridgedPolygonNORI for the admin account'
       );
       await contracts.BridgedPolygonNORI.connect(hre.namedSigners.admin).send(
         // todo stop minting/seeding during deployment
