@@ -203,8 +203,8 @@ contract FIFOMarket is
     uint256 numberOfUnusedRemovals = 0;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
+      address supplier = _queue[i].supplierAddress();
       if (!_reserved[_queue[i]] && removalAmount > 0) {
-        address supplier = _queue[i].supplierAddress();
         if (remainingAmountToFill < removalAmount) {
           ids[i] = _queue[i];
           amounts[i] = remainingAmountToFill;
@@ -228,6 +228,9 @@ contract FIFOMarket is
         }
       } else {
         numberOfUnusedRemovals++;
+        ids[i] = _queue[i];
+        amounts[i] = 0;
+        suppliers[i] = supplier;
       }
     }
 
