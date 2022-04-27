@@ -73,7 +73,7 @@ contract Certificate is
     // todo require _sources[_latestTokenId][n] doesnt exist
     for (uint256 i = 0; i < removalIds.length; i++) {
       if (removalAmounts[i] == 0) {
-        break;
+        revert("Certificate: Removal amount 0");
       } else {
         // todo try filtering out the zero amountsbefore calling mint; revert if any are zero
         _sources[_latestTokenId].push(
