@@ -235,6 +235,7 @@ contract FIFOMarket is
       if (batchedAmounts[i] == _removal.balanceOf(address(this), _queue[i])) {
         _queueHeadIndex++;
       }
+      totalSupply -= batchedAmounts[i];
       uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
       uint256 supplierFee = batchedAmounts[i];
       _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
