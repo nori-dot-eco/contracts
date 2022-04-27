@@ -768,50 +768,15 @@ describe('FIFOMarket', () => {
         hre.ethers.utils.parseUnits('0', 18)
       );
     });
-    it('should revert when a removal with an amount of 0 is used', async () => {
-      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
-        buyerInitialBPNoriBalance,
-        removalDataToList: [{ amount: 1 }, { amount: 0 }, { amount: 2 }],
-      });
-      const { supplier, buyer, noriWallet } = hre.namedAccounts;
-
-      const purchaseAmount = '3';
-      const fee = '.3';
-      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
-
-      const supplierInitialNoriBalance = '0';
-      const noriInitialNoriBalance = '0';
-
-      await expect(
-        bpNori.connect(hre.namedSigners.buyer).send(
-          fifoMarket.address,
-          hre.ethers.utils.parseUnits(totalPrice), // todo, perform fee calculation
-          hre.ethers.utils.hexZeroPad(buyer, 32)
-        )
-      ).to.be.reverted;
-
-      // no balances should change and no certificate balance should be minted
-      const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
-      const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
-      const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-
-      expect(buyerFinalNoriBalance).to.equal(
-        buyerInitialBPNoriBalance.toString()
-      );
-
-      expect(supplierFinalNoriBalance).to.equal(
-        hre.ethers.utils.parseUnits(supplierInitialNoriBalance).toString()
-      );
-
-      expect(noriFinalNoriBalance).to.equal(
-        hre.ethers.utils.parseUnits(noriInitialNoriBalance).toString()
-      );
-
-      expect(await certificate.balanceOf(buyer, 0)).to.equal(
-        hre.ethers.utils.parseUnits('0', 18)
-      );
-    });
+    it.todo('should be able to set a removal as reserved')
+    it.todo('should be able to set a removal as not reserved');
+    it.todo(
+      'should exclude a reserved removal from being used for a certificate'
+    );
+    it.todo(
+      'after unreserving a removal, it should use the newly available removal and not include previously used removals'
+    );
+    it.todo('should not move the queueHeadIndex past the reserved removal');
   });
 });
 
