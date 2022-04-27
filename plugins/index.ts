@@ -20,8 +20,6 @@ import { extendEnvironment } from 'hardhat/config';
 import type { BaseContract, ContractFactory, Signer } from 'ethers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
 
-import * as contractsConfig from '../contracts.json';
-
 import { trace, log } from '@/utils/log';
 import { lazyFunction, lazyObject } from 'hardhat/plugins';
 import { namedAccountIndices } from '../config/accounts';
@@ -183,6 +181,10 @@ extendEnvironment((hre) => {
         ' attempting to upgrade instance',
         contractName
       );
+      const existingImplementationAddress = await hre.upgrades.erc1967.getImplementationAddress(
+        proxyAddress!
+      );
+      hre.log('Existing implementation at: ', existingImplementationAddress);
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
         fireblocksSigner.setNextTransactionMemo(
@@ -194,7 +196,14 @@ extendEnvironment((hre) => {
         contractFactory
         // options
       );
-      hre.log('Upgraded instance if it changed');
+      const newImplementationAddress = await hre.upgrades.erc1967.getImplementationAddress(
+        proxyAddress!
+      );
+      if (existingImplementationAddress === newImplementationAddress) {
+        hre.log('Implementation unchanged');
+      } else {
+        hre.log('New implementation at: ', newImplementationAddress);
+      }
     }
     hre.trace('...awaiting deployment transaction', contractName);
     await contract.deployed();
