@@ -210,7 +210,7 @@ contract FIFOMarket is
     uint256[] memory amounts = new uint256[](_queueLength());
     address[] memory suppliers = new address[](_queueLength());
     uint256 numberOfUsedRemovals = 0;
-    uint256 numberOfUnusedRemovals = 0;
+    uint256 lastIndexOfUsedRemovals = _queueLength();
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
       address supplier = _queue[i].supplierAddress();
@@ -234,6 +234,7 @@ contract FIFOMarket is
         }
         numberOfUsedRemovals++;
         if (remainingAmountToFill == 0) {
+          lastIndexOfUsedRemoval = i;
           break;
         }
       } else {
@@ -247,9 +248,6 @@ contract FIFOMarket is
     uint256[] memory batchedIds = new uint256[](numberOfUsedRemovals);
     uint256[] memory batchedAmounts = new uint256[](numberOfUsedRemovals);
     uint256 currentIndexOfBatch = 0;
-    uint256 lastIndexOfUsedRemovals = _queueHeadIndex +
-      numberOfUsedRemovals +
-      numberOfUnusedRemovals;
     for (uint256 i = _queueHeadIndex; i < lastIndexOfUsedRemovals; i++) {
       if (amounts[i] > 0) {
         batchedIds[currentIndexOfBatch] = ids[i];
