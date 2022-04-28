@@ -157,8 +157,6 @@ contract FIFOMarket is
   ) external override {
     // todo we need to treat totalSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s. priority reserved etc.
-    console.log("entering tokens received");
-
     if (totalSupply == 0) {
       revert("Market: Out of stock");
     }
@@ -189,10 +187,6 @@ contract FIFOMarket is
     address[] memory suppliers = new address[](_queueLength());
     uint256 numberOfRemovals = 0;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
-      console.log("queueheadindex: ", _queueHeadIndex);
-      console.log("queueNextInsertIndex: ", _queueNextInsertIndex);
-      console.log("i: ", i);
-
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
       address supplier = _queue[i].supplierAddress();
       if (remainingAmountToFill < removalAmount) {
