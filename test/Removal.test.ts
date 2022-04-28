@@ -40,7 +40,7 @@ describe('Removal', () => {
         expect(balance).to.equal(removalBalances[tokenId].toString());
       });
       // not listed to the fifoMarket
-      const marketTotalSupply = await fifoMarket.numberOfNrtsInQueueComputed();
+      const marketTotalSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
       expect(marketTotalSupply).to.equal(
         formatTokenAmount(expectedMarketSupply).toString()
       );
@@ -81,7 +81,7 @@ describe('Removal', () => {
       balances.forEach((balance, tokenId) => {
         expect(balance).to.equal(removalBalances[tokenId].toString());
       });
-      const marketTotalSupply = await fifoMarket.numberOfNrtsInQueueComputed();
+      const marketTotalSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
       expect(marketTotalSupply).to.equal(
         formatTokenAmount(expectedMarketSupply).toString()
       );
