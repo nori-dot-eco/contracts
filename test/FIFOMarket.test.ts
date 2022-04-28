@@ -768,15 +768,15 @@ describe('FIFOMarket', () => {
         hre.ethers.utils.parseUnits('0', 18)
       );
     });
-    it.todo('should be able to set a removal as reserved')
-    it.todo('should be able to set a removal as not reserved');
-    it.todo(
-      'should exclude a reserved removal from being used for a certificate'
-    );
-    it.todo(
-      'after unreserving a removal, it should use the newly available removal and not include previously used removals'
-    );
-    it.todo('should not move the queueHeadIndex past the reserved removal');
+    // it.todo('should be able to set a removal as reserved')
+    // it.todo('should be able to set a removal as not reserved');
+    // it.todo(
+    //   'should exclude a reserved removal from being used for a certificate'
+    // );
+    // it.todo(
+    //   'after unreserving a removal, it should use the newly available removal and not include previously used removals'
+    // );
+    // it.todo('should not move the queueHeadIndex past the reserved removal');
   });
 });
 
