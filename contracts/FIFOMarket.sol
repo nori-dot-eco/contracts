@@ -51,6 +51,11 @@ contract FIFOMarket is
    */
   event PriorityRestrictedThresholdSet(uint256 threshold);
 
+  /**
+   * @notice Emitted on setting of priorityRestrictedThreshold.
+   */
+  event UpdatedRemovalReservedStatus(uint256 removalId, bool isReserved);
+
   function initialize(
     address removalAddress,
     address bridgedPolygonNoriAddress,
@@ -103,6 +108,7 @@ contract FIFOMarket is
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     _reserved[removalId] = isReserved;
+    emit UpdatedRemovalReservedStatus(removalId, isReserved);
   }
 
   function _queueLength() private view returns (uint256) {
