@@ -115,6 +115,10 @@ contract FIFOMarket is
     return _queueNextInsertIndex - _queueHeadIndex;
   }
 
+  function isReserved(uint256 removalId) public pure returns (bool) {
+    return _reserved[removalId];
+  }
+
   function numberOfNrtsInQueueComputed() public view returns (uint256) {
     uint256 nrtsInQueue = 0;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
@@ -210,7 +214,7 @@ contract FIFOMarket is
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
       address supplier = _queue[i].supplierAddress();
-      if (!_reserved[_queue[i]] && removalAmount > 0) {
+      if (!isReserved(_queue[i]) && removalAmount > 0) {
         if (remainingAmountToFill < removalAmount) {
           ids[i] = _queue[i];
           amounts[i] = remainingAmountToFill;
@@ -247,7 +251,7 @@ contract FIFOMarket is
       numberOfUsedRemovals +
       numberOfUnusedRemovals;
     for (uint256 i = _queueHeadIndex; i < lastIndexOfUsedRemovals; i++) {
-      if (!_reserved[_queue[i]] && amounts[i] > 0) {
+      if (!isReserved(_queue[i]) && amounts[i] > 0) {
         batchedIds[currentIndexOfBatch] = ids[i];
         batchedAmounts[currentIndexOfBatch] = amounts[i];
         currentIndexOfBatch++;
@@ -266,7 +270,7 @@ contract FIFOMarket is
     bool isReservedRemovalFoundInQueue = false;
 
     for (uint256 i = _queueHeadIndex; i < lastIndexOfUsedRemovals; i++) {
-      if (!_reserved[_queue[i]]) {
+      if (!isReserved(_queue[i])) {
         if (!isReservedRemovalFoundInQueue && i < lastIndexOfUsedRemovals - 1) {
           _queueHeadIndex++;
         }
