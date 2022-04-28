@@ -251,7 +251,7 @@ contract FIFOMarket is
       numberOfUsedRemovals +
       numberOfUnusedRemovals;
     for (uint256 i = _queueHeadIndex; i < lastIndexOfUsedRemovals; i++) {
-      if (!isReserved(_queue[i]) && amounts[i] > 0) {
+      if (amounts[i] > 0) {
         batchedIds[currentIndexOfBatch] = ids[i];
         batchedAmounts[currentIndexOfBatch] = amounts[i];
         currentIndexOfBatch++;
