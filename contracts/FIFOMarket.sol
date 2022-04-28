@@ -52,7 +52,7 @@ contract FIFOMarket is
   event PriorityRestrictedThresholdSet(uint256 threshold);
 
   /**
-   * @notice Emitted on setting of priorityRestrictedThreshold.
+   * @notice Emitted on setting a removal as reserved.
    */
   event UpdatedRemovalReservedStatus(uint256 removalId, bool isReserved);
 
