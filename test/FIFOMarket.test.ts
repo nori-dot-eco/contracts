@@ -581,20 +581,15 @@ describe('FIFOMarket', () => {
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
       expect(initialFifoSupply).to.equal(hre.ethers.utils.parseUnits('20'));
-      await bpNori
+      const purchaseNrts = async  () => await bpNori
       .connect(hre.namedSigners.buyer)
       .send(
         fifoMarket.address,
         hre.ethers.utils.parseUnits(totalPrice),
         hre.ethers.utils.hexZeroPad(buyer, 32)
       );
-      await bpNori
-        .connect(hre.namedSigners.buyer)
-        .send(
-          fifoMarket.address,
-          hre.ethers.utils.parseUnits(totalPrice),
-          hre.ethers.utils.hexZeroPad(buyer, 32)
-        );
+      await purchaseNrts(); // deplete some of the stock (ids 0,1,2)
+      await purchaseNrts(); // purchase more removals (ids 3,4,5-- tests non-zero-indexed purchases in the queue)
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
       const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
