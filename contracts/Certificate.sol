@@ -26,6 +26,16 @@ contract Certificate is
   }
 
   /**
+   * @notice Emitted on creation of a certificate of carbon removal.
+   */
+  event CertificateCreated(
+    address indexed buyer,
+    uint256 indexed certificateId,
+    uint256[] indexed removalIds,
+    uint256[] amounts
+  );
+
+  /**
    * @dev a mapping of the certificate token ID -> sources
    */
   mapping(uint256 => Source[]) private _sources;
@@ -82,6 +92,8 @@ contract Certificate is
       }
     }
     super.mint(to, _latestTokenId, certificateAmount, data);
+    emit CertificateCreated(to, _latestTokenId, removalIds, removalAmounts);
+
     _latestTokenId = _latestTokenId += 1;
   }
 
