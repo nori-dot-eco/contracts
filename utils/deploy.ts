@@ -20,7 +20,7 @@ import type {
 } from '../typechain-types';
 
 import { formatTokenAmount } from '@/utils/units';
-import { mockDepositNoriToPolygon } from '@/test/helpers';
+import { createRemovalTokenId, mockDepositNoriToPolygon } from '@/test/helpers';
 import { Address } from 'hardhat-deploy/types';
 
 export interface Contracts {
@@ -344,6 +344,7 @@ export const seedContracts = async ({
       contracts.FIFOMarket != null &&
       contracts.Removal != null
     ) {
+      const tokenId = await createRemovalTokenId(contracts.Removal, {supplierAddress: hre.namedAccounts.supplier});
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
@@ -352,7 +353,7 @@ export const seedContracts = async ({
       await contracts.Removal.mintBatch(
         hre.namedAccounts.supplier,
         [formatTokenAmount(100)],
-        [2018],
+        [tokenId],
         packedData
       );
       hre.trace('Listed 100 NRTs for sale in FIFOMarket');
