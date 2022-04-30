@@ -1,6 +1,5 @@
 import type { HardhatNetworkAccountUserConfig } from 'hardhat/types';
 import { ethers } from 'ethers';
-import type { Address } from 'hardhat-deploy/types';
 
 const MNEMONIC = process.env.MNEMONIC ?? undefined;
 
