@@ -3,6 +3,8 @@ on: [push]
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    with:
+      node-version: 14
     steps:
       - uses: actions/checkout@v2
       - uses: crytic/slither-action@v0.1.1
