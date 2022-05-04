@@ -17,11 +17,6 @@ import { fireblocks } from '@/config/fireblocks';
 
 export const config: HardhatUserConfig = {
   tenderly,
-  paths: {
-    deploy: 'deploy',
-    deployments: 'deployments',
-    imports: 'artifacts',
-  },
   docgen,
   namedAccounts: namedAccountIndices,
   networks,

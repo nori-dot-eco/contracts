@@ -24,8 +24,6 @@ import { formatTokenAmount } from '@/utils/units';
 import {
   MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
   POLYGON_CHILD_CHAIN_MANAGER_PROXY,
-  STAGING_DEPLOYMENT_ADDRESS,
-  PROD_DEPLOYMENT_ADDRESS,
 } from '@/constants/addresses';
 import { mockDepositNoriToPolygon } from '@/test/helpers';
 
@@ -104,7 +102,7 @@ export const configureDeploymentSettings = async ({
     await hre.ethernal.resetWorkspace('nori');
     await hre.ethernal.startListening();
   }
-  if (hre.network.name === 'hardhat') {
+  if (hre.network.name === 'hardhat' || hre.network.name === 'localhost') {
     await hre.run('deploy:erc1820');
   }
 };
@@ -130,6 +128,7 @@ export const deployMarketContracts = async ({
           options: { initializer: 'initialize()' },
         })
       : undefined;
+  await removalInstance?.deployed();
   const certificateInstance =
     (isPolygonNetwork || isLocalNetwork) &&
     contractNames.includes('Certificate')
@@ -139,6 +138,7 @@ export const deployMarketContracts = async ({
           options: { initializer: 'initialize()' },
         })
       : undefined;
+  await certificateInstance?.deployed();
   const fifoMarketInstance =
     removalInstance != null &&
     certificateInstance != null &&
@@ -158,6 +158,7 @@ export const deployMarketContracts = async ({
           },
         })
       : undefined;
+  await fifoMarketInstance?.deployed();
   return {
     ...contracts,
     ...(removalInstance != null && { Removal: removalInstance }),
@@ -185,6 +186,7 @@ export const deployAssetContracts = async ({
           args: [],
         })
       : undefined;
+  await noriInstance?.deployed();
   const bridgedPolygonNoriInstance =
     (isPolygonNetwork || isLocalNetwork) &&
     contracts.includes('BridgedPolygonNORI')
@@ -201,6 +203,7 @@ export const deployAssetContracts = async ({
           options: { initializer: 'initialize(address)' },
         })
       : undefined;
+  await bridgedPolygonNoriInstance?.deployed();
   const lNoriInstance =
     bridgedPolygonNoriInstance != null && contracts.includes('LockedNORI')
       ? await hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
@@ -209,6 +212,7 @@ export const deployAssetContracts = async ({
           options: { initializer: 'initialize(address)' },
         })
       : undefined;
+  await lNoriInstance?.deployed();
   return {
     ...(noriInstance != null && { NORI: noriInstance }),
     ...(bridgedPolygonNoriInstance != null && {
@@ -247,7 +251,9 @@ export const validateDeployment = ({
   hre,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-}): void => {};
+}): void => {
+  // todo ?
+};
 
 /**
  * Note: the named contracts in the ethernal UI are the proxies.
@@ -347,7 +353,7 @@ export const seedContracts = async ({
     if (
       contracts.BridgedPolygonNORI != null &&
       contracts.NORI != null &&
-      hre.network.name === 'hardhat'
+      (hre.network.name === 'hardhat' || hre.network.name === 'localhost')
     ) {
       await mockDepositNoriToPolygon({
         hre,

@@ -1,3 +1,4 @@
+import 'tsconfig-paths/register';
 import '@nomiclabs/hardhat-waffle';
 import '@openzeppelin/hardhat-defender';
 import '@openzeppelin/hardhat-upgrades';
@@ -12,36 +13,22 @@ import 'hardhat-gas-reporter';
 import 'solidity-docgen';
 import '@nomiclabs/hardhat-solhint';
 import 'solidity-coverage';
-import 'tsconfig-paths/register';
 import '@/config/environment';
 import '@/tasks/index';
 
 import { extendEnvironment } from 'hardhat/config';
 import type { BaseContract, ContractFactory, Signer } from 'ethers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
+import { lazyFunction } from 'hardhat/plugins';
+import type { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
 
+import { namedAccountIndices } from '../config/accounts';
 import * as contractsConfig from '../contracts.json';
 
-import { trace, log } from '@/utils/log';
-import { lazyFunction, lazyObject } from 'hardhat/plugins';
-import { namedAccountIndices } from '../config/accounts';
-import { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
-import { FireblocksSigner } from './fireblocks/fireblocks-signer';
+import type { FireblocksSigner } from './fireblocks/fireblocks-signer';
 
-const getNamedAccounts = (
-  hre: CustomHardHatRuntimeEnvironment
-): NamedAccounts => {
-  if (hre.network.name === 'hardhat') {
-    const waffleWallets = hre.waffle.provider.getWallets();
-    return Object.fromEntries(
-      Object.entries(namedAccountIndices).map(([accountName, index]) => {
-        return [accountName, waffleWallets[index].address];
-      })
-    ) as unknown as NamedAccounts;
-  } else {
-    return {} as unknown as NamedAccounts;
-  }
-};
+import { trace, log } from '@/utils/log';
+import { namedAccounts } from '@/config/accounts';
 
 const getNamedSigners = (
   hre: CustomHardHatRuntimeEnvironment
@@ -53,7 +40,9 @@ const getNamedSigners = (
   ) as NamedSigners;
 };
 
-// extendEnvrironment cannot take async functions ...
+/**
+ * Note: extendEnvironment cannot take async functions
+ */
 extendEnvironment((hre) => {
   // todo move to @/extensions/signers, @extensions/deployments
   hre.log = log;
@@ -62,15 +51,15 @@ extendEnvironment((hre) => {
   // All live networks will try to use fireblocks
   if (hre.config.fireblocks.apiKey && hre.network.config.live) {
     hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
+    // todo namedFireblocksAccounts
+    // todo namedFireblocksSigners
     hre.log('Installed fireblocks signers');
   } else {
     hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
+    hre.namedSigners = getNamedSigners(hre); // for testing only
+    hre.namedAccounts = namedAccounts!;
     hre.log('Installed ethers default signers');
   }
-
-  // for testing only
-  hre.namedSigners = getNamedSigners(hre);
-  hre.namedAccounts = getNamedAccounts(hre);
 
   hre.ethernalSync = Boolean(
     hre.network.name === 'hardhat' &&
@@ -103,16 +92,15 @@ extendEnvironment((hre) => {
     hre.log(
       `deployNonUpgradeable: ${contractName} from address ${await signer.getAddress()}`
     );
-    let contract: InstanceOfContract<TContract>;
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
       contractName,
       { ...options, signer }
     );
     const fireblocksSigner = signer as FireblocksSigner;
     if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-        fireblocksSigner.setNextTransactionMemo(`Deploy ${contractName}`);
+      fireblocksSigner.setNextTransactionMemo(`Deploy ${contractName}`);
     }
-    contract = (await contractFactory.deploy(
+    const contract = (await contractFactory.deploy(
       ...args
     )) as InstanceOfContract<TContract>;
     hre.log(
@@ -162,7 +150,9 @@ extendEnvironment((hre) => {
       hre.log('Deploying proxy and instance', contractName); // todo use hre.trace (variant of hre.log requiring env.TRACE === true)
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-          fireblocksSigner.setNextTransactionMemo(`Deploy proxy and instance for ${contractName}`);
+        fireblocksSigner.setNextTransactionMemo(
+          `Deploy proxy and instance for ${contractName}`
+        );
       }
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,
@@ -184,7 +174,9 @@ extendEnvironment((hre) => {
       );
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-          fireblocksSigner.setNextTransactionMemo(`Upgrade contract instance for ${contractName}`);
+        fireblocksSigner.setNextTransactionMemo(
+          `Upgrade contract instance for ${contractName}`
+        );
       }
       contract = await hre.upgrades.upgradeProxy<TContract>(
         proxyAddress,

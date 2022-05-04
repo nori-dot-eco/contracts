@@ -174,11 +174,35 @@ MINT=true hardhat node
 
 - Account #9 (noriWallet): 0xf31c29b01ef18a3d9726b99ad0e9692e498cf5f8 (0 ETH)
 
-### CLI
+## Tips and tricks
 
-Install hardhat [shorthand and autocomplete](https://hardhat.org/guides/shorthand.html)
+### Hardhat
 
-## Deployment Notes
+#### Shorthand and autocomplete
+
+- [Docs](https://hardhat.org/guides/shorthand.html)
+
+### Tenderly
+
+- Install the [tenderly CLI](https://github.com/Tenderly/tenderly-cli)
+
+#### Tenderly autocomplete
+
+For ZSH (omz), add the following to your zsh config file (requires [zsh-completions](https://github.com/zsh-users/zsh-completions))
+
+```
+# https://github.com/zsh-users/zsh-completions
+fpath+=${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
+autoload -U compinit && compinit
+```
+
+Then run
+
+```bash
+tenderly completion zsh > ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
+```
+
+### Deployments
 
 When deploying contract to `polygon` or `mumbai` enmsure you have `POYGONSCAN_API_KEY`
 set in your `.env` so that the deploy process can upload the contract sources and ABI

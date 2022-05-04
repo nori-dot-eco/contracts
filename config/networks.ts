@@ -14,6 +14,7 @@ const hardhat: NetworksUserConfig['hardhat'] = {
   loggingEnabled: LOG_HARDHAT_NETWORK,
   allowUnlimitedContractSize: true,
   tags: ['test'],
+  saveDeployments: false,
 };
 
 const localhost: NetworkUserConfig = {
@@ -25,7 +26,8 @@ const localhost: NetworkUserConfig = {
     accounts: { mnemonic: MNEMONIC },
   }),
   loggingEnabled: LOG_HARDHAT_NETWORK,
-  tags: ['test']
+  url: 'http://127.0.0.1:8545',
+  saveDeployments: false,
 };
 
 const goerli: NetworkUserConfig = {
@@ -42,7 +44,7 @@ const mumbai: NetworkUserConfig = {
   url: `https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}`,
   gasPrice: 35000000000,
   live: true,
-  tags: ['polygon', 'staging']
+  tags: ['polygon', 'staging'],
 };
 
 const polygon: NetworkUserConfig = {

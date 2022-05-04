@@ -20,18 +20,28 @@ export const mockDepositNoriToPolygon = async ({
     DEPOSITOR_ROLE,
     hre.namedAccounts.admin
   );
+  hre.trace('BridgedPolygonNORI: Granted DEPOSITOR_ROLE to admin'); // todo transaction wrapper for better automatic tracing
   await contracts.NORI.connect(hre.namedSigners.admin).send(to, amount, '0x');
+  hre.trace(`NORI: Sent ${amount} NORI to ${to}`);
   await contracts.BridgedPolygonNORI.deposit(
     to,
     hre.ethers.utils.defaultAbiCoder.encode(['uint256'], [amount])
   );
-  await contracts.NORI.connect(signer).send(
+  hre.trace(
+    `BridgedPolygonNORI: Deposited ${hre.namedSigners.admin} NORI for BridgedPolygonNORI`
+  );
+  const bridgeTx = await contracts.NORI.connect(signer).send(
     hre.namedAccounts.mockPolygonBridge,
     amount,
     '0x'
+  );
+  const bridgeTxResult = await bridgeTx.wait();
+  hre.trace(
+    `NORI: Sent ${amount} NORI to ${hre.namedAccounts.mockPolygonBridge} to mock bridging functionality. TX: ${bridgeTxResult.transactionHash}`
   );
   await contracts.BridgedPolygonNORI.renounceRole(
     DEPOSITOR_ROLE,
     hre.namedAccounts.admin
   );
+  hre.trace('BridgedPolygonNORI: Renounced DEPOSITOR_ROLE from admin');
 };
