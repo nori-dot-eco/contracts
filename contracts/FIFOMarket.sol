@@ -190,9 +190,9 @@ contract FIFOMarket is
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
       address supplier = _queue[i].supplierAddress();
       if (remainingAmountToFill < removalAmount) {
-        ids[i] = _queue[i];
-        amounts[i] = remainingAmountToFill;
-        suppliers[i] = supplier;
+        ids[numberOfRemovals] = _queue[i];
+        amounts[numberOfRemovals] = remainingAmountToFill;
+        suppliers[numberOfRemovals] = supplier;
         remainingAmountToFill = 0;
       } else {
         if (
@@ -201,9 +201,9 @@ contract FIFOMarket is
         ) {
           revert("Market: Not enough supply");
         }
-        ids[i] = _queue[i];
-        amounts[i] = removalAmount;
-        suppliers[i] = supplier;
+        ids[numberOfRemovals] = _queue[i];
+        amounts[numberOfRemovals] = removalAmount;
+        suppliers[numberOfRemovals] = supplier;
         remainingAmountToFill -= removalAmount;
       }
       numberOfRemovals++;
@@ -215,11 +215,7 @@ contract FIFOMarket is
     uint256[] memory batchedIds = new uint256[](numberOfRemovals);
     uint256[] memory batchedAmounts = new uint256[](numberOfRemovals);
 
-    for (
-      uint256 i = _queueHeadIndex;
-      i < _queueHeadIndex + numberOfRemovals;
-      i++
-    ) {
+    for (uint256 i = 0; i < numberOfRemovals; i++) {
       batchedIds[i] = ids[i];
       batchedAmounts[i] = amounts[i];
     }
@@ -231,8 +227,10 @@ contract FIFOMarket is
       batchedAmounts,
       encodedCertificateAmount
     );
-    for (uint256 i = _queueHeadIndex; i < batchedIds.length; i++) {
-      if (batchedAmounts[i] == _removal.balanceOf(address(this), _queue[i])) {
+    for (uint256 i = 0; i < batchedIds.length; i++) {
+      if (
+        batchedAmounts[i] == _removal.balanceOf(address(this), batchedIds[i])
+      ) {
         _queueHeadIndex++;
       }
       totalSupply -= batchedAmounts[i];
