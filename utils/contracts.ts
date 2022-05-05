@@ -10,29 +10,29 @@ import type {
 } from '../typechain-types';
 
 export const getContractsFromDeployments = async (
-    hre: CustomHardHatRuntimeEnvironment
-  ): Promise<Required<Contracts>> => {
-    const deployments = await hre.deployments.all();
-    const contracts = {
-      NORI: deployments['NORI']?.address ? await getNORI({ hre }) : undefined,
-      BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
-        ? await getBridgedPolygonNori({ hre })
-        : undefined,
-      LockedNORI: deployments['LockedNORI']?.address
-        ? await getLockedNORI({ hre })
-        : undefined,
-      FIFOMarket: deployments['FIFOMarket']?.address
-        ? await getFIFOMarket({ hre })
-        : undefined,
-      Removal: deployments['Removal']?.address
-        ? await getRemoval({ hre })
-        : undefined,
-      Certificate: deployments['Certificate']?.address
-        ? await getCertificate({ hre })
-        : undefined,
-    } as Required<Contracts>;
-    return contracts;
-  };
+  hre: CustomHardHatRuntimeEnvironment
+): Promise<Required<Contracts>> => {
+  const deployments = await hre.deployments.all();
+  const contracts = {
+    NORI: deployments['NORI']?.address ? await getNORI({ hre }) : undefined,
+    BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
+      ? await getBridgedPolygonNori({ hre })
+      : undefined,
+    LockedNORI: deployments['LockedNORI']?.address
+      ? await getLockedNORI({ hre })
+      : undefined,
+    FIFOMarket: deployments['FIFOMarket']?.address
+      ? await getFIFOMarket({ hre })
+      : undefined,
+    Removal: deployments['Removal']?.address
+      ? await getRemoval({ hre })
+      : undefined,
+    Certificate: deployments['Certificate']?.address
+      ? await getCertificate({ hre })
+      : undefined,
+  } as Required<Contracts>;
+  return contracts;
+};
 
 export const getContract = async ({
   contractName,

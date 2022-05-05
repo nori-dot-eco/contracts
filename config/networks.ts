@@ -25,7 +25,7 @@ const localhost: NetworkUserConfig = {
     accounts: { mnemonic: MNEMONIC },
   }),
   loggingEnabled: LOG_HARDHAT_NETWORK,
-  tags: ['test']
+  tags: ['test'],
 };
 
 const goerli: NetworkUserConfig = {
@@ -42,7 +42,7 @@ const mumbai: NetworkUserConfig = {
   url: `https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}`,
   gasPrice: 35000000000,
   live: true,
-  tags: ['polygon', 'staging']
+  tags: ['polygon', 'staging'],
 };
 
 const polygon: NetworkUserConfig = {

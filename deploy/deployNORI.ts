@@ -15,7 +15,6 @@ export const deploy: DeployFunction = async (env) => {
 export default deploy;
 deploy.tags = ['NORI', 'assets'];
 deploy.dependencies = ['preconditions'];
-```suggestion
 deploy.skip = async (hre) =>
   Promise.resolve(
     !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
