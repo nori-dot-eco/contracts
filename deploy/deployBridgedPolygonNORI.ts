@@ -3,11 +3,11 @@ import { DeployFunction } from 'hardhat-deploy/types';
 import {
   finalizeDeployments,
   deployBridgedPolygonNORIContract,
-} from '../utils/deploy';
+} from '@/utils/deploy';
 import {
   POLYGON_CHILD_CHAIN_MANAGER_PROXY,
   MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
-} from '../constants/addresses';
+} from '@/constants/addresses';
 
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;

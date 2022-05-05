@@ -7,9 +7,9 @@ import type {
   LockedNORI,
   NORI,
   BridgedPolygonNORI,
-} from '../../typechain-types';
-import type { UnpackedRemovalIdV0Struct } from '../../typechain-types/Removal';
-import { asciiStringToHexString } from '../../utils/bytes';
+} from '@/typechain-types';
+import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/Removal';
+import { asciiStringToHexString } from '@/utils/bytes';
 
 import { mockDepositNoriToPolygon } from './polygon';
 
@@ -22,7 +22,8 @@ import {
   getFIFOMarket,
   getLockedNORI,
   getNORI,
-} from '../../utils/contracts';
+  getContractsFromDeployments,
+} from '@/utils/contracts';
 
 export * from './chai';
 export * from './interfaces';
@@ -54,31 +55,6 @@ export const advanceTime = async ({
 }): Promise<void> => {
   await hre.network.provider.send('evm_setNextBlockTimestamp', [timestamp]);
   await hre.network.provider.send('hardhat_mine');
-};
-
-export const getContractsFromDeployments = async (
-  hre: CustomHardHatRuntimeEnvironment
-): Promise<Required<Contracts>> => {
-  const deployments = await hre.deployments.all();
-  const contracts = {
-    NORI: deployments['NORI']?.address ? await getNORI({ hre }) : undefined,
-    BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
-      ? await getBridgedPolygonNori({ hre })
-      : undefined,
-    LockedNORI: deployments['LockedNORI']?.address
-      ? await getLockedNORI({ hre })
-      : undefined,
-    FIFOMarket: deployments['FIFOMarket']?.address
-      ? await getFIFOMarket({ hre })
-      : undefined,
-    Removal: deployments['Removal']?.address
-      ? await getRemoval({ hre })
-      : undefined,
-    Certificate: deployments['Certificate']?.address
-      ? await getCertificate({ hre })
-      : undefined,
-  } as Required<Contracts>;
-  return contracts;
 };
 
 export const setupTest = global.hre.deployments.createFixture(
