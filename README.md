@@ -185,6 +185,28 @@ MINT=true hardhat node
 ### Tenderly
 
 - Install the [tenderly CLI](https://github.com/Tenderly/tenderly-cli)
+- Request to be added to the nori tenderly project
+- Login to tenderly via the CLI
+
+```bash
+tenderly login # Generate an access token in the tenderly dashboard or use the email login
+```
+
+- Test that it works with the following:
+
+```bash
+TRACE=true LOG_HARDHAT_NETWORK=true hardhat node
+```
+
+Gran a transaction hash from the terminal output and then run the following (replace `TRANSACTION_HASH` with the transaction hash):
+
+```bash
+tenderly export TRANSACTION_HASH --debug
+```
+
+If you want to inspect the gas profile or debug individual contract functions use the hardhat CONTRACT_NAME plugins (e.g., `hardhat Removal --func mint "0x7124A7075C67483826939d5492D6Cc552a78C765" 1000000000000000000000000 10 "0x" --network localhost`)
+
+Note that if you do not see "Using contracts" in the terminal output, something may not be configured correctly and the information exported to tenderly will be incomplete (e.g., with no ABI).
 
 #### Tenderly autocomplete
 

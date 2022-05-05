@@ -1,7 +1,11 @@
 import { Logger, LogLevel } from '@ethersproject/logger';
 import type { DeployFunction } from 'hardhat-deploy/types';
 
-import { deployMarketContracts, saveDeployments } from '../utils/deploy';
+import {
+  deployMarketContracts,
+  saveDeployments,
+  seedContracts,
+} from '../utils/deploy';
 import { getContractsFromDeployments } from '../test/helpers/index';
 
 import {
@@ -26,6 +30,7 @@ export const deploy: DeployFunction = async (env) => {
     contractNames: ['FIFOMarket', 'Certificate', 'Removal'],
     contracts: dependentContracts,
   });
+  await seedContracts({ hre, contracts });
   await pushContractsToEthernal({ hre, contracts });
   writeContractsConfig({ contracts });
   await addContractsToDefender({ hre, contracts });

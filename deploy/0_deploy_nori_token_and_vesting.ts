@@ -7,7 +7,6 @@ import {
   writeContractsConfig,
   pushContractsToEthernal,
   deployAssetContracts,
-  seedContracts,
   addContractsToDefender,
   saveDeployments,
 } from '@/utils/deploy';
@@ -23,7 +22,6 @@ export const deploy: CustomHardhatDeployFunction = async (env) => {
     hre,
     contractNames: ['NORI', 'BridgedPolygonNORI', 'LockedNORI'],
   });
-  await seedContracts({ hre, contracts });
   await pushContractsToEthernal({ hre, contracts });
   writeContractsConfig({ contracts });
   await addContractsToDefender({ hre, contracts });

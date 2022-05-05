@@ -223,8 +223,8 @@ declare global {
     interface ProcessEnv {
       MNEMONIC?: string;
       INFURA_STAGING_KEY?: string;
-      TENDERLY_USERNAME?: string;
-      TENDERLY_PROJECT?: string;
+      TENDERLY_USERNAME: string;
+      TENDERLY_PROJECT: string;
       ETHERNAL_EMAIL?: string;
       ETHERNAL_PASSWORD?: string;
       ETHERNAL: boolean;
