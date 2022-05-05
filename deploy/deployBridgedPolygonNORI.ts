@@ -31,4 +31,6 @@ export default deploy;
 deploy.tags = ['BridgedPolygonNORI', 'assets'];
 deploy.dependencies = ['preconditions', 'seed'];
 deploy.skip = async (hre) =>
-  !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name);
+  Promise.resolve(
+    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+  );

@@ -1,6 +1,6 @@
 import { Logger, LogLevel } from '@ethersproject/logger';
 import { DeployFunction } from 'hardhat-deploy/types';
-import { deployLockedNORIContract, finalizeDeployments } from '../utils/deploy';
+import { deployLockedNORIContract, finalizeDeployments } from '@/utils/deploy';
 
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;

@@ -3,7 +3,7 @@ import { DeployFunction } from 'hardhat-deploy/types';
 import {
   finalizeDeployments,
   deployCertificateContract,
-} from '../utils/deploy';
+} from '@/utils/deploy';
 
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
@@ -19,4 +19,6 @@ export default deploy;
 deploy.tags = ['Certificate', 'market'];
 deploy.dependencies = ['preconditions'];
 deploy.skip = async (hre) =>
-  !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name);
+  Promise.resolve(
+    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+  );

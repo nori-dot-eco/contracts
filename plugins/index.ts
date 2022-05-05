@@ -25,7 +25,7 @@ import { lazyFunction, lazyObject } from 'hardhat/plugins';
 import { namedAccountIndices } from '../config/accounts';
 import { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
 import { FireblocksSigner } from './fireblocks/fireblocks-signer';
-import { getContract } from '../utils/contracts';
+import { getContract } from '@/utils/contracts';
 
 const getNamedAccounts = (
   hre: CustomHardHatRuntimeEnvironment
