@@ -48,7 +48,7 @@
     "hardhat-ethernal": "^0.5.0",
     "hardhat-gas-reporter": "^1.0.8",
     "json-diff": "^0.7.1",
-    "moment": "^2.29.1",
+    "moment": "^2.29.2",
     "prettier": "^2.5.1",
     "prettier-plugin-solidity": "^1.0.0-beta.19",
     "sinon": "^13.0.1",
