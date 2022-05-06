@@ -137,11 +137,11 @@ extendEnvironment((hre) => {
   }): Promise<InstanceOfContract<TContract>> => {
     // todo use proposeUpgrade
     const proxy = await hre.deployments.getOrNull(contractName);
-    const proxyAddress = proxy?.address;
+    const maybeProxyAddress = proxy?.address;
     let contractCode = '0x';
-    if (proxyAddress) {
+    if (maybeProxyAddress) {
       try {
-        contractCode = await hre.ethers.provider.getCode(proxyAddress);
+        contractCode = await hre.ethers.provider.getCode(maybeProxyAddress);
       } catch (e) {
         hre.log('No existing code found');
       }
@@ -151,7 +151,7 @@ extendEnvironment((hre) => {
       `deployOrUpgrade: ${contractName} from address ${await signer.getAddress()}`
     );
 
-    let contract: InstanceOfContract<TContract>;
+    let contract: InstanceOfContract<TContract> | undefined;
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
       contractName,
       signer
@@ -176,6 +176,7 @@ extendEnvironment((hre) => {
         contract.address
       );
     } else {
+      const proxyAddress = maybeProxyAddress!; // checked above, must exist if contractCode does
       hre.log(
         'Found existing proxy at:',
         proxyAddress,
@@ -183,7 +184,7 @@ extendEnvironment((hre) => {
         contractName
       );
       const existingImplementationAddress =
-        await hre.upgrades.erc1967.getImplementationAddress(proxyAddress!);
+        await hre.upgrades.erc1967.getImplementationAddress(proxyAddress);
       hre.log('Existing implementation at:', existingImplementationAddress);
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
@@ -195,7 +196,7 @@ extendEnvironment((hre) => {
       const artifact = await hre.deployments.getArtifact(contractName);
       if (deployment.bytecode !== artifact.bytecode) {
         contract = await hre.upgrades.upgradeProxy<TContract>(
-          proxyAddress!,
+          proxyAddress,
           contractFactory
           // options
         );
@@ -211,13 +212,15 @@ extendEnvironment((hre) => {
         hre.log('...successful deployment transaction', contractName);
       } else {
         hre.log('Implementation appears unchanged, skipped upgrade attempt.');
-        contract = (await getContract({
-          contractName,
+        const name = contractName as any;
+        contract = getContract({
+          contractName: name,
           hre,
-        })) as InstanceOfContract<TContract>;
+          signer,
+        }) as InstanceOfContract<TContract>;
       }
     }
-    return contract;
+    return contract!;
   };
   hre.deployOrUpgradeProxy = deployOrUpgradeProxy;
 });

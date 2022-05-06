@@ -66,6 +66,8 @@ export const getContract = <TContract extends Contracts[keyof Contracts]>({
     ? 'Certificate'
     : TContract extends FIFOMarket
     ? 'FIFOMarket'
+    : TContract extends ScheduleTestHarness
+    ? 'ScheduleTestHarness'
     : never;
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
