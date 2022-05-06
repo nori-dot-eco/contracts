@@ -8,7 +8,7 @@ import { LogLevel } from '@ethersproject/logger';
 export const deploy: CustomHardhatDeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(LogLevel.DEBUG);
-  hre.log(`preconditions`);
+  hre.trace(`preconditions`);
   validateDeployment({ hre });
   await configureDeploymentSettings({ hre });
 };

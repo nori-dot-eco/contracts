@@ -12,7 +12,7 @@ import {
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(LogLevel.DEBUG);
-  hre.log(`deployBridgedPolygonNORI`);
+  hre.trace(`deployBridgedPolygonNORI`);
   const childChainManagerProxyAddress =
     hre.network.name === 'polygon'
       ? POLYGON_CHILD_CHAIN_MANAGER_PROXY

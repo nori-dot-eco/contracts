@@ -10,7 +10,7 @@ import { getCertificate } from '@/utils/contracts';
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(LogLevel.DEBUG);
-  hre.log(`deployFIFOMarket`);
+  hre.trace(`deployFIFOMarket`);
   const feeWallet =
     hre.network.name === 'hardhat'
       ? hre.namedAccounts.noriWallet
@@ -23,7 +23,7 @@ export const deploy: DeployFunction = async (env) => {
     feePercentage: 15,
   });
   const signer = (await hre.getSigners())[0];
-  const certificate = getCertificate({ hre, signer });
+  const certificate = await getCertificate({ hre, signer });
   if (
     !(await certificate.hasRole(
       await certificate.MINTER_ROLE(),

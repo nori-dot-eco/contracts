@@ -14,16 +14,7 @@ import { asciiStringToHexString } from '@/utils/bytes';
 import { mockDepositNoriToPolygon } from './polygon';
 
 import { formatTokenAmount } from '@/utils/units';
-import { Contracts } from '@/utils/deploy';
-import {
-  getBridgedPolygonNori,
-  getCertificate,
-  getRemoval,
-  getFIFOMarket,
-  getLockedNORI,
-  getNORI,
-  getContractsFromDeployments,
-} from '@/utils/contracts';
+import { Contracts, getContractsFromDeployments } from '@/utils/contracts';
 
 export * from './chai';
 export * from './interfaces';

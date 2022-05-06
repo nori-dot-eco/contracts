@@ -1,20 +1,20 @@
 import { Logger, LogLevel } from '@ethersproject/logger';
 import { DeployFunction } from 'hardhat-deploy/types';
-import { finalizeDeployments, deployRemovalContract } from '@/utils/deploy';
+import { deployLockedNORIContract, finalizeDeployments } from '@/utils/deploy';
 
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(LogLevel.DEBUG);
-  hre.log(`deployRemoval`);
-  const contract = await deployRemovalContract({
+  hre.trace(`deployLockedNORI`);
+  const contract = await deployLockedNORIContract({
     hre,
   });
-  await finalizeDeployments({ hre, contracts: { Removal: contract } });
+  await finalizeDeployments({ hre, contracts: { LockedNORI: contract } });
 };
 
 export default deploy;
-deploy.tags = ['Removal', 'market'];
-deploy.dependencies = ['preconditions', 'seed'];
+deploy.tags = ['LockedNORI', 'assets'];
+deploy.dependencies = ['preconditions', 'BridgedPolygonNORI'];
 deploy.skip = async (hre) =>
   Promise.resolve(
     !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)

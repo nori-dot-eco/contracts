@@ -5,7 +5,7 @@ import { deployNORIContract, finalizeDeployments } from '@/utils/deploy';
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(LogLevel.DEBUG);
-  hre.log(`deployNORI`);
+  hre.trace(`deployNORI`);
   const contract = await deployNORIContract({
     hre,
   });

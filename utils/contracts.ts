@@ -24,32 +24,29 @@ export const getContractsFromDeployments = async (
 ): Promise<Required<Contracts>> => {
   const deployments = await hre.deployments.all();
   const contracts = {
-    NORI: deployments['NORI']?.address ? getNORI({ hre }) : undefined,
+    NORI: deployments['NORI']?.address ? await getNORI({ hre }) : undefined,
     BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
-      ? getBridgedPolygonNori({ hre })
+      ? await getBridgedPolygonNori({ hre })
       : undefined,
     LockedNORI: deployments['LockedNORI']?.address
-      ? getLockedNORI({ hre })
+      ? await getLockedNORI({ hre })
       : undefined,
     FIFOMarket: deployments['FIFOMarket']?.address
-      ? getFIFOMarket({ hre })
+      ? await getFIFOMarket({ hre })
       : undefined,
-    Removal: deployments['Removal']?.address ? getRemoval({ hre }) : undefined,
+    Removal: deployments['Removal']?.address
+      ? await getRemoval({ hre })
+      : undefined,
     Certificate: deployments['Certificate']?.address
-      ? getCertificate({ hre })
+      ? await getCertificate({ hre })
       : undefined,
   } as Required<Contracts>;
   return contracts;
 };
 
-/**
- * getContract and the specialized helpers instatiate ethers Contract instances.
- *
- * They are synchronous to make life easier in front-end code.
- *
- */
-
-export const getContract = <TContract extends Contracts[keyof Contracts]>({
+export const getContract = async <
+  TContract extends Contracts[keyof Contracts]
+>({
   contractName,
   hre,
   signer,
@@ -71,26 +68,25 @@ export const getContract = <TContract extends Contracts[keyof Contracts]>({
     : never;
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): TContract => {
-  let contract: TContract | undefined;
-  hre.deployments.get(contractName).then((deployment) => {
-    hre.ethers
-      .getContractAt(contractName, deployment.address)
-      .then((c) => (contract = c as TContract));
-  });
+}): Promise<TContract> => {
+  const deployment = await hre.deployments.get(contractName);
+  const contract = await hre.ethers.getContractAt(
+    contractName,
+    deployment.address
+  );
   if (!contract) {
     throw new Error(`Unsupported network: ${hre.network.name}`);
   }
   return (signer != null ? contract.connect(signer) : contract) as TContract;
 };
 
-export const getBridgedPolygonNori = ({
+export const getBridgedPolygonNori = async ({
   hre,
   signer,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): BridgedPolygonNORI => {
+}): Promise<BridgedPolygonNORI> => {
   return getContract({
     contractName: 'BridgedPolygonNORI',
     hre,
@@ -98,19 +94,18 @@ export const getBridgedPolygonNori = ({
   });
 };
 
-export const getNORI = ({
+export const getNORI = async ({
   hre,
   signer,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): NORI => {
-  return getContract({
+}): Promise<NORI> =>
+  getContract({
     contractName: 'NORI',
     hre,
     signer,
   });
-};
 
 export const getLockedNORI = ({
   hre,
@@ -118,52 +113,48 @@ export const getLockedNORI = ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): LockedNORI => {
-  return getContract({
+}): Promise<LockedNORI> =>
+  getContract({
     contractName: 'LockedNORI',
     hre,
     signer,
   });
-};
 
-export const getCertificate = ({
+export const getCertificate = async ({
   hre,
   signer,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): Certificate => {
-  return getContract({
+}): Promise<Certificate> =>
+  getContract({
     contractName: 'Certificate',
     hre,
     signer,
   });
-};
 
-export const getRemoval = ({
+export const getRemoval = async ({
   hre,
   signer,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): Removal => {
-  return getContract({
+}): Promise<Removal> =>
+  getContract({
     contractName: 'Removal',
     hre,
     signer,
   });
-};
 
-export const getFIFOMarket = ({
+export const getFIFOMarket = async ({
   hre,
   signer,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): FIFOMarket => {
-  return getContract({
+}): Promise<FIFOMarket> =>
+  getContract({
     contractName: 'FIFOMarket',
     hre,
     signer,
   });
-};

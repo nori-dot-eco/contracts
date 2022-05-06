@@ -64,7 +64,7 @@ extendEnvironment((hre) => {
     hre.log('Installed fireblocks signers');
   } else {
     hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
-    hre.log('Installed ethers default signers');
+    hre.trace('Installed ethers default signers');
   }
 
   // for testing only
@@ -143,11 +143,11 @@ extendEnvironment((hre) => {
       try {
         contractCode = await hre.ethers.provider.getCode(maybeProxyAddress);
       } catch (e) {
-        hre.log('No existing code found');
+        hre.trace('No existing code found');
       }
     }
     const signer = (await hre.getSigners())[0];
-    hre.log(
+    hre.trace(
       `deployOrUpgrade: ${contractName} from address ${await signer.getAddress()}`
     );
 
@@ -157,7 +157,7 @@ extendEnvironment((hre) => {
       signer
     );
     if (contractCode === '0x' || process.env.FORCE_PROXY_DEPLOYMENT) {
-      hre.log('Deploying proxy and instance', contractName); // todo use hre.trace (variant of hre.log requiring env.TRACE === true)
+      hre.trace('Deploying proxy and instance', contractName); // todo use hre.trace (variant of hre.log requiring env.TRACE === true)
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
         fireblocksSigner.setNextTransactionMemo(
@@ -177,7 +177,7 @@ extendEnvironment((hre) => {
       );
     } else {
       const proxyAddress = maybeProxyAddress!; // checked above, must exist if contractCode does
-      hre.log(
+      hre.trace(
         'Found existing proxy at:',
         proxyAddress,
         'attempting to upgrade instance',
@@ -185,7 +185,7 @@ extendEnvironment((hre) => {
       );
       const existingImplementationAddress =
         await hre.upgrades.erc1967.getImplementationAddress(proxyAddress);
-      hre.log('Existing implementation at:', existingImplementationAddress);
+      hre.trace('Existing implementation at:', existingImplementationAddress);
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
         fireblocksSigner.setNextTransactionMemo(
@@ -203,15 +203,15 @@ extendEnvironment((hre) => {
         const newImplementationAddress =
           await hre.upgrades.erc1967.getImplementationAddress(proxyAddress!);
         if (existingImplementationAddress === newImplementationAddress) {
-          hre.log('Implementation unchanged');
+          hre.trace('Implementation unchanged');
         } else {
           hre.log('New implementation at:', newImplementationAddress);
         }
         hre.trace('...awaiting deployment transaction', contractName);
         await contract.deployed();
-        hre.log('...successful deployment transaction', contractName);
+        hre.trace('...successful deployment transaction', contractName);
       } else {
-        hre.log('Implementation appears unchanged, skipped upgrade attempt.');
+        hre.trace('Implementation appears unchanged, skipped upgrade attempt.');
         const name = contractName as any;
         contract = getContract({
           contractName: name,

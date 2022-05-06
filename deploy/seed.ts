@@ -6,7 +6,7 @@ import { getContractsFromDeployments } from '@/utils/contracts';
 export const deploy: CustomHardhatDeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(LogLevel.DEBUG);
-  hre.log(`seed`);
+  hre.trace(`seed`);
   const contracts = await getContractsFromDeployments(hre);
   await seedContracts({ hre, contracts });
 };

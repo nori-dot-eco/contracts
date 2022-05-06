@@ -5,7 +5,7 @@ import { finalizeDeployments, deployCertificateContract } from '@/utils/deploy';
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(LogLevel.DEBUG);
-  hre.log(`deployCertificate`);
+  hre.trace(`deployCertificate`);
   const contract = await deployCertificateContract({
     hre,
   });
