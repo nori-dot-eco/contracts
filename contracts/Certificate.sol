@@ -26,6 +26,16 @@ contract Certificate is
   }
 
   /**
+   * @notice Emitted on creation of a certificate of carbon removal.
+   */
+  event CertificateCreated(
+    address indexed buyer,
+    uint256 indexed certificateId,
+    uint256[] indexed removalIds,
+    uint256[] amounts
+  );
+
+  /**
    * @dev a mapping of the certificate token ID -> sources
    */
   mapping(uint256 => Source[]) private _sources;
@@ -73,7 +83,7 @@ contract Certificate is
     // todo require _sources[_latestTokenId][n] doesnt exist
     for (uint256 i = 0; i < removalIds.length; i++) {
       if (removalAmounts[i] == 0) {
-        break;
+        revert("Certificate: Removal amount 0");
       } else {
         // todo try filtering out the zero amountsbefore calling mint; revert if any are zero
         _sources[_latestTokenId].push(
@@ -82,6 +92,8 @@ contract Certificate is
       }
     }
     super.mint(to, _latestTokenId, certificateAmount, data);
+    emit CertificateCreated(to, _latestTokenId, removalIds, removalAmounts);
+
     _latestTokenId = _latestTokenId += 1;
   }
 
