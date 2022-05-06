@@ -35,6 +35,7 @@
     "dotenv": "^16.0.0",
     "dotenv-defaults": "^5.0.0",
     "dotenv-parse-variables": "^2.0.0",
+    "eslint": "8.14.0",
     "ethereum-waffle": "^3.4.0",
     "ethernal": "^0.9.0",
     "ethers": "5.6.4",
@@ -80,8 +81,8 @@
     "test:gas": "hardhat test --report-gas",
     "test:coverage": "hardhat coverage --solcoverjs ./.solcover.js",
     "test:unsafe": "TS_NODE_TRANSPILE_ONLY=1 yarn test --no-compile",
-    "prepare": "TS_NODE_TRANSPILE_ONLY=1 yarn build",
-    "build": "TS_NODE_TRANSPILE_ONLY=1 hardhat compile",
+    "prepare": "yarn build",
+    "build": "hardhat compile",
     "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
     "deploy": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat deploy",
     "node:verbose": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat node"

@@ -23,7 +23,7 @@ export const deploy: DeployFunction = async (env) => {
     feePercentage: 15,
   });
   const signer = (await hre.getSigners())[0];
-  const certificate = await getCertificate({ hre, signer });
+  const certificate = getCertificate({ hre, signer });
   if (
     !(await certificate.hasRole(
       await certificate.MINTER_ROLE(),

@@ -509,11 +509,7 @@ export const GET_VESTING_TASK = () =>
         create: action === 'create',
       };
       hre.log(`Account index: ${account}`);
-      if (
-        typeof account !== 'number' ||
-        account < 0 ||
-        account > 10
-      ) {
+      if (typeof account !== 'number' || account < 0 || account > 10) {
         throw new Error('Invalid account/signer index');
       }
       if (Boolean(asJson) && !Boolean(showDiff) && !Boolean(expand)) {
@@ -525,11 +521,11 @@ export const GET_VESTING_TASK = () =>
       const { getBridgedPolygonNori, getLockedNORI } = await import(
         '@/utils/contracts'
       );
-      const bpNori = await getBridgedPolygonNori({
+      const bpNori = getBridgedPolygonNori({
         hre,
         signer,
       });
-      const lNori = await getLockedNORI({ hre, signer });
+      const lNori = getLockedNORI({ hre, signer });
       hre.log(`LockedNORI: ${lNori.address}`);
       const runSubtask = hre.run as RunVestingWithSubTasks;
       let githubGrantsCsv: string;

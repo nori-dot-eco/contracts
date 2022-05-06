@@ -26,6 +26,7 @@ const localhost: NetworkUserConfig = {
   }),
   loggingEnabled: LOG_HARDHAT_NETWORK,
   tags: ['test'],
+  saveDeployments: false,
 };
 
 const goerli: NetworkUserConfig = {

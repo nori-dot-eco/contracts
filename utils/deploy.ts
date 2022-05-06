@@ -17,21 +17,12 @@ import type {
   BridgedPolygonNORI__factory,
   ScheduleTestHarness,
   ScheduleTestHarness__factory,
-} from '../typechain-types';
+} from '@/typechain-types';
 
 import { formatTokenAmount } from '@/utils/units';
 import { createRemovalTokenId, mockDepositNoriToPolygon } from '@/test/helpers';
 import { Address } from 'hardhat-deploy/types';
-
-export interface Contracts {
-  Removal?: Removal;
-  NORI?: NORI;
-  BridgedPolygonNORI?: BridgedPolygonNORI;
-  FIFOMarket?: FIFOMarket;
-  LockedNORI?: LockedNORI;
-  Certificate?: Certificate;
-  ScheduleTestHarness?: ScheduleTestHarness;
-}
+import { Contracts } from './contracts';
 
 interface ContractConfig {
   [key: string]: { proxyAddress: string };
@@ -313,7 +304,8 @@ export const saveDeployments = async ({
     Object.entries(contracts)
       .filter(([_, value]) => value !== undefined)
       .map(async ([name, contract]) => {
-        const { abi, bytecode, deployedBytecode } = await hre.artifacts.readArtifact(name);
+        const { abi, bytecode, deployedBytecode } =
+          await hre.artifacts.readArtifact(name);
         return hre.deployments.save(name, {
           abi,
           address: contract.address,
@@ -344,7 +336,9 @@ export const seedContracts = async ({
       contracts.FIFOMarket != null &&
       contracts.Removal != null
     ) {
-      const tokenId = await createRemovalTokenId(contracts.Removal, {supplierAddress: hre.namedAccounts.supplier});
+      const tokenId = await createRemovalTokenId(contracts.Removal, {
+        supplierAddress: hre.namedAccounts.supplier,
+      });
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
