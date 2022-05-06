@@ -15,7 +15,7 @@ commands:
       - run:
           name: Run typechain with TS in transpile-only mode
           command: |
-            hardhat typechain # todo figure out how to get this to work without `TS_NODE_TRANSPILE_ONLY`
+            yarn typechain
 
 jobs:
   setup-contract-tests:
