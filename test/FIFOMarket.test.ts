@@ -560,6 +560,71 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
+    it('should purchase removals and mint a certificate for a small purchase spanning several removals after another purchase has already been made', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+        removalDataToList: [{ amount: 3 }, { amount: 3 }, { amount: 4 }, { amount: 3 }, { amount: 3 }, { amount: 4 }],
+      });
+      const { supplier, buyer, noriWallet } = hre.namedAccounts;
+
+      const purchaseAmount = '10';
+      const fee = '1.5';
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+
+      const doublePurchaseAmount = '20';
+      const doubleFee = "3";
+      const doubleTotalPrice = (Number(totalPrice) * 2).toString();
+
+      const supplierInitialNoriBalance = '0';
+      const noriInitialNoriBalance = '0';
+
+      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
+      expect(initialFifoSupply).to.equal(hre.ethers.utils.parseUnits('20'));
+      const purchaseNrts = async  () => await bpNori
+      .connect(hre.namedSigners.buyer)
+      .send(
+        fifoMarket.address,
+        hre.ethers.utils.parseUnits(totalPrice),
+        hre.ethers.utils.hexZeroPad(buyer, 32)
+      );
+      await purchaseNrts(); // deplete some of the stock (ids 0,1,2)
+      await purchaseNrts(); // purchase more removals (ids 3,4,5-- tests non-zero-indexed purchases in the queue)
+      const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
+      const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
+      const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
+      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
+
+      expect(buyerFinalNoriBalance).to.equal(
+        buyerInitialBPNoriBalance
+          .sub(hre.ethers.utils.parseUnits(doubleTotalPrice, 18))
+          .toString()
+      );
+
+      expect(supplierFinalNoriBalance).to.equal(
+        hre.ethers.utils
+          .parseUnits(supplierInitialNoriBalance)
+          .add(hre.ethers.utils.parseUnits(doublePurchaseAmount, 18))
+          .toString()
+      );
+
+      expect(noriFinalNoriBalance).to.equal(
+        hre.ethers.utils
+          .parseUnits(noriInitialNoriBalance)
+          .add(hre.ethers.utils.parseUnits(doubleFee, 18))
+          .toString()
+      );
+
+      expect(await certificate.balanceOf(buyer, 1)).to.equal(
+        hre.ethers.utils.parseUnits(purchaseAmount, 18)
+      );
+
+      expect(finalFifoSupply).to.equal(
+        initialFifoSupply
+          .sub(hre.ethers.utils.parseUnits(doublePurchaseAmount, 18))
+          .toString()
+      );
+    });
     it('should correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const removalDataToList = [
