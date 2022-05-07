@@ -31,9 +31,9 @@ describe('Removal', () => {
         [tokenId],
         packedData
       );
-      const retrievedHoldbackPercentage =
-        await removal.getHoldbackPercentageForRemoval(tokenId);
-      expect(retrievedHoldbackPercentage).equal(holdbackPercentage);
+      const retrievedHoldbackPercentages =
+        await removal.batchGetHoldbackPercentage([tokenId]);
+      expect(retrievedHoldbackPercentages[0]).equal(holdbackPercentage);
     });
     it('should update the holdback percentage for a removal after it has been minted', async () => {
       const { fifoMarket, removal } = await setupTest();
@@ -52,17 +52,17 @@ describe('Removal', () => {
       );
 
       const updatedHoldback = 20;
-      await removal.setHoldbackPercentageForRemoval(tokenId, updatedHoldback);
-      const retrievedHoldbackPercentage =
-        await removal.getHoldbackPercentageForRemoval(tokenId);
-      expect(retrievedHoldbackPercentage).equal(updatedHoldback);
+      await removal.batchSetHoldbackPercentage([tokenId], updatedHoldback);
+      const retrievedHoldbackPercentages =
+        await removal.batchGetHoldbackPercentage([tokenId]);
+      expect(retrievedHoldbackPercentages[0]).equal(updatedHoldback);
     });
     it('should revert if trying to set a holdback percentage for a removal that does not exist', async () => {
       const { removal } = await setupTest();
       const tokenId = 1;
       const holdbackPercentage = 40;
       await expect(
-        removal.setHoldbackPercentageForRemoval(tokenId, holdbackPercentage)
+        removal.batchSetHoldbackPercentage([tokenId], holdbackPercentage)
       ).to.be.revertedWith("removal id doesn't exist");
     });
   });

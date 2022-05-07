@@ -77,21 +77,27 @@ contract Removal is
     return removalId.unpackRemovalIdV0();
   }
 
-  function getHoldbackPercentageForRemoval(uint256 removalId)
+  function batchGetHoldbackPercentage(uint256[] calldata removalIds)
     public
     view
-    returns (uint256)
+    returns (uint256[] memory)
   {
-    require(_tokenIdExists[removalId], "removal id doesn't exist");
-    return _idToHoldbackPercentage[removalId];
+    uint256[] memory holdbackPercentages = new uint256[](removalIds.length);
+    for (uint256 i = 0; i < removalIds.length; i++) {
+      require(_tokenIdExists[removalIds[i]], "removal id doesn't exist");
+      holdbackPercentages[i] = _idToHoldbackPercentage[removalIds[i]];
+    }
+    return holdbackPercentages;
   }
 
-  function setHoldbackPercentageForRemoval(
-    uint256 removalId,
+  function batchSetHoldbackPercentage(
+    uint256[] calldata removalIds,
     uint256 holdbackPercentage
   ) external {
-    require(_tokenIdExists[removalId], "removal id doesn't exist");
-    _idToHoldbackPercentage[removalId] = holdbackPercentage;
+    for (uint256 i = 0; i < removalIds.length; i++) {
+      require(_tokenIdExists[removalIds[i]], "removal id doesn't exist");
+      _idToHoldbackPercentage[removalIds[i]] = holdbackPercentage;
+    }
   }
 
   /**
