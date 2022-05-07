@@ -14,7 +14,15 @@ import { asciiStringToHexString } from '../../utils/bytes';
 import { mockDepositNoriToPolygon } from './polygon';
 
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/utils/deploy';
+import { Contracts } from '@/utils/deploy';
+import {
+  getBridgedPolygonNori,
+  getCertificate,
+  getRemoval,
+  getFIFOMarket,
+  getLockedNORI,
+  getNORI,
+} from '../../utils/contracts';
 
 export * from './chai';
 export * from './interfaces';
@@ -53,38 +61,21 @@ export const getContractsFromDeployments = async (
 ): Promise<Required<Contracts>> => {
   const deployments = await hre.deployments.all();
   const contracts = {
-    NORI: deployments['NORI']?.address
-      ? await hre.ethers.getContractAt('NORI', deployments['NORI'].address)
-      : undefined,
+    NORI: deployments['NORI']?.address ? await getNORI({ hre }) : undefined,
     BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
-      ? await hre.ethers.getContractAt(
-          'BridgedPolygonNORI',
-          deployments['BridgedPolygonNORI'].address
-        )
+      ? await getBridgedPolygonNori({ hre })
       : undefined,
     LockedNORI: deployments['LockedNORI']?.address
-      ? await hre.ethers.getContractAt(
-          'LockedNORI',
-          deployments['LockedNORI'].address
-        )
+      ? await getLockedNORI({ hre })
       : undefined,
     FIFOMarket: deployments['FIFOMarket']?.address
-      ? await hre.ethers.getContractAt(
-          'FIFOMarket',
-          deployments['FIFOMarket'].address
-        )
+      ? await getFIFOMarket({ hre })
       : undefined,
     Removal: deployments['Removal']?.address
-      ? await hre.ethers.getContractAt(
-          'Removal',
-          deployments['Removal']?.address
-        )
+      ? await getRemoval({ hre })
       : undefined,
-    Certificate: deployments['Removal']?.address
-      ? await hre.ethers.getContractAt(
-          'Certificate',
-          deployments['Certificate'].address
-        )
+    Certificate: deployments['Certificate']?.address
+      ? await getCertificate({ hre })
       : undefined,
   } as Required<Contracts>;
   return contracts;

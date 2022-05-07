@@ -22,13 +22,11 @@ import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/uti
 import { lazyFunction } from 'hardhat/plugins';
 import type { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
 
-import { namedAccountIndices } from '../config/accounts';
-import * as contractsConfig from '../contracts.json';
-
 import type { FireblocksSigner } from './fireblocks/fireblocks-signer';
 
+import { namedAccountIndices, namedAccounts } from '@/config/accounts';
 import { trace, log } from '@/utils/log';
-import { namedAccounts } from '@/config/accounts';
+import { getContract } from '@/utils/contracts';
 
 const getNamedSigners = (
   hre: CustomHardHatRuntimeEnvironment
@@ -125,9 +123,8 @@ extendEnvironment((hre) => {
     options?: DeployProxyOptions;
   }): Promise<InstanceOfContract<TContract>> => {
     // todo use proposeUpgrade
-    const proxyAddress =
-      contractsConfig[hre.network.name as 'hardhat']?.[contractName]
-        ?.proxyAddress;
+    const proxy = await hre.deployments.getOrNull(contractName);
+    const proxyAddress = proxy?.address;
     let contractCode = '0x';
     if (proxyAddress) {
       try {
@@ -169,25 +166,44 @@ extendEnvironment((hre) => {
       hre.log(
         'Found existing proxy at:',
         proxyAddress,
-        ' attempting to upgrade instance',
+        'attempting to upgrade instance',
         contractName
       );
+      const existingImplementationAddress =
+        await hre.upgrades.erc1967.getImplementationAddress(proxyAddress!);
+      hre.log('Existing implementation at:', existingImplementationAddress);
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
         fireblocksSigner.setNextTransactionMemo(
           `Upgrade contract instance for ${contractName}`
         );
       }
-      contract = await hre.upgrades.upgradeProxy<TContract>(
-        proxyAddress,
-        contractFactory
-        // options
-      );
-      hre.log('Upgraded instance', contractName, 'at', contract.address);
+      const deployment = await hre.deployments.get(contractName);
+      const artifact = await hre.deployments.getArtifact(contractName);
+      if (deployment.bytecode !== artifact.bytecode) {
+        contract = await hre.upgrades.upgradeProxy<TContract>(
+          proxyAddress!,
+          contractFactory
+          // options
+        );
+        const newImplementationAddress =
+          await hre.upgrades.erc1967.getImplementationAddress(proxyAddress!);
+        if (existingImplementationAddress === newImplementationAddress) {
+          hre.log('Implementation unchanged');
+        } else {
+          hre.log('New implementation at:', newImplementationAddress);
+        }
+        hre.trace('...awaiting deployment transaction', contractName);
+        await contract.deployed();
+        hre.log('...successful deployment transaction', contractName);
+      } else {
+        hre.log('Implementation appears unchanged, skipped upgrade attempt.');
+        contract = (await getContract({
+          contractName,
+          hre,
+        })) as InstanceOfContract<TContract>;
+      }
     }
-    hre.trace('...awaiting deployment transaction', contractName);
-    await contract.deployed();
-    hre.log('...successful deployment transaction', contractName);
     return contract;
   };
   hre.deployOrUpgradeProxy = deployOrUpgradeProxy;

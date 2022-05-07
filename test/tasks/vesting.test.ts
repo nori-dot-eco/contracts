@@ -794,7 +794,7 @@ describe('vesting task', () => {
             batchSend: sandbox.spy(),
           },
         } as DeepPartial<BridgedPolygonNORI> as BridgedPolygonNORI);
-        const getLockedNori = sandbox.fake.returns({
+        const getLockedNORI = sandbox.fake.returns({
           ...lNori,
           batchRevokeUnvestedTokenAmounts: sandbox.spy(),
           callStatic: {
@@ -807,16 +807,16 @@ describe('vesting task', () => {
           'getBridgedPolygonNori',
           getBridgedPolygonNori
         );
-        sandbox.replace(contractUtils, 'getLockedNori', getLockedNori);
+        sandbox.replace(contractUtils, 'getLockedNORI', getLockedNORI);
         await hre.run('vesting', {
           action: 'createAndRevoke',
           dryRun: true,
         });
         expect(getBridgedPolygonNori().callStatic.batchSend).calledOnce;
-        expect(getLockedNori().callStatic.batchRevokeUnvestedTokenAmounts)
+        expect(getLockedNORI().callStatic.batchRevokeUnvestedTokenAmounts)
           .calledOnce;
         expect(getBridgedPolygonNori().batchSend).callCount(0);
-        expect(getLockedNori().batchRevokeUnvestedTokenAmounts).callCount(0);
+        expect(getLockedNORI().batchRevokeUnvestedTokenAmounts).callCount(0);
       });
     });
     describe('diff', () => {
