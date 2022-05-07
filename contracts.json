@@ -1,19 +1,19 @@
 {
   "hardhat": {
     "NORI": {
-      "proxyAddress": "0x68881d6266f3Ae8f4e3bf4a5CACd9319f26103aB"
+      "proxyAddress": "0x0013B38Ffb2EA257427F5d3D5cb1af53e8AF8aC0"
     },
     "BridgedPolygonNORI": {
       "proxyAddress": "0xe35401Eb5078388D49f47d631a0ce0733a31A425"
     },
     "Removal": {
-      "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
+      "proxyAddress": "0x5D4Ccd1c007cAe21347F3ceD346389b66f7a0ccB"
     },
     "Certificate": {
-      "proxyAddress": "0x2CA5C6C765be11F44519Fc85Bf758723DC3C8cFC"
+      "proxyAddress": "0xA7c33e73716EFC39C0d06FeB976B08081682Ad3c"
     },
     "FIFOMarket": {
-      "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
+      "proxyAddress": "0xa0F45e1cB74F45626A26576E0caB23915197b34D"
     },
     "LockedNORI": {
       "proxyAddress": "0x0E585861af9D895D8BcAB3de1a4A923db46d86c8"
