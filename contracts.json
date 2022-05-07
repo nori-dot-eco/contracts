@@ -7,10 +7,10 @@
       "proxyAddress": "0xe35401Eb5078388D49f47d631a0ce0733a31A425"
     },
     "Removal": {
-      "proxyAddress": "0x5D4Ccd1c007cAe21347F3ceD346389b66f7a0ccB"
+      "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
     },
     "Certificate": {
-      "proxyAddress": "0xA7c33e73716EFC39C0d06FeB976B08081682Ad3c"
+      "proxyAddress": "0x2CA5C6C765be11F44519Fc85Bf758723DC3C8cFC"
     },
     "FIFOMarket": {
       "proxyAddress": "0xa0F45e1cB74F45626A26576E0caB23915197b34D"
@@ -20,6 +20,9 @@
     },
     "ScheduleTestHarness": {
       "proxyAddress": "0x0000000000000000000000000000000000000000"
+    },
+    "SupplierLockedNORI": {
+      "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
     }
   },
   "localhost": {

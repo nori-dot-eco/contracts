@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820Registry
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
+import "./LockedNORI.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
 import "hardhat/console.sol"; // todo
@@ -32,6 +33,7 @@ contract FIFOMarket is
   Removal private _removal;
   Certificate private _certificate;
   BridgedPolygonNORI private _bridgedPolygonNori;
+  LockedNORI private _supplierLockedNori;
   mapping(uint256 => uint256) private _queue;
   uint256 private _queueHeadIndex;
   uint256 private _queueNextInsertIndex;
@@ -54,6 +56,7 @@ contract FIFOMarket is
     address removalAddress,
     address bridgedPolygonNoriAddress,
     address certificateAddress,
+    address supplierLockedNoriAddress,
     address noriFeeWalletAddress,
     uint256 noriFee
   ) public initializer {
@@ -65,6 +68,7 @@ contract FIFOMarket is
     _removal = Removal(removalAddress);
     _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
     _certificate = Certificate(certificateAddress);
+    _supplierLockedNori = LockedNORI(supplierLockedNoriAddress);
     _noriFeeWallet = noriFeeWalletAddress;
     _noriFee = noriFee;
     _erc1820 = IERC1820RegistryUpgradeable(

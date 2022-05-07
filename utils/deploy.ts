@@ -1,6 +1,9 @@
 import path from 'path';
 
 import { readJsonSync, writeJsonSync } from 'fs-extra';
+import type { Address } from 'hardhat-deploy/types';
+
+import type { Contracts } from './contracts';
 
 import type {
   LockedNORI,
@@ -18,11 +21,8 @@ import type {
   ScheduleTestHarness,
   ScheduleTestHarness__factory,
 } from '@/typechain-types';
-
 import { formatTokenAmount } from '@/utils/units';
 import { createRemovalTokenId, mockDepositNoriToPolygon } from '@/test/helpers';
-import { Address } from 'hardhat-deploy/types';
-import { Contracts } from './contracts';
 
 interface ContractConfig {
   [key: string]: { proxyAddress: string };
@@ -149,9 +149,10 @@ export const deployFIFOMarketContract = async ({
   return hre.deployOrUpgradeProxy<FIFOMarket, FIFOMarket__factory>({
     contractName: 'FIFOMarket',
     args: [
-      deployments['Removal']!.address,
-      deployments['BridgedPolygonNORI']!.address,
-      deployments['Certificate']!.address,
+      deployments.Removal!.address,
+      deployments.BridgedPolygonNORI!.address,
+      deployments.Certificate!.address,
+      deployments.SupplierLockedNORI!.address,
       feeWallet,
       feePercentage,
     ],
@@ -190,6 +191,18 @@ export const deployNORIContract = async ({
 };
 
 export const deployLockedNORIContract = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<LockedNORI>> => {
+  return hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
+    contractName: 'LockedNORI',
+    args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
+    options: { initializer: 'initialize(address)' },
+  });
+};
+
+export const deploySupplierLockedNORIContract = async ({
   hre,
 }: {
   hre: CustomHardHatRuntimeEnvironment;

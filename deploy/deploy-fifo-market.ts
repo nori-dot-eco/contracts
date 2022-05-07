@@ -1,5 +1,6 @@
 import { Logger, LogLevel } from '@ethersproject/logger';
-import { DeployFunction } from 'hardhat-deploy/types';
+import type { DeployFunction } from 'hardhat-deploy/types';
+
 import {
   STAGING_NORI_FEE_WALLET_ADDRESS,
   PROD_NORI_FEE_WALLET_ADDRESS,
@@ -19,7 +20,7 @@ export const deploy: DeployFunction = async (env) => {
       : STAGING_NORI_FEE_WALLET_ADDRESS;
   const contract = await deployFIFOMarketContract({
     hre,
-    feeWallet: feeWallet,
+    feeWallet,
     feePercentage: 15,
   });
   const signer = (await hre.getSigners())[0];
@@ -43,6 +44,7 @@ deploy.dependencies = [
   'Removal',
   'Certificate',
   'BridgedPolygonNORI',
+  'SupplierLockedNORI',
   'seed',
 ];
 deploy.skip = async (hre) =>

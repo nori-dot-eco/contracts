@@ -1,4 +1,5 @@
-import { Contract } from 'ethers';
+import type { Contract } from 'ethers';
+
 import type {
   BridgedPolygonNORI,
   Certificate,
@@ -13,6 +14,7 @@ export interface Contracts {
   Removal?: Removal;
   NORI?: NORI;
   BridgedPolygonNORI?: BridgedPolygonNORI;
+  SupplierLockedNORI?: LockedNORI;
   FIFOMarket?: FIFOMarket;
   LockedNORI?: LockedNORI;
   Certificate?: Certificate;
@@ -24,20 +26,23 @@ export const getContractsFromDeployments = async (
 ): Promise<Required<Contracts>> => {
   const deployments = await hre.deployments.all();
   const contracts = {
-    NORI: deployments['NORI']?.address ? await getNORI({ hre }) : undefined,
-    BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
+    NORI: deployments.NORI?.address ? await getNORI({ hre }) : undefined,
+    BridgedPolygonNORI: deployments.BridgedPolygonNORI?.address
       ? await getBridgedPolygonNori({ hre })
       : undefined,
-    LockedNORI: deployments['LockedNORI']?.address
+    LockedNORI: deployments.LockedNORI?.address
       ? await getLockedNORI({ hre })
       : undefined,
-    FIFOMarket: deployments['FIFOMarket']?.address
+    SupplierLockedNORI: deployments.SupplierLockedNORI?.address
+      ? await getSupplierLockedNORI({ hre })
+      : undefined,
+    FIFOMarket: deployments.FIFOMarket?.address
       ? await getFIFOMarket({ hre })
       : undefined,
-    Removal: deployments['Removal']?.address
+    Removal: deployments.Removal?.address
       ? await getRemoval({ hre })
       : undefined,
-    Certificate: deployments['Certificate']?.address
+    Certificate: deployments.Certificate?.address
       ? await getCertificate({ hre })
       : undefined,
   } as Required<Contracts>;
@@ -54,7 +59,7 @@ export const getContract = async <
   contractName: TContract extends BridgedPolygonNORI
     ? 'BridgedPolygonNORI'
     : TContract extends LockedNORI
-    ? 'LockedNORI'
+    ? 'LockedNORI' | 'SupplierLockedNORI'
     : TContract extends NORI
     ? 'NORI'
     : TContract extends Removal
@@ -120,6 +125,18 @@ export const getLockedNORI = ({
     signer,
   });
 
+export const getSupplierLockedNORI = ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<LockedNORI> =>
+  getContract({
+    contractName: 'SupplierLockedNORI',
+    hre,
+    signer,
+  });
 export const getCertificate = async ({
   hre,
   signer,
