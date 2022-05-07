@@ -27,19 +27,19 @@ contract Removal is
 
   struct BatchMintRemovalsData {
     address marketAddress;
+    uint256 holdbackPercentage;
     bool list;
   }
 
   uint256 private _tokenIdCounter;
-  string public name; // todo why did I add this
   mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
   mapping(uint256 => bool) private _tokenIdExists;
+  mapping(uint256 => uint256) private _idToHoldbackPercentage;
 
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
     _tokenIdCounter = 0;
-    name = "Removal";
   }
 
   /**
@@ -77,6 +77,23 @@ contract Removal is
     return removalId.unpackRemovalIdV0();
   }
 
+  function getHoldbackPercentageForRemoval(uint256 removalId)
+    public
+    view
+    returns (uint256)
+  {
+    require(_tokenIdExists[removalId], "removal id doesn't exist");
+    return _idToHoldbackPercentage[removalId];
+  }
+
+  function setHoldbackPercentageForRemoval(
+    uint256 removalId,
+    uint256 holdbackPercentage
+  ) external {
+    require(_tokenIdExists[removalId], "removal id doesn't exist");
+    _idToHoldbackPercentage[removalId] = holdbackPercentage;
+  }
+
   /**
    * @dev mints multiple removals at once (for a single supplier).
    * If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
@@ -104,6 +121,8 @@ contract Removal is
       require(!_tokenIdExists[ids[i]], "Token id already exists"); // todo can the duplicate token id be reported here?
 
       _tokenIdExists[ids[i]] = true;
+      // todo any checks on 0 holdbackPercentage?? presumably a 0 percent is still valid and a potential real use case
+      _idToHoldbackPercentage[ids[i]] = decodedData.holdbackPercentage;
       indexToTokenId[_tokenIdCounter] = ids[i];
       _tokenIdCounter += 1;
     }

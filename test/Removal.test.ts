@@ -1,7 +1,71 @@
 import { expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 
+const packMintingData = ({
+  marketAddress,
+  holdbackPercentage,
+  listNow,
+}: {
+  marketAddress: string;
+  holdbackPercentage: number;
+  listNow: boolean;
+}): string =>
+  hre.ethers.utils.defaultAbiCoder.encode(
+    ['address', 'uint256', 'bool'],
+    [marketAddress, holdbackPercentage, listNow]
+  );
 describe('Removal', () => {
+  describe('holdback percentage', () => {
+    it('should set the holdback percentage for a removal while minting it', async () => {
+      const { fifoMarket, removal } = await setupTest();
+      const tokenId = 1;
+      const holdbackPercentage = 40;
+      const packedData = packMintingData({
+        marketAddress: fifoMarket.address,
+        holdbackPercentage,
+        listNow: false,
+      });
+      await removal.mintBatch(
+        hre.namedAccounts.supplier,
+        [formatTokenAmount(100)],
+        [tokenId],
+        packedData
+      );
+      const retrievedHoldbackPercentage =
+        await removal.getHoldbackPercentageForRemoval(tokenId);
+      expect(retrievedHoldbackPercentage).equal(holdbackPercentage);
+    });
+    it('should update the holdback percentage for a removal after it has been minted', async () => {
+      const { fifoMarket, removal } = await setupTest();
+      const tokenId = 1;
+      const originalHoldbackPercentage = 40;
+      const packedData = packMintingData({
+        marketAddress: fifoMarket.address,
+        holdbackPercentage: originalHoldbackPercentage,
+        listNow: false,
+      });
+      await removal.mintBatch(
+        hre.namedAccounts.supplier,
+        [formatTokenAmount(100)],
+        [tokenId],
+        packedData
+      );
+
+      const updatedHoldback = 20;
+      await removal.setHoldbackPercentageForRemoval(tokenId, updatedHoldback);
+      const retrievedHoldbackPercentage =
+        await removal.getHoldbackPercentageForRemoval(tokenId);
+      expect(retrievedHoldbackPercentage).equal(updatedHoldback);
+    });
+    it('should revert if trying to set a holdback percentage for a removal that does not exist', async () => {
+      const { removal } = await setupTest();
+      const tokenId = 1;
+      const holdbackPercentage = 40;
+      await expect(
+        removal.setHoldbackPercentageForRemoval(tokenId, holdbackPercentage)
+      ).to.be.revertedWith("removal id doesn't exist");
+    });
+  });
   describe('Minting removals', () => {
     it('should mint a batch of removals without listing any', async () => {
       const { fifoMarket, removal, hre } = await setupTest();
@@ -11,10 +75,11 @@ describe('Removal', () => {
       const expectedMarketSupply = 0;
       const tokenIds = [0, 1, 2, 3];
       const listNow = false;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [fifoMarket.address, listNow]
-      );
+      const packedData = packMintingData({
+        marketAddress: fifoMarket.address,
+        holdbackPercentage: 0,
+        listNow,
+      });
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,
@@ -52,11 +117,12 @@ describe('Removal', () => {
       );
       const expectedMarketSupply = 1000;
       const tokenIds = [10, 11, 12, 13];
-      const listNow = true;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [fifoMarket.address, listNow]
-      );
+      const packedData = packMintingData({
+        marketAddress: fifoMarket.address,
+        holdbackPercentage: 0,
+        listNow: true,
+      });
+
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,
@@ -92,11 +158,12 @@ describe('Removal', () => {
         formatTokenAmount(balance)
       );
       const tokenIds = [0, 1, 1]; // duplicate token id
-      const listNow = false;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [fifoMarket.address, listNow]
-      );
+      const packedData = packMintingData({
+        marketAddress: fifoMarket.address,
+        holdbackPercentage: 0,
+        listNow: false,
+      });
+
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,
@@ -114,11 +181,11 @@ describe('Removal', () => {
         formatTokenAmount(balance)
       );
       const tokenIds = [4321, 12344, 7892];
-      const listNow = false;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [fifoMarket.address, listNow]
-      );
+      const packedData = packMintingData({
+        marketAddress: fifoMarket.address,
+        holdbackPercentage: 0,
+        listNow: false,
+      });
       await expect(
         removal.mintBatch(
           hre.namedAccounts.supplier,

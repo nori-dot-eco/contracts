@@ -1,5 +1,4 @@
-import type { BigNumberish } from 'ethers';
-import { BigNumber } from 'ethers';
+import type { BigNumberish, BigNumber } from 'ethers';
 
 import { formatTokenAmount } from '@/utils/units';
 import {
@@ -13,6 +12,7 @@ const setupTestLocal = async (
   {
     buyerInitialBPNoriBalance = formatTokenAmount(1_000_000),
     removalDataToList = [],
+    holdbackPercentage = 0,
   }: {
     buyerInitialBPNoriBalance?: BigNumberish;
     removalDataToList?: {
@@ -20,9 +20,11 @@ const setupTestLocal = async (
       vintage?: number;
       supplier?: string;
     }[];
+    holdbackPercentage?: number;
   } = {
     buyerInitialBPNoriBalance: formatTokenAmount(1_000_000),
     removalDataToList: [],
+    holdbackPercentage: 0,
   }
 ): Promise<
   Awaited<ReturnType<typeof setupTest>> & { listedRemovalIds: BigNumber[] }
@@ -43,10 +45,9 @@ const setupTestLocal = async (
     const removalBalances = removalDataToList.map((removalData) =>
       hre.ethers.utils.parseUnits(removalData.amount.toString())
     );
-
     const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-      ['address', 'bool'],
-      [fifoMarket.address, true]
+      ['address', 'uint256', 'bool'],
+      [fifoMarket.address, holdbackPercentage, true]
     );
     await removal.mintBatch(supplier, removalBalances, tokenIds, packedData);
   }
@@ -71,23 +72,28 @@ describe('Certificate', () => {
   it('should emit a CertificateCreated event when a certificate is minted', async () => {
     const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
     const removalDataToList = [{ amount: 3 }, { amount: 3 }, { amount: 4 }];
-    const { bpNori, certificate, fifoMarket, hre, listedRemovalIds } = await setupTestLocal({
-      buyerInitialBPNoriBalance,
-      removalDataToList,
-    });
+    const { bpNori, certificate, fifoMarket, hre, listedRemovalIds } =
+      await setupTestLocal({
+        buyerInitialBPNoriBalance,
+        removalDataToList,
+      });
     const removalAmounts = removalDataToList.map((data) => data.amount);
-    const { supplier, buyer, noriWallet } = hre.namedAccounts;
+    const { buyer } = hre.namedAccounts;
 
     const purchaseAmount = '10'; // purchase all supply
     const fee = '1.5';
     const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
 
-    expect(await bpNori
-      .connect(hre.namedSigners.buyer)
-      .send(
-        fifoMarket.address,
-        hre.ethers.utils.parseUnits(totalPrice),
-        hre.ethers.utils.hexZeroPad(buyer, 32)
-      )).to.emit(certificate, 'CertificateCreated').withArgs(buyer, 0, listedRemovalIds, removalAmounts);
+    expect(
+      await bpNori
+        .connect(hre.namedSigners.buyer)
+        .send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice),
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        )
+    )
+      .to.emit(certificate, 'CertificateCreated')
+      .withArgs(buyer, 0, listedRemovalIds, removalAmounts);
   });
 });
