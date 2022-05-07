@@ -8,7 +8,9 @@ const MNEMONIC = process.env.MNEMONIC ?? undefined;
 
 export const namedAccountIndices = {
   admin: 0,
+  unassigned0: 1,
   supplier: 2,
+  unassigned2: 3,
   investor1: 4,
   investor2: 5,
   buyer: 6,
