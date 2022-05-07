@@ -15,7 +15,7 @@ commands:
       - run:
           name: Run typechain with TS in transpile-only mode
           command: |
-            yarn typechain
+            yarn && yarn typechain
 
 jobs:
   setup-contract-tests:
