@@ -6,11 +6,9 @@ import { task, subtask, types } from 'hardhat/config';
 import { BigNumber } from 'ethers';
 import chalk from 'chalk';
 import { diff, diffString } from 'json-diff';
-import {
-  BigNumberish,
-  isBigNumberish,
-} from '@ethersproject/bignumber/lib/bignumber';
-import { Signer } from '@ethersproject/abstract-signer';
+import type { BigNumberish } from '@ethersproject/bignumber/lib/bignumber';
+import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
+import type { Signer } from '@ethersproject/abstract-signer';
 import type { CSVParseParam } from 'csvtojson/v2/Parameters';
 import { isAddress, getAddress } from 'ethers/lib/utils';
 import moment from 'moment';
@@ -688,8 +686,9 @@ const GET_BLOCKCHAIN_SUBTASK = {
   ): Promise<ParsedGrants> => {
     const totalSupply = await lNori.totalSupply();
     hre.log(`Total supply: ${totalSupply}`);
-    const rawBlockchainGrants: LockedNORI.TokenGrantDetailStructOutput[] =
-      await lNori.batchGetGrant(Object.keys(githubGrants));
+    const rawBlockchainGrants = await lNori.batchGetGrant(
+      Object.keys(githubGrants)
+    );
     const blockchainGrants = rawBlockchainGrants.reduce(
       (acc: ParsedGrants, grant: any): ParsedGrants => {
         return grant.recipient === hre.ethers.constants.AddressZero

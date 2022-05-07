@@ -5,6 +5,7 @@ import type {
   Certificate,
   FIFOMarket,
   LockedNORI,
+  SupplierVestingNORI,
   NORI,
   Removal,
   ScheduleTestHarness,
@@ -14,7 +15,7 @@ export interface Contracts {
   Removal?: Removal;
   NORI?: NORI;
   BridgedPolygonNORI?: BridgedPolygonNORI;
-  SupplierLockedNORI?: LockedNORI;
+  SupplierVestingNORI?: SupplierVestingNORI;
   FIFOMarket?: FIFOMarket;
   LockedNORI?: LockedNORI;
   Certificate?: Certificate;
@@ -33,8 +34,8 @@ export const getContractsFromDeployments = async (
     LockedNORI: deployments.LockedNORI?.address
       ? await getLockedNORI({ hre })
       : undefined,
-    SupplierLockedNORI: deployments.SupplierLockedNORI?.address
-      ? await getSupplierLockedNORI({ hre })
+    SupplierVestingNORI: deployments.SupplierVestingNORI?.address
+      ? await getSupplierVestingNORI({ hre })
       : undefined,
     FIFOMarket: deployments.FIFOMarket?.address
       ? await getFIFOMarket({ hre })
@@ -44,6 +45,9 @@ export const getContractsFromDeployments = async (
       : undefined,
     Certificate: deployments.Certificate?.address
       ? await getCertificate({ hre })
+      : undefined,
+    ScheduleTestHarness: deployments.ScheduleTestHarness?.address
+      ? await getScheduleTestHarness({ hre })
       : undefined,
   } as Required<Contracts>;
   return contracts;
@@ -59,7 +63,9 @@ export const getContract = async <
   contractName: TContract extends BridgedPolygonNORI
     ? 'BridgedPolygonNORI'
     : TContract extends LockedNORI
-    ? 'LockedNORI' | 'SupplierLockedNORI'
+    ? 'LockedNORI'
+    : TContract extends SupplierVestingNORI
+    ? 'SupplierVestingNORI'
     : TContract extends NORI
     ? 'NORI'
     : TContract extends Removal
@@ -125,18 +131,19 @@ export const getLockedNORI = ({
     signer,
   });
 
-export const getSupplierLockedNORI = ({
+export const getSupplierVestingNORI = ({
   hre,
   signer,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<LockedNORI> =>
+}): Promise<SupplierVestingNORI> =>
   getContract({
-    contractName: 'SupplierLockedNORI',
+    contractName: 'SupplierVestingNORI',
     hre,
     signer,
   });
+
 export const getCertificate = async ({
   hre,
   signer,
@@ -172,6 +179,19 @@ export const getFIFOMarket = async ({
 }): Promise<FIFOMarket> =>
   getContract({
     contractName: 'FIFOMarket',
+    hre,
+    signer,
+  });
+
+export const getScheduleTestHarness = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<ScheduleTestHarness> =>
+  getContract({
+    contractName: 'ScheduleTestHarness',
     hre,
     signer,
   });

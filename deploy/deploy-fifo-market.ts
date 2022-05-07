@@ -44,7 +44,7 @@ deploy.dependencies = [
   'Removal',
   'Certificate',
   'BridgedPolygonNORI',
-  'SupplierLockedNORI',
+  'SupplierVestingNORI',
   'seed',
 ];
 deploy.skip = async (hre) =>

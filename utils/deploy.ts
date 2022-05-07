@@ -18,6 +18,8 @@ import type {
   LockedNORI__factory,
   BridgedPolygonNORI,
   BridgedPolygonNORI__factory,
+  SupplierVestingNORI,
+  SupplierVestingNORI__factory,
   ScheduleTestHarness,
   ScheduleTestHarness__factory,
 } from '@/typechain-types';
@@ -152,12 +154,13 @@ export const deployFIFOMarketContract = async ({
       deployments.Removal!.address,
       deployments.BridgedPolygonNORI!.address,
       deployments.Certificate!.address,
-      deployments.SupplierLockedNORI!.address,
+      deployments.SupplierVestingNORI!.address,
       feeWallet,
       feePercentage,
     ],
     options: {
-      initializer: 'initialize(address,address,address,address,uint256)',
+      initializer:
+        'initialize(address,address,address,address,address,uint256)',
     },
   });
 };
@@ -202,13 +205,16 @@ export const deployLockedNORIContract = async ({
   });
 };
 
-export const deploySupplierLockedNORIContract = async ({
+export const deploySupplierVestingNORIContract = async ({
   hre,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-}): Promise<InstanceOfContract<LockedNORI>> => {
-  return hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
-    contractName: 'LockedNORI',
+}): Promise<InstanceOfContract<SupplierVestingNORI>> => {
+  return hre.deployOrUpgradeProxy<
+    SupplierVestingNORI,
+    SupplierVestingNORI__factory
+  >({
+    contractName: 'SupplierVestingNORI',
     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
     options: { initializer: 'initialize(address)' },
   });
