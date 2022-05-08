@@ -231,6 +231,9 @@ contract FIFOMarket is
       batchedAmounts,
       encodedCertificateAmount
     );
+    uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentage(
+      batchedIds
+    );
     for (uint256 i = 0; i < batchedIds.length; i++) {
       if (
         batchedAmounts[i] == _removal.balanceOf(address(this), batchedIds[i])
@@ -239,9 +242,19 @@ contract FIFOMarket is
       }
       totalSupply -= batchedAmounts[i];
       uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
-      uint256 supplierFee = batchedAmounts[i];
+      uint256 supplierFeeRestricted = (batchedAmounts[i] *
+        holdbackPercentages[i]) / 100;
+      uint256 supplierFeeUnrestricted = batchedAmounts[i] -
+        supplierFeeRestricted;
       _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
-      _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
+      _bridgedPolygonNori.transfer(suppliers[i], supplierFeeUnrestricted);
+
+      bytes memory userData = abi.encode(suppliers[i], 0);
+      _bridgedPolygonNori.send(
+        address(_supplierVestingNori),
+        supplierFeeRestricted,
+        userData
+      );
     }
     _removal.burnBatch(address(this), batchedIds, batchedAmounts);
   }

@@ -6,7 +6,7 @@ import {
   PROD_NORI_FEE_WALLET_ADDRESS,
 } from '@/constants/addresses';
 import { deployFIFOMarketContract, finalizeDeployments } from '@/utils/deploy';
-import { getCertificate } from '@/utils/contracts';
+import { getCertificate, getSupplierVestingNORI } from '@/utils/contracts';
 
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
@@ -31,9 +31,17 @@ export const deploy: DeployFunction = async (env) => {
       contract.address
     ))
   ) {
-    await certificate.addMinter(contract.address); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
+    await certificate.addMinter(contract.address);
   }
   hre.trace('Added FIFOMarket as a minter of Certificate');
+  const supplierVestingNori = await getSupplierVestingNORI({ hre, signer });
+  const tokenGranterRole = await supplierVestingNori.TOKEN_GRANTER_ROLE();
+  if (
+    !(await supplierVestingNori.hasRole(tokenGranterRole, contract.address))
+  ) {
+    await supplierVestingNori.grantRole(tokenGranterRole, contract.address);
+  }
+  hre.trace('Added FIFOMarket as a TOKEN_GRANTER of SupplierVestingNORI');
   await finalizeDeployments({ hre, contracts: { FIFOMarket: contract } });
 };
 

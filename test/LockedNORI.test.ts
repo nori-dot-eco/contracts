@@ -448,7 +448,19 @@ describe('LockedNori', () => {
 
   describe('role access', () => {
     // it.todo('only the token granter role can deposit tokens')
+
     describe('roles', () => {
+      describe('DEFAULT_ADMIN_ROLE', () => {
+        it(`should grant the DEFAULT_ADMIN_ROLE to the deployer of the contract`, async () => {
+          const { lNori, hre } = await setupWithGrant((params) =>
+            employeeParams(params)
+          );
+          const { namedAccounts } = hre;
+          const roleId = await lNori['DEFAULT_ADMIN_ROLE']();
+          expect(await lNori.hasRole(roleId, namedAccounts['admin'])).to.be
+            .true;
+        });
+      });
       describe('TOKEN_GRANTER_ROLE', () => {
         [
           {
@@ -658,11 +670,17 @@ describe('LockedNori', () => {
   });
 
   describe('grantRole', () => {
-      it('should fail to grant TOKEN_GRANTER_ROLE to an address having a grant', async () => {
-        const { lNori, hre } = await setupWithGrant();
-        await expect(lNori.grantRole(await lNori.TOKEN_GRANTER_ROLE(), hre.namedAccounts.investor1))
-            .to.be.revertedWith("lNORI: Cannot assign role to a grant holder address");
-      });
+    it('should fail to grant TOKEN_GRANTER_ROLE to an address having a grant', async () => {
+      const { lNori, hre } = await setupWithGrant();
+      await expect(
+        lNori.grantRole(
+          await lNori.TOKEN_GRANTER_ROLE(),
+          hre.namedAccounts.investor1
+        )
+      ).to.be.revertedWith(
+        'lNORI: Cannot assign role to a grant holder address'
+      );
+    });
   });
 
   describe('createGrant', () => {
@@ -1362,7 +1380,7 @@ describe('LockedNori', () => {
       const recipients = [...Array(9)].map((_) => lNori.address);
       const amounts = [...Array(9)].map((_) => grantAmount);
       const userData = [...Array(9)].map((_, i) =>
-        buildUserData({ recipient: unnamedAccounts[i+1] })
+        buildUserData({ recipient: unnamedAccounts[i + 1] })
       ); // todo
       const operatorData = [...Array(9)].map((_) => '0x');
       const requireReceptionAck = [...Array(9)].map((_) => true);

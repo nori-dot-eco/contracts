@@ -7,6 +7,7 @@ import {
   mockDepositNoriToPolygon,
   setupTest,
   createRemovalTokenId,
+  getLatestBlockTime,
 } from '@/test/helpers';
 
 const setupTestLocal = async (
@@ -377,7 +378,7 @@ describe('FIFOMarket', () => {
       });
     });
   });
-  describe('Successful purchases', () => {
+  describe('successful purchases', () => {
     it('should purchase removals and mint a certificate when there is enough supply in a single removal', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const totalAvailableSupply = 100;
@@ -741,7 +742,7 @@ describe('FIFOMarket', () => {
     });
   });
 
-  describe('Unsuccessful purchases', () => {
+  describe('unsuccessful purchases', () => {
     it('should revert when the queue is completely empty', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
@@ -885,6 +886,119 @@ describe('FIFOMarket', () => {
 
       expect(await certificate.balanceOf(buyer, 0)).to.equal(
         hre.ethers.utils.parseUnits('0', 18)
+      );
+    });
+  });
+  describe('restricted tokens', () => {
+    it('should correctly route restricted tokens to the SupplierVestingNORI contract', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const totalAvailableSupply = 100;
+      const { bpNori, certificate, fifoMarket, sveNori, hre } =
+        await setupTestLocal({
+          buyerInitialBPNoriBalance,
+          removalDataToList: [{ amount: totalAvailableSupply }],
+          holdbackPercentage: 40,
+        });
+      const { supplier, buyer, noriWallet } = hre.namedAccounts;
+
+      const purchaseAmount = '100';
+      const fee = '15';
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+
+      const roleId = await sveNori['TOKEN_GRANTER_ROLE']();
+      expect(await sveNori.hasRole(roleId, fifoMarket.address)).to.be
+        .true;
+      // set up a grant for this supplier
+      const linearParams = ({
+        startTime =  Math.floor(Date.now() / 1_000),
+      }: {
+        startTime?: number;
+      }) => {
+        return {
+          grantAmount: 0,
+          grant: {
+            recipient: supplier,
+            startTime,
+            vestEndTime: startTime + 100_000,
+            unlockEndTime: startTime + 100_000, // todo the mechanics around not having unlocking, only vesting, aren't right in the VestingNORIPreset implementation
+            cliff1Time: startTime,
+            cliff2Time: startTime,
+            vestCliff1Amount: BigNumber.from(0),
+            vestCliff2Amount: BigNumber.from(0),
+            unlockCliff1Amount: BigNumber.from(0),
+            unlockCliff2Amount: BigNumber.from(0),
+          },
+        };
+      };
+      const defaults = linearParams({
+        startTime: await getLatestBlockTime({ hre }),
+      });
+      const grantAmount = defaults.grantAmount;
+      const grant = defaults.grant;
+      console.log({startTime: grant.startTime, unlockEnd: grant.unlockEndTime})
+      await sveNori.createGrant(
+        grantAmount,
+        grant.recipient,
+        grant.startTime,
+        grant.vestEndTime,
+        grant.unlockEndTime,
+        grant.cliff1Time,
+        grant.cliff2Time,
+        grant.vestCliff1Amount,
+        grant.vestCliff2Amount,
+        grant.unlockCliff1Amount,
+        grant.unlockCliff2Amount
+      )
+
+      const expectedSupplierFinalNoriBalance = '60';
+      const expectedSupplierFinalSveNoriBalance = '40';
+
+      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
+
+      await bpNori
+        .connect(hre.namedSigners.buyer)
+        .send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice),
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        );
+
+      const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
+      const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
+      const supplierFinalSveNoriBalance = await sveNori.balanceOf(supplier);
+      const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
+      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
+
+      expect(buyerFinalNoriBalance).to.equal(
+        buyerInitialBPNoriBalance
+          .sub(hre.ethers.utils.parseUnits(totalPrice, 18))
+          .toString()
+      );
+
+      expect(supplierFinalNoriBalance).to.equal(
+        hre.ethers.utils
+          .parseUnits(expectedSupplierFinalNoriBalance, 18)
+          .toString()
+      );
+
+      expect(supplierFinalSveNoriBalance).to.equal(
+        hre.ethers.utils
+          .parseUnits(expectedSupplierFinalSveNoriBalance, 18)
+          .toString()
+      );
+
+      expect(noriFinalNoriBalance).to.equal(
+        hre.ethers.utils.parseUnits(fee, 18).toString()
+      );
+
+      expect(await certificate.balanceOf(buyer, 0)).to.equal(
+        hre.ethers.utils.parseUnits(purchaseAmount, 18)
+      );
+
+      expect(finalFifoSupply).to.equal(
+        initialFifoSupply
+          .sub(hre.ethers.utils.parseUnits(purchaseAmount, 18))
+          .toString()
       );
     });
   });
