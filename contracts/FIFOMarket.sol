@@ -242,19 +242,22 @@ contract FIFOMarket is
       }
       totalSupply -= batchedAmounts[i];
       uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
-      uint256 supplierFeeRestricted = (batchedAmounts[i] *
-        holdbackPercentages[i]) / 100;
+      uint256 supplierFeeRestricted = 0;
+      if (holdbackPercentages[i] > 0) {
+        supplierFeeRestricted =
+          (batchedAmounts[i] * holdbackPercentages[i]) /
+          100;
+        bytes memory userData = abi.encode(suppliers[i], 0);
+        _bridgedPolygonNori.send(
+          address(_supplierVestingNori),
+          supplierFeeRestricted,
+          userData
+        );
+      }
       uint256 supplierFeeUnrestricted = batchedAmounts[i] -
         supplierFeeRestricted;
       _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
       _bridgedPolygonNori.transfer(suppliers[i], supplierFeeUnrestricted);
-
-      bytes memory userData = abi.encode(suppliers[i], 0);
-      _bridgedPolygonNori.send(
-        address(_supplierVestingNori),
-        supplierFeeRestricted,
-        userData
-      );
     }
     _removal.burnBatch(address(this), batchedIds, batchedAmounts);
   }
