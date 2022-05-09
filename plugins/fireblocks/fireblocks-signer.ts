@@ -17,11 +17,7 @@ import { BigNumber, ethers, PopulatedTransaction } from 'ethers';
 import { TransactionStatus, FireblocksSDK } from 'fireblocks-sdk';
 import { EthersCustomBridge } from './from-upstream/fireblocks-bridge';
 import { Chain } from './from-upstream/chain';
-import {
-  keccak256,
-  toUtf8Bytes,
-  UnsignedTransaction,
-} from 'ethers/lib/utils';
+import { keccak256, toUtf8Bytes, UnsignedTransaction } from 'ethers/lib/utils';
 import { getGasPriceSettings } from '../../utils/gas';
 const log = new Logger('fireblocks signer');
 
@@ -99,7 +95,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
   async _signMessage(message: Bytes): Promise<string> {
     const txInfo = await this._bridge.sendRawTransaction(
       keccak256(message).substring(2),
-      `Message signing request: ${this.memo}`
+      this.memo
     );
     await this._bridge.waitForTxHash(txInfo.id);
     const txDetail = await this.fireblocksApiClient.getTransactionById(
@@ -119,15 +115,15 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
 
   /**
    * _populateTransaction - Internal wrapper around ethers populateTransaction function.
-   * 
+   *
    * Figures out gas pricing and limits.
-   * 
+   *
    * Ideally this would lean more heavily on the JsonRPCProvider but for the moment there
    * is a hardcoded setting of 25 gwei internally which fails on mumbai / polygon now.
-   * 
-   * @param transaction 
-   * @param type 
-   * @returns 
+   *
+   * @param transaction
+   * @param type
+   * @returns
    */
   async _populateTransaction(
     transaction: Deferrable<TransactionRequest>,
@@ -197,7 +193,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
   async _signTransaction(transaction: UnsignedTransaction): Promise<string> {
     const txInfo = await this._bridge.sendTransaction(
       transaction as PopulatedTransaction,
-      `${this.memo}`
+      this.memo
     );
     await this._bridge.waitForTxHash(txInfo.id);
     const txDetail = await this.fireblocksApiClient.getTransactionById(
@@ -207,7 +203,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     return txDetail.txHash;
   }
 
-    /**
+  /**
    * _signRawTransaction: Internal implementation of raw transaction signing.
    *
    * There isn't a transaction hash returned in the in raw signing result
@@ -231,7 +227,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     const unsignedTx = ethers.utils.serializeTransaction(baseTx);
     const txInfo = await this._bridge.sendRawTransaction(
       keccak256(unsignedTx).substring(2),
-      `Raw transaction signing request: ${this.memo}`
+      this.memo
     );
     await this._bridge.waitForTxHash(txInfo.id);
     const txDetail = await this.fireblocksApiClient.getTransactionById(

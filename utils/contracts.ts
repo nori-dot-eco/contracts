@@ -1,46 +1,160 @@
 import { Contract } from 'ethers';
+import type {
+  BridgedPolygonNORI,
+  Certificate,
+  FIFOMarket,
+  LockedNORI,
+  NORI,
+  Removal,
+  ScheduleTestHarness,
+} from '@/typechain-types';
 
-import type { BridgedPolygonNORI, LockedNORI } from '../typechain-types';
-import type { networks } from '../config/networks';
+export interface Contracts {
+  Removal?: Removal;
+  NORI?: NORI;
+  BridgedPolygonNORI?: BridgedPolygonNORI;
+  FIFOMarket?: FIFOMarket;
+  LockedNORI?: LockedNORI;
+  Certificate?: Certificate;
+  ScheduleTestHarness?: ScheduleTestHarness;
+}
 
-import * as contractsConfig from '@/contracts.json';
-import { abi as bridgedPolygonNoriAbi } from '@/artifacts/BridgedPolygonNORI.sol/BridgedPolygonNORI.json';
-import { abi as lockedNoriAbi } from '@/artifacts/LockedNORI.sol/LockedNORI.json';
-
-export const getBridgedPolygonNori = ({
-  signer,
-  network,
-}: {
-  signer: ConstructorParameters<typeof Contract>[2];
-  network: keyof typeof networks;
-}): BridgedPolygonNORI => {
-  const contractsForNetwork = contractsConfig[network];
-  if (!('BridgedPolygonNORI' in contractsForNetwork)) {
-    throw new Error(`Unsupported network: ${network}`);
-  }
-  const bridgedPolygonNori = new Contract(
-    contractsForNetwork.BridgedPolygonNORI.proxyAddress,
-    bridgedPolygonNoriAbi,
-    signer
-  ) as BridgedPolygonNORI;
-  return bridgedPolygonNori;
+export const getContractsFromDeployments = async (
+  hre: CustomHardHatRuntimeEnvironment
+): Promise<Required<Contracts>> => {
+  const deployments = await hre.deployments.all();
+  const contracts = {
+    NORI: deployments['NORI']?.address ? await getNORI({ hre }) : undefined,
+    BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
+      ? await getBridgedPolygonNori({ hre })
+      : undefined,
+    LockedNORI: deployments['LockedNORI']?.address
+      ? await getLockedNORI({ hre })
+      : undefined,
+    FIFOMarket: deployments['FIFOMarket']?.address
+      ? await getFIFOMarket({ hre })
+      : undefined,
+    Removal: deployments['Removal']?.address
+      ? await getRemoval({ hre })
+      : undefined,
+    Certificate: deployments['Certificate']?.address
+      ? await getCertificate({ hre })
+      : undefined,
+  } as Required<Contracts>;
+  return contracts;
 };
 
-export const getLockedNori = ({
+export const getContract = async <
+  TContract extends Contracts[keyof Contracts]
+>({
+  contractName,
+  hre,
   signer,
-  network,
 }: {
-  signer: ConstructorParameters<typeof Contract>[2];
-  network: keyof typeof networks;
-}): LockedNORI => {
-  const contractsForNetwork = contractsConfig[network];
-  if (!('LockedNORI' in contractsForNetwork)) {
-    throw new Error(`Unsupported network: ${network}`);
+  contractName: TContract extends BridgedPolygonNORI
+    ? 'BridgedPolygonNORI'
+    : TContract extends LockedNORI
+    ? 'LockedNORI'
+    : TContract extends NORI
+    ? 'NORI'
+    : TContract extends Removal
+    ? 'Removal'
+    : TContract extends Certificate
+    ? 'Certificate'
+    : TContract extends FIFOMarket
+    ? 'FIFOMarket'
+    : TContract extends ScheduleTestHarness
+    ? 'ScheduleTestHarness'
+    : never;
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<TContract> => {
+  const deployment = await hre.deployments.get(contractName);
+  const contract = await hre.ethers.getContractAt(
+    contractName,
+    deployment.address
+  );
+  if (!contract) {
+    throw new Error(`Unsupported network: ${hre.network.name}`);
   }
-  const lockedNori = new Contract(
-    contractsForNetwork.LockedNORI.proxyAddress,
-    lockedNoriAbi,
-    signer
-  ) as LockedNORI;
-  return lockedNori;
+  return (signer != null ? contract.connect(signer) : contract) as TContract;
 };
+
+export const getBridgedPolygonNori = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<BridgedPolygonNORI> => {
+  return getContract({
+    contractName: 'BridgedPolygonNORI',
+    hre,
+    signer,
+  });
+};
+
+export const getNORI = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<NORI> =>
+  getContract({
+    contractName: 'NORI',
+    hre,
+    signer,
+  });
+
+export const getLockedNORI = ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<LockedNORI> =>
+  getContract({
+    contractName: 'LockedNORI',
+    hre,
+    signer,
+  });
+
+export const getCertificate = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<Certificate> =>
+  getContract({
+    contractName: 'Certificate',
+    hre,
+    signer,
+  });
+
+export const getRemoval = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<Removal> =>
+  getContract({
+    contractName: 'Removal',
+    hre,
+    signer,
+  });
+
+export const getFIFOMarket = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<FIFOMarket> =>
+  getContract({
+    contractName: 'FIFOMarket',
+    hre,
+    signer,
+  });
