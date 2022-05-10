@@ -1,20 +1,26 @@
 name: Slither Analysis
+
 on: [push]
+
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 12.x
-      - uses: actions/cache@v3
-        id: cache
-        with:
-          path: '**/node_modules'
-          key: yarn-v2-${{ hashFiles('**/yarn-lock.json') }}
-          restore-keys: yarn-v2-
-      - run: yarn
-        if: steps.cache.outputs.cache-hit != 'true'
-      - uses: crytic/slither-action@v0.1.
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
+    - name: Run Slither
+      uses: crytic/slither-action@v0.1.1
+      continue-on-error: true
+      id: slither
+      with:
+        node-version: 16
+        sarif: results.sarif
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v1
+      with:
+        sarif_file: ${{ steps.slither.outputs.sarif }}
