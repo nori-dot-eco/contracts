@@ -15,5 +15,5 @@ jobs:
           key: npm-v2-${{ hashFiles('**/yarn-lock.json') }}
           restore-keys: yarn-v2-
       - run: yarn
-        if: steps.cache.outputs.cache-hit != 'true']
+        if: steps.cache.outputs.cache-hit != 'true'
       - uses: crytic/slither-action@v0.1.1
