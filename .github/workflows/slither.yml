@@ -11,6 +11,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+    
+    - name: install libsecret
+      run: sudo apt install libsecret-1-0
 
     - name: Run Slither
       uses: crytic/slither-action@v0.1.1
