@@ -4,9 +4,16 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Install libsecret
-        run: sudo apt-get update && sudo apt -y install libsecret-1-0
-      - uses: crytic/slither-action@v0.1.1
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version: 12.x
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: '**/node_modules'
+          key: npm-v2-${{ hashFiles('**/yarn-lock.json') }}
+          restore-keys: yarn-v2-
+      - run: yarn
+        if: steps.cache.outputs.cache-hit != 'true']
+      - uses: crytic/slither-action@v0.1.1
