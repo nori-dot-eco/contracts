@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install libsecret
-        run: sudo apt-get install libsecret-1-0
+        run: sudo apt-get install libsecret-0-dev
       - uses: crytic/slither-action@v0.1.1
         with:
           node-version: 14
