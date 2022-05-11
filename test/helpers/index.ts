@@ -7,14 +7,14 @@ import type {
   LockedNORI,
   NORI,
   BridgedPolygonNORI,
-} from '../../typechain-types';
-import type { UnpackedRemovalIdV0Struct } from '../../typechain-types/Removal';
-import { asciiStringToHexString } from '../../utils/bytes';
+} from '@/typechain-types';
+import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/Removal';
+import { asciiStringToHexString } from '@/utils/bytes';
 
 import { mockDepositNoriToPolygon } from './polygon';
 
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/utils/deploy';
+import { Contracts, getContractsFromDeployments } from '@/utils/contracts';
 
 export * from './chai';
 export * from './interfaces';
@@ -46,48 +46,6 @@ export const advanceTime = async ({
 }): Promise<void> => {
   await hre.network.provider.send('evm_setNextBlockTimestamp', [timestamp]);
   await hre.network.provider.send('hardhat_mine');
-};
-
-export const getContractsFromDeployments = async (
-  hre: CustomHardHatRuntimeEnvironment
-): Promise<Required<Contracts>> => {
-  const deployments = await hre.deployments.all();
-  const contracts = {
-    NORI: deployments['NORI']?.address
-      ? await hre.ethers.getContractAt('NORI', deployments['NORI'].address)
-      : undefined,
-    BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
-      ? await hre.ethers.getContractAt(
-          'BridgedPolygonNORI',
-          deployments['BridgedPolygonNORI'].address
-        )
-      : undefined,
-    LockedNORI: deployments['LockedNORI']?.address
-      ? await hre.ethers.getContractAt(
-          'LockedNORI',
-          deployments['LockedNORI'].address
-        )
-      : undefined,
-    FIFOMarket: deployments['FIFOMarket']?.address
-      ? await hre.ethers.getContractAt(
-          'FIFOMarket',
-          deployments['FIFOMarket'].address
-        )
-      : undefined,
-    Removal: deployments['Removal']?.address
-      ? await hre.ethers.getContractAt(
-          'Removal',
-          deployments['Removal']?.address
-        )
-      : undefined,
-    Certificate: deployments['Removal']?.address
-      ? await hre.ethers.getContractAt(
-          'Certificate',
-          deployments['Certificate'].address
-        )
-      : undefined,
-  } as Required<Contracts>;
-  return contracts;
 };
 
 export const setupTest = global.hre.deployments.createFixture(
