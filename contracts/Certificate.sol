@@ -29,9 +29,9 @@ contract Certificate is
    * @notice Emitted on creation of a certificate of carbon removal.
    */
   event CertificateCreated(
-    address indexed buyer,
+    address indexed recipient,
     uint256 indexed certificateId,
-    uint256[] indexed removalIds,
+    uint256[] removalIds,
     uint256[] amounts
   );
 

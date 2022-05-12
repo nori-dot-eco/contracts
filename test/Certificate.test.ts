@@ -1,5 +1,4 @@
-import type { BigNumberish } from 'ethers';
-import { BigNumber } from 'ethers';
+import type { BigNumberish, BigNumber } from 'ethers';
 
 import { formatTokenAmount } from '@/utils/units';
 import {
@@ -71,23 +70,28 @@ describe('Certificate', () => {
   it('should emit a CertificateCreated event when a certificate is minted', async () => {
     const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
     const removalDataToList = [{ amount: 3 }, { amount: 3 }, { amount: 4 }];
-    const { bpNori, certificate, fifoMarket, hre, listedRemovalIds } = await setupTestLocal({
-      buyerInitialBPNoriBalance,
-      removalDataToList,
-    });
+    const { bpNori, certificate, fifoMarket, hre, listedRemovalIds } =
+      await setupTestLocal({
+        buyerInitialBPNoriBalance,
+        removalDataToList,
+      });
     const removalAmounts = removalDataToList.map((data) => data.amount);
-    const { supplier, buyer, noriWallet } = hre.namedAccounts;
+    const { buyer } = hre.namedAccounts;
 
     const purchaseAmount = '10'; // purchase all supply
     const fee = '1.5';
     const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
 
-    expect(await bpNori
-      .connect(hre.namedSigners.buyer)
-      .send(
-        fifoMarket.address,
-        hre.ethers.utils.parseUnits(totalPrice),
-        hre.ethers.utils.hexZeroPad(buyer, 32)
-      )).to.emit(certificate, 'CertificateCreated').withArgs(buyer, 0, listedRemovalIds, removalAmounts);
+    expect(
+      await bpNori
+        .connect(hre.namedSigners.buyer)
+        .send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice),
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        )
+    )
+      .to.emit(certificate, 'CertificateCreated')
+      .withArgs(buyer, 0, listedRemovalIds, removalAmounts);
   });
 });
