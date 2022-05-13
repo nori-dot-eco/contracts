@@ -1,6 +1,6 @@
 import type { BigNumberish, Signer } from 'ethers';
 
-import type { Contracts } from '@/utils/deploy';
+import type { Contracts } from '@/utils/contracts';
 
 export const mockDepositNoriToPolygon = async ({
   hre,

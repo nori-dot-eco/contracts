@@ -509,11 +509,7 @@ export const GET_VESTING_TASK = () =>
         create: action === 'create',
       };
       hre.log(`Account index: ${account}`);
-      if (
-        typeof account !== 'number' ||
-        account < 0 ||
-        account > 10
-      ) {
+      if (typeof account !== 'number' || account < 0 || account > 10) {
         throw new Error('Invalid account/signer index');
       }
       if (Boolean(asJson) && !Boolean(showDiff) && !Boolean(expand)) {
@@ -692,7 +688,7 @@ const GET_BLOCKCHAIN_SUBTASK = {
   ): Promise<ParsedGrants> => {
     const totalSupply = await lNori.totalSupply();
     hre.log(`Total supply: ${totalSupply}`);
-    const rawBlockchainGrants: LockedNORI.TokenGrantDetailStructOutput[] =
+    const rawBlockchainGrants =
       await lNori.batchGetGrant(Object.keys(githubGrants));
     const blockchainGrants = rawBlockchainGrants.reduce(
       (acc: ParsedGrants, grant: any): ParsedGrants => {

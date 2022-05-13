@@ -5,7 +5,6 @@ import type {
   RunSuperFunction,
   TaskArguments,
 } from 'hardhat/types/runtime';
-import type { DeployFunction } from '@openzeppelin/hardhat-upgrades/src/deploy-proxy';
 import type {
   BaseContract,
   Contract,
@@ -33,7 +32,8 @@ import {
   DeployFunction as HardhatDeployFunction,
 } from 'hardhat-deploy/dist/types';
 import { HardhatUserConfig } from 'hardhat/types';
-import { Address } from 'hardhat-deploy/types';
+import { Address, Deployment } from 'hardhat-deploy/types';
+import { Contracts } from '@/utils/contracts';
 
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
@@ -72,6 +72,9 @@ declare module 'hardhat/types/runtime' {
       func: FixtureFunc<T, O>,
       id?: string
     ): (options?: O) => Promise<T>;
+    all<TContracts extends Contracts = Contracts>(): Promise<{
+      [Property in keyof TContracts]: Deployment;
+    }>;
   }
   type FixtureFunc<T, O> = (
     env: CustomHardHatRuntimeEnvironment,
@@ -171,6 +174,7 @@ declare global {
     | 'LockedNORI'
     | 'BridgedPolygonNORI'
     | 'ScheduleTestHarness';
+
   var ethers: Omit<
     typeof defaultEthers & HardhatEthersHelpers,
     'getContractFactory'

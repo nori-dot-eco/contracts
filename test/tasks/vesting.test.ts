@@ -786,14 +786,18 @@ describe('vesting task', () => {
             },
           } as Partial<typeof Octokit> as Octokit)
         );
-        const getBridgedPolygonNori = sandbox.fake.returns({
-          ...bpNori,
-          batchSend: sandbox.spy(),
-          callStatic: {
-            ...bpNori.callStatic,
+        const getBridgedPolygonNori = sandbox.fake.returns(
+          Promise.resolve({
+            ...bpNori,
             batchSend: sandbox.spy(),
-          },
-        } as DeepPartial<BridgedPolygonNORI> as BridgedPolygonNORI);
+            callStatic: {
+              ...bpNori.callStatic,
+              batchSend: Psandbox.spy(),
+            },
+          }) as Promise<
+            DeepPartial<BridgedPolygonNORI>
+          > as Promise<BridgedPolygonNORI>
+        );
         const getLockedNORI = sandbox.fake.returns({
           ...lNori,
           batchRevokeUnvestedTokenAmounts: sandbox.spy(),
@@ -801,7 +805,7 @@ describe('vesting task', () => {
             ...lNori.callStatic,
             batchRevokeUnvestedTokenAmounts: sandbox.spy(),
           },
-        } as DeepPartial<LockedNORI> as LockedNORI);
+        } as DeepPartial<Promise<LockedNORI>> as Promise<LockedNORI>);
         sandbox.replace(
           contractUtils,
           'getBridgedPolygonNori',
@@ -812,11 +816,14 @@ describe('vesting task', () => {
           action: 'createAndRevoke',
           dryRun: true,
         });
-        expect(getBridgedPolygonNori().callStatic.batchSend).calledOnce;
-        expect(getLockedNORI().callStatic.batchRevokeUnvestedTokenAmounts)
-          .calledOnce;
-        expect(getBridgedPolygonNori().batchSend).callCount(0);
-        expect(getLockedNORI().batchRevokeUnvestedTokenAmounts).callCount(0);
+        expect((await getBridgedPolygonNori()).callStatic.batchSend).calledOnce;
+        expect(
+          (await getLockedNORI()).callStatic.batchRevokeUnvestedTokenAmounts
+        ).calledOnce;
+        expect((await getBridgedPolygonNori()).batchSend).callCount(0);
+        expect(
+          (await getLockedNORI()).batchRevokeUnvestedTokenAmounts
+        ).callCount(0);
       });
     });
     describe('diff', () => {

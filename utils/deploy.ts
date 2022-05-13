@@ -3,6 +3,8 @@ import path from 'path';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 
+import type { Contracts } from './contracts';
+
 import type {
   LockedNORI,
   Certificate,
@@ -18,20 +20,9 @@ import type {
   BridgedPolygonNORI__factory,
   ScheduleTestHarness,
   ScheduleTestHarness__factory,
-} from '../typechain-types';
-
+} from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
 import { createRemovalTokenId, mockDepositNoriToPolygon } from '@/test/helpers';
-
-export interface Contracts {
-  Removal?: Removal;
-  NORI?: NORI;
-  BridgedPolygonNORI?: BridgedPolygonNORI;
-  FIFOMarket?: FIFOMarket;
-  LockedNORI?: LockedNORI;
-  Certificate?: Certificate;
-  ScheduleTestHarness?: ScheduleTestHarness;
-}
 
 interface ContractConfig {
   [key: string]: { proxyAddress: string };
@@ -154,13 +145,13 @@ export const deployFIFOMarketContract = async ({
   feeWallet: Address;
   feePercentage: number;
 }): Promise<InstanceOfContract<FIFOMarket>> => {
-  const deployments = await hre.deployments.all();
+  const deployments = await hre.deployments.all<Required<Contracts>>();
   return hre.deployOrUpgradeProxy<FIFOMarket, FIFOMarket__factory>({
     contractName: 'FIFOMarket',
     args: [
-      deployments.Removal!.address,
-      deployments.BridgedPolygonNORI!.address,
-      deployments.Certificate!.address,
+      deployments.Removal.address,
+      deployments.BridgedPolygonNORI.address,
+      deployments.Certificate.address,
       feeWallet,
       feePercentage,
     ],

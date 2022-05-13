@@ -1,10 +1,10 @@
-import "hardhat/types/config";
-import "hardhat/types/runtime";
+import 'hardhat/types/config';
+import 'hardhat/types/runtime';
 
-import { FireblocksSignerConfig } from "./types";
+import { FireblocksSignerConfig } from './types';
 import { FireblocksSigner } from './fireblocks-signer';
 
-declare module "hardhat/types/config" {
+declare module 'hardhat/types/config' {
   interface HardhatUserConfig {
     fireblocks?: FireblocksSignerConfig;
   }
@@ -14,11 +14,11 @@ declare module "hardhat/types/config" {
   }
 }
 
-declare module "hardhat/types/runtime" {
+declare module 'hardhat/types/runtime' {
   interface HardhatRuntimeEnvironment {
     fireblocks: {
-        getSigners: () => Promise<FireblocksSigner[]>;
-        getSigner: (index: number) => Promise<FireblocksSigner | undefined>;
-    }
+      getSigners: () => Promise<FireblocksSigner[]>;
+      getSigner: (index: number) => Promise<FireblocksSigner | undefined>;
+    };
   }
 }
