@@ -792,7 +792,7 @@ describe('vesting task', () => {
             batchSend: sandbox.spy(),
             callStatic: {
               ...bpNori.callStatic,
-              batchSend: Psandbox.spy(),
+              batchSend: sandbox.spy(),
             },
           }) as Promise<
             DeepPartial<BridgedPolygonNORI>
