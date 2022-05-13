@@ -1,10 +1,11 @@
-import { Logger, LogLevel } from '@ethersproject/logger';
-import { DeployFunction } from 'hardhat-deploy/types';
-import { finalizeDeployments, deployRemovalContract } from '../utils/deploy';
+import { Logger } from 'ethers/lib/utils';
+import type { DeployFunction } from 'hardhat-deploy/types';
+
+import { finalizeDeployments, deployRemovalContract } from '@/utils/deploy';
 
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
-  Logger.setLogLevel(LogLevel.DEBUG);
+  Logger.setLogLevel(Logger.levels.DEBUG);
   hre.log(`deployRemoval`);
   const contract = await deployRemovalContract({
     hre,
@@ -16,4 +17,6 @@ export default deploy;
 deploy.tags = ['Removal', 'market'];
 deploy.dependencies = ['preconditions', 'seed'];
 deploy.skip = async (hre) =>
-  !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name);
+  Promise.resolve(
+    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+  );

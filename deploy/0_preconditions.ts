@@ -1,13 +1,12 @@
 import { Logger } from 'ethers/lib/utils';
-import { validateDeployment, configureDeploymentSettings } from '../utils/deploy';
-import { LogLevel } from '@ethersproject/logger';
+
+import { configureDeploymentSettings } from '@/utils/deploy';
 
 export const deploy: CustomHardhatDeployFunction = async (env) => {
-    const hre = env as unknown as CustomHardHatRuntimeEnvironment;
-    Logger.setLogLevel(LogLevel.DEBUG);
-    hre.log(`0_preconditions`);
-    validateDeployment({ hre });
-    await configureDeploymentSettings({ hre });
+  const hre = env as unknown as CustomHardHatRuntimeEnvironment;
+  Logger.setLogLevel(Logger.levels.DEBUG);
+  hre.log(`0_preconditions`);
+  await configureDeploymentSettings({ hre });
 };
 
 export default deploy;

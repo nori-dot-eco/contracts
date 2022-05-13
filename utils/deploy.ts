@@ -226,14 +226,6 @@ export const deployTestContracts = async ({
   };
 };
 
-export const validateDeployment = ({
-  hre,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-}): void => {
-  // todo ?
-};
-
 /**
  * Note: the named contracts in the ethernal UI are the proxies.
  * The 'name' field in the push command must match the contract name exactly,

@@ -1,17 +1,19 @@
-import { Logger, LogLevel } from '@ethersproject/logger';
-import { DeployFunction } from 'hardhat-deploy/types';
-import {
-  finalizeDeployments,
-  deployBridgedPolygonNORIContract,
-} from '../utils/deploy';
+import { Logger } from 'ethers/lib/utils';
+import type { DeployFunction } from 'hardhat-deploy/types';
+
 import {
   POLYGON_CHILD_CHAIN_MANAGER_PROXY,
   MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
 } from '../constants/addresses';
 
+import {
+  finalizeDeployments,
+  deployBridgedPolygonNORIContract,
+} from '@/utils/deploy';
+
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
-  Logger.setLogLevel(LogLevel.DEBUG);
+  Logger.setLogLevel(Logger.levels.DEBUG);
   hre.log(`deployBridgedPolygonNORI`);
   const childChainManagerProxyAddress =
     hre.network.name === 'polygon'
@@ -31,4 +33,6 @@ export default deploy;
 deploy.tags = ['BridgedPolygonNORI', 'assets'];
 deploy.dependencies = ['preconditions', 'seed'];
 deploy.skip = async (hre) =>
-  !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name);
+  Promise.resolve(
+    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+  );

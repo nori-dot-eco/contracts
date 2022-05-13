@@ -10,7 +10,7 @@ import {
   TransactionRequest,
   TransactionResponse,
 } from '@ethersproject/providers';
-import { Logger } from '@ethersproject/logger';
+import { Logger } from 'ethers/lib/utils';
 import { Deferrable, defineReadOnly } from '@ethersproject/properties';
 import { Bytes } from '@ethersproject/bytes';
 import { BigNumber, ethers, PopulatedTransaction } from 'ethers';
