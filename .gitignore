@@ -84,6 +84,7 @@ cache
 dist
 artifacts/*
 deployments/localhost
+deployments/hardhat
 !artifacts/contracts
 .openzeppelin/unknown-9001.json
 !.openzeppelin/unknown-80001.json
