@@ -14,7 +14,7 @@ const hardhat: NetworksUserConfig['hardhat'] = {
   loggingEnabled: LOG_HARDHAT_NETWORK,
   allowUnlimitedContractSize: true,
   tags: ['test'],
-  saveDeployments: false,
+  saveDeployments: true,
 };
 
 const localhost: NetworkUserConfig = {
@@ -28,7 +28,7 @@ const localhost: NetworkUserConfig = {
   loggingEnabled: LOG_HARDHAT_NETWORK,
   url: 'http://127.0.0.1:8545',
   tags: ['test'],
-  saveDeployments: false,
+  saveDeployments: true,
 };
 
 const goerli: NetworkUserConfig = {

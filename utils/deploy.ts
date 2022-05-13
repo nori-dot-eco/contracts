@@ -1,8 +1,8 @@
 import path from 'path';
-
+import * as fs from 'fs';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
-
+import { resolveDependencies } from '@tenderly/hardhat-tenderly/dist/util';
 import type { Contracts } from './contracts';
 
 import type {
@@ -23,6 +23,7 @@ import type {
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
 import { createRemovalTokenId, mockDepositNoriToPolygon } from '@/test/helpers';
+import { TASK_COMPILE_SOLIDITY_GET_DEPENDENCY_GRAPH } from 'hardhat/builtin-tasks/task-names';
 
 interface ContractConfig {
   [key: string]: { proxyAddress: string };
@@ -276,17 +277,38 @@ export const saveDeployments = async ({
   contracts: Contracts;
 }): Promise<void> => {
   hre.trace('saving deployments');
-  await Promise.allSettled(
+
+  await Promise.all(
     Object.entries(contracts)
       .filter(([_, value]) => value !== undefined)
       .map(async ([name, contract]) => {
-        const { abi, bytecode, deployedBytecode } =
+        const { abi, bytecode, deployedBytecode, sourceName } =
           await hre.artifacts.readArtifact(name);
+        const data = await hre.run(
+          TASK_COMPILE_SOLIDITY_GET_DEPENDENCY_GRAPH as any,
+          { sourceNames: [sourceName] } as any
+        );
+        const metadata = {
+          compiler: {
+            version: hre.config.solidity.compilers[0].version,
+          },
+          sources: {
+            [sourceName]: {
+              content: fs
+                .readFileSync(path.join(__dirname, '../', sourceName))
+                .toString(),
+            },
+          },
+        };
+
+        const visited: Record<string, boolean> = {};
+        resolveDependencies(data, sourceName, metadata, visited);
         return hre.deployments.save(name, {
           abi,
           address: contract.address,
           bytecode,
           deployedBytecode,
+          metadata: JSON.stringify(metadata),
         });
       })
   );

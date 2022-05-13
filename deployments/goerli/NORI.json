@@ -1,4 +1,5 @@
 {
   "address": "0x4F2c6E1895DE6854D14C67879e6a7EAC58316555",
-  "numDeployments": 1
+  "numDeployments": 1,
+  "metadata": "{\"compiler\":{\"version\":\"0.8.13\"}"
 }
