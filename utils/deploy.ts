@@ -320,13 +320,13 @@ export const seedContracts = async ({
         ['address', 'bool'],
         [contracts.FIFOMarket.address, listNow]
       );
-      await contracts.Removal.mintBatch(
+      const tx = await contracts.Removal.mintBatch(
         hre.namedAccounts.supplier,
         [formatTokenAmount(100)],
         [tokenId],
         packedData
       );
-      hre.trace('Listed 100 NRTs for sale in FIFOMarket');
+      hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });
     }
     if (
       contracts.BridgedPolygonNORI != null &&
@@ -346,14 +346,17 @@ export const seedContracts = async ({
       hre.trace(
         'Mock deposited 100_000_000 NORI into BridgedPolygonNORI for the admin account'
       );
-      await contracts.BridgedPolygonNORI.connect(hre.namedSigners.admin).send(
+      const tx = await contracts.BridgedPolygonNORI.connect(
+        hre.namedSigners.admin
+      ).send(
         // todo stop minting/seeding during deployment
         hre.namedAccounts.buyer,
         formatTokenAmount(1_000_000),
         hre.ethers.utils.formatBytes32String('0x0')
       );
       hre.trace(
-        'Sent some BridgedPolygonNORI from the admin account to the buyer account'
+        'Sent some BridgedPolygonNORI from the admin account to the buyer account',
+        tx.hash
       );
     }
   }

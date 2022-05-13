@@ -1,6 +1,6 @@
 account_id: 5a277e11-512f-4925-a5fd-095126bfd999
 exports:
-  hardhat:
+  localhost:
     chain_config:
       berlin_block: 0
       byzantium_block: 0

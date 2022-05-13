@@ -195,7 +195,7 @@ tenderly login # Generate an access token in the tenderly dashboard or use the e
 - Test that it works with the following:
 
 ```bash
-TRACE=true LOG_HARDHAT_NETWORK=true hardhat node
+MINT=true TRACE=true LOG_HARDHAT_NETWORK=true hardhat node
 ```
 
 Gran a transaction hash from the terminal output and then run the following (replace `TRANSACTION_HASH` with the transaction hash):
