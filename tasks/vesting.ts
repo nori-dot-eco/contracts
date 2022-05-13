@@ -688,7 +688,7 @@ const GET_BLOCKCHAIN_SUBTASK = {
   ): Promise<ParsedGrants> => {
     const totalSupply = await lNori.totalSupply();
     hre.log(`Total supply: ${totalSupply}`);
-    const rawBlockchainGrants: LockedNORI.TokenGrantDetailStructOutput[] =
+    const rawBlockchainGrants =
       await lNori.batchGetGrant(Object.keys(githubGrants));
     const blockchainGrants = rawBlockchainGrants.reduce(
       (acc: ParsedGrants, grant: any): ParsedGrants => {
