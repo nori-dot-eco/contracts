@@ -1,5 +1,7 @@
 import type { BigNumber } from 'ethers';
 
+import { mockDepositNoriToPolygon } from './polygon';
+
 import type {
   Certificate,
   FIFOMarket,
@@ -10,11 +12,9 @@ import type {
 } from '@/typechain-types';
 import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/Removal';
 import { asciiStringToHexString } from '@/utils/bytes';
-
-import { mockDepositNoriToPolygon } from './polygon';
-
 import { formatTokenAmount } from '@/utils/units';
-import { Contracts, getContractsFromDeployments } from '@/utils/contracts';
+import type { Contracts } from '@/utils/contracts';
+import { getContractsFromDeployments } from '@/utils/contracts';
 
 export * from './chai';
 export * from './interfaces';

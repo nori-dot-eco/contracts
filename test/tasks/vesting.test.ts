@@ -786,14 +786,18 @@ describe('vesting task', () => {
             },
           } as Partial<typeof Octokit> as Octokit)
         );
-        const getBridgedPolygonNori = sandbox.fake.returns({
-          ...bpNori,
-          batchSend: sandbox.spy(),
-          callStatic: {
-            ...bpNori.callStatic,
+        const getBridgedPolygonNori = sandbox.fake.returns(
+          Promise.resolve({
+            ...bpNori,
             batchSend: sandbox.spy(),
-          },
-        } as DeepPartial<Promise<BridgedPolygonNORI>> as Promise<BridgedPolygonNORI>);
+            callStatic: {
+              ...bpNori.callStatic,
+              batchSend: sandbox.spy(),
+            },
+          }) as Promise<
+            DeepPartial<BridgedPolygonNORI>
+          > as Promise<BridgedPolygonNORI>
+        );
         const getLockedNORI = sandbox.fake.returns({
           ...lNori,
           batchRevokeUnvestedTokenAmounts: sandbox.spy(),

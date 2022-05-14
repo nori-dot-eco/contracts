@@ -1,16 +1,19 @@
 import '@nomiclabs/hardhat-ethers';
 import fs from 'fs';
+
 import { extendConfig, extendEnvironment } from 'hardhat/config';
 import { lazyObject } from 'hardhat/plugins';
-import {
+import type {
   HardhatConfig,
   HardhatUserConfig,
   HttpNetworkConfig,
 } from 'hardhat/types';
 import { JsonRpcProvider } from '@ethersproject/providers';
+
 import './type-extensions';
-import { Chain } from './from-upstream/chain';
 import { FireblocksSDK } from 'fireblocks-sdk';
+
+import { Chain } from './from-upstream/chain';
 import { FireblocksSigner } from './fireblocks-signer';
 
 type NetworkMap = {
@@ -63,7 +66,7 @@ extendConfig(
   (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
     const defaultConfig = { apiKey: '', apiSecret: '', vaultId: '0' };
     if (
-      !userConfig.fireblocks ||
+      userConfig.fireblocks == null ||
       !userConfig.fireblocks.apiKey ||
       !userConfig.fireblocks.apiSecret
     ) {
@@ -92,10 +95,10 @@ extendEnvironment(async (hre) => {
     const signer = setupFireblocksSigner(hre);
     const getSigners = async (): Promise<FireblocksSigner[]> => {
       const s = await signer;
-      return s ? [s] : [];
+      return s != null ? [s] : [];
     };
     return {
-      getSigners: getSigners,
+      getSigners,
       getSigner: async (index: number): Promise<FireblocksSigner | undefined> =>
         (await getSigners())[index],
     };

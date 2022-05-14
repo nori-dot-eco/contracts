@@ -1,4 +1,5 @@
-import { Contract } from 'ethers';
+import type { Contract } from 'ethers';
+
 import type {
   BridgedPolygonNORI,
   Certificate,
@@ -18,31 +19,6 @@ export interface Contracts {
   Certificate?: Certificate;
   ScheduleTestHarness?: ScheduleTestHarness;
 }
-
-export const getContractsFromDeployments = async (
-  hre: CustomHardHatRuntimeEnvironment
-): Promise<Required<Contracts>> => {
-  const deployments = await hre.deployments.all();
-  const contracts = {
-    NORI: deployments['NORI']?.address ? await getNORI({ hre }) : undefined,
-    BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
-      ? await getBridgedPolygonNori({ hre })
-      : undefined,
-    LockedNORI: deployments['LockedNORI']?.address
-      ? await getLockedNORI({ hre })
-      : undefined,
-    FIFOMarket: deployments['FIFOMarket']?.address
-      ? await getFIFOMarket({ hre })
-      : undefined,
-    Removal: deployments['Removal']?.address
-      ? await getRemoval({ hre })
-      : undefined,
-    Certificate: deployments['Certificate']?.address
-      ? await getCertificate({ hre })
-      : undefined,
-  } as Required<Contracts>;
-  return contracts;
-};
 
 export const getContract = async <
   TContract extends Contracts[keyof Contracts]
@@ -74,7 +50,7 @@ export const getContract = async <
     contractName,
     deployment.address
   );
-  if (!contract) {
+  if (!Boolean(contract)) {
     throw new Error(`Unsupported network: ${hre.network.name}`);
   }
   return (signer != null ? contract.connect(signer) : contract) as TContract;
@@ -158,3 +134,30 @@ export const getFIFOMarket = async ({
     hre,
     signer,
   });
+
+export const getContractsFromDeployments = async (
+  hre: CustomHardHatRuntimeEnvironment
+): Promise<Required<Contracts>> => {
+  const deployments = await hre.deployments.all();
+  const contracts = {
+    NORI: Boolean(deployments.NORI?.address)
+      ? await getNORI({ hre })
+      : undefined,
+    BridgedPolygonNORI: Boolean(deployments.BridgedPolygonNORI?.address)
+      ? await getBridgedPolygonNori({ hre })
+      : undefined,
+    LockedNORI: Boolean(deployments.LockedNORI?.address)
+      ? await getLockedNORI({ hre })
+      : undefined,
+    FIFOMarket: Boolean(deployments.FIFOMarket?.address)
+      ? await getFIFOMarket({ hre })
+      : undefined,
+    Removal: Boolean(deployments.Removal?.address)
+      ? await getRemoval({ hre })
+      : undefined,
+    Certificate: Boolean(deployments.Certificate?.address)
+      ? await getCertificate({ hre })
+      : undefined,
+  } as Required<Contracts>;
+  return contracts;
+};

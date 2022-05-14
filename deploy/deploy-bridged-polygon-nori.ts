@@ -1,5 +1,6 @@
-import { Logger, LogLevel } from '@ethersproject/logger';
-import { DeployFunction } from 'hardhat-deploy/types';
+import { Logger } from 'ethers/lib/utils'; // todo what's the difference between this and import {logger} from 'ethers'
+import type { DeployFunction } from 'hardhat-deploy/types';
+
 import {
   finalizeDeployments,
   deployBridgedPolygonNORIContract,
@@ -11,7 +12,7 @@ import {
 
 export const deploy: DeployFunction = async (env) => {
   const hre = env as unknown as CustomHardHatRuntimeEnvironment;
-  Logger.setLogLevel(LogLevel.DEBUG);
+  Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`deployBridgedPolygonNORI`);
   const childChainManagerProxyAddress =
     hre.network.name === 'polygon'
