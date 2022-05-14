@@ -1,6 +1,6 @@
-account_id: 5a277e11-512f-4925-a5fd-095126bfd999
+account_id: 15eea66c-7364-4484-a803-2c2f8d8d96a0
 exports:
-  hardhat:
+  localhost:
     chain_config:
       berlin_block: 0
       byzantium_block: 0
@@ -14,7 +14,7 @@ exports:
       london_block: 0
       petersburg_block: 0
     forked_network: ""
-    project_slug: nori/nori
+    project_slug: jaycenhorton/nori
     protocol: ""
     rpc_address: 127.0.0.1:8545
 project_slug: nori
