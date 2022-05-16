@@ -16,7 +16,7 @@
       "@/tasks/utils": ["./tasks/utils/*"],
       "@/test/helpers": ["./test/helpers/index.ts"],
       "@/plugins": ["./plugins/index.ts"],
-      "@/plugins/fireblocks": ["./plugins/fireblocks/index.ts"],
+      "@/plugins/*": ["./plugins/*"],
       "@/contracts.json": ["./contracts.json"],
       "@/artifacts/*": ["./artifacts/contracts/*"],
       "@/legacy-artifacts/*": ["./legacy-artifacts/contracts/*"],

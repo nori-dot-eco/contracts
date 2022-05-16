@@ -20,7 +20,7 @@ import { TASK as FIFO_MARKET_TASK } from './fifo-market';
 import { TASK as NORI_TASK } from './nori';
 import { TASK as LOCKED_NORI_TASK } from './locked-nori';
 import { TASK as BRIDGED_POLYGON_NORI_TASK } from './bridged-polygon-nori';
-import { TASK as DEFENDER_TASK } from './defender';
+import { DEFENDER_ADD_TASK } from './defender';
 import { GET_VESTING_TASK } from './vesting';
 import { TASK as TEST_TASK } from './test';
 import { TASK as COVERAGE_TASK } from './coverage';
@@ -71,7 +71,7 @@ export const TASKS = {
   [NORI_TASK.name]: { ...NORI_TASK },
   [LOCKED_NORI_TASK.name]: { ...LOCKED_NORI_TASK },
   [BRIDGED_POLYGON_NORI_TASK.name]: { ...BRIDGED_POLYGON_NORI_TASK },
-  [DEFENDER_TASK.name]: { ...DEFENDER_TASK },
+  [DEFENDER_ADD_TASK.name]: { ...DEFENDER_ADD_TASK },
   [VESTING_TASK.name]: { ...VESTING_TASK },
   [TEST_TASK.name]: { ...TEST_TASK },
   [COVERAGE_TASK.name]: { ...COVERAGE_TASK },

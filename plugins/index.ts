@@ -3,7 +3,7 @@ import '@nomiclabs/hardhat-waffle';
 import '@openzeppelin/hardhat-defender';
 import '@openzeppelin/hardhat-upgrades';
 import '@nomiclabs/hardhat-ethers';
-import './fireblocks';
+import '@/plugins/fireblocks';
 import 'hardhat-ethernal';
 import 'hardhat-deploy';
 import '@tenderly/hardhat-tenderly';

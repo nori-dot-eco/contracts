@@ -80,13 +80,13 @@ const addContractsToDefender = async (
   }
 };
 
-export const TASK = {
+export const DEFENDER_ADD_TASK = {
   name: 'defender:add',
   description: 'Adds contracts to defender',
   run: addContractsToDefender,
 } as const;
 
-task(TASK.name, TASK.description, TASK.run).addVariadicPositionalParam(
+task(DEFENDER_ADD_TASK.name, DEFENDER_ADD_TASK.description, DEFENDER_ADD_TASK.run).addVariadicPositionalParam(
   'contractNames',
   'the list of contracts to add',
   undefined,
