@@ -15,12 +15,11 @@ export const TASK = {
     const signature = await signer.signMessage(taskArgs.message);
     console.log(`Message signature:`, signature);
     if (ethers.utils.verifyMessage(taskArgs.message, signature)) {
-        console.log(`Verified`);
+      console.log(`Verified`);
     } else {
-        console.log(`Verification failed`);
+      console.log(`Verification failed`);
     }
   },
 } as const;
 
-task(TASK.name, TASK.description, TASK.run)
-  .addPositionalParam('message')
+task(TASK.name, TASK.description, TASK.run).addPositionalParam('message');

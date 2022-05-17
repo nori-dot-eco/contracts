@@ -1,4 +1,4 @@
-import { Contract } from '@ethersproject/contracts';
+import type { Contract } from '@ethersproject/contracts';
 import { task } from 'hardhat/config';
 
 interface ForceUpgradeTaskParameters {

@@ -658,11 +658,17 @@ describe('LockedNori', () => {
   });
 
   describe('grantRole', () => {
-      it('should fail to grant TOKEN_GRANTER_ROLE to an address having a grant', async () => {
-        const { lNori, hre } = await setupWithGrant();
-        await expect(lNori.grantRole(await lNori.TOKEN_GRANTER_ROLE(), hre.namedAccounts.investor1))
-            .to.be.revertedWith("lNORI: Cannot assign role to a grant holder address");
-      });
+    it('should fail to grant TOKEN_GRANTER_ROLE to an address having a grant', async () => {
+      const { lNori, hre } = await setupWithGrant();
+      await expect(
+        lNori.grantRole(
+          await lNori.TOKEN_GRANTER_ROLE(),
+          hre.namedAccounts.investor1
+        )
+      ).to.be.revertedWith(
+        'lNORI: Cannot assign role to a grant holder address'
+      );
+    });
   });
 
   describe('createGrant', () => {
@@ -675,7 +681,7 @@ describe('LockedNori', () => {
       const { namedSigners } = hre;
       await expect(
         lNori
-          .connect(namedSigners['admin'])
+          .connect(namedSigners.admin)
           .createGrant(
             grantAmount,
             grant.recipient,
@@ -701,7 +707,7 @@ describe('LockedNori', () => {
 
       await expect(
         lNori
-          .connect(namedSigners['admin'])
+          .connect(namedSigners.admin)
           .createGrant(
             grantAmount,
             grant.recipient,
@@ -727,7 +733,7 @@ describe('LockedNori', () => {
       const { namedSigners } = hre;
       await expect(
         lNori
-          .connect(namedSigners['admin'])
+          .connect(namedSigners.admin)
           .createGrant(
             grantAmount,
             hre.namedAccounts.admin,
@@ -1362,7 +1368,7 @@ describe('LockedNori', () => {
       const recipients = [...Array(9)].map((_) => lNori.address);
       const amounts = [...Array(9)].map((_) => grantAmount);
       const userData = [...Array(9)].map((_, i) =>
-        buildUserData({ recipient: unnamedAccounts[i+1] })
+        buildUserData({ recipient: unnamedAccounts[i + 1] })
       ); // todo
       const operatorData = [...Array(9)].map((_) => '0x');
       const requireReceptionAck = [...Array(9)].map((_) => true);

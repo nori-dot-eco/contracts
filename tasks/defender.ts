@@ -39,7 +39,7 @@ const addContractsToDefender = async (
     network: { name: networkName },
     ethers,
   } = hre;
-  if (defender && isDefenderNetwork(networkName)) {
+  if (defender != null && isDefenderNetwork(networkName)) {
     console.log('Adding contracts to defender');
     const contracts = await Promise.all(
       contractNames.map(async (name) => {
@@ -86,7 +86,11 @@ export const DEFENDER_ADD_TASK = {
   run: addContractsToDefender,
 } as const;
 
-task(DEFENDER_ADD_TASK.name, DEFENDER_ADD_TASK.description, DEFENDER_ADD_TASK.run).addVariadicPositionalParam(
+task(
+  DEFENDER_ADD_TASK.name,
+  DEFENDER_ADD_TASK.description,
+  DEFENDER_ADD_TASK.run
+).addVariadicPositionalParam(
   'contractNames',
   'the list of contracts to add',
   undefined,

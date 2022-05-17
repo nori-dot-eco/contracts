@@ -6,11 +6,9 @@ import { task, subtask, types } from 'hardhat/config';
 import { BigNumber } from 'ethers';
 import chalk from 'chalk';
 import { diff, diffString } from 'json-diff';
-import {
-  BigNumberish,
-  isBigNumberish,
-} from '@ethersproject/bignumber/lib/bignumber';
-import { Signer } from '@ethersproject/abstract-signer';
+import type { BigNumberish } from '@ethersproject/bignumber/lib/bignumber';
+import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
+import type { Signer } from '@ethersproject/abstract-signer';
 import type { CSVParseParam } from 'csvtojson/v2/Parameters';
 import { isAddress, getAddress } from 'ethers/lib/utils';
 import moment from 'moment';
@@ -395,7 +393,7 @@ const getDiff = ({
   expand?: boolean;
   asJson?: boolean;
 }): string | Record<string, unknown> => {
-  return Boolean(asJson)
+  return asJson
     ? diff(blockchainGrants, githubGrants, { full: expand })
     : diffString(blockchainGrants, githubGrants, { full: expand });
 };
@@ -413,7 +411,7 @@ export const csvParser: CsvParser = {
   vestCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
   unlockCliff1Amount: (item) => formatTokenString(item ?? '0').toString(),
   unlockCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
-  lastRevocationTime: (item) => (Boolean(item) ? utcToEvmTime(item) : 0),
+  lastRevocationTime: (item) => (item ? utcToEvmTime(item) : 0),
   lastQuantityRevoked: (item) =>
     formatTokenString(['', 'ALL'].includes(item) ? '0' : item).toString(),
 };
@@ -424,7 +422,7 @@ export const grantListToObject = ({
   listOfGrants: GrantList;
 }): ParsedGrants => {
   return listOfGrants.reduce((acc, val): ParsedGrants => {
-    if (Boolean(acc[val.recipient])) {
+    if (acc[val.recipient]) {
       throw new Error(
         `Found duplicate recipient address in grants ${val.recipient}`
       );
@@ -512,7 +510,7 @@ export const GET_VESTING_TASK = () =>
       if (typeof account !== 'number' || account < 0 || account > 10) {
         throw new Error('Invalid account/signer index');
       }
-      if (Boolean(asJson) && !Boolean(showDiff) && !Boolean(expand)) {
+      if (Boolean(asJson) && !showDiff && !expand) {
         throw new Error(
           'You must specify --diff or --expand when using --as-json'
         );
@@ -565,13 +563,7 @@ export const GET_VESTING_TASK = () =>
           dryRun,
         });
       }
-      if (
-        !Boolean(expand) &&
-        !Boolean(showDiff) &&
-        !createAndRevoke &&
-        !create &&
-        !revoke
-      ) {
+      if (!expand && !showDiff && !createAndRevoke && !create && !revoke) {
         hre.log('No action selected.  Use --help for options.');
       }
     },
@@ -688,8 +680,9 @@ const GET_BLOCKCHAIN_SUBTASK = {
   ): Promise<ParsedGrants> => {
     const totalSupply = await lNori.totalSupply();
     hre.log(`Total supply: ${totalSupply}`);
-    const rawBlockchainGrants =
-      await lNori.batchGetGrant(Object.keys(githubGrants));
+    const rawBlockchainGrants = await lNori.batchGetGrant(
+      Object.keys(githubGrants)
+    );
     const blockchainGrants = rawBlockchainGrants.reduce(
       (acc: ParsedGrants, grant: any): ParsedGrants => {
         return grant.recipient === hre.ethers.constants.AddressZero
@@ -764,7 +757,7 @@ const CREATE_SUBTASK = {
         ).filter(([dk, d]: [any, any]) => {
           return Object.entries(d).find(([k, v]: [any, any]) => {
             const isDifferent =
-              !Boolean((blockchainGrants[dk] as any)?.exists) &&
+              !(blockchainGrants[dk] as any)?.exists &&
               Boolean(v) &&
               k !== 'lastRevocationTime' &&
               k !== 'lastQuantityRevoked' &&
@@ -828,7 +821,7 @@ const CREATE_SUBTASK = {
           amounts.reduce((acc, v) => acc.add(v))
         )}`
       );
-      if (!Boolean(dryRun)) {
+      if (!dryRun) {
         const batchCreateGrantsTx = await bpNori.batchSend(
           recipients,
           amounts,
@@ -921,7 +914,7 @@ const REVOKE_SUBTASK = {
           grant.lastQuantityRevoked.__new ?? grant.lastQuantityRevoked
         )
       );
-      if (!Boolean(dryRun)) {
+      if (!dryRun) {
         const batchRevokeUnvestedTokenAmountsTx =
           await lNori.batchRevokeUnvestedTokenAmounts(
             fromAccounts,

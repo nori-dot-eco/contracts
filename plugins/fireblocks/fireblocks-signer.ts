@@ -1,32 +1,42 @@
-import {
-  Signer,
+import type {
   TypedDataDomain,
   TypedDataField,
   TypedDataSigner,
 } from '@ethersproject/abstract-signer';
-import {
+import { Signer } from '@ethersproject/abstract-signer';
+import type {
   JsonRpcProvider,
   TransactionReceipt,
   TransactionRequest,
   TransactionResponse,
 } from '@ethersproject/providers';
-import { Logger } from 'ethers/lib/utils';
-import { Deferrable, defineReadOnly } from '@ethersproject/properties';
-import { Bytes } from '@ethersproject/bytes';
-import { BigNumber, ethers, PopulatedTransaction } from 'ethers';
-import { TransactionStatus, FireblocksSDK } from 'fireblocks-sdk';
+import type { UnsignedTransaction } from 'ethers/lib/utils';
+import { Logger, keccak256, toUtf8Bytes } from 'ethers/lib/utils';
+import type { Deferrable } from '@ethersproject/properties';
+import { defineReadOnly } from '@ethersproject/properties';
+import type { Bytes } from '@ethersproject/bytes';
+import type { PopulatedTransaction } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
+import type { FireblocksSDK } from 'fireblocks-sdk';
+import { TransactionStatus } from 'fireblocks-sdk';
+
+import { getGasPriceSettings } from '../../utils/gas';
+
 import { EthersCustomBridge } from './from-upstream/fireblocks-bridge';
 import { Chain } from './from-upstream/chain';
-import { keccak256, toUtf8Bytes, UnsignedTransaction } from 'ethers/lib/utils';
-import { getGasPriceSettings } from '../../utils/gas';
+
 const log = new Logger('fireblocks signer');
 
 export class FireblocksSigner extends Signer implements TypedDataSigner {
   readonly fireblocksApiClient!: FireblocksSDK;
+
   readonly chain!: Chain;
+
   readonly vaultAccountId!: string;
+
   readonly _bridge: EthersCustomBridge;
-  memo: string = '';
+
+  memo = '';
 
   constructor(
     fireblocksApiClient: FireblocksSDK,
@@ -73,7 +83,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
 
   async _fail(message: string, operation: string): Promise<any> {
     log.throwError(message, Logger.errors.UNSUPPORTED_OPERATION, {
-      operation: operation,
+      operation,
     });
   }
 
@@ -127,7 +137,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
    */
   async _populateTransaction(
     transaction: Deferrable<TransactionRequest>,
-    type: number = 2
+    type = 2
   ): Promise<UnsignedTransaction> {
     const feeData = getGasPriceSettings(this._bridge.getChainId());
     let gasEstimate;
@@ -239,9 +249,9 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     }
     const sig = await txDetail.signedMessages![0].signature;
     const signedMessage = ethers.utils.serializeTransaction(transaction, {
-      v: ethers.BigNumber.from('0x' + sig.v).toNumber(),
-      r: '0x' + sig.r,
-      s: '0x' + sig.s,
+      v: ethers.BigNumber.from(`0x${sig.v}`).toNumber(),
+      r: `0x${sig.r}`,
+      s: `0x${sig.s}`,
     });
     return signedMessage;
   }

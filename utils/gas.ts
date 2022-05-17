@@ -1,4 +1,4 @@
-import { BigNumberish } from 'ethers';
+import type { BigNumberish } from 'ethers';
 
 // curl https://gasstation-mainnet.matic.network/v2
 // {"safeLow":{"maxPriorityFee":30.572092436066665,"maxFee":30.572092449066666},"standard":{"maxPriorityFee":33.539260376533335,"maxFee":33.53926038953333},"fast":{"maxPriorityFee":43.7949090368,"maxFee":43.7949090498},"estimatedBaseFee":1.3e-8,"blockTime":2,"blockNumber":26994294}%

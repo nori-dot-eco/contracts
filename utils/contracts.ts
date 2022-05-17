@@ -50,7 +50,7 @@ export const getContract = async <
     contractName,
     deployment.address
   );
-  if (!Boolean(contract)) {
+  if (!contract) {
     throw new Error(`Unsupported network: ${hre.network.name}`);
   }
   return (signer != null ? contract.connect(signer) : contract) as TContract;
@@ -140,22 +140,20 @@ export const getContractsFromDeployments = async (
 ): Promise<Required<Contracts>> => {
   const deployments = await hre.deployments.all();
   const contracts = {
-    NORI: Boolean(deployments.NORI?.address)
-      ? await getNORI({ hre })
-      : undefined,
-    BridgedPolygonNORI: Boolean(deployments.BridgedPolygonNORI?.address)
+    NORI: deployments.NORI?.address ? await getNORI({ hre }) : undefined,
+    BridgedPolygonNORI: deployments.BridgedPolygonNORI?.address
       ? await getBridgedPolygonNori({ hre })
       : undefined,
-    LockedNORI: Boolean(deployments.LockedNORI?.address)
+    LockedNORI: deployments.LockedNORI?.address
       ? await getLockedNORI({ hre })
       : undefined,
-    FIFOMarket: Boolean(deployments.FIFOMarket?.address)
+    FIFOMarket: deployments.FIFOMarket?.address
       ? await getFIFOMarket({ hre })
       : undefined,
-    Removal: Boolean(deployments.Removal?.address)
+    Removal: deployments.Removal?.address
       ? await getRemoval({ hre })
       : undefined,
-    Certificate: Boolean(deployments.Certificate?.address)
+    Certificate: deployments.Certificate?.address
       ? await getCertificate({ hre })
       : undefined,
   } as Required<Contracts>;

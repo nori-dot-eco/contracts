@@ -45,10 +45,9 @@ function getHSublevel(hsublevel: number | HelperOptions, opts?: HelperOptions) {
   if (typeof hsublevel === 'number') {
     opts = opts!;
     return { hsublevel: Math.max(1, hsublevel), opts };
-  } else {
-    opts = hsublevel;
-    return { hsublevel: 1, opts };
   }
+  opts = hsublevel;
+  return { hsublevel: 1, opts };
 }
 
 function getHLevel(ctx: HLevel): number {

@@ -1,8 +1,11 @@
 import path from 'path';
 import * as fs from 'fs';
+
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 import { resolveDependencies } from '@tenderly/hardhat-tenderly/dist/util';
+import { TASK_COMPILE_SOLIDITY_GET_DEPENDENCY_GRAPH } from 'hardhat/builtin-tasks/task-names';
+
 import type { Contracts } from './contracts';
 
 import type {
@@ -23,7 +26,6 @@ import type {
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
 import { createRemovalTokenId, mockDepositNoriToPolygon } from '@/test/helpers';
-import { TASK_COMPILE_SOLIDITY_GET_DEPENDENCY_GRAPH } from 'hardhat/builtin-tasks/task-names';
 
 interface ContractConfig {
   [key: string]: { proxyAddress: string };

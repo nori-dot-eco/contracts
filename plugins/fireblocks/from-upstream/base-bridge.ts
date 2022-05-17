@@ -1,15 +1,17 @@
-import { TransactionResponse, TransactionStatus, FireblocksSDK } from 'fireblocks-sdk';
-import { Chain } from "./chain";
+import type { TransactionResponse, FireblocksSDK } from 'fireblocks-sdk';
+import { TransactionStatus } from 'fireblocks-sdk';
+
+import { Chain } from './chain';
 
 const CHAIN_TO_ASSET_ID: { [key: string]: string } = {
-  [Chain.MAINNET]: "ETH",
-  [Chain.ROPSTEN]: "ETH_TEST",
-  [Chain.KOVAN]: "ETH_TEST2",
-  [Chain.GOERLI]: "ETH_TEST3",
-  [Chain.BSC]: "BNB_BSC",
-  [Chain.BSC_TEST]: "BNB_TEST",
-  [Chain.POLYGON]: "MATIC_POLYGON",
-  [Chain.MUMBAI]: "MATIC_POLYGON_MUMBAI",
+  [Chain.MAINNET]: 'ETH',
+  [Chain.ROPSTEN]: 'ETH_TEST',
+  [Chain.KOVAN]: 'ETH_TEST2',
+  [Chain.GOERLI]: 'ETH_TEST3',
+  [Chain.BSC]: 'BNB_BSC',
+  [Chain.BSC_TEST]: 'BNB_TEST',
+  [Chain.POLYGON]: 'MATIC_POLYGON',
+  [Chain.MUMBAI]: 'MATIC_POLYGON_MUMBAI',
 };
 
 const CHAIN_IDS = {
@@ -24,14 +26,15 @@ const CHAIN_IDS = {
 };
 
 export interface BridgeParams {
-    fireblocksApiClient: FireblocksSDK;
-    vaultAccountId: string;
-    externalWalletId?: string;
-    chain?: Chain;
+  fireblocksApiClient: FireblocksSDK;
+  vaultAccountId: string;
+  externalWalletId?: string;
+  chain?: Chain;
 }
 
 export abstract class BaseBridge {
   readonly assetId: string;
+
   static readonly finalTransactionStates = [
     TransactionStatus.COMPLETED,
     TransactionStatus.FAILED,
