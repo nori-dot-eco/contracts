@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820RegistryUpgradeable.sol";
+import "solidity-linked-list/contracts/StructuredLinkedList.sol";
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
@@ -15,6 +16,14 @@ import {RemovalUtils} from "./RemovalUtils.sol";
 import "hardhat/console.sol"; // todo
 
 // todo emit events
+struct RoundRobinOrder {
+  address nextSupplier;
+  address previousSupplier;
+  LinkedList activeRemovalIds;
+  uint256[] reservedRemovalIds;
+  uint256 removalIndex;
+  // how do handle reserved removals?
+}
 
 /**
  * @title FIFOMarket
@@ -28,6 +37,7 @@ contract FIFOMarket is
 {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+  // using StructuredLinkedList for StructuredLinkedList.List;
 
   IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
@@ -40,9 +50,13 @@ contract FIFOMarket is
   uint256 public totalNumberActiveRemovals;
   uint256 public totalActiveSupply;
   uint256 public totalReservedSupply;
-  uint256 private _currentSupplierIndex;
-  address[] private _activeSuppliersOrdered;
-  mapping(address => bool) private _activeSuppliersUnordered;
+  // TODO: How do new suppliers get indexed?
+  address private _currentSupplierIndex;
+  address private _lastSupplierIndex;
+  mapping(address => FifoOrder) private _activeSuppliersOrdered;
+  mapping(address => FifoOrder) private _activeSuppliersOrdered;
+  // StructuredLinkedList.List private _activeSuppliersOrdered;
+
   EnumerableSetUpgradeable.UintSet private _reservedSupply;
   mapping(address => EnumerableSetUpgradeable.UintSet) private _activeSupply;
 
@@ -157,12 +171,19 @@ contract FIFOMarket is
       uint256 removalAmount = _removal.balanceOf(address(this), ids[i]);
       totalActiveSupply += removalAmount;
       totalNumberActiveRemovals += 1;
-      address supplierAddress = ids[i].supplierAddress();
-      _activeSupply[supplierAddress].add(ids[i]);
-      if (!_activeSuppliersUnordered[supplierAddress]) {
-        _activeSuppliersUnordered[supplierAddress] = true;
-        _activeSuppliersOrdered.push(supplierAddress);
+      uint256 supplierAddress = uint256(ids[i].supplierAddress());
+      // TODO: Is this needed?
+      // _activeSupply[supplierAddress].add(ids[i]);
+      if (!_activeSuppliersOrdered.nodeExists(supplierAddress)) {
+        _activeSuppliersOrdered.pushBack(_node);
+        _lastSupplierIndex = supplierAddress;
       }
+      // if (!_activeSuppliersOrdered[supplierAddress]) {
+      //   _activeSuppliersOrdered[supplierAddress] = {
+      //     previous
+      //   };
+      //   _lastSupplierIndex = supplierAddress;
+      // }
     }
     return this.onERC1155BatchReceived.selector;
   }
@@ -181,26 +202,27 @@ contract FIFOMarket is
   ) external override {
     // todo we need to treat totalActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s. priority reserved etc.
+
     if (totalActiveSupply == 0) {
       revert("Market: Out of stock");
     }
     if (totalActiveSupply <= priorityRestrictedThreshold) {
-      require(
-        hasRole(ALLOWLIST_ROLE, from),
-        "Low supply and buyer not on allowlist"
-      );
+      require(hasRole(ALLOWLIST_ROLE, from), "Market: Not on allowlist");
     }
-    uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
-    uint256 remainingAmountToFill = certificateAmount;
+
+    // todo verify this can only be invoked by the nori contract
+    // TODO: ^ DONE ?
+    require(
+      msg.sender == address(_bridgedPolygonNori),
+      "Market: BPNori != sender"
+    );
 
     address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
     require(recipient == address(recipient), "Market: Invalid address");
-    require(recipient != address(0), "Market: Cannot mint to the 0 address");
-    // todo verify this can only be invoked by the nori contract
-    require(
-      msg.sender == address(_bridgedPolygonNori),
-      "Market: This contract can only receive BridgedPolygonNORI"
-    );
+    require(recipient != address(0), "Market: Cannot mint to 0 address");
+
+    uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
+    uint256 remainingAmountToFill = certificateAmount;
 
     uint256[] memory ids = new uint256[](totalNumberActiveRemovals);
     uint256[] memory amounts = new uint256[](totalNumberActiveRemovals);
@@ -275,6 +297,7 @@ contract FIFOMarket is
   }
 
   // TODO batch version of this?
+  // TODO: Remove supplier if removal was last in queue
   function reserveRemoval(uint256 removalId) external returns (bool) {
     address supplierAddress = removalId.supplierAddress();
     EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
@@ -294,6 +317,7 @@ contract FIFOMarket is
   }
 
   // TODO batch version of this?
+  // TODO: What if supplier was removed with above (or from sale)
   function unreserveRemoval(uint256 removalId) external returns (bool) {
     address supplierAddress = removalId.supplierAddress();
     EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
