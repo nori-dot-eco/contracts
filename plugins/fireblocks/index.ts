@@ -1,5 +1,5 @@
 import '@nomiclabs/hardhat-ethers';
-import fs from 'fs';
+import fs from 'node:fs';
 
 import { extendConfig, extendEnvironment } from 'hardhat/config';
 import { lazyObject } from 'hardhat/plugins';
@@ -53,30 +53,30 @@ const setupFireblocksSigner = async (
         `Fireblocks signer created for address: ${address} (${hre.network.name})`
       );
       return signer;
-    } catch (e) {
-      hre.log(e, 'ERROR: Constructing fireblocks signer');
+    } catch (error) {
+      hre.log(error, 'ERROR: Constructing fireblocks signer');
     }
   } else {
     console.log(`ERROR: Fireblocks signer missing configuration.`);
   }
-  return Promise.resolve(undefined);
+  return Promise.resolve();
 };
 
 extendConfig(
   (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
     const defaultConfig = { apiKey: '', apiSecret: '', vaultId: '0' };
     if (
-      userConfig.fireblocks == null ||
+      userConfig.fireblocks == undefined ||
       !userConfig.fireblocks.apiKey ||
       !userConfig.fireblocks.apiSecret
     ) {
       const sampleConfig = JSON.stringify(
         { apiKey: 'YOUR_API_KEY', apiSecret: 'YOUR_API_SECRET', vaultId: '0' },
-        null,
+        undefined,
         2
       );
       console.warn(
-        `Fireblocks API key and secret are not set. `,
+        `Fireblocks API key and secret are not set.`,
         `Add the following to your hardhat.config.js exported configuration:\n\n${sampleConfig}\n`
       );
       config.fireblocks = defaultConfig;
@@ -95,7 +95,7 @@ extendEnvironment(async (hre) => {
     const signer = setupFireblocksSigner(hre);
     const getSigners = async (): Promise<FireblocksSigner[]> => {
       const s = await signer;
-      return s != null ? [s] : [];
+      return s != undefined ? [s] : [];
     };
     return {
       getSigners,

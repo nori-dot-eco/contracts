@@ -316,7 +316,7 @@ describe('vesting task', () => {
       });
       describe('fail', () => {
         it('should fail if the argument is not a valid bignumber string', () => {
-          ['', '1.1', 1.2, -1, -1.1, null, undefined, [], {}, 'abc'].forEach(
+          ['', '1.1', 1.2, -1, -1.1, undefined, undefined, [], {}, 'abc'].forEach(
             (v) =>
               expect(rules.requiredPositiveBigNumberString().isValidSync(v)).to
                 .be.false
@@ -334,7 +334,7 @@ describe('vesting task', () => {
       });
       describe('fail', () => {
         it('should fail if the argument fails requiredString validation', () => {
-          [-1, 1.01, -1.01, '', {}, [], null, undefined].forEach(
+          [-1, 1.01, -1.01, '', {}, [], undefined, undefined].forEach(
             (v) => expect(rules.requiredString().isValidSync(v)).to.be.false
           );
         });
@@ -351,7 +351,7 @@ describe('vesting task', () => {
       });
       describe('fail', () => {
         it('should fail if the argument fails requiredPositiveInteger validation', () => {
-          ['-1', 'abc', -1, 1.01, -1.01, '', {}, [], null, undefined].forEach(
+          ['-1', 'abc', -1, 1.01, -1.01, '', {}, [], undefined, undefined].forEach(
             (v) =>
               expect(rules.requiredPositiveInteger().isValidSync(v)).to.be.false
           );
@@ -377,7 +377,7 @@ describe('vesting task', () => {
       describe('fail', () => {
         it('should fail if the argument fails isValidEvmMoment validation', () => {
           [
-            null,
+            undefined,
             undefined,
             true,
             false,
@@ -443,7 +443,7 @@ describe('vesting task', () => {
       });
       describe('fail', () => {
         it('should fail if the argument fails isBigNumberish validation', () => {
-          ['a', '-1.1', -1, 1.1, -1.1, 1, '', {}, [], null, undefined].forEach(
+          ['a', '-1.1', -1, 1.1, -1.1, 1, '', {}, [], undefined, undefined].forEach(
             (v) => expect(validations.isBigNumberish().test(v)).to.be.false
           );
         });
@@ -537,7 +537,7 @@ describe('vesting task', () => {
         });
         describe('invalid', () => {
           it('should fail when unlockEndTime is missing', () => {
-            [null, undefined].forEach((v) =>
+            [undefined, undefined].forEach((v) =>
               expect(() =>
                 grantSchema.validateSyncAt('unlockEndTime', {
                   unlockEndTime: v,
@@ -590,7 +590,7 @@ describe('vesting task', () => {
         });
         describe('invalid', () => {
           it('should fail when cliff1Time is missing', () => {
-            [null, undefined].forEach((v) =>
+            [undefined, undefined].forEach((v) =>
               expect(() =>
                 grantSchema.validateSyncAt('cliff1Time', { cliff1Time: v })
               ).throws('cliff1Time is a required field')
@@ -628,7 +628,7 @@ describe('vesting task', () => {
         });
         describe('invalid', () => {
           it('should fail when cliff2Time is missing', () => {
-            [null, undefined].forEach((v) =>
+            [undefined, undefined].forEach((v) =>
               expect(() =>
                 grantSchema.validateSyncAt('cliff2Time', { cliff2Time: v })
               ).throws('cliff2Time is a required field')
@@ -663,7 +663,7 @@ describe('vesting task', () => {
         });
         describe('invalid', () => {
           it('should fail when startTime is missing', () => {
-            [null, undefined].forEach((v) =>
+            [undefined, undefined].forEach((v) =>
               expect(() =>
                 grantSchema.validateSyncAt('startTime', { startTime: v })
               ).throws('startTime is a required field')
@@ -698,7 +698,7 @@ describe('vesting task', () => {
         });
         describe('invalid', () => {
           it('should fail when vestEndTime is missing', () => {
-            [null, undefined].forEach((v) =>
+            [undefined, undefined].forEach((v) =>
               expect(() =>
                 grantSchema.validateSyncAt('vestEndTime', { vestEndTime: v })
               ).throws('vestEndTime is a required field')
