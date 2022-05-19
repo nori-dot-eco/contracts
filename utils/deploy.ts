@@ -1,5 +1,5 @@
-import path from 'node:path';
-import * as fs from 'node:fs';
+import path from 'path';
+import * as fs from 'fs';
 
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';

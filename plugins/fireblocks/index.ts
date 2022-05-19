@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign -- hre and config are intended to be configured via assignment in this file */
 import '@nomiclabs/hardhat-ethers';
 import fs from 'node:fs';
 
@@ -8,8 +9,6 @@ import type {
   HardhatUserConfig,
   HttpNetworkConfig,
 } from 'hardhat/types';
-import { JsonRpcProvider } from '@ethersproject/providers';
-
 import './type-extensions';
 import { FireblocksSDK } from 'fireblocks-sdk';
 
@@ -19,7 +18,6 @@ import { FireblocksSigner } from './fireblocks-signer';
 type NetworkMap = {
   [K in CustomHardHatRuntimeEnvironment['network']['name']]: Chain | undefined;
 };
-
 // TODO: move network name translation to our config and make Chain a required config property
 const networkNameToChain: NetworkMap = {
   mumbai: Chain.MUMBAI,
@@ -45,7 +43,10 @@ const setupFireblocksSigner = async (
       const signer = new FireblocksSigner(
         fireblockApiClient,
         networkNameToChain[hre.network.name],
-        new JsonRpcProvider(networkConfig.url, networkConfig.chainId),
+        new ethers.providers.JsonRpcBatchProvider(
+          networkConfig.url,
+          networkConfig.chainId
+        ),
         config.vaultId
       );
       const address = await signer.getAddress();
@@ -59,7 +60,7 @@ const setupFireblocksSigner = async (
   } else {
     console.log(`ERROR: Fireblocks signer missing configuration.`);
   }
-  return Promise.resolve();
+  return undefined;
 };
 
 extendConfig(
@@ -90,12 +91,12 @@ extendConfig(
   }
 );
 
-extendEnvironment(async (hre) => {
+extendEnvironment((hre) => {
   hre.fireblocks = lazyObject(() => {
     const signer = setupFireblocksSigner(hre);
     const getSigners = async (): Promise<FireblocksSigner[]> => {
       const s = await signer;
-      return s != undefined ? [s] : [];
+      return s !== undefined ? [s] : [];
     };
     return {
       getSigners,

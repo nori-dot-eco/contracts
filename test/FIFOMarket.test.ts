@@ -1,4 +1,4 @@
-import type { BigNumberish } from 'ethers';
+import type { BigNumberish, ContractReceipt } from 'ethers';
 import { BigNumber } from 'ethers';
 
 import { formatTokenAmount } from '@/utils/units';
@@ -142,7 +142,7 @@ describe('FIFOMarket', () => {
           removalDataToList: [{ amount: totalAvailableSupply }],
         });
         const { namedAccounts, namedSigners } = hre;
-        const { buyer } = hre.namedAccounts;
+        const { buyer } = namedAccounts;
 
         const priorityRestrictedThreshold = '100';
 
@@ -589,14 +589,17 @@ describe('FIFOMarket', () => {
 
       const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
       expect(initialFifoSupply).to.equal(hre.ethers.utils.parseUnits('20'));
-      const purchaseNrts = async () =>
-        await bpNori
+      const purchaseNrts = async (): Promise<ContractReceipt> => {
+        const tx = await bpNori
           .connect(hre.namedSigners.buyer)
           .send(
             fifoMarket.address,
             hre.ethers.utils.parseUnits(totalPrice),
             hre.ethers.utils.hexZeroPad(buyer, 32)
           );
+        const result = await tx.wait();
+        return result;
+      };
       await purchaseNrts(); // deplete some of the stock (ids 0,1,2)
       await purchaseNrts(); // purchase more removals (ids 3,4,5-- tests non-zero-indexed purchases in the queue)
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);

@@ -1,4 +1,4 @@
-import path from 'node:path';
+import path from 'path';
 
 import { types, task } from 'hardhat/config';
 import { AdminClient } from 'defender-admin-client';

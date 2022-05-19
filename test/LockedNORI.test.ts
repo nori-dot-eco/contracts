@@ -185,7 +185,7 @@ const setupWithGrant = async (
     hre,
     startTime: await getLatestBlockTime({ hre }),
   });
-  const { namedAccounts } = hre;
+  const { namedAccounts, ethers } = hre;
   const { grantAmount, grant } = {
     grantAmount: options?.grantAmount ?? defaults.grantAmount,
     grant: {
@@ -207,7 +207,7 @@ const setupWithGrant = async (
     .to.emit(lNori, 'Minted')
     .withArgs(bpNori.address, grant.recipient, grantAmount, userData, '0x')
     .to.emit(lNori, 'Transfer')
-    .withArgs(hre.ethers.constants.AddressZero, grant.recipient, grantAmount)
+    .withArgs(ethers.constants.AddressZero, grant.recipient, grantAmount)
     .to.emit(bpNori, 'Sent')
     .withArgs(
       namedAccounts.admin,
@@ -346,7 +346,7 @@ describe('LockedNori', () => {
     ] as const) {
       it(`will disable the function ${method}`, async () => {
         const { lNori, hre } = await setupTest();
-        if (postSetupHook != undefined) {
+        if (typeof postSetupHook === 'function') {
           await postSetupHook({ lNori, hre });
         }
         await lNori.connect(hre.namedSigners.admin).pause();
@@ -358,8 +358,8 @@ describe('LockedNori', () => {
 
     it(`will not allow tokens to be deposited when the contract is paused`, async () => {
       const { lNori, bpNori, grant, hre } = await setupGrantWithDirectCall();
-      const { namedAccounts, namedSigners } = hre;
-      const userData = hre.ethers.utils.defaultAbiCoder.encode(
+      const { namedAccounts, namedSigners, ethers } = hre;
+      const userData = ethers.utils.defaultAbiCoder.encode(
         ['address', 'uint256'],
         [namedAccounts.supplier, 0]
       );
@@ -398,8 +398,8 @@ describe('LockedNori', () => {
 
     it(`will not allow tokens to be withdrawn when the contract is paused`, async () => {
       const { lNori, bpNori, grant, hre } = await setupGrantWithDirectCall();
-      const { namedAccounts, namedSigners } = hre;
-      const userData = hre.ethers.utils.defaultAbiCoder.encode(
+      const { namedAccounts, namedSigners, ethers } = hre;
+      const userData = ethers.utils.defaultAbiCoder.encode(
         ['address', 'uint256'],
         [namedAccounts.supplier, 0]
       );
