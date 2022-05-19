@@ -468,6 +468,22 @@ const grantCsvToObject = async ({
   return grants;
 };
 
+interface VestingTaskOptions {
+  diff?: boolean;
+  expand?: boolean;
+  commit?: string;
+  account?: number;
+  action?: 'createAndRevoke' | 'revoke' | 'create';
+  file?: string;
+  asJson?: boolean;
+  dryRun?: boolean;
+}
+
+type ParsedVestingTaskOptions = RequiredKeys<
+  VestingTaskOptions,
+  'diff' | 'expand' | 'asJson' | 'dryRun'
+>;
+
 /**
  * We use a function here instead to address type issues resulting from race conditions in typechain
  *
@@ -478,7 +494,10 @@ export const GET_VESTING_TASK = () =>
     name: 'vesting',
     description: 'Utilities for handling vesting',
     run: async (
-      {
+      options: VestingTaskOptions,
+      _: CustomHardHatRuntimeEnvironment
+    ): Promise<void> => {
+      const {
         diff: showDiff,
         expand,
         commit,
@@ -487,19 +506,7 @@ export const GET_VESTING_TASK = () =>
         file,
         asJson,
         dryRun,
-      }: {
-        diff: boolean;
-        expand: boolean;
-        commit?: string;
-        account?: number;
-        action?: 'createAndRevoke' | 'revoke' | 'create';
-        file?: string;
-        asJson: boolean;
-        dryRun: boolean;
-      },
-      _: CustomHardHatRuntimeEnvironment
-    ): Promise<void> => {
-      console.log({ showDiff });
+      } = options as ParsedVestingTaskOptions;
       const { createAndRevoke, revoke, create } = {
         createAndRevoke: action === 'createAndRevoke',
         revoke: action === 'revoke',
@@ -509,7 +516,7 @@ export const GET_VESTING_TASK = () =>
       if (typeof account !== 'number' || account < 0 || account > 10) {
         throw new Error('Invalid account/signer index');
       }
-      if (Boolean(asJson) && !showDiff && !expand) {
+      if (asJson && !showDiff && !expand) {
         throw new Error(
           'You must specify --diff or --expand when using --as-json'
         );
@@ -538,7 +545,7 @@ export const GET_VESTING_TASK = () =>
       });
       hre.log(`Grants obtained`);
       await grantsSchema.validate(githubGrants);
-      if (Boolean(showDiff) || Boolean(expand)) {
+      if (showDiff || expand) {
         await runSubtask('diff', {
           grants: { github: githubGrants },
           lNori,
@@ -562,13 +569,7 @@ export const GET_VESTING_TASK = () =>
           dryRun,
         });
       }
-      if (
-        !Boolean(expand) &&
-        !Boolean(showDiff) &&
-        !createAndRevoke &&
-        !create &&
-        !revoke
-      ) {
+      if (!expand && !showDiff && !createAndRevoke && !create && !revoke) {
         hre.log('No action selected.  Use --help for options.');
       }
     },
