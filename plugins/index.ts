@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign -- hre is intended to be configured via assignment in this file */
 import 'tsconfig-paths/register';
 import '@nomiclabs/hardhat-waffle';
 import '@openzeppelin/hardhat-defender';
@@ -47,7 +48,7 @@ extendEnvironment((hre) => {
   hre.trace = trace;
 
   // All live networks will try to use fireblocks
-  if (hre.config.fireblocks.apiKey && hre.network.config.live) {
+  if (Boolean(hre.config.fireblocks.apiKey) && hre.network.config.live) {
     hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
     // todo namedFireblocksAccounts
     // todo namedFireblocksSigners
@@ -86,7 +87,7 @@ extendEnvironment((hre) => {
     args: unknown[];
     options?: FactoryOptions;
   }): Promise<InstanceOfContract<TContract>> => {
-    const [signer: Signer] = await hre.getSigners();
+    const [signer]: Signer[] = await hre.getSigners();
     hre.log(
       `deployNonUpgradeable: ${contractName} from address ${await signer.getAddress()}`
     );
