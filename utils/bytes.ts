@@ -3,10 +3,10 @@
  *
  * @returns The hex representation of an ascii string.
  */
-export const asciiStringToHexString = (str: string): string => {
+export const asciiStringToHexString = (asciiString: string): string => {
   const bytes = [];
-  for (let i = 0; i < str.length; i++) {
-    bytes.push(str.charCodeAt(i));
+  for (let index = 0; index < asciiString.length; index += 1) {
+    bytes.push(asciiString.charCodeAt(index));
   }
   return `0x${Array.from(bytes, (byte: number) => {
     // eslint-disable-next-line no-bitwise
@@ -21,9 +21,11 @@ export const asciiStringToHexString = (str: string): string => {
  */
 export const hexStringToAsciiString = (hex: string): string => {
   hex = hex.replace('0x', '');
-  let str = '';
-  for (let i = 0; i < hex.length; i += 2) {
-    str += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16));
+  let asciiString = '';
+  for (let index = 0; index < hex.length; index += 2) {
+    asciiString += String.fromCharCode(
+      Number.parseInt(hex.slice(index, index + 2), 16)
+    );
   }
-  return str;
+  return asciiString;
 };

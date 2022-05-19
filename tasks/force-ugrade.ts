@@ -1,4 +1,4 @@
-import { Contract } from '@ethersproject/contracts';
+import type { Contract } from '@ethersproject/contracts';
 import { task } from 'hardhat/config';
 
 interface ForceUpgradeTaskParameters {
@@ -10,13 +10,13 @@ export const TASK = {
   name: 'force-upgrade',
   description: 'Force upgrades a contract when network file is lost',
   run: async (
-    taskArgs: ForceUpgradeTaskParameters,
+    taskArguments: ForceUpgradeTaskParameters,
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
     const contract: Contract = await hre.upgrades.forceImport(
-      taskArgs.proxyAddress,
+      taskArguments.proxyAddress,
       await hre.ethers.getContractFactory(
-        taskArgs.contractName as ContractNames,
+        taskArguments.contractName as ContractNames,
         (
           await hre.getSigners()
         )[0]
@@ -25,7 +25,7 @@ export const TASK = {
         kind: 'transparent',
       }
     );
-    console.log(`Force upgraded`, taskArgs.proxyAddress);
+    console.log(`Force upgraded`, taskArguments.proxyAddress);
   },
 } as const;
 

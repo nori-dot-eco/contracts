@@ -37,9 +37,8 @@ export const TASK = {
         args,
         hre,
       });
-    } else {
-      throw new Error('You can only query NCCR_V0 on mainnet');
     }
+    throw new Error('You can only query NCCR_V0 on mainnet');
   },
   CONTRACT_FUNCTION_TASK_PARAMETERS,
 } as const;

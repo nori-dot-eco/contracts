@@ -27,7 +27,6 @@ import { TASK as COVERAGE_TASK } from './coverage';
 import { TASK as FORCE_UPGRADE_TASK } from './force-ugrade';
 import { TASK as SIGN_MESSAGE_TASK } from './sign-message';
 
-const VESTING_TASK = GET_VESTING_TASK();
 interface Task {
   run: ActionType<
     {
@@ -36,6 +35,8 @@ interface Task {
     any
   >;
 }
+
+const VESTING_TASK = GET_VESTING_TASK();
 
 export const TASKS = {
   [TASK_VERIFY_VERIFY]: {} as {

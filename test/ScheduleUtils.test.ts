@@ -27,115 +27,115 @@ const setupTest = hre.deployments.createFixture(
 describe('ScheduleUtils', () => {
   it('Should create a simple Schedule', async () => {
     const { scheduleTestHarness: harness } = await setupTest();
-    expect(harness.create(NOW, NOW + 86400, 1_000_000))
+    expect(harness.create(NOW, NOW + 86_400, 1_000_000))
       .to.emit(harness, 'ScheduleCreated')
-      .withArgs(0, NOW, NOW + 86400, 1_000_000);
+      .withArgs(0, NOW, NOW + 86_400, 1_000_000);
     const schedule: BigNumberish = 0;
     expect(await harness.availableAmount(schedule, 0)).to.equal(0);
     expect(await harness.availableAmount(schedule, NOW - 1)).to.equal(0);
-    expect(await harness.availableAmount(schedule, NOW + 86400)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400)).to.equal(
       1_000_000
     );
-    expect(await harness.availableAmount(schedule, NOW + 86400 / 2)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400 / 2)).to.equal(
       1_000_000 / 2
     );
-    expect(await harness.availableAmount(schedule, NOW + 365 * 86400)).to.equal(
-      1_000_000
-    );
+    expect(
+      await harness.availableAmount(schedule, NOW + 365 * 86_400)
+    ).to.equal(1_000_000);
   });
 
   it('Should create a Schedule with one linear cliff', async () => {
     const { scheduleTestHarness: harness } = await setupTest();
-    await harness.create(NOW, NOW + 86400, 1_000_000);
+    await harness.create(NOW, NOW + 86_400, 1_000_000);
     const schedule = 0;
-    expect(harness.addCliff(schedule, NOW + 86400 / 4, 250_000))
+    expect(harness.addCliff(schedule, NOW + 86_400 / 4, 250_000))
       .to.emit(harness, 'CliffAdded')
-      .withArgs(0, NOW + 86400 / 4, 250_000);
+      .withArgs(0, NOW + 86_400 / 4, 250_000);
     expect(await harness.availableAmount(schedule, NOW - 1)).to.equal(0);
     expect(
-      await harness.availableAmount(schedule, NOW + 86400 / 4 - 1)
+      await harness.availableAmount(schedule, NOW + 86_400 / 4 - 1)
     ).to.equal(0);
-    expect(await harness.availableAmount(schedule, NOW + 86400 / 4)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400 / 4)).to.equal(
       250_000
     );
-    expect(await harness.availableAmount(schedule, NOW + 86400)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400)).to.equal(
       1_000_000
     );
-    expect(await harness.availableAmount(schedule, NOW + 86400 / 2)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400 / 2)).to.equal(
       1_000_000 / 2
     );
   });
 
   it('Should create a Schedule with one sub-linear cliff', async () => {
     const { scheduleTestHarness: harness } = await setupTest();
-    await harness.create(NOW, NOW + 86400, 1_000_000);
+    await harness.create(NOW, NOW + 86_400, 1_000_000);
     const schedule = 0;
-    await harness.addCliff(schedule, NOW + 86400 / 2, 250_000);
+    await harness.addCliff(schedule, NOW + 86_400 / 2, 250_000);
     expect(await harness.availableAmount(schedule, NOW - 1)).to.equal(0);
     expect(
-      await harness.availableAmount(schedule, NOW + 86400 / 2 - 1)
+      await harness.availableAmount(schedule, NOW + 86_400 / 2 - 1)
     ).to.equal(0);
-    expect(await harness.availableAmount(schedule, NOW + 86400 / 2)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400 / 2)).to.equal(
       250_000
     );
-    expect(await harness.availableAmount(schedule, NOW + 86400)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400)).to.equal(
       1_000_000
     );
     expect(
-      await harness.availableAmount(schedule, NOW + 86400 * (3 / 4))
+      await harness.availableAmount(schedule, NOW + 86_400 * (3 / 4))
     ).to.equal(250_000 + 750_000 / 2);
   });
 
   it('Should create a Schedule with multiple cliffs', async () => {
     const { scheduleTestHarness: harness } = await setupTest();
-    await harness.create(NOW, NOW + 86400, 1_000_000);
+    await harness.create(NOW, NOW + 86_400, 1_000_000);
     const schedule = 0;
-    await harness.addCliff(schedule, NOW + 86400 / 10, 100_000);
-    expect(harness.addCliff(schedule, NOW + 86400 / 5, 100_000))
+    await harness.addCliff(schedule, NOW + 86_400 / 10, 100_000);
+    expect(harness.addCliff(schedule, NOW + 86_400 / 5, 100_000))
       .to.emit(harness, 'CliffAdded')
-      .withArgs(1, NOW + 86400 / 5, 100_000);
+      .withArgs(1, NOW + 86_400 / 5, 100_000);
     expect(await harness.availableAmount(schedule, NOW - 1)).to.equal(0);
     expect(
-      await harness.availableAmount(schedule, NOW + 86400 / 10 - 1)
+      await harness.availableAmount(schedule, NOW + 86_400 / 10 - 1)
     ).to.equal(0);
-    expect(await harness.availableAmount(schedule, NOW + 86400 / 10)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400 / 10)).to.equal(
       100_000
     );
     expect(
-      await harness.availableAmount(schedule, NOW + 86400 / 5 - 1)
+      await harness.availableAmount(schedule, NOW + 86_400 / 5 - 1)
     ).to.equal(100_000);
-    expect(await harness.availableAmount(schedule, NOW + 86400 / 5)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400 / 5)).to.equal(
       200_000
     );
-    expect(await harness.availableAmount(schedule, NOW + 86400)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400)).to.equal(
       1_000_000
     );
-    expect(await harness.availableAmount(schedule, NOW + 86400 / 2)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400 / 2)).to.equal(
       500_000
     );
   });
 
   it('Should handle truncation of the schedule amount', async () => {
     const { scheduleTestHarness: harness } = await setupTest();
-    await harness.create(NOW, NOW + 86400, 1_000_000);
+    await harness.create(NOW, NOW + 86_400, 1_000_000);
     const schedule = 0;
-    expect(harness.addCliff(schedule, NOW + 86400 / 4, 250_000))
+    expect(harness.addCliff(schedule, NOW + 86_400 / 4, 250_000))
       .to.emit(harness, 'CliffAdded')
-      .withArgs(0, NOW + 86400 / 4, 250_000);
-    expect(harness.addCliff(schedule, NOW + 86400 / 2, 250_000))
+      .withArgs(0, NOW + 86_400 / 4, 250_000);
+    expect(harness.addCliff(schedule, NOW + 86_400 / 2, 250_000))
       .to.emit(harness, 'CliffAdded')
-      .withArgs(1, NOW + 86400 / 2, 250_000);
-    expect(await harness.availableAmount(schedule, NOW + 86400 / 3)).to.equal(
+      .withArgs(1, NOW + 86_400 / 2, 250_000);
+    expect(await harness.availableAmount(schedule, NOW + 86_400 / 3)).to.equal(
       250_000
     );
 
-    expect(harness.truncateScheduleAmount(schedule, NOW + 86400 / 3))
+    expect(harness.truncateScheduleAmount(schedule, NOW + 86_400 / 3))
       .to.emit(harness, 'ScheduleTruncated')
       .withArgs(schedule, 250_000);
-    expect(await harness.availableAmount(schedule, NOW + 86400 / 2)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400 / 2)).to.equal(
       250_000
     );
-    expect(await harness.availableAmount(schedule, NOW + 86400)).to.equal(
+    expect(await harness.availableAmount(schedule, NOW + 86_400)).to.equal(
       250_000
     );
   });

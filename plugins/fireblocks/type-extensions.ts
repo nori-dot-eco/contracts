@@ -1,8 +1,8 @@
 import 'hardhat/types/config';
 import 'hardhat/types/runtime';
 
-import { FireblocksSignerConfig } from './types';
-import { FireblocksSigner } from './fireblocks-signer';
+import type { FireblocksSignerConfig } from './types';
+import type { FireblocksSigner } from './fireblocks-signer';
 
 declare module 'hardhat/types/config' {
   interface HardhatUserConfig {

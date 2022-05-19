@@ -4,13 +4,13 @@ export const TASK = {
   name: 'accounts',
   description: 'Prints the list of accounts',
   run: async (
-    _taskArgs: void,
+    _taskArguments: void,
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
     const accounts = await hre.ethers.getSigners();
-    accounts.forEach((account) => {
+    for (const account of accounts) {
       console.log(account.address);
-    });
+    }
   },
 } as const;
 
