@@ -176,6 +176,12 @@ contract FIFOMarket is
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
         address(0)
       ) {
+        // If this is the first supplier to be added, update the intialized addresses.
+        if (_firstSupplierAddress == address(0)) {
+          _firstSupplierAddress = supplierAddress;
+          _currentSupplierAddress = supplierAddress;
+          _lastSupplierAddress = supplierAddress;
+        }
         // Update the current last supplier to point to the new supplier as next
         _suppliersInRoundRobinOrder[_lastSupplierAddress]
           .nextSupplierAddress = supplierAddress;
@@ -186,10 +192,6 @@ contract FIFOMarket is
         });
         // Update the last supplier to be the new supplier
         _lastSupplierAddress = supplierAddress;
-        // If this is the first supplier to be added, update the first supplier as well.
-        if (_firstSupplierAddress == address(0)) {
-          _firstSupplierAddress = supplierAddress;
-        }
         activeSupplierCount += 1;
       }
     }
@@ -259,13 +261,27 @@ contract FIFOMarket is
 
         _activeSupply[_currentSupplierAddress].remove(removalId); // pull it out of the supplier's queue
         // If the supplier is out of supply, remove them from the active suppliers
+        console.log("ELLO");
+        console.log(
+          "previous",
+          _suppliersInRoundRobinOrder[_currentSupplierAddress]
+            .previousSupplierAddress
+        );
+        console.log("current", _currentSupplierAddress);
+        console.log(
+          "next",
+          _suppliersInRoundRobinOrder[_currentSupplierAddress]
+            .nextSupplierAddress
+        );
         if (_activeSupply[_currentSupplierAddress].length() == 0) {
+          console.log("REMOVING SUPPLIER");
           _removeActiveSupplier(_currentSupplierAddress);
           // else if the supplier is the only supplier remaining with supply, don't bother incrementing.
         } else if (
           _suppliersInRoundRobinOrder[_currentSupplierAddress]
             .nextSupplierAddress != _currentSupplierAddress
         ) {
+          console.log("INCREMENTING SUPPLIER ADDRESS");
           _incrementCurrentSupplierAddress();
         }
       }
@@ -387,7 +403,7 @@ contract FIFOMarket is
       }
       // If the supplier is the current supplier, update that address to the next supplier.
       if (addressToRemove == _currentSupplierAddress) {
-        _lastSupplierAddress = supplierToRemove.nextSupplierAddress;
+        _currentSupplierAddress = supplierToRemove.nextSupplierAddress;
       }
     }
     // Remove RoundRobinOrder Data from supplier
