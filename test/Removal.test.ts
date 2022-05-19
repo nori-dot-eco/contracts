@@ -36,9 +36,9 @@ describe('Removal', () => {
           return removal.totalSupply(tokenId);
         })
       );
-      balances.forEach((balance, tokenId) => {
+      for (const [tokenId, balance] of balances.entries()) {
         expect(balance).to.equal(removalBalances[tokenId].toString());
-      });
+      }
       // not listed to the fifoMarket
       const marketTotalSupply = await fifoMarket.numberOfNrtsInQueueComputed();
       expect(marketTotalSupply).to.equal(
@@ -78,9 +78,9 @@ describe('Removal', () => {
           return removal.totalSupply(tokenId);
         })
       );
-      balances.forEach((balance, tokenId) => {
+      for (const [tokenId, balance] of balances.entries()) {
         expect(balance).to.equal(removalBalances[tokenId].toString());
-      });
+      }
       const marketTotalSupply = await fifoMarket.numberOfNrtsInQueueComputed();
       expect(marketTotalSupply).to.equal(
         formatTokenAmount(expectedMarketSupply).toString()
@@ -113,7 +113,7 @@ describe('Removal', () => {
       const removalBalances = [100, 200, 300].map((balance) =>
         formatTokenAmount(balance)
       );
-      const tokenIds = [4321, 12344, 7892];
+      const tokenIds = [4321, 12_344, 7892];
       const listNow = false;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
@@ -158,9 +158,9 @@ describe('Removal', () => {
           return removal.balanceOf(fifoMarket.address, tokenId);
         })
       );
-      balances.forEach((balance, tokenId) => {
+      for (const [tokenId, balance] of balances.entries()) {
         expect(balance).to.equal(removalBalances[tokenId].toString());
-      });
+      }
     });
   });
 });

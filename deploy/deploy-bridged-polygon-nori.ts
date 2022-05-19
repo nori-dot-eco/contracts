@@ -10,8 +10,8 @@ import {
   MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
 } from '@/constants/addresses';
 
-export const deploy: DeployFunction = async (env) => {
-  const hre = env as unknown as CustomHardHatRuntimeEnvironment;
+export const deploy: DeployFunction = async (environment) => {
+  const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`deployBridgedPolygonNORI`);
   const childChainManagerProxyAddress =

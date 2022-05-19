@@ -32,10 +32,10 @@ const setupTestLocal = async (
     const { supplier } = hre.namedAccounts;
     const defaultStartingVintage = 2016;
     tokenIds = await Promise.all(
-      removalDataToList.map((removalData, i) => {
+      removalDataToList.map((removalData, index) => {
         return createRemovalTokenId(removal, {
           supplierAddress: removalData.supplier ?? supplier,
-          vintage: removalData.vintage ?? defaultStartingVintage + i,
+          vintage: removalData.vintage ?? defaultStartingVintage + index,
         });
       })
     );

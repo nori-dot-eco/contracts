@@ -22,10 +22,11 @@ export const namedAccountIndices = {
 export const namedAccounts: NamedAccounts | undefined =
   MNEMONIC !== undefined
     ? (Object.fromEntries(
-        [...Array(10)].map((_, i) => {
+        [...Array.from({ length: 10 })].map((_, index) => {
           return [
-            Object.keys(namedAccountIndices)[i],
-            ethers.Wallet.fromMnemonic(MNEMONIC, `m/44'/60'/0'/0/${i}`).address,
+            Object.keys(namedAccountIndices)[index],
+            ethers.Wallet.fromMnemonic(MNEMONIC, `m/44'/60'/0'/0/${index}`)
+              .address,
           ];
         })
       ) as NamedAccounts)
@@ -33,14 +34,14 @@ export const namedAccounts: NamedAccounts | undefined =
 
 export const accounts: HardhatNetworkAccountUserConfig[] | undefined =
   MNEMONIC !== undefined
-    ? [...Array(10)].map((_, i) => {
+    ? [...Array.from({ length: 10 })].map((_, index) => {
         return {
           privateKey: ethers.Wallet.fromMnemonic(
             MNEMONIC,
-            `m/44'/60'/0'/0/${i}`
+            `m/44'/60'/0'/0/${index}`
           ).privateKey.toString(),
           balance: ethers.utils
-            .parseEther([7, 9].includes(i) ? '0.0' : '1000000.0') // accounts 7 and 9 are given 0.0 ETH
+            .parseEther([7, 9].includes(index) ? '0.0' : '1000000.0') // accounts 7 and 9 are given 0.0 ETH
             .toString(),
         };
       })

@@ -57,7 +57,7 @@ describe('RemovalUtils', () => {
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-      subIdentifier: 99039930, // parcel id
+      subIdentifier: 99_039_930, // parcel id
     };
 
     const removalId = await harness.createRemovalId(
@@ -164,7 +164,7 @@ describe('RemovalUtils', () => {
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-      subIdentifier: 99039930,
+      subIdentifier: 99_039_930,
     };
 
     expect(
@@ -184,7 +184,7 @@ describe('RemovalUtils', () => {
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-      subIdentifier: 99039930,
+      subIdentifier: 99_039_930,
     };
 
     await expect(

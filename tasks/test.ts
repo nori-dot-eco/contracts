@@ -14,13 +14,15 @@ export const TASK = {
   name: TASK_TEST,
   description: 'Runs mocha tests',
   run: async (
-    taskArgs: Parameters<ActionType<TestTaskOverrideParameters, unknown>>[0],
+    taskArguments: Parameters<
+      ActionType<TestTaskOverrideParameters, unknown>
+    >[0],
     hre: CustomHardHatRuntimeEnvironment,
-    runSuper: RunSuperFunction<typeof taskArgs>
+    runSuper: RunSuperFunction<typeof taskArguments>
   ) => {
     const { REPORT_GAS } = process.env;
     validateTestEnvironment();
-    if (Boolean(taskArgs?.reportGas) || REPORT_GAS) {
+    if (Boolean(taskArguments?.reportGas) || REPORT_GAS) {
       hre.log(
         'Setting process.env.REPORT_GAS to true',
         `Previous value: ${REPORT_GAS}`
@@ -28,7 +30,7 @@ export const TASK = {
       process.env.REPORT_GAS = true;
       hre.config.gasReporter = getGasReporterConfig(process.env);
     }
-    return runSuper(taskArgs);
+    return runSuper(taskArguments);
   },
 } as const;
 

@@ -6,17 +6,13 @@ import { task, subtask, types } from 'hardhat/config';
 import { BigNumber } from 'ethers';
 import chalk from 'chalk';
 import { diff, diffString } from 'json-diff';
-import {
-  BigNumberish,
-  isBigNumberish,
-} from '@ethersproject/bignumber/lib/bignumber';
-import { Signer } from '@ethersproject/abstract-signer';
+import type { BigNumberish } from '@ethersproject/bignumber/lib/bignumber';
+import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
+import type { Signer } from '@ethersproject/abstract-signer';
 import type { CSVParseParam } from 'csvtojson/v2/Parameters';
 import { isAddress, getAddress } from 'ethers/lib/utils';
 import moment from 'moment';
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore // https://github.com/dethcrypto/TypeChain/issues/371#issuecomment-1032397470
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import { getOctokit } from '@/tasks/utils/github';
 import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
@@ -117,14 +113,14 @@ interface CsvParser extends ColParser {
   lastQuantityRevoked: ParseGrantFunction<'lastQuantityRevoked'>;
 }
 
-const UINT_STRING_MATCHER = /^[0-9]+$/;
+const UINT_STRING_MATCHER = /^\d+$/;
 
 export const validations = {
   isValidEvmMoment: () => {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be a valid EVM timestamp. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean =>
+      test: (value: unknown, _options?: { path: string }): boolean =>
         typeof value === 'number' &&
         yup.number().strict().min(0).integer().isValidSync(value) &&
         moment(evmTimeToUtc(value)).isValid(),
@@ -134,7 +130,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be BigNumberish. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean =>
+      test: (value: unknown, _options?: { path: string }): boolean =>
         typeof value === 'string' && isBigNumberish(value),
     };
   },
@@ -142,7 +138,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be > 0. Value: ${d.value}.`,
-      test: (value: BigNumberish, _opts?: { path: string }): boolean =>
+      test: (value: BigNumberish, _options?: { path: string }): boolean =>
         BigNumber.from(value).gt(0),
     };
   },
@@ -150,7 +146,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be BigNumberish less than or equal to: ${other}`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
+      test: (value: unknown, _options?: { path: string }): boolean => {
         return isBigNumberish(value) && BigNumber.from(value).lte(other);
       },
     };
@@ -159,10 +155,10 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be the same value as the parent key. Value: ${d.value}.`,
-      test: (value: unknown, opts: { path: string }): boolean => {
+      test: (value: unknown, options: { path: string }): boolean => {
         const hasSameValueAsParentKey =
-          opts?.path === '' ||
-          (Boolean(opts?.path) && opts?.path.split('.')[0] === value);
+          options?.path === '' ||
+          (Boolean(options?.path) && options?.path.split('.')[0] === value);
         return typeof value === 'string' && hasSameValueAsParentKey;
       },
     };
@@ -171,7 +167,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be a wallet address. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
+      test: (value: unknown, _options?: { path: string }): boolean => {
         return typeof value === 'string' && isAddress(value);
       },
     };
@@ -180,7 +176,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} is not a date within ${maxFutureYears} years from today. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
+      test: (value: unknown, _options?: { path: string }): boolean => {
         const maxFutureYearsIsUint = yup
           .number()
           .integer()
@@ -202,7 +198,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} is not a date after ${minimumPastYears} year ago today. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
+      test: (value: unknown, _options?: { path: string }): boolean => {
         const minimumPastYearsIsUint = yup
           .number()
           .integer()
@@ -392,10 +388,10 @@ const getDiff = ({
   asJson,
 }: {
   grants: Grants;
-  expand?: boolean;
-  asJson?: boolean;
+  expand: boolean;
+  asJson: boolean;
 }): string | Record<string, unknown> => {
-  return Boolean(asJson)
+  return asJson
     ? diff(blockchainGrants, githubGrants, { full: expand })
     : diffString(blockchainGrants, githubGrants, { full: expand });
 };
@@ -413,7 +409,7 @@ export const csvParser: CsvParser = {
   vestCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
   unlockCliff1Amount: (item) => formatTokenString(item ?? '0').toString(),
   unlockCliff2Amount: (item) => formatTokenString(item ?? '0').toString(),
-  lastRevocationTime: (item) => (Boolean(item) ? utcToEvmTime(item) : 0),
+  lastRevocationTime: (item) => (item ? utcToEvmTime(item) : 0),
   lastQuantityRevoked: (item) =>
     formatTokenString(['', 'ALL'].includes(item) ? '0' : item).toString(),
 };
@@ -423,13 +419,13 @@ export const grantListToObject = ({
 }: {
   listOfGrants: GrantList;
 }): ParsedGrants => {
-  return listOfGrants.reduce((acc, val): ParsedGrants => {
-    if (Boolean(acc[val.recipient])) {
+  return listOfGrants.reduce((accumulator, value): ParsedGrants => {
+    if (accumulator[value.recipient]) {
       throw new Error(
-        `Found duplicate recipient address in grants ${val.recipient}`
+        `Found duplicate recipient address in grants ${value.recipient}`
       );
     }
-    return { ...acc, [val.recipient]: val };
+    return { ...accumulator, [value.recipient]: value };
   }, {} as ParsedGrants);
 };
 
@@ -451,8 +447,8 @@ export const grantCsvToList = async ({
         row.cliff2Time = row.cliff2Time === 0 ? row.cliff1Time : row.cliff2Time;
         // row.vestEndTime = row.vestEndTime === 0 ? row.startTime : row.vestEndTime;
       },
-      (err) => {
-        throw err;
+      (error) => {
+        throw error;
       }
     )
     .fromString(data)) as GrantList;
@@ -472,6 +468,22 @@ const grantCsvToObject = async ({
   return grants;
 };
 
+interface VestingTaskOptions {
+  diff?: boolean;
+  expand?: boolean;
+  commit?: string;
+  account?: number;
+  action?: 'createAndRevoke' | 'revoke' | 'create';
+  file?: string;
+  asJson?: boolean;
+  dryRun?: boolean;
+}
+
+type ParsedVestingTaskOptions = RequiredKeys<
+  VestingTaskOptions,
+  'diff' | 'expand' | 'asJson' | 'dryRun'
+>;
+
 /**
  * We use a function here instead to address type issues resulting from race conditions in typechain
  *
@@ -482,7 +494,10 @@ export const GET_VESTING_TASK = () =>
     name: 'vesting',
     description: 'Utilities for handling vesting',
     run: async (
-      {
+      options: VestingTaskOptions,
+      _: CustomHardHatRuntimeEnvironment
+    ): Promise<void> => {
+      const {
         diff: showDiff,
         expand,
         commit,
@@ -491,18 +506,7 @@ export const GET_VESTING_TASK = () =>
         file,
         asJson,
         dryRun,
-      }: {
-        diff?: boolean;
-        expand?: boolean;
-        commit?: string;
-        account?: number;
-        action?: 'createAndRevoke' | 'revoke' | 'create';
-        file?: string;
-        asJson?: boolean;
-        dryRun?: boolean;
-      },
-      _: CustomHardHatRuntimeEnvironment
-    ): Promise<void> => {
+      } = options as ParsedVestingTaskOptions;
       const { createAndRevoke, revoke, create } = {
         createAndRevoke: action === 'createAndRevoke',
         revoke: action === 'revoke',
@@ -512,7 +516,7 @@ export const GET_VESTING_TASK = () =>
       if (typeof account !== 'number' || account < 0 || account > 10) {
         throw new Error('Invalid account/signer index');
       }
-      if (Boolean(asJson) && !Boolean(showDiff) && !Boolean(expand)) {
+      if (asJson && !showDiff && !expand) {
         throw new Error(
           'You must specify --diff or --expand when using --as-json'
         );
@@ -541,7 +545,7 @@ export const GET_VESTING_TASK = () =>
       });
       hre.log(`Grants obtained`);
       await grantsSchema.validate(githubGrants);
-      if (Boolean(showDiff) || Boolean(expand)) {
+      if (showDiff || expand) {
         await runSubtask('diff', {
           grants: { github: githubGrants },
           lNori,
@@ -565,13 +569,7 @@ export const GET_VESTING_TASK = () =>
           dryRun,
         });
       }
-      if (
-        !Boolean(expand) &&
-        !Boolean(showDiff) &&
-        !createAndRevoke &&
-        !create &&
-        !revoke
-      ) {
+      if (!expand && !showDiff && !createAndRevoke && !create && !revoke) {
         hre.log('No action selected.  Use --help for options.');
       }
     },
@@ -590,8 +588,8 @@ const DIFF_SUBTASK = {
     }: {
       lNori: LockedNORI;
       grants: Pick<Grants, 'github'>;
-      expand?: boolean;
-      asJson?: boolean;
+      expand: boolean;
+      asJson: boolean;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -604,7 +602,7 @@ const DIFF_SUBTASK = {
     const grantsDiff = getDiff({
       grants: {
         blockchain: Object.fromEntries(
-          Object.entries(blockchainGrants).reduce((prev, [k1, v1]) => {
+          Object.entries(blockchainGrants).reduce((previous, [k1, v1]) => {
             const {
               vestEndTime,
               startTime,
@@ -613,7 +611,7 @@ const DIFF_SUBTASK = {
               ...rest
             } = v1 as any;
             return [
-              ...prev,
+              ...previous,
               [
                 k1,
                 {
@@ -688,14 +686,15 @@ const GET_BLOCKCHAIN_SUBTASK = {
   ): Promise<ParsedGrants> => {
     const totalSupply = await lNori.totalSupply();
     hre.log(`Total supply: ${totalSupply}`);
-    const rawBlockchainGrants =
-      await lNori.batchGetGrant(Object.keys(githubGrants));
+    const rawBlockchainGrants = await lNori.batchGetGrant(
+      Object.keys(githubGrants)
+    );
     const blockchainGrants = rawBlockchainGrants.reduce(
-      (acc: ParsedGrants, grant: any): ParsedGrants => {
+      (accumulator: ParsedGrants, grant: any): ParsedGrants => {
         return grant.recipient === hre.ethers.constants.AddressZero
-          ? acc
+          ? accumulator
           : {
-              ...acc,
+              ...accumulator,
               [grant.recipient]: {
                 recipient: grant.recipient,
                 originalAmount: grant.originalAmount.toString(),
@@ -718,7 +717,7 @@ const GET_BLOCKCHAIN_SUBTASK = {
     ) as ParsedGrants;
     const actualAmounts = Object.values(rawBlockchainGrants)
       .map(({ grantAmount, claimedAmount }) => grantAmount.sub(claimedAmount))
-      .reduce((acc, v) => acc.add(v));
+      .reduce((accumulator, v) => accumulator.add(v));
     if (!totalSupply.eq(actualAmounts)) {
       hre.log(
         'WARNING: total supply of LockedNORI does not equal the amounts of all grants.',
@@ -748,7 +747,7 @@ const CREATE_SUBTASK = {
       grants: Pick<Grants, 'github'>;
       bpNori: BridgedPolygonNORI;
       lNori: LockedNORI;
-      dryRun?: boolean;
+      dryRun: boolean;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -825,10 +824,10 @@ const CREATE_SUBTASK = {
       const requireReceptionAck = grantDiffs.map((_) => true);
       hre.log(
         `Total bpNORI to lock: ${ethers.utils.formatEther(
-          amounts.reduce((acc, v) => acc.add(v))
+          amounts.reduce((accumulator, v) => accumulator.add(v))
         )}`
       );
-      if (!Boolean(dryRun)) {
+      if (!dryRun) {
         const batchCreateGrantsTx = await bpNori.batchSend(
           recipients,
           amounts,
@@ -863,8 +862,10 @@ const CREATE_SUBTASK = {
             requireReceptionAck
           );
           hre.log(chalk.bold.bgWhiteBright.black(`🎉 Dry run was successful!`));
-        } catch (e) {
-          hre.log(chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, e));
+        } catch (error) {
+          hre.log(
+            chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
+          );
         }
       }
     }
@@ -884,7 +885,7 @@ const REVOKE_SUBTASK = {
       grants: Pick<Grants, 'github'>;
       lNori: LockedNORI;
       signer: Signer;
-      dryRun?: boolean;
+      dryRun: boolean;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -910,9 +911,9 @@ const REVOKE_SUBTASK = {
     );
     if (grantRevocationDiffs.length > 0) {
       const fromAccounts = grantRevocationDiffs.map((grant) => grant.recipient);
-      const toAccounts = Array(grantRevocationDiffs.length).fill(
-        await signer.getAddress()
-      );
+      const toAccounts = Array.from<string>({
+        length: grantRevocationDiffs.length,
+      }).fill(await signer.getAddress());
       const atTimes = grantRevocationDiffs.map(
         (grant) => grant.lastRevocationTime.__new ?? grant.lastRevocationTime
       );
@@ -957,8 +958,10 @@ const REVOKE_SUBTASK = {
           hre.log(
             chalk.bold.bgWhiteBright.black(`🎉  Dry run was successful!`)
           );
-        } catch (e) {
-          hre.log(chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, e));
+        } catch (error) {
+          hre.log(
+            chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
+          );
         }
       }
     }
@@ -994,7 +997,6 @@ const REVOKE_SUBTASK = {
       'Print expanded information (including a full diff when using the --diff flag)'
     )
     .addFlag('asJson', 'Prints diff as JSON');
-
   subtask(DIFF_SUBTASK.name, DIFF_SUBTASK.description, DIFF_SUBTASK.run);
   subtask(CREATE_SUBTASK.name, CREATE_SUBTASK.description, CREATE_SUBTASK.run);
   subtask(
