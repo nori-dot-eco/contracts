@@ -123,7 +123,8 @@ contract FIFOMarket is
         );
         total += removalBalance;
       }
-      supplierAddress = _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress;
+      supplierAddress = _suppliersInRoundRobinOrder[supplierAddress]
+        .nextSupplierAddress;
     }
     return total;
   }
@@ -170,10 +171,15 @@ contract FIFOMarket is
       totalNumberActiveRemovals += 1;
       address supplierAddress = ids[i].supplierAddress();
       _activeSupply[supplierAddress].add(ids[i]);
-      // If a new supplier has been added
-      if (!_suppliersInRoundRobinOrder[supplierAddress]) {
+      // If a new supplier has been added, or if the supplier had previously sold out
+      if (
+        !_suppliersInRoundRobinOrder[supplierAddress] ||
+        _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
+        address(0)
+      ) {
         // Update the current last supplier to point to the new supplier as next
-        _suppliersInRoundRobinOrder[_lastSupplierAddress].nextSupplierAddress = supplierAddress;
+        _suppliersInRoundRobinOrder[_lastSupplierAddress]
+          .nextSupplierAddress = supplierAddress;
         // Add the new supplier to the round robin order
         _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
           previousSupplierAddress: _lastSupplierAddress,
@@ -257,7 +263,10 @@ contract FIFOMarket is
         if (_activeSupply[_currentSupplierAddress].length() == 0) {
           _removeActiveSupplier(_currentSupplierAddress);
           // else if the supplier is the only supplier remaining with supply, don't bother incrementing.
-        } else if (_suppliersInRoundRobinOrder[_currentSupplierAddress].nextSupplierAddress != _currentSupplierAddress) {
+        } else if (
+          _suppliersInRoundRobinOrder[_currentSupplierAddress]
+            .nextSupplierAddress != _currentSupplierAddress
+        ) {
           _incrementCurrentSupplierAddress();
         }
       }
@@ -347,37 +356,46 @@ contract FIFOMarket is
 
   function _incrementCurrentSupplierAddress() private {
     // Update the current supplier to be the next of the current supplier
-    _currentSupplierAddress = _suppliersInRoundRobinOrder[_currentSupplierAddress]
-      .nextSupplierAddress;
+    _currentSupplierAddress = _suppliersInRoundRobinOrder[
+      _currentSupplierAddress
+    ].nextSupplierAddress;
   }
 
   function _removeActiveSupplier(address addressToRemove) private {
-    RoundRobinOrder memory supplierToRemove = _suppliersInRoundRobinOrder[addressToRemove];
+    RoundRobinOrder memory supplierToRemove = _suppliersInRoundRobinOrder[
+      addressToRemove
+    ];
     // If this is the last supplier, clear all current tracked addresses.
+    // TODO Potentially this
     if (addressToRemove == supplierToRemove.nextSupplierAddress) {
       _firstSupplierAddress = address(0);
       _currentSupplierAddress = address(0);
       _lastSupplierAddress = address(0);
-      break;
+    } else {
+      // Set the next of the previous supplier to point to the removed supplier's next.
+      _suppliersInRoundRobinOrder[supplierToRemove.previousSupplierAddress]
+        .nextSupplierAddress = supplierToRemove.nextSupplierAddress;
+      // Set the previous of the next supplier to point to the removed supplier's previous.
+      _suppliersInRoundRobinOrder[supplierToRemove.nextSupplierAddress]
+        .previousSupplierAddress = supplierToRemove.previousSupplierAddress;
+      // If the supplier is the first supplier, update that Address to the next supplier.
+      if (addressToRemove == _firstSupplierAddress) {
+        _firstSupplierAddress = supplierToRemove.nextSupplierAddress;
+      }
+      // If the supplier is the last supplier, update that address to the previous supplier.
+      if (addressToRemove == _lastSupplierAddress) {
+        _lastSupplierAddress = supplierToRemove.previousSupplierAddress;
+      }
+      // If the supplier is the current supplier, update that address to the next supplier.
+      if (addressToRemove == _currentSupplierAddress) {
+        _lastSupplierAddress = supplierToRemove.nextSupplierAddress;
+      }
     }
-    // Set the next of the previous supplier to point to the removed supplier's next.
-    _suppliersInRoundRobinOrder[supplierToRemove.previousSupplierAddress]
-      .nextSupplierAddress = supplierToRemove.nextSupplierAddress;
-    // Set the previous of the next supplier to point to the removed supplier's previous.
-    _suppliersInRoundRobinOrder[supplierToRemove.nextSupplierAddress]
-      .previousSupplierAddress = supplierToRemove.previousSupplierAddress;
-    // If the supplier is the first supplier, update that Address to the next supplier.
-    if (addressToRemove == _firstSupplierAddress) {
-      _firstSupplierAddress = supplierToRemove.nextSupplierAddress;
-    }
-    // If the supplier is the last supplier, update that address to the previous supplier.
-    if (addressToRemove == _lastSupplierAddress) {
-      _lastSupplierAddress = supplierToRemove.previousSupplierAddress;
-    }
-    // If the supplier is the current supplier, update that address to the next supplier.
-    if (addressToRemove == _currentSupplierAddress) {
-      _lastSupplierAddress = supplierToRemove.nextSupplierAddress;
-    }
+    // Remove RoundRobinOrder Data from supplier
+    supplierToRemove = RoundRobinOrder({
+      nextSupplierAddress: address(0),
+      previousSupplierAddress: address(0)
+    });
     // Decrement the total count of active suppliers.
     activeSupplierCount -= 1;
   }
