@@ -352,7 +352,7 @@ contract FIFOMarket is
   }
 
   function _removeActiveSupplier(address addressToRemove) private {
-    RoundRobinOrder supplierToRemove = _suppliersInRoundRobinOrder[addressToRemove];
+    RoundRobinOrder memory supplierToRemove = _suppliersInRoundRobinOrder[addressToRemove];
     // If this is the last supplier, clear all current tracked addresses.
     if (addressToRemove == supplierToRemove.nextSupplierAddress) {
       _firstSupplierAddress = address(0);
