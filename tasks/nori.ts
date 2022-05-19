@@ -13,7 +13,7 @@ export const TASK = {
   run: async (
     {
       func,
-      args: arguments_ = [],
+      args: args = [],
       from = CONTRACT_FUNCTION_TASK_PARAMETERS.from.defaultValue,
     }: {
       func: ReturnType<
@@ -42,7 +42,7 @@ export const TASK = {
       contractAbi: (await require('@/artifacts/NORI.sol/NORI.json')).abi,
       from,
       func,
-      args: arguments_,
+      args: args,
       hre,
     });
   },

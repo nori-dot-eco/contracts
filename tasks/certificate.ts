@@ -13,7 +13,7 @@ export const TASK = {
   run: async (
     {
       func,
-      args: arguments_ = [],
+      args = [],
       from = CONTRACT_FUNCTION_TASK_PARAMETERS.from.defaultValue,
     }: {
       func: ReturnType<
@@ -44,7 +44,7 @@ export const TASK = {
       ).abi,
       from,
       func,
-      args: arguments_,
+      args,
       hre,
     });
   },

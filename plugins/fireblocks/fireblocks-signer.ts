@@ -297,10 +297,10 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
           `Error forwarding signed raw txn to provider (type: ${typeof error})`
         );
         try {
-          const body = JSON.parse((<any>error).body);
+          const body = JSON.parse((error as any).body);
           console.log(`Error message: ${body.message}`);
         } catch {
-          console.log('cannot parse error');
+          console.log('cannot parse error', error);
         }
         throw error;
       }
@@ -326,9 +326,9 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
   }
 
   _signTypedData(
-    domain: TypedDataDomain,
-    types: Record<string, Array<TypedDataField>>,
-    value: Record<string, any>
+    _domain: TypedDataDomain,
+    _types: Record<string, Array<TypedDataField>>,
+    _value: Record<string, any>
   ): Promise<string> {
     return this._fail(
       'FireblocksSigner cannot sign typed data',
