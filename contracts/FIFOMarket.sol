@@ -50,7 +50,7 @@ contract FIFOMarket is
   address private _firstSupplierAddress;
   address private _currentSupplierAddress;
   address private _lastSupplierAddress;
-  mapping(address => RoundRobinOrder) private _activeSuppliers;
+  mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
   EnumerableSetUpgradeable.UintSet private _reservedSupply;
   mapping(address => EnumerableSetUpgradeable.UintSet) private _activeSupply;
 
@@ -123,7 +123,7 @@ contract FIFOMarket is
         );
         total += removalBalance;
       }
-      supplierAddress = _activeSuppliers[supplierAddress].nextSupplierAddress;
+      supplierAddress = _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress;
     }
     return total;
   }
@@ -143,7 +143,7 @@ contract FIFOMarket is
   // {
   //   uint256 nextRemovalId = 0;
   //   if (totalActiveSupply > 0) {
-  //     address activeSupplierAddress = _activeSuppliersOrdered[
+  //     address activeSupplierAddress = _suppliersInRoundRobinOrderOrdered[
   //       _currentSupplierIndex
   //     ];
   //     nextRemovalId = _activeSupply[activeSupplierAddress].at(0);
@@ -171,11 +171,11 @@ contract FIFOMarket is
       address supplierAddress = ids[i].supplierAddress();
       _activeSupply[supplierAddress].add(ids[i]);
       // If a new supplier has been added
-      if (!_activeSuppliers[supplierAddress]) {
+      if (!_suppliersInRoundRobinOrder[supplierAddress]) {
         // Update the current last supplier to point to the new supplier as next
-        _activeSuppliers[_lastSupplierAddress].nextSupplierAddress = supplierAddress;
+        _suppliersInRoundRobinOrder[_lastSupplierAddress].nextSupplierAddress = supplierAddress;
         // Add the new supplier to the round robin order
-        _activeSuppliers[supplierAddress] = RoundRobinOrder({
+        _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
           previousSupplierAddress: _lastSupplierAddress,
           nextSupplierAddress: _firstSupplierAddress
         });
@@ -257,7 +257,7 @@ contract FIFOMarket is
         if (_activeSupply[_currentSupplierAddress].length() == 0) {
           _removeActiveSupplier(_currentSupplierAddress);
           // else if the supplier is the only supplier remaining with supply, don't bother incrementing.
-        } else if (_activeSuppliers[_currentSupplierAddress].nextSupplierAddress != _currentSupplierAddress) {
+        } else if (_suppliersInRoundRobinOrder[_currentSupplierAddress].nextSupplierAddress != _currentSupplierAddress) {
           _incrementCurrentSupplierAddress();
         }
       }
@@ -347,12 +347,12 @@ contract FIFOMarket is
 
   function _incrementCurrentSupplierAddress() private {
     // Update the current supplier to be the next of the current supplier
-    _currentSupplierAddress = _activeSuppliers[_currentSupplierAddress]
+    _currentSupplierAddress = _suppliersInRoundRobinOrder[_currentSupplierAddress]
       .nextSupplierAddress;
   }
 
   function _removeActiveSupplier(address addressToRemove) private {
-    RoundRobinOrder supplierToRemove = _activeSuppliers[addressToRemove];
+    RoundRobinOrder supplierToRemove = _suppliersInRoundRobinOrder[addressToRemove];
     // If this is the last supplier, clear all current tracked addresses.
     if (addressToRemove == supplierToRemove.nextSupplierAddress) {
       _firstSupplierAddress = address(0);
@@ -361,10 +361,10 @@ contract FIFOMarket is
       break;
     }
     // Set the next of the previous supplier to point to the removed supplier's next.
-    _activeSuppliers[supplierToRemove.previousSupplierAddress]
+    _suppliersInRoundRobinOrder[supplierToRemove.previousSupplierAddress]
       .nextSupplierAddress = supplierToRemove.nextSupplierAddress;
     // Set the previous of the next supplier to point to the removed supplier's previous.
-    _activeSuppliers[supplierToRemove.nextSupplierAddress]
+    _suppliersInRoundRobinOrder[supplierToRemove.nextSupplierAddress]
       .previousSupplierAddress = supplierToRemove.previousSupplierAddress;
     // If the supplier is the first supplier, update that Address to the next supplier.
     if (addressToRemove == _firstSupplierAddress) {
