@@ -173,7 +173,6 @@ contract FIFOMarket is
       _activeSupply[supplierAddress].add(ids[i]);
       // If a new supplier has been added, or if the supplier had previously sold out
       if (
-        !_suppliersInRoundRobinOrder[supplierAddress] ||
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
         address(0)
       ) {
