@@ -182,12 +182,15 @@ contract FIFOMarket is
           _currentSupplierAddress = supplierAddress;
           _lastSupplierAddress = supplierAddress;
         }
-        // Update the current supplier to point to the new supplier as previous
-        _suppliersInRoundRobinOrder[_currentSupplierAddress]
-          .previousSupplierAddress = supplierAddress;
+        RoundRobinOrder memory currentSupplier = _suppliersInRoundRobinOrder[
+          _currentSupplierAddress
+        ];
         // Update the previous supplier to point to the new supplier as next
-        _suppliersInRoundRobinOrder[_currentSupplierAddress]
-          .nextSupplierAddress = supplierAddress;
+        _suppliersInRoundRobinOrder[
+          currentSupplier.previousSupplierAddress
+        ].nextSupplierAddress = supplierAddress;
+        // Update the current supplier to point to the new supplier as previous
+        currentSupplier.previousSupplierAddress = supplierAddress;
         // Add the new supplier to the round robin order
         _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
           previousSupplierAddress: _lastSupplierAddress,
