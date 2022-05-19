@@ -182,7 +182,7 @@ contract FIFOMarket is
         // Update the last supplier to be the new supplier
         _lastSupplierAddress = supplierAddress;
         // If this is the first supplier to be added, update the first supplier as well.
-        if (_firstSupplierAddress === address(0)) {
+        if (_firstSupplierAddress == address(0)) {
           _firstSupplierAddress = supplierAddress;
         }
         activeSupplierCount += 1;
@@ -257,7 +257,7 @@ contract FIFOMarket is
         if (_activeSupply[_currentSupplierAddress].length() == 0) {
           _removeActiveSupplier(_currentSupplierAddress);
           // else if the supplier is the only supplier remaining with supply, don't bother incrementing.
-        } else if (_activeSuppliers[_currentSupplierAddress].nextSupplierAddress !== _currentSupplierAddress) {
+        } else if (_activeSuppliers[_currentSupplierAddress].nextSupplierAddress != _currentSupplierAddress) {
           _incrementCurrentSupplierAddress();
         }
       }
