@@ -94,9 +94,9 @@ contract FIFOMarket is
     totalActiveSupply = 0;
     totalReservedSupply = 0;
     totalNumberActiveRemovals = 0;
+    _firstSupplierAddress = address(0);
     _currentSupplierAddress = address(0);
     _lastSupplierAddress = address(0);
-    _nextSupplierAddress = address(0);
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
   }
