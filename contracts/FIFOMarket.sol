@@ -95,6 +95,8 @@ contract FIFOMarket is
     totalReservedSupply = 0;
     totalNumberActiveRemovals = 0;
     _currentSupplierIndex = address(0);
+    _lastSupplierIndex = address(0);
+    _nextSupplierIndex = address(0);
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
   }
@@ -168,6 +170,7 @@ contract FIFOMarket is
       totalNumberActiveRemovals += 1;
       address supplierAddress = ids[i].supplierAddress();
       _activeSupply[supplierAddress].add(ids[i]);
+      // If a new supplier has been added
       if (!_activeSuppliers[supplierAddress]) {
         // Update the current last supplier to point to the new supplier as next
         _activeSuppliers[_lastSupplierIndex].nextSupplierIndex = supplierAddress;
@@ -176,6 +179,12 @@ contract FIFOMarket is
           previousSupplierIndex: _lastSupplierIndex,
           nextSupplierIndex: _firstSupplierIndex
         });
+        // Update the last supplier to be the new supplier
+        _lastSupplierIndex = supplierAddress;
+        // If this is the first supplier to be added, update the first supplier as well.
+        if (_firstSupplierIndex === address(0)) {
+          _firstSupplierIndex = supplierAddress;
+        }
         activeSupplierCount += 1;
       }
     }
