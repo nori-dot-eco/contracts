@@ -18,6 +18,7 @@ import { FireblocksSigner } from './fireblocks-signer';
 type NetworkMap = {
   [K in CustomHardHatRuntimeEnvironment['network']['name']]: Chain | undefined;
 };
+
 // TODO: move network name translation to our config and make Chain a required config property
 const networkNameToChain: NetworkMap = {
   mumbai: Chain.MUMBAI,
@@ -36,12 +37,12 @@ const setupFireblocksSigner = async (
   const config = hre.config.fireblocks;
   if (config.apiKey && config.apiSecret) {
     try {
-      const fireblockApiClient = new FireblocksSDK(
+      const fireblocksApiClient = new FireblocksSDK(
         config.apiSecret,
         config.apiKey
       );
       const signer = new FireblocksSigner(
-        fireblockApiClient,
+        fireblocksApiClient,
         networkNameToChain[hre.network.name],
         new ethers.providers.JsonRpcBatchProvider(
           networkConfig.url,
