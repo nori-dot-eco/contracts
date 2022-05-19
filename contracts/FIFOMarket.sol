@@ -16,6 +16,12 @@ import "hardhat/console.sol"; // todo
 
 // todo emit events
 
+struct RoundRobinOrder {
+  // Is a DLL actually required OwO ?
+  address previousSupplierIndex;
+  address nextSupplierIndex;
+}
+
 /**
  * @title FIFOMarket
  */
@@ -40,9 +46,11 @@ contract FIFOMarket is
   uint256 public totalNumberActiveRemovals;
   uint256 public totalActiveSupply;
   uint256 public totalReservedSupply;
-  uint256 private _currentSupplierIndex;
-  address[] private _activeSuppliersOrdered;
-  mapping(address => bool) private _activeSuppliersUnordered;
+  uint256 public activeSupplierCount;
+  address private _firstSupplierIndex;
+  address private _currentSupplierIndex;
+  address private _lastSupplierIndex;
+  mapping(address => RoundRobinOrder) private _activeSuppliers;
   EnumerableSetUpgradeable.UintSet private _reservedSupply;
   mapping(address => EnumerableSetUpgradeable.UintSet) private _activeSupply;
 
@@ -86,7 +94,7 @@ contract FIFOMarket is
     totalActiveSupply = 0;
     totalReservedSupply = 0;
     totalNumberActiveRemovals = 0;
-    _currentSupplierIndex = 0;
+    _currentSupplierIndex = address(0);
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
   }
@@ -101,10 +109,10 @@ contract FIFOMarket is
 
   function numberOfActiveNrtsInMarketComputed() public view returns (uint256) {
     uint256 total = 0;
-    for (uint256 i = 0; i < _activeSuppliersOrdered.length; i++) {
-      address supplierAddress = _activeSuppliersOrdered[i];
+    address supplierIndex = _firstSupplierIndex;
+    for (uint256 i = 0; i < activeSupplierCount; i++) {
       EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
-        supplierAddress
+        supplierIndex
       ];
       for (uint256 j = 0; j < supplierSet.length(); j++) {
         uint256 removalBalance = _removal.balanceOf(
@@ -113,6 +121,7 @@ contract FIFOMarket is
         );
         total += removalBalance;
       }
+      supplierIndex = _activeSuppliers[supplierIndex].nextSupplierIndex;
     }
     return total;
   }
@@ -159,9 +168,15 @@ contract FIFOMarket is
       totalNumberActiveRemovals += 1;
       address supplierAddress = ids[i].supplierAddress();
       _activeSupply[supplierAddress].add(ids[i]);
-      if (!_activeSuppliersUnordered[supplierAddress]) {
-        _activeSuppliersUnordered[supplierAddress] = true;
-        _activeSuppliersOrdered.push(supplierAddress);
+      if (!_activeSuppliers[supplierAddress]) {
+        // Update the current last supplier to point to the new supplier as next
+        _activeSuppliers[_lastSupplierIndex].nextSupplierIndex = supplierAddress;
+        // Add the new supplier to the round robin order
+        _activeSuppliers[supplierAddress] = RoundRobinOrder({
+          previousSupplierIndex: _lastSupplierIndex,
+          nextSupplierIndex: _firstSupplierIndex
+        });
+        activeSupplierCount += 1;
       }
     }
     return this.onERC1155BatchReceived.selector;
@@ -207,14 +222,13 @@ contract FIFOMarket is
     address[] memory suppliers = new address[](totalNumberActiveRemovals);
     uint256 numberOfRemovals = 0;
     for (uint256 i = 0; i < totalNumberActiveRemovals; i++) {
-      address activeSupplier = _activeSuppliersOrdered[_currentSupplierIndex];
-      uint256 removalId = _activeSupply[activeSupplier].at(0); // grab head of this supplier's queue
+      uint256 removalId = _activeSupply[_currentSupplierIndex].at(0); // grab head of this supplier's queue
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       // order complete, not fully using up this removal, don't increment currentSupplierIndex, don't check about removing active supplier
       if (remainingAmountToFill < removalAmount) {
         ids[numberOfRemovals] = removalId;
         amounts[numberOfRemovals] = remainingAmountToFill;
-        suppliers[numberOfRemovals] = activeSupplier;
+        suppliers[numberOfRemovals] = _currentSupplierIndex;
         remainingAmountToFill = 0;
         // we will use up this removal while completing the order, move on to next one
       } else {
@@ -226,16 +240,15 @@ contract FIFOMarket is
         }
         ids[numberOfRemovals] = removalId;
         amounts[numberOfRemovals] = removalAmount; // this removal is getting used up
-        suppliers[numberOfRemovals] = activeSupplier;
+        suppliers[numberOfRemovals] = _currentSupplierIndex;
         remainingAmountToFill -= removalAmount;
 
-        _activeSupply[activeSupplier].remove(removalId); // pull it out of the supplier's queue
-        // check to see if this supplier is no longer active:
-        if (_activeSupply[activeSupplier].length() == 0) {
+        _activeSupply[_currentSupplierIndex].remove(removalId); // pull it out of the supplier's queue
+        // If the supplier is out of supply, remove them from the active suppliers
+        if (_activeSupply[_currentSupplierIndex].length() == 0) {
           _removeActiveSupplier(_currentSupplierIndex);
-        } else {
-          // make sure we do this last because it depends on an accurate length of the active suppliers array
-          // also, we only increment if we didn't have to pull this supplier out of active (because if we do, the index stays the same and now points at the next supplier)
+          // else if the supplier is the only supplier remaining with supply, don't bother incrementing.
+        } else if (_activeSuppliers[_currentSupplierIndex].nextSupplierIndex !== _currentSupplierIndex) {
           _incrementCurrentSupplierIndex();
         }
       }
@@ -324,17 +337,39 @@ contract FIFOMarket is
   }
 
   function _incrementCurrentSupplierIndex() private {
-    _currentSupplierIndex =
-      (_currentSupplierIndex + 1) %
-      _activeSuppliersOrdered.length;
+    // Update the current supplier to be the next of the current supplier
+    _currentSupplierIndex = _activeSuppliers[_currentSupplierIndex]
+      .nextSupplierIndex;
   }
 
-  function _removeActiveSupplier(uint256 index) private {
-    address supplierAddress = _activeSuppliersOrdered[index];
-    for (uint256 i = index; i < (_activeSuppliersOrdered.length - 1); i++) {
-      _activeSuppliersOrdered[i] = _activeSuppliersOrdered[i + 1];
+  function _removeActiveSupplier(address index) private {
+    RoundRobinOrder supplierToRemove = _activeSuppliers[index];
+    // If this is the last supplier, clear all current indexing.
+    if (index === supplierToRemove.nextSupplierIndex) {
+      _firstSupplierIndex = address(0);
+      _currentSupplierIndex = address(0);
+      _lastSupplierIndex = address(0);
+      break;
     }
-    _activeSuppliersOrdered.pop();
-    _activeSuppliersUnordered[supplierAddress] = false;
+    // Set the next of the previous supplier to point to the removed supplier's next.
+    _activeSuppliers[supplierToRemove.previousSupplierIndex]
+      .nextSupplierIndex = supplierToRemove.nextSupplierIndex;
+    // Set the previous of the next supplier to point to the removed supplier's previous.
+    _activeSuppliers[supplierToRemove.nextSupplierIndex]
+      .previousSupplierIndex = supplierToRemove.previousSupplierIndex;
+    // If the supplier is the first supplier, update that index to the next supplier.
+    if (index === _firstSupplierIndex) {
+      _firstSupplierIndex = supplierToRemove.nextSupplierIndex;
+    }
+    // If the supplier is the last supplier, update that index to the previous supplier.
+    if (index === _lastSupplierIndex) {
+      _lastSupplierIndex = supplierToRemove.previousSupplierIndex;
+    }
+    // If the supplier is the current supplier, update that index to the next supplier.
+    if (index === _currentSupplierIndex) {
+      _lastSupplierIndex = supplierToRemove.nextSupplierIndex;
+    }
+    // Decrement the total count of active suppliers.
+    activeSupplierCount -= 1;
   }
 }
