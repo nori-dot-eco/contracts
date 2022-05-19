@@ -13,8 +13,6 @@ import type { CSVParseParam } from 'csvtojson/v2/Parameters';
 import { isAddress, getAddress } from 'ethers/lib/utils';
 import moment from 'moment';
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore // https://github.com/dethcrypto/TypeChain/issues/371#issuecomment-1032397470
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import { getOctokit } from '@/tasks/utils/github';
 import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
@@ -390,8 +388,8 @@ const getDiff = ({
   asJson,
 }: {
   grants: Grants;
-  expand?: boolean;
-  asJson?: boolean;
+  expand: boolean;
+  asJson: boolean;
 }): string | Record<string, unknown> => {
   return asJson
     ? diff(blockchainGrants, githubGrants, { full: expand })
@@ -490,17 +488,18 @@ export const GET_VESTING_TASK = () =>
         asJson,
         dryRun,
       }: {
-        diff?: boolean;
-        expand?: boolean;
+        diff: boolean;
+        expand: boolean;
         commit?: string;
         account?: number;
         action?: 'createAndRevoke' | 'revoke' | 'create';
         file?: string;
-        asJson?: boolean;
-        dryRun?: boolean;
+        asJson: boolean;
+        dryRun: boolean;
       },
       _: CustomHardHatRuntimeEnvironment
     ): Promise<void> => {
+      console.log({ showDiff });
       const { createAndRevoke, revoke, create } = {
         createAndRevoke: action === 'createAndRevoke',
         revoke: action === 'revoke',
@@ -563,7 +562,13 @@ export const GET_VESTING_TASK = () =>
           dryRun,
         });
       }
-      if (!expand && !showDiff && !createAndRevoke && !create && !revoke) {
+      if (
+        !Boolean(expand) &&
+        !Boolean(showDiff) &&
+        !createAndRevoke &&
+        !create &&
+        !revoke
+      ) {
         hre.log('No action selected.  Use --help for options.');
       }
     },
@@ -582,8 +587,8 @@ const DIFF_SUBTASK = {
     }: {
       lNori: LockedNORI;
       grants: Pick<Grants, 'github'>;
-      expand?: boolean;
-      asJson?: boolean;
+      expand: boolean;
+      asJson: boolean;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -741,7 +746,7 @@ const CREATE_SUBTASK = {
       grants: Pick<Grants, 'github'>;
       bpNori: BridgedPolygonNORI;
       lNori: LockedNORI;
-      dryRun?: boolean;
+      dryRun: boolean;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -757,7 +762,7 @@ const CREATE_SUBTASK = {
         ).filter(([dk, d]: [any, any]) => {
           return Object.entries(d).find(([k, v]: [any, any]) => {
             const isDifferent =
-              !(blockchainGrants[dk] as any)?.exists &&
+              !Boolean((blockchainGrants[dk] as any)?.exists) &&
               Boolean(v) &&
               k !== 'lastRevocationTime' &&
               k !== 'lastQuantityRevoked' &&
@@ -879,7 +884,7 @@ const REVOKE_SUBTASK = {
       grants: Pick<Grants, 'github'>;
       lNori: LockedNORI;
       signer: Signer;
-      dryRun?: boolean;
+      dryRun: boolean;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -991,7 +996,6 @@ const REVOKE_SUBTASK = {
       'Print expanded information (including a full diff when using the --diff flag)'
     )
     .addFlag('asJson', 'Prints diff as JSON');
-
   subtask(DIFF_SUBTASK.name, DIFF_SUBTASK.description, DIFF_SUBTASK.run);
   subtask(CREATE_SUBTASK.name, CREATE_SUBTASK.description, CREATE_SUBTASK.run);
   subtask(
