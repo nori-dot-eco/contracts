@@ -33,10 +33,10 @@ const setupTestLocal = async (
     const { supplier } = hre.namedAccounts;
     const defaultStartingVintage = 2016;
     tokenIds = await Promise.all(
-      removalDataToList.map((removalData, index) => {
+      removalDataToList.map((removalData, i) => {
         return createRemovalTokenId(removal, {
           supplierAddress: removalData.supplier ?? supplier,
-          vintage: removalData.vintage ?? defaultStartingVintage + index,
+          vintage: removalData.vintage ?? defaultStartingVintage + i,
         });
       })
     );
@@ -70,10 +70,9 @@ const setupTestLocal = async (
 describe('FIFOMarket', () => {
   describe('initialization', () => {
     describe('roles', () => {
-      for (const { role } of [
-        { role: 'DEFAULT_ADMIN_ROLE' },
-        { role: 'ALLOWLIST_ROLE' },
-      ] as const) {
+      (
+        [{ role: 'DEFAULT_ADMIN_ROLE' }, { role: 'ALLOWLIST_ROLE' }] as const
+      ).forEach(({ role }) => {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
           const { fifoMarket, hre } = await setupTest();
           expect(
@@ -89,7 +88,7 @@ describe('FIFOMarket', () => {
             await fifoMarket.getRoleMemberCount(await fifoMarket[role]())
           ).to.eq(1);
         });
-      }
+      });
     });
   });
   describe('role access', () => {
@@ -142,7 +141,7 @@ describe('FIFOMarket', () => {
           removalDataToList: [{ amount: totalAvailableSupply }],
         });
         const { namedAccounts, namedSigners } = hre;
-        const { buyer } = namedAccounts;
+        const { buyer } = hre.namedAccounts;
 
         const priorityRestrictedThreshold = '100';
 
@@ -506,11 +505,11 @@ describe('FIFOMarket', () => {
     it('should purchase removals and mint a certificate for a large purchase spanning many removals', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const numberOfRemovalsToCreate = 100;
-      const removalDataToList = [
-        ...Array.from({ length: numberOfRemovalsToCreate }).keys(),
-      ].map((_) => {
-        return { amount: 50 };
-      });
+      const removalDataToList = [...Array(numberOfRemovalsToCreate).keys()].map(
+        (_) => {
+          return { amount: 50 };
+        }
+      );
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
         removalDataToList,
@@ -595,7 +594,8 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const initialFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
+      const initialFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
       expect(initialFifoSupply).to.equal(hre.ethers.utils.parseUnits('20'));
       const purchaseNrts = async (): Promise<ContractReceipt> => {
         const tx = await bpNori
@@ -613,7 +613,8 @@ describe('FIFOMarket', () => {
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
       const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-      const finalFifoSupply = await fifoMarket.numberOfNrtsInQueueComputed();
+      const finalFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
 
       expect(buyerFinalNoriBalance).to.equal(
         buyerInitialBPNoriBalance
@@ -916,6 +917,7 @@ describe('FIFOMarket', () => {
         });
       const numberOfRemovalsCreated = 3;
       const totalInitialSupply = 10;
+      const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       // initial state
       expect(await fifoMarket.totalActiveSupply()).to.equal(
