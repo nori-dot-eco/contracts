@@ -47,9 +47,7 @@ contract FIFOMarket is
   uint256 public totalActiveSupply;
   uint256 public totalReservedSupply;
   uint256 public activeSupplierCount;
-  address private _firstSupplierAddress;
   address private _currentSupplierAddress;
-  address private _lastSupplierAddress;
   mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
   EnumerableSetUpgradeable.UintSet private _reservedSupply;
   mapping(address => EnumerableSetUpgradeable.UintSet) private _activeSupply;
@@ -94,9 +92,7 @@ contract FIFOMarket is
     totalActiveSupply = 0;
     totalReservedSupply = 0;
     totalNumberActiveRemovals = 0;
-    _firstSupplierAddress = address(0);
     _currentSupplierAddress = address(0);
-    _lastSupplierAddress = address(0);
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
   }
@@ -111,7 +107,7 @@ contract FIFOMarket is
 
   function numberOfActiveNrtsInMarketComputed() public view returns (uint256) {
     uint256 total = 0;
-    address supplierAddress = _firstSupplierAddress;
+    address supplierAddress = _currentSupplierAddress;
     for (uint256 i = 0; i < activeSupplierCount; i++) {
       EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
         supplierAddress
@@ -177,27 +173,28 @@ contract FIFOMarket is
         address(0)
       ) {
         // If this is the first supplier to be added, update the intialized addresses.
-        if (_firstSupplierAddress == address(0)) {
-          _firstSupplierAddress = supplierAddress;
+        if (_currentSupplierAddress == address(0)) {
           _currentSupplierAddress = supplierAddress;
-          _lastSupplierAddress = supplierAddress;
+          _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
+            previousSupplierAddress: supplierAddress,
+            nextSupplierAddress: supplierAddress
+          });
+        } else {
+          RoundRobinOrder memory currentSupplier = _suppliersInRoundRobinOrder[
+            _currentSupplierAddress
+          ];
+          // Add the new supplier to the round robin order, with the current supplier as next and the current supplier's previous supplier as previous
+          _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
+            previousSupplierAddress: currentSupplier.previousSupplierAddress,
+            nextSupplierAddress: _currentSupplierAddress
+          });
+          // Update the previous supplier to point to the new supplier as next
+          _suppliersInRoundRobinOrder[currentSupplier.previousSupplierAddress]
+            .nextSupplierAddress = supplierAddress;
+          // Update the current supplier to point to the new supplier as previous
+          _suppliersInRoundRobinOrder[_currentSupplierAddress]
+            .previousSupplierAddress = supplierAddress;
         }
-        RoundRobinOrder memory currentSupplier = _suppliersInRoundRobinOrder[
-          _currentSupplierAddress
-        ];
-        // Update the previous supplier to point to the new supplier as next
-        _suppliersInRoundRobinOrder[
-          currentSupplier.previousSupplierAddress
-        ].nextSupplierAddress = supplierAddress;
-        // Update the current supplier to point to the new supplier as previous
-        currentSupplier.previousSupplierAddress = supplierAddress;
-        // Add the new supplier to the round robin order
-        _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
-          previousSupplierAddress: _lastSupplierAddress,
-          nextSupplierAddress: _firstSupplierAddress
-        });
-        // Update the last supplier to be the new supplier
-        _lastSupplierAddress = supplierAddress;
         activeSupplierCount += 1;
       }
     }
@@ -373,11 +370,8 @@ contract FIFOMarket is
       addressToRemove
     ];
     // If this is the last supplier, clear all current tracked addresses.
-    // TODO Potentially this
     if (addressToRemove == supplierToRemove.nextSupplierAddress) {
-      _firstSupplierAddress = address(0);
       _currentSupplierAddress = address(0);
-      _lastSupplierAddress = address(0);
     } else {
       // Set the next of the previous supplier to point to the removed supplier's next.
       _suppliersInRoundRobinOrder[supplierToRemove.previousSupplierAddress]
@@ -385,14 +379,6 @@ contract FIFOMarket is
       // Set the previous of the next supplier to point to the removed supplier's previous.
       _suppliersInRoundRobinOrder[supplierToRemove.nextSupplierAddress]
         .previousSupplierAddress = supplierToRemove.previousSupplierAddress;
-      // If the supplier is the first supplier, update that Address to the next supplier.
-      if (addressToRemove == _firstSupplierAddress) {
-        _firstSupplierAddress = supplierToRemove.nextSupplierAddress;
-      }
-      // If the supplier is the last supplier, update that address to the previous supplier.
-      if (addressToRemove == _lastSupplierAddress) {
-        _lastSupplierAddress = supplierToRemove.previousSupplierAddress;
-      }
       // If the supplier is the current supplier, update that address to the next supplier.
       if (addressToRemove == _currentSupplierAddress) {
         _currentSupplierAddress = supplierToRemove.nextSupplierAddress;
