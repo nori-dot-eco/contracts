@@ -43,8 +43,8 @@ export abstract class BaseBridge {
     TransactionStatus.REJECTED,
   ];
 
-  constructor(readonly parameters: BridgeParameters) {
-    const chain = parameters.chain || Chain.MAINNET;
+  constructor(readonly params: BridgeParameters) {
+    const chain = params.chain || Chain.MAINNET;
     this.assetId = CHAIN_TO_ASSET_ID[chain];
   }
 

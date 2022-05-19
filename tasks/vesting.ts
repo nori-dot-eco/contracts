@@ -905,7 +905,7 @@ const REVOKE_SUBTASK = {
     );
     if (grantRevocationDiffs.length > 0) {
       const fromAccounts = grantRevocationDiffs.map((grant) => grant.recipient);
-      const toAccounts = Array.from({
+      const toAccounts = Array.from<string>({
         length: grantRevocationDiffs.length,
       }).fill(await signer.getAddress());
       const atTimes = grantRevocationDiffs.map(
@@ -916,7 +916,7 @@ const REVOKE_SUBTASK = {
           grant.lastQuantityRevoked.__new ?? grant.lastQuantityRevoked
         )
       );
-      if (!dryRun) {
+      if (!Boolean(dryRun)) {
         const batchRevokeUnvestedTokenAmountsTx =
           await lNori.batchRevokeUnvestedTokenAmounts(
             fromAccounts,

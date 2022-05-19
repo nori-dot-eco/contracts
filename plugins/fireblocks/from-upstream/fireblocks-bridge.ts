@@ -5,7 +5,7 @@ import type {
   TransactionArguments,
 } from 'fireblocks-sdk';
 import { PeerType, TransactionOperation } from 'fireblocks-sdk';
-import { formatEther, formatUnits, parseEther } from 'ethers/lib/utils';
+import { formatEther, formatUnits } from 'ethers/lib/utils';
 
 import { BaseBridge } from './base-bridge';
 
