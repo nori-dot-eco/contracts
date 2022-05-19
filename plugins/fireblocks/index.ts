@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign -- hre and config are intended to be configured via assignment in this file */
 import '@nomiclabs/hardhat-ethers';
-import fs from 'node:fs';
+import fs from 'fs';
 
 import { extendConfig, extendEnvironment } from 'hardhat/config';
 import { lazyObject } from 'hardhat/plugins';
