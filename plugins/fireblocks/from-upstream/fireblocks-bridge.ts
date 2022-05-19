@@ -1,14 +1,13 @@
-import { PopulatedTransaction } from "@ethersproject/contracts";
-import { Deferrable } from "@ethersproject/properties";
-import {
+import type { PopulatedTransaction } from '@ethersproject/contracts';
+import type { Deferrable } from '@ethersproject/properties';
+import type {
   CreateTransactionResponse,
-  PeerType,
   TransactionArguments,
-  TransactionOperation,
-} from "fireblocks-sdk";
-import { formatEther, formatUnits, parseEther } from 'ethers/lib/utils';
-import { BaseBridge } from './base-bridge';
+} from 'fireblocks-sdk';
+import { PeerType, TransactionOperation } from 'fireblocks-sdk';
+import { formatEther, formatUnits } from 'ethers/lib/utils';
 
+import { BaseBridge } from './base-bridge';
 
 export class EthersCustomBridge extends BaseBridge {
   async sendTransaction(
@@ -24,8 +23,8 @@ export class EthersCustomBridge extends BaseBridge {
         type: PeerType.VAULT_ACCOUNT,
         id: this.params.vaultAccountId,
       },
-      gasPrice: formatUnits(transaction?.gasPrice?.toString() || "0", 'gwei'),
-      gasLimit: formatUnits(transaction?.gasLimit?.toString() || "0", 'wei'),
+      gasPrice: formatUnits(transaction?.gasPrice?.toString() || '0', 'gwei'),
+      gasLimit: formatUnits(transaction?.gasLimit?.toString() || '0', 'wei'),
       destination: {
         type: this.params.externalWalletId
           ? PeerType.EXTERNAL_WALLET
@@ -35,8 +34,8 @@ export class EthersCustomBridge extends BaseBridge {
           address: <string>transaction.to,
         },
       },
-      note: txNote || "",
-      amount: formatEther(transaction.value?.toString() || "0"),
+      note: txNote || '',
+      amount: formatEther(transaction.value?.toString() || '0'),
       extraParameters: {
         contractCallData: transaction.data,
       },
@@ -55,13 +54,15 @@ export class EthersCustomBridge extends BaseBridge {
         type: PeerType.VAULT_ACCOUNT,
         id: this.params.vaultAccountId,
       },
-      note: txNote || "",
+      note: txNote || '',
       extraParameters: {
         rawMessageData: {
-            messages: [{
-                content: transaction
-            }]
-        }
+          messages: [
+            {
+              content: transaction,
+            },
+          ],
+        },
       },
     };
     return this.params.fireblocksApiClient.createTransaction(txArguments);

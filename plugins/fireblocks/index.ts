@@ -1,16 +1,18 @@
+/* eslint-disable no-param-reassign -- hre and config are intended to be configured via assignment in this file */
 import '@nomiclabs/hardhat-ethers';
 import fs from 'fs';
+
 import { extendConfig, extendEnvironment } from 'hardhat/config';
 import { lazyObject } from 'hardhat/plugins';
-import {
+import type {
   HardhatConfig,
   HardhatUserConfig,
   HttpNetworkConfig,
 } from 'hardhat/types';
-import { JsonRpcProvider } from '@ethersproject/providers';
 import './type-extensions';
-import { Chain } from './from-upstream/chain';
 import { FireblocksSDK } from 'fireblocks-sdk';
+
+import { Chain } from './from-upstream/chain';
 import { FireblocksSigner } from './fireblocks-signer';
 
 type NetworkMap = {
@@ -35,14 +37,17 @@ const setupFireblocksSigner = async (
   const config = hre.config.fireblocks;
   if (config.apiKey && config.apiSecret) {
     try {
-      const fireblockApiClient = new FireblocksSDK(
+      const fireblocksApiClient = new FireblocksSDK(
         config.apiSecret,
         config.apiKey
       );
       const signer = new FireblocksSigner(
-        fireblockApiClient,
+        fireblocksApiClient,
         networkNameToChain[hre.network.name],
-        new JsonRpcProvider(networkConfig.url, networkConfig.chainId),
+        new ethers.providers.JsonRpcBatchProvider(
+          networkConfig.url,
+          networkConfig.chainId
+        ),
         config.vaultId
       );
       const address = await signer.getAddress();
@@ -50,30 +55,30 @@ const setupFireblocksSigner = async (
         `Fireblocks signer created for address: ${address} (${hre.network.name})`
       );
       return signer;
-    } catch (e) {
-      hre.log(e, 'ERROR: Constructing fireblocks signer');
+    } catch (error) {
+      hre.log(error, 'ERROR: Constructing fireblocks signer');
     }
   } else {
     console.log(`ERROR: Fireblocks signer missing configuration.`);
   }
-  return Promise.resolve(undefined);
+  return undefined;
 };
 
 extendConfig(
   (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
     const defaultConfig = { apiKey: '', apiSecret: '', vaultId: '0' };
     if (
-      !userConfig.fireblocks ||
+      userConfig.fireblocks == undefined ||
       !userConfig.fireblocks.apiKey ||
       !userConfig.fireblocks.apiSecret
     ) {
       const sampleConfig = JSON.stringify(
         { apiKey: 'YOUR_API_KEY', apiSecret: 'YOUR_API_SECRET', vaultId: '0' },
-        null,
+        undefined,
         2
       );
       console.warn(
-        `Fireblocks API key and secret are not set. `,
+        `Fireblocks API key and secret are not set.`,
         `Add the following to your hardhat.config.js exported configuration:\n\n${sampleConfig}\n`
       );
       config.fireblocks = defaultConfig;
@@ -87,15 +92,15 @@ extendConfig(
   }
 );
 
-extendEnvironment(async (hre) => {
+extendEnvironment((hre) => {
   hre.fireblocks = lazyObject(() => {
     const signer = setupFireblocksSigner(hre);
     const getSigners = async (): Promise<FireblocksSigner[]> => {
       const s = await signer;
-      return s ? [s] : [];
+      return s !== undefined ? [s] : [];
     };
     return {
-      getSigners: getSigners,
+      getSigners,
       getSigner: async (index: number): Promise<FireblocksSigner | undefined> =>
         (await getSigners())[index],
     };

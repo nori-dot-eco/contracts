@@ -39,7 +39,7 @@ const addContractsToDefender = async (
     network: { name: networkName },
     ethers,
   } = hre;
-  if (defender && isDefenderNetwork(networkName)) {
+  if (defender != undefined && isDefenderNetwork(networkName)) {
     console.log('Adding contracts to defender');
     const contracts = await Promise.all(
       contractNames.map(async (name) => {
@@ -58,13 +58,15 @@ const addContractsToDefender = async (
       })
     );
     const defenderClient = new AdminClient(defender);
-    const defenderContracts = (await defenderClient.listContracts()).map((c) =>
-      c.name.concat(c.network)
+    const defenderContracts = new Set(
+      (await defenderClient.listContracts()).map((c) =>
+        c.name.concat(c.network)
+      )
     );
     const contractsToAddToDefender: Parameters<
       typeof defenderClient['addContract']
     >[0][] = contracts.filter((c) => {
-      return !defenderContracts.includes(c.name.concat(c.network));
+      return !defenderContracts.has(c.name.concat(c.network));
     });
     if (contractsToAddToDefender.length === 0) {
       console.log('No contracts to add to defender');
@@ -80,13 +82,17 @@ const addContractsToDefender = async (
   }
 };
 
-export const TASK = {
+export const DEFENDER_ADD_TASK = {
   name: 'defender:add',
   description: 'Adds contracts to defender',
   run: addContractsToDefender,
 } as const;
 
-task(TASK.name, TASK.description, TASK.run).addVariadicPositionalParam(
+task(
+  DEFENDER_ADD_TASK.name,
+  DEFENDER_ADD_TASK.description,
+  DEFENDER_ADD_TASK.run
+).addVariadicPositionalParam(
   'contractNames',
   'the list of contracts to add',
   undefined,

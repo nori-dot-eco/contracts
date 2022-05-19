@@ -1,5 +1,7 @@
 import type { BigNumber } from 'ethers';
 
+import { mockDepositNoriToPolygon } from './polygon';
+
 import type {
   Certificate,
   FIFOMarket,
@@ -7,14 +9,12 @@ import type {
   LockedNORI,
   NORI,
   BridgedPolygonNORI,
-} from '../../typechain-types';
-import type { UnpackedRemovalIdV0Struct } from '../../typechain-types/Removal';
-import { asciiStringToHexString } from '../../utils/bytes';
-
-import { mockDepositNoriToPolygon } from './polygon';
-
+} from '@/typechain-types';
+import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/Removal';
+import { asciiStringToHexString } from '@/utils/bytes';
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/utils/deploy';
+import type { Contracts } from '@/utils/contracts';
+import { getContractsFromDeployments } from '@/utils/contracts';
 
 export * from './chai';
 export * from './interfaces';
@@ -46,48 +46,6 @@ export const advanceTime = async ({
 }): Promise<void> => {
   await hre.network.provider.send('evm_setNextBlockTimestamp', [timestamp]);
   await hre.network.provider.send('hardhat_mine');
-};
-
-export const getContractsFromDeployments = async (
-  hre: CustomHardHatRuntimeEnvironment
-): Promise<Required<Contracts>> => {
-  const deployments = await hre.deployments.all();
-  const contracts = {
-    NORI: deployments['NORI']?.address
-      ? await hre.ethers.getContractAt('NORI', deployments['NORI'].address)
-      : undefined,
-    BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
-      ? await hre.ethers.getContractAt(
-          'BridgedPolygonNORI',
-          deployments['BridgedPolygonNORI'].address
-        )
-      : undefined,
-    LockedNORI: deployments['LockedNORI']?.address
-      ? await hre.ethers.getContractAt(
-          'LockedNORI',
-          deployments['LockedNORI'].address
-        )
-      : undefined,
-    FIFOMarket: deployments['FIFOMarket']?.address
-      ? await hre.ethers.getContractAt(
-          'FIFOMarket',
-          deployments['FIFOMarket'].address
-        )
-      : undefined,
-    Removal: deployments['Removal']?.address
-      ? await hre.ethers.getContractAt(
-          'Removal',
-          deployments['Removal']?.address
-        )
-      : undefined,
-    Certificate: deployments['Removal']?.address
-      ? await hre.ethers.getContractAt(
-          'Certificate',
-          deployments['Certificate'].address
-        )
-      : undefined,
-  } as Required<Contracts>;
-  return contracts;
 };
 
 export const setupTest = global.hre.deployments.createFixture(
@@ -134,7 +92,7 @@ export const createRemovalTokenId = async (
     country: asciiStringToHexString('US'),
     subdivision: asciiStringToHexString('IA'),
     supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-    subIdentifier: 99039930, // parcel id
+    subIdentifier: 99_039_930, // parcel id
   };
   const removalData = { ...defaultRemovalData, ...options };
   const abiEncodedRemovalData = hre.ethers.utils.defaultAbiCoder.encode(

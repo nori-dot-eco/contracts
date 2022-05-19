@@ -8,6 +8,15 @@ defaults: &defaults
   docker:
     - image: cimg/node:14.19.1
 
+commands:
+  build-typechain-types:
+    description: 'Build typechain types'
+    steps:
+      - run:
+          name: Run typechain with TS in transpile-only mode
+          command: |
+            yarn && yarn typechain
+
 jobs:
   setup-contract-tests:
     <<: *defaults
@@ -30,6 +39,7 @@ jobs:
               done
               git checkout yarn.lock
             fi
+      - build-typechain-types
       - run:
           name: Run Tests
           command: yarn && yarn test
@@ -54,6 +64,7 @@ jobs:
           name: Install Dependencies
           command: |
             sudo apt-get update && sudo apt -y install libsecret-1-0
+      - build-typechain-types
       - run:
           name: Run Contract Tests and Collect Coverage
           command: |
@@ -75,6 +86,7 @@ jobs:
           name: Install Dependencies
           command: |
             sudo apt-get update && sudo apt -y install libsecret-1-0
+      - build-typechain-types
       - run:
           name: Submit gas report
           command: |

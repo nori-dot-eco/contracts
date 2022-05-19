@@ -1,10 +1,7 @@
 import type { BridgedPolygonNORI__factory } from '../typechain-types';
 
 import type { BridgedPolygonNORI } from '@/typechain-types/BridgedPolygonNORI';
-import { setupTest } from '@/test/helpers';
-import {
-  expect,
-} from '@/test/helpers';
+import { setupTest, expect } from '@/test/helpers';
 
 describe('BridgedPolygonNORI', () => {
   describe('initialization', () => {

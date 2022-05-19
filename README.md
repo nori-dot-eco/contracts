@@ -174,11 +174,57 @@ MINT=true hardhat node
 
 - Account #9 (noriWallet): 0xf31c29b01ef18a3d9726b99ad0e9692e498cf5f8 (0 ETH)
 
-### CLI
+## Tips and tricks
 
-Install hardhat [shorthand and autocomplete](https://hardhat.org/guides/shorthand.html)
+### Hardhat
 
-## Deployment Notes
+#### Shorthand and autocomplete
+
+- [Docs](https://hardhat.org/guides/shorthand.html)
+
+### Tenderly
+
+- Install the [tenderly CLI](https://github.com/Tenderly/tenderly-cli)
+- Request to be added to the nori tenderly project
+- Login to tenderly via the CLI
+
+```bash
+tenderly login # Generate an access token in the tenderly dashboard or use the email login
+```
+
+- Test that it works with the following:
+
+```bash
+MINT=true TRACE=true LOG_HARDHAT_NETWORK=true hardhat node
+```
+
+Gran a transaction hash from the terminal output and then run the following (replace `TRANSACTION_HASH` with the transaction hash):
+
+```bash
+tenderly export TRANSACTION_HASH --debug
+```
+
+If you want to inspect the gas profile or debug individual contract functions use the hardhat CONTRACT_NAME plugins (e.g., `hardhat Removal --func mint "0x7124A7075C67483826939d5492D6Cc552a78C765" 1000000000000000000000000 10 "0x" --network localhost`)
+
+Note that if you do not see "Using contracts" in the terminal output, something may not be configured correctly and the information exported to tenderly will be incomplete (e.g., with no ABI).
+
+#### Tenderly autocomplete
+
+For ZSH (omz), add the following to your zsh config file (requires [zsh-completions](https://github.com/zsh-users/zsh-completions))
+
+```
+# https://github.com/zsh-users/zsh-completions
+fpath+=${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
+autoload -U compinit && compinit
+```
+
+Then run
+
+```bash
+tenderly completion zsh > ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
+```
+
+### Deployments
 
 When deploying contract to `polygon` or `mumbai` enmsure you have `POYGONSCAN_API_KEY`
 set in your `.env` so that the deploy process can upload the contract sources and ABI

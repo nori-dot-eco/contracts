@@ -1,8 +1,10 @@
+/* eslint-disable no-param-reassign -- hre is intended to be configured via assignment in this file */
+import 'tsconfig-paths/register';
 import '@nomiclabs/hardhat-waffle';
 import '@openzeppelin/hardhat-defender';
 import '@openzeppelin/hardhat-upgrades';
 import '@nomiclabs/hardhat-ethers';
-import './fireblocks';
+import '@/plugins/fireblocks';
 import 'hardhat-ethernal';
 import 'hardhat-deploy';
 import '@tenderly/hardhat-tenderly';
@@ -12,36 +14,20 @@ import 'hardhat-gas-reporter';
 import 'solidity-docgen';
 import '@nomiclabs/hardhat-solhint';
 import 'solidity-coverage';
-import 'tsconfig-paths/register';
 import '@/config/environment';
 import '@/tasks/index';
 
 import { extendEnvironment } from 'hardhat/config';
 import type { BaseContract, ContractFactory, Signer } from 'ethers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
+import { lazyFunction } from 'hardhat/plugins';
+import type { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
 
-import * as contractsConfig from '../contracts.json';
+import type { FireblocksSigner } from './fireblocks/fireblocks-signer';
 
+import { namedAccountIndices, namedAccounts } from '@/config/accounts';
 import { trace, log } from '@/utils/log';
-import { lazyFunction, lazyObject } from 'hardhat/plugins';
-import { namedAccountIndices } from '../config/accounts';
-import { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
-import { FireblocksSigner } from './fireblocks/fireblocks-signer';
-
-const getNamedAccounts = (
-  hre: CustomHardHatRuntimeEnvironment
-): NamedAccounts => {
-  if (hre.network.name === 'hardhat') {
-    const waffleWallets = hre.waffle.provider.getWallets();
-    return Object.fromEntries(
-      Object.entries(namedAccountIndices).map(([accountName, index]) => {
-        return [accountName, waffleWallets[index].address];
-      })
-    ) as unknown as NamedAccounts;
-  } else {
-    return {} as unknown as NamedAccounts;
-  }
-};
+import { getContract } from '@/utils/contracts';
 
 const getNamedSigners = (
   hre: CustomHardHatRuntimeEnvironment
@@ -53,24 +39,26 @@ const getNamedSigners = (
   ) as NamedSigners;
 };
 
-// extendEnvrironment cannot take async functions ...
+/**
+ * Note: extendEnvironment cannot take async functions
+ */
 extendEnvironment((hre) => {
   // todo move to @/extensions/signers, @extensions/deployments
   hre.log = log;
   hre.trace = trace;
 
   // All live networks will try to use fireblocks
-  if (hre.config.fireblocks.apiKey && hre.network.config.live) {
+  if (Boolean(hre.config.fireblocks.apiKey) && hre.network.config.live) {
     hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
+    // todo namedFireblocksAccounts
+    // todo namedFireblocksSigners
     hre.log('Installed fireblocks signers');
   } else {
     hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
+    hre.namedSigners = getNamedSigners(hre); // for testing only // todo rename namedHardhatSigners or { hardhat: {...}, fireblocks: {...}}
+    hre.namedAccounts = namedAccounts!; // todo rename namedHardhatAccounts or { hardhat: {...}, fireblocks: {...}}
     hre.log('Installed ethers default signers');
   }
-
-  // for testing only
-  hre.namedSigners = getNamedSigners(hre);
-  hre.namedAccounts = getNamedAccounts(hre);
 
   hre.ethernalSync = Boolean(
     hre.network.name === 'hardhat' &&
@@ -99,20 +87,19 @@ extendEnvironment((hre) => {
     args: unknown[];
     options?: FactoryOptions;
   }): Promise<InstanceOfContract<TContract>> => {
-    const signer: Signer = (await hre.getSigners())[0];
+    const [signer]: Signer[] = await hre.getSigners();
     hre.log(
       `deployNonUpgradeable: ${contractName} from address ${await signer.getAddress()}`
     );
-    let contract: InstanceOfContract<TContract>;
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
       contractName,
       { ...options, signer }
     );
     const fireblocksSigner = signer as FireblocksSigner;
     if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-        fireblocksSigner.setNextTransactionMemo(`Deploy ${contractName}`);
+      fireblocksSigner.setNextTransactionMemo(`Deploy ${contractName}`);
     }
-    contract = (await contractFactory.deploy(
+    const contract = (await contractFactory.deploy(
       ...args
     )) as InstanceOfContract<TContract>;
     hre.log(
@@ -137,32 +124,37 @@ extendEnvironment((hre) => {
     options?: DeployProxyOptions;
   }): Promise<InstanceOfContract<TContract>> => {
     // todo use proposeUpgrade
-    const proxyAddress =
-      contractsConfig[hre.network.name as 'hardhat']?.[contractName]
-        ?.proxyAddress;
+    const proxy = await hre.deployments.getOrNull(contractName);
+    const maybeProxyAddress = proxy?.address;
     let contractCode = '0x';
-    if (proxyAddress) {
+    if (typeof maybeProxyAddress === 'string') {
       try {
-        contractCode = await hre.ethers.provider.getCode(proxyAddress);
-      } catch (e) {
-        hre.log('No existing code found');
+        contractCode = await hre.ethers.provider.getCode(maybeProxyAddress);
+      } catch {
+        hre.trace('No existing code found');
       }
     }
-    const signer = (await hre.getSigners())[0];
-    hre.log(
+    const [signer] = await hre.getSigners();
+    hre.trace(
       `deployOrUpgrade: ${contractName} from address ${await signer.getAddress()}`
     );
 
-    let contract: InstanceOfContract<TContract>;
+    let contract: InstanceOfContract<TContract> | undefined;
     const contractFactory = await hre.ethers.getContractFactory<TFactory>(
       contractName,
       signer
     );
-    if (contractCode === '0x' || process.env.FORCE_PROXY_DEPLOYMENT) {
-      hre.log('Deploying proxy and instance', contractName); // todo use hre.trace (variant of hre.log requiring env.TRACE === true)
+    const shouldDeployProxy =
+      contractCode === '0x' ||
+      process.env.FORCE_PROXY_DEPLOYMENT ||
+      maybeProxyAddress !== 'string';
+    if (shouldDeployProxy) {
+      hre.trace('Deploying proxy and instance', contractName);
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-          fireblocksSigner.setNextTransactionMemo(`Deploy proxy and instance for ${contractName}`);
+        fireblocksSigner.setNextTransactionMemo(
+          `Deploy proxy and instance for ${contractName}`
+        );
       }
       contract = await hre.upgrades.deployProxy<TContract>(
         contractFactory,
@@ -176,26 +168,50 @@ extendEnvironment((hre) => {
         contract.address
       );
     } else {
-      hre.log(
+      hre.trace(
         'Found existing proxy at:',
-        proxyAddress,
-        ' attempting to upgrade instance',
+        maybeProxyAddress,
+        'attempting to upgrade instance',
         contractName
       );
+      const existingImplementationAddress =
+        await hre.upgrades.erc1967.getImplementationAddress(maybeProxyAddress);
+      hre.trace('Existing implementation at:', existingImplementationAddress);
       const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-          fireblocksSigner.setNextTransactionMemo(`Upgrade contract instance for ${contractName}`);
+        fireblocksSigner.setNextTransactionMemo(
+          `Upgrade contract instance for ${contractName}`
+        );
       }
-      contract = await hre.upgrades.upgradeProxy<TContract>(
-        proxyAddress,
-        contractFactory
-        // options
-      );
-      hre.log('Upgraded instance', contractName, 'at', contract.address);
+      const deployment = await hre.deployments.get(contractName);
+      const artifact = await hre.deployments.getArtifact(contractName);
+      if (deployment.bytecode !== artifact.bytecode) {
+        contract = await hre.upgrades.upgradeProxy<TContract>(
+          maybeProxyAddress,
+          contractFactory
+        );
+        const newImplementationAddress =
+          await hre.upgrades.erc1967.getImplementationAddress(
+            maybeProxyAddress
+          );
+        if (existingImplementationAddress === newImplementationAddress) {
+          hre.trace('Implementation unchanged');
+        } else {
+          hre.log('New implementation at:', newImplementationAddress);
+        }
+        hre.trace('...awaiting deployment transaction', contractName);
+        await contract.deployed();
+        hre.trace('...successful deployment transaction', contractName);
+      } else {
+        hre.trace('Implementation appears unchanged, skipped upgrade attempt.');
+        const name = contractName;
+        contract = getContract({
+          contractName: name,
+          hre,
+          signer,
+        }) as InstanceOfContract<TContract>;
+      }
     }
-    hre.trace('...awaiting deployment transaction', contractName);
-    await contract.deployed();
-    hre.log('...successful deployment transaction', contractName);
     return contract;
   };
   hre.deployOrUpgradeProxy = deployOrUpgradeProxy;

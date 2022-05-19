@@ -1,9 +1,9 @@
-export const trace = (...consoleArgs: unknown[]): void => {
+export const trace = (...consoleArguments: unknown[]): void => {
   if (process.env.TRACE) {
-    console.log(...consoleArgs); // todo consider using ethers Logger https://docs.ethers.io/v5/api/utils/logger/#logging
+    console.log(...consoleArguments); // todo consider using ethers Logger https://docs.ethers.io/v5/api/utils/logger/#logging
   }
 };
 
-export const log = (...consoleArgs: unknown[]): void => {
-  console.log(...consoleArgs);
+export const log = (...consoleArguments: unknown[]): void => {
+  console.log(...consoleArguments);
 };
