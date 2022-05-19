@@ -86,7 +86,7 @@ extendEnvironment((hre) => {
     args: unknown[];
     options?: FactoryOptions;
   }): Promise<InstanceOfContract<TContract>> => {
-    const signer: Signer = (await hre.getSigners())[0];
+    const [signer: Signer] = await hre.getSigners();
     hre.log(
       `deployNonUpgradeable: ${contractName} from address ${await signer.getAddress()}`
     );
@@ -129,11 +129,11 @@ extendEnvironment((hre) => {
     if (typeof maybeProxyAddress === 'string') {
       try {
         contractCode = await hre.ethers.provider.getCode(maybeProxyAddress);
-      } catch (e) {
+      } catch {
         hre.trace('No existing code found');
       }
     }
-    const signer = (await hre.getSigners())[0];
+    const [signer] = await hre.getSigners();
     hre.trace(
       `deployOrUpgrade: ${contractName} from address ${await signer.getAddress()}`
     );

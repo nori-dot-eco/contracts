@@ -33,10 +33,10 @@ const setupTestLocal = async (
     const { supplier } = hre.namedAccounts;
     const defaultStartingVintage = 2016;
     tokenIds = await Promise.all(
-      removalDataToList.map((removalData, i) => {
+      removalDataToList.map((removalData, index) => {
         return createRemovalTokenId(removal, {
           supplierAddress: removalData.supplier ?? supplier,
-          vintage: removalData.vintage ?? defaultStartingVintage + i,
+          vintage: removalData.vintage ?? defaultStartingVintage + index,
         });
       })
     );
@@ -70,9 +70,10 @@ const setupTestLocal = async (
 describe('FIFOMarket', () => {
   describe('initialization', () => {
     describe('roles', () => {
-      (
-        [{ role: 'DEFAULT_ADMIN_ROLE' }, { role: 'ALLOWLIST_ROLE' }] as const
-      ).forEach(({ role }) => {
+      for (const { role } of [
+        { role: 'DEFAULT_ADMIN_ROLE' },
+        { role: 'ALLOWLIST_ROLE' },
+      ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
           const { fifoMarket, hre } = await setupTest();
           expect(
@@ -88,7 +89,7 @@ describe('FIFOMarket', () => {
             await fifoMarket.getRoleMemberCount(await fifoMarket[role]())
           ).to.eq(1);
         });
-      });
+      }
     });
   });
   describe('role access', () => {
@@ -499,11 +500,11 @@ describe('FIFOMarket', () => {
     it('should purchase removals and mint a certificate for a large purchase spanning many removals', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const numberOfRemovalsToCreate = 100;
-      const removalDataToList = [...Array(numberOfRemovalsToCreate).keys()].map(
-        (_) => {
-          return { amount: 50 };
-        }
-      );
+      const removalDataToList = [
+        ...Array.from({ length: numberOfRemovalsToCreate }).keys(),
+      ].map((_) => {
+        return { amount: 50 };
+      });
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
         removalDataToList,

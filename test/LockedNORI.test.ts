@@ -26,32 +26,32 @@ interface TokenGrantOptions {
   grantAmount: ReturnType<typeof formatTokenAmount>;
   grant: TokenGrantUserData;
 }
-interface BuildTokenGrantOptionFunctionParams {
+interface BuildTokenGrantOptionFunctionParameters {
   hre: CustomHardHatRuntimeEnvironment;
   startTime: number;
 }
 
 type BuildTokenGrantOptionFunction = (
-  params: BuildTokenGrantOptionFunctionParams
+  parameters: BuildTokenGrantOptionFunctionParameters
 ) => DeepPartial<TokenGrantOptions>;
 
-interface PausableFunctionParams {
+interface PausableFunctionParameters {
   lNori: LockedNORI;
   hre: CustomHardHatRuntimeEnvironment;
 }
 
-const NOW = Math.floor(Date.now() / 1_000);
+const NOW = Math.floor(Date.now() / 1000);
 
 const CLIFF1_AMOUNT = formatTokenAmount(100);
 const CLIFF2_AMOUNT = formatTokenAmount(100);
-const CLIFF1_OFFSET = 5_000;
+const CLIFF1_OFFSET = 5000;
 const CLIFF2_OFFSET = 10_000;
 const END_OFFSET = 100_000;
-const DELTA = 1_000; // useful offset to place time before / after the inflection points
-const GRANT_AMOUNT = formatTokenAmount(1_000);
+const DELTA = 1000; // useful offset to place time before / after the inflection points
+const GRANT_AMOUNT = formatTokenAmount(1000);
 const INITIAL_SUPPLY = formatTokenAmount(100_000_000); // comes from polygon helper
 
-const defaultParams = ({
+const defaultParameters = ({
   startTime = NOW, // todo use await getLatestBlockTime({hre}) instead
   hre,
 }: {
@@ -80,7 +80,7 @@ const VEST_REVOKED_OFFSET = 55_000; // halfway through the linear distribution o
 const VESTED_BALANCE_AFTER_REVOCATION = formatTokenAmount(750);
 const FULLY_UNLOCKED_AFTER_REVOCATION_OFFSET = 72_000;
 
-const employeeParams = ({
+const employeeParameters = ({
   startTime = NOW, // todo use await getLatestBlockTime({hre}) instead
   hre,
 }: {
@@ -107,7 +107,7 @@ const employeeParams = ({
   };
 };
 
-const investorParams = ({
+const investorParameters = ({
   startTime = NOW, // todo use await getLatestBlockTime({hre}) instead
   hre,
 }: {
@@ -131,7 +131,7 @@ const investorParams = ({
   };
 };
 
-const linearParams = ({
+const linearParameters = ({
   startTime = NOW, // todo use await getLatestBlockTime({hre}) instead
   hre,
 }: {
@@ -181,7 +181,7 @@ const setupWithGrant = async (
     typeof _options === 'function'
       ? _options({ hre, startTime: await getLatestBlockTime({ hre }) })
       : _options;
-  const defaults = defaultParams({
+  const defaults = defaultParameters({
     hre,
     startTime: await getLatestBlockTime({ hre }),
   });
@@ -195,7 +195,6 @@ const setupWithGrant = async (
   } as TokenGrantOptions;
   const userData = formatGrantUserData(grant);
 
-  // eslint-disable-next-line jest/no-standalone-expect
   expect(await bpNori.send(lNori.address, grantAmount, userData))
     .to.emit(lNori, 'TokenGrantCreated')
     .withArgs(
@@ -227,7 +226,7 @@ const setupGrantWithDirectCall = async (
   options: DeepPartial<TokenGrantOptions> = {}
 ): ReturnType<typeof setupWithGrant> => {
   const { bpNori, lNori, hre, ...rest } = await setupTest();
-  const defaults = linearParams({
+  const defaults = linearParameters({
     hre,
     startTime: await getLatestBlockTime({ hre }),
   });
@@ -239,7 +238,7 @@ const setupGrantWithDirectCall = async (
     },
   } as TokenGrantOptions;
   const { admin } = hre.namedAccounts;
-  // eslint-disable-next-line jest/no-standalone-expect
+
   await expect(
     lNori.createGrant(
       grantAmount,
@@ -267,11 +266,11 @@ const setupGrantWithDirectCall = async (
       grant.vestEndTime,
       grant.unlockEndTime
     );
-  // eslint-disable-next-line jest/no-standalone-expect
+
   await expect(bpNori.approve(lNori.address, grantAmount))
     .to.emit(bpNori, 'Approval')
     .withArgs(admin, lNori.address, grantAmount);
-  // eslint-disable-next-line jest/no-standalone-expect
+
   expect(await bpNori.allowance(admin, lNori.address)).to.eq(grantAmount);
   return { bpNori, lNori, grantAmount, grant, hre, ...rest };
 };
@@ -279,65 +278,75 @@ const setupGrantWithDirectCall = async (
 describe('LockedNori', () => {
   // todo test supported interfaces
   describe('when paused', () => {
-    (
-      [
-        {
-          method: 'approve',
-          pausableFunction: async ({ lNori, hre }: PausableFunctionParams) => {
-            return lNori
-              .connect(hre.namedSigners.investor1)
-              .approve(hre.namedAccounts.investor2, formatTokenAmount(1));
-          },
-          postSetupHook: undefined,
+    for (const { method, pausableFunction, postSetupHook } of [
+      {
+        method: 'approve',
+        pausableFunction: async ({
+          lNori,
+          hre,
+        }: PausableFunctionParameters) => {
+          return lNori
+            .connect(hre.namedSigners.investor1)
+            .approve(hre.namedAccounts.investor2, formatTokenAmount(1));
         },
-        {
-          method: 'grantRole',
-          pausableFunction: async ({ lNori, hre }: PausableFunctionParams) => {
-            return lNori
-              .connect(hre.namedSigners.admin)
-              .grantRole(
-                hre.ethers.utils.id('SOME_ROLE'),
-                hre.namedAccounts.admin
-              );
-          },
-          postSetupHook: undefined,
+        postSetupHook: undefined,
+      },
+      {
+        method: 'grantRole',
+        pausableFunction: async ({
+          lNori,
+          hre,
+        }: PausableFunctionParameters) => {
+          return lNori
+            .connect(hre.namedSigners.admin)
+            .grantRole(
+              hre.ethers.utils.id('SOME_ROLE'),
+              hre.namedAccounts.admin
+            );
         },
-        {
-          method: 'renounceRole',
-          pausableFunction: async ({ lNori, hre }: PausableFunctionParams) => {
-            return lNori
-              .connect(hre.namedSigners.admin)
-              .renounceRole(
-                hre.ethers.utils.id('MINTER_ROLE'),
-                hre.namedAccounts.admin
-              );
-          },
-          postSetupHook: undefined,
+        postSetupHook: undefined,
+      },
+      {
+        method: 'renounceRole',
+        pausableFunction: async ({
+          lNori,
+          hre,
+        }: PausableFunctionParameters) => {
+          return lNori
+            .connect(hre.namedSigners.admin)
+            .renounceRole(
+              hre.ethers.utils.id('MINTER_ROLE'),
+              hre.namedAccounts.admin
+            );
         },
-        {
-          method: 'revokeRole',
-          pausableFunction: async ({ lNori, hre }: PausableFunctionParams) => {
-            return lNori
-              .connect(hre.namedSigners.admin)
-              .revokeRole(
-                hre.ethers.utils.id('MINTER_ROLE'),
-                hre.namedAccounts.admin
-              );
-          },
-          postSetupHook: async ({ lNori, hre }: PausableFunctionParams) => {
-            await lNori
-              .connect(hre.namedSigners.admin)
-              .grantRole(
-                hre.ethers.utils.id('MINTER_ROLE'),
-                hre.namedAccounts.noriWallet
-              );
-          },
+        postSetupHook: undefined,
+      },
+      {
+        method: 'revokeRole',
+        pausableFunction: async ({
+          lNori,
+          hre,
+        }: PausableFunctionParameters) => {
+          return lNori
+            .connect(hre.namedSigners.admin)
+            .revokeRole(
+              hre.ethers.utils.id('MINTER_ROLE'),
+              hre.namedAccounts.admin
+            );
         },
-      ] as const
-    ).forEach(({ method, pausableFunction, postSetupHook }) => {
+        postSetupHook: async ({ lNori, hre }: PausableFunctionParameters) => {
+          await lNori
+            .connect(hre.namedSigners.admin)
+            .grantRole(
+              hre.ethers.utils.id('MINTER_ROLE'),
+              hre.namedAccounts.noriWallet
+            );
+        },
+      },
+    ] as const) {
       it(`will disable the function ${method}`, async () => {
         const { lNori, hre } = await setupTest();
-        if (postSetupHook != null) {
+        if (postSetupHook != undefined) {
           await postSetupHook({ lNori, hre });
         }
         await lNori.connect(hre.namedSigners.admin).pause();
@@ -345,7 +354,7 @@ describe('LockedNori', () => {
           'Pausable: paused'
         );
       });
-    });
+    }
 
     it(`will not allow tokens to be deposited when the contract is paused`, async () => {
       const { lNori, bpNori, grant, hre } = await setupGrantWithDirectCall();
@@ -425,13 +434,11 @@ describe('LockedNori', () => {
   describe('initialization', () => {
     // it.todo('should fire events');
     describe('roles', () => {
-      (
-        [
-          { role: 'DEFAULT_ADMIN_ROLE' },
-          { role: 'PAUSER_ROLE' },
-          { role: 'TOKEN_GRANTER_ROLE' },
-        ] as const
-      ).forEach(({ role }) => {
+      for (const { role } of [
+        { role: 'DEFAULT_ADMIN_ROLE' },
+        { role: 'PAUSER_ROLE' },
+        { role: 'TOKEN_GRANTER_ROLE' },
+      ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
           const { lNori, hre } = await setupTest();
           expect(
@@ -442,7 +449,7 @@ describe('LockedNori', () => {
           );
           expect(await lNori.getRoleMemberCount(await lNori[role]())).to.eq(1);
         });
-      });
+      }
     });
   });
 
@@ -450,16 +457,16 @@ describe('LockedNori', () => {
     // it.todo('only the token granter role can deposit tokens')
     describe('roles', () => {
       describe('TOKEN_GRANTER_ROLE', () => {
-        [
+        for (const { role, accountWithRole, accountWithoutRole } of [
           {
             role: 'TOKEN_GRANTER_ROLE',
             accountWithRole: 'admin',
             accountWithoutRole: 'investor1',
           } as const,
-        ].forEach(({ role, accountWithRole, accountWithoutRole }) => {
+        ]) {
           it(`accounts with the role "${role}" can use "batchRevokeUnvestedTokenAmounts" whilst accounts without the role "${role}" cannot`, async () => {
             const { lNori, grantAmount, grant, hre } = await setupWithGrant(
-              (params) => employeeParams(params)
+              (parameters) => employeeParameters(parameters)
             );
             const { namedAccounts, namedSigners } = hre;
             const roleId = await lNori[role]();
@@ -504,7 +511,7 @@ describe('LockedNori', () => {
             expect(
               await lNori.hasRole(roleId, namedAccounts[accountWithoutRole])
             ).to.be.false;
-            const { grant, grantAmount } = employeeParams({
+            const { grant, grantAmount } = employeeParameters({
               hre,
               startTime: await getLatestBlockTime({ hre }),
             });
@@ -562,7 +569,7 @@ describe('LockedNori', () => {
             expect(
               await lNori.hasRole(roleId, namedAccounts[accountWithoutRole])
             ).to.be.false;
-            const { grant, grantAmount } = employeeParams({
+            const { grant, grantAmount } = employeeParameters({
               hre,
               startTime: await getLatestBlockTime({ hre }),
             });
@@ -594,26 +601,24 @@ describe('LockedNori', () => {
               `lNORI: sender is missing role TOKEN_GRANTER_ROLE`
             );
           });
-        });
+        }
       });
     });
   });
 
   describe('getRoleAdmin', () => {
-    (
-      [
-        { role: 'DEFAULT_ADMIN_ROLE' },
-        { role: 'PAUSER_ROLE' },
-        { role: 'TOKEN_GRANTER_ROLE' },
-      ] as const
-    ).forEach(({ role }) => {
+    for (const { role } of [
+      { role: 'DEFAULT_ADMIN_ROLE' },
+      { role: 'PAUSER_ROLE' },
+      { role: 'TOKEN_GRANTER_ROLE' },
+    ] as const) {
       it(`will assign the admin of the role ${role} to the DEFAULT_ADMIN_ROLE role`, async () => {
         const { lNori } = await setupTest();
         expect(await lNori.getRoleAdmin(await lNori[role]())).to.eq(
           await lNori.DEFAULT_ADMIN_ROLE()
         );
       });
-    });
+    }
   });
 
   describe('authorizeOperator', () => {
@@ -674,7 +679,7 @@ describe('LockedNori', () => {
   describe('createGrant', () => {
     it('Should fail to create a second grant for an address', async () => {
       const { lNori, hre } = await setupTest();
-      const { grant, grantAmount } = employeeParams({
+      const { grant, grantAmount } = employeeParameters({
         hre,
         startTime: await getLatestBlockTime({ hre }),
       });
@@ -726,7 +731,7 @@ describe('LockedNori', () => {
 
     it('Should fail to create a grant for an address having TOKEN_GRANTER_ROLE', async () => {
       const { lNori, hre } = await setupTest();
-      const { grant, grantAmount } = employeeParams({
+      const { grant, grantAmount } = employeeParameters({
         hre,
         startTime: await getLatestBlockTime({ hre }),
       });
@@ -921,7 +926,7 @@ describe('LockedNori', () => {
     it('Should treat unlock lagging vest schedules correctly at end of vest', async () => {
       // now == endTime
       const { lNori, grant, grantAmount, hre } = await setupWithGrant(
-        (params) => employeeParams(params)
+        (parameters) => employeeParameters(parameters)
       );
       const { namedAccounts } = hre;
       await advanceTime({ hre, timestamp: grant.vestEndTime });
@@ -938,8 +943,8 @@ describe('LockedNori', () => {
 
     it('Should treat larger vest cliffs than unlock cliffs correctly', async () => {
       // now == cliff1
-      const { lNori, grant, hre } = await setupWithGrant((params) =>
-        employeeParams(params)
+      const { lNori, grant, hre } = await setupWithGrant((parameters) =>
+        employeeParameters(parameters)
       );
       const { employee } = await hre.getNamedAccounts();
 
@@ -1006,8 +1011,8 @@ describe('LockedNori', () => {
   describe('Unlocking without vesting', () => {
     it('Should unlock cliff1', async () => {
       // cliff1 < now < cliff2
-      const { lNori, hre, grant } = await setupWithGrant((params) =>
-        investorParams(params)
+      const { lNori, hre, grant } = await setupWithGrant((parameters) =>
+        investorParameters(parameters)
       );
       const { investor1 } = hre.namedAccounts;
       await advanceTime({ hre, timestamp: grant.cliff1Time + DELTA });
@@ -1020,8 +1025,8 @@ describe('LockedNori', () => {
   describe('withdrawTo', () => {
     it('Can withdraw to a different address', async () => {
       // cliff1 < now < cliff2
-      const { bpNori, lNori, hre, grant } = await setupWithGrant((params) =>
-        investorParams(params)
+      const { bpNori, lNori, hre, grant } = await setupWithGrant((parameters) =>
+        investorParameters(parameters)
       );
       const { investor1, employee } = hre.namedAccounts;
       await advanceTime({ hre, timestamp: grant.cliff1Time + DELTA });
@@ -1061,7 +1066,7 @@ describe('LockedNori', () => {
     it('Should revoke *all* unvested tokens by specifying 0 as the amount', async () => {
       // now == CLIFF2
       const { bpNori, lNori, grantAmount, grant, hre } = await setupWithGrant(
-        (params) => employeeParams(params)
+        (parameters) => employeeParameters(parameters)
       );
       const { employee, admin } = hre.namedAccounts;
       await advanceTime({
@@ -1154,10 +1159,10 @@ describe('LockedNori', () => {
 
     it('Should revoke a specific amount of unvested tokens and use the block timestamp as the revocation time by specifying 0', async () => {
       const { lNori, grantAmount, hre, grant } = await setupWithGrant(
-        (params) => employeeParams(params)
+        (parameters) => employeeParameters(parameters)
       );
       const { employee, admin } = hre.namedAccounts;
-      const quantityToRevoke = 1_000;
+      const quantityToRevoke = 1000;
       const newBalance = grantAmount.sub(quantityToRevoke);
       await advanceTime({
         hre,
@@ -1189,7 +1194,7 @@ describe('LockedNori', () => {
 
     it('Should revoke a specific amount of unvested tokens repeatedly', async () => {
       const { lNori, grantAmount, grant, hre } = await setupWithGrant(
-        (params) => linearParams(params)
+        (parameters) => linearParameters(parameters)
       );
       const { admin } = hre.namedAccounts;
       await advanceTime({
@@ -1242,7 +1247,7 @@ describe('LockedNori', () => {
 
     it('Should revert when revoking more than remain unvested', async () => {
       const { lNori, grantAmount, grant, hre } = await setupWithGrant(
-        (params) => employeeParams(params)
+        (parameters) => employeeParameters(parameters)
       );
       const { namedAccounts } = hre;
       const quantityToRevoke = grantAmount.add(1);
@@ -1262,7 +1267,7 @@ describe('LockedNori', () => {
 
     it('Should revert when revoking in the past', async () => {
       const { lNori, grantAmount, grant, hre } = await setupWithGrant(
-        (params) => linearParams(params)
+        (parameters) => linearParameters(parameters)
       );
       const { namedAccounts } = hre;
       await expect(
@@ -1280,7 +1285,7 @@ describe('LockedNori', () => {
     });
     it('Should revert when revoking from a non-vesting grant', async () => {
       const { lNori, grantAmount, grant, hre } = await setupWithGrant(
-        (params) => investorParams(params)
+        (parameters) => investorParameters(parameters)
       );
       const { namedAccounts } = hre;
       await expect(
@@ -1299,8 +1304,8 @@ describe('LockedNori', () => {
   });
 
   it('Should return details of a grant', async () => {
-    const { lNori, grant, grantAmount, hre } = await setupWithGrant((params) =>
-      employeeParams(params)
+    const { lNori, grant, grantAmount, hre } = await setupWithGrant(
+      (parameters) => employeeParameters(parameters)
     );
     const { employee } = hre.namedAccounts;
     const grantFromContract = await lNori.getGrant(employee);
@@ -1327,7 +1332,7 @@ describe('LockedNori', () => {
   describe('Creating vesting schedules in a batch', () => {
     it('should be able to create multiple vesting schedules in a single transaction', async () => {
       const { bpNori, lNori, hre } = await setupTest();
-      const defaults = defaultParams({
+      const defaults = defaultParameters({
         hre,
         startTime: await getLatestBlockTime({ hre }),
       });
@@ -1365,13 +1370,17 @@ describe('LockedNori', () => {
         );
       };
       const unnamedAccounts = await ethers.provider.listAccounts();
-      const recipients = [...Array(9)].map((_) => lNori.address);
-      const amounts = [...Array(9)].map((_) => grantAmount);
-      const userData = [...Array(9)].map((_, i) =>
-        buildUserData({ recipient: unnamedAccounts[i + 1] })
+      const recipients = [...Array.from({ length: 9 })].map(
+        (_) => lNori.address
+      );
+      const amounts = [...Array.from({ length: 9 })].map((_) => grantAmount);
+      const userData = [...Array.from({ length: 9 })].map((_, index) =>
+        buildUserData({ recipient: unnamedAccounts[index + 1] })
       ); // todo
-      const operatorData = [...Array(9)].map((_) => '0x');
-      const requireReceptionAck = [...Array(9)].map((_) => true);
+      const operatorData = [...Array.from({ length: 9 })].map((_) => '0x');
+      const requireReceptionAck = [...Array.from({ length: 9 })].map(
+        (_) => true
+      );
       await expect(
         bpNori.batchSend(
           recipients,

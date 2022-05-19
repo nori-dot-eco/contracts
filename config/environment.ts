@@ -3,7 +3,8 @@ import dotenvParseVariables from 'dotenv-parse-variables';
 
 const defaults = dotenvDefaults.config();
 
-if (defaults.error != null || defaults.parsed == null) throw defaults.error;
+if (defaults.error != undefined || defaults.parsed == undefined)
+  throw defaults.error;
 
 process.env = Object.fromEntries(
   Object.entries(

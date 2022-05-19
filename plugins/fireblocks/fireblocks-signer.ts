@@ -69,11 +69,11 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
         );
       }
       return ethers.utils.getAddress(addresses[0].address);
-    } catch (e) {
+    } catch (error) {
       console.log(
         `Fireblocks signer: Failed to load addresses for vault ${this.vaultAccountId} and asset ${this._bridge.assetId}`
       );
-      throw e;
+      throw error;
     }
   }
 
@@ -104,7 +104,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
    */
   async _signMessage(message: Bytes): Promise<string> {
     const txInfo = await this._bridge.sendRawTransaction(
-      keccak256(message).substring(2),
+      keccak256(message).slice(2),
       this.memo
     );
     await this._bridge.waitForTxHash(txInfo.id);
@@ -143,14 +143,14 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     let gasEstimate;
     try {
       gasEstimate = await this.provider?.estimateGas(transaction);
-    } catch (e: any) {
-      console.log('Error estimating gas', e.code);
-      gasEstimate = BigNumber.from(3000000); // 3M fallback (dangerous, improve this!)
+    } catch (error: any) {
+      console.log('Error estimating gas', error.code);
+      gasEstimate = BigNumber.from(3_000_000); // 3M fallback (dangerous, improve this!)
     }
     const gasLimit =
       transaction.gasLimit !== undefined
         ? BigNumber.from(await transaction.gasLimit)
-        : gasEstimate?.add(100000);
+        : gasEstimate?.add(100_000);
     const maxPriority =
       transaction.maxPriorityFeePerGas !== undefined
         ? ethers.utils.parseUnits(
@@ -236,7 +236,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     };
     const unsignedTx = ethers.utils.serializeTransaction(baseTx);
     const txInfo = await this._bridge.sendRawTransaction(
-      keccak256(unsignedTx).substring(2),
+      keccak256(unsignedTx).slice(2),
       this.memo
     );
     await this._bridge.waitForTxHash(txInfo.id);
@@ -292,17 +292,17 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
         console.log(`Submitting signed transaction to the network`);
         const txResponse = await this.provider!.sendTransaction(tx);
         txHash = txResponse.hash;
-      } catch (e) {
+      } catch (error) {
         console.log(
-          `Error forwarding signed raw txn to provider (type: ${typeof e})`
+          `Error forwarding signed raw txn to provider (type: ${typeof error})`
         );
         try {
-          const body = JSON.parse((<any>e).body);
+          const body = JSON.parse((<any>error).body);
           console.log(`Error message: ${body.message}`);
-        } catch (e2) {
+        } catch {
           console.log('cannot parse error');
         }
-        throw e;
+        throw error;
       }
     }
 

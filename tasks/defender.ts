@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 
 import { types, task } from 'hardhat/config';
 import { AdminClient } from 'defender-admin-client';
@@ -39,7 +39,7 @@ const addContractsToDefender = async (
     network: { name: networkName },
     ethers,
   } = hre;
-  if (defender != null && isDefenderNetwork(networkName)) {
+  if (defender != undefined && isDefenderNetwork(networkName)) {
     console.log('Adding contracts to defender');
     const contracts = await Promise.all(
       contractNames.map(async (name) => {
@@ -58,13 +58,15 @@ const addContractsToDefender = async (
       })
     );
     const defenderClient = new AdminClient(defender);
-    const defenderContracts = (await defenderClient.listContracts()).map((c) =>
-      c.name.concat(c.network)
+    const defenderContracts = new Set(
+      (await defenderClient.listContracts()).map((c) =>
+        c.name.concat(c.network)
+      )
     );
     const contractsToAddToDefender: Parameters<
       typeof defenderClient['addContract']
     >[0][] = contracts.filter((c) => {
-      return !defenderContracts.includes(c.name.concat(c.network));
+      return !defenderContracts.has(c.name.concat(c.network));
     });
     if (contractsToAddToDefender.length === 0) {
       console.log('No contracts to add to defender');

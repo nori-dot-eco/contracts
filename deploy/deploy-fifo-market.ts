@@ -8,8 +8,8 @@ import {
 import { deployFIFOMarketContract, finalizeDeployments } from '@/utils/deploy';
 import { getCertificate } from '@/utils/contracts';
 
-export const deploy: DeployFunction = async (env) => {
-  const hre = env as unknown as CustomHardHatRuntimeEnvironment;
+export const deploy: DeployFunction = async (environment) => {
+  const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`deployFIFOMarket`);
   const feeWallet =
@@ -23,7 +23,7 @@ export const deploy: DeployFunction = async (env) => {
     feeWallet,
     feePercentage: 15,
   });
-  const signer = (await hre.getSigners())[0];
+  const [signer] = await hre.getSigners();
   const certificate = await getCertificate({ hre, signer });
   if (
     !(await certificate.hasRole(

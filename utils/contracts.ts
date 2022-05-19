@@ -53,7 +53,9 @@ export const getContract = async <
   if (!contract) {
     throw new Error(`Unsupported network: ${hre.network.name}`);
   }
-  return (signer != null ? contract.connect(signer) : contract) as TContract;
+  return (
+    signer != undefined ? contract.connect(signer) : contract
+  ) as TContract;
 };
 
 export const getBridgedPolygonNori = async ({

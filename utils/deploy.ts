@@ -1,5 +1,5 @@
-import path from 'path';
-import * as fs from 'fs';
+import path from 'node:path';
+import * as fs from 'node:fs';
 
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
@@ -90,15 +90,15 @@ export const writeContractsConfig = ({
   contracts: Contracts;
 }): void => {
   hre.trace('Writing contracts.json config', hre.network.name);
-  Object.entries(contracts)
-    .filter((_, value) => value !== undefined)
-    .forEach(([name, contract]) => {
-      updateContractsConfig({
-        networkName: hre.network.name,
-        contractName: name,
-        proxyAddress: contract.address,
-      });
+  for (const [name, contract] of Object.entries(contracts).filter(
+    (_, value) => value !== undefined
+  )) {
+    updateContractsConfig({
+      networkName: hre.network.name,
+      contractName: name,
+      proxyAddress: contract.address,
     });
+  }
 };
 
 export const configureDeploymentSettings = async ({
@@ -332,9 +332,9 @@ export const seedContracts = async ({
 }): Promise<void> => {
   if (process.env.MINT) {
     if (
-      contracts.Certificate != null &&
-      contracts.FIFOMarket != null &&
-      contracts.Removal != null
+      contracts.Certificate != undefined &&
+      contracts.FIFOMarket != undefined &&
+      contracts.Removal != undefined
     ) {
       const tokenId = await createRemovalTokenId(contracts.Removal, {
         supplierAddress: hre.namedAccounts.supplier,
@@ -353,8 +353,8 @@ export const seedContracts = async ({
       hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });
     }
     if (
-      contracts.BridgedPolygonNORI != null &&
-      contracts.NORI != null &&
+      contracts.BridgedPolygonNORI != undefined &&
+      contracts.NORI != undefined &&
       (hre.network.name === 'hardhat' || hre.network.name === 'localhost')
     ) {
       await mockDepositNoriToPolygon({

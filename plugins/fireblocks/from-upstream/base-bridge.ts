@@ -22,10 +22,10 @@ const CHAIN_IDS = {
   [Chain.BSC]: 56,
   [Chain.BSC_TEST]: 97,
   [Chain.POLYGON]: 137,
-  [Chain.MUMBAI]: 80001,
+  [Chain.MUMBAI]: 80_001,
 };
 
-export interface BridgeParams {
+export interface BridgeParameters {
   fireblocksApiClient: FireblocksSDK;
   vaultAccountId: string;
   externalWalletId?: string;
@@ -43,8 +43,8 @@ export abstract class BaseBridge {
     TransactionStatus.REJECTED,
   ];
 
-  constructor(readonly params: BridgeParams) {
-    const chain = params.chain || Chain.MAINNET;
+  constructor(readonly parameters: BridgeParameters) {
+    const chain = parameters.chain || Chain.MAINNET;
     this.assetId = CHAIN_TO_ASSET_ID[chain];
   }
 
@@ -75,8 +75,8 @@ export abstract class BaseBridge {
             if (txInfo?.txHash) {
               return txInfo.txHash;
             }
-          } catch (err) {
-            console.error(err);
+          } catch (error) {
+            console.error(error);
           }
           await new Promise((r) => setTimeout(r, 1000));
         }

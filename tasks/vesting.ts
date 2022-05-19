@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 
 import * as yup from 'yup';
 import csv from 'csvtojson';
@@ -115,14 +115,14 @@ interface CsvParser extends ColParser {
   lastQuantityRevoked: ParseGrantFunction<'lastQuantityRevoked'>;
 }
 
-const UINT_STRING_MATCHER = /^[0-9]+$/;
+const UINT_STRING_MATCHER = /^\d+$/;
 
 export const validations = {
   isValidEvmMoment: () => {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be a valid EVM timestamp. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean =>
+      test: (value: unknown, _options?: { path: string }): boolean =>
         typeof value === 'number' &&
         yup.number().strict().min(0).integer().isValidSync(value) &&
         moment(evmTimeToUtc(value)).isValid(),
@@ -132,7 +132,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be BigNumberish. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean =>
+      test: (value: unknown, _options?: { path: string }): boolean =>
         typeof value === 'string' && isBigNumberish(value),
     };
   },
@@ -140,7 +140,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be > 0. Value: ${d.value}.`,
-      test: (value: BigNumberish, _opts?: { path: string }): boolean =>
+      test: (value: BigNumberish, _options?: { path: string }): boolean =>
         BigNumber.from(value).gt(0),
     };
   },
@@ -148,7 +148,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be BigNumberish less than or equal to: ${other}`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
+      test: (value: unknown, _options?: { path: string }): boolean => {
         return isBigNumberish(value) && BigNumber.from(value).lte(other);
       },
     };
@@ -157,10 +157,10 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be the same value as the parent key. Value: ${d.value}.`,
-      test: (value: unknown, opts: { path: string }): boolean => {
+      test: (value: unknown, options: { path: string }): boolean => {
         const hasSameValueAsParentKey =
-          opts?.path === '' ||
-          (Boolean(opts?.path) && opts?.path.split('.')[0] === value);
+          options?.path === '' ||
+          (Boolean(options?.path) && options?.path.split('.')[0] === value);
         return typeof value === 'string' && hasSameValueAsParentKey;
       },
     };
@@ -169,7 +169,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} must be a wallet address. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
+      test: (value: unknown, _options?: { path: string }): boolean => {
         return typeof value === 'string' && isAddress(value);
       },
     };
@@ -178,7 +178,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} is not a date within ${maxFutureYears} years from today. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
+      test: (value: unknown, _options?: { path: string }): boolean => {
         const maxFutureYearsIsUint = yup
           .number()
           .integer()
@@ -200,7 +200,7 @@ export const validations = {
     return {
       message: (d: { path: string; value?: unknown }): string =>
         `${d.path} is not a date after ${minimumPastYears} year ago today. Value: ${d.value}.`,
-      test: (value: unknown, _opts?: { path: string }): boolean => {
+      test: (value: unknown, _options?: { path: string }): boolean => {
         const minimumPastYearsIsUint = yup
           .number()
           .integer()
@@ -421,13 +421,13 @@ export const grantListToObject = ({
 }: {
   listOfGrants: GrantList;
 }): ParsedGrants => {
-  return listOfGrants.reduce((acc, val): ParsedGrants => {
-    if (acc[val.recipient]) {
+  return listOfGrants.reduce((accumulator, value): ParsedGrants => {
+    if (accumulator[value.recipient]) {
       throw new Error(
-        `Found duplicate recipient address in grants ${val.recipient}`
+        `Found duplicate recipient address in grants ${value.recipient}`
       );
     }
-    return { ...acc, [val.recipient]: val };
+    return { ...accumulator, [value.recipient]: value };
   }, {} as ParsedGrants);
 };
 
@@ -449,8 +449,8 @@ export const grantCsvToList = async ({
         row.cliff2Time = row.cliff2Time === 0 ? row.cliff1Time : row.cliff2Time;
         // row.vestEndTime = row.vestEndTime === 0 ? row.startTime : row.vestEndTime;
       },
-      (err) => {
-        throw err;
+      (error) => {
+        throw error;
       }
     )
     .fromString(data)) as GrantList;
@@ -596,7 +596,7 @@ const DIFF_SUBTASK = {
     const grantsDiff = getDiff({
       grants: {
         blockchain: Object.fromEntries(
-          Object.entries(blockchainGrants).reduce((prev, [k1, v1]) => {
+          Object.entries(blockchainGrants).reduce((previous, [k1, v1]) => {
             const {
               vestEndTime,
               startTime,
@@ -605,7 +605,7 @@ const DIFF_SUBTASK = {
               ...rest
             } = v1 as any;
             return [
-              ...prev,
+              ...previous,
               [
                 k1,
                 {
@@ -684,11 +684,11 @@ const GET_BLOCKCHAIN_SUBTASK = {
       Object.keys(githubGrants)
     );
     const blockchainGrants = rawBlockchainGrants.reduce(
-      (acc: ParsedGrants, grant: any): ParsedGrants => {
+      (accumulator: ParsedGrants, grant: any): ParsedGrants => {
         return grant.recipient === hre.ethers.constants.AddressZero
-          ? acc
+          ? accumulator
           : {
-              ...acc,
+              ...accumulator,
               [grant.recipient]: {
                 recipient: grant.recipient,
                 originalAmount: grant.originalAmount.toString(),
@@ -711,7 +711,7 @@ const GET_BLOCKCHAIN_SUBTASK = {
     ) as ParsedGrants;
     const actualAmounts = Object.values(rawBlockchainGrants)
       .map(({ grantAmount, claimedAmount }) => grantAmount.sub(claimedAmount))
-      .reduce((acc, v) => acc.add(v));
+      .reduce((accumulator, v) => accumulator.add(v));
     if (!totalSupply.eq(actualAmounts)) {
       hre.log(
         'WARNING: total supply of LockedNORI does not equal the amounts of all grants.',
@@ -818,7 +818,7 @@ const CREATE_SUBTASK = {
       const requireReceptionAck = grantDiffs.map((_) => true);
       hre.log(
         `Total bpNORI to lock: ${ethers.utils.formatEther(
-          amounts.reduce((acc, v) => acc.add(v))
+          amounts.reduce((accumulator, v) => accumulator.add(v))
         )}`
       );
       if (!dryRun) {
@@ -856,8 +856,10 @@ const CREATE_SUBTASK = {
             requireReceptionAck
           );
           hre.log(chalk.bold.bgWhiteBright.black(`🎉 Dry run was successful!`));
-        } catch (e) {
-          hre.log(chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, e));
+        } catch (error) {
+          hre.log(
+            chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
+          );
         }
       }
     }
@@ -903,9 +905,9 @@ const REVOKE_SUBTASK = {
     );
     if (grantRevocationDiffs.length > 0) {
       const fromAccounts = grantRevocationDiffs.map((grant) => grant.recipient);
-      const toAccounts = Array(grantRevocationDiffs.length).fill(
-        await signer.getAddress()
-      );
+      const toAccounts = Array.from({
+        length: grantRevocationDiffs.length,
+      }).fill(await signer.getAddress());
       const atTimes = grantRevocationDiffs.map(
         (grant) => grant.lastRevocationTime.__new ?? grant.lastRevocationTime
       );
@@ -950,8 +952,10 @@ const REVOKE_SUBTASK = {
           hre.log(
             chalk.bold.bgWhiteBright.black(`🎉  Dry run was successful!`)
           );
-        } catch (e) {
-          hre.log(chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, e));
+        } catch (error) {
+          hre.log(
+            chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
+          );
         }
       }
     }
