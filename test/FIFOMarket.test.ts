@@ -339,7 +339,9 @@ describe('FIFOMarket', () => {
         expect(await fifoMarket.numberOfActiveNrtsInMarketComputed()).to.equal(
           BigNumber.from(0)
         );
-        expect(await fifoMarket.totalActiveSupply()).to.equal(BigNumber.from(0));
+        expect(await fifoMarket.totalActiveSupply()).to.equal(
+          BigNumber.from(0)
+        );
       });
     });
     describe('totalUnrestrictedSupply', () => {
@@ -392,7 +394,8 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const initialFifoSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      const initialFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
 
       await bpNori
         .connect(hre.namedSigners.buyer)
@@ -405,7 +408,8 @@ describe('FIFOMarket', () => {
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
       const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-      const finalFifoSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      const finalFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
 
       expect(buyerFinalNoriBalance).to.equal(
         buyerInitialBPNoriBalance
@@ -452,7 +456,8 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const initialFifoSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      const initialFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
       expect(initialFifoSupply).to.equal(hre.ethers.utils.parseUnits('10'));
       await bpNori
         .connect(hre.namedSigners.buyer)
@@ -464,7 +469,8 @@ describe('FIFOMarket', () => {
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
       const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-      const finalFifoSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      const finalFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
 
       expect(buyerFinalNoriBalance).to.equal(
         buyerInitialBPNoriBalance
@@ -517,7 +523,8 @@ describe('FIFOMarket', () => {
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const initialFifoSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      const initialFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
       await bpNori
         .connect(hre.namedSigners.buyer)
         .send(
@@ -528,7 +535,8 @@ describe('FIFOMarket', () => {
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
       const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-      const finalFifoSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      const finalFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
 
       expect(buyerFinalNoriBalance).to.equal(
         buyerInitialBPNoriBalance
@@ -581,7 +589,8 @@ describe('FIFOMarket', () => {
       const investor2InitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
 
-      const initialFifoSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      const initialFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
 
       await bpNori
         .connect(hre.namedSigners.buyer)
@@ -772,7 +781,14 @@ describe('FIFOMarket', () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
-        removalDataToList: [{ amount: 1 }, { amount: 0 }, { amount: 1 }, { amount: 1 }, { amount: 0 }, { amount: 1 }],
+        removalDataToList: [
+          { amount: 1 },
+          { amount: 0 },
+          { amount: 1 },
+          { amount: 1 },
+          { amount: 0 },
+          { amount: 1 },
+        ],
       });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
@@ -784,11 +800,13 @@ describe('FIFOMarket', () => {
       const noriInitialNoriBalance = '0';
 
       await expect(
-        bpNori.connect(hre.namedSigners.buyer).send(
-          fifoMarket.address,
-          hre.ethers.utils.parseUnits(totalPrice),
-          hre.ethers.utils.hexZeroPad(buyer, 32)
-        )
+        bpNori
+          .connect(hre.namedSigners.buyer)
+          .send(
+            fifoMarket.address,
+            hre.ethers.utils.parseUnits(totalPrice),
+            hre.ethers.utils.hexZeroPad(buyer, 32)
+          )
       ).to.be.reverted;
 
       // no balances should change and no certificate balance should be minted
@@ -812,39 +830,56 @@ describe('FIFOMarket', () => {
         hre.ethers.utils.parseUnits('0', 18)
       );
     });
-
   });
   describe('placing removals on hold', () => {
     it('can reserve and unreserve a removal', async () => {
-      const { bpNori, certificate, fifoMarket, removal, hre, listedRemovalIds } = await setupTestLocal({
-        removalDataToList: [{ amount: 3 }, { amount: 3 }, { amount: 4 }],
-      });
+      const { fifoMarket, removal, hre, listedRemovalIds } =
+        await setupTestLocal({
+          removalDataToList: [{ amount: 3 }, { amount: 3 }, { amount: 4 }],
+        });
       const numberOfRemovalsCreated = 3;
       const totalInitialSupply = 10;
-      const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
-// initial state
-      expect(await fifoMarket.totalActiveSupply()).to.equal(hre.ethers.utils.parseUnits(totalInitialSupply.toString()).toString());
-      expect(await fifoMarket.totalNumberActiveRemovals()).to.equal(numberOfRemovalsCreated);
+      // initial state
+      expect(await fifoMarket.totalActiveSupply()).to.equal(
+        hre.ethers.utils.parseUnits(totalInitialSupply.toString()).toString()
+      );
+      expect(await fifoMarket.totalNumberActiveRemovals()).to.equal(
+        numberOfRemovalsCreated
+      );
       expect(await fifoMarket.totalReservedSupply()).to.equal(0);
 
       const removalIdToReserve = listedRemovalIds[0];
-      const removalBalance = await removal.balanceOf(fifoMarket.address, removalIdToReserve);
+      const removalBalance = await removal.balanceOf(
+        fifoMarket.address,
+        removalIdToReserve
+      );
 
       await fifoMarket.reserveRemoval(removalIdToReserve);
 
       // expected state after a removal is reserved
-      expect(await fifoMarket.totalActiveSupply()).to.equal(hre.ethers.utils.parseUnits(totalInitialSupply.toString()).sub(removalBalance).toString());
-      expect(await fifoMarket.totalNumberActiveRemovals()).to.equal(numberOfRemovalsCreated - 1);
+      expect(await fifoMarket.totalActiveSupply()).to.equal(
+        hre.ethers.utils
+          .parseUnits(totalInitialSupply.toString())
+          .sub(removalBalance)
+          .toString()
+      );
+      expect(await fifoMarket.totalNumberActiveRemovals()).to.equal(
+        numberOfRemovalsCreated - 1
+      );
       expect(await fifoMarket.totalReservedSupply()).to.equal(removalBalance);
 
       await fifoMarket.unreserveRemoval(removalIdToReserve);
 
-      expect(await fifoMarket.totalActiveSupply()).to.equal(hre.ethers.utils.parseUnits(totalInitialSupply.toString()).toString());
-      expect(await fifoMarket.totalNumberActiveRemovals()).to.equal(numberOfRemovalsCreated);
+      expect(await fifoMarket.totalActiveSupply()).to.equal(
+        hre.ethers.utils.parseUnits(totalInitialSupply.toString()).toString()
+      );
+      expect(await fifoMarket.totalNumberActiveRemovals()).to.equal(
+        numberOfRemovalsCreated
+      );
       expect(await fifoMarket.totalReservedSupply()).to.equal(0);
-    })
-  })
+    });
+  });
 });
 
 // TODO: check that removals are getting burned correctly?

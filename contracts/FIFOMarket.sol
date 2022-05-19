@@ -182,8 +182,11 @@ contract FIFOMarket is
           _currentSupplierAddress = supplierAddress;
           _lastSupplierAddress = supplierAddress;
         }
-        // Update the current last supplier to point to the new supplier as next
-        _suppliersInRoundRobinOrder[_lastSupplierAddress]
+        // Update the current supplier to point to the new supplier as previous
+        _suppliersInRoundRobinOrder[_currentSupplierAddress]
+          .previousSupplierAddress = supplierAddress;
+        // Update the previous supplier to point to the new supplier as next
+        _suppliersInRoundRobinOrder[_currentSupplierAddress]
           .nextSupplierAddress = supplierAddress;
         // Add the new supplier to the round robin order
         _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
@@ -261,27 +264,13 @@ contract FIFOMarket is
 
         _activeSupply[_currentSupplierAddress].remove(removalId); // pull it out of the supplier's queue
         // If the supplier is out of supply, remove them from the active suppliers
-        console.log("ELLO");
-        console.log(
-          "previous",
-          _suppliersInRoundRobinOrder[_currentSupplierAddress]
-            .previousSupplierAddress
-        );
-        console.log("current", _currentSupplierAddress);
-        console.log(
-          "next",
-          _suppliersInRoundRobinOrder[_currentSupplierAddress]
-            .nextSupplierAddress
-        );
         if (_activeSupply[_currentSupplierAddress].length() == 0) {
-          console.log("REMOVING SUPPLIER");
           _removeActiveSupplier(_currentSupplierAddress);
           // else if the supplier is the only supplier remaining with supply, don't bother incrementing.
         } else if (
           _suppliersInRoundRobinOrder[_currentSupplierAddress]
             .nextSupplierAddress != _currentSupplierAddress
         ) {
-          console.log("INCREMENTING SUPPLIER ADDRESS");
           _incrementCurrentSupplierAddress();
         }
       }

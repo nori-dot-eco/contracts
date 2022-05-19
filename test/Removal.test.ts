@@ -1,4 +1,4 @@
-import { expect, setupTest } from '@/test/helpers';
+import { createRemovalTokenId, expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 
 describe('Removal', () => {
@@ -40,7 +40,8 @@ describe('Removal', () => {
         expect(balance).to.equal(removalBalances[tokenId].toString());
       });
       // not listed to the fifoMarket
-      const marketTotalSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      const marketTotalSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
       expect(marketTotalSupply).to.equal(
         formatTokenAmount(expectedMarketSupply).toString()
       );
@@ -51,7 +52,16 @@ describe('Removal', () => {
         formatTokenAmount(balance)
       );
       const expectedMarketSupply = 1000;
-      const tokenIds = [10, 11, 12, 13];
+      const { supplier } = hre.namedAccounts;
+      const defaultStartingVintage = 2016;
+      const tokenIds = await Promise.all(
+        removalBalances.map((amount, i) => {
+          return createRemovalTokenId(removal, {
+            supplierAddress: supplier,
+            vintage: defaultStartingVintage + i,
+          });
+        })
+      );
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
@@ -81,7 +91,8 @@ describe('Removal', () => {
       balances.forEach((balance, tokenId) => {
         expect(balance).to.equal(removalBalances[tokenId].toString());
       });
-      const marketTotalSupply = await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      const marketTotalSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
       expect(marketTotalSupply).to.equal(
         formatTokenAmount(expectedMarketSupply).toString()
       );
