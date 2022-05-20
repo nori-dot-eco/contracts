@@ -8,6 +8,75 @@ import {
   setupTest,
   createRemovalTokenId,
 } from '@/test/helpers';
+import { FIFOMarket, Removal } from '../typechain-types';
+
+interface RemovalDataForListing {
+  amount: number;
+  vintage?: number;
+  supplier?: string;
+}
+
+interface RemovalDataFromListing {
+  listedRemovalIds: BigNumber[];
+  totalAmountOfSupply: number;
+  totalAmountOfSuppliers: number;
+  totalAmountOfRemovals: number;
+}
+
+const parseNumberToBigNumber = (numberToParse: number) =>
+  hre.ethers.utils.parseUnits(numberToParse.toString()).toString();
+
+const getTotalAmountOfSupply = (removals: RemovalDataForListing[]) =>
+  removals.reduce((sum, removal) => (sum += removal.amount), 0);
+
+const getTotalAmountOfSuppliers = (removals: RemovalDataForListing[]) =>
+  removals.reduce(
+    (supplierSet, removal) => supplierSet.add(removal.supplier),
+    new Set()
+  ).size || 1;
+
+const getTotalAmountOfRemovals = (removals: RemovalDataForListing[]) =>
+  removals.length;
+
+const mintSupply = async (
+  removalDataToList: RemovalDataForListing[],
+  removal: Removal,
+  fifoMarket: FIFOMarket
+): Promise<RemovalDataFromListing> => {
+  const { supplier } = hre.namedAccounts;
+  const defaultStartingVintage = 2016;
+  const listedRemovalIds = await Promise.all(
+    removalDataToList.map((removalData, i) => {
+      return createRemovalTokenId(removal, {
+        supplierAddress: removalData.supplier ?? supplier,
+        vintage: removalData.vintage ?? defaultStartingVintage + i,
+      });
+    })
+  );
+  const removalBalances = removalDataToList.map((removalData) =>
+    hre.ethers.utils.parseUnits(removalData.amount.toString())
+  );
+
+  const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+    ['address', 'bool'],
+    [fifoMarket.address, true]
+  );
+  await removal.mintBatch(
+    supplier,
+    removalBalances,
+    listedRemovalIds,
+    packedData
+  );
+  const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);
+  const totalAmountOfSuppliers = getTotalAmountOfSuppliers(removalDataToList);
+  const totalAmountOfRemovals = getTotalAmountOfRemovals(removalDataToList);
+  return {
+    listedRemovalIds,
+    totalAmountOfSupply,
+    totalAmountOfSuppliers,
+    totalAmountOfRemovals,
+  };
+};
 
 const setupTestLocal = async (
   {
@@ -15,40 +84,24 @@ const setupTestLocal = async (
     removalDataToList = [],
   }: {
     buyerInitialBPNoriBalance?: BigNumberish;
-    removalDataToList?: {
-      amount: number;
-      vintage?: number;
-      supplier?: string;
-    }[];
+    removalDataToList?: RemovalDataForListing[];
   } = {
     buyerInitialBPNoriBalance: formatTokenAmount(1_000_000),
     removalDataToList: [],
   }
-): Promise<
-  Awaited<ReturnType<typeof setupTest>> & { listedRemovalIds: BigNumber[] }
-> => {
+): Promise<Awaited<ReturnType<typeof setupTest>> & RemovalDataFromListing> => {
   const { hre, contracts, removal, fifoMarket, ...rest } = await setupTest();
-  let tokenIds: BigNumber[] = [];
-  if (removalDataToList.length > 0) {
-    const { supplier } = hre.namedAccounts;
-    const defaultStartingVintage = 2016;
-    tokenIds = await Promise.all(
-      removalDataToList.map((removalData, i) => {
-        return createRemovalTokenId(removal, {
-          supplierAddress: removalData.supplier ?? supplier,
-          vintage: removalData.vintage ?? defaultStartingVintage + i,
-        });
-      })
-    );
-    const removalBalances = removalDataToList.map((removalData) =>
-      hre.ethers.utils.parseUnits(removalData.amount.toString())
-    );
+  let listedRemovalIds: BigNumber[] = [];
+  let totalAmountOfSupply = 0;
+  let totalAmountOfSuppliers = 0;
+  let totalAmountOfRemovals = 0;
 
-    const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-      ['address', 'bool'],
-      [fifoMarket.address, true]
-    );
-    await removal.mintBatch(supplier, removalBalances, tokenIds, packedData);
+  if (removalDataToList.length > 0) {
+    ({ listedRemovalIds } = await mintSupply(
+      removalDataToList,
+      removal,
+      fifoMarket
+    ));
   }
   await mockDepositNoriToPolygon({
     hre,
@@ -60,9 +113,12 @@ const setupTestLocal = async (
   return {
     hre,
     contracts,
-    listedRemovalIds: tokenIds,
     removal,
     fifoMarket,
+    listedRemovalIds,
+    totalAmountOfSupply,
+    totalAmountOfSuppliers,
+    totalAmountOfRemovals,
     ...rest,
   };
 };
@@ -90,7 +146,31 @@ describe('FIFOMarket', () => {
         });
       });
     });
+    it('correctly intializes state variables', async () => {
+      const { fifoMarket } = await setupTestLocal();
+
+      const [
+        totalActiveSupply,
+        totalReservedSupply,
+        totalNumberActiveRemovals,
+        activeSupplierCount,
+        priorityRestrictedThreshold,
+      ] = await Promise.all([
+        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalReservedSupply(),
+        fifoMarket.totalNumberActiveRemovals(),
+        fifoMarket.activeSupplierCount(),
+        fifoMarket.priorityRestrictedThreshold(),
+      ]);
+
+      expect(totalActiveSupply).to.equal(0);
+      expect(totalReservedSupply).to.equal(0);
+      expect(totalNumberActiveRemovals).to.equal(0);
+      expect(activeSupplierCount).to.equal(0);
+      expect(priorityRestrictedThreshold).to.equal(0);
+    });
   });
+
   describe('role access', () => {
     describe('DEFAULT_ADMIN_ROLE', () => {
       it(`accounts with the role "DEFAULT_ADMIN_ROLE" can set the priority restricted threshold while accounts without this role cannot`, async () => {
@@ -130,9 +210,40 @@ describe('FIFOMarket', () => {
       });
     });
     describe('ALLOWLIST_ROLE', () => {
-      it(`accounts with the role "ALLOWLIST_ROLE" can purchase supply when inventory is below threshold while accounts without this role cannot`, async () => {
+      it(`allows allowlisted acccounts to purchase supply when inventory is below threshold while accounts without this role cannot`, async () => {
         const role = 'ALLOWLIST_ROLE';
         const accountWithRole = 'admin';
+        const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+        const totalAvailableSupply = 50;
+        const { bpNori, fifoMarket, hre } = await setupTestLocal({
+          buyerInitialBPNoriBalance,
+          removalDataToList: [{ amount: totalAvailableSupply }],
+        });
+        const { namedAccounts, namedSigners } = hre;
+        const { buyer } = hre.namedAccounts;
+
+        const priorityRestrictedThreshold = '100';
+
+        await fifoMarket.setPriorityRestrictedThreshold(
+          ethers.utils.parseUnits(priorityRestrictedThreshold)
+        );
+
+        const roleId = await fifoMarket[role]();
+        expect(await fifoMarket.hasRole(roleId, namedAccounts[accountWithRole]))
+          .to.be.true;
+
+        await expect(
+          bpNori
+            .connect(namedSigners[accountWithRole])
+            .send(
+              fifoMarket.address,
+              hre.ethers.utils.parseUnits(totalAvailableSupply.toString()),
+              hre.ethers.utils.hexZeroPad(buyer, 32)
+            )
+        ).not.to.be.reverted;
+      });
+      it(`does not allow acccounts not on the allowlist to purchase supply when inventory is below threshold`, async () => {
+        const role = 'ALLOWLIST_ROLE';
         const accountWithoutRole = 'buyer';
         const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
         const totalAvailableSupply = 50;
@@ -163,21 +274,11 @@ describe('FIFOMarket', () => {
         expect(
           await fifoMarket.hasRole(roleId, namedAccounts[accountWithoutRole])
         ).to.be.false;
-        expect(await fifoMarket.hasRole(roleId, namedAccounts[accountWithRole]))
-          .to.be.true;
 
-        await expect(
-          bpNori
-            .connect(namedSigners[accountWithRole])
-            .send(
-              fifoMarket.address,
-              hre.ethers.utils.parseUnits(totalAvailableSupply.toString()),
-              hre.ethers.utils.hexZeroPad(buyer, 32)
-            )
-        ).not.to.be.reverted;
       });
     });
   });
+
   describe('inventory inspection', () => {
     // describe('nextRemovalForSale', () => {
     //   describe('when there is no inventory', () => {
@@ -272,7 +373,7 @@ describe('FIFOMarket', () => {
     // });
 
     describe('totalSupply and numberOfActiveNrtsInMarketComputed', () => {
-      it('should correctly report the number of NRTs for sale when there are multiple removals in inventory z', async () => {
+      it('should correctly report the number of NRTs for sale when there are multiple removals in inventory', async () => {
         const removalDataToList = [{ amount: 3 }, { amount: 3 }, { amount: 4 }];
         const { fifoMarket } = await setupTestLocal({
           removalDataToList,
@@ -377,8 +478,134 @@ describe('FIFOMarket', () => {
       });
     });
   });
+
+  describe('when listing supply in the market', () => {
+    it('updates totalActiveSupply, totalNumberActiveRemovals, and activeSupplierCount when a new supplier is added', async () => {
+      const removals = [{ amount: 100 }];
+      const {
+        fifoMarket,
+        totalAmountOfSupply,
+        totalAmountOfSuppliers,
+        totalAmountOfRemovals,
+      } = await setupTestLocal({
+        removalDataToList: removals,
+      });
+
+      const [
+        totalActiveSupply,
+        totalNumberActiveRemovals,
+        activeSupplierCount,
+      ] = await Promise.all([
+        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalNumberActiveRemovals(),
+        fifoMarket.activeSupplierCount(),
+      ]);
+
+      expect(totalActiveSupply).to.equal(totalAmountOfSupply.toString());
+      expect(totalNumberActiveRemovals).to.equal(
+        totalAmountOfRemovals.toString()
+      );
+      expect(activeSupplierCount).to.equal(totalAmountOfSuppliers.toString());
+    });
+    it('updates totalActiveSupply and totalNumberActiveRemovals when more removals are added for a supplier', async () => {
+      const initialRemovals = [{ amount: 100 }];
+      const { removal, fifoMarket } = await setupTestLocal({
+        removalDataToList: initialRemovals,
+      });
+
+      const additionalRemovals = [{ amount: 100 }];
+
+      await mintSupply(additionalRemovals, removal, fifoMarket);
+
+      const totalAmountOfSupply = getTotalAmountOfSupply([
+        ...initialRemovals,
+        ...additionalRemovals,
+      ]);
+
+      const totalAmountOfRemovals = getTotalAmountOfRemovals([
+        ...initialRemovals,
+        ...additionalRemovals,
+      ]);
+
+      const totalAmountOfSuppliers = getTotalAmountOfSuppliers([
+        ...initialRemovals,
+        ...additionalRemovals,
+      ]);
+
+      const [
+        totalActiveSupply,
+        totalNumberActiveRemovals,
+        activeSupplierCount,
+      ] = await Promise.all([
+        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalNumberActiveRemovals(),
+        fifoMarket.activeSupplierCount(),
+      ]);
+
+      expect(totalActiveSupply).to.equal(totalAmountOfSupply.toString());
+      expect(totalNumberActiveRemovals).to.equal(
+        totalAmountOfRemovals.toString()
+      );
+      expect(activeSupplierCount).to.equal(totalAmountOfSuppliers.toString());
+    });
+    it('updates totalActiveSupply and totalNumberActiveRemovals, and activeSupplierCount when more removals are added for a supplier who has previously sold out', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const initialRemovals = [{ amount: 1 }];
+      const { bpNori, fifoMarket, removal, hre } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+        removalDataToList: initialRemovals,
+      });
+      const { buyer } = hre.namedAccounts;
+
+      const purchaseAmount = '1';
+      const fee = '.15';
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+
+      await bpNori
+        .connect(hre.namedSigners.buyer)
+        .send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice),
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        );
+
+      const additionalRemovals = [{ amount: 1 }];
+
+      await mintSupply(additionalRemovals, removal, fifoMarket);
+
+      const totalAmountOfSupply =
+        getTotalAmountOfSupply([...initialRemovals, ...additionalRemovals]) -
+        Number(purchaseAmount);
+
+      const totalAmountOfRemovals =
+        getTotalAmountOfRemovals([...initialRemovals, ...additionalRemovals]) -
+        1;
+
+      const totalAmountOfSuppliers = getTotalAmountOfSuppliers([
+        ...initialRemovals,
+        ...additionalRemovals,
+      ]);
+
+      const [
+        totalActiveSupply,
+        totalNumberActiveRemovals,
+        activeSupplierCount,
+      ] = await Promise.all([
+        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalNumberActiveRemovals(),
+        fifoMarket.activeSupplierCount(),
+      ]);
+
+      expect(totalActiveSupply).to.equal(totalAmountOfSupply.toString());
+      expect(totalNumberActiveRemovals).to.equal(
+        totalAmountOfRemovals.toString()
+      );
+      expect(activeSupplierCount).to.equal(totalAmountOfSuppliers.toString());
+    });
+  });
+
   describe('Successful purchases', () => {
-    it('should purchase removals and mint a certificate when there is enough supply in a single removal', async () => {
+    it('mint a certificate with some of a single removal in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const totalAvailableSupply = 100;
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
@@ -441,7 +668,8 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('should purchase removals and mint a certificate for a small purchase spanning several removals', async () => {
+    it('mint a certificate with all of a single removal in round robin order and update state variables', async () => {});
+    it('mint a certificate with one removal per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
@@ -502,7 +730,7 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('should purchase removals and mint a certificate for a large purchase spanning many removals', async () => {
+    it('mint a certificate with multiple removals per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const numberOfRemovalsToCreate = 100;
       const removalDataToList = [...Array(numberOfRemovalsToCreate).keys()].map(
@@ -568,7 +796,7 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('should purchase removals and mint a certificate for a small purchase spanning several removals after another purchase has already been made', async () => {
+    it('mint a certificate with multiple removals after another purchase has already been made and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
@@ -646,7 +874,7 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('should correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
+    it('correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const removalDataToList = [
         { amount: 3, supplier: hre.namedAccounts.supplier },
@@ -751,6 +979,9 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
+    it('should not use reserved supply to fulfill an order', async () => {});
+    it('should use previously reserved supply to fulfill an order after it has been unreserved', async () => {});
+    it('updates activeSupplierCount after the last removal has been reserved from a supplier', async () => {});
   });
 
   describe('Unsuccessful purchases', () => {
@@ -909,54 +1140,115 @@ describe('FIFOMarket', () => {
       );
     });
   });
-  describe('placing removals on hold', () => {
-    it('can reserve and unreserve a removal', async () => {
-      const { fifoMarket, removal, hre, listedRemovalIds } =
-        await setupTestLocal({
-          removalDataToList: [{ amount: 3 }, { amount: 3 }, { amount: 4 }],
-        });
-      const numberOfRemovalsCreated = 3;
-      const totalInitialSupply = 10;
-      const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
-      // initial state
-      expect(await fifoMarket.totalActiveSupply()).to.equal(
-        hre.ethers.utils.parseUnits(totalInitialSupply.toString()).toString()
-      );
-      expect(await fifoMarket.totalNumberActiveRemovals()).to.equal(
-        numberOfRemovalsCreated
-      );
-      expect(await fifoMarket.totalReservedSupply()).to.equal(0);
+  describe('placing removals on hold', () => {
+    it('updates totalActiveSupply, totalReservedSupply, and totalNumberActiveRemovals when a removal is reserved', async () => {
+      const removals = [{ amount: 3 }, { amount: 3 }, { amount: 4 }];
+      const {
+        fifoMarket,
+        listedRemovalIds,
+        totalAmountOfRemovals,
+        totalAmountOfSuppliers,
+        totalAmountOfSupply,
+      } = await setupTestLocal({
+        removalDataToList: removals,
+      });
 
       const removalIdToReserve = listedRemovalIds[0];
-      const removalBalance = await removal.balanceOf(
-        fifoMarket.address,
-        removalIdToReserve
-      );
-
+      const removalAmountToReserve = removals[0].amount;
       await fifoMarket.reserveRemoval(removalIdToReserve);
 
-      // expected state after a removal is reserved
-      expect(await fifoMarket.totalActiveSupply()).to.equal(
-        hre.ethers.utils
-          .parseUnits(totalInitialSupply.toString())
-          .sub(removalBalance)
-          .toString()
+      const [
+        totalActiveSupply,
+        totalReservedSupply,
+        totalNumberActiveRemovals,
+        activeSupplierCount,
+      ] = await Promise.all([
+        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalReservedSupply(),
+        fifoMarket.totalNumberActiveRemovals(),
+        fifoMarket.activeSupplierCount(),
+      ]);
+
+      expect(totalActiveSupply).to.equal(
+        parseNumberToBigNumber(totalAmountOfSupply - removalAmountToReserve)
       );
-      expect(await fifoMarket.totalNumberActiveRemovals()).to.equal(
-        numberOfRemovalsCreated - 1
+      expect(totalNumberActiveRemovals).to.equal(
+        parseNumberToBigNumber(totalAmountOfRemovals - 1)
       );
-      expect(await fifoMarket.totalReservedSupply()).to.equal(removalBalance);
+      expect(activeSupplierCount).to.equal(
+        parseNumberToBigNumber(totalAmountOfSuppliers)
+      );
+      expect(totalReservedSupply).to.equal(
+        parseNumberToBigNumber(removalAmountToReserve)
+      );
+    });
+    it('updates totalActiveSupply, totalReservedSupply, and totalNumberActiveRemovals when a removal is unreserved', async () => {
+      const {
+        fifoMarket,
+        listedRemovalIds,
+        totalAmountOfRemovals,
+        totalAmountOfSuppliers,
+        totalAmountOfSupply,
+      } = await setupTestLocal({
+        removalDataToList: [{ amount: 3 }, { amount: 3 }, { amount: 4 }],
+      });
+
+      const removalIdToReserve = listedRemovalIds[0];
+      await fifoMarket.reserveRemoval(removalIdToReserve);
 
       await fifoMarket.unreserveRemoval(removalIdToReserve);
 
-      expect(await fifoMarket.totalActiveSupply()).to.equal(
-        hre.ethers.utils.parseUnits(totalInitialSupply.toString()).toString()
+      const [
+        totalActiveSupply,
+        totalReservedSupply,
+        totalNumberActiveRemovals,
+        activeSupplierCount,
+      ] = await Promise.all([
+        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalReservedSupply(),
+        fifoMarket.totalNumberActiveRemovals(),
+        fifoMarket.activeSupplierCount(),
+      ]);
+
+      expect(totalActiveSupply).to.equal(
+        parseNumberToBigNumber(totalAmountOfSupply)
       );
-      expect(await fifoMarket.totalNumberActiveRemovals()).to.equal(
-        numberOfRemovalsCreated
+      expect(totalNumberActiveRemovals).to.equal(
+        parseNumberToBigNumber(totalAmountOfRemovals)
       );
-      expect(await fifoMarket.totalReservedSupply()).to.equal(0);
+      expect(activeSupplierCount).to.equal(
+        parseNumberToBigNumber(totalAmountOfSuppliers)
+      );
+      expect(totalReservedSupply).to.equal(parseNumberToBigNumber(0));
+    });
+    it('updates activeSupplierCount when the last removal from a supplier is reserved', async () => {
+      const removals = [{ amount: 3 }];
+      const { fifoMarket, listedRemovalIds } = await setupTestLocal({
+        removalDataToList: removals,
+      });
+
+      const removalIdToReserve = listedRemovalIds[0];
+      await fifoMarket.reserveRemoval(removalIdToReserve);
+
+      const [
+        totalActiveSupply,
+        totalReservedSupply,
+        totalNumberActiveRemovals,
+        activeSupplierCount,
+      ] = await Promise.all([
+        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalReservedSupply(),
+        fifoMarket.totalNumberActiveRemovals(),
+        fifoMarket.activeSupplierCount(),
+      ]);
+
+      expect(totalActiveSupply).to.equal(parseNumberToBigNumber(0));
+      expect(totalNumberActiveRemovals).to.equal(parseNumberToBigNumber(0));
+      expect(activeSupplierCount).to.equal(parseNumberToBigNumber(0));
+      expect(totalReservedSupply).to.equal(
+        parseNumberToBigNumber(getTotalAmountOfSupply(removals))
+      );
     });
   });
 });
