@@ -501,11 +501,15 @@ describe('FIFOMarket', () => {
         fifoMarket.activeSupplierCount(),
       ]);
 
-      expect(totalActiveSupply).to.equal(totalAmountOfSupply.toString());
-      expect(totalNumberActiveRemovals).to.equal(
-        totalAmountOfRemovals.toString()
+      expect(totalActiveSupply).to.equal(
+        parseNumberToBigNumber(totalAmountOfSupply)
       );
-      expect(activeSupplierCount).to.equal(totalAmountOfSuppliers.toString());
+      expect(totalNumberActiveRemovals).to.equal(
+        parseNumberToBigNumber(totalAmountOfRemovals)
+      );
+      expect(activeSupplierCount).to.equal(
+        parseNumberToBigNumber(totalAmountOfSuppliers)
+      );
     });
     it('updates totalActiveSupply and totalNumberActiveRemovals when more removals are added for a supplier', async () => {
       const initialRemovals = [{ amount: 100 }];
@@ -542,11 +546,15 @@ describe('FIFOMarket', () => {
         fifoMarket.activeSupplierCount(),
       ]);
 
-      expect(totalActiveSupply).to.equal(totalAmountOfSupply.toString());
-      expect(totalNumberActiveRemovals).to.equal(
-        totalAmountOfRemovals.toString()
+      expect(totalActiveSupply).to.equal(
+        parseNumberToBigNumber(totalAmountOfSupply)
       );
-      expect(activeSupplierCount).to.equal(totalAmountOfSuppliers.toString());
+      expect(totalNumberActiveRemovals).to.equal(
+        parseNumberToBigNumber(totalAmountOfRemovals)
+      );
+      expect(activeSupplierCount).to.equal(
+        parseNumberToBigNumber(totalAmountOfSuppliers)
+      );
     });
     it('updates totalActiveSupply and totalNumberActiveRemovals, and activeSupplierCount when more removals are added for a supplier who has previously sold out', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
@@ -596,11 +604,15 @@ describe('FIFOMarket', () => {
         fifoMarket.activeSupplierCount(),
       ]);
 
-      expect(totalActiveSupply).to.equal(totalAmountOfSupply.toString());
-      expect(totalNumberActiveRemovals).to.equal(
-        totalAmountOfRemovals.toString()
+      expect(totalActiveSupply).to.equal(
+        parseNumberToBigNumber(totalAmountOfSupply)
       );
-      expect(activeSupplierCount).to.equal(totalAmountOfSuppliers.toString());
+      expect(totalNumberActiveRemovals).to.equal(
+        parseNumberToBigNumber(totalAmountOfRemovals)
+      );
+      expect(activeSupplierCount).to.equal(
+        parseNumberToBigNumber(totalAmountOfSuppliers)
+      );
     });
   });
 
