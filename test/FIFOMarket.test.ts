@@ -97,11 +97,12 @@ const setupTestLocal = async (
   let totalAmountOfRemovals = 0;
 
   if (removalDataToList.length > 0) {
-    ({ listedRemovalIds } = await mintSupply(
-      removalDataToList,
-      removal,
-      fifoMarket
-    ));
+    ({
+      listedRemovalIds,
+      totalAmountOfSupply,
+      totalAmountOfRemovals,
+      totalAmountOfSuppliers,
+    } = await mintSupply(removalDataToList, removal, fifoMarket));
   }
   await mockDepositNoriToPolygon({
     hre,
@@ -274,7 +275,6 @@ describe('FIFOMarket', () => {
         expect(
           await fifoMarket.hasRole(roleId, namedAccounts[accountWithoutRole])
         ).to.be.false;
-
       });
     });
   });
