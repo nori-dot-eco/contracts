@@ -1,5 +1,4 @@
-import { defaultRemovalTokenIdFixture } from './fixtures/removal';
-
+import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import type {
   UnpackedRemovalIdV0Struct,
   UnpackedRemovalIdV0StructOutput,
