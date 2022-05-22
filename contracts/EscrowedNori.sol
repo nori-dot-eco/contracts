@@ -6,19 +6,23 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "./ERC777PresetPausablePermissioned.sol";
 import "./BridgedPolygonNORI.sol";
 
+uint256 constant SECONDS_IN_TEN_YEARS = 31_536_000;
+
 contract EscrowedNORI is
   IERC777RecipientUpgradeable,
   ERC777PresetPausablePermissioned
 {
+  // using EnumerableMapUpgradeable for uint256; todo use for address to escrows lookup?
+
   struct EscrowSchedule {
     uint256 startTime;
     uint256 endTime;
     uint256 totalAmount;
   }
 
-  struct TokenGrant {
+  struct EscrowAccount {
     EscrowSchedule escrowSchedule;
-    uint256 grantAmount;
+    uint256 accountAmount;
     uint256 claimedAmount;
     uint256 originalAmount;
     bool exists;
@@ -26,8 +30,8 @@ contract EscrowedNORI is
     uint256 lastQuantityRevoked;
   }
 
-  struct TokenGrantDetail {
-    uint256 grantAmount;
+  struct EscrowAccountDetail {
+    uint256 accountAmount;
     address recipient;
     uint256 startTime;
     uint256 escrowEndTime;
@@ -38,21 +42,24 @@ contract EscrowedNORI is
     bool exists;
   }
 
-  struct CreateTokenGrantParams {
+  // todo we can probably get rid of one of these! they're the same now
+  struct CreateEscrowAccountParams {
     address recipient;
+    uint256 startYear;
     uint256 startTime;
-    uint256 escrowEndTime;
   }
 
   struct DepositForParams {
     address recipient;
+    uint256 startYear;
     uint256 startTime;
   }
 
   /**
-   * @notice Role conferring creation and revocation of token grants.
+   * @notice Role conferring creation and revocation of escrow accounts.
    */
-  bytes32 public constant TOKEN_GRANTER_ROLE = keccak256("TOKEN_GRANTER_ROLE");
+  bytes32 public constant ESCROW_CREATOR_ROLE =
+    keccak256("ESCROW_CREATOR_ROLE");
 
   /**
    * @notice Used to register the ERC777TokensRecipient recipient interface in the
@@ -65,10 +72,15 @@ contract EscrowedNORI is
   bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
     keccak256("ERC777TokensRecipient");
 
-  /**
-   * @notice A mapping from grantee to grant
-   */
-  mapping(address => TokenGrant) private _grants;
+  // map from address to enumerable map between vintage and escrow id (maybe also just year)
+  // todo mapping(address => EnumerableMapUpgradeable) private _removalToEscrowAccount;
+  mapping(address => mapping(uint256 => uint256))
+    private _removalToEscrowAccount;
+  mapping(address => uint256[]) private _addressToEnumerableEscrowKeys;
+
+  // map from escrow id (year?) to escrow
+  mapping(address => mapping(uint256 => EscrowAccount))
+    private _addressToEscrowAccounts;
 
   /**
    * @notice The BridgedPolygonNORI contract that this contract wraps tokens for
@@ -86,17 +98,16 @@ contract EscrowedNORI is
   IERC1820RegistryUpgradeable private _erc1820;
 
   /**
-   * @notice Emitted on successful creation of a new grant.
+   * @notice Emitted on successful creation of a new escrow account.
    */
-  event TokenGrantCreated(
+  event EscrowAccountCreated(
     address indexed recipient,
     uint256 indexed amount,
-    uint256 indexed startTime,
-    uint256 escrowEndTime
+    uint256 indexed startTime
   );
 
   /**
-   * @notice Emitted on when the unreleased portion of an active grant is terminated.
+   * @notice Emitted on when the unreleased portion of an active escrow account is terminated.
    */
   event UnreleasedTokensRevoked(
     uint256 indexed atTime,
@@ -128,14 +139,14 @@ contract EscrowedNORI is
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
     __ERC777PresetPausablePermissioned_init_unchained();
-    __ERC777_init_unchained("Locked NORI", "eNORI", operators);
+    __ERC777_init_unchained("Escrowed NORI", "eNORI", operators);
     _bridgedPolygonNori = bridgedPolygonNoriAddress;
     _ERC1820_REGISTRY.setInterfaceImplementer(
       address(this),
       ERC777_TOKENS_RECIPIENT_HASH,
       address(this)
     );
-    _grantRole(TOKEN_GRANTER_ROLE, _msgSender());
+    _grantRole(ESCROW_CREATOR_ROLE, _msgSender());
   }
 
   /**
@@ -160,8 +171,8 @@ contract EscrowedNORI is
       "eNORI: not BridgedPolygonNORI"
     );
     require(
-      hasRole(TOKEN_GRANTER_ROLE, sender),
-      "eNORI: sender is missing role TOKEN_GRANTER_ROLE"
+      hasRole(ESCROW_CREATOR_ROLE, sender),
+      "eNORI: sender is missing role ESCROW_CREATOR_ROLE"
     );
     address to = abi.decode(userData, (address));
     require(to != address(0), "eNORI: token send missing required userData");
@@ -182,11 +193,13 @@ contract EscrowedNORI is
    *
    * - Can only be used when the contract is not paused.
    */
+  // TODO this will need a notion of the total number of released tokens availble to withdraw,
+  // and a mechanism for withdrawing them correctly from potentially a variety of escrow accounts
   function withdrawTo(address recipient, uint256 amount)
     external
     returns (bool)
   {
-    TokenGrant storage grant = _grants[_msgSender()];
+    EscrowAccount storage escrowAccount = _grants[_msgSender()]; // fixme
     super._burn(_msgSender(), amount, "", "");
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
@@ -194,7 +207,7 @@ contract EscrowedNORI is
       amount,
       ""
     );
-    grant.claimedAmount += amount;
+    escrowAccount.claimedAmount += amount;
     emit TokensClaimed(_msgSender(), recipient, amount);
     return true;
   }
@@ -202,28 +215,28 @@ contract EscrowedNORI is
   /**
    * @notice Sets up a lockup schedule for recipient.
    *
-   * @dev This function can be used as an alternative way to set up a grant that doesn't require
+   * @dev This function can be used as an alternative way to set up an escrow account that doesn't require
    * wrapping BridgedPolygonNORI first.
    *
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `TOKEN_GRANTER_ROLE` role
+   * - Can only be used when the caller has the `ESCROW_CREATOR_ROLE` role
    */
-  function createGrant(
+  function createEscrowAccount(
     uint256 amount,
     address recipient,
     uint256 startTime,
     uint256 escrowEndTime
-  ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
+  ) external whenNotPaused onlyRole(ESCROW_CREATOR_ROLE) {
     bytes memory userData = abi.encode(recipient, startTime, escrowEndTime);
-    _createGrant(amount, userData);
+    _createEscrowAccount(amount, userData);
   }
 
   /**
-   * @notice Truncates a batch of escrow grants of amounts in a single go
+   * @notice Truncates a batch of escrow accounts of amounts in a single go
    *
-   * @dev Transfers any unreleased tokens in `fromAccounts`'s grant to `to` and reduces the total grant size. No change
+   * @dev Transfers any unreleased tokens in `fromAccounts`'s escrow to `to` and reduces the total amount. No change
    * is made to balances that have released but not yet been claimed.
    *
    * The behavior of this function can be used in two specific ways:
@@ -232,16 +245,17 @@ contract EscrowedNORI is
    *
    * ##### Requirements:
    *
-   * - Can only be used when the caller has the `TOKEN_GRANTER_ROLE` role
+   * - Can only be used when the caller has the `ESCROW_CREATOR_ROLE` role
    * - The requirements of _beforeTokenTransfer apply to this function
    * - fromAccounts.length == toAccounts.length == atTimes.length == amounts.length
    */
   function batchRevokeUnreleasedTokenAmounts(
     address[] calldata fromAccounts,
     address[] calldata toAccounts,
+    uint256[] calldata escrowAccountStartYears,
     uint256[] calldata atTimes,
     uint256[] calldata amounts
-  ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
+  ) external whenNotPaused onlyRole(ESCROW_CREATOR_ROLE) {
     require(
       fromAccounts.length == toAccounts.length,
       "eNORI: fromAccounts and toAccounts length mismatch"
@@ -258,6 +272,7 @@ contract EscrowedNORI is
       _revokeUnreleasedTokens(
         fromAccounts[i],
         toAccounts[i],
+        escrowAccountStartYears[i],
         atTimes[i],
         amounts[i]
       );
@@ -267,62 +282,70 @@ contract EscrowedNORI is
   /**
    * @notice Number of  tokens that were revoked if any.
    */
-  function quantityRevokedFrom(address account)
+  function quantityRevokedFrom(address account, uint256 escrowAccountStartYear)
     external
     view
     returns (uint256)
   {
-    TokenGrant storage grant = _grants[account];
-    return grant.originalAmount - grant.grantAmount;
+    EscrowAccount storage escrowAccount = _addressToEscrowAccounts[account][
+      escrowAccountStartYear
+    ];
+    return escrowAccount.originalAmount - escrowAccount.accountAmount;
   }
 
   /**
-   * @notice Returns all governing settings for multiple grants
+   * @notice Returns all governing settings for multiple escrow accounts
    *
-   * @dev If a grant does not exist for an account, the resulting grant will be zeroed out in the return value
+   * @dev If an escrow account does not exist for an address, the resulting
+   * escrow account will be zeroed out in the return value
    */
-  function batchGetGrant(address[] calldata accounts)
+  function batchGetEscrowAccounts(address[] calldata addresses)
     public
     view
-    returns (TokenGrantDetail[] memory)
+    returns (EscrowAccountDetail[] memory)
   {
-    TokenGrantDetail[] memory grantDetails = new TokenGrantDetail[](
-      accounts.length
-    );
-    for (uint256 i = 0; i < accounts.length; i++) {
-      grantDetails[i] = getGrant(accounts[i]);
+    EscrowAccountDetail[]
+      memory escrowAccountDetails = new EscrowAccountDetail[](addresses.length);
+    for (uint256 i = 0; i < addresses.length; i++) {
+      escrowAccountDetails[i] = getEscrowAccount(addresses[i]);
     }
-    return grantDetails;
+    return escrowAccountDetails;
   }
 
   /**
-   * @notice Returns all governing settings for a grant.
+   * @notice Returns all governing settings for an escrow account.
    */
-  function getGrant(address account)
+  function getEscrowAccount(address account, uint256 escrowAccountStartYear)
     public
     view
-    returns (TokenGrantDetail memory)
+    returns (EscrowAccountDetail memory)
   {
-    TokenGrant storage grant = _grants[account];
+    EscrowAccount storage escrowAcount = _addressToEscrowAccounts[account][
+      escrowAccountStartYear
+    ];
     return
-      TokenGrantDetail(
-        grant.grantAmount,
+      EscrowAccountDetail(
+        escrowAcount.accountAmount,
         account,
-        grant.escrowSchedule.startTime,
-        grant.escrowSchedule.endTime,
-        grant.claimedAmount,
-        grant.originalAmount,
-        grant.lastRevocationTime,
-        grant.lastQuantityRevoked,
-        grant.exists
+        escrowAcount.escrowSchedule.startTime,
+        escrowAcount.escrowSchedule.endTime,
+        escrowAcount.claimedAmount,
+        escrowAcount.originalAmount,
+        escrowAcount.lastRevocationTime,
+        escrowAcount.lastQuantityRevoked,
+        escrowAcount.exists
       );
   }
 
   /**
    * @notice Released balance less any claimed amount at current block timestamp.
    */
-  function releasedBalanceOf(address account) public view returns (uint256) {
-    return _releasedBalanceOf(account, block.timestamp); // solhint-disable-line not-rely-on-time, this is time-dependent
+  function releasedBalanceOf(address account, uint256 escrowAccountStartYear)
+    public
+    view
+    returns (uint256)
+  {
+    return _releasedBalanceOf(account, escrowAccountStartYear, block.timestamp); // solhint-disable-line not-rely-on-time, this is time-dependent
   }
 
   /**
@@ -349,12 +372,13 @@ contract EscrowedNORI is
   }
 
   /**
-   * @notice Wraps minting of wrapper token and grant setup.
+   * @notice Wraps minting of wrapper token and escrow account setup.
    *
-   * @dev If `startTime` is zero no grant is set up. Satisfies situations where funding of the grant happens over time.
+   * @dev If `startTime` is zero no escrow account is set up.
+   * Satisfies situations where funding of the account happens over time.
    *
    * @param amount uint256 Quantity of `_bridgedPolygonNori` to deposit
-   * @param userData CreateTokenGrantParams or DepositForParams
+   * @param userData CreateEscrowAccountParams or DepositForParams (which are now the same TODO)
    * @param operatorData bytes extra information provided by the operator (if any)
    */
   function _depositFor(
@@ -364,13 +388,13 @@ contract EscrowedNORI is
   ) internal returns (bool) {
     DepositForParams memory params = abi.decode(userData, (DepositForParams)); // todo error handling
     // If a startTime parameter is non-zero then set up a schedule
-    // Validation happens inside _createGrant
+    // Validation happens inside _createEscrowAccount
     if (params.startTime > 0) {
-      _createGrant(amount, userData);
+      _createEscrowAccount(amount, userData);
     }
     require(
-      _grants[params.recipient].exists,
-      "eNORI: Cannot deposit without a grant"
+      _addressToEscrowAccounts[params.recipient][params.startYear].exists,
+      "eNORI: Cannot deposit without an escrow account"
     );
     super._mint(params.recipient, amount, userData, operatorData);
     return true;
@@ -381,60 +405,57 @@ contract EscrowedNORI is
    *
    *
    * This will be invoked via the `tokensReceived` callback for cases
-   * where we have the tokens in hand at the time we set up the grant.
+   * where we have the tokens in hand at the time we set up the escrow account.
    *
-   * It is also callable externally (see `grantTo`) to handle cases
-   * where tokens are incrementally deposited after the grant is established.
+   * It is also callable externally (see `grantTo`) to handle cases // todo what was `grantTo`???
+   * where tokens are incrementally deposited after the escrow account is established.
    */
-  function _createGrant(uint256 amount, bytes memory userData) internal {
-    CreateTokenGrantParams memory params = abi.decode(
+  function _createEscrowAccount(uint256 amount, bytes memory userData)
+    internal
+  {
+    CreateEscrowAccountParams memory params = abi.decode(
       userData,
-      (CreateTokenGrantParams)
+      (CreateEscrowAccountParams)
     );
     require(
       address(params.recipient) != address(0),
       "eNORI: Recipient cannot be zero address"
     );
     require(
-      !hasRole(TOKEN_GRANTER_ROLE, params.recipient),
-      "eNORI: Recipient cannot be grant admin"
+      !hasRole(ESCROW_CREATOR_ROLE, params.recipient),
+      "eNORI: Recipient cannot be escrow admin"
     );
     require(
-      params.startTime < params.escrowEndTime,
-      "eNORI: escrowEndTime cannot be before startTime"
+      !_addressToEscrowAccounts[params.recipient][params.startYear].exists,
+      "eNORI: Escrow account already exists"
     );
-    require(
-      block.timestamp < params.escrowEndTime,
-      "eNORI: escrowEndTime cannot be in the past"
-    );
-    require(!_grants[params.recipient].exists, "eNORI: Grant already exists");
-    TokenGrant storage grant = _grants[params.recipient];
-    grant.grantAmount = amount;
-    grant.originalAmount = amount;
-    grant.exists = true;
-    grant.escrowSchedule.totalAmount = amount;
-    grant.escrowSchedule.startTime = params.startTime;
-    grant.escrowSchedule.endTime = params.escrowEndTime;
-    emit TokenGrantCreated(
-      params.recipient,
-      amount,
-      params.startTime,
-      params.escrowEndTime
-    );
+
+    EscrowAccount storage escrowAccount = _addressToEscrowAccounts[
+      params.recipient
+    ][params.startYear];
+    escrowAccount.accountAmount = amount;
+    escrowAccount.originalAmount = amount;
+    escrowAccount.exists = true;
+    escrowAccount.escrowSchedule.totalAmount = amount;
+    escrowAccount.escrowSchedule.startTime = params.startTime;
+    escrowAccount.escrowSchedule.endTime =
+      params.startTime +
+      SECONDS_IN_TEN_YEARS;
+    emit EscrowAccountCreated(params.recipient, amount, params.startTime);
   }
 
   /**
-   * @notice Truncates an escrow grant.
-   * This is an *admin* operation callable only by addresses having TOKEN_GRANTER_ROLE
+   * @notice Truncates an escrow account.
+   * This is an *admin* operation callable only by addresses having ESCROW_CREATOR_ROLE
    * (enforced in `batchRevokeUnreleasedTokenAmounts`)
-   *
+   * // todo what should this description actually be now??
    * @dev The implementation never updates underlying schedules
-   * but only the grant amount.  This avoids changing the behavior of the grant
+   * but only the escrow account amount.  This avoids changing the behavior of the grant
    * before the point of revocation.  Anytime an unlock schedule is in
    * play the corresponding balance functions need to take care to never return
    * more than the grant amount less the claimed amount.
    *
-   * Unlike in the `claim` function, here we burn `EscrowedNORI` from the grant holder but
+   * Unlike in the `claim` function, here we burn `EscrowedNORI` from the escrow account owner but
    * send that `BridgedPolygonNORI` back to Nori's treasury or an address of Nori's
    * choosing (the *to* address).  The *claimedAmount* is not changed because this is
    * not a claim operation.
@@ -442,6 +463,7 @@ contract EscrowedNORI is
   function _revokeUnreleasedTokens(
     address from,
     address to,
+    uint256 escrowAccountStartYear,
     uint256 atTime,
     uint256 amount
   ) internal {
@@ -449,11 +471,13 @@ contract EscrowedNORI is
       (atTime == 0 && amount > 0) || (atTime > 0 && amount == 0),
       "eNORI: Must specify a revocation time or an amount not both"
     );
-    TokenGrant storage grant = _grants[from];
-    require(grant.exists, "eNORI: no grant exists");
+    EscrowAccount storage escrowAccount = _addressToEscrowAccounts[from][
+      escrowAccountStartYear
+    ];
+    require(escrowAccount.exists, "eNORI: no escrow account exists");
     require(
       _hasEscrowSchedule(from),
-      "eNORI: no escrow schedule for this grant"
+      "eNORI: no escrow schedule for this escrow account"
     );
     uint256 revocationTime = atTime == 0 && amount > 0
       ? block.timestamp
@@ -463,14 +487,14 @@ contract EscrowedNORI is
       "eNORI: Revocation cannot be in the past"
     );
     uint256 releasedBalance = _linearReleaseAmountAvailable(
-      grant.escrowSchedule,
+      escrowAccount.escrowSchedule,
       revocationTime
     );
     require(
-      releasedBalance < grant.grantAmount,
+      releasedBalance < escrowAccount.accountAmount,
       "eNORI: tokens already released"
     );
-    uint256 revocableQuantity = grant.grantAmount - releasedBalance;
+    uint256 revocableQuantity = escrowAccount.accountAmount - releasedBalance;
     uint256 quantityRevoked;
     // amount of zero indicates revocation by time.  Amount becomes all remaining tokens
     // at *atTime*
@@ -480,9 +504,9 @@ contract EscrowedNORI is
     } else {
       quantityRevoked = revocableQuantity;
     }
-    grant.grantAmount = grant.grantAmount - quantityRevoked;
-    grant.lastRevocationTime = revocationTime;
-    grant.lastQuantityRevoked = quantityRevoked;
+    escrowAccount.accountAmount = escrowAccount.accountAmount - quantityRevoked;
+    escrowAccount.lastRevocationTime = revocationTime;
+    escrowAccount.lastQuantityRevoked = quantityRevoked;
     super._burn(from, quantityRevoked, "", "");
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
@@ -506,7 +530,7 @@ contract EscrowedNORI is
    * - One of the following must be true:
    *    - the operation is minting (which should ONLY occur when BridgedPolygonNORI is being wrapped via `_depositFor`)
    *    - the operation is a burn and _all_ of the following must be true:
-   *      - the operator has TOKEN_GRANTER_ROLE
+   *      - the operator has ESCROW_CREATOR_ROLE
    *      - the operator is not operating on their own balance
    *      - the transfer amount is <= the sender's unlocked balance
    */
@@ -518,10 +542,10 @@ contract EscrowedNORI is
   ) internal override {
     bool isMinting = from == address(0);
     bool isBurning = to == address(0);
-    bool operatorIsGrantAdmin = hasRole(TOKEN_GRANTER_ROLE, operator);
+    bool operatorIsEscrowAdmin = hasRole(ESCROW_CREATOR_ROLE, operator);
     bool operatorIsNotSender = operator != from;
     bool ownerHasSufficientReleasedBalance = amount <= releasedBalanceOf(from);
-    if (isBurning && operatorIsNotSender && operatorIsGrantAdmin) {
+    if (isBurning && operatorIsNotSender && operatorIsEscrowAdmin) {
       require(balanceOf(from) >= amount, "eNORI: insufficient balance");
     } else if (!isMinting) {
       require(ownerHasSufficientReleasedBalance, "eNORI: insufficient balance");
@@ -550,29 +574,32 @@ contract EscrowedNORI is
 
   /**
    * @notice Released balance less any claimed amount at `atTime` (implementation)
-   *
+   *  TODO is this even right anymore?
    * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
-   * grant amount. This is done to preserve the behavior of the escrow schedule despite a reduction in the total
-   * quantity of tokens releasing.  i.o.w The rate of release does not change after calling `revokeUnreleasedTokens`
+   * escrow account amount. This is done to preserve the behavior of the escrow schedule despite a reduction in the
+   * total quantity of tokens releasing.
+   * i.o.w The rate of release does not change after calling `revokeUnreleasedTokens`
    */
-  // todo revoked tokens can cahnge the total grant amount and thus the beahvior of the releasing
-  function _releasedBalanceOf(address account, uint256 atTime)
-    internal
-    view
-    returns (uint256)
-  {
-    TokenGrant storage grant = _grants[account];
+  // todo revoked tokens can change the total escrow account amount and thus the beahvior of the releasing
+  function _releasedBalanceOf(
+    address account,
+    uint256 escrowAccountStartYear,
+    uint256 atTime
+  ) internal view returns (uint256) {
+    EscrowAccount storage escrowAccount = _addressToEscrowAccounts[account][
+      escrowAccountStartYear
+    ];
     uint256 balance = this.balanceOf(account);
-    if (grant.exists) {
+    if (escrowAccount.exists) {
       if (_hasEscrowSchedule(account)) {
         balance =
           MathUpgradeable.min( // todo I think this min isn't necessary
-            _linearReleaseAmountAvailable(grant.escrowSchedule, atTime),
-            grant.grantAmount
+            _linearReleaseAmountAvailable(escrowAccount.escrowSchedule, atTime),
+            escrowAccount.accountAmount
           ) -
-          grant.claimedAmount;
+          escrowAccount.claimedAmount;
       } else {
-        balance = grant.grantAmount - grant.claimedAmount;
+        balance = escrowAccount.accountAmount - escrowAccount.claimedAmount;
       }
     }
     return balance;
@@ -583,13 +610,17 @@ contract EscrowedNORI is
   }
 
   /**
-   * @notice Released balance less any claimed amount at `atTime` (implementation)
-   *
-   * @dev Returns true if the there is a grant for *account* with an escrow schedule.
+   * @dev Returns true if the there is an escrow account for *account* with an escrow schedule.
    */
-  function _hasEscrowSchedule(address account) private view returns (bool) {
-    TokenGrant storage grant = _grants[account];
-    return grant.exists && grant.escrowSchedule.startTime > 0;
+  function _hasEscrowSchedule(address account, uint256 escrowAccountStartYear)
+    private
+    view
+    returns (bool)
+  {
+    EscrowAccount storage escrowAccount = _addressToEscrowAccounts[account][
+      escrowAccountStartYear
+    ];
+    return escrowAccount.exists && escrowAccount.escrowSchedule.startTime > 0;
   }
 
   function send(
@@ -622,16 +653,18 @@ contract EscrowedNORI is
     revert("eNORI: transferFrom disabled");
   }
 
-  function _beforeRoleChange(bytes32 role, address account)
-    internal
-    virtual
-    override
-  {
+  // todo I added escrowAccountStartYear to function sig -- is this going to clash??
+  // probably have to find another mechanism for determining whether this account has ANY escrow accounts associated
+  function _beforeRoleChange(
+    bytes32 role,
+    address account,
+    uint256 escrowAccountStartYear
+  ) internal virtual override {
     super._beforeRoleChange(role, account);
-    if (role == TOKEN_GRANTER_ROLE) {
+    if (role == ESCROW_CREATOR_ROLE) {
       require(
-        !_grants[account].exists,
-        "eNORI: Cannot assign role to a grant holder address"
+        !_addressToEscrowAccounts[account][escrowAccountStartYear].exists,
+        "eNORI: Cannot assign role to an escrow account holder"
       );
     }
   }
