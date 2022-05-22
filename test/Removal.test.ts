@@ -92,26 +92,7 @@ describe('Removal', () => {
           formatTokenAmount(expectedMarketSupply).toString()
         );
       });
-      it('should not mint a removal with a duplicate token id', async () => {
-        const { fifoMarket, removal, hre } = await setupTest();
-        const removalBalances = [100, 200, 300].map((balance) =>
-          formatTokenAmount(balance)
-        );
-        const tokenIds = [0, 1, 1]; // duplicate token id
-        const listNow = false;
-        const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-          ['address', 'bool'],
-          [fifoMarket.address, listNow]
-        );
-        await expect(
-          removal.mintBatch(
-            hre.namedAccounts.supplier,
-            removalBalances,
-            tokenIds,
-            packedData
-          )
-        ).revertedWith('Token id already exists');
-      });
+
       it('should list pre-minted removals for sale in the atomic marketplace', async () => {
         const { fifoMarket, removal } = await setupTest();
         const removalBalances = [100, 200, 300].map((balance) =>
@@ -169,44 +150,25 @@ describe('Removal', () => {
     });
     describe('error', () => {
       describe('TokenIdExists', () => {
-        it('will throw a "TokenIdExists" error when a token with the same ID has already been minted', async () => {
-          const { fifoMarket, removal, removalTestHarness, hre } =
-            await setupTest();
-          const { ethers, namedAccounts } = hre;
-          const removalBalances = [1, 1].map((balance) =>
+        it('should not mint a removal with a duplicate token id', async () => {
+          const { fifoMarket, removal, hre } = await setupTest();
+          const removalBalances = [100, 200, 300].map((balance) =>
             formatTokenAmount(balance)
           );
-          const removalId = await removalTestHarness.createRemovalId(
-            formatRemovalIdData({
-              removalData: defaultRemovalTokenIdFixture,
-              hre,
-            })
-          );
-          const tokenIds = [removalId, removalId];
+          const tokenIds = [0, 1, 1]; // duplicate token id
           const listNow = false;
-          const packedData = ethers.utils.defaultAbiCoder.encode(
+          const packedData = hre.ethers.utils.defaultAbiCoder.encode(
             ['address', 'bool'],
             [fifoMarket.address, listNow]
           );
-          try {
-            const tx = await removal.mintBatch(
-              namedAccounts.supplier,
-              removalBalances,
-              tokenIds,
-              packedData
-            );
-            console.log({ tx });
-          } catch (error) {
-            console.log(error);
-          }
           await expect(
             removal.mintBatch(
-              namedAccounts.supplier,
+              hre.namedAccounts.supplier,
               removalBalances,
               tokenIds,
               packedData
             )
-          ).to.revertedWith('TokenIdExists');
+          ).revertedWith('Token id already exists');
         });
       });
     });
