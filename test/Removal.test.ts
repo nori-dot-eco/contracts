@@ -168,7 +168,7 @@ describe('Removal', () => {
               tokenIds,
               packedData
             )
-          ).revertedWith('Token id already exists');
+          ).revertedWith('TokenIdExists');
         });
       });
     });
