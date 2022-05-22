@@ -8,6 +8,7 @@ import type {
   NORI,
   Removal,
   ScheduleTestHarness,
+  RemovalTestHarness,
 } from '@/typechain-types';
 
 export interface Contracts {
@@ -18,6 +19,7 @@ export interface Contracts {
   LockedNORI?: LockedNORI;
   Certificate?: Certificate;
   ScheduleTestHarness?: ScheduleTestHarness;
+  RemovalTestHarness?: RemovalTestHarness;
 }
 
 export const getContract = async <
@@ -41,6 +43,8 @@ export const getContract = async <
     ? 'FIFOMarket'
     : TContract extends ScheduleTestHarness
     ? 'ScheduleTestHarness'
+    : TContract extends RemovalTestHarness
+    ? 'RemovalTestHarness'
     : never;
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
@@ -124,6 +128,19 @@ export const getRemoval = async ({
     signer,
   });
 
+export const getRemovalTestHarness = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<RemovalTestHarness> =>
+  getContract({
+    contractName: 'RemovalTestHarness',
+    hre,
+    signer,
+  });
+
 export const getFIFOMarket = async ({
   hre,
   signer,
@@ -157,6 +174,9 @@ export const getContractsFromDeployments = async (
       : undefined,
     Certificate: deployments.Certificate?.address
       ? await getCertificate({ hre })
+      : undefined,
+    RemovalTestHarness: deployments.RemovalTestHarness?.address
+      ? await getRemovalTestHarness({ hre })
       : undefined,
   } as Required<Contracts>;
   return contracts;
