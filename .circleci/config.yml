@@ -40,9 +40,6 @@ jobs:
               git checkout yarn.lock
             fi
       - build-typechain-types
-      - run:
-          name: Run Tests
-          command: yarn && yarn test
       - save_cache:
           key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
           paths:
