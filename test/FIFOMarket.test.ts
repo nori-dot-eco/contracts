@@ -2,12 +2,8 @@ import type { BigNumberish, ContractReceipt } from 'ethers';
 import { BigNumber } from 'ethers';
 
 import { formatTokenAmount } from '@/utils/units';
-import {
-  expect,
-  mockDepositNoriToPolygon,
-  setupTest,
-  createRemovalTokenId,
-} from '@/test/helpers';
+import { expect, mockDepositNoriToPolygon, setupTest } from '@/test/helpers';
+import { createRemovalTokenId } from '@/utils/removal';
 
 const setupTestLocal = async (
   {
@@ -34,9 +30,13 @@ const setupTestLocal = async (
     const defaultStartingVintage = 2016;
     tokenIds = await Promise.all(
       removalDataToList.map((removalData, index) => {
-        return createRemovalTokenId(removal, {
-          supplierAddress: removalData.supplier ?? supplier,
-          vintage: removalData.vintage ?? defaultStartingVintage + index,
+        return createRemovalTokenId({
+          removalInstance: removal,
+          options: {
+            supplierAddress: removalData.supplier ?? supplier,
+            vintage: removalData.vintage ?? defaultStartingVintage + index,
+          },
+          hre,
         });
       })
     );

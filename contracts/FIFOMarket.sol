@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity =0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
@@ -28,6 +29,13 @@ contract FIFOMarket is
 {
   using RemovalUtils for uint256;
 
+  struct Fee {
+    address account;
+    uint256 fee;
+    uint256 index;
+    bool exists;
+  }
+
   IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
   Certificate private _certificate;
@@ -39,6 +47,8 @@ contract FIFOMarket is
   uint256 private _noriFee;
   uint256 public priorityRestrictedThreshold;
   uint256 public totalSupply;
+  mapping(uint256 => mapping(address => Fee)) feeAddressToFeeIndex;
+  uint256 private _orderId;
 
   /**
    * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
@@ -81,6 +91,7 @@ contract FIFOMarket is
     totalSupply = 0;
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
+    _orderId = 0;
   }
 
   function setPriorityRestrictedThreshold(uint256 threshold)
@@ -166,14 +177,11 @@ contract FIFOMarket is
         "Low supply and buyer not on allowlist"
       );
     }
-    uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
-    uint256 remainingAmountToFill = certificateAmount;
-
-    address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
     require(
       _queueHeadIndex != _queueNextInsertIndex,
       "Market: Not enough supply"
     );
+    address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
     require(recipient == address(recipient), "Market: Invalid address");
     require(recipient != address(0), "Market: Cannot mint to the 0 address");
     // todo verify this can only be invoked by the nori contract
@@ -182,10 +190,15 @@ contract FIFOMarket is
       "Market: This contract can only receive BridgedPolygonNORI"
     );
 
+    uint256 certificateAmount = (amount * 100) / (100 + _noriFee); // todo calculate noriFee in loop to allow dynamic fees per removal
+    uint256 remainingAmountToFill = certificateAmount;
     uint256[] memory ids = new uint256[](_queueLength());
     uint256[] memory amounts = new uint256[](_queueLength());
     address[] memory suppliers = new address[](_queueLength());
     uint256 numberOfRemovals = 0;
+    Fee memory noriFee = Fee(_noriFeeWallet, 0, 0, true); // todo throw if supplier address == nori fee address
+    feeAddressToFeeIndex[_orderId][_noriFeeWallet] = noriFee;
+    uint256 highestFeeIndex = noriFee.index;
     for (uint256 i = _queueHeadIndex; i < _queueNextInsertIndex; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), _queue[i]);
       address supplier = _queue[i].supplierAddress();
@@ -206,15 +219,27 @@ contract FIFOMarket is
         suppliers[numberOfRemovals] = supplier;
         remainingAmountToFill -= removalAmount;
       }
-      numberOfRemovals++;
+      numberOfRemovals += 1;
+      Fee memory supplierFee = feeAddressToFeeIndex[_orderId][supplier];
+      if (!supplierFee.exists) {
+        highestFeeIndex += 1;
+      }
+      supplierFee = Fee(
+        supplier,
+        supplierFee.fee + amounts[i],
+        highestFeeIndex,
+        true
+      );
+      feeAddressToFeeIndex[_orderId][supplier] = supplierFee;
+      noriFee.fee += (amounts[i] / 100) * _noriFee;
       if (remainingAmountToFill == 0) {
         break;
       }
     }
+    feeAddressToFeeIndex[_orderId][_noriFeeWallet] = noriFee;
 
     uint256[] memory batchedIds = new uint256[](numberOfRemovals);
     uint256[] memory batchedAmounts = new uint256[](numberOfRemovals);
-
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       batchedIds[i] = ids[i];
       batchedAmounts[i] = amounts[i];
@@ -227,19 +252,38 @@ contract FIFOMarket is
       batchedAmounts,
       encodedCertificateAmount
     );
+    address[] memory feeRecipients = new address[](highestFeeIndex + 1);
+    uint256[] memory fees = new uint256[](highestFeeIndex + 1);
+    bytes[] memory data = new bytes[](highestFeeIndex + 1); // todo overload batchSend to allow no data params
+    bool[] memory requireReceptionAck = new bool[](highestFeeIndex + 1); // todo overload batchSend to allow no requireReceptionAck params
+    fees[noriFee.index] = noriFee.fee;
+    feeRecipients[noriFee.index] = noriFee.account;
+    data[noriFee.index] = "0x";
+    requireReceptionAck[noriFee.index] = false;
     for (uint256 i = 0; i < batchedIds.length; i++) {
       if (
         batchedAmounts[i] == _removal.balanceOf(address(this), batchedIds[i])
       ) {
         _queueHeadIndex++;
       }
-      totalSupply -= batchedAmounts[i];
-      uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
-      uint256 supplierFee = batchedAmounts[i];
-      _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
-      _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
+      totalSupply -= batchedAmounts[i]; // todo test gas optimization with caching of these vars
     }
+    for (uint256 i = 0; i < highestFeeIndex; i++) {
+      Fee memory supplierFee = feeAddressToFeeIndex[_orderId][suppliers[i]];
+      fees[supplierFee.index] = supplierFee.fee; // todo extract to loop that loops numberOfSuppliers
+      feeRecipients[supplierFee.index] = supplierFee.account;
+      data[supplierFee.index] = "0x";
+      requireReceptionAck[supplierFee.index] = false;
+    }
+    _bridgedPolygonNori.batchSend(
+      feeRecipients,
+      fees,
+      data,
+      data,
+      requireReceptionAck
+    );
     _removal.burnBatch(address(this), batchedIds, batchedAmounts);
+    _orderId += 1;
   }
 
   function supportsInterface(bytes4 interfaceId)

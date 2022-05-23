@@ -3,8 +3,8 @@ import path from 'path';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 
-import type { Contracts } from './contracts';
-
+import { createRemovalTokenId } from '@/utils/removal';
+import type { Contracts } from '@/utils/contracts';
 import type {
   LockedNORI,
   Certificate,
@@ -24,7 +24,7 @@ import type {
   RemovalTestHarness__factory,
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
-import { createRemovalTokenId, mockDepositNoriToPolygon } from '@/test/helpers';
+import { mockDepositNoriToPolygon } from '@/test/helpers';
 
 interface ContractConfig {
   [key: string]: { proxyAddress: string };
@@ -333,8 +333,12 @@ export const seedContracts = async ({
       contracts.FIFOMarket != undefined &&
       contracts.Removal != undefined
     ) {
-      const tokenId = await createRemovalTokenId(contracts.Removal, {
-        supplierAddress: hre.namedAccounts.supplier,
+      const tokenId = await createRemovalTokenId({
+        hre,
+        removalInstance: contracts.Removal,
+        options: {
+          supplierAddress: hre.namedAccounts.supplier,
+        },
       });
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(

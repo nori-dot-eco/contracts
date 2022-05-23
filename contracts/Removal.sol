@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 
 // import "hardhat/console.sol"; // todo
@@ -32,10 +33,23 @@ contract Removal is
     bool list;
   }
 
+  /**
+   * @notice Reserved storage slot for upgradeability
+   *
+   * @dev This empty reserved space is put in place to allow future versions to add new variables without shifting
+   * down storage in the inheritance chain. See more [here](
+   * https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps)
+   */
+  uint256[50] private __gap; // todo all contracts
+
   uint256 private _tokenIdCounter;
-  string public name; // todo why did I add this
-  mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
   mapping(uint256 => bool) private _tokenIdExists;
+
+  /**
+   * todo consider how we're keeping track of the number and order of ids, ability to iterate
+   */
+  mapping(uint256 => uint256) public indexToTokenId;
+  string public name; // todo why did I add this
 
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
@@ -82,15 +96,15 @@ contract Removal is
   /**
    * @dev mints multiple removals at once (for a single supplier).
    * If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
-   * amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
-   * token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
-   * token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
-   * token id 2 URI points to vintage information (e.g., 2020) nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
+   * amounts: [100e18, 10e18, 50e18] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
+   * token id 0: nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
+   * token id 1: nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
+   * token id 2: nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
    * @param to The supplier address
    * @param amounts Each removal's tonnes of CO2 formatted as wei
-   * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address, a parcel identifier,
+   * @param ids The removal token IDs. The id itself encodes the supplier's ethereum address, a parcel identifier,
    * the vintage, country code, state code, methodology identifer, and methodology version.
-   * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals came.
+   * @param data Encodes the market contract address and a unique ID for the parcel from whence these removals came.
    */
   function mintBatch(
     address to,

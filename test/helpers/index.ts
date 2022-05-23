@@ -82,37 +82,3 @@ export const setupTest = global.hre.deployments.createFixture(
     };
   }
 );
-
-export const createRemovalTokenId = async (
-  removalInstance: Removal,
-  options?: Partial<UnpackedRemovalIdV0Struct>
-): Promise<BigNumber> => {
-  const defaultRemovalData: UnpackedRemovalIdV0Struct = {
-    idVersion: 0,
-    methodology: 1,
-    methodologyVersion: 1,
-    vintage: 2018,
-    country: asciiStringToHexString('US'),
-    subdivision: asciiStringToHexString('IA'),
-    supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-    subIdentifier: 99_039_930, // parcel id
-  };
-  const removalData = { ...defaultRemovalData, ...options };
-  const abiEncodedRemovalData = hre.ethers.utils.defaultAbiCoder.encode(
-    [
-      'uint8',
-      'uint8',
-      'uint8',
-      'uint16',
-      'bytes2',
-      'bytes2',
-      'address',
-      'uint32',
-    ],
-    Object.values(removalData)
-  );
-  const removalId = await removalInstance.createRemovalId(
-    abiEncodedRemovalData
-  );
-  return removalId;
-};

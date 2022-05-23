@@ -1,7 +1,7 @@
 import type { HardhatUserConfig } from 'hardhat/types';
 
-const { CI } = process.env;
+const { CI, REPORT_GAS } = process.env;
 
 export const mocha: HardhatUserConfig['mocha'] = {
-  parallel: !Boolean(CI),
+  parallel: !Boolean(CI) || !REPORT_GAS,
 };
