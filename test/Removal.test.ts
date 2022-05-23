@@ -16,7 +16,7 @@ describe('Removal', () => {
         const { supplier } = hre.namedAccounts;
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
-          removalBalances.map((amount, i) => {
+          removalBalances.map((_, i) => {
             return createRemovalTokenId(removal, {
               supplierAddress: supplier,
               vintage: defaultStartingVintage + i,
@@ -65,7 +65,16 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const expectedMarketSupply = 1000;
-        const tokenIds = [10, 11, 12, 13];
+        const { supplier } = hre.namedAccounts;
+        const defaultStartingVintage = 2016;
+        const tokenIds = await Promise.all(
+          removalBalances.map((_, i) => {
+            return createRemovalTokenId(removal, {
+              supplierAddress: supplier,
+              vintage: defaultStartingVintage + i,
+            });
+          })
+        );
         const listNow = true;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
           ['address', 'bool'],
