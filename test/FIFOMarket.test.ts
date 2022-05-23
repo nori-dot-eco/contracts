@@ -501,7 +501,9 @@ describe('FIFOMarket', () => {
         fifoMarket.activeSupplierCount(),
       ]);
 
-      expect(totalActiveSupply).to.equal(totalAmountOfSupply);
+      expect(totalActiveSupply).to.equal(
+        parseNumberToBigNumber(totalAmountOfSupply)
+      );
       expect(totalNumberActiveRemovals).to.equal(
         parseNumberToBigNumber(totalAmountOfRemovals)
       );
@@ -1183,7 +1185,7 @@ describe('FIFOMarket', () => {
       ]);
 
       expect(totalActiveSupply).to.equal(
-        totalAmountOfSupply - removalAmountToReserve
+        parseNumberToBigNumber(totalAmountOfSupply - removalAmountToReserve)
       );
       expect(totalNumberActiveRemovals).to.equal(
         parseNumberToBigNumber(totalAmountOfRemovals - 1)
@@ -1223,7 +1225,9 @@ describe('FIFOMarket', () => {
         fifoMarket.activeSupplierCount(),
       ]);
 
-      expect(totalActiveSupply).to.equal(totalAmountOfSupply);
+      expect(totalActiveSupply).to.equal(
+        parseNumberToBigNumber(totalAmountOfSupply)
+      );
       expect(totalNumberActiveRemovals).to.equal(
         parseNumberToBigNumber(totalAmountOfRemovals)
       );
