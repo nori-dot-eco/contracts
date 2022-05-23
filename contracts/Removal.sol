@@ -15,6 +15,8 @@ import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
 
+error TokenIdExists();
+
 /**
  * @title Removal
  */
@@ -101,8 +103,9 @@ contract Removal is
       (BatchMintRemovalsData)
     );
     for (uint256 i = 0; i < ids.length; i++) {
-      require(!_tokenIdExists[ids[i]], "Token id already exists"); // todo can the duplicate token id be reported here?
-
+      if (_tokenIdExists[ids[i]]) {
+        revert TokenIdExists(); // todo can the duplicate token id be reported here?
+      }
       _tokenIdExists[ids[i]] = true;
       indexToTokenId[_tokenIdCounter] = ids[i];
       _tokenIdCounter += 1;

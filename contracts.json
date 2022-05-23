@@ -20,6 +20,9 @@
     },
     "ScheduleTestHarness": {
       "proxyAddress": "0x83207e4a2caC1015bda1A794b57F708C4360924e"
+    },
+    "RemovalTestHarness": {
+      "proxyAddress": "0x0013B38Ffb2EA257427F5d3D5cb1af53e8AF8aC0"
     }
   },
   "localhost": {
@@ -40,6 +43,9 @@
     },
     "LockedNORI": {
       "proxyAddress": "0x0E585861af9D895D8BcAB3de1a4A923db46d86c8"
+    },
+    "RemovalTestHarness": {
+      "proxyAddress": "0x0013B38Ffb2EA257427F5d3D5cb1af53e8AF8aC0"
     }
   },
   "polygon": {
