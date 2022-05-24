@@ -504,12 +504,10 @@ describe('FIFOMarket', () => {
       expect(totalActiveSupply).to.equal(
         parseNumberToBigNumber(totalAmountOfSupply)
       );
-      expect(totalNumberActiveRemovals).to.equal(
-        parseNumberToBigNumber(totalAmountOfRemovals)
+      expect(totalNumberActiveRemovals.toNumber()).to.equal(
+        totalAmountOfRemovals
       );
-      expect(activeSupplierCount).to.equal(
-        parseNumberToBigNumber(totalAmountOfSuppliers)
-      );
+      expect(activeSupplierCount.toNumber()).to.equal(totalAmountOfSuppliers);
     });
     // TODO: Fix the already existing token IDs for this test
     // it('updates totalActiveSupply and totalNumberActiveRemovals when more removals are added for a supplier', async () => {
@@ -682,7 +680,7 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('mint a certificate with all of a single removal in round robin order and update state variables', async () => {});
+    it('TODO: mint a certificate with all of a single removal in round robin order and update state variables', async () => {});
     it('mint a certificate with one removal per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
@@ -993,9 +991,9 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('should not use reserved supply to fulfill an order', async () => {});
-    it('should use previously reserved supply to fulfill an order after it has been unreserved', async () => {});
-    it('updates activeSupplierCount after the last removal has been reserved from a supplier', async () => {});
+    it('TODO: should not use reserved supply to fulfill an order', async () => {});
+    it('TODO: should use previously reserved supply to fulfill an order after it has been unreserved', async () => {});
+    it('TODO: updates activeSupplierCount after the last removal has been reserved from a supplier', async () => {});
   });
 
   describe('Unsuccessful purchases', () => {
@@ -1187,12 +1185,10 @@ describe('FIFOMarket', () => {
       expect(totalActiveSupply).to.equal(
         parseNumberToBigNumber(totalAmountOfSupply - removalAmountToReserve)
       );
-      expect(totalNumberActiveRemovals).to.equal(
-        parseNumberToBigNumber(totalAmountOfRemovals - 1)
+      expect(totalNumberActiveRemovals.toNumber()).to.equal(
+        totalAmountOfRemovals - 1
       );
-      expect(activeSupplierCount).to.equal(
-        parseNumberToBigNumber(totalAmountOfSuppliers)
-      );
+      expect(activeSupplierCount.toNumber()).to.equal(totalAmountOfSuppliers);
       expect(totalReservedSupply).to.equal(
         parseNumberToBigNumber(removalAmountToReserve)
       );
@@ -1228,12 +1224,10 @@ describe('FIFOMarket', () => {
       expect(totalActiveSupply).to.equal(
         parseNumberToBigNumber(totalAmountOfSupply)
       );
-      expect(totalNumberActiveRemovals).to.equal(
-        parseNumberToBigNumber(totalAmountOfRemovals)
+      expect(totalNumberActiveRemovals.toNumber()).to.equal(
+        totalAmountOfRemovals
       );
-      expect(activeSupplierCount).to.equal(
-        parseNumberToBigNumber(totalAmountOfSuppliers)
-      );
+      expect(activeSupplierCount.toNumber()).to.equal(totalAmountOfSuppliers);
       expect(totalReservedSupply).to.equal(parseNumberToBigNumber(0));
     });
     it('updates activeSupplierCount when the last removal from a supplier is reserved', async () => {
@@ -1258,8 +1252,8 @@ describe('FIFOMarket', () => {
       ]);
 
       expect(totalActiveSupply).to.equal(parseNumberToBigNumber(0));
-      expect(totalNumberActiveRemovals).to.equal(parseNumberToBigNumber(0));
-      expect(activeSupplierCount).to.equal(parseNumberToBigNumber(0));
+      expect(totalNumberActiveRemovals.toNumber()).to.equal(0);
+      expect(activeSupplierCount.toNumber()).to.equal(0);
       expect(totalReservedSupply).to.equal(
         parseNumberToBigNumber(getTotalAmountOfSupply(removals))
       );
