@@ -20,7 +20,7 @@ const hardhat: NetworksUserConfig['hardhat'] = {
 const localhost: NetworkUserConfig = {
   blockGasLimit: 20_000_000,
   initialBaseFeePerGas: 1,
-  gasPrice: 2,
+  // gasPrice: 2,
   chainId: 9001,
   ...(typeof MNEMONIC === 'string' && {
     accounts: { mnemonic: MNEMONIC },
