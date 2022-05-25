@@ -6,6 +6,7 @@ import type {
   Certificate,
   FIFOMarket,
   LockedNORI,
+  EscrowedNORI,
   NORI,
   BridgedPolygonNORI,
   RemovalTestHarness,
@@ -27,6 +28,7 @@ interface ContractInstances {
   certificate: Certificate;
   fifoMarket: FIFOMarket;
   lNori: LockedNORI;
+  eNori: EscrowedNORI;
   removalTestHarness: RemovalTestHarness;
 }
 
@@ -78,6 +80,7 @@ export const setupTest = global.hre.deployments.createFixture(
       certificate: contracts.Certificate,
       fifoMarket: contracts.FIFOMarket,
       lNori: contracts.LockedNORI,
+      eNori: contracts.EscrowedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
     };
   }

@@ -7,15 +7,17 @@ import type { Contracts } from './contracts';
 
 import type {
   LockedNORI,
-  Certificate,
-  FIFOMarket,
-  NORI,
-  Removal,
-  Certificate__factory,
-  Removal__factory,
-  NORI__factory,
-  FIFOMarket__factory,
   LockedNORI__factory,
+  EscrowedNORI,
+  EscrowedNORI__factory,
+  Certificate,
+  Certificate__factory,
+  FIFOMarket,
+  FIFOMarket__factory,
+  NORI,
+  NORI__factory,
+  Removal,
+  Removal__factory,
   BridgedPolygonNORI,
   BridgedPolygonNORI__factory,
   ScheduleTestHarness,
@@ -176,6 +178,21 @@ export const deployFIFOMarketContract = async ({
     ],
     options: {
       initializer: 'initialize(address,address,address,address,uint256)',
+    },
+  });
+};
+
+export const deployEscrowedNORI = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<EscrowedNORI>> => {
+  const deployments = await hre.deployments.all<Required<Contracts>>();
+  return hre.deployOrUpgradeProxy<EscrowedNORI, EscrowedNORI__factory>({
+    contractName: 'EscrowedNORI',
+    args: [deployments.BridgedPolygonNORI.address, deployments.Removal.address],
+    options: {
+      initializer: 'initialize(address,address)',
     },
   });
 };

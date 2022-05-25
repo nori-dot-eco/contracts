@@ -36,9 +36,6 @@ Open Questions:
 
 /*
 TODO LIST:
-- removal contract needs to register removal ids to the corresponding escrow schedule startTime
-  - the escrow schedule id should be the starttime of the account in unix epoch
-
 - handle escrow schedule transferability (both batch and single) that transfers full grants.
   -  pretty sure we can't do this in any other way because it's too unclear which escrow schedules the transferred tokens belong to
 
@@ -216,15 +213,13 @@ contract EscrowedNORI is
    * of `BridgedPolygonNORI` from the `EscrowedNORI` contract's balance to
    * `_msgSender()`'s balance.
    *
-   * Enforcement of the availability of wrapped and unlocked tokens
+   * Enforcement of the availability of claimable tokens
    * for the `_burn` call happens in `_beforeTokenTransfer`
    *
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
    */
-  // TODO this will need a notion of the total number of released tokens availble to withdraw,
-  // and a mechanism for withdrawing them correctly from potentially a variety of escrow schedules
   function withdrawTo(address recipient, uint256 amount)
     external
     returns (bool)
@@ -437,7 +432,9 @@ contract EscrowedNORI is
     bytes calldata operatorData
   ) internal returns (bool) {
     address recipient = removalId.supplierAddress();
-    uint256 escrowScheduleId = removalId.vintage(); // TODO the removal contract doesn't yet have a mechanism for mapping removal to escrow schedule
+    uint256 escrowScheduleId = _removal.getEscrowScheduleIdForRemoval(
+      removalId
+    );
     if (!_addressToEscrowSchedules[recipient][escrowScheduleId].exists) {
       _createEscrowSchedule(recipient, escrowScheduleId);
     }
@@ -456,8 +453,7 @@ contract EscrowedNORI is
    * This will be invoked via the `tokensReceived` callback for cases
    * where we have the tokens in hand at the time we set up the escrow schedule.
    *
-   * It is also callable externally (see `grantTo`) to handle cases // todo what was `grantTo`???
-   * where tokens are incrementally deposited after the escrow schedule is established.
+   * It is also callable externally
    */
   function _createEscrowSchedule(address recipient, uint256 startTime)
     internal
@@ -508,15 +504,17 @@ contract EscrowedNORI is
     uint256 amount
   ) internal {
     address revokeFrom = removalId.supplierAddress();
-    uint256 escrowScheduleId = removalId.vintage(); // TODO removal contract support schedule id lookup
+    uint256 escrowScheduleId = _removal.getEscrowScheduleIdForRemoval(
+      removalId
+    );
     EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[
       revokeFrom
     ][escrowScheduleId];
     require(escrowSchedule.exists, "eNORI: no escrow schedule exists");
-    // TODO consider factoring this into a utility since it's also used in _claimableBalanceOfSingleEscrowSchedule
-    uint256 releasedBalance = MathUpgradeable.max(
-      _linearReleaseAmountAvailable(escrowSchedule, block.timestamp), // solhint-disable-line not-rely-on-time, this is time-dependent
-      escrowSchedule.releasedAmountFloor
+    uint256 releasedBalance = _releasedBalanceOfSingleEscrowSchedule(
+      revokeFrom,
+      escrowScheduleId,
+      block.timestamp
     );
     require(
       releasedBalance < escrowSchedule.currentAmount,
@@ -649,12 +647,12 @@ contract EscrowedNORI is
       escrowScheduleId
     ];
     require(escrowSchedule.exists, "eNORI: no escrow schedule exists");
-    uint256 balance = _releasedBalanceOfSingleEscrowSchedule(
-      account,
-      escrowScheduleId,
-      atTime
-    ) - escrowSchedule.claimedAmount;
-    return balance;
+    return
+      _releasedBalanceOfSingleEscrowSchedule(
+        account,
+        escrowScheduleId,
+        atTime
+      ) - escrowSchedule.claimedAmount;
   }
 
   /**

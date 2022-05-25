@@ -172,6 +172,7 @@ declare global {
     | 'Removal'
     | 'Certificate'
     | 'LockedNORI'
+    | 'EscrowedNORI'
     | 'BridgedPolygonNORI'
     | 'ScheduleTestHarness';
 
