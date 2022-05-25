@@ -24,7 +24,11 @@ import type {
   RemovalTestHarness__factory,
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
-import { createRemovalTokenId, mockDepositNoriToPolygon } from '@/test/helpers';
+import {
+  createEscrowScheduleStartTimeArray,
+  createRemovalTokenId,
+  mockDepositNoriToPolygon,
+} from '@/test/helpers';
 
 interface ContractConfig {
   [key: string]: { proxyAddress: string };
@@ -336,15 +340,20 @@ export const seedContracts = async ({
       const tokenId = await createRemovalTokenId(contracts.Removal, {
         supplierAddress: hre.namedAccounts.supplier,
       });
+      const escrowScheduleStartTime = await createEscrowScheduleStartTimeArray(
+        contracts.Removal,
+        [tokenId]
+      );
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
         [contracts.FIFOMarket.address, listNow]
       );
-      const tx = await contracts.Removal.mintBatch(
+      const tx = await contracts.Removal.mintRemovalBatch(
         hre.namedAccounts.supplier,
         [formatTokenAmount(100)],
         [tokenId],
+        escrowScheduleStartTime,
         packedData
       );
       hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });

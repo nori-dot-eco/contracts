@@ -1,11 +1,16 @@
 import { formatRemovalIdData } from '../utils/removal';
 
-import { expect, setupTest } from '@/test/helpers';
+import {
+  createEscrowScheduleStartTimeArray,
+  createRemovalTokenId,
+  expect,
+  setupTest,
+} from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 
 describe('Removal', () => {
-  describe('mintBatch', () => {
+  describe('mintRemovalBatch', () => {
     describe('success', () => {
       it('should mint a batch of removals without listing any', async () => {
         const { fifoMarket, removal, hre } = await setupTest();
@@ -13,17 +18,24 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const expectedMarketSupply = 0;
-        const tokenIds = [0, 1, 2, 3];
+        const tokenIds = await Promise.all(
+          [2016, 2017, 2018, 2019].map((vintage) =>
+            createRemovalTokenId(removal, { vintage })
+          )
+        );
+        const escrowScheduleStartTimes =
+          await createEscrowScheduleStartTimeArray(removal, tokenIds);
         const listNow = false;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
           ['address', 'bool'],
           [fifoMarket.address, listNow]
         );
         await expect(
-          removal.mintBatch(
+          removal.mintRemovalBatch(
             hre.namedAccounts.supplier,
             removalBalances,
             tokenIds,
+            escrowScheduleStartTimes,
             packedData
           )
         )
@@ -56,17 +68,24 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const expectedMarketSupply = 1000;
-        const tokenIds = [10, 11, 12, 13];
+        const tokenIds = await Promise.all(
+          [2016, 2017, 2018, 2019].map((vintage) =>
+            createRemovalTokenId(removal, { vintage })
+          )
+        );
+        const escrowScheduleStartTimes =
+          await createEscrowScheduleStartTimeArray(removal, tokenIds);
         const listNow = true;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
           ['address', 'bool'],
           [fifoMarket.address, listNow]
         );
         await expect(
-          removal.mintBatch(
+          removal.mintRemovalBatch(
             hre.namedAccounts.supplier,
             removalBalances,
             tokenIds,
+            escrowScheduleStartTimes,
             packedData
           )
         )
@@ -98,17 +117,24 @@ describe('Removal', () => {
         const removalBalances = [100, 200, 300].map((balance) =>
           formatTokenAmount(balance)
         );
-        const tokenIds = [4321, 12_344, 7892];
+        const tokenIds = await Promise.all(
+          [2016, 2017, 2018].map((vintage) =>
+            createRemovalTokenId(removal, { vintage })
+          )
+        );
+        const escrowScheduleStartTimes =
+          await createEscrowScheduleStartTimeArray(removal, tokenIds);
         const listNow = false;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
           ['address', 'bool'],
           [fifoMarket.address, listNow]
         );
         await expect(
-          removal.mintBatch(
+          removal.mintRemovalBatch(
             hre.namedAccounts.supplier,
             removalBalances,
             tokenIds,
+            escrowScheduleStartTimes,
             packedData
           )
         )
@@ -155,21 +181,59 @@ describe('Removal', () => {
           const removalBalances = [100, 200, 300].map((balance) =>
             formatTokenAmount(balance)
           );
-          const tokenIds = [0, 1, 1]; // duplicate token id
+          // duplicate token id
+          const tokenIds = await Promise.all(
+            [2016, 2017, 2017].map((vintage) =>
+              createRemovalTokenId(removal, { vintage })
+            )
+          );
+          const escrowScheduleStartTimes =
+            await createEscrowScheduleStartTimeArray(removal, tokenIds);
           const listNow = false;
           const packedData = hre.ethers.utils.defaultAbiCoder.encode(
             ['address', 'bool'],
             [fifoMarket.address, listNow]
           );
           await expect(
-            removal.mintBatch(
+            removal.mintRemovalBatch(
               hre.namedAccounts.supplier,
               removalBalances,
               tokenIds,
+              escrowScheduleStartTimes,
               packedData
             )
           ).revertedWith('TokenIdExists');
         });
+      });
+    });
+  });
+  describe('getters', () => {
+    describe('getEscrowScheduleStartTimeForRemoval', () => {
+      it('should return the escrow schedule start time for a removal id', async () => {
+        const { fifoMarket, removal, hre } = await setupTest();
+        const removalBalances = [100].map((balance) =>
+          formatTokenAmount(balance)
+        );
+        const tokenIds = await Promise.all(
+          [2016].map((vintage) => createRemovalTokenId(removal, { vintage }))
+        );
+        const escrowScheduleStartTimes =
+          await createEscrowScheduleStartTimeArray(removal, tokenIds);
+        const listNow = false;
+        const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+          ['address', 'bool'],
+          [fifoMarket.address, listNow]
+        );
+        await removal.mintRemovalBatch(
+          hre.namedAccounts.supplier,
+          removalBalances,
+          tokenIds,
+          escrowScheduleStartTimes,
+          packedData
+        );
+        const escrowScheduleStartTime =
+          await removal.getEscrowScheduleIdForRemoval(tokenIds[0]);
+        expect(escrowScheduleStartTime).to.equal(escrowScheduleStartTimes[0]);
       });
     });
   });

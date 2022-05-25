@@ -6,6 +6,7 @@ import {
   mockDepositNoriToPolygon,
   setupTest,
   createRemovalTokenId,
+  createEscrowScheduleStartTimeArray,
 } from '@/test/helpers';
 
 const setupTestLocal = async (
@@ -39,6 +40,10 @@ const setupTestLocal = async (
         });
       })
     );
+    const escrowScheduleStartTimes = await createEscrowScheduleStartTimeArray(
+      removal,
+      tokenIds
+    );
     const removalBalances = removalDataToList.map((removalData) =>
       hre.ethers.utils.parseUnits(removalData.amount.toString())
     );
@@ -47,7 +52,13 @@ const setupTestLocal = async (
       ['address', 'bool'],
       [fifoMarket.address, true]
     );
-    await removal.mintBatch(supplier, removalBalances, tokenIds, packedData);
+    await removal.mintRemovalBatch(
+      supplier,
+      removalBalances,
+      tokenIds,
+      escrowScheduleStartTimes,
+      packedData
+    );
   }
   await mockDepositNoriToPolygon({
     hre,

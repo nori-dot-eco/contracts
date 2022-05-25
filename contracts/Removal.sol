@@ -32,15 +32,22 @@ contract Removal is
     bool list;
   }
 
-  uint256 private _tokenIdCounter;
+  // TODO should we make this more general?
+  // should we keep the "exists" field in here?
+  struct InsuranceData {
+    uint256 escrowScheduleStartTime;
+  }
+
+  uint256 public tokenIdCounter;
   string public name; // todo why did I add this
   mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
   mapping(uint256 => bool) private _tokenIdExists;
+  mapping(uint256 => InsuranceData) private _idToInsuranceData;
 
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
-    _tokenIdCounter = 0;
+    tokenIdCounter = 0;
     name = "Removal";
   }
 
@@ -79,6 +86,19 @@ contract Removal is
     return removalId.unpackRemovalIdV0();
   }
 
+  // TODO do we want a batch version of this?
+  /**
+   * @notice Get the escrow schedule id (which is the schedule's start time in seconds since
+   * the unix epoch) for a given removal id.
+   */
+  function getEscrowScheduleIdForRemoval(uint256 removalId)
+    public
+    view
+    returns (uint256)
+  {
+    return _idToInsuranceData[removalId].escrowScheduleStartTime;
+  }
+
   /**
    * @dev mints multiple removals at once (for a single supplier).
    * If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
@@ -90,14 +110,24 @@ contract Removal is
    * @param amounts Each removal's tonnes of CO2 formatted as wei
    * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address, a parcel identifier,
    * the vintage, country code, state code, methodology identifer, and methodology version.
+   * @param escrowScheduleStartTimes The start times, in seconds since the unix epoch, of the escrow schedules for each removal (serves as escrow schedule id in EscrowedNORI)
    * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals came.
    */
-  function mintBatch(
+  function mintRemovalBatch(
     address to,
     uint256[] memory amounts,
     uint256[] memory ids,
+    uint256[] memory escrowScheduleStartTimes,
     bytes memory data
-  ) public override {
+  ) public {
+    require(
+      amounts.length == ids.length,
+      "Removal: amounts and ids length mismatch"
+    );
+    require(
+      amounts.length == escrowScheduleStartTimes.length,
+      "Removal: amounts and escrowScheduleStartTimes.length"
+    );
     BatchMintRemovalsData memory decodedData = abi.decode(
       data,
       (BatchMintRemovalsData)
@@ -106,9 +136,10 @@ contract Removal is
       if (_tokenIdExists[ids[i]]) {
         revert TokenIdExists(); // todo can the duplicate token id be reported here?
       }
+      _idToInsuranceData[ids[i]] = InsuranceData(escrowScheduleStartTimes[i]);
       _tokenIdExists[ids[i]] = true;
-      indexToTokenId[_tokenIdCounter] = ids[i];
-      _tokenIdCounter += 1;
+      indexToTokenId[tokenIdCounter] = ids[i];
+      tokenIdCounter += 1;
     }
     super.mintBatch(to, ids, amounts, data);
 
@@ -116,6 +147,15 @@ contract Removal is
     if (decodedData.list) {
       safeBatchTransferFrom(to, decodedData.marketAddress, ids, amounts, data);
     }
+  }
+
+  function mintBatch(
+    address,
+    uint256[] calldata,
+    uint256[] calldata,
+    bytes calldata
+  ) public pure override {
+    revert("Removal: mintBatch standard ERC1155 disabled");
   }
 
   /**

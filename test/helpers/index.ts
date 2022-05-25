@@ -1,4 +1,4 @@
-import type { BigNumber } from 'ethers';
+import { BigNumber } from 'ethers';
 
 import { mockDepositNoriToPolygon } from '@/test/helpers';
 import type {
@@ -115,4 +115,25 @@ export const createRemovalTokenId = async (
     abiEncodedRemovalData
   );
   return removalId;
+};
+
+/**
+ * Returns an array of unix timestamps that for the vintage of each removal
+ * in `removalIds` for convenience of generating realistic escrow schedule start
+ * times for minting removals during test setup.
+ */
+export const createEscrowScheduleStartTimeArray = async (
+  removalInstance: Removal,
+  removalIds: BigNumber[]
+): Promise<BigNumber[]> => {
+  const removalVintages = (
+    await Promise.all(
+      removalIds.map((removalId) =>
+        removalInstance.unpackRemovalIdV0(removalId)
+      )
+    )
+  ).map((unpackedRemovalId) => unpackedRemovalId.vintage);
+  return removalVintages.map((vintage) =>
+    BigNumber.from(Math.floor(new Date(vintage, 0).getTime() / 1_000))
+  );
 };
