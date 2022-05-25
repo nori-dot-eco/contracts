@@ -27,24 +27,26 @@ Open Questions:
   -   startTime that we use the year (in epoch seconds) of the removal's vintage as the startime? it would allow us to migrate
   -   seamlessly to the far superior world where the escrow schedules aren't so arbitrary and actually represent exactly
   -   10 years for each removal.
+
+  - When it comes to keeping track of tokens that have been revoked, is it sufficient to keep a running total for any given escrow schedule,
+  and then to rely on events for more granular examination at the level of removalid and to see the times at which things were revoked?
+  - Do we need any additional information captured when a revocation happens?  Do we want to allow a default mechanism for recapturing ALL available tokens?
+  I believe this is currently happening by specifying an amount of 0
  */
 
 /*
 TODO LIST:
 - removal contract needs to register removal ids to the corresponding escrow schedule startTime
+  - the escrow schedule id should be the starttime of the account in unix epoch
 
-- the escrow schedule id should be the starttime of the account in unix epoch
-
-- handle revocation and the implications of changing escrow schedule amounts:
-  - at the time that tokens are revoked and the amount drops, we need to have a way of accounting for what the
-  - current number of RELEASED (not claimed) tokens were at that moment and never letting that number drop lower
-  - so the released balance will involve a max calculation
+- handle escrow schedule transferability (both batch and single) that transfers full grants.
+  -  pretty sure we can't do this in any other way because it's too unclear which escrow schedules the transferred tokens belong to
 
 - do we need a mechanism of removing escrow schedule ids from a supplier's list once the escrow schedule has been completely
 - vested AND claimed? so that the process of withdrawing tokens is more gas efficient and iterates less??
   - old schedules could still be kept around and indexed by a different collection, for view purposes.
 
-  - what are all the view functions we need here?
+  - what are all the potential view functions we need here?
 
   - update all the natspec comments
 
@@ -60,24 +62,22 @@ contract EscrowedNORI is
   using RemovalUtils for uint256;
 
   struct EscrowSchedule {
-    // todo add releasedAmountFloor?
     uint256 startTime;
     uint256 endTime;
-    uint256 accountAmount;
+    uint256 currentAmount;
     uint256 claimedAmount;
     bool exists;
-    uint256 lastRevocationTime;
-    uint256 lastQuantityRevoked;
+    uint256 totalQuantityRevoked;
+    uint256 releasedAmountFloor;
   }
 
   struct EscrowScheduleDetail {
-    uint256 accountAmount;
+    uint256 currentAmount;
     address recipient;
     uint256 startTime;
     uint256 escrowEndTime;
     uint256 claimedAmount;
-    uint256 lastRevocationTime;
-    uint256 lastQuantityRevoked;
+    uint256 totalQuantityRevoked;
     bool exists;
   }
 
@@ -98,7 +98,7 @@ contract EscrowedNORI is
   bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
     keccak256("ERC777TokensRecipient");
 
-  mapping(address => uint256[]) private _addressToEnumerableEscrowIds;
+  mapping(address => uint256[]) private _addressToEscrowScheduleIds;
 
   mapping(address => mapping(uint256 => EscrowSchedule))
     private _addressToEscrowSchedules;
@@ -132,12 +132,13 @@ contract EscrowedNORI is
   );
 
   /**
-   * @notice Emitted on when the unreleased portion of an active escrow schedule is terminated.
+   * @notice Emitted on when unreleased tokens of an active escrow schedule are revoked.
    */
   event UnreleasedTokensRevoked(
     uint256 indexed atTime,
-    address indexed from,
-    uint256 indexed quantity
+    uint256 indexed removalId,
+    uint256 indexed escrowScheduleId,
+    uint256 quantity
   );
 
   /**
@@ -237,15 +238,15 @@ contract EscrowedNORI is
     );
     // distribute claimed amount across escrow schedules
     uint256 remainingAmountToClaim = amount;
-    uint256[] memory escrowScheduleIds = _addressToEnumerableEscrowIds[
+    uint256[] memory escrowScheduleIds = _addressToEscrowScheduleIds[
       _msgSender()
     ];
     for (uint256 i = 0; i < escrowScheduleIds.length; i++) {
-      uint256 releasedAmountForSchedule = _releasedBalanceOfSingleEscrowSchedule(
-          _msgSender(),
-          escrowScheduleIds[i],
-          block.timestamp
-        );
+      uint256 releasedAmountForSchedule = _claimableBalanceOfSingleEscrowSchedule(
+        _msgSender(),
+        escrowScheduleIds[i],
+        block.timestamp // solhint-disable-line not-rely-on-time, this is time-dependent
+      );
       EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[
         _msgSender()
       ][escrowScheduleIds[i]];
@@ -302,54 +303,46 @@ contract EscrowedNORI is
    * - fromAccounts.length == toAccounts.length == atTimes.length == amounts.length
    */
   function batchRevokeUnreleasedTokenAmounts(
-    address[] calldata fromAccounts,
     address[] calldata toAccounts,
-    uint256[] calldata escrowScheduleStartYears,
-    uint256[] calldata atTimes,
+    uint256[] calldata removalIds,
     uint256[] calldata amounts
   ) external whenNotPaused onlyRole(ESCROW_CREATOR_ROLE) {
     require(
-      fromAccounts.length == toAccounts.length,
-      "eNORI: fromAccounts and toAccounts length mismatch"
+      toAccounts.length == removalIds.length,
+      "eNORI: fromAccounts and removalIds length mismatch"
     );
     require(
-      toAccounts.length == atTimes.length,
-      "eNORI: toAccounts and atTimes length mismatch"
+      toAccounts.length == amounts.length,
+      "eNORI: fromAccounts and amounts length mismatch"
     );
-    require(
-      atTimes.length == amounts.length,
-      "eNORI: atTimes and amounts length mismatch"
-    );
-    for (uint256 i = 0; i < fromAccounts.length; i++) {
-      _revokeUnreleasedTokens(
-        fromAccounts[i],
-        toAccounts[i],
-        escrowScheduleStartYears[i],
-        atTimes[i],
-        amounts[i]
-      );
+    for (uint256 i = 0; i < toAccounts.length; i++) {
+      _revokeUnreleasedTokens(toAccounts[i], removalIds[i], amounts[i]);
     }
   }
 
   /**
    * @notice Number of  tokens that were revoked if any.
    */
-  function quantityRevokedFrom(address account, uint256 escrowScheduleStartYear)
-    external
+  function revocableQuantity(address account, uint256 escrowScheduleId)
+    public
     view
     returns (uint256)
   {
     EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[account][
-      escrowScheduleStartYear
+      escrowScheduleId
     ];
-    return escrowSchedule.originalAmount - escrowSchedule.accountAmount;
+    return
+      escrowSchedule.currentAmount -
+      _releasedBalanceOfSingleEscrowSchedule(
+        account,
+        escrowScheduleId,
+        block.timestamp // solhint-disable-line not-rely-on-time, this is time-dependent
+      );
   }
 
   /**
    * @notice Returns all governing settings for multiple escrow schedules
    *
-   * @dev If an escrow schedule does not exist for an address, the resulting
-   * escrow schedule will be zeroed out in the return value
    */
   function batchGetEscrowSchedules(address[] calldata accounts)
     public
@@ -361,7 +354,15 @@ contract EscrowedNORI is
         accounts.length
       );
     for (uint256 i = 0; i < accounts.length; i++) {
-      escrowScheduleDetails[i] = getEscrowSchedule(accounts[i]);
+      uint256[] memory escrowScheduleIds = _addressToEscrowScheduleIds[
+        accounts[i]
+      ];
+      for (uint256 j = 0; j < escrowScheduleIds.length; j++) {
+        escrowScheduleDetails[i] = getEscrowSchedule(
+          accounts[i],
+          escrowScheduleIds[j]
+        );
+      }
     }
     return escrowScheduleDetails;
   }
@@ -369,24 +370,22 @@ contract EscrowedNORI is
   /**
    * @notice Returns all governing settings for an escrow schedule.
    */
-  function getEscrowSchedule(address account, uint256 escrowScheduleStartYear)
+  function getEscrowSchedule(address account, uint256 escrowScheduleId)
     public
     view
     returns (EscrowScheduleDetail memory)
   {
     EscrowSchedule storage escrowAcount = _addressToEscrowSchedules[account][
-      escrowScheduleStartYear
+      escrowScheduleId
     ];
     return
       EscrowScheduleDetail(
-        escrowAcount.accountAmount,
+        escrowAcount.currentAmount,
         account,
         escrowAcount.startTime,
         escrowAcount.endTime,
         escrowAcount.claimedAmount,
-        escrowAcount.originalAmount,
-        escrowAcount.lastRevocationTime,
-        escrowAcount.lastQuantityRevoked,
+        escrowAcount.totalQuantityRevoked,
         escrowAcount.exists
       );
   }
@@ -394,8 +393,8 @@ contract EscrowedNORI is
   /**
    * @notice Released balance less any claimed amount at current block timestamp.
    */
-  function releasedBalanceOf(address account) public view returns (uint256) {
-    return _releasedBalanceOf(account, block.timestamp); // solhint-disable-line not-rely-on-time, this is time-dependent
+  function claimableBalanceOf(address account) public view returns (uint256) {
+    return _claimableBalanceOf(account, block.timestamp); // solhint-disable-line not-rely-on-time, this is time-dependent
   }
 
   /**
@@ -446,7 +445,7 @@ contract EscrowedNORI is
     EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[
       recipient
     ][escrowScheduleId];
-    escrowSchedule.amount += amount;
+    escrowSchedule.currentAmount += amount;
     // todo are there any other data updates that have to happen here?
     return true;
   }
@@ -460,7 +459,7 @@ contract EscrowedNORI is
    * It is also callable externally (see `grantTo`) to handle cases // todo what was `grantTo`???
    * where tokens are incrementally deposited after the escrow schedule is established.
    */
-  function _createEscrowSchedule(uint256 recipient, uint256 startTime)
+  function _createEscrowSchedule(address recipient, uint256 startTime)
     internal
   {
     require(
@@ -478,11 +477,12 @@ contract EscrowedNORI is
     EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[
       recipient
     ][startTime];
-    _addressToEnumerableEscrowIds[recipient].push(startTime);
-    escrowSchedule.accountAmount = 0;
+    _addressToEscrowScheduleIds[recipient].push(startTime);
+    escrowSchedule.currentAmount = 0;
     escrowSchedule.exists = true;
     escrowSchedule.startTime = startTime;
     escrowSchedule.endTime = startTime + SECONDS_IN_TEN_YEARS;
+    escrowSchedule.releasedAmountFloor = 0;
     emit EscrowScheduleCreated(recipient, startTime);
   }
 
@@ -503,59 +503,54 @@ contract EscrowedNORI is
    * not a claim operation.
    */
   function _revokeUnreleasedTokens(
-    address from,
     address to,
-    uint256 escrowScheduleStartYear,
-    uint256 atTime,
+    uint256 removalId,
     uint256 amount
   ) internal {
-    require(
-      (atTime == 0 && amount > 0) || (atTime > 0 && amount == 0),
-      "eNORI: Must specify a revocation time or an amount not both"
-    );
-    EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[from][
-      escrowScheduleStartYear
-    ];
+    address revokeFrom = removalId.supplierAddress();
+    uint256 escrowScheduleId = removalId.vintage(); // TODO removal contract support schedule id lookup
+    EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[
+      revokeFrom
+    ][escrowScheduleId];
     require(escrowSchedule.exists, "eNORI: no escrow schedule exists");
-    uint256 revocationTime = atTime == 0 && amount > 0
-      ? block.timestamp
-      : atTime; // atTime of zero indicates a revocation by amount
-    require(
-      revocationTime >= block.timestamp,
-      "eNORI: Revocation cannot be in the past"
-    );
-    // TODO
-    uint256 releasedBalance = _linearReleaseAmountAvailable(
-      escrowSchedule.escrowSchedule,
-      revocationTime
+    // TODO consider factoring this into a utility since it's also used in _claimableBalanceOfSingleEscrowSchedule
+    uint256 releasedBalance = MathUpgradeable.max(
+      _linearReleaseAmountAvailable(escrowSchedule, block.timestamp), // solhint-disable-line not-rely-on-time, this is time-dependent
+      escrowSchedule.releasedAmountFloor
     );
     require(
-      releasedBalance < escrowSchedule.accountAmount,
+      releasedBalance < escrowSchedule.currentAmount,
       "eNORI: tokens already released"
     );
-    uint256 revocableQuantity = escrowSchedule.accountAmount - releasedBalance;
     uint256 quantityRevoked;
-    // amount of zero indicates revocation by time.  Amount becomes all remaining tokens
-    // at *atTime*
+    // amount of zero indicates revocation of all remaining tokens.
     if (amount > 0) {
-      require(amount <= revocableQuantity, "eNORI: too few unreleased tokens");
+      require(
+        amount <= revocableQuantity(revokeFrom, escrowScheduleId),
+        "eNORI: too few unreleased tokens"
+      );
       quantityRevoked = amount;
     } else {
-      quantityRevoked = revocableQuantity;
+      quantityRevoked = revocableQuantity(revokeFrom, escrowScheduleId);
     }
-    escrowSchedule.accountAmount =
-      escrowSchedule.accountAmount -
+    escrowSchedule.currentAmount =
+      escrowSchedule.currentAmount -
       quantityRevoked;
-    escrowSchedule.lastRevocationTime = revocationTime;
-    escrowSchedule.lastQuantityRevoked = quantityRevoked;
-    super._burn(from, quantityRevoked, "", "");
+    escrowSchedule.releasedAmountFloor = releasedBalance;
+    escrowSchedule.totalQuantityRevoked += quantityRevoked;
+    super._burn(revokeFrom, quantityRevoked, "", "");
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
       quantityRevoked,
       ""
     );
-    emit UnreleasedTokensRevoked(revocationTime, from, quantityRevoked);
+    emit UnreleasedTokensRevoked(
+      block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
+      removalId,
+      escrowScheduleId,
+      quantityRevoked
+    );
   }
 
   /**
@@ -585,7 +580,7 @@ contract EscrowedNORI is
     bool isBurning = to == address(0);
     bool operatorIsEscrowAdmin = hasRole(ESCROW_CREATOR_ROLE, operator);
     bool operatorIsNotSender = operator != from;
-    bool ownerHasSufficientReleasedBalance = amount <= releasedBalanceOf(from);
+    bool ownerHasSufficientReleasedBalance = amount <= claimableBalanceOf(from);
     if (isBurning && operatorIsNotSender && operatorIsEscrowAdmin) {
       require(balanceOf(from) >= amount, "eNORI: insufficient balance");
     } else if (!isMinting) {
@@ -603,13 +598,13 @@ contract EscrowedNORI is
     uint256 atTime
   ) internal view returns (uint256) {
     if (atTime >= escrowSchedule.endTime) {
-      return escrowSchedule.totalAmount;
+      return escrowSchedule.currentAmount;
     }
     uint256 rampTotalTime = escrowSchedule.endTime - escrowSchedule.startTime;
     return
       atTime < escrowSchedule.startTime
         ? 0
-        : (escrowSchedule.totalAmount * (atTime - escrowSchedule.startTime)) /
+        : (escrowSchedule.currentAmount * (atTime - escrowSchedule.startTime)) /
           rampTotalTime;
   }
 
@@ -621,17 +616,17 @@ contract EscrowedNORI is
    * total quantity of tokens releasing.
    * i.o.w The rate of release does not change after calling `revokeUnreleasedTokens`
    */
-  function _releasedBalanceOf(address account, uint256 atTime)
+  function _claimableBalanceOf(address account, uint256 atTime)
     internal
     view
     returns (uint256)
   {
     uint256 balance = this.balanceOf(account); // default to this if escrow schedules don't exist?
     uint256 totalReleasedBalance = 0;
-    uint256[] memory escrowScheduleIds = _addressToEnumerableEscrowIds[account];
+    uint256[] memory escrowScheduleIds = _addressToEscrowScheduleIds[account];
     if (escrowScheduleIds.length > 0) {
-      for (uint256 i = 0; i < _addressToEnumerableEscrowIds.length; i++) {
-        totalReleasedBalance += _releasedBalanceOfSingleEscrowSchedule(
+      for (uint256 i = 0; i < escrowScheduleIds.length; i++) {
+        totalReleasedBalance += _claimableBalanceOfSingleEscrowSchedule(
           account,
           escrowScheduleIds[i],
           atTime
@@ -645,7 +640,7 @@ contract EscrowedNORI is
   /**
    * @notice Released balance less any claimed amount at `atTime` for a single escrow schedule (implementation)
    */
-  function _releasedBalanceOfSingleEscrowSchedule(
+  function _claimableBalanceOfSingleEscrowSchedule(
     address account,
     uint256 escrowScheduleId,
     uint256 atTime
@@ -654,13 +649,30 @@ contract EscrowedNORI is
       escrowScheduleId
     ];
     require(escrowSchedule.exists, "eNORI: no escrow schedule exists");
-    // TODO is this actually correct given how amount can change?
-    // we maybe need to take into account a new variable, releasedAmountFloor
-    uint256 balance = MathUpgradeable.min(
-      _linearReleaseAmountAvailable(escrowSchedule, atTime),
-      escrowSchedule.accountAmount
+    uint256 balance = _releasedBalanceOfSingleEscrowSchedule(
+      account,
+      escrowScheduleId,
+      atTime
     ) - escrowSchedule.claimedAmount;
     return balance;
+  }
+
+  /**
+   * @notice Released balance at `atTime` for a single escrow schedule
+   */
+  function _releasedBalanceOfSingleEscrowSchedule(
+    address account,
+    uint256 escrowScheduleId,
+    uint256 atTime
+  ) internal view returns (uint256) {
+    EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[account][
+      escrowScheduleId
+    ];
+    return
+      MathUpgradeable.max(
+        _linearReleaseAmountAvailable(escrowSchedule, atTime),
+        escrowSchedule.releasedAmountFloor
+      );
   }
 
   function _beforeOperatorChange(address, uint256) internal pure override {
@@ -705,7 +717,7 @@ contract EscrowedNORI is
     super._beforeRoleChange(role, account);
     if (role == ESCROW_CREATOR_ROLE) {
       require(
-        !(_addressToEnumberableEscrowIds[account].length > 0),
+        !(_addressToEscrowScheduleIds[account].length > 0),
         "eNORI: Cannot assign role to an escrow schedule holder"
       );
     }
