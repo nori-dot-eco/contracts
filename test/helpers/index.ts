@@ -1,14 +1,14 @@
 import type { BigNumber } from 'ethers';
 
-import { mockDepositNoriToPolygon } from './polygon';
-
+import { mockDepositNoriToPolygon } from '@/test/helpers';
 import type {
+  Removal,
   Certificate,
   FIFOMarket,
-  Removal,
   LockedNORI,
   NORI,
   BridgedPolygonNORI,
+  RemovalTestHarness,
 } from '@/typechain-types';
 import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/Removal';
 import { asciiStringToHexString } from '@/utils/bytes';
@@ -20,13 +20,14 @@ export * from './chai';
 export * from './interfaces';
 export * from './polygon';
 
-export interface ContractInstances {
+interface ContractInstances {
   nori: NORI;
   bpNori: BridgedPolygonNORI;
   removal: Removal;
   certificate: Certificate;
   fifoMarket: FIFOMarket;
   lNori: LockedNORI;
+  removalTestHarness: RemovalTestHarness;
 }
 
 export const getLatestBlockTime = async ({
@@ -34,7 +35,8 @@ export const getLatestBlockTime = async ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<number> => {
-  return (await hre.ethers.provider.getBlock('latest')).timestamp;
+  const block = await hre.ethers.provider.getBlock('latest');
+  return block.timestamp;
 };
 
 export const advanceTime = async ({
@@ -54,11 +56,11 @@ export const setupTest = global.hre.deployments.createFixture(
   ): Promise<
     ContractInstances & {
       hre: CustomHardHatRuntimeEnvironment;
-      contracts: Required<Contracts>;
+      contracts: Required<Contracts>; // todo deprecate
     }
   > => {
-    hre.ethernalSync = false;
-    await hre.deployments.fixture(['assets', 'market']);
+    hre.ethernalSync = false; // todo set this in the test task
+    await hre.deployments.fixture(['assets', 'market', 'test']);
     const contracts = await getContractsFromDeployments(hre);
     await mockDepositNoriToPolygon({
       hre,
@@ -76,6 +78,7 @@ export const setupTest = global.hre.deployments.createFixture(
       certificate: contracts.Certificate,
       fifoMarket: contracts.FIFOMarket,
       lNori: contracts.LockedNORI,
+      removalTestHarness: contracts.RemovalTestHarness,
     };
   }
 );
