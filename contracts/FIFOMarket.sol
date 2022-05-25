@@ -313,10 +313,9 @@ contract FIFOMarket is
       supplierAddress
     ];
     require(
-      _reservedSupply.contains(removalId),
+      _reservedSupply.remove(removalId) == true,
       "Market: removal not in reserved supply"
     );
-    _reservedSupply.remove(removalId);
     totalNumberActiveRemovals += 1;
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     totalActiveSupply += removalBalance;
