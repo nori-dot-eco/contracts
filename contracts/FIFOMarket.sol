@@ -102,7 +102,7 @@ contract FIFOMarket is
     emit PriorityRestrictedThresholdSet(threshold);
   }
 
-  function numberOfActiveNrtsInMarketComputed() public view returns (uint256) {
+  function numberOfActiveNrtsInMarketComputed() external view returns (uint256) {
     uint256 total = 0;
     address supplierAddress = _currentSupplierAddress;
     for (uint256 i = 0; i < activeSupplierCount; i++) {
