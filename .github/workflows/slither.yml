@@ -8,10 +8,15 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/cache@v2
+        id: yarn-cache
         with:
-          node-version: '14'
-          cache: 'yarn'
+          path: |
+            **/node_modules
+            ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
       - run: yarn install --frozen-lockfile
       - name: Run Slither
         uses: crytic/slither-action@v0.1.1
