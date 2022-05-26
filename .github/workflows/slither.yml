@@ -5,7 +5,6 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       security-events: write
     steps:
       - uses: actions/checkout@v3
@@ -14,7 +13,8 @@ jobs:
           node-version: '14'
           cache: 'yarn'
       - run: yarn install --frozen-lockfile
-      - uses: crytic/slither-action@v0.1.1
+      - name: Run Slither
+        uses: crytic/slither-action@v0.1.1
         id: slither
         continue-on-error: true
         with:
