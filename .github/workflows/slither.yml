@@ -11,6 +11,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
           
+    - name: Hunt for libsecret-1-0
+      run: dpkg -l libsecret-1-0
+      
     - name: Run Slither
       uses: crytic/slither-action@v0.1.1
       continue-on-error: true
