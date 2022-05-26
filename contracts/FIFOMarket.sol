@@ -16,11 +16,6 @@ import "hardhat/console.sol"; // todo
 
 // todo emit events
 
-struct RoundRobinOrder {
-  address previousSupplierAddress;
-  address nextSupplierAddress;
-}
-
 /**
  * @title FIFOMarket
  */
@@ -33,6 +28,15 @@ contract FIFOMarket is
 {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+
+  /**
+   * @notice Keeps track of order of suppliers by address using a psuedo doubly-linked list.
+   */
+
+  struct RoundRobinOrder {
+    address previousSupplierAddress;
+    address nextSupplierAddress;
+  }
 
   IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
@@ -102,7 +106,11 @@ contract FIFOMarket is
     emit PriorityRestrictedThresholdSet(threshold);
   }
 
-  function numberOfActiveNrtsInMarketComputed() external view returns (uint256) {
+  function numberOfActiveNrtsInMarketComputed()
+    external
+    view
+    returns (uint256)
+  {
     uint256 total = 0;
     address supplierAddress = _currentSupplierAddress;
     for (uint256 i = 0; i < activeSupplierCount; i++) {
@@ -236,7 +244,10 @@ contract FIFOMarket is
         suppliers[numberOfRemovals] = _currentSupplierAddress;
         remainingAmountToFill -= removalAmount;
 
-        _activeSupply[_currentSupplierAddress].remove(removalId); // pull it out of the supplier's queue
+        require(
+          _activeSupply[_currentSupplierAddress].remove(removalId),
+          "Market: Removal not in active supply"
+        ); // pull it out of the supplier's queue
         // If the supplier is out of supply, remove them from the active suppliers
         if (_activeSupply[_currentSupplierAddress].length() == 0) {
           _removeActiveSupplier(_currentSupplierAddress);
@@ -303,7 +314,8 @@ contract FIFOMarket is
       _removeActiveSupplier(supplierAddress);
     }
     // todo any checks on whether this id was already in there?
-    return _reservedSupply.add(removalId); // returns true if the value was added to the set, that is, if it was not already present
+    require(_reservedSupply.add(removalId), "Market: Removal already reserved");
+    return true; // returns true if the value was added to the set, that is, if it was not already present
   }
 
   // TODO batch version of this?
