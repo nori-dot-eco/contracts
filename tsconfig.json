@@ -16,7 +16,7 @@
       "@/tasks/utils": ["./tasks/utils/*"],
       "@/test/helpers": ["./test/helpers/index.ts"],
       "@/plugins": ["./plugins/index.ts"],
-      "@/plugins/fireblocks": ["./plugins/fireblocks/index.ts"],
+      "@/plugins/*": ["./plugins/*"],
       "@/contracts.json": ["./contracts.json"],
       "@/artifacts/*": ["./artifacts/contracts/*"],
       "@/legacy-artifacts/*": ["./legacy-artifacts/contracts/*"],
@@ -25,7 +25,8 @@
       "@/constants/*": ["./constants/*"],
       "@/deploy/*": ["./deploy/*"],
       "@/typechain-types/*": ["./typechain-types/*"],
-      "@/typechain-types": ["./typechain-types/index.ts"]
+      "@/typechain-types": ["./typechain-types/index.ts"],
+      "@/test/*": ["./test/*"]
     }
   },
   "include": ["**/*.ts", "**/*.d.ts", "./.eslintrc.js", ".solcover.js"]

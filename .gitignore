@@ -83,7 +83,9 @@ workspace.code-workspace
 cache
 dist
 artifacts/*
-deployments/localhost/*
+deployments/localhost
+deployments/localhost_9001
+deployments/hardhat
 !artifacts/contracts
 .openzeppelin/unknown-9001.json
 !.openzeppelin/unknown-80001.json
@@ -97,3 +99,6 @@ gasreport.txt
 
 # local grants for the hardhat vesting task
 grants.csv
+
+# tenderly
+scripts/tenderly.ts

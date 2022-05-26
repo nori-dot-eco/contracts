@@ -25,7 +25,7 @@ async function ensureERC1820(provider: EthereumProvider): Promise<void> {
 export const TASK = {
   name: 'deploy:erc1820',
   description: 'deploy erc 1820',
-  run: async (taskArgs: void, hre: CustomHardHatRuntimeEnvironment) => {
+  run: async (taskArguments: void, hre: CustomHardHatRuntimeEnvironment) => {
     return ensureERC1820(hre.network.provider);
   },
 } as const;

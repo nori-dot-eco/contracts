@@ -8,12 +8,12 @@ export const TASK = {
   name: 'coverage',
   description: 'Generates a code coverage report for tests',
   run: async (
-    taskArgs: Parameters<ActionType<unknown, unknown>>,
+    taskArguments: Parameters<ActionType<unknown, unknown>>,
     hre: CustomHardHatRuntimeEnvironment,
-    runSuper: RunSuperFunction<typeof taskArgs>
+    runSuper: RunSuperFunction<typeof taskArguments>
   ) => {
     validateTestEnvironment();
-    return runSuper(taskArgs);
+    return runSuper(taskArguments);
   },
 } as const;
 

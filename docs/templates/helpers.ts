@@ -5,7 +5,7 @@ import type { DocItemWithContext } from 'solidity-docgen';
 interface HLevel {
   hlevel?: number;
 }
-type DocItemWithHLevel = DocItemWithContext & HLevel;
+type DocumentItemWithHLevel = DocItemWithContext & HLevel;
 
 /**
  * Returns a Markdown heading marker. An optional number increases the heading level.
@@ -14,10 +14,15 @@ type DocItemWithHLevel = DocItemWithContext & HLevel;
  *    {{h}} {{name}}         # Name
  *    {{h 2}} {{name}}       ## Name
  */
-export function h(this: DocItemWithHLevel, hsublevel: number | HelperOptions) {
+export function h(
+  this: DocumentItemWithHLevel,
+  hsublevel: number | HelperOptions
+) {
   ({ hsublevel } = getHSublevel(hsublevel));
   hsublevel = typeof hsublevel === 'number' ? Math.max(1, hsublevel) : 1;
-  return new Array(getHLevel(this) + hsublevel - 1).fill('#').join('');
+  return Array.from({ length: getHLevel(this) + hsublevel - 1 })
+    .fill('#')
+    .join('');
 }
 
 /**
@@ -28,31 +33,33 @@ export function h(this: DocItemWithHLevel, hsublevel: number | HelperOptions) {
  *    {{/hsection}}
  */
 export function hsection(
-  this: DocItemWithHLevel,
+  this: DocumentItemWithHLevel,
   hsublevel: number | HelperOptions,
-  opts?: HelperOptions
+  options?: HelperOptions
 ) {
-  ({ hsublevel, opts } = getHSublevel(hsublevel, opts));
+  ({ hsublevel, opts: options } = getHSublevel(hsublevel, options));
   const hlevel = getHLevel(this) + hsublevel;
-  const ctx = Utils.extend({}, this, { hlevel });
-  return opts.fn(ctx, opts);
+  const context = Utils.extend({}, this, { hlevel });
+  return options.fn(context, options);
 }
 
 /**
  * Helper for dealing with the optional hsublevel argument.
  */
-function getHSublevel(hsublevel: number | HelperOptions, opts?: HelperOptions) {
+function getHSublevel(
+  hsublevel: number | HelperOptions,
+  options?: HelperOptions
+) {
   if (typeof hsublevel === 'number') {
-    opts = opts!;
-    return { hsublevel: Math.max(1, hsublevel), opts };
-  } else {
-    opts = hsublevel;
-    return { hsublevel: 1, opts };
+    options = options!;
+    return { hsublevel: Math.max(1, hsublevel), opts: options };
   }
+  options = hsublevel;
+  return { hsublevel: 1, opts: options };
 }
 
-function getHLevel(ctx: HLevel): number {
-  return ctx.hlevel ?? 1;
+function getHLevel(context: HLevel): number {
+  return context.hlevel ?? 1;
 }
 
 export function trim(text: string) {
