@@ -500,8 +500,8 @@ describe('FIFOMarket', () => {
       ]);
 
       expect(totalAmountOfSupply).to.be.greaterThan(0);
-      expect(totalNumberActiveRemovals).to.be.greaterThan(0);
-      expect(activeSupplierCount).to.be.greaterThan(0);
+      expect(totalAmountOfRemovals).to.be.greaterThan(0);
+      expect(totalAmountOfSuppliers).to.be.greaterThan(0);
 
       expect(totalActiveSupply).to.equal(
         formatTokenAmount(totalAmountOfSupply)
