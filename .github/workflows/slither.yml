@@ -17,7 +17,6 @@ jobs:
       id: slither
       with:
         node-version: 16
-        ignore-compile: true
         sarif: sarif_file
 
     - name: Upload SARIF file
