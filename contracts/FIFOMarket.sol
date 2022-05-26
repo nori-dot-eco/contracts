@@ -30,7 +30,7 @@ contract FIFOMarket is
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   /**
-   * @notice Keeps track of order of suppliers by address using a psuedo doubly-linked list.
+   * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
    */
 
   struct RoundRobinOrder {
@@ -106,6 +106,9 @@ contract FIFOMarket is
     emit PriorityRestrictedThresholdSet(threshold);
   }
 
+  /**
+   * @notice The amount of supply as computed by iterating through all removals.
+   */
   function numberOfActiveNrtsInMarketComputed()
     external
     view
@@ -130,6 +133,9 @@ contract FIFOMarket is
     return total;
   }
 
+  /**
+   * @notice The amount of supply available for anyone to buy.
+   */
   function totalUnrestrictedSupply() public view returns (uint256) {
     if (totalActiveSupply < priorityRestrictedThreshold) {
       return 0;
@@ -295,6 +301,13 @@ contract FIFOMarket is
   }
 
   // TODO batch version of this?
+  /**
+   * @notice Removes removal from active supply and inserts it into the reserved supply, where it cannot be used to
+   * fill orders.
+   *
+   * @dev If the removal is the last for the supplier, removes the supplier from the active supplier queue.
+   *
+   */
   function reserveRemoval(uint256 removalId) external returns (bool) {
     address supplierAddress = removalId.supplierAddress();
     EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
@@ -318,6 +331,13 @@ contract FIFOMarket is
   }
 
   // TODO batch version of this?
+  /**
+   * @notice Adds the removal back to active supply to be sold.
+   *
+   * @dev Removes removal from reserved supply and re-inserts it into the active supply, where it can be used to
+   * fill orders again. If the supplier's other removals have all been sold, adds the supplier back to the
+   * list of active suppliers
+   */
   function unreserveRemoval(uint256 removalId) external returns (bool) {
     address supplierAddress = removalId.supplierAddress();
     EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
@@ -354,6 +374,12 @@ contract FIFOMarket is
       ERC1155ReceiverUpgradeable.supportsInterface(interfaceId);
   }
 
+  /**
+   * @notice Increments the address of the current supplier.
+   *
+   * @dev Called the current supplier's removal is sold, or their last removal is reserved.
+   * Updates _currentSupplierAddress to the next of whatever is the current supplier.
+   */
   function _incrementCurrentSupplierAddress() private {
     // Update the current supplier to be the next of the current supplier
     _currentSupplierAddress = _suppliersInRoundRobinOrder[
@@ -361,6 +387,15 @@ contract FIFOMarket is
     ].nextSupplierAddress;
   }
 
+  /**
+   * @notice Adds a supplier to the active supplier queue
+   *
+   * @dev Called when a new supplier is added to the marketplace, or after they have sold out and a reserved removal is
+   * unreserved. If the first supplier, initializes a cicularly doubly-linked list, where initially the first supplier
+   * points to itself as next and previous. When a new supplier is added, at the position of the current supplier,
+   * update the previous pointer of the current supplier to point to the new supplier, and update the next pointer of
+   * the previous supplier to the new supplier.
+   */
   function _addActiveSupplier(address supplierAddress) private {
     // If this is the first supplier to be added, update the intialized addresses.
     if (_currentSupplierAddress == address(0)) {
@@ -370,7 +405,8 @@ contract FIFOMarket is
         nextSupplierAddress: supplierAddress
       });
     } else {
-      // Add the new supplier to the round robin order, with the current supplier as next and the current supplier's previous supplier as previous
+      // Add the new supplier to the round robin order,
+      // with the current supplier as next and the current supplier's previous supplier as previous
       _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
         previousSupplierAddress: _suppliersInRoundRobinOrder[
           _currentSupplierAddress
@@ -389,6 +425,15 @@ contract FIFOMarket is
     activeSupplierCount += 1;
   }
 
+  /**
+   * @notice Removes a supplier to the active supplier queue
+   *
+   * @dev Called when a supplier's last removal is used for an order or reserved. If the last supplier,
+   * resets the pointer for \_currentSupplierAddress. Otherwise, from the position of the supplier to be
+   * removed, update the previous supplier to point to the next of the removed supplier, and the next of
+   * the removed supplier to point to the previous of the remove supplier. Then, set the next and previous
+   * pointers of the removed supplier to the 0x address.
+   */
   function _removeActiveSupplier(address addressToRemove) private {
     // If this is the last supplier, clear all current tracked addresses.
     if (
@@ -409,8 +454,7 @@ contract FIFOMarket is
         .previousSupplierAddress;
       // If the supplier is the current supplier, update that address to the next supplier.
       if (addressToRemove == _currentSupplierAddress) {
-        _currentSupplierAddress = _suppliersInRoundRobinOrder[addressToRemove]
-          .nextSupplierAddress;
+        _incrementCurrentSupplierAddress();
       }
     }
     // Remove RoundRobinOrder Data from supplier
