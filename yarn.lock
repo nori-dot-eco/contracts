@@ -233,20 +233,6 @@
     lru-cache "^5.1.1"
     semaphore-async-await "^1.5.1"
 
-"@ethereumjs/blockchain@^5.5.2":
-  version "5.5.2"
-  resolved "https://registry.yarnpkg.com/@ethereumjs/blockchain/-/blockchain-5.5.2.tgz#1848abd9dc1ee56acf8cec4c84304d7f4667d027"
-  integrity sha512-Jz26iJmmsQtngerW6r5BDFaew/f2mObLrRZo3rskLOx1lmtMZ8+TX/vJexmivrnWgmAsTdNWhlKUYY4thPhPig==
-  dependencies:
-    "@ethereumjs/block" "^3.6.2"
-    "@ethereumjs/common" "^2.6.3"
-    "@ethereumjs/ethash" "^1.1.0"
-    debug "^4.3.3"
-    ethereumjs-util "^7.1.4"
-    level-mem "^5.0.1"
-    lru-cache "^5.1.1"
-    semaphore-async-await "^1.5.1"
-
 "@ethereumjs/common@^2.3.0", "@ethereumjs/common@^2.4.0":
   version "2.4.0"
   resolved "https://registry.yarnpkg.com/@ethereumjs/common/-/common-2.4.0.tgz#2d67f6e6ba22246c5c89104e6b9a119fb3039766"
@@ -305,24 +291,6 @@
   dependencies:
     "@ethereumjs/common" "^2.6.3"
     ethereumjs-util "^7.1.4"
-
-"@ethereumjs/vm@^5.9.0":
-  version "5.9.0"
-  resolved "https://registry.yarnpkg.com/@ethereumjs/vm/-/vm-5.9.0.tgz#54e485097c6dbb42554d541ef8d84d06b7ddf12f"
-  integrity sha512-0IRsj4IuF8lFDWVVLc4mFOImaSX8VWF8CGm3mXHG/LLlQ/Tryy/kKXMw/bU9D+Zw03CdteW+wCGqNFS6+mPjpg==
-  dependencies:
-    "@ethereumjs/block" "^3.6.2"
-    "@ethereumjs/blockchain" "^5.5.2"
-    "@ethereumjs/common" "^2.6.4"
-    "@ethereumjs/tx" "^3.5.1"
-    async-eventemitter "^0.2.4"
-    core-js-pure "^3.0.1"
-    debug "^4.3.3"
-    ethereumjs-util "^7.1.4"
-    functional-red-black-tree "^1.0.1"
-    mcl-wasm "^0.7.1"
-    merkle-patricia-tree "^4.2.4"
-    rustbn.js "~0.2.0"
 
 "@ethereumjs/vm@^5.9.0":
   version "5.9.0"
@@ -418,21 +386,6 @@
     "@ethersproject/strings" "^5.6.0"
 
 "@ethersproject/abi@5.6.3", "@ethersproject/abi@^5.5.0", "@ethersproject/abi@^5.6.3":
-  version "5.6.3"
-  resolved "https://registry.yarnpkg.com/@ethersproject/abi/-/abi-5.6.3.tgz#2d643544abadf6e6b63150508af43475985c23db"
-  integrity sha512-CxKTdoZY4zDJLWXG6HzNH6znWK0M79WzzxHegDoecE3+K32pzfHOzuXg2/oGSTecZynFgpkjYXNPOqXVJlqClw==
-  dependencies:
-    "@ethersproject/address" "^5.6.1"
-    "@ethersproject/bignumber" "^5.6.2"
-    "@ethersproject/bytes" "^5.6.1"
-    "@ethersproject/constants" "^5.6.1"
-    "@ethersproject/hash" "^5.6.1"
-    "@ethersproject/keccak256" "^5.6.1"
-    "@ethersproject/logger" "^5.6.0"
-    "@ethersproject/properties" "^5.6.0"
-    "@ethersproject/strings" "^5.6.1"
-
-"@ethersproject/abi@5.6.3":
   version "5.6.3"
   resolved "https://registry.yarnpkg.com/@ethersproject/abi/-/abi-5.6.3.tgz#2d643544abadf6e6b63150508af43475985c23db"
   integrity sha512-CxKTdoZY4zDJLWXG6HzNH6znWK0M79WzzxHegDoecE3+K32pzfHOzuXg2/oGSTecZynFgpkjYXNPOqXVJlqClw==
@@ -1027,13 +980,6 @@
   dependencies:
     "@ethersproject/logger" "^5.6.0"
 
-"@ethersproject/networks@5.6.3", "@ethersproject/networks@^5.6.3":
-  version "5.6.3"
-  resolved "https://registry.yarnpkg.com/@ethersproject/networks/-/networks-5.6.3.tgz#3ee3ab08f315b433b50c99702eb32e0cf31f899f"
-  integrity sha512-QZxRH7cA5Ut9TbXwZFiCyuPchdWi87ZtVNHWZd0R6YFgYtes2jQ3+bsslJ0WdyDe0i6QumqtoYqvY3rrQFRZOQ==
-  dependencies:
-    "@ethersproject/logger" "^5.6.0"
-
 "@ethersproject/pbkdf2@5.4.0", "@ethersproject/pbkdf2@^5.4.0":
   version "5.4.0"
   resolved "https://registry.yarnpkg.com/@ethersproject/pbkdf2/-/pbkdf2-5.4.0.tgz#ed88782a67fda1594c22d60d0ca911a9d669641c"
@@ -1159,32 +1105,6 @@
     "@ethersproject/strings" "^5.6.0"
     "@ethersproject/transactions" "^5.6.0"
     "@ethersproject/web" "^5.6.0"
-    bech32 "1.1.4"
-    ws "7.4.6"
-
-"@ethersproject/providers@5.6.8":
-  version "5.6.8"
-  resolved "https://registry.yarnpkg.com/@ethersproject/providers/-/providers-5.6.8.tgz#22e6c57be215ba5545d3a46cf759d265bb4e879d"
-  integrity sha512-Wf+CseT/iOJjrGtAOf3ck9zS7AgPmr2fZ3N97r4+YXN3mBePTG2/bJ8DApl9mVwYL+RpYbNxMEkEp4mPGdwG/w==
-  dependencies:
-    "@ethersproject/abstract-provider" "^5.6.1"
-    "@ethersproject/abstract-signer" "^5.6.2"
-    "@ethersproject/address" "^5.6.1"
-    "@ethersproject/base64" "^5.6.1"
-    "@ethersproject/basex" "^5.6.1"
-    "@ethersproject/bignumber" "^5.6.2"
-    "@ethersproject/bytes" "^5.6.1"
-    "@ethersproject/constants" "^5.6.1"
-    "@ethersproject/hash" "^5.6.1"
-    "@ethersproject/logger" "^5.6.0"
-    "@ethersproject/networks" "^5.6.3"
-    "@ethersproject/properties" "^5.6.0"
-    "@ethersproject/random" "^5.6.1"
-    "@ethersproject/rlp" "^5.6.1"
-    "@ethersproject/sha2" "^5.6.1"
-    "@ethersproject/strings" "^5.6.1"
-    "@ethersproject/transactions" "^5.6.2"
-    "@ethersproject/web" "^5.6.1"
     bech32 "1.1.4"
     ws "7.4.6"
 
@@ -2209,9 +2129,9 @@
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
 "@metamask/eth-sig-util@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@metamask/eth-sig-util/-/eth-sig-util-4.0.0.tgz#11553ba06de0d1352332c1bde28c8edd00e0dcf6"
-  integrity sha512-LczOjjxY4A7XYloxzyxJIHONELmUxVZncpOLoClpEcTiebiVdM46KRPYXGuULro9oNNR2xdVx3yoKiQjdfWmoA==
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/@metamask/eth-sig-util/-/eth-sig-util-4.0.1.tgz#3ad61f6ea9ad73ba5b19db780d40d9aae5157088"
+  integrity sha512-tghyZKLHZjcdlDqCA3gNZmLeR0XvOE9U1qoQO9ohyAZT6Pya+H9vkBPcsyXytmYLNgVoin7CKCmweo/R43V+tQ==
   dependencies:
     ethereumjs-abi "^0.6.8"
     ethereumjs-util "^6.2.1"
@@ -8445,12 +8365,14 @@ hardhat@2.9.4:
     "@ethereumjs/tx" "^3.5.1"
     "@ethereumjs/vm" "^5.9.0"
     "@ethersproject/abi" "^5.1.2"
+    "@metamask/eth-sig-util" "^4.0.0"
     "@sentry/node" "^5.18.1"
-    "@solidity-parser/parser" "^0.14.0"
+    "@solidity-parser/parser" "^0.14.1"
     "@types/bn.js" "^5.1.0"
     "@types/lru-cache" "^5.1.0"
     abort-controller "^3.0.0"
     adm-zip "^0.4.16"
+    aggregate-error "^3.0.0"
     ansi-escapes "^4.3.0"
     chalk "^2.4.2"
     chokidar "^3.4.0"
@@ -8458,7 +8380,6 @@ hardhat@2.9.4:
     debug "^4.1.1"
     enquirer "^2.3.0"
     env-paths "^2.2.0"
-    eth-sig-util "^2.5.2"
     ethereum-cryptography "^0.1.2"
     ethereumjs-abi "^0.6.8"
     ethereumjs-util "^7.1.4"
@@ -8466,14 +8387,13 @@ hardhat@2.9.4:
     fp-ts "1.19.3"
     fs-extra "^7.0.1"
     glob "^7.1.3"
-    https-proxy-agent "^5.0.0"
     immutable "^4.0.0-rc.12"
     io-ts "1.10.4"
     lodash "^4.17.11"
     merkle-patricia-tree "^4.2.4"
     mnemonist "^0.38.0"
-    mocha "^7.2.0"
-    node-fetch "^2.6.0"
+    mocha "^9.2.0"
+    p-map "^4.0.0"
     qs "^6.7.0"
     raw-body "^2.4.1"
     resolve "1.17.0"
@@ -8484,6 +8404,7 @@ hardhat@2.9.4:
     stacktrace-parser "^0.1.10"
     "true-case-path" "^2.2.1"
     tsort "0.0.1"
+    undici "^4.14.1"
     uuid "^8.3.2"
     ws "^7.4.6"
 
@@ -10745,6 +10666,13 @@ minimalistic-crypto-utils@^1.0.1:
   dependencies:
     brace-expansion "^1.1.7"
 
+minimatch@4.2.1:
+  version "4.2.1"
+  resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-4.2.1.tgz#40d9d511a46bdc4e563c22c3080cde9c0d8299b4"
+  integrity sha512-9Uq1ChtSZO+Mxa/CL1eGizn2vRn3MlLgzhT0Iz8zaY8NdvxvB0d5QdPFmCKf7JKA9Lerx5vRrnwO03jsSfGG9g==
+  dependencies:
+    brace-expansion "^1.1.7"
+
 minimatch@^3.1.2:
   version "3.1.2"
   resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-3.1.2.tgz#19cd194bfd3e428f049a70817c038d89ab4be35b"
@@ -10842,9 +10770,9 @@ mocha@^7.1.1:
     yargs-unparser "1.6.0"
 
 mocha@^9.2.0:
-  version "9.2.1"
-  resolved "https://registry.yarnpkg.com/mocha/-/mocha-9.2.1.tgz#a1abb675aa9a8490798503af57e8782a78f1338e"
-  integrity sha512-T7uscqjJVS46Pq1XDXyo9Uvey9gd3huT/DD9cYBb4K2Xc/vbKRPUWK067bxDQRK0yIz6Jxk73IrnimvASzBNAQ==
+  version "9.2.2"
+  resolved "https://registry.yarnpkg.com/mocha/-/mocha-9.2.2.tgz#d70db46bdb93ca57402c809333e5a84977a88fb9"
+  integrity sha512-L6XC3EdwT6YrIk0yXpavvLkn8h+EU+Y5UcCHKECyMbdUIxyMuZj4bX4U9e1nvnvUUvQVsV2VHQr5zLdcUkhW/g==
   dependencies:
     "@ungap/promise-all-settled" "1.1.2"
     ansi-colors "4.1.1"
@@ -10859,9 +10787,9 @@ mocha@^9.2.0:
     he "1.2.0"
     js-yaml "4.1.0"
     log-symbols "4.1.0"
-    minimatch "3.0.4"
+    minimatch "4.2.1"
     ms "2.1.3"
-    nanoid "3.2.0"
+    nanoid "3.3.1"
     serialize-javascript "6.0.0"
     strip-json-comments "3.1.1"
     supports-color "8.1.1"
@@ -10988,10 +10916,10 @@ nano-json-stream-parser@^0.1.2:
   resolved "https://registry.yarnpkg.com/nano-json-stream-parser/-/nano-json-stream-parser-0.1.2.tgz#0cc8f6d0e2b622b479c40d499c46d64b755c6f5f"
   integrity sha1-DMj20OK2IrR5xA1JnEbWS3Vcb18=
 
-nanoid@3.2.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.2.0.tgz#62667522da6673971cca916a6d3eff3f415ff80c"
-  integrity sha512-fmsZYa9lpn69Ad5eDn7FMcnnSR+8R34W9qJEijxYhTbfOWzr22n1QxCMzXLK+ODyW2973V3Fux959iQoUxzUIA==
+nanoid@3.3.1:
+  version "3.3.1"
+  resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.3.1.tgz#6347a18cac88af88f58af0b3594b723d5e99bb35"
+  integrity sha512-n6Vs/3KGyxPQd6uO0eH4Bv0ojGSUvuLlIHtC3Y0kEO23YRge8H9x1GCzLn28YX0H66pMkxuaeESFq4tKISKwdw==
 
 nanomatch@^1.2.9:
   version "1.2.13"

@@ -14,8 +14,6 @@ jobs:
           node-version: '14'
           cache: 'yarn'
       - run: yarn install --frozen-lockfile
-      - name: Clean project
-        run: yarn run clean
       - uses: crytic/slither-action@v0.1.1
         id: slither
         continue-on-error: true
