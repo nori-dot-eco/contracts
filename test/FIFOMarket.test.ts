@@ -172,7 +172,7 @@ describe('FIFOMarket', () => {
 
   describe('role access', () => {
     describe('DEFAULT_ADMIN_ROLE', () => {
-      it(`accounts with the role "DEFAULT_ADMIN_ROLE" can set the priority restricted threshold while accounts without this role cannot`, async () => {
+      it(`should allow accounts with the role "DEFAULT_ADMIN_ROLE" to set the priority restricted threshold while accounts without this role cannot`, async () => {
         const role = 'DEFAULT_ADMIN_ROLE';
         const accountWithRole = 'admin';
         const accountWithoutRole = 'buyer';
@@ -209,7 +209,7 @@ describe('FIFOMarket', () => {
       });
     });
     describe('ALLOWLIST_ROLE', () => {
-      it(`allows allowlisted acccounts to purchase supply when inventory is below threshold while accounts without this role cannot`, async () => {
+      it(`should allow allowlisted acccounts to purchase supply when inventory is below threshold while accounts without this role cannot`, async () => {
         const role = 'ALLOWLIST_ROLE';
         const accountWithRole = 'admin';
         const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
@@ -241,7 +241,7 @@ describe('FIFOMarket', () => {
             )
         ).not.to.be.reverted;
       });
-      it(`does not allow acccounts not on the allowlist to purchase supply when inventory is below threshold`, async () => {
+      it(`should not allow acccounts not on the allowlist to purchase supply when inventory is below threshold`, async () => {
         const role = 'ALLOWLIST_ROLE';
         const accountWithoutRole = 'buyer';
         const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
@@ -478,7 +478,7 @@ describe('FIFOMarket', () => {
   });
 
   describe('when listing supply in the market', () => {
-    it('updates totalActiveSupply, totalNumberActiveRemovals, and activeSupplierCount when a new supplier is added', async () => {
+    it('should update totalActiveSupply, totalNumberActiveRemovals, and activeSupplierCount when a new supplier is added', async () => {
       const removals = [{ amount: 100 }];
       const {
         fifoMarket,
@@ -682,7 +682,9 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('TODO: should mint a certificate with all of a single removal in round robin order and update state variables', async () => {});
+    it.todo(
+      'should mint a certificate with all of a single removal in round robin order and update state variables'
+    );
     it('should mint a certificate with one removal per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
@@ -810,7 +812,7 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('mint a certificate with multiple removals after another purchase has already been made and update state variables', async () => {
+    it('should mint a certificate with multiple removals after another purchase has already been made and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
@@ -993,9 +995,13 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('TODO: should not use reserved supply to fulfill an order', async () => {});
-    it('TODO: should use previously reserved supply to fulfill an order after it has been unreserved', async () => {});
-    it('TODO: updates activeSupplierCount after the last removal has been reserved from a supplier', async () => {});
+    it.todo('should not use reserved supply to fulfill an order');
+    it.todo(
+      'should use previously reserved supply to fulfill an order after it has been unreserved'
+    );
+    it.todo(
+      'should update activeSupplierCount after the last removal has been reserved from a supplier'
+    );
   });
 
   describe('Unsuccessful purchases', () => {
@@ -1156,7 +1162,7 @@ describe('FIFOMarket', () => {
   });
 
   describe('placing removals on hold', () => {
-    it('updates totalActiveSupply, totalReservedSupply, and totalNumberActiveRemovals when a removal is reserved', async () => {
+    it('should update totalActiveSupply, totalReservedSupply, and totalNumberActiveRemovals when a removal is reserved', async () => {
       const removals = [{ amount: 3 }, { amount: 3 }, { amount: 4 }];
       const {
         fifoMarket,
@@ -1232,7 +1238,7 @@ describe('FIFOMarket', () => {
       expect(activeSupplierCount.toNumber()).to.equal(totalAmountOfSuppliers);
       expect(totalReservedSupply).to.equal(formatTokenAmount(0));
     });
-    it('updates activeSupplierCount when the last removal from a supplier is reserved', async () => {
+    it('should update activeSupplierCount when the last removal from a supplier is reserved', async () => {
       const removals = [{ amount: 3 }];
       const { fifoMarket, listedRemovalIds } = await setupTestLocal({
         removalDataToList: removals,
