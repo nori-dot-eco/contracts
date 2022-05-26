@@ -301,10 +301,9 @@ contract FIFOMarket is
       supplierAddress
     ];
     require(
-      supplierSet.contains(removalId),
+      supplierSet.remove(removalId) == true,
       "Market: removal not in active supply"
     );
-    supplierSet.remove(removalId);
     totalNumberActiveRemovals -= 1;
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     totalActiveSupply -= removalBalance;
