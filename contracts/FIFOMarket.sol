@@ -335,7 +335,11 @@ contract FIFOMarket is
     if (supplierSet.length() == 0) {
       _addActiveSupplier(supplierAddress);
     }
-    return supplierSet.add(removalId); // returns true if the value was added to the set, that is, if it was not already present
+    require(
+      supplierSet.add(removalId),
+      "Market: Removal already in active supply"
+    ); // returns true if the value was added to the set, that is, if it was not already present
+    return true;
   }
 
   function supportsInterface(bytes4 interfaceId)
