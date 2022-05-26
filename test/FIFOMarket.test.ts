@@ -1,9 +1,8 @@
 import type { BigNumberish, ContractReceipt } from 'ethers';
 import { BigNumber } from 'ethers';
 
-import type { FIFOMarket, Removal } from '../typechain-types';
-
-import { formatTokenAmount } from '@/utils/units';
+import type { FIFOMarket, Removal } from '@/typechain-types';
+import { formatTokenAmount, formatTokenString } from '@/utils/units';
 import {
   expect,
   mockDepositNoriToPolygon,
@@ -23,9 +22,6 @@ interface RemovalDataFromListing {
   totalAmountOfSuppliers: number;
   totalAmountOfRemovals: number;
 }
-
-const parseNumberToBigNumber = (numberToParse: number): string =>
-  hre.ethers.utils.parseUnits(numberToParse.toString()).toString();
 
 const getTotalAmountOfSupply = (removals: RemovalDataForListing[]): number =>
   removals.reduce((sum, removal) => sum + removal.amount, 0);
@@ -55,7 +51,7 @@ const mintSupply = async (
     })
   );
   const removalBalances = removalDataToList.map((removalData) =>
-    hre.ethers.utils.parseUnits(removalData.amount.toString())
+    formatTokenString(removalData.amount.toString())
   );
 
   const packedData = hre.ethers.utils.defaultAbiCoder.encode(
@@ -149,7 +145,7 @@ describe('FIFOMarket', () => {
         });
       }
     });
-    it('correctly intializes state variables', async () => {
+    it('correctly intializes totalActiveSupply, totalReservedSupply, totalNumberActiveRemovals, activeSupplierCount, and priorityRestrictedThreshold', async () => {
       const { fifoMarket } = await setupTestLocal();
 
       const [
@@ -503,8 +499,12 @@ describe('FIFOMarket', () => {
         fifoMarket.activeSupplierCount(),
       ]);
 
+      expect(totalAmountOfSupply).to.be.greaterThan(0);
+      expect(totalNumberActiveRemovals).to.be.greaterThan(0);
+      expect(activeSupplierCount).to.be.greaterThan(0);
+
       expect(totalActiveSupply).to.equal(
-        parseNumberToBigNumber(totalAmountOfSupply)
+        formatTokenAmount(totalAmountOfSupply)
       );
       expect(totalNumberActiveRemovals.toNumber()).to.equal(
         totalAmountOfRemovals
@@ -548,13 +548,13 @@ describe('FIFOMarket', () => {
     //   ]);
 
     //   expect(totalActiveSupply).to.equal(
-    //     parseNumberToBigNumber(totalAmountOfSupply)
+    //     formatTokenAmount(totalAmountOfSupply)
     //   );
     //   expect(totalNumberActiveRemovals).to.equal(
-    //     parseNumberToBigNumber(totalAmountOfRemovals)
+    //     formatTokenAmount(totalAmountOfRemovals)
     //   );
     //   expect(activeSupplierCount).to.equal(
-    //     parseNumberToBigNumber(totalAmountOfSuppliers)
+    //     formatTokenAmount(totalAmountOfSuppliers)
     //   );
     // });
     // TODO: Also fix the already existing token IDs for this test
@@ -607,19 +607,19 @@ describe('FIFOMarket', () => {
     //   ]);
 
     //   expect(totalActiveSupply).to.equal(
-    //     parseNumberToBigNumber(totalAmountOfSupply)
+    //     formatTokenAmount(totalAmountOfSupply)
     //   );
     //   expect(totalNumberActiveRemovals).to.equal(
-    //     parseNumberToBigNumber(totalAmountOfRemovals)
+    //     formatTokenAmount(totalAmountOfRemovals)
     //   );
     //   expect(activeSupplierCount).to.equal(
-    //     parseNumberToBigNumber(totalAmountOfSuppliers)
+    //     formatTokenAmount(totalAmountOfSuppliers)
     //   );
     // });
   });
 
   describe('Successful purchases', () => {
-    it('mint a certificate with some of a single removal in round robin order and update state variables', async () => {
+    it('should mint a certificate with some of a single removal in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const totalAvailableSupply = 100;
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
@@ -682,8 +682,8 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('TODO: mint a certificate with all of a single removal in round robin order and update state variables', async () => {});
-    it('mint a certificate with one removal per supplier in round robin order and update state variables', async () => {
+    it('TODO: should mint a certificate with all of a single removal in round robin order and update state variables', async () => {});
+    it('should mint a certificate with one removal per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
@@ -744,7 +744,7 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('mint a certificate with multiple removals per supplier in round robin order and update state variables', async () => {
+    it('should mint a certificate with multiple removals per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const numberOfRemovalsToCreate = 100;
       const removalDataToList = [
@@ -888,7 +888,7 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it('correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
+    it('should correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const removalDataToList = [
         { amount: 3, supplier: hre.namedAccounts.supplier },
@@ -1185,14 +1185,14 @@ describe('FIFOMarket', () => {
       ]);
 
       expect(totalActiveSupply).to.equal(
-        parseNumberToBigNumber(totalAmountOfSupply - removalAmountToReserve)
+        formatTokenAmount(totalAmountOfSupply - removalAmountToReserve)
       );
       expect(totalNumberActiveRemovals.toNumber()).to.equal(
         totalAmountOfRemovals - 1
       );
       expect(activeSupplierCount.toNumber()).to.equal(totalAmountOfSuppliers);
       expect(totalReservedSupply).to.equal(
-        parseNumberToBigNumber(removalAmountToReserve)
+        formatTokenAmount(removalAmountToReserve)
       );
     });
     it('updates totalActiveSupply, totalReservedSupply, and totalNumberActiveRemovals when a removal is unreserved', async () => {
@@ -1224,13 +1224,13 @@ describe('FIFOMarket', () => {
       ]);
 
       expect(totalActiveSupply).to.equal(
-        parseNumberToBigNumber(totalAmountOfSupply)
+        formatTokenAmount(totalAmountOfSupply)
       );
       expect(totalNumberActiveRemovals.toNumber()).to.equal(
         totalAmountOfRemovals
       );
       expect(activeSupplierCount.toNumber()).to.equal(totalAmountOfSuppliers);
-      expect(totalReservedSupply).to.equal(parseNumberToBigNumber(0));
+      expect(totalReservedSupply).to.equal(formatTokenAmount(0));
     });
     it('updates activeSupplierCount when the last removal from a supplier is reserved', async () => {
       const removals = [{ amount: 3 }];
@@ -1253,11 +1253,11 @@ describe('FIFOMarket', () => {
         fifoMarket.activeSupplierCount(),
       ]);
 
-      expect(totalActiveSupply).to.equal(parseNumberToBigNumber(0));
+      expect(totalActiveSupply).to.equal(formatTokenAmount(0));
       expect(totalNumberActiveRemovals.toNumber()).to.equal(0);
       expect(activeSupplierCount.toNumber()).to.equal(0);
       expect(totalReservedSupply).to.equal(
-        parseNumberToBigNumber(getTotalAmountOfSupply(removals))
+        formatTokenAmount(getTotalAmountOfSupply(removals))
       );
     });
   });

@@ -32,7 +32,6 @@ contract FIFOMarket is
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
    */
-
   struct RoundRobinOrder {
     address previousSupplierAddress;
     address nextSupplierAddress;
@@ -177,7 +176,10 @@ contract FIFOMarket is
       totalActiveSupply += removalAmount;
       totalNumberActiveRemovals += 1;
       address supplierAddress = ids[i].supplierAddress();
-      _activeSupply[supplierAddress].add(ids[i]);
+      require(
+        _activeSupply[supplierAddress].add(ids[i]),
+        "Market: Removal already in active supply"
+      );
       // If a new supplier has been added, or if the supplier had previously sold out
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
