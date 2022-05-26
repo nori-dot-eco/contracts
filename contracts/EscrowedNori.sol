@@ -72,7 +72,7 @@ contract EscrowedNORI is
     uint256 currentAmount;
     address recipient;
     uint256 startTime;
-    uint256 escrowEndTime;
+    uint256 endTime;
     uint256 claimedAmount;
     uint256 totalQuantityRevoked;
     bool exists;
@@ -316,7 +316,7 @@ contract EscrowedNORI is
   }
 
   /**
-   * @notice Number of  tokens that were revoked if any.
+   * @notice
    */
   function revocableQuantity(address account, uint256 escrowScheduleId)
     public
@@ -435,6 +435,8 @@ contract EscrowedNORI is
     uint256 escrowScheduleId = _removal.getEscrowScheduleIdForRemoval(
       removalId
     );
+    // TODO error handling/ what to do if this value doesn't exist??
+    // should we calculate the unix startTime for the removal's vintage? (or look it up)
     if (!_addressToEscrowSchedules[recipient][escrowScheduleId].exists) {
       _createEscrowSchedule(recipient, escrowScheduleId);
     }
