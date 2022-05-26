@@ -682,9 +682,7 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it.todo(
-      'should mint a certificate with all of a single removal in round robin order and update state variables'
-    );
+    // TODO: 'should mint a certificate with all of a single removal in round robin order and update state variables'
     it('should mint a certificate with one removal per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
@@ -995,13 +993,9 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
-    it.todo('should not use reserved supply to fulfill an order');
-    it.todo(
-      'should use previously reserved supply to fulfill an order after it has been unreserved'
-    );
-    it.todo(
-      'should update activeSupplierCount after the last removal has been reserved from a supplier'
-    );
+    // TODO: should not use reserved supply to fulfill an order;
+    // TODO: should use previously reserved supply to fulfill an order after it has been unreserved
+    // TODO: should update activeSupplierCount after the last removal has been reserved from a supplier
   });
 
   describe('Unsuccessful purchases', () => {
