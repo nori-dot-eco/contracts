@@ -225,136 +225,144 @@ describe('vesting task', () => {
     describe('isTimeWithinReasonableDateRange', () => {
       describe('pass', () => {
         it('should return true if it is within a reasonable date range', () => {
-          [{ maxFutureYears: 10, minimumPastYears: 2 }].forEach(
-            ({ maxFutureYears, minimumPastYears }) => {
-              expect(
-                rules
-                  .isTimeWithinReasonableDateRange({
-                    maxFutureYears,
-                    minimumPastYears,
-                  })
-                  .isValidSync(
-                    utcToEvmTime(moment().add(maxFutureYears - 1, 'years'))
-                  )
-              ).to.be.true;
-              expect(
-                rules
-                  .isTimeWithinReasonableDateRange({
-                    maxFutureYears,
-                    minimumPastYears,
-                  })
-                  .isValidSync(
-                    utcToEvmTime(
-                      moment().subtract(minimumPastYears - 1, 'years')
-                    )
-                  )
-              ).to.be.true;
-            }
-          );
+          for (const { maxFutureYears, minimumPastYears } of [
+            { maxFutureYears: 10, minimumPastYears: 2 },
+          ]) {
+            expect(
+              rules
+                .isTimeWithinReasonableDateRange({
+                  maxFutureYears,
+                  minimumPastYears,
+                })
+                .isValidSync(
+                  utcToEvmTime(moment().add(maxFutureYears - 1, 'years'))
+                )
+            ).to.be.true;
+            expect(
+              rules
+                .isTimeWithinReasonableDateRange({
+                  maxFutureYears,
+                  minimumPastYears,
+                })
+                .isValidSync(
+                  utcToEvmTime(moment().subtract(minimumPastYears - 1, 'years'))
+                )
+            ).to.be.true;
+          }
         });
       });
       describe('fail', () => {
         it('should return false if it is not within a reasonable date range', () => {
-          [{ maxFutureYears: 10, minimumPastYears: 2 }].forEach(
-            ({ maxFutureYears, minimumPastYears }) => {
-              expect(
-                rules
-                  .isTimeWithinReasonableDateRange({
-                    maxFutureYears,
-                    minimumPastYears,
-                  })
-                  .isValidSync(
-                    utcToEvmTime(
-                      moment().add(maxFutureYears, 'years').add('1', 'day')
-                    )
+          for (const { maxFutureYears, minimumPastYears } of [
+            { maxFutureYears: 10, minimumPastYears: 2 },
+          ]) {
+            expect(
+              rules
+                .isTimeWithinReasonableDateRange({
+                  maxFutureYears,
+                  minimumPastYears,
+                })
+                .isValidSync(
+                  utcToEvmTime(
+                    moment().add(maxFutureYears, 'years').add('1', 'day')
                   )
-              ).to.be.false;
-              expect(
-                rules
-                  .isTimeWithinReasonableDateRange({
-                    maxFutureYears,
-                    minimumPastYears,
-                  })
-                  .isValidSync(
-                    utcToEvmTime(
-                      moment()
-                        .subtract(minimumPastYears, 'years')
-                        .subtract('1', 'day')
-                    )
+                )
+            ).to.be.false;
+            expect(
+              rules
+                .isTimeWithinReasonableDateRange({
+                  maxFutureYears,
+                  minimumPastYears,
+                })
+                .isValidSync(
+                  utcToEvmTime(
+                    moment()
+                      .subtract(minimumPastYears, 'years')
+                      .subtract('1', 'day')
                   )
-              ).to.be.false;
-            }
-          );
+                )
+            ).to.be.false;
+          }
         });
       });
     });
     describe('isWalletAddress', () => {
       describe('pass', () => {
         it('should return true if it passes isWalletAddress validation', () => {
-          ['0xDD66B46910918B2F442D6b75C6E55631ad678c99'].forEach(
-            (v) => expect(rules.isWalletAddress().isValidSync(v)).to.be.true
-          );
+          for (const v of ['0xDD66B46910918B2F442D6b75C6E55631ad678c99'])
+            expect(rules.isWalletAddress().isValidSync(v)).to.be.true;
         });
       });
       describe('fail', () => {
         it('should return false if it fails isWalletAddress validation', () => {
-          ['0x1234', 1234, [], {}].forEach(
-            (v) => expect(rules.isWalletAddress().isValidSync(v)).to.be.false
-          );
+          for (const v of ['0x1234', 1234, [], {}])
+            expect(rules.isWalletAddress().isValidSync(v)).to.be.false;
         });
       });
     });
     describe('requiredPositiveBigNumberString', () => {
       describe('pass', () => {
         it('should pass if the argument is a valid bignumber string', () => {
-          ['12345', '0'].forEach(
-            (v) =>
-              expect(rules.requiredPositiveBigNumberString().isValidSync(v)).to
-                .be.true
-          );
+          for (const v of ['12345', '0'])
+            expect(rules.requiredPositiveBigNumberString().isValidSync(v)).to.be
+              .true;
         });
       });
       describe('fail', () => {
         it('should fail if the argument is not a valid bignumber string', () => {
-          ['', '1.1', 1.2, -1, -1.1, null, undefined, [], {}, 'abc'].forEach(
-            (v) =>
-              expect(rules.requiredPositiveBigNumberString().isValidSync(v)).to
-                .be.false
-          );
+          for (const v of [
+            '',
+            '1.1',
+            1.2,
+            -1,
+            -1.1,
+            undefined,
+            undefined,
+            [],
+            {},
+            'abc',
+          ])
+            expect(rules.requiredPositiveBigNumberString().isValidSync(v)).to.be
+              .false;
         });
       });
     });
     describe('requiredString', () => {
       describe('pass', () => {
         it('should pass if the argument passes requiredString validation', () => {
-          ['abc', '1', '-1', '1.1', '0'].forEach(
-            (v) => expect(rules.requiredString().isValidSync(v)).to.be.true
-          );
+          for (const v of ['abc', '1', '-1', '1.1', '0'])
+            expect(rules.requiredString().isValidSync(v)).to.be.true;
         });
       });
       describe('fail', () => {
         it('should fail if the argument fails requiredString validation', () => {
-          [-1, 1.01, -1.01, '', {}, [], null, undefined].forEach(
-            (v) => expect(rules.requiredString().isValidSync(v)).to.be.false
-          );
+          for (const v of [-1, 1.01, -1.01, '', {}, [], undefined, undefined])
+            expect(rules.requiredString().isValidSync(v)).to.be.false;
         });
       });
     });
     describe('requiredPositiveInteger', () => {
       describe('pass', () => {
         it('should pass if the argument passes requiredPositiveInteger validation', () => {
-          [0, 1].forEach(
-            (v) =>
-              expect(rules.requiredPositiveInteger().isValidSync(v)).to.be.true
-          );
+          for (const v of [0, 1])
+            expect(rules.requiredPositiveInteger().isValidSync(v)).to.be.true;
         });
       });
       describe('fail', () => {
         it('should fail if the argument fails requiredPositiveInteger validation', () => {
-          ['-1', 'abc', -1, 1.01, -1.01, '', {}, [], null, undefined].forEach(
-            (v) =>
-              expect(rules.requiredPositiveInteger().isValidSync(v)).to.be.false
-          );
+          for (const v of [
+            '-1',
+            'abc',
+            -1,
+            1.01,
+            -1.01,
+            '',
+            {},
+            [],
+            undefined,
+            undefined,
+          ])
+            expect(rules.requiredPositiveInteger().isValidSync(v)).to.be.false;
         });
       });
     });
@@ -363,21 +371,20 @@ describe('vesting task', () => {
     describe('isValidEvmMoment', () => {
       describe('pass', () => {
         it('should pass if the argument passes isValidEvmMoment validation', () => {
-          [
+          for (const v of [
             utcToEvmTime(moment()),
             utcToEvmTime('2022-03-21T20:45:29.496Z'),
             utcToEvmTime('2022-03-21'),
             1,
             0,
-          ].forEach(
-            (v) => expect(validations.isValidEvmMoment().test(v)).to.be.true
-          );
+          ])
+            expect(validations.isValidEvmMoment().test(v)).to.be.true;
         });
       });
       describe('fail', () => {
         it('should fail if the argument fails isValidEvmMoment validation', () => {
-          [
-            null,
+          for (const v of [
+            undefined,
             undefined,
             true,
             false,
@@ -391,61 +398,62 @@ describe('vesting task', () => {
             '',
             'a',
             '2022-13-21',
-          ].forEach(
-            (v) => expect(validations.isValidEvmMoment().test(v)).to.be.false
-          );
+          ])
+            expect(validations.isValidEvmMoment().test(v)).to.be.false;
         });
       });
     });
     describe('walletAddressIsSameAsParentKey', () => {
       describe('pass', () => {
         it('should pass if the argument passes walletAddressIsSameAsParentKey validation', () => {
-          [
+          for (const { value, path } of [
             {
               value: '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
               path: '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
             },
-          ].forEach(
-            ({ value, path }) =>
-              expect(
-                validations
-                  .walletAddressIsSameAsParentKey()
-                  .test(value, { path })
-              ).to.be.true
-          );
+          ])
+            expect(
+              validations.walletAddressIsSameAsParentKey().test(value, { path })
+            ).to.be.true;
         });
       });
       describe('fail', () => {
         it('should fail if the argument fails walletAddressIsSameAsParentKey validation', () => {
-          [
+          for (const { value, path } of [
             {
               value: '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
               path: '0x465d5a3fFeA4CD109043499Fa576c3E16f918463',
             },
-          ].forEach(
-            ({ value, path }) =>
-              expect(
-                validations
-                  .walletAddressIsSameAsParentKey()
-                  .test(value, { path })
-              ).to.be.false
-          );
+          ])
+            expect(
+              validations.walletAddressIsSameAsParentKey().test(value, { path })
+            ).to.be.false;
         });
       });
     });
     describe('isBigNumberish', () => {
       describe('pass', () => {
         it('should pass if the argument passes isBigNumberish validation', () => {
-          ['1', '-1', '0'].forEach(
-            (v) => expect(validations.isBigNumberish().test(v)).to.be.true
-          );
+          for (const v of ['1', '-1', '0'])
+            expect(validations.isBigNumberish().test(v)).to.be.true;
         });
       });
       describe('fail', () => {
         it('should fail if the argument fails isBigNumberish validation', () => {
-          ['a', '-1.1', -1, 1.1, -1.1, 1, '', {}, [], null, undefined].forEach(
-            (v) => expect(validations.isBigNumberish().test(v)).to.be.false
-          );
+          for (const v of [
+            'a',
+            '-1.1',
+            -1,
+            1.1,
+            -1.1,
+            1,
+            '',
+            {},
+            [],
+            undefined,
+            undefined,
+          ])
+            expect(validations.isBigNumberish().test(v)).to.be.false;
         });
       });
     });
@@ -503,16 +511,14 @@ describe('vesting task', () => {
     describe('isWalletAddress', () => {
       describe('pass', () => {
         it('should return true if it is a valid wallet address', () => {
-          ['0xDD66B46910918B2F442D6b75C6E55631ad678c99'].forEach(
-            (v) => expect(validations.isWalletAddress().test(v)).to.be.true
-          );
+          for (const v of ['0xDD66B46910918B2F442D6b75C6E55631ad678c99'])
+            expect(validations.isWalletAddress().test(v)).to.be.true;
         });
       });
       describe('fail', () => {
         it('should return false if not a valid wallet address', () => {
-          ['0x1234', 1234, [], {}].forEach(
-            (v) => expect(validations.isWalletAddress().test(v)).to.be.false
-          );
+          for (const v of ['0x1234', 1234, [], {}])
+            expect(validations.isWalletAddress().test(v)).to.be.false;
         });
       });
     });
@@ -524,29 +530,27 @@ describe('vesting task', () => {
       describe('unlockEndTime', () => {
         describe('valid', () => {
           it('should pass when unlockEndTime is defined', () => {
-            [utcToEvmTime(moment())].forEach((v) =>
+            for (const v of [utcToEvmTime(moment())])
               expect(
                 grantSchema.validateSyncAt('unlockEndTime', {
                   unlockEndTime: v,
                   vestEndTime: v,
                   startTime: v,
                 })
-              ).to.eq(v)
-            );
+              ).to.eq(v);
           });
         });
         describe('invalid', () => {
           it('should fail when unlockEndTime is missing', () => {
-            [null, undefined].forEach((v) =>
+            for (const v of [undefined, undefined])
               expect(() =>
                 grantSchema.validateSyncAt('unlockEndTime', {
                   unlockEndTime: v,
                 })
-              ).throws('unlockEndTime is a required field')
-            );
+              ).throws('unlockEndTime is a required field');
           });
           it('should fail when unlockEndTime is not a uint', () => {
-            [{}, [], '', '1', '-1', 1.1, false, true].forEach((v) =>
+            for (const v of [{}, [], '', '1', '-1', 1.1, false, true])
               expect(() =>
                 grantSchema.validateSyncAt('unlockEndTime', {
                   unlockEndTime: v,
@@ -559,45 +563,41 @@ describe('vesting task', () => {
                         ? 'an integer'
                         : 'a `number`'
                     }`
-              )
-            );
+              );
           });
           it('should fail when unlockEndTime is negative', () => {
-            [-1].forEach((v) =>
+            for (const v of [-1])
               expect(() =>
                 grantSchema.validateSyncAt('unlockEndTime', {
                   unlockEndTime: v,
                 })
               ).throws(
                 'unlockEndTime must be a valid EVM timestamp. Value: -1.'
-              )
-            );
+              );
           });
         });
       });
       describe('cliff1Time', () => {
         describe('valid', () => {
           it('should pass when cliff1Time is defined and >= startTime', () => {
-            [utcToEvmTime(moment())].forEach((v) =>
+            for (const v of [utcToEvmTime(moment())])
               expect(
                 grantSchema.validateSyncAt('cliff1Time', {
                   cliff1Time: v,
                   startTime: v,
                 })
-              ).to.eq(v)
-            );
+              ).to.eq(v);
           });
         });
         describe('invalid', () => {
           it('should fail when cliff1Time is missing', () => {
-            [null, undefined].forEach((v) =>
+            for (const v of [undefined, undefined])
               expect(() =>
                 grantSchema.validateSyncAt('cliff1Time', { cliff1Time: v })
-              ).throws('cliff1Time is a required field')
-            );
+              ).throws('cliff1Time is a required field');
           });
           it('should fail when cliff1Time is not a uint', () => {
-            [{}, [], '', '1', '-1', 1.1, false, true].forEach((v) =>
+            for (const v of [{}, [], '', '1', '-1', 1.1, false, true])
               expect(() =>
                 grantSchema.validateSyncAt('cliff1Time', { cliff1Time: v })
               ).throws(
@@ -608,34 +608,31 @@ describe('vesting task', () => {
                         ? 'an integer'
                         : 'a `number`'
                     }`
-              )
-            );
+              );
           });
         });
       });
       describe('cliff2Time', () => {
         describe('valid', () => {
           it('should pass when cliff2Time is defined and >= cliff1Time', () => {
-            [utcToEvmTime(moment())].forEach((v) =>
+            for (const v of [utcToEvmTime(moment())])
               expect(
                 grantSchema.validateSyncAt('cliff2Time', {
                   cliff2Time: v,
                   cliff1Time: v,
                 })
-              ).to.eq(v)
-            );
+              ).to.eq(v);
           });
         });
         describe('invalid', () => {
           it('should fail when cliff2Time is missing', () => {
-            [null, undefined].forEach((v) =>
+            for (const v of [undefined, undefined])
               expect(() =>
                 grantSchema.validateSyncAt('cliff2Time', { cliff2Time: v })
-              ).throws('cliff2Time is a required field')
-            );
+              ).throws('cliff2Time is a required field');
           });
           it('should fail when cliff2Time is not a uint', () => {
-            [{}, [], '', '1', '-1', 1.1, false, true].forEach((v) =>
+            for (const v of [{}, [], '', '1', '-1', 1.1, false, true])
               expect(() =>
                 grantSchema.validateSyncAt('cliff2Time', { cliff2Time: v })
               ).throws(
@@ -646,31 +643,28 @@ describe('vesting task', () => {
                         ? 'an integer'
                         : 'a `number`'
                     }`
-              )
-            );
+              );
           });
         });
       });
       describe('startTime', () => {
         describe('valid', () => {
           it('should pass when startTime is defined', () => {
-            [utcToEvmTime(moment())].forEach((v) =>
+            for (const v of [utcToEvmTime(moment())])
               expect(
                 grantSchema.validateSyncAt('startTime', { startTime: v })
-              ).to.eq(v)
-            );
+              ).to.eq(v);
           });
         });
         describe('invalid', () => {
           it('should fail when startTime is missing', () => {
-            [null, undefined].forEach((v) =>
+            for (const v of [undefined, undefined])
               expect(() =>
                 grantSchema.validateSyncAt('startTime', { startTime: v })
-              ).throws('startTime is a required field')
-            );
+              ).throws('startTime is a required field');
           });
           it('should fail when startTime is not a uint', () => {
-            [{}, [], '', '1', '-1', -1, 1.1, false, true].forEach((v) =>
+            for (const v of [{}, [], '', '1', '-1', -1, 1.1, false, true])
               expect(() =>
                 grantSchema.validateSyncAt('startTime', { startTime: v })
               ).throws(
@@ -681,31 +675,28 @@ describe('vesting task', () => {
                         ? 'an integer'
                         : 'a `number`'
                     }`
-              )
-            );
+              );
           });
         });
       });
       describe('vestEndTime', () => {
         describe('valid', () => {
           it('should pass when vestEndTime is defined', () => {
-            [utcToEvmTime(moment())].forEach((v) =>
+            for (const v of [utcToEvmTime(moment())])
               expect(
                 grantSchema.validateSyncAt('vestEndTime', { vestEndTime: v })
-              ).to.eq(v)
-            );
+              ).to.eq(v);
           });
         });
         describe('invalid', () => {
           it('should fail when vestEndTime is missing', () => {
-            [null, undefined].forEach((v) =>
+            for (const v of [undefined, undefined])
               expect(() =>
                 grantSchema.validateSyncAt('vestEndTime', { vestEndTime: v })
-              ).throws('vestEndTime is a required field')
-            );
+              ).throws('vestEndTime is a required field');
           });
           it('should fail when vestEndTime is not a positive uint', () => {
-            [{}, [], '', '1', '-1', -1, 1.1, false, true].forEach((v) =>
+            for (const v of [{}, [], '', '1', '-1', -1, 1.1, false, true])
               expect(() =>
                 grantSchema.validateSyncAt('vestEndTime', { vestEndTime: v })
               ).throws(
@@ -716,8 +707,7 @@ describe('vesting task', () => {
                         ? 'an integer'
                         : 'a `number`'
                     }`
-              )
-            );
+              );
           });
         });
       });
@@ -786,14 +776,18 @@ describe('vesting task', () => {
             },
           } as Partial<typeof Octokit> as Octokit)
         );
-        const getBridgedPolygonNori = sandbox.fake.returns({
-          ...bpNori,
-          batchSend: sandbox.spy(),
-          callStatic: {
-            ...bpNori.callStatic,
+        const getBridgedPolygonNori = sandbox.fake.returns(
+          Promise.resolve({
+            ...bpNori,
             batchSend: sandbox.spy(),
-          },
-        } as DeepPartial<Promise<BridgedPolygonNORI>> as Promise<BridgedPolygonNORI>);
+            callStatic: {
+              ...bpNori.callStatic,
+              batchSend: sandbox.spy(),
+            },
+          }) as Promise<
+            DeepPartial<BridgedPolygonNORI>
+          > as Promise<BridgedPolygonNORI>
+        );
         const getLockedNORI = sandbox.fake.returns({
           ...lNori,
           batchRevokeUnvestedTokenAmounts: sandbox.spy(),
@@ -844,15 +838,15 @@ describe('vesting task', () => {
         });
         expect(hre.log).to.have.been.calledWith({
           '0xDD66B46910918B2F442D6b75C6E55631ad678c99': {
-            vestEndTime: { __old: 0, __new: 1783987200 },
-            startTime: { __old: 0, __new: 1657756800 },
+            vestEndTime: { __old: 0, __new: 1_783_987_200 },
+            startTime: { __old: 0, __new: 1_657_756_800 },
             originalAmount: {
               __old: '0',
               __new: '46425588600000000000000',
             },
-            unlockEndTime: { __old: 0, __new: 1815523200 },
-            cliff1Time: { __old: 0, __new: 1689292800 },
-            cliff2Time: { __old: 0, __new: 1705190400 },
+            unlockEndTime: { __old: 0, __new: 1_815_523_200 },
+            cliff1Time: { __old: 0, __new: 1_689_292_800 },
+            cliff2Time: { __old: 0, __new: 1_705_190_400 },
             vestCliff1Amount: {
               __old: '0',
               __new: '11606397150000000000000',
@@ -871,42 +865,42 @@ describe('vesting task', () => {
             },
           },
           '0x465d5a3fFeA4CD109043499Fa576c3E16f918463': {
-            vestEndTime: { __old: 0, __new: 1657756800 },
-            startTime: { __old: 0, __new: 1657756800 },
+            vestEndTime: { __old: 0, __new: 1_657_756_800 },
+            startTime: { __old: 0, __new: 1_657_756_800 },
             originalAmount: {
               __old: '0',
               __new: '73000000000000000000000',
             },
-            unlockEndTime: { __old: 0, __new: 1689292800 },
-            cliff1Time: { __old: 0, __new: 1689292800 },
-            cliff2Time: { __old: 0, __new: 1689292800 },
+            unlockEndTime: { __old: 0, __new: 1_689_292_800 },
+            cliff1Time: { __old: 0, __new: 1_689_292_800 },
+            cliff2Time: { __old: 0, __new: 1_689_292_800 },
             unlockCliff1Amount: {
               __old: '0',
               __new: '73000000000000000000000',
             },
           },
           '0x3254678253467832548762382348765342765342': {
-            vestEndTime: { __old: 0, __new: 1657756800 },
-            startTime: { __old: 0, __new: 1657756800 },
+            vestEndTime: { __old: 0, __new: 1_657_756_800 },
+            startTime: { __old: 0, __new: 1_657_756_800 },
             originalAmount: { __old: '0', __new: '120000000000000000000' },
-            unlockEndTime: { __old: 0, __new: 1689292800 },
-            cliff1Time: { __old: 0, __new: 1689292800 },
-            cliff2Time: { __old: 0, __new: 1689292800 },
+            unlockEndTime: { __old: 0, __new: 1_689_292_800 },
+            cliff1Time: { __old: 0, __new: 1_689_292_800 },
+            cliff2Time: { __old: 0, __new: 1_689_292_800 },
             unlockCliff1Amount: {
               __old: '0',
               __new: '120000000000000000000',
             },
           },
           '0x8eB185e20A9B7b31bd48DA19E834B93bE952795E': {
-            vestEndTime: { __old: 0, __new: 1657756800 },
-            startTime: { __old: 0, __new: 1657756800 },
+            vestEndTime: { __old: 0, __new: 1_657_756_800 },
+            startTime: { __old: 0, __new: 1_657_756_800 },
             originalAmount: {
               __old: '0',
               __new: '6454545000000000000000000',
             },
-            unlockEndTime: { __old: 0, __new: 1783987200 },
-            cliff1Time: { __old: 0, __new: 1689292800 },
-            cliff2Time: { __old: 0, __new: 1705190400 },
+            unlockEndTime: { __old: 0, __new: 1_783_987_200 },
+            cliff1Time: { __old: 0, __new: 1_689_292_800 },
+            cliff2Time: { __old: 0, __new: 1_705_190_400 },
             unlockCliff1Amount: {
               __old: '0',
               __new: '806818125000000000000000',
@@ -917,15 +911,15 @@ describe('vesting task', () => {
             },
           },
           '0x6b9d03759E9F14a641f0703fBD84F1F726159B6B': {
-            vestEndTime: { __old: 0, __new: 1657756800 },
-            startTime: { __old: 0, __new: 1657756800 },
+            vestEndTime: { __old: 0, __new: 1_657_756_800 },
+            startTime: { __old: 0, __new: 1_657_756_800 },
             originalAmount: {
               __old: '0',
               __new: '20000000000000000000000000',
             },
-            unlockEndTime: { __old: 0, __new: 1815523200 },
-            cliff1Time: { __old: 0, __new: 1689292800 },
-            cliff2Time: { __old: 0, __new: 1705190400 },
+            unlockEndTime: { __old: 0, __new: 1_815_523_200 },
+            cliff1Time: { __old: 0, __new: 1_689_292_800 },
+            cliff2Time: { __old: 0, __new: 1_705_190_400 },
             unlockCliff1Amount: {
               __old: '0',
               __new: '2000000000000000000000000',
@@ -936,15 +930,15 @@ describe('vesting task', () => {
             },
           },
           '0xBd6E6A75c7A51cfdf08DDf2f538ceB221835839b': {
-            vestEndTime: { __old: 0, __new: 1804032000 },
-            startTime: { __old: 0, __new: 1677801600 },
+            vestEndTime: { __old: 0, __new: 1_804_032_000 },
+            startTime: { __old: 0, __new: 1_677_801_600 },
             originalAmount: {
               __old: '0',
               __new: '50000000000000000000000',
             },
-            unlockEndTime: { __old: 0, __new: 1835654400 },
-            cliff1Time: { __old: 0, __new: 1709424000 },
-            cliff2Time: { __old: 0, __new: 1725321600 },
+            unlockEndTime: { __old: 0, __new: 1_835_654_400 },
+            cliff1Time: { __old: 0, __new: 1_709_424_000 },
+            cliff2Time: { __old: 0, __new: 1_725_321_600 },
             vestCliff1Amount: {
               __old: '0',
               __new: '12500000000000000000000',
@@ -963,30 +957,30 @@ describe('vesting task', () => {
             },
           },
           '0x8aBFd8375DA1521E70d23988eb5a6efA799C15ea': {
-            vestEndTime: { __old: 0, __new: 1657756800 },
-            startTime: { __old: 0, __new: 1657756800 },
+            vestEndTime: { __old: 0, __new: 1_657_756_800 },
+            startTime: { __old: 0, __new: 1_657_756_800 },
             originalAmount: {
               __old: '0',
               __new: '14010600000000000000000',
             },
-            unlockEndTime: { __old: 0, __new: 1854057600 },
-            cliff1Time: { __old: 0, __new: 1854057600 },
-            cliff2Time: { __old: 0, __new: 1854057600 },
+            unlockEndTime: { __old: 0, __new: 1_854_057_600 },
+            cliff1Time: { __old: 0, __new: 1_854_057_600 },
+            cliff2Time: { __old: 0, __new: 1_854_057_600 },
             unlockCliff1Amount: {
               __old: '0',
               __new: '14010600000000000000000',
             },
           },
           '0x6029424b26feFfe2879E88C62e8130dC418e64D9': {
-            vestEndTime: { __old: 0, __new: 1836259200 },
-            startTime: { __old: 0, __new: 1678406400 },
+            vestEndTime: { __old: 0, __new: 1_836_259_200 },
+            startTime: { __old: 0, __new: 1_678_406_400 },
             originalAmount: {
               __old: '0',
               __new: '52000000000000000000000',
             },
-            unlockEndTime: { __old: 0, __new: 1867795200 },
-            cliff1Time: { __old: 0, __new: 1741564800 },
-            cliff2Time: { __old: 0, __new: 1757462400 },
+            unlockEndTime: { __old: 0, __new: 1_867_795_200 },
+            cliff1Time: { __old: 0, __new: 1_741_564_800 },
+            cliff2Time: { __old: 0, __new: 1_757_462_400 },
             vestCliff1Amount: {
               __old: '0',
               __new: '13000000000000000000000',
@@ -1003,7 +997,7 @@ describe('vesting task', () => {
               __old: '0',
               __new: '10400000000000000000000',
             },
-            lastRevocationTime: { __old: 0, __new: 1788998400 },
+            lastRevocationTime: { __old: 0, __new: 1_788_998_400 },
           },
         });
       });

@@ -1,15 +1,17 @@
-import { TransactionResponse, TransactionStatus, FireblocksSDK } from 'fireblocks-sdk';
-import { Chain } from "./chain";
+import type { TransactionResponse, FireblocksSDK } from 'fireblocks-sdk';
+import { TransactionStatus } from 'fireblocks-sdk';
+
+import { Chain } from './chain';
 
 const CHAIN_TO_ASSET_ID: { [key: string]: string } = {
-  [Chain.MAINNET]: "ETH",
-  [Chain.ROPSTEN]: "ETH_TEST",
-  [Chain.KOVAN]: "ETH_TEST2",
-  [Chain.GOERLI]: "ETH_TEST3",
-  [Chain.BSC]: "BNB_BSC",
-  [Chain.BSC_TEST]: "BNB_TEST",
-  [Chain.POLYGON]: "MATIC_POLYGON",
-  [Chain.MUMBAI]: "MATIC_POLYGON_MUMBAI",
+  [Chain.MAINNET]: 'ETH',
+  [Chain.ROPSTEN]: 'ETH_TEST',
+  [Chain.KOVAN]: 'ETH_TEST2',
+  [Chain.GOERLI]: 'ETH_TEST3',
+  [Chain.BSC]: 'BNB_BSC',
+  [Chain.BSC_TEST]: 'BNB_TEST',
+  [Chain.POLYGON]: 'MATIC_POLYGON',
+  [Chain.MUMBAI]: 'MATIC_POLYGON_MUMBAI',
 };
 
 const CHAIN_IDS = {
@@ -20,18 +22,19 @@ const CHAIN_IDS = {
   [Chain.BSC]: 56,
   [Chain.BSC_TEST]: 97,
   [Chain.POLYGON]: 137,
-  [Chain.MUMBAI]: 80001,
+  [Chain.MUMBAI]: 80_001,
 };
 
-export interface BridgeParams {
-    fireblocksApiClient: FireblocksSDK;
-    vaultAccountId: string;
-    externalWalletId?: string;
-    chain?: Chain;
+export interface BridgeParameters {
+  fireblocksApiClient: FireblocksSDK;
+  vaultAccountId: string;
+  externalWalletId?: string;
+  chain?: Chain;
 }
 
 export abstract class BaseBridge {
   readonly assetId: string;
+
   static readonly finalTransactionStates = [
     TransactionStatus.COMPLETED,
     TransactionStatus.FAILED,
@@ -40,7 +43,7 @@ export abstract class BaseBridge {
     TransactionStatus.REJECTED,
   ];
 
-  constructor(readonly params: BridgeParams) {
+  constructor(readonly params: BridgeParameters) {
     const chain = params.chain || Chain.MAINNET;
     this.assetId = CHAIN_TO_ASSET_ID[chain];
   }
@@ -72,8 +75,8 @@ export abstract class BaseBridge {
             if (txInfo?.txHash) {
               return txInfo.txHash;
             }
-          } catch (err) {
-            console.error(err);
+          } catch (error) {
+            console.error(error);
           }
           await new Promise((r) => setTimeout(r, 1000));
         }

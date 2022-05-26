@@ -1,6 +1,9 @@
 import path from 'path';
 
 import { readJsonSync, writeJsonSync } from 'fs-extra';
+import type { Address } from 'hardhat-deploy/types';
+
+import type { Contracts } from './contracts';
 
 import type {
   LockedNORI,
@@ -17,12 +20,11 @@ import type {
   BridgedPolygonNORI__factory,
   ScheduleTestHarness,
   ScheduleTestHarness__factory,
+  RemovalTestHarness,
+  RemovalTestHarness__factory,
 } from '@/typechain-types';
-
 import { formatTokenAmount } from '@/utils/units';
 import { createRemovalTokenId, mockDepositNoriToPolygon } from '@/test/helpers';
-import { Address } from 'hardhat-deploy/types';
-import { Contracts } from './contracts';
 
 interface ContractConfig {
   [key: string]: { proxyAddress: string };
@@ -87,15 +89,15 @@ export const writeContractsConfig = ({
   contracts: Contracts;
 }): void => {
   hre.trace('Writing contracts.json config', hre.network.name);
-  Object.entries(contracts)
-    .filter((_, value) => value !== undefined)
-    .forEach(([name, contract]) => {
-      updateContractsConfig({
-        networkName: hre.network.name,
-        contractName: name,
-        proxyAddress: contract.address,
-      });
+  for (const [name, contract] of Object.entries(contracts).filter(
+    (_, value) => value !== undefined
+  )) {
+    updateContractsConfig({
+      networkName: hre.network.name,
+      contractName: name,
+      proxyAddress: contract.address,
     });
+  }
 };
 
 export const configureDeploymentSettings = async ({
@@ -107,7 +109,7 @@ export const configureDeploymentSettings = async ({
     await hre.ethernal.resetWorkspace('nori');
     await hre.ethernal.startListening();
   }
-  if (hre.network.name === 'hardhat') {
+  if (hre.network.name === 'hardhat' || hre.network.name === 'localhost') {
     await hre.run('deploy:erc1820');
   }
 };
@@ -122,6 +124,19 @@ export const deployRemovalContract = async ({
     args: [],
     options: { initializer: 'initialize()' },
   });
+};
+
+export const deployRemovalTestHarness = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<RemovalTestHarness>> => {
+  const RemovalTestHarness =
+    await hre.ethers.getContractFactory<RemovalTestHarness__factory>(
+      'RemovalTestHarness' as unknown as ContractNames
+    );
+  const removalTestHarness = await RemovalTestHarness.deploy();
+  return removalTestHarness;
 };
 
 export const deployCertificateContract = async ({
@@ -145,13 +160,13 @@ export const deployFIFOMarketContract = async ({
   feeWallet: Address;
   feePercentage: number;
 }): Promise<InstanceOfContract<FIFOMarket>> => {
-  const deployments = await hre.deployments.all();
+  const deployments = await hre.deployments.all<Required<Contracts>>();
   return hre.deployOrUpgradeProxy<FIFOMarket, FIFOMarket__factory>({
     contractName: 'FIFOMarket',
     args: [
-      deployments['Removal']!.address,
-      deployments['BridgedPolygonNORI']!.address,
-      deployments['Certificate']!.address,
+      deployments.Removal.address,
+      deployments.BridgedPolygonNORI.address,
+      deployments.Certificate.address,
       feeWallet,
       feePercentage,
     ],
@@ -226,30 +241,6 @@ export const deployTestContracts = async ({
   };
 };
 
-export const validateDeployment = ({
-  hre,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-}): void => {};
-
-// TODO: These could all operate on a single contract at a time now.
-export const finalizeDeployments = async ({
-  hre,
-  contracts,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-  contracts: Contracts;
-}): Promise<void> => {
-  await pushContractsToEthernal({ hre, contracts });
-  writeContractsConfig({ contracts });
-  await addContractsToDefender({ hre, contracts });
-  await verifyContracts({ hre, contracts });
-  await saveDeployments({
-    hre,
-    contracts,
-  });
-};
-
 /**
  * Note: the named contracts in the ethernal UI are the proxies.
  * The 'name' field in the push command must match the contract name exactly,
@@ -300,12 +291,18 @@ export const saveDeployments = async ({
   contracts: Contracts;
 }): Promise<void> => {
   hre.trace('saving deployments');
-  await Promise.allSettled(
+
+  await Promise.all(
     Object.entries(contracts)
       .filter(([_, value]) => value !== undefined)
       .map(async ([name, contract]) => {
         const { abi, bytecode, deployedBytecode } =
           await hre.artifacts.readArtifact(name);
+        await hre.tenderly.persistArtifacts({
+          // todo: only run if TENDERLY is set in env
+          name,
+          address: contract.address,
+        });
         return hre.deployments.save(name, {
           abi,
           address: contract.address,
@@ -332,9 +329,9 @@ export const seedContracts = async ({
 }): Promise<void> => {
   if (process.env.MINT) {
     if (
-      contracts.Certificate != null &&
-      contracts.FIFOMarket != null &&
-      contracts.Removal != null
+      contracts.Certificate != undefined &&
+      contracts.FIFOMarket != undefined &&
+      contracts.Removal != undefined
     ) {
       const tokenId = await createRemovalTokenId(contracts.Removal, {
         supplierAddress: hre.namedAccounts.supplier,
@@ -344,18 +341,18 @@ export const seedContracts = async ({
         ['address', 'bool'],
         [contracts.FIFOMarket.address, listNow]
       );
-      await contracts.Removal.mintBatch(
+      const tx = await contracts.Removal.mintBatch(
         hre.namedAccounts.supplier,
         [formatTokenAmount(100)],
         [tokenId],
         packedData
       );
-      hre.trace('Listed 100 NRTs for sale in FIFOMarket');
+      hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });
     }
     if (
-      contracts.BridgedPolygonNORI != null &&
-      contracts.NORI != null &&
-      hre.network.name === 'hardhat'
+      contracts.BridgedPolygonNORI != undefined &&
+      contracts.NORI != undefined &&
+      (hre.network.name === 'hardhat' || hre.network.name === 'localhost')
     ) {
       await mockDepositNoriToPolygon({
         hre,
@@ -370,15 +367,36 @@ export const seedContracts = async ({
       hre.trace(
         'Mock deposited 100_000_000 NORI into BridgedPolygonNORI for the admin account'
       );
-      await contracts.BridgedPolygonNORI.connect(hre.namedSigners.admin).send(
+      const tx = await contracts.BridgedPolygonNORI.connect(
+        hre.namedSigners.admin
+      ).send(
         // todo stop minting/seeding during deployment
         hre.namedAccounts.buyer,
         formatTokenAmount(1_000_000),
         hre.ethers.utils.formatBytes32String('0x0')
       );
       hre.trace(
-        'Sent some BridgedPolygonNORI from the admin account to the buyer account'
+        'Sent some BridgedPolygonNORI from the admin account to the buyer account',
+        tx.hash
       );
     }
   }
+};
+
+// TODO: These could all operate on a single contract at a time now.
+export const finalizeDeployments = async ({
+  hre,
+  contracts,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  contracts: Contracts;
+}): Promise<void> => {
+  await pushContractsToEthernal({ hre, contracts });
+  writeContractsConfig({ contracts });
+  await addContractsToDefender({ hre, contracts });
+  await verifyContracts({ hre, contracts });
+  await saveDeployments({
+    hre,
+    contracts,
+  });
 };

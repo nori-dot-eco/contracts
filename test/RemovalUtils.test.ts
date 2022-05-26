@@ -1,47 +1,11 @@
+import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import type {
-  RemovalTestHarness,
   UnpackedRemovalIdV0Struct,
   UnpackedRemovalIdV0StructOutput,
-} from '../typechain-types/RemovalTestHarness';
-import { asciiStringToHexString, hexStringToAsciiString } from '../utils/bytes';
-
-import { expect } from '@/test/helpers';
-
-const setupTest = hre.deployments.createFixture(
-  async (
-    hre
-  ): Promise<{
-    removalTestHarness: RemovalTestHarness;
-  }> => {
-    hre.ethernalSync = false;
-    const RemovalTestHarness = await hre.ethers.getContractFactory(
-      'RemovalTestHarness' as unknown as ContractNames
-    );
-    const removalTestHarness =
-      (await RemovalTestHarness.deploy()) as RemovalTestHarness;
-    return {
-      removalTestHarness,
-    };
-  }
-);
-
-const formatRemovalIdData = (
-  removalData: UnpackedRemovalIdV0Struct
-): string => {
-  return hre.ethers.utils.defaultAbiCoder.encode(
-    [
-      'uint8',
-      'uint8',
-      'uint8',
-      'uint16',
-      'bytes2',
-      'bytes2',
-      'address',
-      'uint32',
-    ],
-    Object.values(removalData)
-  );
-};
+} from '@/typechain-types/RemovalTestHarness';
+import { asciiStringToHexString, hexStringToAsciiString } from '@/utils/bytes';
+import { expect, setupTest } from '@/test/helpers';
+import { formatRemovalIdData } from '@/utils/removal';
 
 describe('RemovalUtils', () => {
   it('can create a token id from the component fields and decode the token id', async () => {
@@ -49,19 +13,10 @@ describe('RemovalUtils', () => {
 
     const countryCodeString = 'US';
     const subdivisionCodeString = 'IA';
-    const removalData: UnpackedRemovalIdV0Struct = {
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 1,
-      vintage: 2018,
-      country: asciiStringToHexString(countryCodeString),
-      subdivision: asciiStringToHexString(subdivisionCodeString),
-      supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-      subIdentifier: 99039930, // parcel id
-    };
+    const removalData: UnpackedRemovalIdV0Struct = defaultRemovalTokenIdFixture;
 
     const removalId = await harness.createRemovalId(
-      formatRemovalIdData(removalData)
+      formatRemovalIdData({ hre, removalData })
     );
 
     const unpackedRemovalId: UnpackedRemovalIdV0StructOutput =
@@ -87,7 +42,7 @@ describe('RemovalUtils', () => {
     );
   });
   it('can create a token id from the component fields and decode the token id using maximum values for each field', async () => {
-    const { removalTestHarness: harness } = await setupTest();
+    const { removalTestHarness: harness, hre } = await setupTest();
 
     const countryCodeString = 'ZZ';
     const subdivisionCodeString = 'ZZ';
@@ -103,7 +58,7 @@ describe('RemovalUtils', () => {
     };
 
     const removalId = await harness.createRemovalId(
-      formatRemovalIdData(removalData)
+      formatRemovalIdData({ removalData, hre })
     );
 
     const unpackedRemovalId: UnpackedRemovalIdV0StructOutput =
@@ -164,15 +119,15 @@ describe('RemovalUtils', () => {
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-      subIdentifier: 99039930,
+      subIdentifier: 99_039_930,
     };
 
     expect(
-      harness.createRemovalId(formatRemovalIdData(removalData))
+      harness.createRemovalId(formatRemovalIdData({ removalData, hre }))
     ).revertedWith('Methodology too large');
   });
   it('will revert if the location data includes characters that are not capital letters', async () => {
-    const { removalTestHarness: harness } = await setupTest();
+    const { removalTestHarness: harness, hre } = await setupTest();
 
     const countryCodeString = 'uS'; // lowercase letter
     const subdivisionCodeString = 'IA';
@@ -184,11 +139,11 @@ describe('RemovalUtils', () => {
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-      subIdentifier: 99039930,
+      subIdentifier: 99_039_930,
     };
 
     await expect(
-      harness.createRemovalId(formatRemovalIdData(removalData))
+      harness.createRemovalId(formatRemovalIdData({ removalData, hre }))
     ).revertedWith('Invalid ASCII');
   });
 });

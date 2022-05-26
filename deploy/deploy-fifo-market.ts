@@ -1,5 +1,6 @@
-import { Logger, LogLevel } from '@ethersproject/logger';
-import { DeployFunction } from 'hardhat-deploy/types';
+import { Logger } from 'ethers/lib/utils';
+import type { DeployFunction } from 'hardhat-deploy/types';
+
 import {
   STAGING_NORI_FEE_WALLET_ADDRESS,
   PROD_NORI_FEE_WALLET_ADDRESS,
@@ -7,9 +8,9 @@ import {
 import { deployFIFOMarketContract, finalizeDeployments } from '@/utils/deploy';
 import { getCertificate } from '@/utils/contracts';
 
-export const deploy: DeployFunction = async (env) => {
-  const hre = env as unknown as CustomHardHatRuntimeEnvironment;
-  Logger.setLogLevel(LogLevel.DEBUG);
+export const deploy: DeployFunction = async (environment) => {
+  const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
+  Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`deployFIFOMarket`);
   const feeWallet =
     hre.network.name === 'hardhat'
@@ -19,10 +20,10 @@ export const deploy: DeployFunction = async (env) => {
       : STAGING_NORI_FEE_WALLET_ADDRESS;
   const contract = await deployFIFOMarketContract({
     hre,
-    feeWallet: feeWallet,
+    feeWallet,
     feePercentage: 15,
   });
-  const signer = (await hre.getSigners())[0];
+  const [signer] = await hre.getSigners();
   const certificate = await getCertificate({ hre, signer });
   if (
     !(await certificate.hasRole(

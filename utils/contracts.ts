@@ -1,4 +1,5 @@
-import { Contract } from 'ethers';
+import type { Contract } from 'ethers';
+
 import type {
   BridgedPolygonNORI,
   Certificate,
@@ -7,6 +8,7 @@ import type {
   NORI,
   Removal,
   ScheduleTestHarness,
+  RemovalTestHarness,
 } from '@/typechain-types';
 
 export interface Contracts {
@@ -17,32 +19,8 @@ export interface Contracts {
   LockedNORI?: LockedNORI;
   Certificate?: Certificate;
   ScheduleTestHarness?: ScheduleTestHarness;
+  RemovalTestHarness?: RemovalTestHarness;
 }
-
-export const getContractsFromDeployments = async (
-  hre: CustomHardHatRuntimeEnvironment
-): Promise<Required<Contracts>> => {
-  const deployments = await hre.deployments.all();
-  const contracts = {
-    NORI: deployments['NORI']?.address ? await getNORI({ hre }) : undefined,
-    BridgedPolygonNORI: deployments['BridgedPolygonNORI']?.address
-      ? await getBridgedPolygonNori({ hre })
-      : undefined,
-    LockedNORI: deployments['LockedNORI']?.address
-      ? await getLockedNORI({ hre })
-      : undefined,
-    FIFOMarket: deployments['FIFOMarket']?.address
-      ? await getFIFOMarket({ hre })
-      : undefined,
-    Removal: deployments['Removal']?.address
-      ? await getRemoval({ hre })
-      : undefined,
-    Certificate: deployments['Certificate']?.address
-      ? await getCertificate({ hre })
-      : undefined,
-  } as Required<Contracts>;
-  return contracts;
-};
 
 export const getContract = async <
   TContract extends Contracts[keyof Contracts]
@@ -65,6 +43,8 @@ export const getContract = async <
     ? 'FIFOMarket'
     : TContract extends ScheduleTestHarness
     ? 'ScheduleTestHarness'
+    : TContract extends RemovalTestHarness
+    ? 'RemovalTestHarness'
     : never;
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
@@ -77,7 +57,9 @@ export const getContract = async <
   if (!contract) {
     throw new Error(`Unsupported network: ${hre.network.name}`);
   }
-  return (signer != null ? contract.connect(signer) : contract) as TContract;
+  return (
+    signer != undefined ? contract.connect(signer) : contract
+  ) as TContract;
 };
 
 export const getBridgedPolygonNori = async ({
@@ -146,6 +128,19 @@ export const getRemoval = async ({
     signer,
   });
 
+export const getRemovalTestHarness = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<RemovalTestHarness> =>
+  getContract({
+    contractName: 'RemovalTestHarness',
+    hre,
+    signer,
+  });
+
 export const getFIFOMarket = async ({
   hre,
   signer,
@@ -158,3 +153,31 @@ export const getFIFOMarket = async ({
     hre,
     signer,
   });
+
+export const getContractsFromDeployments = async (
+  hre: CustomHardHatRuntimeEnvironment
+): Promise<Required<Contracts>> => {
+  const deployments = await hre.deployments.all();
+  const contracts = {
+    NORI: deployments.NORI?.address ? await getNORI({ hre }) : undefined,
+    BridgedPolygonNORI: deployments.BridgedPolygonNORI?.address
+      ? await getBridgedPolygonNori({ hre })
+      : undefined,
+    LockedNORI: deployments.LockedNORI?.address
+      ? await getLockedNORI({ hre })
+      : undefined,
+    FIFOMarket: deployments.FIFOMarket?.address
+      ? await getFIFOMarket({ hre })
+      : undefined,
+    Removal: deployments.Removal?.address
+      ? await getRemoval({ hre })
+      : undefined,
+    Certificate: deployments.Certificate?.address
+      ? await getCertificate({ hre })
+      : undefined,
+    RemovalTestHarness: deployments.RemovalTestHarness?.address
+      ? await getRemovalTestHarness({ hre })
+      : undefined,
+  } as Required<Contracts>;
+  return contracts;
+};

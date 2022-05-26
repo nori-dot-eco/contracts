@@ -28,7 +28,12 @@ export const TASK = {
   ): Promise<void> => {
     const network = hre.network.name;
     if (
-      !(network === 'mainnet' || network === 'hardhat' || network === 'goerli')
+      !(
+        network === 'localhost' ||
+        network === 'mainnet' ||
+        network === 'hardhat' ||
+        network === 'goerli'
+      )
     ) {
       throw new Error(`Unsupported network: ${network}`);
     }

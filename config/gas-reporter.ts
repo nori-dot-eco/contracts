@@ -1,9 +1,9 @@
 import type { HardhatUserConfig } from 'hardhat/types';
 
 export const getGasReporterConfig = (
-  env = process.env
+  environment = process.env
 ): HardhatUserConfig['gasReporter'] => {
-  const { REPORT_GAS, COINMARKETCAP_API_KEY, REPORT_GAS_FILE } = env;
+  const { REPORT_GAS, COINMARKETCAP_API_KEY, REPORT_GAS_FILE } = environment;
   return {
     enabled: REPORT_GAS,
     currency: 'USD',
