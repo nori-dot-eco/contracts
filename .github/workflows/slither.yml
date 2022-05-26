@@ -10,19 +10,14 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-    
-    - name: install libsecret
-      run: sudo apt install libsecret-1-0
-      
-    - name: install dependencies
-      run: yarn install --force
-
+          
     - name: Run Slither
       uses: crytic/slither-action@v0.1.1
       continue-on-error: true
       id: slither
       with:
         node-version: 16
+        ignore-compile: true
         sarif: sarif_file
 
     - name: Upload SARIF file
