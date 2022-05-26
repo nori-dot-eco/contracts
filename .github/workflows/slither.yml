@@ -14,6 +14,9 @@ jobs:
     
     - name: install libsecret
       run: sudo apt install libsecret-1-0
+      
+    - name: install dependencies
+      run: yarn install --force
 
     - name: Run Slither
       uses: crytic/slither-action@v0.1.1
