@@ -1,6 +1,8 @@
 import type { BigNumberish, ContractReceipt } from 'ethers';
 import { BigNumber } from 'ethers';
 
+import type { FIFOMarket, Removal } from '../typechain-types';
+
 import { formatTokenAmount } from '@/utils/units';
 import {
   expect,
@@ -8,7 +10,6 @@ import {
   setupTest,
   createRemovalTokenId,
 } from '@/test/helpers';
-import { FIFOMarket, Removal } from '../typechain-types';
 
 interface RemovalDataForListing {
   amount: number;
@@ -23,19 +24,19 @@ interface RemovalDataFromListing {
   totalAmountOfRemovals: number;
 }
 
-const parseNumberToBigNumber = (numberToParse: number) =>
+const parseNumberToBigNumber = (numberToParse: number): string =>
   hre.ethers.utils.parseUnits(numberToParse.toString()).toString();
 
-const getTotalAmountOfSupply = (removals: RemovalDataForListing[]) =>
-  removals.reduce((sum, removal) => (sum += removal.amount), 0);
+const getTotalAmountOfSupply = (removals: RemovalDataForListing[]): number =>
+  removals.reduce((sum, removal) => sum + removal.amount, 0);
 
-const getTotalAmountOfSuppliers = (removals: RemovalDataForListing[]) =>
+const getTotalAmountOfSuppliers = (removals: RemovalDataForListing[]): number =>
   removals.reduce(
     (supplierSet, removal) => supplierSet.add(removal.supplier),
     new Set()
-  ).size || 1;
+  ).size ?? 1;
 
-const getTotalAmountOfRemovals = (removals: RemovalDataForListing[]) =>
+const getTotalAmountOfRemovals = (removals: RemovalDataForListing[]): number =>
   removals.length;
 
 const mintSupply = async (
@@ -46,10 +47,10 @@ const mintSupply = async (
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
   const listedRemovalIds = await Promise.all(
-    removalDataToList.map((removalData, i) => {
+    removalDataToList.map((removalData, index) => {
       return createRemovalTokenId(removal, {
         supplierAddress: removalData.supplier ?? supplier,
-        vintage: removalData.vintage ?? defaultStartingVintage + i,
+        vintage: removalData.vintage ?? defaultStartingVintage + index,
       });
     })
   );
@@ -127,9 +128,10 @@ const setupTestLocal = async (
 describe('FIFOMarket', () => {
   describe('initialization', () => {
     describe('roles', () => {
-      (
-        [{ role: 'DEFAULT_ADMIN_ROLE' }, { role: 'ALLOWLIST_ROLE' }] as const
-      ).forEach(({ role }) => {
+      for (const { role } of [
+        { role: 'DEFAULT_ADMIN_ROLE' },
+        { role: 'ALLOWLIST_ROLE' },
+      ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
           const { fifoMarket, hre } = await setupTest();
           expect(
@@ -145,7 +147,7 @@ describe('FIFOMarket', () => {
             await fifoMarket.getRoleMemberCount(await fifoMarket[role]())
           ).to.eq(1);
         });
-      });
+      }
     });
     it('correctly intializes state variables', async () => {
       const { fifoMarket } = await setupTestLocal();
@@ -745,11 +747,11 @@ describe('FIFOMarket', () => {
     it('mint a certificate with multiple removals per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const numberOfRemovalsToCreate = 100;
-      const removalDataToList = [...Array(numberOfRemovalsToCreate).keys()].map(
-        (_) => {
-          return { amount: 50 };
-        }
-      );
+      const removalDataToList = [
+        ...Array.from({ length: numberOfRemovalsToCreate }).keys(),
+      ].map((_) => {
+        return { amount: 50 };
+      });
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
         removalDataToList,
