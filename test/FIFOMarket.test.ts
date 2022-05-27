@@ -40,9 +40,13 @@ const mintSupply = async (
   const defaultStartingVintage = 2016;
   const listedRemovalIds = await Promise.all(
     removalDataToList.map((removalData, index) => {
-      return createRemovalTokenId(removal, {
-        supplierAddress: removalData.supplier ?? supplier,
-        vintage: removalData.vintage ?? defaultStartingVintage + index,
+      return createRemovalTokenId({
+        removalInstance: removal,
+        options: {
+          supplierAddress: removalData.supplier ?? supplier,
+          vintage: removalData.vintage ?? defaultStartingVintage + index,
+        },
+        hre,
       });
     })
   );
