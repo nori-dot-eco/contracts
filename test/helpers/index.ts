@@ -1,5 +1,3 @@
-import type { BigNumber } from 'ethers';
-
 import { mockDepositNoriToPolygon } from '@/test/helpers';
 import type {
   Removal,
@@ -10,8 +8,6 @@ import type {
   BridgedPolygonNORI,
   RemovalTestHarness,
 } from '@/typechain-types';
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
-import { asciiStringToHexString } from '@/utils/bytes';
 import { formatTokenAmount } from '@/utils/units';
 import type { Contracts } from '@/utils/contracts';
 import { getContractsFromDeployments } from '@/utils/contracts';

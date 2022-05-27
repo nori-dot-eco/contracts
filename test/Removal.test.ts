@@ -1,8 +1,6 @@
-import { formatRemovalIdData } from '../utils/removal';
-
-import { createRemovalTokenId, expect, setupTest } from '@/test/helpers';
+import { createRemovalTokenId } from '@/utils/removal';
+import { expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
-import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 
 describe('Removal', () => {
   describe('mintBatch', () => {
@@ -16,10 +14,14 @@ describe('Removal', () => {
         const { supplier } = hre.namedAccounts;
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
-          removalBalances.map((_, i) => {
-            return createRemovalTokenId(removal, {
-              supplierAddress: supplier,
-              vintage: defaultStartingVintage + i,
+          removalBalances.map((_, index) => {
+            return createRemovalTokenId({
+              hre,
+              removalInstance: removal,
+              options: {
+                supplierAddress: supplier,
+                vintage: defaultStartingVintage + index,
+              },
             });
           })
         );
@@ -68,10 +70,10 @@ describe('Removal', () => {
         const { supplier } = hre.namedAccounts;
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
-          removalBalances.map((_, i) => {
+          removalBalances.map((_, index) => {
             return createRemovalTokenId(removal, {
               supplierAddress: supplier,
-              vintage: defaultStartingVintage + i,
+              vintage: defaultStartingVintage + index,
             });
           })
         );
