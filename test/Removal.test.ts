@@ -71,9 +71,13 @@ describe('Removal', () => {
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
           removalBalances.map((_, index) => {
-            return createRemovalTokenId(removal, {
-              supplierAddress: supplier,
-              vintage: defaultStartingVintage + index,
+            return createRemovalTokenId({
+              hre,
+              removalInstance: removal,
+              options: {
+                supplierAddress: supplier,
+                vintage: defaultStartingVintage + index,
+              },
             });
           })
         );
