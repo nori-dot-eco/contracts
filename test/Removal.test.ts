@@ -1,6 +1,6 @@
 import { formatRemovalIdData } from '../utils/removal';
 
-import { expect, setupTest } from '@/test/helpers';
+import { createRemovalTokenId, expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 
@@ -13,7 +13,16 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const expectedMarketSupply = 0;
-        const tokenIds = [0, 1, 2, 3];
+        const { supplier } = hre.namedAccounts;
+        const defaultStartingVintage = 2016;
+        const tokenIds = await Promise.all(
+          removalBalances.map((_, i) => {
+            return createRemovalTokenId(removal, {
+              supplierAddress: supplier,
+              vintage: defaultStartingVintage + i,
+            });
+          })
+        );
         const listNow = false;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
           ['address', 'bool'],
@@ -45,7 +54,7 @@ describe('Removal', () => {
         }
         // not listed to the fifoMarket
         const marketTotalSupply =
-          await fifoMarket.numberOfNrtsInQueueComputed();
+          await fifoMarket.numberOfActiveNrtsInMarketComputed();
         expect(marketTotalSupply).to.equal(
           formatTokenAmount(expectedMarketSupply).toString()
         );
@@ -56,7 +65,16 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const expectedMarketSupply = 1000;
-        const tokenIds = [10, 11, 12, 13];
+        const { supplier } = hre.namedAccounts;
+        const defaultStartingVintage = 2016;
+        const tokenIds = await Promise.all(
+          removalBalances.map((_, i) => {
+            return createRemovalTokenId(removal, {
+              supplierAddress: supplier,
+              vintage: defaultStartingVintage + i,
+            });
+          })
+        );
         const listNow = true;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
           ['address', 'bool'],
@@ -87,7 +105,7 @@ describe('Removal', () => {
           expect(balance).to.equal(removalBalances[tokenId].toString());
         }
         const marketTotalSupply =
-          await fifoMarket.numberOfNrtsInQueueComputed();
+          await fifoMarket.numberOfActiveNrtsInMarketComputed();
         expect(marketTotalSupply).to.equal(
           formatTokenAmount(expectedMarketSupply).toString()
         );

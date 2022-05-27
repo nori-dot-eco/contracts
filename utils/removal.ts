@@ -34,7 +34,7 @@ export const createRemovalTokenId = async ({
   options,
   hre,
 }: {
-  removalInstance: Removal;
+  removalInstance: any; // todo Removal (need typechain updates from master merged)
   options?: Partial<UnpackedRemovalIdV0Struct>;
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<BigNumber> => {
