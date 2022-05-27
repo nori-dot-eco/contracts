@@ -3,12 +3,8 @@ import { BigNumber } from 'ethers';
 
 import type { FIFOMarket, Removal } from '@/typechain-types';
 import { formatTokenAmount, formatTokenString } from '@/utils/units';
-import {
-  expect,
-  mockDepositNoriToPolygon,
-  setupTest,
-  createRemovalTokenId,
-} from '@/test/helpers';
+import { expect, mockDepositNoriToPolygon, setupTest } from '@/test/helpers';
+import { createRemovalTokenId } from '@/utils/removal';
 
 interface RemovalDataForListing {
   amount: number;
