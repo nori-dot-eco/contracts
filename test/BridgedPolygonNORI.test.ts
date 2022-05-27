@@ -1,6 +1,7 @@
-import type { BridgedPolygonNORI__factory } from '../typechain-types';
-
-import type { BridgedPolygonNORI } from '@/typechain-types/BridgedPolygonNORI';
+import type {
+  BridgedPolygonNORI,
+  BridgedPolygonNORI__factory,
+} from '@/typechain-types';
 import { setupTest, expect } from '@/test/helpers';
 
 describe('BridgedPolygonNORI', () => {
