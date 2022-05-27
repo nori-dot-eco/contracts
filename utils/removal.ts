@@ -1,4 +1,4 @@
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/Removal';
+import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
 
 export const formatRemovalIdData = ({
   hre,

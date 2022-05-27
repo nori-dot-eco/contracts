@@ -10,6 +10,7 @@ import type {
   HttpNetworkConfig,
 } from 'hardhat/types';
 import './type-extensions';
+import { JsonRpcBatchProvider } from '@ethersproject/providers';
 import { FireblocksSDK } from 'fireblocks-sdk';
 
 import { Chain } from './from-upstream/chain';
@@ -44,10 +45,7 @@ const setupFireblocksSigner = async (
       const signer = new FireblocksSigner(
         fireblocksApiClient,
         networkNameToChain[hre.network.name],
-        new ethers.providers.JsonRpcBatchProvider(
-          networkConfig.url,
-          networkConfig.chainId
-        ),
+        new JsonRpcBatchProvider(networkConfig.url, networkConfig.chainId),
         config.vaultId
       );
       const address = await signer.getAddress();
