@@ -10,47 +10,38 @@ import {RemovalUtils} from "./RemovalUtils.sol";
 
 /*
 Open Questions:
-- do we need to set up an escrow schedule with the full amount associated with the agreement?
-  or is it ok that the amount of the escrow schedule actually changes over time either with the addition
-  of new NORI or with the revocation of some?
-  - seems to me that the amount changing gradually makes more sense, because if a supplier only sells one of their
-  removals we actually want that single amount to release gradually over 10 years so that we have recourse to reclaim
-  those insurance tokens on behalf of that removal at some point in the future
-
-- do we need to allow specification of end time? or perhaps of duration? or can we assume always 10 years
-  and use that hardcoded constant?
-
   - do we need any ability to create escrow schedules before tokens are received on behalf of a removal?
-      I would argue that we don't, and that the only placed escrow schedules should be created is in tokensReceived > depositFor
+  -   Yes, and we should when removals are listed for sale, because it will save the buyer some gas cost
 
-  - should we set this up so that if a token is deposited on behalf of a removal id that DOESN'T have an entry for its schedule
-  -   startTime that we use the year (in epoch seconds) of the removal's vintage as the startime? it would allow us to migrate
-  -   seamlessly to the far superior world where the escrow schedules aren't so arbitrary and actually represent exactly
-  -   10 years for each removal.
-
-  - When it comes to keeping track of tokens that have been revoked, is it sufficient to keep a running total for any given escrow schedule,
-  and then to rely on events for more granular examination at the level of removalid and to see the times at which things were revoked?
   - Do we need any additional information captured when a revocation happens?  Do we want to allow a default mechanism for recapturing ALL available tokens?
   I believe this is currently happening by specifying an amount of 0
+  YES and this is fine
  */
 
 /*
 TODO LIST:
 - handle escrow schedule transferability (both batch and single) that transfers full grants.
   -  pretty sure we can't do this in any other way because it's too unclear which escrow schedules the transferred tokens belong to
+  - this should be admin only
 
 - do we need a mechanism of removing escrow schedule ids from a supplier's list once the escrow schedule has been completely
 - vested AND claimed? so that the process of withdrawing tokens is more gas efficient and iterates less??
   - old schedules could still be kept around and indexed by a different collection, for view purposes.
+  consider using enumerable mapping for these key collections?
 
   - what are all the potential view functions we need here?
 
   - update all the natspec comments
 
+  - use the address -> address routing table where possible? (maybe in separate ticket that implements that)
+
+  - use custom errors
+
   - tests tests tests!
  */
 
-uint256 constant SECONDS_IN_TEN_YEARS = 31_536_000;
+// Based on average year duration of 365.2425 days, which accounts for leap years
+uint256 constant SECONDS_IN_TEN_YEARS = 31_556_952;
 
 contract EscrowedNORI is
   IERC777RecipientUpgradeable,
@@ -144,12 +135,10 @@ contract EscrowedNORI is
   event TokensClaimed(
     address indexed from,
     address indexed to,
-    uint256 quantity
+    uint256 indexed quantity
   );
 
   // todo document expected initialzation state
-  // todo I switched the visibility of this function from public to external...
-  // is that right for an initializer or was there a reason it was public?
   function initialize(
     BridgedPolygonNORI bridgedPolygonNoriAddress,
     Removal removalAddress
@@ -165,6 +154,8 @@ contract EscrowedNORI is
     __ERC777_init_unchained("Escrowed NORI", "eNORI", operators);
     _bridgedPolygonNori = bridgedPolygonNoriAddress;
     _removal = removalAddress;
+    _removal.initializeEscrowedNORI(address(this));
+    // here we call the _removal contract and provide it with our address;
     _ERC1820_REGISTRY.setInterfaceImplementer(
       address(this),
       ERC777_TOKENS_RECIPIENT_HASH,
@@ -199,10 +190,6 @@ contract EscrowedNORI is
       "eNORI: sender is missing role ESCROW_CREATOR_ROLE"
     );
     uint256 removalId = abi.decode(userData, (uint256));
-    require(
-      removalId.supplierAddress() != address(0),
-      "eNORI: token send missing required userData"
-    );
     _depositFor(removalId, amount, userData, operatorData);
   }
 
@@ -279,6 +266,25 @@ contract EscrowedNORI is
     onlyRole(ESCROW_CREATOR_ROLE)
   {
     _createEscrowSchedule(recipient, startTime);
+  }
+
+  /**
+   * @notice Sets up a batch of escrow schedules.
+   *
+   *
+   * ##### Requirements:
+   * - Can only be used when the contract is not paused.
+   * - Can only be used when the caller has the `ESCROW_CREATOR_ROLE` role
+   */
+  function batchCreateEscrowSchedule(
+    address[] calldata recipients,
+    uint256[] calldata startTimes
+  ) external whenNotPaused onlyRole(ESCROW_CREATOR_ROLE) {
+    for (uint256 i = 0; i < recipients.length; i++) {
+      if (!_addressToEscrowSchedules[recipients[i]][startTimes[i]].exists) {
+        _createEscrowSchedule(recipients[i], startTimes[i]);
+      }
+    }
   }
 
   /**

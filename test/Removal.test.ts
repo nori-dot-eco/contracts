@@ -1,5 +1,3 @@
-import { formatRemovalIdData } from '../utils/removal';
-
 import {
   createEscrowScheduleStartTimeArray,
   createRemovalTokenId,
@@ -7,7 +5,6 @@ import {
   setupTest,
 } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
-import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 
 describe('Removal', () => {
   describe('mintRemovalBatch', () => {
@@ -62,8 +59,8 @@ describe('Removal', () => {
           formatTokenAmount(expectedMarketSupply).toString()
         );
       });
-      it('should mint and list a batch of removals in the same transaction', async () => {
-        const { fifoMarket, removal } = await setupTest();
+      it('should mint and list a batch of removals in the same transaction and create escrow schedules', async () => {
+        const { fifoMarket, removal, eNori } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -96,6 +93,26 @@ describe('Removal', () => {
             hre.namedAccounts.supplier,
             tokenIds,
             removalBalances
+          )
+          .to.emit(eNori, 'EscrowScheduleCreated')
+          .withArgs(
+            hre.namedAccounts.supplier,
+            escrowScheduleStartTimes[0].toHexString()
+          )
+          .to.emit(eNori, 'EscrowScheduleCreated')
+          .withArgs(
+            hre.namedAccounts.supplier,
+            escrowScheduleStartTimes[1].toHexString()
+          )
+          .to.emit(eNori, 'EscrowScheduleCreated')
+          .withArgs(
+            hre.namedAccounts.supplier,
+            escrowScheduleStartTimes[2].toHexString()
+          )
+          .to.emit(eNori, 'EscrowScheduleCreated')
+          .withArgs(
+            hre.namedAccounts.supplier,
+            escrowScheduleStartTimes[3].toHexString()
           );
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {

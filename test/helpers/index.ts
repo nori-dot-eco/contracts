@@ -97,7 +97,7 @@ export const createRemovalTokenId = async (
     vintage: 2018,
     country: asciiStringToHexString('US'),
     subdivision: asciiStringToHexString('IA'),
-    supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
+    supplierAddress: hre.namedAccounts.supplier,
     subIdentifier: 99_039_930, // parcel id
   };
   const removalData = { ...defaultRemovalData, ...options };
@@ -137,6 +137,6 @@ export const createEscrowScheduleStartTimeArray = async (
     )
   ).map((unpackedRemovalId) => unpackedRemovalId.vintage);
   return removalVintages.map((vintage) =>
-    BigNumber.from(Math.floor(new Date(vintage, 0).getTime() / 1_000))
+    BigNumber.from(Math.floor(new Date(vintage, 0).getTime() / 1000))
   );
 };

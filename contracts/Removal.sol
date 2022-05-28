@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "./EscrowedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 
 // import "hardhat/console.sol"; // todo
@@ -32,23 +33,25 @@ contract Removal is
     bool list;
   }
 
-  // TODO should we make this more general?
-  // should we keep the "exists" field in here?
-  struct InsuranceData {
-    uint256 escrowScheduleStartTime;
-  }
-
+  /**
+   * @notice The EscrowedNORI contract that manages escrowed tokens.
+   */
+  EscrowedNORI private _eNORI;
   uint256 public tokenIdCounter;
   string public name; // todo why did I add this
   mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
   mapping(uint256 => bool) private _tokenIdExists;
-  mapping(uint256 => InsuranceData) private _idToInsuranceData;
+  mapping(uint256 => uint256) private _idToEscrowScheduleStartTime;
 
-  function initialize() public virtual initializer {
+  function initialize() external virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
     tokenIdCounter = 0;
     name = "Removal";
+  }
+
+  function initializeEscrowedNORI(address escrowedNORIAddress) external {
+    _eNORI = EscrowedNORI(escrowedNORIAddress);
   }
 
   /**
@@ -96,7 +99,7 @@ contract Removal is
     view
     returns (uint256)
   {
-    return _idToInsuranceData[removalId].escrowScheduleStartTime;
+    return _idToEscrowScheduleStartTime[removalId];
   }
 
   /**
@@ -128,6 +131,7 @@ contract Removal is
       amounts.length == escrowScheduleStartTimes.length,
       "Removal: amounts and escrowScheduleStartTimes.length"
     );
+    // todo should we check that the removal id-encoded supplier address for each id is the same as `to` ?
     BatchMintRemovalsData memory decodedData = abi.decode(
       data,
       (BatchMintRemovalsData)
@@ -136,7 +140,7 @@ contract Removal is
       if (_tokenIdExists[ids[i]]) {
         revert TokenIdExists(); // todo can the duplicate token id be reported here?
       }
-      _idToInsuranceData[ids[i]] = InsuranceData(escrowScheduleStartTimes[i]);
+      _idToEscrowScheduleStartTime[ids[i]] = escrowScheduleStartTimes[i];
       _tokenIdExists[ids[i]] = true;
       indexToTokenId[tokenIdCounter] = ids[i];
       tokenIdCounter += 1;
@@ -155,7 +159,16 @@ contract Removal is
     uint256[] calldata,
     bytes calldata
   ) public pure override {
-    revert("Removal: mintBatch standard ERC1155 disabled");
+    revert("Removal: ERC1155 mintBatch disabled");
+  }
+
+  function mint(
+    address,
+    uint256,
+    uint256,
+    bytes calldata
+  ) public pure override {
+    revert("Removal: ERC 1155 mint disabled");
   }
 
   /**
@@ -168,6 +181,13 @@ contract Removal is
     uint256[] memory _amounts,
     bytes memory _data
   ) public override {
+    address[] memory recipients = new address[](_ids.length);
+    uint256[] memory escrowScheduleStartTimes = new uint256[](_ids.length);
+    for (uint256 i = 0; i < _ids.length; i++) {
+      recipients[i] = _ids[i].supplierAddress();
+      escrowScheduleStartTimes[i] = getEscrowScheduleIdForRemoval(_ids[i]);
+    }
+    _eNORI.batchCreateEscrowSchedule(recipients, escrowScheduleStartTimes);
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
   }
