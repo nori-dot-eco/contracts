@@ -20,9 +20,7 @@ Open Questions:
 
 /*
 TODO LIST:
-- handle escrow schedule transferability (both batch and single) that transfers full grants.
-  -  pretty sure we can't do this in any other way because it's too unclear which escrow schedules the transferred tokens belong to
-  - this should be admin only
+- handle escrow schedule transferability (both batch and single) that transfers full grants
 
 - do we need a mechanism of removing escrow schedule ids from a supplier's list once the escrow schedule has been completely
 - vested AND claimed? so that the process of withdrawing tokens is more gas efficient and iterates less??
@@ -42,6 +40,25 @@ TODO LIST:
 
 // Based on average year duration of 365.2425 days, which accounts for leap years
 uint256 constant SECONDS_IN_TEN_YEARS = 31_556_952;
+
+error BurningNotSupported();
+error SendDisabled();
+error OperatorActionsDisabled();
+error OperatorSendDisabled();
+error TransferDisabled();
+error TransferFromDisabled();
+error TokenSenderNotBPNORI();
+error RecipientCannotBeZeroAddress();
+error RecipientCannotHaveRole(address recipient, string role);
+error NonexistentEscrowSchedule(address account, uint256 escrowScheduleId);
+error EscrowScheduleExists(address account, uint256 escrowScheduleId);
+error RoleUnassignableToEscrowScheduleHolder(address account, string role);
+error MissingRequiredRole(address account, string role);
+error ArrayLengthMismatch(string array1Name, string array2Name);
+error AllTokensAlreadyReleased(address account, uint256 escrowScheduleId);
+error InsufficientUnreleasedTokens(address account, uint256 escrowScheduleId);
+error InsufficientBalance(address account);
+error LogicError(string message);
 
 contract EscrowedNORI is
   IERC777RecipientUpgradeable,
@@ -181,14 +198,16 @@ contract EscrowedNORI is
     bytes calldata userData,
     bytes calldata operatorData
   ) external override {
-    require(
-      _msgSender() == address(_bridgedPolygonNori),
-      "eNORI: not BridgedPolygonNORI"
-    );
-    require(
-      hasRole(ESCROW_CREATOR_ROLE, sender),
-      "eNORI: sender is missing role ESCROW_CREATOR_ROLE"
-    );
+    if (!(_msgSender() == address(_bridgedPolygonNori))) {
+      revert TokenSenderNotBPNORI();
+    }
+    if (!hasRole(ESCROW_CREATOR_ROLE, sender)) {
+      revert MissingRequiredRole({
+        account: sender,
+        role: "ESCROW_CREATOR_ROLE"
+      });
+    }
+
     uint256 removalId = abi.decode(userData, (uint256));
     _depositFor(removalId, amount, userData, operatorData);
   }
@@ -224,7 +243,7 @@ contract EscrowedNORI is
       _msgSender()
     ];
     for (uint256 i = 0; i < escrowScheduleIds.length; i++) {
-      uint256 releasedAmountForSchedule = _claimableBalanceOfSingleEscrowSchedule(
+      uint256 claimableAmountForSchedule = _claimableBalanceOfSingleEscrowSchedule(
         _msgSender(),
         escrowScheduleIds[i],
         block.timestamp // solhint-disable-line not-rely-on-time, this is time-dependent
@@ -232,19 +251,22 @@ contract EscrowedNORI is
       EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[
         _msgSender()
       ][escrowScheduleIds[i]];
-      if (releasedAmountForSchedule >= remainingAmountToClaim) {
+      if (claimableAmountForSchedule >= remainingAmountToClaim) {
         escrowSchedule.claimedAmount += remainingAmountToClaim;
         remainingAmountToClaim = 0;
         break;
       } else {
-        escrowSchedule.claimedAmount += releasedAmountForSchedule;
-        remainingAmountToClaim -= releasedAmountForSchedule;
+        escrowSchedule.claimedAmount += claimableAmountForSchedule;
+        remainingAmountToClaim -= claimableAmountForSchedule;
       }
     }
-    require(
-      remainingAmountToClaim == 0,
-      "eNORI: error distributing claimed amount across schedules"
-    ); // if this happens something else is very wrong
+    // if this happens something is very wrong
+    if (!(remainingAmountToClaim == 0)) {
+      revert LogicError({
+        message: "error distributing claimed amount across schedules"
+      });
+    }
+
     emit TokensClaimed(_msgSender(), recipient, amount);
     return true;
   }
@@ -308,14 +330,18 @@ contract EscrowedNORI is
     uint256[] calldata removalIds,
     uint256[] calldata amounts
   ) external whenNotPaused onlyRole(ESCROW_CREATOR_ROLE) {
-    require(
-      toAccounts.length == removalIds.length,
-      "eNORI: fromAccounts and removalIds length mismatch"
-    );
-    require(
-      toAccounts.length == amounts.length,
-      "eNORI: fromAccounts and amounts length mismatch"
-    );
+    if (!(toAccounts.length == removalIds.length)) {
+      revert ArrayLengthMismatch({
+        array1Name: "fromAccounts",
+        array2Name: "removalIds"
+      });
+    }
+    if (!(toAccounts.length == amounts.length)) {
+      revert ArrayLengthMismatch({
+        array1Name: "fromAccounts",
+        array2Name: "amounts"
+      });
+    }
     for (uint256 i = 0; i < toAccounts.length; i++) {
       _revokeUnreleasedTokens(toAccounts[i], removalIds[i], amounts[i]);
     }
@@ -404,7 +430,7 @@ contract EscrowedNORI is
    * @dev This function is not currently supported from external callers so we override it so that we can revert.
    */
   function burn(uint256, bytes memory) public pure override {
-    revert("eNORI: burning not supported");
+    revert BurningNotSupported();
   }
 
   /**
@@ -418,7 +444,7 @@ contract EscrowedNORI is
     bytes memory,
     bytes memory
   ) public pure override {
-    revert("eNORI: burning not supported");
+    revert BurningNotSupported();
   }
 
   /**
@@ -466,18 +492,21 @@ contract EscrowedNORI is
   function _createEscrowSchedule(address recipient, uint256 startTime)
     internal
   {
-    require(
-      address(recipient) != address(0),
-      "eNORI: Recipient cannot be zero address"
-    );
-    require(
-      !hasRole(ESCROW_CREATOR_ROLE, recipient),
-      "eNORI: Recipient cannot be escrow admin"
-    );
-    require(
-      !_addressToEscrowSchedules[recipient][startTime].exists,
-      "eNORI: Escrow schedule already exists"
-    );
+    if (address(recipient) == address(0)) {
+      revert RecipientCannotBeZeroAddress();
+    }
+    if (hasRole(ESCROW_CREATOR_ROLE, recipient)) {
+      revert RecipientCannotHaveRole({
+        recipient: recipient,
+        role: "ESCROW_CREATOR_ROLE"
+      });
+    }
+    if (_addressToEscrowSchedules[recipient][startTime].exists) {
+      revert EscrowScheduleExists({
+        account: recipient,
+        escrowScheduleId: startTime
+      });
+    }
     EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[
       recipient
     ][startTime];
@@ -518,23 +547,33 @@ contract EscrowedNORI is
     EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[
       revokeFrom
     ][escrowScheduleId];
-    require(escrowSchedule.exists, "eNORI: no escrow schedule exists");
+    if (!escrowSchedule.exists) {
+      revert NonexistentEscrowSchedule({
+        account: revokeFrom,
+        escrowScheduleId: escrowScheduleId
+      });
+    }
     uint256 releasedBalance = _releasedBalanceOfSingleEscrowSchedule(
       revokeFrom,
       escrowScheduleId,
       block.timestamp
     );
-    require(
-      releasedBalance < escrowSchedule.currentAmount,
-      "eNORI: tokens already released"
-    );
+    if (!(releasedBalance < escrowSchedule.currentAmount)) {
+      revert AllTokensAlreadyReleased({
+        account: revokeFrom,
+        escrowScheduleId: escrowScheduleId
+      });
+    }
+
     uint256 quantityRevoked;
     // amount of zero indicates revocation of all remaining tokens.
     if (amount > 0) {
-      require(
-        amount <= revocableQuantity(revokeFrom, escrowScheduleId),
-        "eNORI: too few unreleased tokens"
-      );
+      if (!(amount <= revocableQuantity(revokeFrom, escrowScheduleId))) {
+        revert InsufficientUnreleasedTokens({
+          account: revokeFrom,
+          escrowScheduleId: escrowScheduleId
+        });
+      }
       quantityRevoked = amount;
     } else {
       quantityRevoked = revocableQuantity(revokeFrom, escrowScheduleId);
@@ -588,9 +627,13 @@ contract EscrowedNORI is
     bool operatorIsNotSender = operator != from;
     bool ownerHasSufficientReleasedBalance = amount <= claimableBalanceOf(from);
     if (isBurning && operatorIsNotSender && operatorIsEscrowAdmin) {
-      require(balanceOf(from) >= amount, "eNORI: insufficient balance");
+      if (!(balanceOf(from) >= amount)) {
+        revert InsufficientBalance({account: from});
+      }
     } else if (!isMinting) {
-      require(ownerHasSufficientReleasedBalance, "eNORI: insufficient balance");
+      if (!ownerHasSufficientReleasedBalance) {
+        revert InsufficientBalance({account: from});
+      }
     }
     return super._beforeTokenTransfer(operator, from, to, amount);
   }
@@ -654,7 +697,12 @@ contract EscrowedNORI is
     EscrowSchedule storage escrowSchedule = _addressToEscrowSchedules[account][
       escrowScheduleId
     ];
-    require(escrowSchedule.exists, "eNORI: no escrow schedule exists");
+    if (!escrowSchedule.exists) {
+      revert NonexistentEscrowSchedule({
+        account: account,
+        escrowScheduleId: escrowScheduleId
+      });
+    }
     return
       _releasedBalanceOfSingleEscrowSchedule(
         account,
@@ -682,7 +730,7 @@ contract EscrowedNORI is
   }
 
   function _beforeOperatorChange(address, uint256) internal pure override {
-    revert("eNORI: operator actions disabled");
+    revert OperatorActionsDisabled();
   }
 
   function send(
@@ -690,7 +738,7 @@ contract EscrowedNORI is
     uint256,
     bytes memory
   ) public pure override {
-    revert("eNORI: send disabled");
+    revert SendDisabled();
   }
 
   function operatorSend(
@@ -700,11 +748,11 @@ contract EscrowedNORI is
     bytes memory,
     bytes memory
   ) public pure override {
-    revert("eNORI: operatorSend disabled");
+    revert OperatorSendDisabled();
   }
 
   function transfer(address, uint256) public pure override returns (bool) {
-    revert("eNORI: transfer disabled");
+    revert TransferDisabled();
   }
 
   function transferFrom(
@@ -712,7 +760,7 @@ contract EscrowedNORI is
     address,
     uint256
   ) public pure override returns (bool) {
-    revert("eNORI: transferFrom disabled");
+    revert TransferFromDisabled();
   }
 
   function _beforeRoleChange(bytes32 role, address account)
@@ -722,10 +770,12 @@ contract EscrowedNORI is
   {
     super._beforeRoleChange(role, account);
     if (role == ESCROW_CREATOR_ROLE) {
-      require(
-        !(_addressToEscrowScheduleIds[account].length > 0),
-        "eNORI: Cannot assign role to an escrow schedule holder"
-      );
+      if (_addressToEscrowScheduleIds[account].length > 0) {
+        revert RoleUnassignableToEscrowScheduleHolder({
+          account: account,
+          role: "ESCROW_CREATOR_ROLE"
+        });
+      }
     }
   }
 }

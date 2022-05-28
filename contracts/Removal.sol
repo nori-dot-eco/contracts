@@ -16,7 +16,7 @@ import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
 
-error TokenIdExists();
+error TokenIdExists(uint256 tokenId);
 
 /**
  * @title Removal
@@ -138,7 +138,7 @@ contract Removal is
     );
     for (uint256 i = 0; i < ids.length; i++) {
       if (_tokenIdExists[ids[i]]) {
-        revert TokenIdExists(); // todo can the duplicate token id be reported here?
+        revert TokenIdExists({tokenId: ids[i]});
       }
       _idToEscrowScheduleStartTime[ids[i]] = escrowScheduleStartTimes[i];
       _tokenIdExists[ids[i]] = true;

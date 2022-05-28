@@ -356,6 +356,7 @@ export const seedContracts = async ({
     ) {
       const tokenId = await createRemovalTokenId(contracts.Removal, {
         supplierAddress: hre.namedAccounts.supplier,
+        vintage: 3000, // avoid clashing with likely test vintages and getting TokenIdExists error
       });
       const escrowScheduleStartTime = await createEscrowScheduleStartTimeArray(
         contracts.Removal,
