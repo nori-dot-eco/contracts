@@ -9,37 +9,24 @@ import "./Removal.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
 /*
-Open Questions:
-  - do we need any ability to create escrow schedules before tokens are received on behalf of a removal?
-  -   Yes, and we should when removals are listed for sale, because it will save the buyer some gas cost
-
-  - Do we need any additional information captured when a revocation happens?  Do we want to allow a default mechanism for recapturing ALL available tokens?
-  I believe this is currently happening by specifying an amount of 0
-  YES and this is fine
- */
-
-/*
 TODO LIST:
-- handle escrow schedule transferability (both batch and single) that transfers full grants
+  - handle escrow schedule transferability (both batch and single) that transfers full grants
 
-- do we need a mechanism of removing escrow schedule ids from a supplier's list once the escrow schedule has been completely
-- vested AND claimed? so that the process of withdrawing tokens is more gas efficient and iterates less??
-  - old schedules could still be kept around and indexed by a different collection, for view purposes.
+  - need a mechanism of removing escrow schedule ids from a supplier's key list once the escrow schedule has been completely
+  vested AND claimed so that the process of withdrawing tokens is more gas efficient and iterates less.
+  old schedules could still be kept around and indexed by a different collection, for view purposes.
   consider using enumerable mapping for these key collections?
 
   - what are all the potential view functions we need here?
+  only other maybe one would be a total-funded-amount per address? (minus claimed?) - so funded but agnostic to released or not
 
   - update all the natspec comments
-
-  - use the address -> address routing table where possible? (maybe in separate ticket that implements that)
-
-  - use custom errors
 
   - tests tests tests!
  */
 
 // Based on average year duration of 365.2425 days, which accounts for leap years
-uint256 constant SECONDS_IN_TEN_YEARS = 31_556_952;
+uint256 constant SECONDS_IN_TEN_YEARS = 315_569_520;
 
 error BurningNotSupported();
 error SendDisabled();
@@ -376,16 +363,21 @@ contract EscrowedNORI is
     view
     returns (EscrowScheduleDetail[] memory)
   {
+    uint256 arrayLength = 0;
+    for (uint256 i = 0; i < accounts.length; i++) {
+      uint256[] memory escrowScheduleIds = _addressToEscrowScheduleIds[
+        accounts[i]
+      ];
+      arrayLength += escrowScheduleIds.length;
+    }
     EscrowScheduleDetail[]
-      memory escrowScheduleDetails = new EscrowScheduleDetail[](
-        accounts.length
-      );
+      memory escrowScheduleDetails = new EscrowScheduleDetail[](arrayLength);
     for (uint256 i = 0; i < accounts.length; i++) {
       uint256[] memory escrowScheduleIds = _addressToEscrowScheduleIds[
         accounts[i]
       ];
       for (uint256 j = 0; j < escrowScheduleIds.length; j++) {
-        escrowScheduleDetails[i] = getEscrowSchedule(
+        escrowScheduleDetails[i + j] = getEscrowSchedule(
           accounts[i],
           escrowScheduleIds[j]
         );
