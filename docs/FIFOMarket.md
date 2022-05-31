@@ -107,10 +107,65 @@ uint256 _noriFee
 
 
 
+### priorityRestrictedThreshold
+
+```solidity
+uint256 priorityRestrictedThreshold
+```
+
+
+
+
+
+
+### totalSupply
+
+```solidity
+uint256 totalSupply
+```
+
+
+
+
+
+
+### ALLOWLIST_ROLE
+
+```solidity
+bytes32 ALLOWLIST_ROLE
+```
+
+Role allowing the purchase of supply when inventory is below the priority restricted threshold.
+
+
+
+
+### PriorityRestrictedThresholdSet
+
+```solidity
+event PriorityRestrictedThresholdSet(uint256 threshold)
+```
+
+Emitted on setting of priorityRestrictedThreshold.
+
+
+
+
 ### initialize
 
 ```solidity
 function initialize(address removalAddress, address bridgedPolygonNoriAddress, address certificateAddress, address noriFeeWalletAddress, uint256 noriFee) public
+```
+
+
+
+
+
+
+### setPriorityRestrictedThreshold
+
+```solidity
+function setPriorityRestrictedThreshold(uint256 threshold) external
 ```
 
 
@@ -129,10 +184,32 @@ function _queueLength() private view returns (uint256)
 
 
 
-### numberOfNrtsInQueue
+### numberOfNrtsInQueueComputed
 
 ```solidity
-function numberOfNrtsInQueue() public view returns (uint256)
+function numberOfNrtsInQueueComputed() public view returns (uint256)
+```
+
+
+
+
+
+
+### totalUnrestrictedSupply
+
+```solidity
+function totalUnrestrictedSupply() public view returns (uint256)
+```
+
+
+
+
+
+
+### nextRemovalForSale
+
+```solidity
+function nextRemovalForSale(bool includePriorityRestrictedSupply) public view returns (uint256)
 ```
 
 
@@ -154,7 +231,7 @@ function onERC1155BatchReceived(address, address, uint256[] ids, uint256[], byte
 ### tokensReceived
 
 ```solidity
-function tokensReceived(address, address, address, uint256 amount, bytes userData, bytes) external
+function tokensReceived(address, address from, address, uint256 amount, bytes userData, bytes) external
 ```
 
 

@@ -23,6 +23,17 @@ struct Source {
 }
 ```
 
+### CertificateCreated
+
+```solidity
+event CertificateCreated(address recipient, uint256 certificateId, uint256[] removalIds, uint256[] amounts)
+```
+
+Emitted on creation of a certificate of carbon removal.
+
+
+
+
 ### _sources
 
 ```solidity

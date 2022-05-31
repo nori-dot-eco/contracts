@@ -11,7 +11,7 @@
 ### initialize
 
 ```solidity
-function initialize() public
+function initialize() public virtual
 ```
 
 
