@@ -1,4 +1,3 @@
-import type { Contract } from '@ethersproject/contracts';
 import { task } from 'hardhat/config';
 
 interface ForceUpgradeTaskParameters {
@@ -13,13 +12,12 @@ export const TASK = {
     taskArguments: ForceUpgradeTaskParameters,
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
-    const contract: Contract = await hre.upgrades.forceImport(
+    const signers = await hre.getSigners();
+    await hre.upgrades.forceImport(
       taskArguments.proxyAddress,
       await hre.ethers.getContractFactory(
         taskArguments.contractName as ContractNames,
-        (
-          await hre.getSigners()
-        )[0]
+        signers[0]
       ),
       {
         kind: 'transparent',

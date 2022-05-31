@@ -8,6 +8,21 @@
 
 ---
 
+### RoundRobinOrder
+
+
+
+
+
+
+
+```solidity
+struct RoundRobinOrder {
+  address previousSupplierAddress;
+  address nextSupplierAddress;
+}
+```
+
 ### _erc1820
 
 ```solidity
@@ -52,39 +67,6 @@ contract BridgedPolygonNORI _bridgedPolygonNori
 
 
 
-### _queue
-
-```solidity
-mapping(uint256 &#x3D;&gt; uint256) _queue
-```
-
-
-
-
-
-
-### _queueHeadIndex
-
-```solidity
-uint256 _queueHeadIndex
-```
-
-
-
-
-
-
-### _queueNextInsertIndex
-
-```solidity
-uint256 _queueNextInsertIndex
-```
-
-
-
-
-
-
 ### _noriFeeWallet
 
 ```solidity
@@ -118,10 +100,87 @@ uint256 priorityRestrictedThreshold
 
 
 
-### totalSupply
+### totalNumberActiveRemovals
 
 ```solidity
-uint256 totalSupply
+uint256 totalNumberActiveRemovals
+```
+
+
+
+
+
+
+### totalActiveSupply
+
+```solidity
+uint256 totalActiveSupply
+```
+
+
+
+
+
+
+### totalReservedSupply
+
+```solidity
+uint256 totalReservedSupply
+```
+
+
+
+
+
+
+### activeSupplierCount
+
+```solidity
+uint256 activeSupplierCount
+```
+
+
+
+
+
+
+### _currentSupplierAddress
+
+```solidity
+address _currentSupplierAddress
+```
+
+
+
+
+
+
+### _suppliersInRoundRobinOrder
+
+```solidity
+mapping(address &#x3D;&gt; struct FIFOMarket.RoundRobinOrder) _suppliersInRoundRobinOrder
+```
+
+
+
+
+
+
+### _reservedSupply
+
+```solidity
+struct EnumerableSetUpgradeable.UintSet _reservedSupply
+```
+
+
+
+
+
+
+### _activeSupply
+
+```solidity
+mapping(address &#x3D;&gt; struct EnumerableSetUpgradeable.UintSet) _activeSupply
 ```
 
 
@@ -173,24 +232,13 @@ function setPriorityRestrictedThreshold(uint256 threshold) external
 
 
 
-### _queueLength
+### numberOfActiveNrtsInMarketComputed
 
 ```solidity
-function _queueLength() private view returns (uint256)
+function numberOfActiveNrtsInMarketComputed() external view returns (uint256)
 ```
 
-
-
-
-
-
-### numberOfNrtsInQueueComputed
-
-```solidity
-function numberOfNrtsInQueueComputed() public view returns (uint256)
-```
-
-
+The amount of supply as computed by iterating through all removals.
 
 
 
@@ -201,18 +249,7 @@ function numberOfNrtsInQueueComputed() public view returns (uint256)
 function totalUnrestrictedSupply() public view returns (uint256)
 ```
 
-
-
-
-
-
-### nextRemovalForSale
-
-```solidity
-function nextRemovalForSale(bool includePriorityRestrictedSupply) public view returns (uint256)
-```
-
-
+The amount of supply available for anyone to buy.
 
 
 
@@ -240,6 +277,33 @@ _Called automatically by the ERC777 (nori) contract when a batch of tokens are t
 
 
 
+### reserveRemoval
+
+```solidity
+function reserveRemoval(uint256 removalId) external returns (bool)
+```
+
+Removes removal from active supply and inserts it into the reserved supply, where it cannot be used to
+fill orders.
+
+_If the removal is the last for the supplier, removes the supplier from the active supplier queue._
+
+
+
+### unreserveRemoval
+
+```solidity
+function unreserveRemoval(uint256 removalId) external returns (bool)
+```
+
+Adds the removal back to active supply to be sold.
+
+_Removes removal from reserved supply and re-inserts it into the active supply, where it can be used to
+fill orders again. If the supplier&#x27;s other removals have all been sold, adds the supplier back to the
+list of active suppliers_
+
+
+
 ### supportsInterface
 
 ```solidity
@@ -248,6 +312,51 @@ function supportsInterface(bytes4 interfaceId) public view virtual returns (bool
 
 
 
+
+
+
+### _incrementCurrentSupplierAddress
+
+```solidity
+function _incrementCurrentSupplierAddress() private
+```
+
+Increments the address of the current supplier.
+
+_Called the current supplier&#x27;s removal is sold, or their last removal is reserved.
+Updates _currentSupplierAddress to the next of whatever is the current supplier._
+
+
+
+### _addActiveSupplier
+
+```solidity
+function _addActiveSupplier(address supplierAddress) private
+```
+
+Adds a supplier to the active supplier queue
+
+_Called when a new supplier is added to the marketplace, or after they have sold out and a reserved removal is
+unreserved. If the first supplier, initializes a cicularly doubly-linked list, where initially the first supplier
+points to itself as next and previous. When a new supplier is added, at the position of the current supplier,
+update the previous pointer of the current supplier to point to the new supplier, and update the next pointer of
+the previous supplier to the new supplier._
+
+
+
+### _removeActiveSupplier
+
+```solidity
+function _removeActiveSupplier(address addressToRemove) private
+```
+
+Removes a supplier to the active supplier queue
+
+_Called when a supplier&#x27;s last removal is used for an order or reserved. If the last supplier,
+resets the pointer for \_currentSupplierAddress. Otherwise, from the position of the supplier to be
+removed, update the previous supplier to point to the next of the removed supplier, and the next of
+the removed supplier to point to the previous of the remove supplier. Then, set the next and previous
+pointers of the removed supplier to the 0x address._
 
 
 

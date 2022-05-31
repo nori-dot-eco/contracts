@@ -1,8 +1,8 @@
 import type { BigNumberish } from 'ethers';
 
-import type { ScheduleTestHarness } from '../typechain-types/ScheduleTestHarness';
-
 import { expect } from './helpers';
+
+import type { ScheduleTestHarness } from '@/typechain-types';
 
 const NOW = Math.floor(Date.now() / 1000);
 
