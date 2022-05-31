@@ -505,7 +505,91 @@ describe('EscrowedNORI', () => {
       ).to.be.revertedWith('InsufficientBalance');
     });
   });
-  describe('Revoking (batchRevokeUnreleasedTokenAmounts)', () => {});
+  describe('Revoking (batchRevokeUnreleasedTokenAmounts)', () => {
+    it('should revoke a specific number of tokens, emit events, and account for the quantity revoked', async () => {
+      const removalDataToList = [
+        {
+          amount: 100,
+          vintage: 2018,
+          escrowScheduleStartTime: UNIX_EPOCH_2018,
+        },
+      ];
+      const testSetup = await setupTestLocal({
+        removalDataToList,
+      });
+
+      const { eNori, bpNori, hre, listedRemovalIds } = testSetup;
+      const { supplier, admin } = hre.namedAccounts;
+      const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
+      const amountToEscrow = removalDataToList[0].amount;
+      await sendRemovalProceedsToEscrow({
+        testSetup,
+        listedRemovalData: removalDataToList,
+        removalAmountsToEscrow: [amountToEscrow],
+      });
+      await advanceTime({
+        hre,
+        timestamp: UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+      });
+      const originalRevocableQuantity = await eNori.revocableQuantity(
+        supplier,
+        UNIX_EPOCH_2018
+      );
+      expect(originalRevocableQuantity).to.equal(amountToEscrow / 2);
+      expect(
+        await eNori.batchRevokeUnreleasedTokenAmounts(
+          [supplier],
+          listedRemovalIds,
+          [originalRevocableQuantity]
+        )
+      )
+        .to.emit(eNori, 'UnreleasedTokensRevoked')
+        .withArgs(
+          UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+          listedRemovalIds[0],
+          UNIX_EPOCH_2018,
+          originalRevocableQuantity
+        )
+        .to.emit(eNori, 'Burned')
+        .withArgs(admin, supplier, originalRevocableQuantity, '0x', '0x')
+        .to.emit(eNori, 'Transfer')
+        .withArgs(
+          supplier,
+          hre.ethers.constants.AddressZero,
+          originalRevocableQuantity
+        )
+        .to.emit(bpNori, 'Sent') // todo are these bpNori events actually getting emitted?
+        .withArgs(
+          eNori.address,
+          eNori.address,
+          admin,
+          originalRevocableQuantity,
+          '0x',
+          '0x'
+        )
+        .to.emit(bpNori, 'Transfer')
+        .withArgs(eNori.address, admin, originalRevocableQuantity);
+
+      expect(await eNori.revocableQuantity(supplier, UNIX_EPOCH_2018)).to.equal(
+        0
+      );
+      const newBalance = BigNumber.from(amountToEscrow).sub(
+        originalRevocableQuantity
+      );
+      const escrowScheduleDetail = await eNori.getEscrowSchedule(
+        supplier,
+        UNIX_EPOCH_2018
+      );
+      expect(escrowScheduleDetail.totalQuantityRevoked).to.equal(
+        originalRevocableQuantity
+      );
+      expect(escrowScheduleDetail.currentAmount).to.equal(newBalance);
+      expect(await eNori.balanceOf(supplier)).to.equal(newBalance);
+      expect(await eNori.totalSupply()).to.equal(newBalance);
+      // todo examine the bpNori admin balance?
+    });
+  });
+
   describe('Disabled functions', () => {
     it('should fail to *send*', async () => {
       const removalDataToList = [
