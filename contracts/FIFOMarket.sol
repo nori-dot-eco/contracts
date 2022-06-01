@@ -28,6 +28,9 @@ contract FIFOMarket is
 {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+  using StructuredLinkedList for StructuredLinkedList.List;
+
+
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -35,6 +38,18 @@ contract FIFOMarket is
   struct RoundRobinOrder {
     address previousSupplierAddress;
     address nextSupplierAddress;
+  }
+
+  struct VintageOrder {
+    uint256 previousRemovalId;
+    uint256 nextRemovalId;
+  }
+
+  struct RemovalQueue {
+    mapping(uint256 => VintageOrder) removals;
+    uint256 length;
+    uint256 firstRemovalId;
+    uint256 lastRemovalId;
   }
 
   IERC1820RegistryUpgradeable private _erc1820;
@@ -50,8 +65,8 @@ contract FIFOMarket is
   uint256 public activeSupplierCount;
   address private _currentSupplierAddress;
   mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
-  EnumerableSetUpgradeable.UintSet private _reservedSupply;
-  mapping(address => EnumerableSetUpgradeable.UintSet) private _activeSupply;
+  mapping(address => RemovalQueue) private _reservedSupply;
+  mapping(address => RemovalQueue) private _activeSupply;
 
   /**
    * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
@@ -164,6 +179,9 @@ contract FIFOMarket is
   //   return nextRemovalId;
   // }
 
+  /**
+   * @dev Will not work if the removals are for more than one supplier!
+   */
   function onERC1155BatchReceived(
     address,
     address,
@@ -172,14 +190,42 @@ contract FIFOMarket is
     bytes memory
   ) public override returns (bytes4) {
     for (uint256 i = 0; i < ids.length; i++) {
-      uint256 removalAmount = _removal.balanceOf(address(this), ids[i]);
+      uint256 removalToAdd = ids[i];
+      uint256 removalAmount = _removal.balanceOf(address(this), removalToAdd);
+      uint16 vintage = removalToAdd.vintage();
+      address supplierAddress = removalToAdd.supplierAddress();
+      uint256 memory currentRemovalId = _activeSupply[supplierAddress]
+        .firstRemoval;
+      uint16 memory currentVintage = currentRemovalId.vintage();
+      uint256 memory previousRemovalId = _activeSupply[supplierAddress]
+        .removals[currentRemovalId]
+        .previousRemovalId;
+      for (uint256 i = 0; i < _activeSupply[supplierAddress].length; i++) {
+        if (vintage > currentVintage) {
+          _activeSupply[supplierAddress]
+            .removals[previousRemovalId]
+            .nextRemovalId = removalToAdd;
+          _activeSupply[supplierAddress]
+            .removals[currentRemovalId]
+            .previousRemovalId = removalToAdd;
+          _activeSupply[supplierAddress].removals[
+            previousRemovalId
+          ] = VintageOrder({
+            previousRemovalId: previousRemovalId,
+            nextRemovalId: currentRemovalId
+          });
+          break;
+        } else {
+          previousRemovalId = currentRemovalId;
+          currentRemovalId = _activeSupply[supplierAddress]
+            .removals[currentRemovalId]
+            .nextRemovalId;
+          currentVintage = currentRemovalId.vintage();
+        }
+      }
+      _activeSupply[supplierAddress].length += 1;
       totalActiveSupply += removalAmount;
-      totalNumberActiveRemovals += 1;
-      address supplierAddress = ids[i].supplierAddress();
-      require(
-        _activeSupply[supplierAddress].add(ids[i]),
-        "Market: Removal already in active supply"
-      );
+      totalNumberActiveRemovals +=9 1;
       // If a new supplier has been added, or if the supplier had previously sold out
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
