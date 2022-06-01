@@ -3,7 +3,7 @@ import { task } from 'hardhat/config';
 import type { RunSuperFunction } from 'hardhat/types';
 import { TASK_TEST } from 'hardhat/builtin-tasks/task-names';
 
-import { getGasReporterConfig } from '@/config/gas-reporter';
+import { getConfig } from '@/hardhat.config'; // eslint-disable-line import/extensions -- valid import extension
 import { validateTestEnvironment } from '@/tasks/utils/validate-environment';
 
 interface TestTaskOverrideParameters {
@@ -28,8 +28,8 @@ export const TASK = {
         `Previous value: ${REPORT_GAS}`
       );
       process.env.REPORT_GAS = true;
-      hre.config.gasReporter = getGasReporterConfig(process.env);
     }
+    (hre as any).userConfig = getConfig(process.env);
     return runSuper(taskArguments);
   },
 } as const;
