@@ -394,7 +394,7 @@ export const finalizeDeployments = async ({
   await pushContractsToEthernal({ hre, contracts });
   writeContractsConfig({ contracts });
   await addContractsToDefender({ hre, contracts });
-  await verifyContracts({ hre, contracts });
+  // await verifyContracts({ hre, contracts });
   await saveDeployments({
     hre,
     contracts,

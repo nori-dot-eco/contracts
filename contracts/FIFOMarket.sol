@@ -28,9 +28,6 @@ contract FIFOMarket is
 {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-  using StructuredLinkedList for StructuredLinkedList.List;
-
-
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -131,14 +128,16 @@ contract FIFOMarket is
     uint256 total = 0;
     address supplierAddress = _currentSupplierAddress;
     for (uint256 i = 0; i < activeSupplierCount; i++) {
-      EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
-        supplierAddress
-      ];
-      for (uint256 j = 0; j < supplierSet.length(); j++) {
+      RemovalQueue storage removalQueue = _activeSupply[supplierAddress];
+      uint256 currentRemovalId = removalQueue.firstRemovalId;
+      for (uint256 j = 0; j < removalQueue.length; j++) {
         uint256 removalBalance = _removal.balanceOf(
           address(this),
-          supplierSet.at(j)
+          currentRemovalId
         );
+        currentRemovalId = removalQueue
+          .removals[currentRemovalId]
+          .nextRemovalId;
         total += removalBalance;
       }
       supplierAddress = _suppliersInRoundRobinOrder[supplierAddress]
@@ -190,42 +189,58 @@ contract FIFOMarket is
     bytes memory
   ) public override returns (bytes4) {
     for (uint256 i = 0; i < ids.length; i++) {
-      uint256 removalToAdd = ids[i];
+      uint256 removalToAdd = ids[0];
       uint256 removalAmount = _removal.balanceOf(address(this), removalToAdd);
-      uint16 vintage = removalToAdd.vintage();
+      uint16 vintageOfRemovalToAdd = removalToAdd.vintage();
       address supplierAddress = removalToAdd.supplierAddress();
-      uint256 memory currentRemovalId = _activeSupply[supplierAddress]
-        .firstRemoval;
-      uint16 memory currentVintage = currentRemovalId.vintage();
-      uint256 memory previousRemovalId = _activeSupply[supplierAddress]
-        .removals[currentRemovalId]
-        .previousRemovalId;
-      for (uint256 i = 0; i < _activeSupply[supplierAddress].length; i++) {
-        if (vintage > currentVintage) {
-          _activeSupply[supplierAddress]
-            .removals[previousRemovalId]
-            .nextRemovalId = removalToAdd;
-          _activeSupply[supplierAddress]
-            .removals[currentRemovalId]
-            .previousRemovalId = removalToAdd;
-          _activeSupply[supplierAddress].removals[
-            previousRemovalId
-          ] = VintageOrder({
-            previousRemovalId: previousRemovalId,
-            nextRemovalId: currentRemovalId
-          });
-          break;
-        } else {
-          previousRemovalId = currentRemovalId;
-          currentRemovalId = _activeSupply[supplierAddress]
-            .removals[currentRemovalId]
-            .nextRemovalId;
-          currentVintage = currentRemovalId.vintage();
+      if (_activeSupply[supplierAddress].length > 0) {
+        uint256 currentRemovalId = _activeSupply[supplierAddress]
+          .firstRemovalId;
+        uint16 currentVintage = currentRemovalId.vintage();
+        uint256 previousRemovalId = _activeSupply[supplierAddress]
+          .removals[currentRemovalId]
+          .previousRemovalId;
+        for (uint256 j = 0; j < _activeSupply[supplierAddress].length; j++) {
+          if (vintageOfRemovalToAdd > currentVintage) {
+            _activeSupply[supplierAddress]
+              .removals[previousRemovalId]
+              .nextRemovalId = removalToAdd;
+            _activeSupply[supplierAddress]
+              .removals[currentRemovalId]
+              .previousRemovalId = removalToAdd;
+            _activeSupply[supplierAddress].removals[
+              removalToAdd
+            ] = VintageOrder({
+              previousRemovalId: previousRemovalId,
+              nextRemovalId: currentRemovalId
+            });
+            break;
+          } else {
+            previousRemovalId = currentRemovalId;
+            currentRemovalId = _activeSupply[supplierAddress]
+              .removals[currentRemovalId]
+              .nextRemovalId;
+            currentVintage = currentRemovalId.vintage();
+          }
+          if (j == _activeSupply[supplierAddress].length - 1) {
+            _activeSupply[supplierAddress].lastRemovalId = removalToAdd;
+          } else if (j == 0) {
+            _activeSupply[supplierAddress].firstRemovalId = removalToAdd;
+          }
         }
+      } else {
+        RemovalQueue storage removalQueue = _activeSupply[supplierAddress];
+        removalQueue.length = 0;
+        removalQueue.firstRemovalId = removalToAdd;
+        removalQueue.lastRemovalId = removalToAdd;
+        removalQueue.removals[removalToAdd] = VintageOrder({
+          previousRemovalId: 0,
+          nextRemovalId: 0
+        });
       }
       _activeSupply[supplierAddress].length += 1;
       totalActiveSupply += removalAmount;
-      totalNumberActiveRemovals +=9 1;
+      totalNumberActiveRemovals += 1;
       // If a new supplier has been added, or if the supplier had previously sold out
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
@@ -277,7 +292,7 @@ contract FIFOMarket is
     address[] memory suppliers = new address[](totalNumberActiveRemovals);
     uint256 numberOfRemovals = 0;
     for (uint256 i = 0; i < totalNumberActiveRemovals; i++) {
-      uint256 removalId = _activeSupply[_currentSupplierAddress].at(0); // grab head of this supplier's queue
+      uint256 removalId = _activeSupply[_currentSupplierAddress].firstRemovalId; // grab head of this supplier's queue
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       // order complete, not fully using up this removal, don't increment currentSupplierAddress, don't check about removing active supplier
       if (remainingAmountToFill < removalAmount) {
@@ -298,12 +313,12 @@ contract FIFOMarket is
         suppliers[numberOfRemovals] = _currentSupplierAddress;
         remainingAmountToFill -= removalAmount;
 
-        require(
-          _activeSupply[_currentSupplierAddress].remove(removalId),
-          "Market: Removal not in active supply"
-        ); // pull it out of the supplier's queue
+        _activeSupply[_currentSupplierAddress].firstRemovalId = _activeSupply[
+          _currentSupplierAddress
+        ].removals[removalId].nextRemovalId;
+        _activeSupply[_currentSupplierAddress].length -= 1;
         // If the supplier is out of supply, remove them from the active suppliers
-        if (_activeSupply[_currentSupplierAddress].length() == 0) {
+        if (_activeSupply[_currentSupplierAddress].length == 0) {
           _removeActiveSupplier(_currentSupplierAddress);
           // else if the supplier is the only supplier remaining with supply, don't bother incrementing.
         } else if (
@@ -357,25 +372,26 @@ contract FIFOMarket is
    *
    */
   function reserveRemoval(uint256 removalId) external returns (bool) {
-    address supplierAddress = removalId.supplierAddress();
-    EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
-      supplierAddress
-    ];
-    require(
-      supplierSet.remove(removalId) == true,
-      "Market: removal not in active supply"
-    );
-    totalNumberActiveRemovals -= 1;
-    uint256 removalBalance = _removal.balanceOf(address(this), removalId);
-    totalActiveSupply -= removalBalance;
-    totalReservedSupply += removalBalance;
-    // If this is the last removal for the supplier, remove them from active suppliers
-    if (supplierSet.length() == 0) {
-      _removeActiveSupplier(supplierAddress);
-    }
-    // todo any checks on whether this id was already in there?
-    require(_reservedSupply.add(removalId), "Market: Removal already reserved");
-    return true; // returns true if the value was added to the set, that is, if it was not already present
+    return true;
+    // address supplierAddress = removalId.supplierAddress();
+    // EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
+    //   supplierAddress
+    // ];
+    // require(
+    //   supplierSet.remove(removalId) == true,
+    //   "Market: removal not in active supply"
+    // );
+    // totalNumberActiveRemovals -= 1;
+    // uint256 removalBalance = _removal.balanceOf(address(this), removalId);
+    // totalActiveSupply -= removalBalance;
+    // totalReservedSupply += removalBalance;
+    // // If this is the last removal for the supplier, remove them from active suppliers
+    // if (supplierSet.length() == 0) {
+    //   _removeActiveSupplier(supplierAddress);
+    // }
+    // // todo any checks on whether this id was already in there?
+    // require(_reservedSupply.add(removalId), "Market: Removal already reserved");
+    // return true; // returns true if the value was added to the set, that is, if it was not already present
   }
 
   // TODO batch version of this?
@@ -387,27 +403,28 @@ contract FIFOMarket is
    * list of active suppliers
    */
   function unreserveRemoval(uint256 removalId) external returns (bool) {
-    address supplierAddress = removalId.supplierAddress();
-    EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
-      supplierAddress
-    ];
-    require(
-      _reservedSupply.remove(removalId) == true,
-      "Market: removal not in reserved supply"
-    );
-    totalNumberActiveRemovals += 1;
-    uint256 removalBalance = _removal.balanceOf(address(this), removalId);
-    totalActiveSupply += removalBalance;
-    totalReservedSupply -= removalBalance;
-    // If the supplier has previously been removed from the active suppliers, add them back
-    if (supplierSet.length() == 0) {
-      _addActiveSupplier(supplierAddress);
-    }
-    require(
-      supplierSet.add(removalId),
-      "Market: Removal already in active supply"
-    ); // returns true if the value was added to the set, that is, if it was not already present
     return true;
+    // address supplierAddress = removalId.supplierAddress();
+    // EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
+    //   supplierAddress
+    // ];
+    // require(
+    //   _reservedSupply.remove(removalId) == true,
+    //   "Market: removal not in reserved supply"
+    // );
+    // totalNumberActiveRemovals += 1;
+    // uint256 removalBalance = _removal.balanceOf(address(this), removalId);
+    // totalActiveSupply += removalBalance;
+    // totalReservedSupply -= removalBalance;
+    // // If the supplier has previously been removed from the active suppliers, add them back
+    // if (supplierSet.length() == 0) {
+    //   _addActiveSupplier(supplierAddress);
+    // }
+    // require(
+    //   supplierSet.add(removalId),
+    //   "Market: Removal already in active supply"
+    // ); // returns true if the value was added to the set, that is, if it was not already present
+    // return true;
   }
 
   function supportsInterface(bytes4 interfaceId)

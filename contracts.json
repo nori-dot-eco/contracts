@@ -4,13 +4,13 @@
       "proxyAddress": "0x68881d6266f3Ae8f4e3bf4a5CACd9319f26103aB"
     },
     "BridgedPolygonNORI": {
-      "proxyAddress": "0xe35401Eb5078388D49f47d631a0ce0733a31A425"
+      "proxyAddress": "0x04C89607413713Ec9775E14b954286519d836FEf"
     },
     "Removal": {
-      "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
+      "proxyAddress": "0x21dF544947ba3E8b3c32561399E88B52Dc8b2823"
     },
     "Certificate": {
-      "proxyAddress": "0x2CA5C6C765be11F44519Fc85Bf758723DC3C8cFC"
+      "proxyAddress": "0x4C4a2f8c81640e47606d3fd77B353E87Ba015584"
     },
     "FIFOMarket": {
       "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"

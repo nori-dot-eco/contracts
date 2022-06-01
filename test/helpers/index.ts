@@ -10,7 +10,7 @@ import type {
   BridgedPolygonNORI,
   RemovalTestHarness,
 } from '@/typechain-types';
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
+import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/Removal';
 import { asciiStringToHexString } from '@/utils/bytes';
 import { formatTokenAmount } from '@/utils/units';
 import type { Contracts } from '@/utils/contracts';
