@@ -20,6 +20,9 @@ contract Certificate is
   ERC1155PresetMinterPauserUpgradeable,
   ERC1155SupplyUpgradeable
 {
+  error ForbiddenTransferAfterMinting();
+  error ForbiddenFunctionCall();
+
   struct Source {
     uint256 removalId;
     uint256 amount;
@@ -98,6 +101,18 @@ contract Certificate is
   }
 
   /**
+   * @dev Use the `mintBatch` function instead.
+   */
+  function mint(
+    address,
+    uint256,
+    uint256,
+    bytes memory
+  ) public pure override {
+    revert ForbiddenFunctionCall();
+  }
+
+  /**
    * @dev returns the removal IDs and the amounts of the sources
    */
   function sources(uint256 certificateId)
@@ -119,6 +134,9 @@ contract Certificate is
     internal
     override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
   {
+    if (from != address(0)) {
+      revert ForbiddenTransferAfterMinting();
+    }
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
