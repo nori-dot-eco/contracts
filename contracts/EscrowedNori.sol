@@ -202,7 +202,11 @@ contract EscrowedNORI is
     return super.supportsInterface(interfaceId);
   }
 
-  function removalIdToScheduleId(uint256 removalId) public returns (uint256) {
+  function removalIdToScheduleId(uint256 removalId)
+    public
+    view
+    returns (uint256)
+  {
     address supplierAddress = removalId.supplierAddress();
     uint256 methodology = removalId.methodology();
     uint256 scheduleStartTime = _removal.getEscrowScheduleStartTimeForRemoval(

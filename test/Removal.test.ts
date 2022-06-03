@@ -15,13 +15,19 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const expectedMarketSupply = 0;
+        const { supplier, admin } = hre.namedAccounts;
+        const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
-          [2016, 2017, 2018, 2019].map((vintage) =>
-            createRemovalTokenId(removal, { vintage })
-          )
+          removalBalances.map((_, index) => {
+            return createRemovalTokenId(removal, {
+              supplierAddress: supplier,
+              vintage: defaultStartingVintage + index,
+            });
+          })
         );
         const escrowScheduleStartTimes =
           await createEscrowScheduleStartTimeArray(removal, tokenIds);
+
         const listNow = false;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
           ['address', 'bool'],
@@ -29,7 +35,7 @@ describe('Removal', () => {
         );
         await expect(
           removal.mintRemovalBatch(
-            hre.namedAccounts.supplier,
+            supplier,
             removalBalances,
             tokenIds,
             escrowScheduleStartTimes,
@@ -38,9 +44,9 @@ describe('Removal', () => {
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
-            hre.namedAccounts.admin,
+            admin,
             hre.ethers.constants.AddressZero,
-            hre.namedAccounts.supplier,
+            supplier,
             tokenIds,
             removalBalances
           );
@@ -54,7 +60,7 @@ describe('Removal', () => {
         }
         // not listed to the fifoMarket
         const marketTotalSupply =
-          await fifoMarket.numberOfNrtsInQueueComputed();
+          await fifoMarket.numberOfActiveNrtsInMarketComputed();
         expect(marketTotalSupply).to.equal(
           formatTokenAmount(expectedMarketSupply).toString()
         );
@@ -65,13 +71,19 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const expectedMarketSupply = 1000;
+        const { supplier, admin } = hre.namedAccounts;
+        const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
-          [2016, 2017, 2018, 2019].map((vintage) =>
-            createRemovalTokenId(removal, { vintage })
-          )
+          removalBalances.map((_, index) => {
+            return createRemovalTokenId(removal, {
+              supplierAddress: supplier,
+              vintage: defaultStartingVintage + index,
+            });
+          })
         );
         const escrowScheduleStartTimes =
           await createEscrowScheduleStartTimeArray(removal, tokenIds);
+
         const listNow = true;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
           ['address', 'bool'],
@@ -79,7 +91,7 @@ describe('Removal', () => {
         );
         await expect(
           removal.mintRemovalBatch(
-            hre.namedAccounts.supplier,
+            supplier,
             removalBalances,
             tokenIds,
             escrowScheduleStartTimes,
@@ -88,32 +100,13 @@ describe('Removal', () => {
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
-            hre.namedAccounts.admin,
+            admin,
             hre.ethers.constants.AddressZero,
-            hre.namedAccounts.supplier,
+            supplier,
             tokenIds,
             removalBalances
-          )
-          .to.emit(eNori, 'EscrowScheduleCreated')
-          .withArgs(
-            hre.namedAccounts.supplier,
-            escrowScheduleStartTimes[0].toHexString()
-          )
-          .to.emit(eNori, 'EscrowScheduleCreated')
-          .withArgs(
-            hre.namedAccounts.supplier,
-            escrowScheduleStartTimes[1].toHexString()
-          )
-          .to.emit(eNori, 'EscrowScheduleCreated')
-          .withArgs(
-            hre.namedAccounts.supplier,
-            escrowScheduleStartTimes[2].toHexString()
-          )
-          .to.emit(eNori, 'EscrowScheduleCreated')
-          .withArgs(
-            hre.namedAccounts.supplier,
-            escrowScheduleStartTimes[3].toHexString()
           );
+
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {
             return removal.totalSupply(tokenId);
@@ -123,14 +116,14 @@ describe('Removal', () => {
           expect(balance).to.equal(removalBalances[tokenId].toString());
         }
         const marketTotalSupply =
-          await fifoMarket.numberOfNrtsInQueueComputed();
+          await fifoMarket.numberOfActiveNrtsInMarketComputed();
         expect(marketTotalSupply).to.equal(
           formatTokenAmount(expectedMarketSupply).toString()
         );
       });
 
-      it('should list pre-minted removals for sale in the atomic marketplace', async () => {
-        const { fifoMarket, removal } = await setupTest();
+      it('should list pre-minted removals for sale in the atomic marketplace and create escrow schedules', async () => {
+        const { fifoMarket, removal, eNori } = await setupTest();
         const removalBalances = [100, 200, 300].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -163,6 +156,12 @@ describe('Removal', () => {
             tokenIds,
             removalBalances
           );
+
+        // removal escrow schedule startTimes had to be set before we can call this and expect to get
+        // the right escrow schedules
+        const escrowScheduleTokenIds = await Promise.all(
+          tokenIds.map((removalId) => eNori.removalIdToScheduleId(removalId))
+        );
         await expect(
           removal.safeBatchTransferFrom(
             hre.namedAccounts.supplier,
@@ -179,6 +178,21 @@ describe('Removal', () => {
             fifoMarket.address,
             tokenIds,
             removalBalances
+          )
+          .to.emit(eNori, 'EscrowScheduleCreated')
+          .withArgs(
+            escrowScheduleTokenIds[0].toHexString(),
+            tokenIds[0].toHexString()
+          )
+          .to.emit(eNori, 'EscrowScheduleCreated')
+          .withArgs(
+            escrowScheduleTokenIds[1].toHexString(),
+            tokenIds[1].toHexString()
+          )
+          .to.emit(eNori, 'EscrowScheduleCreated')
+          .withArgs(
+            escrowScheduleTokenIds[2].toHexString(),
+            tokenIds[2].toHexString()
           );
         // market contract should have a balance for each listed tokenId
         const balances = await Promise.all(

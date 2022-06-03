@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
 
-import type { LockedNORI } from '@/typechain-types/LockedNORI';
+import type { LockedNORI } from '@/typechain-types';
 import {
   expect,
   setupTest,

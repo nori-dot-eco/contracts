@@ -2,7 +2,7 @@ import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import type {
   UnpackedRemovalIdV0Struct,
   UnpackedRemovalIdV0StructOutput,
-} from '@/typechain-types/RemovalTestHarness';
+} from '@/typechain-types/contracts/RemovalUtilsTestHarness.sol/RemovalTestHarness';
 import { asciiStringToHexString, hexStringToAsciiString } from '@/utils/bytes';
 import { expect, setupTest } from '@/test/helpers';
 import { formatRemovalIdData } from '@/utils/removal';

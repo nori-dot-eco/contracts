@@ -8,7 +8,6 @@ import type {
 import type {
   BaseContract,
   Contract,
-  ContractFactory,
   ethers as defaultEthers,
 } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
