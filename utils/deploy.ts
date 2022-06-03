@@ -293,12 +293,14 @@ export const saveDeployments = async ({
       .map(async ([name, contract]) => {
         const { abi, bytecode, deployedBytecode } =
           await hre.artifacts.readArtifact(name);
-        await hre.tenderly.persistArtifacts({
-          // todo: only run if TENDERLY is set in env
-          name,
-          address: contract.address,
-          network: hre.network.name,
-        });
+        if (process.env.TENDERLY === true) {
+          hre.trace('persisting artifacts to tenderly');
+          await hre.tenderly.persistArtifacts({
+            name,
+            address: contract.address,
+            network: hre.network.name,
+          });
+        }
         return hre.deployments.save(name, {
           abi,
           address: contract.address,
