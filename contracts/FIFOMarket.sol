@@ -37,6 +37,12 @@ contract FIFOMarket is
     address nextSupplierAddress;
   }
 
+  struct Supply {
+    uint256[] removals; // todo this should be a struct that indicates the amount of the removal to be used
+    address[] suppliers;
+    uint256 total;
+  }
+
   IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
   Certificate private _certificate;
@@ -105,6 +111,57 @@ contract FIFOMarket is
     emit PriorityRestrictedThresholdSet(threshold);
   }
 
+  function _numberOfActiveNrtsInMarketComputed(uint256 amount)
+    internal
+    view
+    returns (Supply memory)
+  {
+    uint256 total = 0;
+    uint256 numberOfSuppliers = 0;
+    uint256 numberOfRemovals = 0;
+    uint256[] memory removals = new uint256[](totalNumberActiveRemovals);
+    address[] memory suppliers = new address[](totalNumberActiveRemovals);
+    address supplier = _currentSupplierAddress;
+    for (uint256 i = 0; i < activeSupplierCount; i++) {
+      EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
+        supplier
+      ];
+      for (
+        uint256 j = 0;
+        j < supplierSet.length() && amount > 0 ? total < amount : true;
+        j++
+      ) {
+        uint256 removalBalance = _removal.balanceOf(
+          address(this),
+          supplierSet.at(j)
+        );
+        total += removalBalance;
+        uint256 removalId = supplierSet.at(j);
+        removals[j] = removalId;
+        numberOfRemovals++;
+      }
+      numberOfSuppliers++;
+      suppliers[i] = supplier; // todo dedupe suppliers
+      supplier = _suppliersInRoundRobinOrder[supplier].nextSupplierAddress;
+    }
+    Supply memory supply = Supply({
+      total: amount > 0 ? amount : total,
+      suppliers: new address[](numberOfSuppliers),
+      removals: new uint256[](numberOfRemovals)
+    });
+    for (uint256 i = 0; i < numberOfSuppliers; i++) {
+      EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
+        supplier
+      ];
+      for (uint256 j = 0; j < numberOfRemovals; j++) {
+        supply.removals[j] = supplierSet.at(j);
+      }
+      supply.suppliers[i] = supplier;
+      supplier = _suppliersInRoundRobinOrder[supplier].nextSupplierAddress;
+    }
+    return supply;
+  }
+
   /**
    * @notice The amount of supply as computed by iterating through all removals.
    */
@@ -113,23 +170,18 @@ contract FIFOMarket is
     view
     returns (uint256)
   {
-    uint256 total = 0;
-    address supplierAddress = _currentSupplierAddress;
-    for (uint256 i = 0; i < activeSupplierCount; i++) {
-      EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
-        supplierAddress
-      ];
-      for (uint256 j = 0; j < supplierSet.length(); j++) {
-        uint256 removalBalance = _removal.balanceOf(
-          address(this),
-          supplierSet.at(j)
-        );
-        total += removalBalance;
-      }
-      supplierAddress = _suppliersInRoundRobinOrder[supplierAddress]
-        .nextSupplierAddress;
-    }
-    return total;
+    return _numberOfActiveNrtsInMarketComputed(0).total;
+  }
+
+  /**
+   * @notice Returns the expected removals that will be used in a certificate for a given order amount
+   */
+  function activeNrtsInMarketForAmountComputed(uint256 amount)
+    external
+    view
+    returns (Supply memory)
+  {
+    return _numberOfActiveNrtsInMarketComputed(amount);
   }
 
   /**

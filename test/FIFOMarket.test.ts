@@ -1204,6 +1204,37 @@ describe('FIFOMarket', () => {
       );
     });
   });
+  describe('functions', () => {
+    describe('activeNrtsInMarketForAmountComputed', () => {
+      it('should return the predicted removals that will be used for a given order amount', async () => {
+        const { namedAccounts } = global.hre;
+        const removalDataToList: RemovalDataForListing[] = [
+          { amount: 10, supplierAddress: namedAccounts.supplier },
+          { amount: 10, supplierAddress: namedAccounts.supplier },
+          { amount: 10, supplierAddress: namedAccounts.supplier },
+          { amount: 10, supplierAddress: namedAccounts.supplier },
+          { amount: 10, supplierAddress: namedAccounts.supplier },
+        ];
+        const orderAmount = formatTokenAmount(35);
+        const { fifoMarket, listedRemovalIds } = await setupTestLocal({
+          removalDataToList,
+        });
+        const result = await fifoMarket.activeNrtsInMarketForAmountComputed(
+          orderAmount
+        );
+        expect(result.removals).to.deep.equal([
+          listedRemovalIds[0],
+          listedRemovalIds[1],
+          listedRemovalIds[2],
+          listedRemovalIds[3],
+        ]);
+        expect(result.suppliers).to.deep.equal([
+          removalDataToList[0].supplierAddress,
+        ]);
+        expect(result.total).to.equal(orderAmount);
+      });
+    });
+  });
 });
 
 // TODO: check that removals are getting burned correctly?
