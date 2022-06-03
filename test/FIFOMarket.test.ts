@@ -1,21 +1,14 @@
 import type { BigNumberish, ContractReceipt } from 'ethers';
 import { BigNumber } from 'ethers';
 
-import type { FIFOMarket, Removal } from '@/typechain-types';
-import { formatTokenAmount, formatTokenString } from '@/utils/units';
+import { formatTokenAmount } from '@/utils/units';
+import type { RemovalDataForListing } from '@/test/helpers';
 import {
   expect,
-  mockDepositNoriToPolygon,
   setupTest,
-  createRemovalTokenId,
-  createEscrowScheduleStartTimeArray,
+  batchMintAndListRemovalsForSale,
+  getTotalAmountOfSupply,
 } from '@/test/helpers';
-
-interface RemovalDataForListing {
-  amount: number;
-  vintage?: number;
-  supplier?: string;
-}
 
 interface RemovalDataFromListing {
   listedRemovalIds: BigNumber[];
@@ -24,96 +17,38 @@ interface RemovalDataFromListing {
   totalAmountOfRemovals: number;
 }
 
-const getTotalAmountOfSupply = (removals: RemovalDataForListing[]): number =>
-  removals.reduce((sum, removal) => sum + removal.amount, 0);
-
-const getTotalAmountOfSuppliers = (removals: RemovalDataForListing[]): number =>
-  removals.reduce(
-    (supplierSet, removal) => supplierSet.add(removal.supplier),
-    new Set()
-  ).size ?? 1;
-
-const getTotalAmountOfRemovals = (removals: RemovalDataForListing[]): number =>
-  removals.length;
-
-const mintSupply = async (
-  removalDataToList: RemovalDataForListing[],
-  removal: Removal,
-  fifoMarket: FIFOMarket
-): Promise<RemovalDataFromListing> => {
-  const { supplier } = hre.namedAccounts;
-  const defaultStartingVintage = 2016;
-  const listedRemovalIds = await Promise.all(
-    removalDataToList.map((removalData, index) => {
-      return createRemovalTokenId(removal, {
-        supplierAddress: removalData.supplier ?? supplier,
-        vintage: removalData.vintage ?? defaultStartingVintage + index,
-      });
-    })
-  );
-  const escrowScheduleStartTimes = await createEscrowScheduleStartTimeArray(
-    removal,
-    listedRemovalIds
-  );
-  const removalBalances = removalDataToList.map((removalData) =>
-    formatTokenString(removalData.amount.toString())
-  );
-
-  const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-    ['address', 'bool'],
-    [fifoMarket.address, true]
-  );
-  await removal.mintRemovalBatch(
-    supplier,
-    removalBalances,
-    listedRemovalIds,
-    escrowScheduleStartTimes,
-    packedData
-  );
-  const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);
-  const totalAmountOfSuppliers = getTotalAmountOfSuppliers(removalDataToList);
-  const totalAmountOfRemovals = getTotalAmountOfRemovals(removalDataToList);
-  return {
-    listedRemovalIds,
-    totalAmountOfSupply,
-    totalAmountOfSuppliers,
-    totalAmountOfRemovals,
+const setupTestLocal = async (options?: {
+  buyerInitialBPNoriBalance?: BigNumberish;
+  removalDataToList?: RemovalDataForListing[]; // todo userFixtures format
+}): Promise<Awaited<ReturnType<typeof setupTest>> & RemovalDataFromListing> => {
+  const {
+    removalDataToList,
+    buyerInitialBPNoriBalance,
+  }: Parameters<typeof setupTestLocal>[0] = {
+    buyerInitialBPNoriBalance:
+      options?.buyerInitialBPNoriBalance ?? formatTokenAmount(1_000_000),
+    removalDataToList: options?.removalDataToList ?? [],
   };
-};
-
-const setupTestLocal = async (
-  {
-    buyerInitialBPNoriBalance = formatTokenAmount(1_000_000),
-    removalDataToList = [],
-  }: {
-    buyerInitialBPNoriBalance?: BigNumberish;
-    removalDataToList?: RemovalDataForListing[];
-  } = {
-    buyerInitialBPNoriBalance: formatTokenAmount(1_000_000),
-    removalDataToList: [],
-  }
-): Promise<Awaited<ReturnType<typeof setupTest>> & RemovalDataFromListing> => {
-  const { hre, contracts, removal, fifoMarket, ...rest } = await setupTest();
+  const { hre, contracts, removal, fifoMarket, ...rest } = await setupTest({
+    userFixtures: { buyer: { bpBalance: buyerInitialBPNoriBalance } },
+  });
   let listedRemovalIds: BigNumber[] = [];
   let totalAmountOfSupply = 0;
   let totalAmountOfSuppliers = 0;
   let totalAmountOfRemovals = 0;
-
   if (removalDataToList.length > 0) {
     ({
       listedRemovalIds,
       totalAmountOfSupply,
       totalAmountOfRemovals,
       totalAmountOfSuppliers,
-    } = await mintSupply(removalDataToList, removal, fifoMarket));
+    } = await batchMintAndListRemovalsForSale({
+      removalDataToList,
+      removal,
+      fifoMarket,
+      hre,
+    }));
   }
-  await mockDepositNoriToPolygon({
-    hre,
-    contracts,
-    amount: buyerInitialBPNoriBalance,
-    to: hre.namedAccounts.buyer,
-    signer: hre.namedSigners.buyer,
-  });
   return {
     hre,
     contracts,
@@ -151,7 +86,7 @@ describe('FIFOMarket', () => {
         });
       }
     });
-    it('correctly intializes totalActiveSupply, totalReservedSupply, totalNumberActiveRemovals, activeSupplierCount, and priorityRestrictedThreshold', async () => {
+    it('correctly initializes totalActiveSupply, totalReservedSupply, totalNumberActiveRemovals, activeSupplierCount, and priorityRestrictedThreshold', async () => {
       const { fifoMarket } = await setupTestLocal();
 
       const [
@@ -215,7 +150,7 @@ describe('FIFOMarket', () => {
       });
     });
     describe('ALLOWLIST_ROLE', () => {
-      it(`should allow allowlisted acccounts to purchase supply when inventory is below threshold while accounts without this role cannot`, async () => {
+      it(`should allow allowlisted accounts to purchase supply when inventory is below threshold while accounts without this role cannot`, async () => {
         const role = 'ALLOWLIST_ROLE';
         const accountWithRole = 'admin';
         const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
@@ -225,29 +160,24 @@ describe('FIFOMarket', () => {
           removalDataToList: [{ amount: totalAvailableSupply }],
         });
         const { namedAccounts, namedSigners } = hre;
-        const { buyer } = hre.namedAccounts;
-
         const priorityRestrictedThreshold = '100';
-
         await fifoMarket.setPriorityRestrictedThreshold(
           ethers.utils.parseUnits(priorityRestrictedThreshold)
         );
-
         const roleId = await fifoMarket[role]();
         expect(await fifoMarket.hasRole(roleId, namedAccounts[accountWithRole]))
           .to.be.true;
-
         await expect(
           bpNori
             .connect(namedSigners[accountWithRole])
             .send(
               fifoMarket.address,
               hre.ethers.utils.parseUnits(totalAvailableSupply.toString()),
-              hre.ethers.utils.hexZeroPad(buyer, 32)
+              hre.ethers.utils.hexZeroPad(namedAccounts.buyer, 32)
             )
         ).not.to.be.reverted;
       });
-      it(`should not allow acccounts not on the allowlist to purchase supply when inventory is below threshold`, async () => {
+      it(`should not allow accounts not on the allowlist to purchase supply when inventory is below threshold`, async () => {
         const role = 'ALLOWLIST_ROLE';
         const accountWithoutRole = 'buyer';
         const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
@@ -257,14 +187,11 @@ describe('FIFOMarket', () => {
           removalDataToList: [{ amount: totalAvailableSupply }],
         });
         const { namedAccounts, namedSigners } = hre;
-        const { buyer } = hre.namedAccounts;
-
+        const { buyer } = namedAccounts;
         const priorityRestrictedThreshold = '100';
-
         await fifoMarket.setPriorityRestrictedThreshold(
           ethers.utils.parseUnits(priorityRestrictedThreshold)
         );
-
         await expect(
           bpNori
             .connect(namedSigners[accountWithoutRole])
@@ -274,7 +201,6 @@ describe('FIFOMarket', () => {
               hre.ethers.utils.hexZeroPad(buyer, 32)
             )
         ).to.be.revertedWith('Low supply and buyer not on allowlist');
-
         const roleId = await fifoMarket[role]();
         expect(
           await fifoMarket.hasRole(roleId, namedAccounts[accountWithoutRole])
@@ -896,10 +822,10 @@ describe('FIFOMarket', () => {
     });
     it('should correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const removalDataToList = [
-        { amount: 3, supplier: hre.namedAccounts.supplier },
-        { amount: 3, supplier: hre.namedAccounts.investor1 },
-        { amount: 4, supplier: hre.namedAccounts.investor2 },
+      const removalDataToList: RemovalDataForListing[] = [
+        { amount: 3, supplierAddress: hre.namedAccounts.supplier },
+        { amount: 3, supplierAddress: hre.namedAccounts.investor1 },
+        { amount: 4, supplierAddress: hre.namedAccounts.investor2 },
       ];
       const { bpNori, certificate, fifoMarket } = await setupTestLocal({
         buyerInitialBPNoriBalance,
@@ -947,7 +873,6 @@ describe('FIFOMarket', () => {
           .sub(hre.ethers.utils.parseUnits(totalPrice, 18))
           .toString()
       );
-
       expect(supplierFinalNoriBalance).to.equal(
         hre.ethers.utils
           .parseUnits(supplierInitialNoriBalance)

@@ -244,6 +244,7 @@ declare global {
       FORCE_PROXY_DEPLOYMENT: boolean;
       LOG_HARDHAT_NETWORK: boolean;
       REPORT_GAS_FILE?: string;
+      TENDERLY: boolean;
       FAIL: boolean;
     }
   }

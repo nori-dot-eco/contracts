@@ -1,5 +1,10 @@
-export const validateTestEnvironment = (): void => {
-  const { MINT, FORCE_PROXY_DEPLOYMENT, ETHERNAL } = process.env;
+export const validateTestEnvironment = ({
+  reportGas,
+}: {
+  reportGas?: boolean;
+}): void => {
+  const { MINT, FORCE_PROXY_DEPLOYMENT, ETHERNAL, REPORT_GAS, TENDERLY } =
+    process.env;
   if (MINT) {
     hre.log(
       'process.env.MINT is not set to false, forcing it to be false anyways.',
@@ -20,5 +25,19 @@ export const validateTestEnvironment = (): void => {
       `Previous value: ${ETHERNAL}`
     );
     process.env.ETHERNAL = false;
+  }
+  if (Boolean(reportGas) || REPORT_GAS) {
+    hre.log(
+      'Setting process.env.REPORT_GAS to true',
+      `Previous value: ${REPORT_GAS}`
+    );
+    process.env.REPORT_GAS = true;
+  }
+  if (TENDERLY) {
+    hre.log(
+      'Setting process.env.TENDERLY to false',
+      `Previous value: ${TENDERLY}`
+    );
+    process.env.TENDERLY = false;
   }
 };

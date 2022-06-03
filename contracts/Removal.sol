@@ -29,6 +29,7 @@ contract Removal is
   using RemovalUtils for uint256;
 
   struct BatchMintRemovalsData {
+    // todo why doesnt typechain generate this as a type?
     address marketAddress;
     bool list;
   }

@@ -1,4 +1,9 @@
 import { BigNumber } from 'ethers';
+import type { BigNumberish } from 'ethers';
+import type { namedAccounts } from 'hardhat';
+import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
+
+import { formatRemovalIdData } from '../../utils/removal';
 
 import { mockDepositNoriToPolygon } from '@/test/helpers';
 import type {
@@ -13,7 +18,7 @@ import type {
 } from '@/typechain-types';
 import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
 import { asciiStringToHexString } from '@/utils/bytes';
-import { formatTokenAmount } from '@/utils/units';
+import { formatTokenAmount, formatTokenString } from '@/utils/units';
 import type { Contracts } from '@/utils/contracts';
 import { getContractsFromDeployments } from '@/utils/contracts';
 
@@ -52,25 +57,48 @@ export const advanceTime = async ({
   await hre.network.provider.send('hardhat_mine');
 };
 
+type UserFixtures = {
+  [Property in keyof typeof namedAccounts]?: {
+    bpBalance?: BigNumberish;
+  };
+};
+
 export const setupTest = global.hre.deployments.createFixture(
   async (
-    hre
+    hre,
+    options?: { userFixtures?: UserFixtures }
   ): Promise<
     ContractInstances & {
       hre: CustomHardHatRuntimeEnvironment;
       contracts: Required<Contracts>; // todo deprecate
+      userFixtures: UserFixtures;
     }
   > => {
-    hre.ethernalSync = false; // todo set this in the test task
+    const buyerInitialBPNoriBalance = formatTokenAmount(100_000_000);
+    const userFixtures: UserFixtures = {
+      buyer: {
+        bpBalance: buyerInitialBPNoriBalance,
+      },
+      admin: {
+        bpBalance: formatTokenAmount(100_000_000),
+      },
+      ...options?.userFixtures,
+    };
     await hre.deployments.fixture(['assets', 'market', 'test']);
     const contracts = await getContractsFromDeployments(hre);
-    await mockDepositNoriToPolygon({
-      hre,
-      contracts,
-      amount: formatTokenAmount(100_000_000),
-      to: hre.namedAccounts.admin,
-      signer: hre.namedSigners.admin,
-    });
+    await Promise.all(
+      Object.entries(userFixtures).flatMap(async ([k, v]) => {
+        return isBigNumberish(v.bpBalance)
+          ? mockDepositNoriToPolygon({
+              hre,
+              contracts,
+              amount: v.bpBalance,
+              to: hre.namedAccounts[k as keyof typeof namedAccounts],
+              signer: hre.namedSigners[k as keyof typeof namedAccounts],
+            })
+          : Promise.reject(new Error(`invalid bpBalance for ${k}`));
+      })
+    );
     return {
       hre,
       contracts,
@@ -82,41 +110,36 @@ export const setupTest = global.hre.deployments.createFixture(
       lNori: contracts.LockedNORI,
       eNori: contracts.EscrowedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
+      userFixtures,
     };
   }
 );
 
-export const createRemovalTokenId = async (
-  removalInstance: Removal,
-  options?: Partial<UnpackedRemovalIdV0Struct>
-): Promise<BigNumber> => {
-  const defaultRemovalData: UnpackedRemovalIdV0Struct = {
-    idVersion: 0,
-    methodology: 1,
-    methodologyVersion: 1,
-    vintage: 2018,
-    country: asciiStringToHexString('US'),
-    subdivision: asciiStringToHexString('IA'),
-    supplierAddress: hre.namedAccounts.supplier,
-    subIdentifier: 99_039_930, // parcel id
-  };
-  const removalData = { ...defaultRemovalData, ...options };
-  const abiEncodedRemovalData = hre.ethers.utils.defaultAbiCoder.encode(
-    [
-      'uint8',
-      'uint8',
-      'uint8',
-      'uint16',
-      'bytes2',
-      'bytes2',
-      'address',
-      'uint32',
-    ],
-    Object.values(removalData)
-  );
-  const removalId = await removalInstance.createRemovalId(
-    abiEncodedRemovalData
-  );
+// todo helpers/removal.ts
+export const createRemovalTokenId = async ({
+  removal,
+  removalData,
+  hre,
+}: {
+  removal: Removal;
+  removalData?: Partial<UnpackedRemovalIdV0Struct>;
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<BigNumber> => {
+  const formattedRemovalData = formatRemovalIdData({
+    hre,
+    removalData: {
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 1,
+      vintage: 2018,
+      country: asciiStringToHexString('US'),
+      subdivision: asciiStringToHexString('IA'),
+      supplierAddress: hre.namedAccounts.supplier,
+      subIdentifier: 99_039_930, // parcel id
+      ...removalData,
+    },
+  });
+  const removalId = await removal.createRemovalId(formattedRemovalData);
   return removalId;
 };
 
@@ -139,4 +162,100 @@ export const createEscrowScheduleStartTimeArray = async (
   return removalVintages.map((vintage) =>
     BigNumber.from(Math.floor(new Date(vintage, 0).getTime() / 1000))
   );
+};
+
+// todo helpers/removal.ts
+export const createBatchMintData = ({
+  hre,
+  fifoMarket,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  fifoMarket: FIFOMarket;
+}): Parameters<Removal['mintBatch']>[3] => {
+  const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+    ['address', 'bool'],
+    [fifoMarket.address, true] // todo parameterize listing option
+  );
+  return packedData;
+};
+
+// todo helpers/removal.ts
+interface RemovalDataFromListing {
+  listedRemovalIds: BigNumber[];
+  totalAmountOfSupply: number;
+  totalAmountOfSuppliers: number;
+  totalAmountOfRemovals: number;
+  removalAmounts: BigNumber[];
+}
+
+// todo helpers/removal.ts
+export type RemovalDataForListing = Partial<UnpackedRemovalIdV0Struct> & {
+  amount: number;
+};
+
+// todo helpers/removal.ts
+export const getTotalAmountOfSupply = (
+  removals: RemovalDataForListing[]
+): number => removals.reduce((sum, removal) => sum + removal.amount, 0);
+// todo helpers/removal.ts
+const getTotalAmountOfSuppliers = (removals: RemovalDataForListing[]): number =>
+  removals.reduce(
+    (supplierSet, removal) => supplierSet.add(removal.supplierAddress),
+    new Set()
+  ).size ?? 1;
+// todo helpers/removal.ts
+const getTotalAmountOfRemovals = (removals: RemovalDataForListing[]): number =>
+  removals.length;
+
+// todo de-dupe this logic from tests
+// todo helpers/removal.ts
+export const batchMintAndListRemovalsForSale = async ({
+  removalDataToList,
+  removal,
+  fifoMarket,
+  hre,
+}: {
+  removalDataToList: RemovalDataForListing[];
+  removal: Removal;
+  fifoMarket: FIFOMarket;
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<RemovalDataFromListing> => {
+  const { supplier } = hre.namedAccounts;
+  const defaultStartingVintage = 2016;
+  const listedRemovalIds = await Promise.all(
+    removalDataToList.map((removalData, index) => {
+      return createRemovalTokenId({
+        removal,
+        hre,
+        removalData: {
+          supplierAddress: removalData.supplierAddress ?? supplier,
+          vintage: removalData.vintage ?? defaultStartingVintage + index,
+        },
+      });
+    })
+  );
+  const removalAmounts = removalDataToList.map((removalData) =>
+    formatTokenString(removalData.amount.toString())
+  );
+  const escrowScheduleStartTimes = await createEscrowScheduleStartTimeArray(
+    removal,
+    listedRemovalIds
+  );
+  await removal.mintRemovalBatch(
+    supplier,
+    removalAmounts,
+    listedRemovalIds,
+    escrowScheduleStartTimes,
+    createBatchMintData({ hre, fifoMarket })
+  );
+  const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);
+  const totalAmountOfSuppliers = getTotalAmountOfSuppliers(removalDataToList);
+  const totalAmountOfRemovals = getTotalAmountOfRemovals(removalDataToList);
+  return {
+    listedRemovalIds,
+    totalAmountOfSupply,
+    totalAmountOfSuppliers,
+    totalAmountOfRemovals,
+    removalAmounts,
+  };
 };

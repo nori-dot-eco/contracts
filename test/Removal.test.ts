@@ -19,9 +19,13 @@ describe('Removal', () => {
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
           removalBalances.map((_, index) => {
-            return createRemovalTokenId(removal, {
-              supplierAddress: supplier,
-              vintage: defaultStartingVintage + index,
+            return createRemovalTokenId({
+              removal,
+              hre,
+              removalData: {
+                supplierAddress: supplier,
+                vintage: defaultStartingVintage + index,
+              },
             });
           })
         );
@@ -66,7 +70,7 @@ describe('Removal', () => {
         );
       });
       it('should mint and list a batch of removals in the same transaction and create escrow schedules', async () => {
-        const { fifoMarket, removal, eNori } = await setupTest();
+        const { fifoMarket, removal } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -75,9 +79,13 @@ describe('Removal', () => {
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
           removalBalances.map((_, index) => {
-            return createRemovalTokenId(removal, {
-              supplierAddress: supplier,
-              vintage: defaultStartingVintage + index,
+            return createRemovalTokenId({
+              removal,
+              hre,
+              removalData: {
+                supplierAddress: supplier,
+                vintage: defaultStartingVintage + index,
+              },
             });
           })
         );
@@ -129,7 +137,13 @@ describe('Removal', () => {
         );
         const tokenIds = await Promise.all(
           [2016, 2017, 2018].map((vintage) =>
-            createRemovalTokenId(removal, { vintage })
+            createRemovalTokenId({
+              removal,
+              hre,
+              removalData: {
+                vintage,
+              },
+            })
           )
         );
         const escrowScheduleStartTimes =
@@ -215,7 +229,13 @@ describe('Removal', () => {
           // duplicate token id
           const tokenIds = await Promise.all(
             [2016, 2017, 2017].map((vintage) =>
-              createRemovalTokenId(removal, { vintage })
+              createRemovalTokenId({
+                removal,
+                hre,
+                removalData: {
+                  vintage,
+                },
+              })
             )
           );
           const escrowScheduleStartTimes =
@@ -246,7 +266,15 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const tokenIds = await Promise.all(
-          [2016].map((vintage) => createRemovalTokenId(removal, { vintage }))
+          [2016].map((vintage) =>
+            createRemovalTokenId({
+              removal,
+              hre,
+              removalData: {
+                vintage,
+              },
+            })
+          )
         );
         const escrowScheduleStartTimes =
           await createEscrowScheduleStartTimeArray(removal, tokenIds);
