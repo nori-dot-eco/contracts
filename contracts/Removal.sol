@@ -94,7 +94,7 @@ contract Removal is
    * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals came.
    */
   function mintBatch(
-    address to,
+    address to, // todo this should probably also accept a list of addresses
     uint256[] memory amounts,
     uint256[] memory ids,
     bytes memory data

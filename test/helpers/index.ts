@@ -196,6 +196,16 @@ export const batchMintAndListRemovalsForSale = async ({
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<RemovalDataFromListing> => {
   const { supplier } = hre.namedAccounts;
+  const supplierToMintFor = removalDataToList[0].supplierAddress ?? supplier;
+  if (
+    !removalDataToList
+      .map((r) => r.supplierAddress ?? supplier)
+      .every((r) => r === supplierToMintFor)
+  ) {
+    throw new Error(
+      'Removal.batchMint only allows minting to a single supplier but multiple were provided' // todo change Removal.batchMint to accept an array of supplier addresses
+    );
+  }
   const defaultStartingVintage = 2016;
   const listedRemovalIds = await Promise.all(
     removalDataToList.map((removalData, index) => {

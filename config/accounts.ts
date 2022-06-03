@@ -10,7 +10,7 @@ export const namedAccountIndices = {
   admin: 0,
   unassigned0: 1,
   supplier: 2, // "0x6b9d03759E9F14a641f0703fBD84F1F726159B6B"
-  unassigned2: 3,
+  unassigned1: 3,
   investor1: 4,
   investor2: 5,
   buyer: 6,
