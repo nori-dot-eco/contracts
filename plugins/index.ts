@@ -60,21 +60,6 @@ extendEnvironment((hre) => {
     hre.log('Installed ethers default signers');
   }
 
-  hre.ethernalSync = Boolean(
-    hre.network.name === 'hardhat' &&
-      process.env.ETHERNAL &&
-      process.env.ETHERNAL_EMAIL &&
-      process.env.ETHERNAL_PASSWORD
-  );
-  if (hre.network.name === 'hardhat') {
-    if (hre.ethernalSync) {
-      hre.ethernalWorkspace = 'nori';
-      hre.ethernalTrace = true;
-    } else {
-      hre.ethernalTrace = false;
-    }
-  }
-
   const deployNonUpgradeable = async <
     TContract extends BaseContract,
     TFactory extends ContractFactory

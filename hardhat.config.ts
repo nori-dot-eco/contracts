@@ -9,23 +9,32 @@ import { tenderly } from '@/config/tenderly';
 import { networks } from '@/config/networks';
 import { namedAccountIndices } from '@/config/accounts';
 import { defender } from '@/config/defender';
-import { gasReporter } from '@/config/gas-reporter';
+import { getEthernalConfig } from '@/config/ethernal';
+import { getGasReporterConfig } from '@/config/gas-reporter';
 import { solidity } from '@/config/solidity';
 import { docgen } from '@/config/docgen';
 import { mocha } from '@/config/mocha';
 import { fireblocks } from '@/config/fireblocks';
 
-export const config: HardhatUserConfig = {
-  tenderly,
-  docgen,
-  namedAccounts: namedAccountIndices,
-  networks,
-  etherscan,
-  defender,
-  gasReporter,
-  solidity,
-  mocha,
-  fireblocks,
+export const getConfig = (
+  environment: NodeJS.ProcessEnv = process.env
+): HardhatUserConfig => {
+  const config: HardhatUserConfig = {
+    tenderly,
+    docgen,
+    namedAccounts: namedAccountIndices,
+    networks,
+    etherscan,
+    defender,
+    gasReporter: getGasReporterConfig(environment), // todo getters for all configs
+    solidity,
+    mocha,
+    fireblocks,
+    ethernal: getEthernalConfig(environment),
+  };
+  return config;
 };
+
+export const config = getConfig();
 
 export default config;
