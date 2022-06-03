@@ -558,7 +558,7 @@ describe('EscrowedNORI', () => {
           hre.ethers.constants.AddressZero,
           originalRevocableQuantity
         )
-        .to.emit(bpNori, 'Sent') // todo are these bpNori events actually getting emitted?
+        .to.emit(bpNori, 'Sent') // todo are these bpNori events actually getting emitted? are the args right? what happens if you put somethign blatantly wrong in here, does the test fail?
         .withArgs(
           eNori.address,
           eNori.address,

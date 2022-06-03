@@ -94,7 +94,7 @@ contract Removal is
    * @notice Get the escrow schedule id (which is the schedule's start time in seconds since
    * the unix epoch) for a given removal id.
    */
-  function getEscrowScheduleIdForRemoval(uint256 removalId)
+  function getEscrowScheduleStartTimeForRemoval(uint256 removalId)
     public
     view
     returns (uint256)
@@ -185,9 +185,11 @@ contract Removal is
     uint256[] memory escrowScheduleStartTimes = new uint256[](_ids.length);
     for (uint256 i = 0; i < _ids.length; i++) {
       recipients[i] = _ids[i].supplierAddress();
-      escrowScheduleStartTimes[i] = getEscrowScheduleIdForRemoval(_ids[i]);
+      escrowScheduleStartTimes[i] = getEscrowScheduleStartTimeForRemoval(
+        _ids[i]
+      );
     }
-    _eNORI.batchCreateEscrowSchedule(recipients, escrowScheduleStartTimes);
+    _eNORI.batchCreateEscrowSchedule(_ids);
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
   }

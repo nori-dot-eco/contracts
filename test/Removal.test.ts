@@ -249,7 +249,7 @@ describe('Removal', () => {
           packedData
         );
         const escrowScheduleStartTime =
-          await removal.getEscrowScheduleIdForRemoval(tokenIds[0]);
+          await removal.getEscrowScheduleStartTimeForRemoval(tokenIds[0]);
         expect(escrowScheduleStartTime).to.equal(escrowScheduleStartTimes[0]);
       });
     });
