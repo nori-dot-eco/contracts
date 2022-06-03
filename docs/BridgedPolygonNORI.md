@@ -63,6 +63,17 @@ initializes the BridgedPolygonNORI contract
 
 
 
+### initialize
+
+```solidity
+function initialize() public
+```
+
+overrides the NORI initializer so that it reverts and is never initialized with a call to the mint function
+
+
+
+
 ### __BridgedPolygonNORI_init
 
 ```solidity

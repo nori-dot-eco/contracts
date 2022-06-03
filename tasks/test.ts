@@ -6,7 +6,7 @@ import { TASK_TEST } from 'hardhat/builtin-tasks/task-names';
 import { getConfig } from '@/hardhat.config'; // eslint-disable-line import/extensions -- valid import extension
 import { validateTestEnvironment } from '@/tasks/utils/validate-environment';
 
-interface TestTaskOverrideParameters {
+export interface TestTaskOverrideParameters {
   reportGas?: boolean;
 }
 
@@ -20,15 +20,7 @@ export const TASK = {
     hre: CustomHardHatRuntimeEnvironment,
     runSuper: RunSuperFunction<typeof taskArguments>
   ) => {
-    const { REPORT_GAS } = process.env;
-    validateTestEnvironment();
-    if (Boolean(taskArguments?.reportGas) || REPORT_GAS) {
-      hre.log(
-        'Setting process.env.REPORT_GAS to true',
-        `Previous value: ${REPORT_GAS}`
-      );
-      process.env.REPORT_GAS = true;
-    }
+    validateTestEnvironment({ reportGas: taskArguments.reportGas });
     (hre as any).userConfig = getConfig(process.env);
     return runSuper(taskArguments);
   },

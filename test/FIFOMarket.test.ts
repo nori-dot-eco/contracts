@@ -873,18 +873,6 @@ describe('FIFOMarket', () => {
           .sub(hre.ethers.utils.parseUnits(totalPrice, 18))
           .toString()
       );
-      console.log({
-        finalFifoSupply,
-        noriFinalNoriBalance,
-        buyerFinalNoriBalance,
-        buyerInitialBPNoriBalance,
-        supplierFinalNoriBalance,
-        supplierInitialNoriBalance,
-        fr: hre.ethers.utils.parseUnits(
-          removalDataToList[0].amount.toString(),
-          18
-        ),
-      });
       expect(supplierFinalNoriBalance).to.equal(
         hre.ethers.utils
           .parseUnits(supplierInitialNoriBalance)
