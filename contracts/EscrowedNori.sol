@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
-
+import "hardhat/console.sol"; // todo
 /*
 TODO LIST:
 - implement withdrawals and revocations and corresponding balance calculations to account for the fact that
@@ -486,8 +486,8 @@ contract EscrowedNORI is
   function _depositFor(
     uint256 removalId,
     uint256 amount,
-    bytes calldata userData,
-    bytes calldata operatorData
+    bytes memory userData,
+    bytes memory operatorData
   ) internal returns (bool) {
     address recipient = removalId.supplierAddress();
     uint256 scheduleId = removalIdToScheduleId(removalId);
@@ -642,9 +642,9 @@ contract EscrowedNORI is
     address operator,
     address from,
     address to,
-    uint256[] calldata ids,
-    uint256[] calldata amounts,
-    bytes calldata data
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    bytes memory data
   )
     internal
     override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
@@ -728,8 +728,8 @@ contract EscrowedNORI is
   /**
    * @notice Released balance less any claimed amount at current block timestamp for a single escrow schedule
    */
-  function _claimableBalanceForSchedule(uint256 scheduleId)
-    internal
+  function claimableBalanceForSchedule(uint256 scheduleId)
+    public
     view
     returns (uint256)
   {
@@ -751,7 +751,7 @@ contract EscrowedNORI is
     uint256 scheduleId,
     address account
   ) public view returns (uint256) {
-    uint256 claimableBalanceForSchedule = _claimableBalanceForSchedule(
+    uint256 claimableBalanceForSchedule = claimableBalanceForSchedule(
       scheduleId
     );
     // todo this might be a common calculation that could use a utility
