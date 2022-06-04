@@ -173,7 +173,7 @@ contract Removal is
   }
 
   /**
-   * @dev used to initiate a sale of removals by transferring the removals to the market contract
+   * @dev used to list removals for sale by transferring the removals to the market contract
    */
   function safeBatchTransferFrom(
     address _from,
