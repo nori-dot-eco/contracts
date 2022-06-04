@@ -8,29 +8,28 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
+
 import "hardhat/console.sol"; // todo
+
 /*
 TODO LIST:
-- implement withdrawals and revocations and corresponding balance calculations to account for the fact that
-- a given schedule / tokenId may have multiple balance holders
+- expose a single version of revokeUnreleasedTokens
 
-- implement the ability to transfer some or all tokens that are under a schedule to a different address
+- we might be able to get rid of a few existing functions or make them private
 
-- need a public view function that can get all the relevant schedule ids that an address has some ownership of
+- keep a data structure of ALL enumerable token (schedule) ids??
 
-- keep a data structure of ALL enumerable token ids??
+- need a mechanism of removing escrow schedule ids from a supplier's key list once the escrow schedule has
+  been completely released AND claimed so that the process of withdrawing tokens is more gas efficient and
+  iterates less.
+    - old schedules should still be kept around and indexed by a different collection! for view purposes.
+        add getter view for this
+    - this update would happen in _beforeTokenTransfer? if the resulting balance is 0 the schedule
+      is removed from the account's schedid set?
 
-  - need a mechanism of removing escrow schedule ids from a supplier's key list once the escrow schedule has been completely
-  vested AND claimed so that the process of withdrawing tokens is more gas efficient and iterates less.
-  old schedules could still be kept around and indexed by a different collection, for view purposes.
-  consider using enumerable mapping for these key collections?
+- update all the natspec comments
 
-  - what are all the potential view functions we need here?
-  only other maybe one would be a total-funded-amount per address? (minus claimed?) - so funded but agnostic to released or not
-
-  - update all the natspec comments
-
-  - tests tests tests!
+- tests tests tests!
  */
 
 // TODO maybe we should store this in a mapping from methodology(+version?) to schedule duration instead of hard coding
@@ -197,6 +196,7 @@ contract EscrowedNORI is
     return super.supportsInterface(interfaceId);
   }
 
+  // View functions and getters =========================================
   function removalIdToScheduleId(uint256 removalId)
     public
     view
@@ -213,6 +213,203 @@ contract EscrowedNORI is
           abi.encodePacked(supplierAddress, methodology, scheduleStartTime)
         )
       );
+  }
+
+  function getScheduleIdsForAccount(address account)
+    public
+    view
+    returns (uint256[])
+  {
+    EnumerableSetUpgradeable.UintSet
+      storage scheduleIdSet = _addressToScheduleIdSet[account];
+    uint256[] memory scheduleIds = new uint256[](scheduleIdSet.length());
+    for (uint256 i = 0; i < scheduleIds.length; i++) {
+      scheduleIds[i] = scheduleIdSet.at(i);
+    }
+    return scheduleIds;
+  }
+
+  /**
+   * @notice Returns details for all escrow schedules associated with an account.
+   *
+   */
+  function getEscrowSchedulesForAccount(address account)
+    public
+    view
+    returns (EscrowScheduleDetail[] memory)
+  {
+    EnumerableSetUpgradeable.UintSet
+      storage scheduleIds = _addressToScheduleIdSet[account];
+    EscrowScheduleDetail[]
+      memory escrowScheduleDetails = new EscrowScheduleDetail[](
+        scheduleIds.length()
+      );
+    for (uint256 i = 0; i < scheduleIds.length(); i++) {
+      escrowScheduleDetails[i] = getEscrowSchedule(scheduleIds.at(i));
+    }
+    return escrowScheduleDetails;
+  }
+
+  /**
+   * @notice Returns details for an escrow schedule.
+   */
+  function getEscrowSchedule(uint256 scheduleId)
+    public
+    view
+    returns (EscrowScheduleDetail memory)
+  {
+    EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
+      scheduleId
+    ];
+    uint256 numberOfTokenHolders = escrowSchedule.tokenHolders.length();
+    address[] memory tokenHoldersArray = new address[](numberOfTokenHolders);
+    uint256[] memory scheduleIdArray = new uint256[](numberOfTokenHolders);
+    for (uint256 i = 0; i < escrowSchedule.tokenHolders.length(); i++) {
+      tokenHoldersArray[i] = escrowSchedule.tokenHolders.at(i);
+      scheduleIdArray[i] = scheduleId;
+    }
+
+    return
+      EscrowScheduleDetail(
+        scheduleId,
+        totalSupply(scheduleId),
+        tokenHoldersArray,
+        balanceOfBatch(tokenHoldersArray, scheduleIdArray),
+        escrowSchedule.startTime,
+        escrowSchedule.endTime,
+        escrowSchedule.claimedAmount,
+        escrowSchedule.totalQuantityRevoked,
+        escrowSchedule.exists
+      );
+  }
+
+  function revocableQuantityForSchedule(uint256 scheduleId)
+    public
+    view
+    returns (uint256)
+  {
+    EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
+      scheduleId
+    ];
+    return
+      escrowSchedule.totalSupply -
+      _releasedBalanceOfSingleEscrowSchedule(scheduleId);
+  }
+
+  // TODO does this need to be public or do we only anticipate using this privately?
+  function revocableQuantityForScheduleForAccount(
+    uint256 scheduleId,
+    address account
+  ) public view returns (uint256) {
+    uint256 revocableQuantityForSchedule = revocableQuantityForSchedule(
+      scheduleId
+    );
+    // todo this might be a common calculation that could use a utility
+    return
+      (revocableQuantityForSchedule * balanceOf(account, scheduleId)) /
+      totalSupply(scheduleId);
+  }
+
+  /**
+   * @notice Released balance less any claimed amount at `atTime` (implementation)
+   *  TODO CAN WE GET RID OF THIS?
+   * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
+   * escrow schedule amount. This is done to preserve the behavior of the escrow schedule despite a reduction in the
+   * total quantity of tokens releasing.
+   * i.o.w The rate of release does not change after calling `revokeUnreleasedTokens`
+   */
+  function claimableBalanceForAccount(address account)
+    public
+    view
+    returns (uint256)
+  {
+    uint256 totalClaimableBalance = 0;
+    EnumerableSetUpgradeable.UintSet
+      storage scheduleIds = _addressToScheduleIdSet[account];
+    for (uint256 i = 0; i < scheduleIds.length(); i++) {
+      totalClaimableBalance += claimableBalanceForScheduleForAccount(
+        scheduleIds.at(i),
+        account
+      );
+    }
+    return totalClaimableBalance;
+  }
+
+  /**
+   * @notice Released balance less any claimed amount at current block timestamp for a single escrow schedule
+   */
+  function claimableBalanceForSchedule(uint256 scheduleId)
+    public
+    view
+    returns (uint256)
+  {
+    EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
+      scheduleId
+    ];
+    if (!escrowSchedule.exists) {
+      revert NonexistentEscrowSchedule({scheduleId: scheduleId});
+    }
+    return
+      _releasedBalanceOfSingleEscrowSchedule(scheduleId) -
+      escrowSchedule.claimedAmount;
+  }
+
+  /**
+   * @notice Released balance less any claimed amount at current block timestamp for a single escrow schedule and account
+   */
+  function claimableBalanceForScheduleForAccount(
+    uint256 scheduleId,
+    address account
+  ) public view returns (uint256) {
+    uint256 claimableBalanceForSchedule = claimableBalanceForSchedule(
+      scheduleId
+    );
+    // todo this might be a common calculation that could use a utility
+    return
+      (claimableBalanceForSchedule * balanceOf(account, scheduleId)) /
+      totalSupply(scheduleId);
+  }
+
+  // External functions ===================================================
+
+  /**
+   * @notice Sets up an escrow schedule for recipient.
+   *
+   * @dev This function can be used as an alternative way to set up an escrow schedule that doesn't require
+   * wrapping BridgedPolygonNORI first.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the contract is not paused.
+   * - Can only be used when the caller has the `ESCROW_CREATOR_ROLE` role
+   */
+  function createEscrowSchedule(uint256 removalId)
+    external
+    whenNotPaused
+    onlyRole(ESCROW_CREATOR_ROLE)
+  {
+    _createEscrowSchedule(removalId);
+  }
+
+  /**
+   * @notice Sets up a batch of escrow schedules.
+   *
+   *
+   * ##### Requirements:
+   * - Can only be used when the contract is not paused.
+   * - Can only be used when the caller has the `ESCROW_CREATOR_ROLE` role
+   */
+  function batchCreateEscrowSchedule(uint256[] calldata removalIds)
+    external
+    whenNotPaused
+    onlyRole(ESCROW_CREATOR_ROLE)
+  {
+    for (uint256 i = 0; i < removalIds.length; i++) {
+      uint256 scheduleId = removalIdToScheduleId(removalIds[i]);
+      if (!_scheduleIdToScheduleStruct[scheduleId].exists) {
+        _createEscrowSchedule(removalIds[i]);
+      }
+    }
   }
 
   /**
@@ -281,42 +478,46 @@ contract EscrowedNORI is
     return true;
   }
 
-  /**
-   * @notice Sets up an escrow schedule for recipient.
-   *
-   * @dev This function can be used as an alternative way to set up an escrow schedule that doesn't require
-   * wrapping BridgedPolygonNORI first.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `ESCROW_CREATOR_ROLE` role
-   */
-  function createEscrowSchedule(uint256 removalId)
-    external
-    whenNotPaused
-    onlyRole(ESCROW_CREATOR_ROLE)
-  {
-    _createEscrowSchedule(removalId);
+  function safeTransferFrom(
+    address from,
+    address to,
+    uint256 id,
+    uint256 amount,
+    bytes memory data
+  ) external override {
+    // todo require that the sender is not an escrow schedule admin (or contract admin?) (or operator?)
+    super.safeTransferFrom(from, to, id, amount, data);
+    EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[id];
+    if (amount != 0) {
+      _addressToScheduleIdSet[to].add(id);
+      escrowSchedule.tokenHolders.add(to);
+    }
+    if (balanceOf(from, id) == 0) {
+      _addressToScheduleIdSet[from].remove(id);
+      escrowSchedule.tokenHolders.remove(from);
+    }
   }
 
-  /**
-   * @notice Sets up a batch of escrow schedules.
-   *
-   *
-   * ##### Requirements:
-   * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `ESCROW_CREATOR_ROLE` role
-   */
-  function batchCreateEscrowSchedule(uint256[] calldata removalIds)
-    external
-    whenNotPaused
-    onlyRole(ESCROW_CREATOR_ROLE)
-  {
-    for (uint256 i = 0; i < removalIds.length; i++) {
-      uint256 scheduleId = removalIdToScheduleId(removalIds[i]);
-      if (!_scheduleIdToScheduleStruct[scheduleId].exists) {
-        _createEscrowSchedule(removalIds[i]);
+  function safeBatchTransferFrom(
+    address from,
+    address to,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    bytes memory data
+  ) external override {
+    // todo require that the sender is not an escrow schedule admin (or contract admin?) (or operator?)
+    super.safeBatchTransferFrom(from, to, ids, amounts, data);
+    for (uint256 i = 0; i < ids.length; i++) {
+      EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
+        ids[i]
+      ];
+      if (amounts[i] != 0) {
+        _addressToScheduleIdSet[to].add(ids[i]);
+        escrowSchedule.tokenHolders.add(to);
+      }
+      if (balanceOf(from, ids[i]) == 0) {
+        _addressToScheduleIdSet[from].remove(ids[i]);
+        escrowSchedule.tokenHolders.remove(from);
       }
     }
   }
@@ -359,125 +560,9 @@ contract EscrowedNORI is
     }
   }
 
-  function revocableQuantityForSchedule(uint256 scheduleId)
-    public
-    view
-    returns (uint256)
-  {
-    EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
-      scheduleId
-    ];
-    return
-      escrowSchedule.totalSupply -
-      _releasedBalanceOfSingleEscrowSchedule(scheduleId);
-  }
+  // todo single version of revoke
 
-  function revocableQuantityForScheduleForAccount(
-    uint256 scheduleId,
-    address account
-  ) public view returns (uint256) {
-    uint256 revocableQuantityForSchedule = revocableQuantityForSchedule(
-      scheduleId
-    );
-    // todo this might be a common calculation that could use a utility
-    return
-      (revocableQuantityForSchedule * balanceOf(account, scheduleId)) /
-      totalSupply(scheduleId);
-  }
-
-  /**
-   * @notice Returns details for all escrow schedules associated with an account.
-   *
-   */
-  function getEscrowSchedulesForAccount(address account)
-    public
-    view
-    returns (EscrowScheduleDetail[] memory)
-  {
-    EnumerableSetUpgradeable.UintSet
-      storage scheduleIds = _addressToScheduleIdSet[account];
-    EscrowScheduleDetail[]
-      memory escrowScheduleDetails = new EscrowScheduleDetail[](
-        scheduleIds.length()
-      );
-    for (uint256 i = 0; i < scheduleIds.length(); i++) {
-      escrowScheduleDetails[i] = getEscrowSchedule(scheduleIds.at(i));
-    }
-    return escrowScheduleDetails;
-  }
-
-  /**
-   * @notice Returns details for an escrow schedule.
-   */
-  function getEscrowSchedule(uint256 scheduleId)
-    public
-    view
-    returns (EscrowScheduleDetail memory)
-  {
-    EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
-      scheduleId
-    ];
-    uint256 numberOfTokenHolders = escrowSchedule.tokenHolders.length();
-    address[] memory tokenHoldersArray = new address[](numberOfTokenHolders);
-    uint256[] memory scheduleIdArray = new uint256[](numberOfTokenHolders);
-    for (uint256 i = 0; i < escrowSchedule.tokenHolders.length(); i++) {
-      tokenHoldersArray[i] = escrowSchedule.tokenHolders.at(i);
-      scheduleIdArray[i] = scheduleId;
-    }
-
-    return
-      EscrowScheduleDetail(
-        scheduleId,
-        totalSupply(scheduleId),
-        tokenHoldersArray,
-        balanceOfBatch(tokenHoldersArray, scheduleIdArray),
-        escrowSchedule.startTime,
-        escrowSchedule.endTime,
-        escrowSchedule.claimedAmount,
-        escrowSchedule.totalQuantityRevoked,
-        escrowSchedule.exists
-      );
-  }
-
-  /**
-   * @notice Overridden standard ERC777.burn that will always revert
-   *
-   * @dev This function is not currently supported from external callers so we override it so that we can revert.
-   */
-  function burn(
-    address,
-    uint256,
-    uint256
-  ) public pure override {
-    revert BurningNotSupported();
-  }
-
-  /**
-   * @notice Overridden standard ERC777.burn that will always revert
-   *
-   * @dev This function is not currently supported from external callers so we override it so that we can revert.
-   */
-  function burnBatch(
-    address,
-    uint256[] calldata,
-    uint256[] calldata
-  ) public pure override {
-    revert BurningNotSupported();
-  }
-
-  // /**
-  //  * @notice Overridden standard ERC777.operatorBurn that will always revert
-  //  *
-  //  * @dev This function is not currently supported from external callers so we override it so that we can revert.
-  //  */
-  // function operatorBurn(
-  //   address,
-  //   uint256,
-  //   bytes memory,
-  //   bytes memory
-  // ) public pure override {
-  //   revert BurningNotSupported();
-  // }
+  // Private implementations ==========================================
 
   /**
    * @notice Wraps minting of wrapper token and escrow schedule setup.
@@ -675,50 +760,6 @@ contract EscrowedNORI is
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
-  function safeTransferFrom(
-    address from,
-    address to,
-    uint256 id,
-    uint256 amount,
-    bytes memory data
-  ) public override {
-    // todo require that the sender is not an escrow schedule admin (or contract admin?) (or operator?)
-    super.safeTransferFrom(from, to, id, amount, data);
-    EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[id];
-    if (amount != 0) {
-      _addressToScheduleIdSet[to].add(id);
-      escrowSchedule.tokenHolders.add(to);
-    }
-    if (balanceOf(from, id) == 0) {
-      _addressToScheduleIdSet[from].remove(id);
-      escrowSchedule.tokenHolders.remove(from);
-    }
-  }
-
-  function safeBatchTransferFrom(
-    address from,
-    address to,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    bytes memory data
-  ) public override {
-    // todo require that the sender is not an escrow schedule admin (or contract admin?) (or operator?)
-    super.safeBatchTransferFrom(from, to, ids, amounts, data);
-    for (uint256 i = 0; i < ids.length; i++) {
-      EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
-        ids[i]
-      ];
-      if (amounts[i] != 0) {
-        _addressToScheduleIdSet[to].add(ids[i]);
-        escrowSchedule.tokenHolders.add(to);
-      }
-      if (balanceOf(from, ids[i]) == 0) {
-        _addressToScheduleIdSet[from].remove(ids[i]);
-        escrowSchedule.tokenHolders.remove(from);
-      }
-    }
-  }
-
   /**
    * @dev The total amount of the linear release available at *atTime*
    *
@@ -740,66 +781,6 @@ contract EscrowedNORI is
   }
 
   /**
-   * @notice Released balance less any claimed amount at `atTime` (implementation)
-   *  TODO is this even right anymore?
-   * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
-   * escrow schedule amount. This is done to preserve the behavior of the escrow schedule despite a reduction in the
-   * total quantity of tokens releasing.
-   * i.o.w The rate of release does not change after calling `revokeUnreleasedTokens`
-   */
-  function claimableBalanceForAccount(address account)
-    public
-    view
-    returns (uint256)
-  {
-    uint256 totalClaimableBalance = 0;
-    EnumerableSetUpgradeable.UintSet
-      storage scheduleIds = _addressToScheduleIdSet[account];
-    for (uint256 i = 0; i < scheduleIds.length(); i++) {
-      totalClaimableBalance += claimableBalanceForScheduleForAccount(
-        scheduleIds.at(i),
-        account
-      );
-    }
-    return totalClaimableBalance;
-  }
-
-  /**
-   * @notice Released balance less any claimed amount at current block timestamp for a single escrow schedule
-   */
-  function claimableBalanceForSchedule(uint256 scheduleId)
-    public
-    view
-    returns (uint256)
-  {
-    EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
-      scheduleId
-    ];
-    if (!escrowSchedule.exists) {
-      revert NonexistentEscrowSchedule({scheduleId: scheduleId});
-    }
-    return
-      _releasedBalanceOfSingleEscrowSchedule(scheduleId) -
-      escrowSchedule.claimedAmount;
-  }
-
-  /**
-   * @notice Released balance less any claimed amount at current block timestamp for a single escrow schedule and account
-   */
-  function claimableBalanceForScheduleForAccount(
-    uint256 scheduleId,
-    address account
-  ) public view returns (uint256) {
-    uint256 claimableBalanceForSchedule = claimableBalanceForSchedule(
-      scheduleId
-    );
-    // todo this might be a common calculation that could use a utility
-    return
-      (claimableBalanceForSchedule * balanceOf(account, scheduleId)) /
-      totalSupply(scheduleId);
-  }
-
-  /**
    * @notice Released balance for a single escrow schedule at current block timestamp
    */
   function _releasedBalanceOfSingleEscrowSchedule(uint256 scheduleId)
@@ -817,10 +798,6 @@ contract EscrowedNORI is
       );
   }
 
-  // todo what do we do with:
-  // setApprovalForAll ?
-  // isApprovedForAll ?
-
   function _grantRole(bytes32 role, address account) internal virtual override {
     if (role == ESCROW_CREATOR_ROLE) {
       if (_addressToScheduleIdSet[account].length() > 0) {
@@ -831,5 +808,38 @@ contract EscrowedNORI is
       }
     }
     super._grantRole(role, account);
+  }
+
+  // Disabled functions ===========================================
+  // todo what do we do with:
+  // setApprovalForAll ?
+  // isApprovedForAll ?
+
+  // any other ones need disabling??
+
+  /**
+   * @notice Overridden standard ERC777.burn that will always revert
+   *
+   * @dev This function is not currently supported from external callers so we override it so that we can revert.
+   */
+  function burn(
+    address,
+    uint256,
+    uint256
+  ) public pure override {
+    revert BurningNotSupported();
+  }
+
+  /**
+   * @notice Overridden standard ERC777.burn that will always revert
+   *
+   * @dev This function is not currently supported from external callers so we override it so that we can revert.
+   */
+  function burnBatch(
+    address,
+    uint256[] calldata,
+    uint256[] calldata
+  ) public pure override {
+    revert BurningNotSupported();
   }
 }
