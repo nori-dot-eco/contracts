@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820Registry
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
+import {RemovalQueue, Queue} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
 import "hardhat/console.sol"; // todo
@@ -28,6 +29,7 @@ contract FIFOMarket is
 {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+  using RemovalQueue for Queue;
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -40,13 +42,6 @@ contract FIFOMarket is
   struct VintageOrder {
     uint256 previousRemovalId;
     uint256 nextRemovalId;
-  }
-
-  struct RemovalQueue {
-    mapping(uint256 => VintageOrder) removals;
-    uint256 length;
-    uint256 firstRemovalId;
-    uint256 lastRemovalId;
   }
 
   IERC1820RegistryUpgradeable private _erc1820;
@@ -62,8 +57,8 @@ contract FIFOMarket is
   uint256 public activeSupplierCount;
   address private _currentSupplierAddress;
   mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
-  mapping(address => RemovalQueue) private _reservedSupply;
-  mapping(address => RemovalQueue) private _activeSupply;
+  mapping(address => Queue) private _reservedSupply;
+  mapping(address => Queue) private _activeSupply;
 
   /**
    * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
@@ -128,6 +123,7 @@ contract FIFOMarket is
     uint256 total = 0;
     address supplierAddress = _currentSupplierAddress;
     for (uint256 i = 0; i < activeSupplierCount; i++) {
+      console.log(supplierAddress);
       RemovalQueue storage removalQueue = _activeSupply[supplierAddress];
       uint256 currentRemovalId = removalQueue.firstRemovalId;
       for (uint256 j = 0; j < removalQueue.length; j++) {
@@ -188,19 +184,23 @@ contract FIFOMarket is
     uint256[] memory,
     bytes memory
   ) public override returns (bytes4) {
+    uint256 indexInRemovalQueue = 0;
+    uint256 removalToAdd = ids[0];
+    uint256 removalAmount = _removal.balanceOf(address(this), removalToAdd);
+    uint16 vintageOfRemovalToAdd = removalToAdd.vintage();
+    address supplierAddress = removalToAdd.supplierAddress();
+    uint256 currentRemovalId = _activeSupply[supplierAddress].firstRemovalId;
+    uint16 currentVintage = currentRemovalId.vintage();
+    uint256 previousRemovalId = _activeSupply[supplierAddress]
+      .removals[currentRemovalId]
+      .previousRemovalId;
     for (uint256 i = 0; i < ids.length; i++) {
-      uint256 removalToAdd = ids[0];
-      uint256 removalAmount = _removal.balanceOf(address(this), removalToAdd);
-      uint16 vintageOfRemovalToAdd = removalToAdd.vintage();
-      address supplierAddress = removalToAdd.supplierAddress();
       if (_activeSupply[supplierAddress].length > 0) {
-        uint256 currentRemovalId = _activeSupply[supplierAddress]
-          .firstRemovalId;
-        uint16 currentVintage = currentRemovalId.vintage();
-        uint256 previousRemovalId = _activeSupply[supplierAddress]
-          .removals[currentRemovalId]
-          .previousRemovalId;
-        for (uint256 j = 0; j < _activeSupply[supplierAddress].length; j++) {
+        for (
+          indexInRemovalQueue;
+          indexInRemovalQueue < _activeSupply[supplierAddress].length;
+          indexInRemovalQueue++
+        ) {
           if (vintageOfRemovalToAdd > currentVintage) {
             _activeSupply[supplierAddress]
               .removals[previousRemovalId]
@@ -222,9 +222,11 @@ contract FIFOMarket is
               .nextRemovalId;
             currentVintage = currentRemovalId.vintage();
           }
-          if (j == _activeSupply[supplierAddress].length - 1) {
+          if (
+            indexInRemovalQueue == _activeSupply[supplierAddress].length - 1
+          ) {
             _activeSupply[supplierAddress].lastRemovalId = removalToAdd;
-          } else if (j == 0) {
+          } else if (indexInRemovalQueue == 0) {
             _activeSupply[supplierAddress].firstRemovalId = removalToAdd;
           }
         }
@@ -238,9 +240,6 @@ contract FIFOMarket is
           nextRemovalId: 0
         });
       }
-      _activeSupply[supplierAddress].length += 1;
-      totalActiveSupply += removalAmount;
-      totalNumberActiveRemovals += 1;
       // If a new supplier has been added, or if the supplier had previously sold out
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
@@ -248,6 +247,10 @@ contract FIFOMarket is
       ) {
         _addActiveSupplier(supplierAddress);
       }
+      _activeSupply[supplierAddress].length += 1;
+      totalActiveSupply += removalAmount;
+      totalNumberActiveRemovals += 1;
+      indexInRemovalQueue = 0;
     }
     return this.onERC1155BatchReceived.selector;
   }
