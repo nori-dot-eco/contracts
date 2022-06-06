@@ -58,6 +58,7 @@
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.7.20",
     "solidity-docgen": "^0.6.0-beta.4",
+    "solidity-linked-list": "^5.1.0",
     "ts-node": "^10.6.0",
     "tsconfig-paths": "^3.12.0",
     "typechain": "^8.0.0",
@@ -87,8 +88,5 @@
     "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
     "deploy": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat deploy",
     "node:verbose": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat node"
-  },
-  "dependencies": {
-    "solidity-linked-list": "^5.1.0"
   }
 }
