@@ -177,21 +177,16 @@ contract FIFOMarket is
         j < supplierSet.length() && total < totalSupplyToCheck;
         j++
       ) {
-        /**
-         * Addresses Slither rule violation for "calls-loop"
-         */
-        try _removal.balanceOf(address(this), supplierSet.at(j)) returns (
-          uint256 removalBalance
-        ) {
-          total += removalBalance;
-          totalForSupplier += removalBalance;
-          removals[j] = ActiveRemoval({
-            tokenId: supplierSet.at(j),
-            amount: removals[j].amount += removalBalance
-          });
-        } catch Panic(uint256) {
-          //
-        }
+        uint256 removalBalance = _removal.balanceOf(
+          address(this),
+          supplierSet.at(j)
+        );
+        total += removalBalance;
+        totalForSupplier += removalBalance;
+        removals[j] = ActiveRemoval({
+          tokenId: supplierSet.at(j),
+          amount: removals[j].amount += removalBalance
+        });
       }
       suppliers[i] = ActiveSupplier({
         supplier: supplierAddress,
