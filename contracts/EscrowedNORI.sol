@@ -13,27 +13,19 @@ import "hardhat/console.sol"; // todo
 
 /*
 TODO LIST:
-- expose a single version of revokeUnreleasedTokens
+- batchGetEscrowScheduleSummaries(uint256[] memory scheduleIds)
 
-- we might be able to get rid of a few existing functions or make them private
+- expose a single version of revokeUnreleasedTokens? maybe not
 
-- keep a data structure of ALL enumerable token (schedule) ids??
+- look through for other TODOS
 
-- need a mechanism of removing escrow schedule ids from a supplier's key list once the escrow schedule has
-  been completely released AND claimed so that the process of withdrawing tokens is more gas efficient and
-  iterates less.
-    - old schedules should still be kept around and indexed by a different collection! for view purposes.
-        add getter view for this
-    - this update would happen in _beforeTokenTransfer? if the resulting balance is 0 the schedule
-      is removed from the account's schedid set?
+- what should the URI be for this 1155?
 
 - update all the natspec comments
 
 - tests tests tests!
  */
 
-// TODO maybe we should store this in a mapping from methodology(+version?) to schedule duration instead of hard coding
-// as a constant... or just have to pass it in along with the removal's start time upon minting?
 // Based on average year duration of 365.2425 days, which accounts for leap years
 uint256 constant SECONDS_IN_TEN_YEARS = 315_569_520;
 
@@ -41,11 +33,13 @@ error BurningNotSupported();
 error TokenSenderNotBPNORI();
 error RecipientCannotBeZeroAddress();
 error RecipientCannotHaveRole(address recipient, string role);
+error EscrowDurationNotSet(uint256 removalId);
 error NonexistentEscrowSchedule(uint256 scheduleId);
 error EscrowScheduleExists(
   uint256 scheduleTokenId,
   uint256 removalIdTriggeredCreation
 );
+error RoleCannotTransfer(address account, string role);
 error RoleUnassignableToEscrowScheduleHolder(address account, string role);
 error MissingRequiredRole(address account, string role);
 error ArrayLengthMismatch(string array1Name, string array2Name);
@@ -63,30 +57,42 @@ contract EscrowedNORI is
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-  // todo do we need to add a tokenId (schedule id) to these structs? at least the detail one?
   struct EscrowSchedule {
     uint256 startTime;
     uint256 endTime;
     uint256 totalSupply;
-    uint256 claimedAmount;
+    uint256 totalClaimedAmount;
     bool exists;
     uint256 totalQuantityRevoked;
     uint256 releasedAmountFloor;
     EnumerableSetUpgradeable.AddressSet tokenHolders;
+    mapping(address => uint256) claimedAmountsByAddress;
+    mapping(address => uint256) quantitiesRevokedByAddress;
   }
 
-  struct EscrowScheduleDetail {
+  struct EscrowScheduleSummary {
     uint256 scheduleTokenId;
-    uint256 totalSupply;
-    address[] tokenHolders;
-    uint256[] holderBalances;
     uint256 startTime;
     uint256 endTime;
-    uint256 claimedAmount;
+    uint256 totalSupply;
+    uint256 totalClaimableAmount;
+    uint256 totalClaimedAmount; // todo do we want these?  or do we want these and not the others?
     uint256 totalQuantityRevoked;
-    bool exists; // todo do we need this?
+    address[] tokenHolders;
+    bool exists;
   }
 
+  struct EscrowScheduleDetailForAddress {
+    address tokenHolder;
+    uint256 scheduleTokenId;
+    uint256 startTime;
+    uint256 endTime;
+    uint256 balance;
+    uint256 claimableAmount;
+    uint256 claimedAmount;
+    uint256 quantityRevoked;
+    bool exists;
+  }
   /**
    * @notice Role conferring creation and revocation of escrow schedules.
    */
@@ -104,10 +110,15 @@ contract EscrowedNORI is
   bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
     keccak256("ERC777TokensRecipient");
 
+  mapping(uint256 => mapping(uint256 => uint256))
+    private _methodologyAndVersionToEscrowDuration;
+
   mapping(address => EnumerableSetUpgradeable.UintSet)
     private _addressToScheduleIdSet;
 
   mapping(uint256 => EscrowSchedule) private _scheduleIdToScheduleStruct;
+
+  EnumerableSetUpgradeable.UintSet private _allScheduleIds;
 
   /**
    * @notice The BridgedPolygonNORI contract that this contract wraps tokens for
@@ -167,7 +178,7 @@ contract EscrowedNORI is
     BridgedPolygonNORI bridgedPolygonNoriAddress,
     Removal removalAddress
   ) external initializer {
-    super.initialize("https://nori.com/api/escrowschedule/{id}.json"); // todo which URL?
+    super.initialize("https://nori.com/api/escrowschedule/{id}.json"); // todo which URL do we want to use?
     address[] memory operators = new address[](1);
     operators[0] = _msgSender();
     __Context_init_unchained();
@@ -185,6 +196,7 @@ contract EscrowedNORI is
       address(this)
     );
     _grantRole(ESCROW_CREATOR_ROLE, _msgSender());
+    setEscrowDurationForMethodologyAndVersion(1, 0, SECONDS_IN_TEN_YEARS);
   }
 
   function supportsInterface(bytes4 interfaceId)
@@ -197,6 +209,14 @@ contract EscrowedNORI is
   }
 
   // View functions and getters =========================================
+  function getEscrowDurationForMethodologyAndVersion(
+    uint256 methodology,
+    uint256 methodologyVersion
+  ) public view returns (uint256) {
+    return
+      _methodologyAndVersionToEscrowDuration[methodology][methodologyVersion];
+  }
+
   function removalIdToScheduleId(uint256 removalId)
     public
     view
@@ -215,10 +235,20 @@ contract EscrowedNORI is
       );
   }
 
+  function getAllScheduleIds() public view returns (uint256[] memory) {
+    uint256[] memory allScheduleIdsArray = new uint256[](
+      _allScheduleIds.length()
+    );
+    for (uint256 i = 0; i < allScheduleIdsArray.length; i++) {
+      allScheduleIdsArray[i] = _allScheduleIds.at(i);
+    }
+    return allScheduleIdsArray;
+  }
+
   function getScheduleIdsForAccount(address account)
     public
     view
-    returns (uint256[])
+    returns (uint256[] memory)
   {
     EnumerableSetUpgradeable.UintSet
       storage scheduleIdSet = _addressToScheduleIdSet[account];
@@ -229,34 +259,79 @@ contract EscrowedNORI is
     return scheduleIds;
   }
 
-  /**
-   * @notice Returns details for all escrow schedules associated with an account.
-   *
-   */
-  function getEscrowSchedulesForAccount(address account)
+  function getEscrowScheduleDetailForAccount(
+    address account,
+    uint256 scheduleId
+  ) public view returns (EscrowScheduleDetailForAddress memory) {
+    EscrowSchedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
+
+    return
+      EscrowScheduleDetailForAddress(
+        account,
+        scheduleId,
+        schedule.startTime,
+        schedule.endTime,
+        balanceOf(account, scheduleId),
+        claimableBalanceForScheduleForAccount(scheduleId, account),
+        schedule.claimedAmountsByAddress[account],
+        schedule.quantitiesRevokedByAddress[account],
+        schedule.exists
+      );
+  }
+
+  function batchGetEscrowScheduleDetailsForAccount(address account)
     public
     view
-    returns (EscrowScheduleDetail[] memory)
+    returns (EscrowScheduleDetailForAddress[] memory)
   {
     EnumerableSetUpgradeable.UintSet
       storage scheduleIds = _addressToScheduleIdSet[account];
-    EscrowScheduleDetail[]
-      memory escrowScheduleDetails = new EscrowScheduleDetail[](
+    EscrowScheduleDetailForAddress[]
+      memory escrowScheduleDetails = new EscrowScheduleDetailForAddress[](
         scheduleIds.length()
       );
     for (uint256 i = 0; i < scheduleIds.length(); i++) {
-      escrowScheduleDetails[i] = getEscrowSchedule(scheduleIds.at(i));
+      escrowScheduleDetails[i] = getEscrowScheduleDetailForAccount(
+        account,
+        scheduleIds.at(i)
+      );
     }
     return escrowScheduleDetails;
   }
 
+  // TODO do we want a batchGetAllEscrowSchedules?
+  // do we want a batchGetAllEscrowScheduleSummariesForAccount ?
+  // do we want a batchGetEscrowScheduleSummaries that takes an array of schedule ids to fetch??
+  // that way it's configurable... the first call could get ALL escrow schedule ids OR just a single accounts escrow schedule ids
+  // and the second call could get the rest of the specific data we want.  probably that.
+  // /**
+  //  * @notice Returns details for all escrow schedules associated with an account.
+  //  *
+  //  */
+  // function getEscrowSchedulesForAccount(address account)
+  //   public
+  //   view
+  //   returns (EscrowScheduleDetail[] memory)
+  // {
+  //   EnumerableSetUpgradeable.UintSet
+  //     storage scheduleIds = _addressToScheduleIdSet[account];
+  //   EscrowScheduleDetail[]
+  //     memory escrowScheduleDetails = new EscrowScheduleDetail[](
+  //       scheduleIds.length()
+  //     );
+  //   for (uint256 i = 0; i < scheduleIds.length(); i++) {
+  //     escrowScheduleDetails[i] = getEscrowScheduleSummary(scheduleIds.at(i));
+  //   }
+  //   return escrowScheduleDetails;
+  // }
+
   /**
    * @notice Returns details for an escrow schedule.
    */
-  function getEscrowSchedule(uint256 scheduleId)
+  function getEscrowScheduleSummary(uint256 scheduleId)
     public
     view
-    returns (EscrowScheduleDetail memory)
+    returns (EscrowScheduleSummary memory)
   {
     EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
       scheduleId
@@ -270,15 +345,15 @@ contract EscrowedNORI is
     }
 
     return
-      EscrowScheduleDetail(
+      EscrowScheduleSummary(
         scheduleId,
-        totalSupply(scheduleId),
-        tokenHoldersArray,
-        balanceOfBatch(tokenHoldersArray, scheduleIdArray),
         escrowSchedule.startTime,
         escrowSchedule.endTime,
-        escrowSchedule.claimedAmount,
+        totalSupply(scheduleId),
+        claimableBalanceForSchedule(scheduleId),
+        escrowSchedule.totalClaimedAmount,
         escrowSchedule.totalQuantityRevoked,
+        tokenHoldersArray,
         escrowSchedule.exists
       );
   }
@@ -311,31 +386,6 @@ contract EscrowedNORI is
   }
 
   /**
-   * @notice Released balance less any claimed amount at `atTime` (implementation)
-   *  TODO CAN WE GET RID OF THIS?
-   * @dev If any tokens have been revoked then the schedule (which doesn't get updated) may return more than the total
-   * escrow schedule amount. This is done to preserve the behavior of the escrow schedule despite a reduction in the
-   * total quantity of tokens releasing.
-   * i.o.w The rate of release does not change after calling `revokeUnreleasedTokens`
-   */
-  function claimableBalanceForAccount(address account)
-    public
-    view
-    returns (uint256)
-  {
-    uint256 totalClaimableBalance = 0;
-    EnumerableSetUpgradeable.UintSet
-      storage scheduleIds = _addressToScheduleIdSet[account];
-    for (uint256 i = 0; i < scheduleIds.length(); i++) {
-      totalClaimableBalance += claimableBalanceForScheduleForAccount(
-        scheduleIds.at(i),
-        account
-      );
-    }
-    return totalClaimableBalance;
-  }
-
-  /**
    * @notice Released balance less any claimed amount at current block timestamp for a single escrow schedule
    */
   function claimableBalanceForSchedule(uint256 scheduleId)
@@ -351,7 +401,7 @@ contract EscrowedNORI is
     }
     return
       _releasedBalanceOfSingleEscrowSchedule(scheduleId) -
-      escrowSchedule.claimedAmount;
+      escrowSchedule.totalClaimedAmount;
   }
 
   /**
@@ -371,6 +421,15 @@ contract EscrowedNORI is
   }
 
   // External functions ===================================================
+  function setEscrowDurationForMethodologyAndVersion(
+    uint256 methodology,
+    uint256 methodologyVersion,
+    uint256 durationInSeconds
+  ) public whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256) {
+    _methodologyAndVersionToEscrowDuration[methodology][
+      methodologyVersion
+    ] = durationInSeconds;
+  }
 
   /**
    * @notice Sets up an escrow schedule for recipient.
@@ -472,8 +531,8 @@ contract EscrowedNORI is
     EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
       scheduleId
     ];
-    escrowSchedule.claimedAmount += amount;
-    // todo should we keep detailed account of claimed amount per supplier on a schedule?
+    escrowSchedule.totalClaimedAmount += amount;
+    escrowSchedule.claimedAmountsByAddress[_msgSender()] += amount;
     emit TokensClaimed(_msgSender(), recipient, scheduleId, amount);
     return true;
   }
@@ -484,8 +543,19 @@ contract EscrowedNORI is
     uint256 id,
     uint256 amount,
     bytes memory data
-  ) external override {
-    // todo require that the sender is not an escrow schedule admin (or contract admin?) (or operator?)
+  ) public override {
+    if (hasRole(DEFAULT_ADMIN_ROLE, _msgSender())) {
+      revert RoleCannotTransfer({
+        account: _msgSender(),
+        role: "DEFAULT_ADMIN_ROLE"
+      });
+    }
+    if (hasRole(ESCROW_CREATOR_ROLE, _msgSender())) {
+      revert RoleCannotTransfer({
+        account: _msgSender(),
+        role: "ESCROW_CREATOR_ROLE"
+      });
+    }
     super.safeTransferFrom(from, to, id, amount, data);
     EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
@@ -504,8 +574,19 @@ contract EscrowedNORI is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) external override {
-    // todo require that the sender is not an escrow schedule admin (or contract admin?) (or operator?)
+  ) public override {
+    if (hasRole(DEFAULT_ADMIN_ROLE, _msgSender())) {
+      revert RoleCannotTransfer({
+        account: _msgSender(),
+        role: "DEFAULT_ADMIN_ROLE"
+      });
+    }
+    if (hasRole(ESCROW_CREATOR_ROLE, _msgSender())) {
+      revert RoleCannotTransfer({
+        account: _msgSender(),
+        role: "ESCROW_CREATOR_ROLE"
+      });
+    }
     super.safeBatchTransferFrom(from, to, ids, amounts, data);
     for (uint256 i = 0; i < ids.length; i++) {
       EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
@@ -560,8 +641,6 @@ contract EscrowedNORI is
     }
   }
 
-  // todo single version of revoke
-
   // Private implementations ==========================================
 
   /**
@@ -585,7 +664,7 @@ contract EscrowedNORI is
     if (!_scheduleIdToScheduleStruct[scheduleId].exists) {
       _createEscrowSchedule(removalId);
     }
-    super._mint(recipient, scheduleId, amount, ""); // todo is this the right thing to do with the data field bytes?
+    super._mint(recipient, scheduleId, amount, "");
     EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
       scheduleId
     ];
@@ -627,11 +706,19 @@ contract EscrowedNORI is
     EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
       scheduleId
     ];
+    _allScheduleIds.add(scheduleId);
+    uint256 escrowDuration = getEscrowDurationForMethodologyAndVersion(
+      removalId.methodology(),
+      removalId.methodologyVersion()
+    );
+    if (escrowDuration == 0) {
+      revert EscrowDurationNotSet({removalId: removalId});
+    }
     _addressToScheduleIdSet[recipient].add(scheduleId);
     escrowSchedule.totalSupply = 0;
     escrowSchedule.exists = true;
     escrowSchedule.startTime = startTime;
-    escrowSchedule.endTime = startTime + SECONDS_IN_TEN_YEARS;
+    escrowSchedule.endTime = startTime + escrowDuration;
     escrowSchedule.releasedAmountFloor = 0;
     emit EscrowScheduleCreated(scheduleId, removalId);
   }
@@ -640,7 +727,6 @@ contract EscrowedNORI is
    * @notice Truncates an escrow schedule.
    * This is an *admin* operation callable only by addresses having ESCROW_CREATOR_ROLE
    * (enforced in `batchRevokeUnreleasedTokenAmounts`)
-   * // todo what should this description actually be now??
    * @dev The implementation never updates underlying schedules
    * but only the escrow schedule amount.  This avoids changing the behavior of the grant
    * before the point of revocation.  Anytime an unlock schedule is in
@@ -686,7 +772,6 @@ contract EscrowedNORI is
     escrowSchedule.totalSupply = escrowSchedule.totalSupply - quantityToRevoke;
     escrowSchedule.releasedAmountFloor = releasedBalance;
     escrowSchedule.totalQuantityRevoked += quantityToRevoke;
-
     // burn correct proportion from each token holder
     EnumerableSetUpgradeable.AddressSet storage tokenHolders = escrowSchedule
       .tokenHolders;
@@ -696,6 +781,9 @@ contract EscrowedNORI is
         tokenHolders.at(i)
       );
       super._burn(tokenHolders.at(i), scheduleId, burnableAmountForHolder);
+      escrowSchedule.quantitiesRevokedByAddress[
+        tokenHolders.at(i)
+      ] += burnableAmountForHolder;
     }
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
@@ -751,6 +839,7 @@ contract EscrowedNORI is
       }
     } else if (isBurning) {
       // todo do we need any other conditions here? meant to be for claiming only
+      // let's see what happens when we try to transfer
       for (uint256 i = 0; i < ids.length; i++) {
         if (amounts[i] > claimableBalanceForScheduleForAccount(ids[i], from)) {
           revert InsufficientBalance({account: from, scheduleId: ids[i]});

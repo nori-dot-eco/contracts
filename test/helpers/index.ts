@@ -130,7 +130,7 @@ export const createRemovalTokenId = async ({
     removalData: {
       idVersion: 0,
       methodology: 1,
-      methodologyVersion: 1,
+      methodologyVersion: 0,
       vintage: 2018,
       country: asciiStringToHexString('US'),
       subdivision: asciiStringToHexString('IA'),

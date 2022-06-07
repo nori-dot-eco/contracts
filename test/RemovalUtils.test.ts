@@ -91,7 +91,7 @@ describe('RemovalUtils', () => {
     const removalDataMissingParcelId = {
       idVersion: 0,
       methodology: 1,
-      methodologyVersion: 1,
+      methodologyVersion: 0,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
@@ -114,7 +114,7 @@ describe('RemovalUtils', () => {
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0,
       methodology: 16, // too large
-      methodologyVersion: 1,
+      methodologyVersion: 0,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
@@ -134,7 +134,7 @@ describe('RemovalUtils', () => {
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0,
       methodology: 1,
-      methodologyVersion: 1,
+      methodologyVersion: 0,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),

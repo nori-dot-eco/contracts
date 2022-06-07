@@ -1,7 +1,7 @@
 import type { BigNumberish } from 'ethers';
 import { BigNumber } from 'ethers';
 
-import type { EscrowedNORI } from '@/typechain-types/EscrowedNORI';
+import type { EscrowedNORI } from '@/typechain-types/contracts/EscrowedNORI';
 import {
   expect,
   setupTest,
@@ -116,7 +116,8 @@ const sendRemovalProceedsToEscrow = async ({
     supplier?: string;
   }[];
   removalAmountsToEscrow: number[];
-}): Promise<EscrowedNORI.EscrowScheduleDetailStructOutput[]> => {
+}): Promise<any> => {
+  // todo where is EscrowScheduleSummaryStructOutput?
   const { eNori, bpNori, listedRemovalIds, escrowScheduleIds } = testSetup;
   await Promise.all(
     listedRemovalData.map((_, index) => {
@@ -130,9 +131,76 @@ const sendRemovalProceedsToEscrow = async ({
   );
 
   const escrowScheduleDetails = await Promise.all(
-    escrowScheduleIds.map((id) => eNori.getEscrowSchedule(id))
+    escrowScheduleIds.map((id) => eNori.getEscrowScheduleSummary(id))
   );
   return escrowScheduleDetails;
+};
+
+const compareEscrowScheduleDetailForAddressStructs = (
+  receivedScheduleDetail: EscrowedNORI.EscrowScheduleDetailForAddressStruct,
+  expectedScheduleDetail: EscrowedNORI.EscrowScheduleDetailForAddressStruct
+): void => {
+  expect(receivedScheduleDetail.tokenHolder).to.equal(
+    expectedScheduleDetail.tokenHolder
+  );
+  expect(receivedScheduleDetail.scheduleTokenId).to.equal(
+    expectedScheduleDetail.scheduleTokenId
+  );
+  expect(receivedScheduleDetail.startTime).to.equal(
+    expectedScheduleDetail.startTime
+  );
+  expect(receivedScheduleDetail.endTime).to.equal(
+    expectedScheduleDetail.endTime
+  );
+  expect(receivedScheduleDetail.balance).to.equal(
+    expectedScheduleDetail.balance
+  );
+  expect(receivedScheduleDetail.claimableAmount).to.equal(
+    expectedScheduleDetail.claimableAmount
+  );
+  expect(receivedScheduleDetail.claimedAmount).to.equal(
+    expectedScheduleDetail.claimedAmount
+  );
+  expect(receivedScheduleDetail.quantityRevoked).to.equal(
+    expectedScheduleDetail.quantityRevoked
+  );
+  expect(receivedScheduleDetail.exists).to.equal(expectedScheduleDetail.exists);
+};
+
+const compareEscrowScheduleSummaryStructs = (
+  receivedScheduleSummary: EscrowedNORI.EscrowScheduleSummaryStruct,
+  expectedScheduleSummary: EscrowedNORI.EscrowScheduleSummaryStruct
+): void => {
+  expect(receivedScheduleSummary.scheduleTokenId).to.equal(
+    expectedScheduleSummary.scheduleTokenId
+  );
+  expect(receivedScheduleSummary.startTime).to.equal(
+    expectedScheduleSummary.startTime
+  );
+  expect(receivedScheduleSummary.endTime).to.equal(
+    expectedScheduleSummary.endTime
+  );
+  expect(receivedScheduleSummary.totalSupply).to.equal(
+    expectedScheduleSummary.totalSupply
+  );
+  expect(receivedScheduleSummary.totalClaimableAmount).to.equal(
+    expectedScheduleSummary.totalClaimableAmount
+  );
+  expect(receivedScheduleSummary.totalClaimedAmount).to.equal(
+    expectedScheduleSummary.totalClaimedAmount
+  );
+  expect(receivedScheduleSummary.totalQuantityRevoked).to.equal(
+    expectedScheduleSummary.totalQuantityRevoked
+  );
+  expect(receivedScheduleSummary.exists).to.equal(
+    expectedScheduleSummary.exists
+  );
+  for (const [
+    index,
+    holder,
+  ] of receivedScheduleSummary.tokenHolders.entries()) {
+    expect(holder).to.equal(expectedScheduleSummary.tokenHolders[index]);
+  }
 };
 
 describe('EscrowedNORI', () => {
@@ -197,7 +265,7 @@ describe('EscrowedNORI', () => {
         )
         .to.emit(bpNori, 'Transfer')
         .withArgs(namedAccounts.admin, eNori.address, escrowedAmount);
-      const escrowScheduleDetail = await eNori.getEscrowSchedule(
+      const escrowScheduleDetail = await eNori.getEscrowScheduleSummary(
         escrowScheduleIds[0]
       );
       expect(escrowScheduleDetail.scheduleTokenId).equals(escrowScheduleIds[0]);
@@ -205,19 +273,273 @@ describe('EscrowedNORI', () => {
       expect(escrowScheduleDetail.tokenHolders[0]).equals(
         namedAccounts.supplier
       );
-      expect(escrowScheduleDetail.holderBalances[0]).equals(
-        BigNumber.from(escrowedAmount)
-      );
       expect(escrowScheduleDetail.startTime).equals(UNIX_EPOCH_2021);
       expect(escrowScheduleDetail.endTime).equals(
         UNIX_EPOCH_2021 + SECONDS_IN_10_YEARS
       );
-      expect(escrowScheduleDetail.claimedAmount).equals(0);
+      expect(escrowScheduleDetail.totalClaimedAmount).equals(0);
       expect(escrowScheduleDetail.totalQuantityRevoked).equals(0);
       expect(escrowScheduleDetail.exists).equals(true);
     });
   });
+  describe('Transferring', () => {
+    describe('safeTransferFrom', () => {
+      // eslint-disable-next-line jest/expect-expect -- assertions are in helper function
+      it('should transfer tokens to another account', async () => {
+        const removalDataToList = [
+          {
+            amount: 100,
+            vintage: 2018,
+            escrowScheduleStartTime: NOW,
+          },
+        ];
+        const testSetup = await setupTestLocal({
+          removalDataToList,
+        });
+        const { eNori, hre, escrowScheduleIds } = testSetup;
+        const { supplier, investor1 } = hre.namedAccounts;
+        const escrowedAmount = removalDataToList[0].amount;
+        await sendRemovalProceedsToEscrow({
+          testSetup,
+          listedRemovalData: removalDataToList,
+          removalAmountsToEscrow: [escrowedAmount],
+        });
+        const supplierScheduleDetailBeforeTransfer =
+          await eNori.getEscrowScheduleDetailForAccount(
+            supplier,
+            escrowScheduleIds[0]
+          );
 
+        const expectedScheduleDetailBeforeTransfer = {
+          tokenHolder: supplier,
+          scheduleTokenId: escrowScheduleIds[0],
+          startTime: BigNumber.from(NOW),
+          endTime: BigNumber.from(NOW).add(SECONDS_IN_10_YEARS),
+          balance: BigNumber.from(escrowedAmount),
+          claimableAmount: BigNumber.from(0),
+          claimedAmount: BigNumber.from(0),
+          quantityRevoked: BigNumber.from(0),
+          exists: true,
+        };
+        compareEscrowScheduleDetailForAddressStructs(
+          supplierScheduleDetailBeforeTransfer,
+          expectedScheduleDetailBeforeTransfer
+        );
+        await eNori
+          .connect(hre.namedSigners.supplier)
+          .safeTransferFrom(
+            supplier,
+            investor1,
+            escrowScheduleIds[0],
+            50,
+            '0x'
+          );
+        const supplierScheduleDetailAfterTransfer =
+          await eNori.getEscrowScheduleDetailForAccount(
+            supplier,
+            escrowScheduleIds[0]
+          );
+        const investor1ScheduleDetailAfterTransfer =
+          await eNori.getEscrowScheduleDetailForAccount(
+            investor1,
+            escrowScheduleIds[0]
+          );
+        // console.log(supplierScheduleDetailAfterTransfer);
+
+        const expectedSupplierScheduleDetailAfterTransfer = {
+          tokenHolder: supplier,
+          scheduleTokenId: escrowScheduleIds[0],
+          startTime: BigNumber.from(NOW),
+          endTime: BigNumber.from(NOW).add(SECONDS_IN_10_YEARS),
+          balance: BigNumber.from(escrowedAmount / 2),
+          claimableAmount: BigNumber.from(0),
+          claimedAmount: BigNumber.from(0),
+          quantityRevoked: BigNumber.from(0),
+          exists: true,
+        };
+        const expectedInvestor1ScheduleDetailAfterTransfer = {
+          tokenHolder: investor1,
+          scheduleTokenId: escrowScheduleIds[0],
+          startTime: BigNumber.from(NOW),
+          endTime: BigNumber.from(NOW).add(SECONDS_IN_10_YEARS),
+          balance: BigNumber.from(escrowedAmount / 2),
+          claimableAmount: BigNumber.from(0),
+          claimedAmount: BigNumber.from(0),
+          quantityRevoked: BigNumber.from(0),
+          exists: true,
+        };
+        compareEscrowScheduleDetailForAddressStructs(
+          supplierScheduleDetailAfterTransfer,
+          expectedSupplierScheduleDetailAfterTransfer
+        );
+        compareEscrowScheduleDetailForAddressStructs(
+          investor1ScheduleDetailAfterTransfer,
+          expectedInvestor1ScheduleDetailAfterTransfer
+        );
+      });
+    });
+    describe('safeBatchTransferFrom', () => {
+      // eslint-disable-next-line jest/expect-expect -- assertions are in helper function
+      it('should transfer multiple tokens to another account', async () => {
+        const removalDataToList = [
+          {
+            amount: 100,
+            vintage: 2018,
+            escrowScheduleStartTime: UNIX_EPOCH_2018,
+          },
+          {
+            amount: 100,
+            vintage: 2019,
+            escrowScheduleStartTime: UNIX_EPOCH_2019,
+          },
+        ];
+        const testSetup = await setupTestLocal({
+          removalDataToList,
+        });
+        const { eNori, hre, escrowScheduleIds } = testSetup;
+        const { supplier, investor1 } = hre.namedAccounts;
+        const escrowedAmounts = removalDataToList.map(
+          (removalData) => removalData.amount
+        );
+        await sendRemovalProceedsToEscrow({
+          testSetup,
+          listedRemovalData: removalDataToList,
+          removalAmountsToEscrow: escrowedAmounts,
+        });
+        // just to make the claimable balances easily computable
+        advanceTime({ hre, timestamp: UNIX_EPOCH_2019 + SECONDS_IN_10_YEARS });
+        const supplierScheduleDetailsBeforeTransfer =
+          await eNori.batchGetEscrowScheduleDetailsForAccount(supplier);
+
+        const expectedScheduleDetailsBeforeTransfer = [
+          {
+            tokenHolder: supplier,
+            scheduleTokenId: escrowScheduleIds[0],
+            startTime: BigNumber.from(UNIX_EPOCH_2018),
+            endTime: BigNumber.from(UNIX_EPOCH_2018).add(SECONDS_IN_10_YEARS),
+            balance: BigNumber.from(escrowedAmounts[0]),
+            claimableAmount: BigNumber.from(escrowedAmounts[0]),
+            claimedAmount: BigNumber.from(0),
+            quantityRevoked: BigNumber.from(0),
+            exists: true,
+          },
+          {
+            tokenHolder: supplier,
+            scheduleTokenId: escrowScheduleIds[1],
+            startTime: BigNumber.from(UNIX_EPOCH_2019),
+            endTime: BigNumber.from(UNIX_EPOCH_2019).add(SECONDS_IN_10_YEARS),
+            balance: BigNumber.from(escrowedAmounts[1]),
+            claimableAmount: BigNumber.from(escrowedAmounts[1]),
+            claimedAmount: BigNumber.from(0),
+            quantityRevoked: BigNumber.from(0),
+            exists: true,
+          },
+        ];
+        for (const [
+          index,
+          scheduleDetail,
+        ] of supplierScheduleDetailsBeforeTransfer.entries()) {
+          compareEscrowScheduleDetailForAddressStructs(
+            scheduleDetail,
+            expectedScheduleDetailsBeforeTransfer[index]
+          );
+        }
+        const amountToTransferFirstSchedule = 20;
+        const amountToTransferSecondSchedule = 30;
+
+        await eNori
+          .connect(hre.namedSigners.supplier)
+          .safeBatchTransferFrom(
+            supplier,
+            investor1,
+            escrowScheduleIds,
+            [amountToTransferFirstSchedule, amountToTransferSecondSchedule],
+            '0x'
+          );
+        const supplierScheduleDetailsAfterTransfer =
+          await eNori.batchGetEscrowScheduleDetailsForAccount(supplier);
+        const investor1ScheduleDetailsAfterTransfer =
+          await eNori.batchGetEscrowScheduleDetailsForAccount(investor1);
+
+        const expectedSupplierScheduleDetailsAfterTransfer = [
+          {
+            tokenHolder: supplier,
+            scheduleTokenId: escrowScheduleIds[0],
+            startTime: BigNumber.from(UNIX_EPOCH_2018),
+            endTime: BigNumber.from(UNIX_EPOCH_2018).add(SECONDS_IN_10_YEARS),
+            balance: BigNumber.from(
+              escrowedAmounts[0] - amountToTransferFirstSchedule
+            ),
+            claimableAmount: BigNumber.from(
+              escrowedAmounts[0] - amountToTransferFirstSchedule
+            ),
+            claimedAmount: BigNumber.from(0),
+            quantityRevoked: BigNumber.from(0),
+            exists: true,
+          },
+          {
+            tokenHolder: supplier,
+            scheduleTokenId: escrowScheduleIds[1],
+            startTime: BigNumber.from(UNIX_EPOCH_2019),
+            endTime: BigNumber.from(UNIX_EPOCH_2019).add(SECONDS_IN_10_YEARS),
+            balance: BigNumber.from(
+              escrowedAmounts[1] - amountToTransferSecondSchedule
+            ),
+            claimableAmount: BigNumber.from(
+              escrowedAmounts[1] - amountToTransferSecondSchedule
+            ),
+            claimedAmount: BigNumber.from(0),
+            quantityRevoked: BigNumber.from(0),
+            exists: true,
+          },
+        ];
+        const expectedInvestor1ScheduleDetailsAfterTransfer = [
+          {
+            tokenHolder: investor1,
+            scheduleTokenId: escrowScheduleIds[0],
+            startTime: BigNumber.from(UNIX_EPOCH_2018),
+            endTime: BigNumber.from(UNIX_EPOCH_2018).add(SECONDS_IN_10_YEARS),
+            balance: BigNumber.from(amountToTransferFirstSchedule),
+            claimableAmount: BigNumber.from(amountToTransferFirstSchedule),
+            claimedAmount: BigNumber.from(0),
+            quantityRevoked: BigNumber.from(0),
+            exists: true,
+          },
+          {
+            tokenHolder: investor1,
+            scheduleTokenId: escrowScheduleIds[1],
+            startTime: BigNumber.from(UNIX_EPOCH_2019),
+            endTime: BigNumber.from(UNIX_EPOCH_2019).add(SECONDS_IN_10_YEARS),
+            balance: BigNumber.from(amountToTransferSecondSchedule),
+            claimableAmount: BigNumber.from(amountToTransferSecondSchedule),
+            claimedAmount: BigNumber.from(0),
+            quantityRevoked: BigNumber.from(0),
+            exists: true,
+          },
+        ];
+
+        for (const [
+          index,
+          scheduleDetail,
+        ] of supplierScheduleDetailsAfterTransfer.entries()) {
+          compareEscrowScheduleDetailForAddressStructs(
+            scheduleDetail,
+            expectedSupplierScheduleDetailsAfterTransfer[index]
+          );
+        }
+
+        for (const [
+          index,
+          scheduleDetail,
+        ] of investor1ScheduleDetailsAfterTransfer.entries()) {
+          compareEscrowScheduleDetailForAddressStructs(
+            scheduleDetail,
+            expectedInvestor1ScheduleDetailsAfterTransfer[index]
+          );
+        }
+      });
+    });
+  });
   describe('Linear releasing (claimableBalanceOf)', () => {
     it('should return 0 before schedule start time', async () => {
       const removalDataToList = [
@@ -274,9 +596,11 @@ describe('EscrowedNORI', () => {
         hre,
         timestamp: UNIX_EPOCH_2018 + SECONDS_IN_10_YEARS,
       });
-      const claimableBalanceOf = await eNori.claimableBalanceForAccount(
-        hre.namedAccounts.supplier
-      );
+      const claimableBalanceOf =
+        await eNori.claimableBalanceForScheduleForAccount(
+          escrowScheduleIds[0],
+          hre.namedAccounts.supplier
+        );
       expect(claimableBalanceOf).to.equal(escrowedAmount);
       await eNori
         .connect(await hre.ethers.getSigner(hre.namedAccounts.supplier))
@@ -285,7 +609,7 @@ describe('EscrowedNORI', () => {
           escrowScheduleIds[0],
           removalDataToList[0].amount
         );
-    }, 60_000);
+    });
     it('should release linearly as expected and increase the current released amount when the total amount increases', async () => {
       const removalDataToList = [
         {
@@ -730,4 +1054,37 @@ describe('EscrowedNORI', () => {
   //     expect(await bpNori.balanceOf(supplier)).to.equal(0);
   //   });
   // });
+  describe('full lifecycle', () => {
+    it('should successfully walk escrowed tokens through all possible actions', async () => {
+      const removalDataToList = [
+        {
+          amount: 1000,
+          vintage: 2018,
+          escrowScheduleStartTime: UNIX_EPOCH_2018,
+        },
+        {
+          amount: 1000,
+          vintage: 2019,
+          escrowScheduleStartTime: UNIX_EPOCH_2019,
+        },
+      ];
+      const testSetup = await setupTestLocal({
+        removalDataToList,
+      });
+      const { eNori, hre, escrowScheduleIds } = testSetup;
+      const { supplier, investor1 } = hre.namedAccounts;
+      const escrowedAmount = removalDataToList[0].amount;
+      await sendRemovalProceedsToEscrow({
+        testSetup,
+        listedRemovalData: removalDataToList,
+        removalAmountsToEscrow: [escrowedAmount],
+      });
+
+      // move to halfway through the escrow schedule
+      await advanceTime({
+        hre,
+        timestamp: UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+      });
+    });
+  });
 });
