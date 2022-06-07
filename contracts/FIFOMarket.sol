@@ -66,7 +66,7 @@ contract FIFOMarket is
   uint256 public totalReservedSupply;
   uint256 public activeSupplierCount;
   address private _currentSupplierAddress;
-  mapping(address => RoundRobinOrder) public _suppliersInRoundRobinOrder;
+  mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
   EnumerableSetUpgradeable.UintSet private _reservedSupply;
   mapping(address => EnumerableSetUpgradeable.UintSet) private _activeSupply;
 
