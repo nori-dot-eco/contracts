@@ -720,59 +720,59 @@ describe('FIFOMarket', () => {
         buyerInitialBPNoriBalance,
         removalDataToList,
       });
-      // const { supplier, buyer, noriWallet } = hre.namedAccounts;
+      const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
-      // const purchaseAmount = '5000'; // purchase all supply
-      // const fee = '750';
-      // const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+      const purchaseAmount = '5000'; // purchase all supply
+      const fee = '750';
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
 
-      // const supplierInitialNoriBalance = '0';
-      // const noriInitialNoriBalance = '0';
+      const supplierInitialNoriBalance = '0';
+      const noriInitialNoriBalance = '0';
 
-      // const initialFifoSupply =
-      //   await fifoMarket.numberOfActiveNrtsInMarketComputed();
-      // await bpNori
-      //   .connect(hre.namedSigners.buyer)
-      //   .send(
-      //     fifoMarket.address,
-      //     hre.ethers.utils.parseUnits(totalPrice),
-      //     hre.ethers.utils.hexZeroPad(buyer, 32)
-      //   );
-      // const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
-      // const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
-      // const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-      // const finalFifoSupply =
-      //   await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      const initialFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
+      await bpNori
+        .connect(hre.namedSigners.buyer)
+        .send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice),
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        );
+      const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
+      const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
+      const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
+      const finalFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
 
-      // expect(buyerFinalNoriBalance).to.equal(
-      //   buyerInitialBPNoriBalance
-      //     .sub(hre.ethers.utils.parseUnits(totalPrice, 18))
-      //     .toString()
-      // );
+      expect(buyerFinalNoriBalance).to.equal(
+        buyerInitialBPNoriBalance
+          .sub(hre.ethers.utils.parseUnits(totalPrice, 18))
+          .toString()
+      );
 
-      // expect(supplierFinalNoriBalance).to.equal(
-      //   hre.ethers.utils
-      //     .parseUnits(supplierInitialNoriBalance)
-      //     .add(hre.ethers.utils.parseUnits(purchaseAmount, 18))
-      //     .toString()
-      // );
+      expect(supplierFinalNoriBalance).to.equal(
+        hre.ethers.utils
+          .parseUnits(supplierInitialNoriBalance)
+          .add(hre.ethers.utils.parseUnits(purchaseAmount, 18))
+          .toString()
+      );
 
-      // expect(noriFinalNoriBalance).to.equal(
-      //   hre.ethers.utils
-      //     .parseUnits(noriInitialNoriBalance)
-      //     .add(hre.ethers.utils.parseUnits(fee, 18))
-      //     .toString()
-      // );
+      expect(noriFinalNoriBalance).to.equal(
+        hre.ethers.utils
+          .parseUnits(noriInitialNoriBalance)
+          .add(hre.ethers.utils.parseUnits(fee, 18))
+          .toString()
+      );
 
-      // expect(await certificate.balanceOf(buyer, 0)).to.equal(
-      //   hre.ethers.utils.parseUnits(purchaseAmount, 18)
-      // );
+      expect(await certificate.balanceOf(buyer, 0)).to.equal(
+        hre.ethers.utils.parseUnits(purchaseAmount, 18)
+      );
 
-      // expect(finalFifoSupply).to.equal(
-      //   initialFifoSupply
-      //     .sub(hre.ethers.utils.parseUnits(purchaseAmount, 18))
-      //     .toString()
-      // );
+      expect(finalFifoSupply).to.equal(
+        initialFifoSupply
+          .sub(hre.ethers.utils.parseUnits(purchaseAmount, 18))
+          .toString()
+      );
     });
     it('should mint a certificate with multiple removals after another purchase has already been made and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
