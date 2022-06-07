@@ -1,4 +1,7 @@
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
+import type {
+  UnpackedRemovalIdV0Struct,
+  Removal,
+} from '@/typechain-types/contracts/Removal';
 
 export const formatRemovalIdData = ({
   hre,
@@ -6,7 +9,7 @@ export const formatRemovalIdData = ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   removalData: UnpackedRemovalIdV0Struct;
-}): string => {
+}): Parameters<Removal['createRemovalId']>[0] => {
   return hre.ethers.utils.defaultAbiCoder.encode(
     [
       'uint8',

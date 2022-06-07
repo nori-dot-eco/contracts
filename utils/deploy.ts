@@ -3,8 +3,7 @@ import path from 'path';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 
-import type { Contracts } from './contracts';
-
+import type { Contracts } from '@/utils/contracts';
 import type {
   LockedNORI,
   Certificate,
@@ -105,10 +104,6 @@ export const configureDeploymentSettings = async ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<void> => {
-  if (hre.ethernalSync) {
-    await hre.ethernal.resetWorkspace('nori');
-    await hre.ethernal.startListening();
-  }
   if (hre.network.name === 'hardhat' || hre.network.name === 'localhost') {
     await hre.run('deploy:erc1820');
   }
@@ -253,7 +248,7 @@ export const pushContractsToEthernal = async ({
   hre: CustomHardHatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
-  if (hre.ethernalSync) {
+  if (!Boolean(hre.userConfig.ethernal?.disableSync)) {
     hre.trace('pushing contracts to ethernal');
     await Promise.allSettled(
       Object.entries(contracts)
@@ -298,11 +293,14 @@ export const saveDeployments = async ({
       .map(async ([name, contract]) => {
         const { abi, bytecode, deployedBytecode } =
           await hre.artifacts.readArtifact(name);
-        await hre.tenderly.persistArtifacts({
-          // todo: only run if TENDERLY is set in env
-          name,
-          address: contract.address,
-        });
+        if (process.env.TENDERLY === true) {
+          hre.trace('persisting artifacts to tenderly');
+          await hre.tenderly.persistArtifacts({
+            name,
+            address: contract.address,
+            network: hre.network.name,
+          });
+        }
         return hre.deployments.save(name, {
           abi,
           address: contract.address,
@@ -329,12 +327,16 @@ export const seedContracts = async ({
 }): Promise<void> => {
   if (process.env.MINT) {
     if (
-      contracts.Certificate != undefined &&
-      contracts.FIFOMarket != undefined &&
-      contracts.Removal != undefined
+      contracts.Certificate !== undefined &&
+      contracts.FIFOMarket !== undefined &&
+      contracts.Removal !== undefined
     ) {
-      const tokenId = await createRemovalTokenId(contracts.Removal, {
-        supplierAddress: hre.namedAccounts.supplier,
+      const tokenId = await createRemovalTokenId({
+        removal: contracts.Removal,
+        hre,
+        removalData: {
+          supplierAddress: hre.namedAccounts.supplier,
+        },
       });
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
@@ -350,8 +352,8 @@ export const seedContracts = async ({
       hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });
     }
     if (
-      contracts.BridgedPolygonNORI != undefined &&
-      contracts.NORI != undefined &&
+      contracts.BridgedPolygonNORI !== undefined &&
+      contracts.NORI !== undefined &&
       (hre.network.name === 'hardhat' || hre.network.name === 'localhost')
     ) {
       await mockDepositNoriToPolygon({
