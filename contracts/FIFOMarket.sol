@@ -3,6 +3,7 @@ pragma solidity =0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
@@ -37,6 +38,22 @@ contract FIFOMarket is
     address nextSupplierAddress;
   }
 
+  struct ActiveRemoval {
+    uint256 tokenId;
+    uint256 amount;
+  }
+
+  struct ActiveSupplier {
+    address supplier;
+    uint256 amount;
+    ActiveRemoval[] removals;
+  }
+
+  struct ActiveSupply {
+    uint256 amount;
+    ActiveSupplier[] suppliers;
+  }
+
   IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
   Certificate private _certificate;
@@ -45,11 +62,11 @@ contract FIFOMarket is
   uint256 private _noriFee;
   uint256 public priorityRestrictedThreshold;
   uint256 public totalNumberActiveRemovals;
-  uint256 public totalActiveSupply;
+  uint256 public _totalActiveSupply; // todo consider making private and then tweaking `totalUnrestrictedSupply()` declaration to accept a bool param that either returns the total unrestricted supply or the total unrestricted supply + restricted supply
   uint256 public totalReservedSupply;
   uint256 public activeSupplierCount;
-  address private _currentSupplierAddress;
-  mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
+  address public _currentSupplierAddress;
+  mapping(address => RoundRobinOrder) public _suppliersInRoundRobinOrder;
   EnumerableSetUpgradeable.UintSet private _reservedSupply;
   mapping(address => EnumerableSetUpgradeable.UintSet) private _activeSupply;
 
@@ -89,7 +106,7 @@ contract FIFOMarket is
       address(this)
     );
     priorityRestrictedThreshold = 0;
-    totalActiveSupply = 0;
+    _totalActiveSupply = 0;
     totalReservedSupply = 0;
     totalNumberActiveRemovals = 0;
     _currentSupplierAddress = address(0);
@@ -105,6 +122,7 @@ contract FIFOMarket is
     emit PriorityRestrictedThresholdSet(threshold);
   }
 
+  // todo Is this redundant of `_totalActiveSupply` ?
   /**
    * @notice The amount of supply as computed by iterating through all removals.
    */
@@ -133,13 +151,76 @@ contract FIFOMarket is
   }
 
   /**
-   * @notice The amount of supply available for anyone to buy.
+   * @notice Gets the active restricted or unrestricted supply currently listed for sale in the market.
    */
-  function totalUnrestrictedSupply() public view returns (uint256) {
-    if (totalActiveSupply < priorityRestrictedThreshold) {
-      return 0;
+  function activeSupply(bool includeRestricted)
+    external
+    view
+    returns (ActiveSupply memory)
+  {
+    uint256 total = 0;
+    address supplierAddress = _currentSupplierAddress;
+    uint256 totalSupplyToCheck = totalActiveSupply(includeRestricted);
+    ActiveSupplier[] memory suppliers = new ActiveSupplier[](
+      activeSupplierCount
+    );
+    for (uint256 i = 0; i < activeSupplierCount; i++) {
+      uint256 totalForSupplier = 0;
+      EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
+        supplierAddress
+      ];
+      ActiveRemoval[] memory removals = new ActiveRemoval[](
+        supplierSet.length()
+      );
+      for (
+        uint256 j = 0;
+        j < supplierSet.length() && total < totalSupplyToCheck;
+        j++
+      ) {
+        uint256 removalBalance = _removal.balanceOf(
+          address(this),
+          supplierSet.at(j)
+        );
+        total += removalBalance;
+        totalForSupplier += removalBalance;
+        removals[j] = ActiveRemoval({
+          tokenId: supplierSet.at(j),
+          amount: removals[j].amount += removalBalance
+        });
+      }
+      suppliers[i] = ActiveSupplier({
+        supplier: supplierAddress,
+        removals: removals,
+        amount: totalForSupplier
+      });
+      supplierAddress = _suppliersInRoundRobinOrder[supplierAddress]
+        .nextSupplierAddress;
     }
-    return totalActiveSupply - priorityRestrictedThreshold;
+    ActiveSupply memory supply = ActiveSupply({
+      suppliers: suppliers,
+      amount: total
+    });
+    return supply;
+  }
+
+  /**
+   * @notice The amount of supply available to buy.
+   *
+   * todo document params
+   */
+  function totalActiveSupply(bool includeRestricted)
+    public
+    view
+    returns (uint256)
+  {
+    uint256 total = _totalActiveSupply;
+    if (includeRestricted) {
+      (, total) = SafeMathUpgradeable.trySub(
+        total,
+        priorityRestrictedThreshold
+      ); // equivalent to max(0, _totalActiveSupply - priorityRestrictedThreshold)
+    }
+    return total;
   }
 
   // TODO: this function no longer makes sense to exist based on how the market now works (less deterministic)
@@ -149,7 +230,7 @@ contract FIFOMarket is
   //   returns (uint256)
   // {
   //   uint256 nextRemovalId = 0;
-  //   if (totalActiveSupply > 0) {
+  //   if (_totalActiveSupply > 0) {
   //     address activeSupplierAddress = _suppliersInRoundRobinOrderOrdered[
   //       _currentSupplierIndex
   //     ];
@@ -157,7 +238,7 @@ contract FIFOMarket is
   //   }
   //   if (
   //     !includePriorityRestrictedSupply &&
-  //     totalActiveSupply <= priorityRestrictedThreshold
+  //     _totalActiveSupply <= priorityRestrictedThreshold
   //   ) {
   //     nextRemovalId = 0;
   //   }
@@ -173,7 +254,7 @@ contract FIFOMarket is
   ) public override returns (bytes4) {
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalAmount = _removal.balanceOf(address(this), ids[i]);
-      totalActiveSupply += removalAmount;
+      _totalActiveSupply += removalAmount;
       totalNumberActiveRemovals += 1;
       address supplierAddress = ids[i].supplierAddress();
       require(
@@ -203,12 +284,12 @@ contract FIFOMarket is
     bytes calldata userData,
     bytes calldata
   ) external override {
-    // todo we need to treat totalActiveSupply in a more nuanced way when reservation of removals is implemented
+    // todo we need to treat _totalActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s. priority reserved etc.
-    if (totalActiveSupply == 0) {
+    if (_totalActiveSupply == 0) {
       revert("Market: Out of stock");
     }
-    if (totalActiveSupply <= priorityRestrictedThreshold) {
+    if (_totalActiveSupply <= priorityRestrictedThreshold) {
       require(
         hasRole(ALLOWLIST_ROLE, from),
         "Low supply and buyer not on allowlist"
@@ -293,7 +374,7 @@ contract FIFOMarket is
       ) {
         totalNumberActiveRemovals -= 1; // removal used up
       }
-      totalActiveSupply -= batchedAmounts[i];
+      _totalActiveSupply -= batchedAmounts[i];
       uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
       uint256 supplierFee = batchedAmounts[i];
       _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
@@ -321,7 +402,7 @@ contract FIFOMarket is
     );
     totalNumberActiveRemovals -= 1;
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
-    totalActiveSupply -= removalBalance;
+    _totalActiveSupply -= removalBalance;
     totalReservedSupply += removalBalance;
     // If this is the last removal for the supplier, remove them from active suppliers
     if (supplierSet.length() == 0) {
@@ -351,7 +432,7 @@ contract FIFOMarket is
     );
     totalNumberActiveRemovals += 1;
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
-    totalActiveSupply += removalBalance;
+    _totalActiveSupply += removalBalance;
     totalReservedSupply -= removalBalance;
     // If the supplier has previously been removed from the active suppliers, add them back
     if (supplierSet.length() == 0) {

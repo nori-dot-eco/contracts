@@ -72,6 +72,7 @@ const mintSupply = async (
     totalAmountOfSupply,
     totalAmountOfSuppliers,
     totalAmountOfRemovals,
+    // todo return { suppliers: [...{ supplier:{removals: [...{id, amount}]}}]}
   };
 };
 
@@ -145,7 +146,7 @@ describe('FIFOMarket', () => {
         });
       }
     });
-    it('correctly intializes totalActiveSupply, totalReservedSupply, totalNumberActiveRemovals, activeSupplierCount, and priorityRestrictedThreshold', async () => {
+    it('correctly initializes totalActiveSupply, totalReservedSupply, totalNumberActiveRemovals, activeSupplierCount, and priorityRestrictedThreshold', async () => {
       const { fifoMarket } = await setupTestLocal();
 
       const [
@@ -155,7 +156,7 @@ describe('FIFOMarket', () => {
         activeSupplierCount,
         priorityRestrictedThreshold,
       ] = await Promise.all([
-        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalActiveSupply(true),
         fifoMarket.totalReservedSupply(),
         fifoMarket.totalNumberActiveRemovals(),
         fifoMarket.activeSupplierCount(),
@@ -388,7 +389,7 @@ describe('FIFOMarket', () => {
         const [nrtsInQueueWeiComputed, totalSupplyWeiRetrieved] =
           await Promise.all([
             fifoMarket.numberOfActiveNrtsInMarketComputed(),
-            fifoMarket.totalActiveSupply(),
+            fifoMarket.totalActiveSupply(true),
           ]);
         expect(nrtsInQueueWeiComputed.toString()).to.equal(
           ethers.utils.parseUnits(
@@ -424,7 +425,7 @@ describe('FIFOMarket', () => {
         const [nrtsInQueueWeiComputed, totalSupplyWeiRetrieved] =
           await Promise.all([
             fifoMarket.numberOfActiveNrtsInMarketComputed(),
-            fifoMarket.totalActiveSupply(),
+            fifoMarket.totalActiveSupply(true),
           ]);
         expect(totalSupplyWeiRetrieved).to.equal(
           BigNumber.from(
@@ -438,41 +439,64 @@ describe('FIFOMarket', () => {
         expect(await fifoMarket.numberOfActiveNrtsInMarketComputed()).to.equal(
           BigNumber.from(0)
         );
-        expect(await fifoMarket.totalActiveSupply()).to.equal(
+        expect(await fifoMarket.totalActiveSupply(true)).to.equal(
           BigNumber.from(0)
         );
       });
     });
-    describe('totalUnrestrictedSupply', () => {
-      it('should return 0 when there is inventory but it is below the priority restricted threshold', async () => {
-        const priorityThreshold = 200;
-        const totalInventory = 100;
-        const { fifoMarket } = await setupTestLocal({
-          removalDataToList: [{ amount: totalInventory }],
+    describe('totalActiveSupply', () => {
+      describe('total active supply (excluding restricted)', () => {
+        it('should return 0 when there is inventory but it is below the priority restricted threshold', async () => {
+          const priorityThreshold = 200;
+          const totalInventory = 100;
+          const { fifoMarket } = await setupTestLocal({
+            removalDataToList: [{ amount: totalInventory }],
+          });
+          await fifoMarket.setPriorityRestrictedThreshold(
+            ethers.utils.parseUnits(priorityThreshold.toString())
+          );
+          expect(await fifoMarket.totalActiveSupply(false)).to.equal(
+            BigNumber.from(0)
+          );
         });
-        await fifoMarket.setPriorityRestrictedThreshold(
-          ethers.utils.parseUnits(priorityThreshold.toString())
-        );
-        expect(await fifoMarket.totalUnrestrictedSupply()).to.equal(
-          BigNumber.from(0)
-        );
+        it('should return the unrestricted portion of supply when inventory is above the priority restricted threshold', async () => {
+          const priorityThreshold = BigNumber.from(200);
+          const totalInventory = BigNumber.from(300);
+          const { fifoMarket } = await setupTestLocal({
+            removalDataToList: [{ amount: totalInventory.toNumber() }],
+          });
+          await fifoMarket.setPriorityRestrictedThreshold(
+            ethers.utils.parseUnits(priorityThreshold.toString())
+          );
+          const expectedTotalUnrestrictedSupply =
+            totalInventory.sub(priorityThreshold);
+          expect(await fifoMarket.totalActiveSupply(false)).to.equal(
+            BigNumber.from(
+              ethers.utils.parseUnits(
+                expectedTotalUnrestrictedSupply.toString()
+              )
+            )
+          );
+        });
       });
-      it('should return the unrestricted portion of supply when inventory is above the priority restricted threshold', async () => {
-        const priorityThreshold = 200;
-        const totalInventory = 300;
-        const { fifoMarket } = await setupTestLocal({
-          removalDataToList: [{ amount: totalInventory }],
+      describe('total active supply (including restricted)', () => {
+        it('should return the total supply', async () => {
+          const priorityThreshold = BigNumber.from(200);
+          const totalInventory = BigNumber.from(300);
+          const { fifoMarket } = await setupTestLocal({
+            removalDataToList: [{ amount: totalInventory.toNumber() }],
+          });
+          await fifoMarket.setPriorityRestrictedThreshold(
+            ethers.utils.parseUnits(priorityThreshold.toString())
+          );
+          expect(await fifoMarket.totalActiveSupply(true)).to.equal(
+            BigNumber.from(
+              ethers.utils.parseUnits(
+                priorityThreshold.add(totalInventory).toString()
+              )
+            )
+          );
         });
-        await fifoMarket.setPriorityRestrictedThreshold(
-          ethers.utils.parseUnits(priorityThreshold.toString())
-        );
-        const expectedTotalUnrestrictedSupply =
-          totalInventory - priorityThreshold;
-        expect(await fifoMarket.totalUnrestrictedSupply()).to.equal(
-          BigNumber.from(
-            ethers.utils.parseUnits(expectedTotalUnrestrictedSupply.toString())
-          )
-        );
       });
     });
   });
@@ -494,7 +518,7 @@ describe('FIFOMarket', () => {
         totalNumberActiveRemovals,
         activeSupplierCount,
       ] = await Promise.all([
-        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalActiveSupply(true),
         fifoMarket.totalNumberActiveRemovals(),
         fifoMarket.activeSupplierCount(),
       ]);
@@ -542,7 +566,7 @@ describe('FIFOMarket', () => {
     //     totalNumberActiveRemovals,
     //     activeSupplierCount,
     //   ] = await Promise.all([
-    //     fifoMarket.totalActiveSupply(),
+    //     fifoMarket.totalActiveSupply(true),
     //     fifoMarket.totalNumberActiveRemovals(),
     //     fifoMarket.activeSupplierCount(),
     //   ]);
@@ -601,7 +625,7 @@ describe('FIFOMarket', () => {
     //     totalNumberActiveRemovals,
     //     activeSupplierCount,
     //   ] = await Promise.all([
-    //     fifoMarket.totalActiveSupply(),
+    //     fifoMarket.totalActiveSupply(true),
     //     fifoMarket.totalNumberActiveRemovals(),
     //     fifoMarket.activeSupplierCount(),
     //   ]);
@@ -1178,7 +1202,7 @@ describe('FIFOMarket', () => {
         totalNumberActiveRemovals,
         activeSupplierCount,
       ] = await Promise.all([
-        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalActiveSupply(true),
         fifoMarket.totalReservedSupply(),
         fifoMarket.totalNumberActiveRemovals(),
         fifoMarket.activeSupplierCount(),
@@ -1217,7 +1241,7 @@ describe('FIFOMarket', () => {
         totalNumberActiveRemovals,
         activeSupplierCount,
       ] = await Promise.all([
-        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalActiveSupply(true),
         fifoMarket.totalReservedSupply(),
         fifoMarket.totalNumberActiveRemovals(),
         fifoMarket.activeSupplierCount(),
@@ -1247,7 +1271,7 @@ describe('FIFOMarket', () => {
         totalNumberActiveRemovals,
         activeSupplierCount,
       ] = await Promise.all([
-        fifoMarket.totalActiveSupply(),
+        fifoMarket.totalActiveSupply(true),
         fifoMarket.totalReservedSupply(),
         fifoMarket.totalNumberActiveRemovals(),
         fifoMarket.activeSupplierCount(),
@@ -1260,6 +1284,46 @@ describe('FIFOMarket', () => {
         formatTokenAmount(getTotalAmountOfSupply(removals))
       );
     });
+  });
+  describe('activeSupply', () => {
+    // todo test where removals exist across multiple suppliers
+    describe('including restricted', () => {
+      it('returns the active supply including restricted supply', async () => {
+        const removals = [
+          { amount: 3, supplier: global.hre.namedAccounts.supplier },
+          { amount: 3, supplier: global.hre.namedAccounts.supplier },
+        ];
+        const { fifoMarket, listedRemovalIds } = await setupTestLocal({
+          removalDataToList: removals,
+        });
+        const supply = await fifoMarket.activeSupply(true);
+        const { amount, suppliers } = supply;
+        const totalForSupplier = formatTokenAmount(
+          removals.reduce((total, r) => total + r.amount, 0)
+        );
+        expect(amount).to.equal(
+          formatTokenAmount(removals.reduce((total, r) => total + r.amount, 0))
+        );
+        expect(suppliers.length).to.eq(
+          [...new Set(removals.map(({ supplier }) => supplier))].length
+        );
+        expect(suppliers[0].supplier).to.eq(removals[0].supplier);
+        expect(suppliers[0].amount).to.eq(totalForSupplier);
+        expect(suppliers[0].removals.length).to.eq(removals.length);
+        expect(suppliers[0].removals[0].amount).to.eq(
+          formatTokenAmount(removals[0].amount)
+        );
+        expect(suppliers[0].removals[1].amount).to.eq(
+          formatTokenAmount(removals[1].amount)
+        );
+        expect(suppliers[0].removals[0].tokenId).to.eq(listedRemovalIds[0]);
+        expect(suppliers[0].removals[1].tokenId).to.eq(listedRemovalIds[1]);
+      });
+    });
+    // describe('excluding restricted', () => {
+    // it('returns the active supply excluding restricted supply', async () => {
+    // });
+    // });
   });
 });
 
