@@ -1226,8 +1226,7 @@ describe('FIFOMarket', () => {
         const { fifoMarket, listedRemovalIds } = await setupTestLocal({
           removalDataToList: removals,
         });
-        const supply = await fifoMarket.activeSupply(true);
-        const { amount, suppliers } = supply;
+        const { amount, suppliers } = await fifoMarket.activeSupply(true);
         const totalForSupplier = formatTokenAmount(
           removals.reduce((total, r) => total + r.amount, 0)
         );
@@ -1250,10 +1249,44 @@ describe('FIFOMarket', () => {
         expect(suppliers[0].removals[1].tokenId).to.eq(listedRemovalIds[1]);
       });
     });
-    // describe('excluding restricted', () => {
-    // it('returns the active supply excluding restricted supply', async () => {
-    // });
-    // });
+    describe('excluding restricted', () => {
+      it('returns the active supply excluding restricted supply', async () => {
+        const removals = [
+          { amount: 3, supplier: global.hre.namedAccounts.supplier },
+          { amount: 3, supplier: global.hre.namedAccounts.supplier },
+        ];
+        const { fifoMarket, listedRemovalIds } = await setupTestLocal({
+          removalDataToList: removals,
+        });
+        const priorityRestrictedThreshold = formatTokenAmount(1);
+        await fifoMarket.setPriorityRestrictedThreshold(
+          priorityRestrictedThreshold
+        );
+        const { amount, suppliers } = await fifoMarket.activeSupply(false);
+        const totalForSupplier = formatTokenAmount(
+          removals.reduce((total, r) => total + r.amount, 0)
+        ).sub(priorityRestrictedThreshold);
+        expect(amount).to.equal(
+          formatTokenAmount(
+            removals.reduce((total, r) => total + r.amount, 0)
+          ).sub(priorityRestrictedThreshold)
+        );
+        expect(suppliers.length).to.eq(
+          [...new Set(removals.map(({ supplier }) => supplier))].length
+        );
+        expect(suppliers[0].supplier).to.eq(removals[0].supplier);
+        expect(suppliers[0].amount).to.eq(totalForSupplier);
+        expect(suppliers[0].removals.length).to.eq(removals.length);
+        expect(suppliers[0].removals[0].amount).to.eq(
+          formatTokenAmount(removals[0].amount)
+        );
+        expect(suppliers[0].removals[1].amount).to.eq(
+          formatTokenAmount(removals[1].amount).sub(priorityRestrictedThreshold)
+        );
+        expect(suppliers[0].removals[0].tokenId).to.eq(listedRemovalIds[0]);
+        expect(suppliers[0].removals[1].tokenId).to.eq(listedRemovalIds[1]);
+      });
+    });
   });
 });
 

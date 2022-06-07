@@ -158,47 +158,81 @@ contract FIFOMarket is
     view
     returns (ActiveSupply memory)
   {
-    uint256 total = 0;
     address supplierAddress = _currentSupplierAddress;
-    uint256 totalSupplyToCheck = totalActiveSupply(includeRestricted);
     ActiveSupplier[] memory suppliers = new ActiveSupplier[](
       activeSupplierCount
     );
+    address[] memory fifoMarketAddressArray = new address[](
+      totalNumberActiveRemovals
+    );
+    uint256[] memory removalIds = new uint256[](totalNumberActiveRemovals);
     for (uint256 i = 0; i < activeSupplierCount; i++) {
+      EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
+        supplierAddress
+      ];
+      for (uint256 j = 0; j < supplierSet.length(); j++) {
+        removalIds[j] = supplierSet.at(j);
+        fifoMarketAddressArray[j] = address(this);
+      }
+      supplierAddress = _suppliersInRoundRobinOrder[supplierAddress]
+        .nextSupplierAddress;
+    }
+    uint256[] memory removalBalances = _removal.balanceOfBatch(
+      fifoMarketAddressArray,
+      removalIds
+    );
+    uint256 activeRemovalLength = 0;
+    uint256 activeSupplierLength = 0;
+    uint256 totalSupplyToCheck = totalActiveSupply(includeRestricted);
+    uint256 total = 0;
+    for (
+      uint256 i = 0;
+      i < suppliers.length && total < totalSupplyToCheck;
+      i++
+    ) {
+      activeSupplierLength++;
+      for (
+        uint256 j = 0;
+        j < removalIds.length && total < totalSupplyToCheck;
+        j++
+      ) {
+        activeRemovalLength++;
+        total += removalBalances[i];
+      }
+    }
+    uint256 aggregateTotalForSuppliers;
+    for (uint256 i = 0; i < activeSupplierLength; i++) {
       uint256 totalForSupplier = 0;
       EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
         supplierAddress
       ];
-      ActiveRemoval[] memory removals = new ActiveRemoval[](
-        supplierSet.length()
+      ActiveRemoval[] memory includedRemovals = new ActiveRemoval[](
+        activeRemovalLength
       );
-      for (
-        uint256 j = 0;
-        j < supplierSet.length() && total < totalSupplyToCheck;
-        j++
-      ) {
-        uint256 removalBalance = _removal.balanceOf(
-          address(this),
-          supplierSet.at(j)
-        );
-        total += removalBalance;
-        totalForSupplier += removalBalance;
-        removals[j] = ActiveRemoval({
+      for (uint256 j = 0; j < activeRemovalLength; j++) {
+        uint256 amount = aggregateTotalForSuppliers + removalBalances[j] >
+          totalSupplyToCheck
+          ? (totalSupplyToCheck - aggregateTotalForSuppliers)
+          : removalBalances[j];
+        totalForSupplier += amount;
+        if (totalForSupplier > totalSupplyToCheck) {
+          totalForSupplier = totalForSupplier - totalSupplyToCheck;
+        }
+        includedRemovals[j] = ActiveRemoval({
           tokenId: supplierSet.at(j),
-          amount: removals[j].amount += removalBalance
+          amount: amount
         });
+        aggregateTotalForSuppliers += amount;
       }
       suppliers[i] = ActiveSupplier({
         supplier: supplierAddress,
-        removals: removals,
+        removals: includedRemovals,
         amount: totalForSupplier
       });
-      supplierAddress = _suppliersInRoundRobinOrder[supplierAddress]
-        .nextSupplierAddress;
     }
     ActiveSupply memory supply = ActiveSupply({
       suppliers: suppliers,
-      amount: total
+      amount: aggregateTotalForSuppliers
     });
     return supply;
   }
@@ -214,7 +248,7 @@ contract FIFOMarket is
     returns (uint256)
   {
     uint256 total = _totalActiveSupply;
-    if (includeRestricted) {
+    if (!includeRestricted) {
       (, total) = SafeMathUpgradeable.trySub(
         total,
         priorityRestrictedThreshold
