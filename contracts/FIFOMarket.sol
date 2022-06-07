@@ -201,6 +201,7 @@ contract FIFOMarket is
       }
     }
     uint256 aggregateTotalForSuppliers;
+    supplierAddress = _currentSupplierAddress;
     for (uint256 i = 0; i < activeSupplierLength; i++) {
       uint256 totalForSupplier = 0;
       EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
@@ -224,6 +225,8 @@ contract FIFOMarket is
         });
         aggregateTotalForSuppliers += amount;
       }
+      supplierAddress = _suppliersInRoundRobinOrder[supplierAddress]
+        .nextSupplierAddress;
       suppliers[i] = ActiveSupplier({
         supplier: supplierAddress,
         removals: includedRemovals,
