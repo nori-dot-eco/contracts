@@ -145,6 +145,16 @@ contract FIFOMarket is
   }
 
   /**
+   * @notice The amount of supply available for anyone to buy.
+   */
+  function totalUnrestrictedSupply() public view returns (uint256) {
+    if (totalActiveSupply < priorityRestrictedThreshold) {
+      return 0;
+    }
+    return totalActiveSupply - priorityRestrictedThreshold;
+  }
+
+  /**
    * @notice Returns the current supplier in the queue, the queue for pagination, and removalIds
    */
   function activeSupply(uint256 count)
