@@ -14,6 +14,7 @@ import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
 import {RemovalQueue} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
+import "hardhat/console.sol"; // todo
 
 // todo emit events
 
@@ -38,11 +39,6 @@ contract FIFOMarket is
   struct RoundRobinOrder {
     address previousSupplierAddress;
     address nextSupplierAddress;
-  }
-
-  struct VintageOrder {
-    uint256 previousRemovalId;
-    uint256 nextRemovalId;
   }
 
   IERC1820RegistryUpgradeable private _erc1820;
@@ -244,11 +240,14 @@ contract FIFOMarket is
     uint256[] memory amounts = new uint256[](totalNumberActiveRemovals);
     address[] memory suppliers = new address[](totalNumberActiveRemovals);
     uint256 numberOfRemovals = 0;
+    console.log(totalNumberActiveRemovals);
     for (uint256 i = 0; i < totalNumberActiveRemovals; i++) {
+      console.log(i, "|", remainingAmountToFill);
       (, , uint256 removalId) = _activeSupply[_currentSupplierAddress].getNode(
         0
       ); // grab head of this supplier's queue
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
+      console.log(removalId.vintage(), "-", removalAmount);
       // order complete, not fully using up this removal, don't increment currentSupplierAddress, don't check about removing active supplier
       if (remainingAmountToFill < removalAmount) {
         ids[numberOfRemovals] = removalId;
@@ -268,7 +267,10 @@ contract FIFOMarket is
         suppliers[numberOfRemovals] = _currentSupplierAddress;
         remainingAmountToFill -= removalAmount;
 
-        _activeSupply[_currentSupplierAddress].popFront();
+        require(
+          _activeSupply[_currentSupplierAddress].popFront() == removalId,
+          "Market: Failed to pop removal from supply"
+        );
         // If the supplier is out of supply, remove them from the active suppliers
         if (_activeSupply[_currentSupplierAddress].sizeOf() == 0) {
           _removeActiveSupplier(_currentSupplierAddress);

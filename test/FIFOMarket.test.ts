@@ -723,9 +723,9 @@ describe('FIFOMarket', () => {
       });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
-      const purchaseAmount = String(
+      const purchaseAmount = (
         amountPerRemoval * numberOfRemovalsToCreate
-      ); // purchase all supply
+      ).toString(); // purchase all supply
       const fee = '750';
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
 

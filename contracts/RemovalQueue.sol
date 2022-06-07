@@ -3,6 +3,7 @@
 pragma solidity =0.8.13;
 import {RemovalUtils} from "./RemovalUtils.sol";
 import "solidity-linked-list/contracts/StructuredLinkedList.sol";
+import "hardhat/console.sol"; // todo
 
 library RemovalQueue {
   using RemovalUtils for uint256;
@@ -22,6 +23,7 @@ library RemovalQueue {
     (, , uint256 currentRemoval) = _queue.getNode(0);
     uint256 currentRemovalVintage = currentRemoval.vintage();
     uint256 vintageOfAddedRemoval = _removalToInsert.vintage();
+    console.log(vintageOfAddedRemoval);
     for (uint256 i = 0; i < _queue.sizeOf(); i++) {
       if (currentRemovalVintage < vintageOfAddedRemoval) {
         (, currentRemoval) = _queue.getNextNode(currentRemoval);
