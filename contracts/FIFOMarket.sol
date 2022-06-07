@@ -189,7 +189,10 @@ contract FIFOMarket is
       uint256 removalAmount = _removal.balanceOf(address(this), removalToAdd);
       address supplierAddress = removalToAdd.supplierAddress();
 
-      _activeSupply[supplierAddress].insertByVintage(removalToAdd);
+      require(
+        _activeSupply[supplierAddress].insertByVintage(removalToAdd),
+        "Market: Unable to add removal by vintage"
+      );
       // If a new supplier has been added, or if the supplier had previously sold out
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
@@ -369,7 +372,7 @@ contract FIFOMarket is
     }
     require(
       _activeSupply[supplierAddress].insertByVintage(removalId) == true,
-      "Market: Removal already in active supply"
+      "Market: Unable to unreserve removal"
     ); // returns true if the value was added to the set, that is, if it was not already present
     return true;
   }
