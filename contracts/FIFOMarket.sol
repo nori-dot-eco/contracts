@@ -169,16 +169,13 @@ contract FIFOMarket is
     ActiveSupplier[] memory suppliers = new ActiveSupplier[](count);
     address currentSupplier = _currentSupplierAddress;
     for (uint256 i = 0; i < count; i++) {
-      RoundRobinOrder memory supplierInQueue = _suppliersInRoundRobinOrder[
-        currentSupplier
-      ];
-      ActiveSupplier memory supplier = ActiveSupplier({
+      suppliers[i] = ActiveSupplier({
         supplierAddress: currentSupplier,
         index: i,
         removalIds: _activeSupply[currentSupplier].values()
       });
-      suppliers[i] = supplier;
-      currentSupplier = supplierInQueue.nextSupplierAddress;
+      currentSupplier = _suppliersInRoundRobinOrder[currentSupplier]
+        .nextSupplierAddress;
     }
     ActiveSupply memory supply = ActiveSupply({
       currentSupplier: _currentSupplierAddress,
