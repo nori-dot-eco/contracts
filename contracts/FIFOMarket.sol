@@ -200,7 +200,7 @@ contract FIFOMarket is
         total += removalBalances[i];
       }
     }
-    uint256 aggregateTotalForSuppliers;
+    uint256 aggregateTotalForSuppliers = 0;
     supplierAddress = _currentSupplierAddress;
     for (uint256 i = 0; i < activeSupplierLength; i++) {
       uint256 totalForSupplier = 0;
