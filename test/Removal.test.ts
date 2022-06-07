@@ -1,8 +1,5 @@
-import { formatRemovalIdData } from '../utils/removal';
-
 import { createRemovalTokenId, expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
-import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 
 describe('Removal', () => {
   describe('mintBatch', () => {
@@ -13,13 +10,17 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const expectedMarketSupply = 0;
-        const { supplier } = hre.namedAccounts;
+        const { supplier, admin } = hre.namedAccounts;
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
-          removalBalances.map((_, i) => {
-            return createRemovalTokenId(removal, {
-              supplierAddress: supplier,
-              vintage: defaultStartingVintage + i,
+          removalBalances.map((_, index) => {
+            return createRemovalTokenId({
+              removal,
+              hre,
+              removalData: {
+                supplierAddress: supplier,
+                vintage: defaultStartingVintage + index,
+              },
             });
           })
         );
@@ -29,18 +30,13 @@ describe('Removal', () => {
           [fifoMarket.address, listNow]
         );
         await expect(
-          removal.mintBatch(
-            hre.namedAccounts.supplier,
-            removalBalances,
-            tokenIds,
-            packedData
-          )
+          removal.mintBatch(supplier, removalBalances, tokenIds, packedData)
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
-            hre.namedAccounts.admin,
+            admin,
             hre.ethers.constants.AddressZero,
-            hre.namedAccounts.supplier,
+            supplier,
             tokenIds,
             removalBalances
           );
@@ -65,13 +61,17 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const expectedMarketSupply = 1000;
-        const { supplier } = hre.namedAccounts;
+        const { supplier, admin } = hre.namedAccounts;
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
-          removalBalances.map((_, i) => {
-            return createRemovalTokenId(removal, {
-              supplierAddress: supplier,
-              vintage: defaultStartingVintage + i,
+          removalBalances.map((_, index) => {
+            return createRemovalTokenId({
+              removal,
+              hre,
+              removalData: {
+                supplierAddress: supplier,
+                vintage: defaultStartingVintage + index,
+              },
             });
           })
         );
@@ -81,18 +81,13 @@ describe('Removal', () => {
           [fifoMarket.address, listNow]
         );
         await expect(
-          removal.mintBatch(
-            hre.namedAccounts.supplier,
-            removalBalances,
-            tokenIds,
-            packedData
-          )
+          removal.mintBatch(supplier, removalBalances, tokenIds, packedData)
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
-            hre.namedAccounts.admin,
+            admin,
             hre.ethers.constants.AddressZero,
-            hre.namedAccounts.supplier,
+            supplier,
             tokenIds,
             removalBalances
           );
