@@ -177,6 +177,9 @@ contract FIFOMarket is
         j < supplierSet.length() && total < totalSupplyToCheck;
         j++
       ) {
+        /**
+         * Addresses Slither rule violation for "calls-loop"
+         */
         try _removal.balanceOf(address(this), supplierSet.at(j)) returns (
           uint256 removalBalance
         ) {
