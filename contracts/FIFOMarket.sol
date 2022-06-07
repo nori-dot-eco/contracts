@@ -37,6 +37,12 @@ contract FIFOMarket is
     address nextSupplierAddress;
   }
 
+  struct ActiveSupply {
+    address currentSupplier;
+    RoundRobinOrder queue;
+    uint256[] removalIds;
+  }
+
   IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
   Certificate private _certificate;
@@ -133,13 +139,15 @@ contract FIFOMarket is
   }
 
   /**
-   * @notice The amount of supply available for anyone to buy.
+   * @notice Returns the current supplier in the queue, the queue for pagination, and removalIds
    */
-  function totalUnrestrictedSupply() public view returns (uint256) {
-    if (totalActiveSupply < priorityRestrictedThreshold) {
-      return 0;
-    }
-    return totalActiveSupply - priorityRestrictedThreshold;
+  function activeSupply() external view returns (ActiveSupply memory) {
+    ActiveSupply memory supply = ActiveSupply({
+      currentSupplier: _currentSupplierAddress,
+      queue: _suppliersInRoundRobinOrder[_currentSupplierAddress],
+      removalIds: _activeSupply[_currentSupplierAddress].values()
+    });
+    return supply;
   }
 
   // TODO: this function no longer makes sense to exist based on how the market now works (less deterministic)
