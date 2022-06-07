@@ -41,12 +41,12 @@ contract FIFOMarket is
     address supplierAddress;
     uint256 index;
     uint256[] removalIds;
-    RoundRobinOrder queue;
   }
 
   struct ActiveSupply {
     address currentSupplier;
     ActiveSupplier[] suppliers;
+    RoundRobinOrder queue;
   }
 
   IERC1820RegistryUpgradeable private _erc1820;
@@ -175,15 +175,15 @@ contract FIFOMarket is
       ActiveSupplier memory supplier = ActiveSupplier({
         supplierAddress: currentSupplier,
         index: i,
-        removalIds: _activeSupply[currentSupplier].values(),
-        queue: supplierInQueue
+        removalIds: _activeSupply[currentSupplier].values()
       });
       suppliers[i] = supplier;
       currentSupplier = supplierInQueue.nextSupplierAddress;
     }
     ActiveSupply memory supply = ActiveSupply({
       currentSupplier: _currentSupplierAddress,
-      suppliers: suppliers
+      suppliers: suppliers,
+      queue: _suppliersInRoundRobinOrder[_currentSupplierAddress]
     });
     return supply;
   }
