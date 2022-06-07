@@ -37,10 +37,16 @@ contract FIFOMarket is
     address nextSupplierAddress;
   }
 
+  struct ActiveSupplier {
+    address supplierAddress;
+    uint256 index;
+    uint256[] removalIds;
+    RoundRobinOrder queue;
+  }
+
   struct ActiveSupply {
     address currentSupplier;
-    RoundRobinOrder queue;
-    uint256[] removalIds;
+    ActiveSupplier[] suppliers;
   }
 
   IERC1820RegistryUpgradeable private _erc1820;
@@ -141,11 +147,33 @@ contract FIFOMarket is
   /**
    * @notice Returns the current supplier in the queue, the queue for pagination, and removalIds
    */
-  function activeSupply() external view returns (ActiveSupply memory) {
+  function activeSupply(uint256 count)
+    external
+    view
+    returns (ActiveSupply memory)
+  {
+    require(
+      count <= activeSupplierCount,
+      "Market: count exceeds total active supplier count"
+    );
+    ActiveSupplier[] memory suppliers = new ActiveSupplier[](count);
+    address currentSupplier = _currentSupplierAddress;
+    for (uint256 i = 0; i < count; i++) {
+      RoundRobinOrder memory supplierInQueue = _suppliersInRoundRobinOrder[
+        currentSupplier
+      ];
+      ActiveSupplier memory supplier = ActiveSupplier({
+        supplierAddress: currentSupplier,
+        index: i,
+        removalIds: _activeSupply[currentSupplier].values(),
+        queue: supplierInQueue
+      });
+      suppliers[i] = supplier;
+      currentSupplier = supplierInQueue.nextSupplierAddress;
+    }
     ActiveSupply memory supply = ActiveSupply({
       currentSupplier: _currentSupplierAddress,
-      queue: _suppliersInRoundRobinOrder[_currentSupplierAddress],
-      removalIds: _activeSupply[_currentSupplierAddress].values()
+      suppliers: suppliers
     });
     return supply;
   }
