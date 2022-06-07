@@ -62,7 +62,7 @@ contract FIFOMarket is
   uint256 private _noriFee;
   uint256 public priorityRestrictedThreshold;
   uint256 public totalNumberActiveRemovals;
-  uint256 public _totalActiveSupply; // todo consider making private and then tweaking `totalUnrestrictedSupply()` declaration to accept a bool param that either returns the total unrestricted supply or the total unrestricted supply + restricted supply
+  uint256 private _totalActiveSupply;
   uint256 public totalReservedSupply;
   uint256 public activeSupplierCount;
   address public _currentSupplierAddress;
