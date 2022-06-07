@@ -32,6 +32,6 @@ library RemovalQueue {
       }
     }
     // If we've reached the end of the queue, insert the removal after the last removal in the queue.
-    return _queue.insertAfter(currentRemoval, _removalToInsert);
+    return _queue.pushBack(_removalToInsert);
   }
 }

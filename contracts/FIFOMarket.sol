@@ -14,7 +14,6 @@ import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
 import {RemovalQueue} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
-import "hardhat/console.sol"; // todo
 
 // todo emit events
 
@@ -200,7 +199,6 @@ contract FIFOMarket is
       ) {
         _addActiveSupplier(supplierAddress);
       }
-
       totalActiveSupply += removalAmount;
       totalNumberActiveRemovals += 1;
     }
