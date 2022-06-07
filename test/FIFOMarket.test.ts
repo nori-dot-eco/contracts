@@ -726,7 +726,7 @@ describe('FIFOMarket', () => {
       const purchaseAmount = (
         amountPerRemoval * numberOfRemovalsToCreate
       ).toString(); // purchase all supply
-      const fee = '750';
+      const fee = (Number(purchaseAmount) * 0.15).toString();
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
 
       const supplierInitialNoriBalance = '0';
