@@ -3,7 +3,6 @@
 pragma solidity =0.8.13;
 import {RemovalUtils} from "./RemovalUtils.sol";
 import "solidity-linked-list/contracts/StructuredLinkedList.sol";
-import "hardhat/console.sol"; // todo
 
 library RemovalQueue {
   using RemovalUtils for uint256;
@@ -12,7 +11,7 @@ library RemovalQueue {
   /**
    * @notice Inserts a new removal to the queue.
    * @dev The removal is added by order of vintage, such that it will be inserted before the first removal of a greater
-   * vintage that is found.
+   * vintage that is found. If no removal with a greater vintage is found, it will be pushed to the back of the queue.
    * @param _removalToInsert new removal to insert
    * @return bool true if success, false otherwise
    */
@@ -23,7 +22,6 @@ library RemovalQueue {
     (, , uint256 currentRemoval) = _queue.getNode(0);
     uint256 currentRemovalVintage = currentRemoval.vintage();
     uint256 vintageOfAddedRemoval = _removalToInsert.vintage();
-    console.log(vintageOfAddedRemoval);
     for (uint256 i = 0; i < _queue.sizeOf(); i++) {
       if (currentRemovalVintage < vintageOfAddedRemoval) {
         (, currentRemoval) = _queue.getNextNode(currentRemoval);
