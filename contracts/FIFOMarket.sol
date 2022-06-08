@@ -15,8 +15,6 @@ import "./BridgedPolygonNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
-import "hardhat/console.sol"; // todo
-
 // todo emit events
 
 /**
@@ -173,7 +171,6 @@ contract FIFOMarket is
     bytes memory
   ) public override returns (bytes4) {
     for (uint256 i = 0; i < ids.length; i++) {
-      console.log(i);
       uint256 removalToAdd = ids[i];
       uint256 removalAmount = _removal.balanceOf(address(this), removalToAdd); // TODO: Batch get removal amounts
       address supplierAddress = removalToAdd.supplierAddress();
