@@ -23,12 +23,12 @@ library RemovalQueue {
     uint256 currentRemovalVintage = currentRemoval.vintage();
     uint256 vintageOfAddedRemoval = _removalToInsert.vintage();
     for (uint256 i = 0; i < _queue.sizeOf(); i++) {
-      if (currentRemovalVintage < vintageOfAddedRemoval) {
-        (, currentRemoval) = _queue.getNextNode(currentRemoval);
-        currentRemovalVintage = currentRemoval.vintage();
-      } else {
+      if (currentRemovalVintage >= vintageOfAddedRemoval) {
         // Insert the removal before the first removal we encounter with a greater vintage.
         return _queue.insertBefore(currentRemoval, _removalToInsert);
+      } else {
+        (, currentRemoval) = _queue.getNextNode(currentRemoval);
+        currentRemovalVintage = currentRemoval.vintage();
       }
     }
     // If we've reached the end of the queue, insert the removal after the last removal in the queue.

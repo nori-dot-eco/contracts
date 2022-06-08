@@ -6,7 +6,7 @@ const { INFURA_STAGING_KEY, INFURA_PROD_KEY, MNEMONIC, LOG_HARDHAT_NETWORK } =
   process.env;
 
 const hardhat: NetworksUserConfig['hardhat'] = {
-  blockGasLimit: 20_000_000,
+  blockGasLimit: 30_000_000,
   initialBaseFeePerGas: 1,
   gasPrice: 2,
   chainId: 9001,
@@ -18,13 +18,14 @@ const hardhat: NetworksUserConfig['hardhat'] = {
 };
 
 const localhost: NetworkUserConfig = {
-  blockGasLimit: 20_000_000,
+  blockGasLimit: 30_000_000,
   initialBaseFeePerGas: 1,
   gasPrice: 1,
   chainId: 9001,
   ...(typeof MNEMONIC === 'string' && {
     accounts: { mnemonic: MNEMONIC },
   }),
+  allowUnlimitedContractSize: true,
   loggingEnabled: LOG_HARDHAT_NETWORK,
   url: 'http://127.0.0.1:8545',
   tags: ['test'],

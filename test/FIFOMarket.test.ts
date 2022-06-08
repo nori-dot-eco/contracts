@@ -710,10 +710,10 @@ describe('FIFOMarket', () => {
     });
     it('should mint a certificate with multiple removals per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const numberOfRemovalsToCreate = 50;
+      const amountOfRemovals = 100;
       const amountPerRemoval = 50;
       const removalDataToList = [
-        ...Array.from({ length: numberOfRemovalsToCreate }).keys(),
+        ...Array.from({ length: amountOfRemovals }).keys(),
       ].map((_) => {
         return { amount: amountPerRemoval };
       });
@@ -723,9 +723,7 @@ describe('FIFOMarket', () => {
       });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
-      const purchaseAmount = (
-        amountPerRemoval * numberOfRemovalsToCreate
-      ).toString(); // purchase all supply
+      const purchaseAmount = (amountPerRemoval * amountOfRemovals).toString(); // purchase all supply
       const fee = (Number(purchaseAmount) * 0.15).toString();
       const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
 
