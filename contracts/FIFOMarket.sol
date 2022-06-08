@@ -46,7 +46,7 @@ contract FIFOMarket is
   struct ActiveSupply {
     address currentSupplier;
     ActiveSupplier[] suppliers;
-    RoundRobinOrder queue;
+    RoundRobinOrder node;
   }
 
   IERC1820RegistryUpgradeable private _erc1820;
@@ -59,7 +59,7 @@ contract FIFOMarket is
   uint256 public totalNumberActiveRemovals;
   uint256 public totalActiveSupply;
   uint256 public totalReservedSupply;
-  uint256 public activeSupplierCount;
+  uint256 private _activeSupplierCount;
   address private _currentSupplierAddress;
   mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
   EnumerableSetUpgradeable.UintSet private _reservedSupply;
@@ -127,7 +127,7 @@ contract FIFOMarket is
   {
     uint256 total = 0;
     address supplierAddress = _currentSupplierAddress;
-    for (uint256 i = 0; i < activeSupplierCount; i++) {
+    for (uint256 i = 0; i < _activeSupplierCount; i++) {
       EnumerableSetUpgradeable.UintSet storage supplierSet = _activeSupply[
         supplierAddress
       ];
@@ -154,6 +154,10 @@ contract FIFOMarket is
     return totalActiveSupply - priorityRestrictedThreshold;
   }
 
+  function activeSupplierCount() public view returns (uint256) {
+    return _activeSupplierCount;
+  }
+
   /**
    * @notice Returns the current supplier in the queue, the queue for pagination, and removalIds
    */
@@ -163,7 +167,7 @@ contract FIFOMarket is
     returns (ActiveSupply memory)
   {
     require(
-      count <= activeSupplierCount,
+      count <= _activeSupplierCount,
       "Market: count exceeds total active supplier count"
     );
     ActiveSupplier[] memory suppliers = new ActiveSupplier[](count);
@@ -180,7 +184,7 @@ contract FIFOMarket is
     ActiveSupply memory supply = ActiveSupply({
       currentSupplier: _currentSupplierAddress,
       suppliers: suppliers,
-      queue: _suppliersInRoundRobinOrder[_currentSupplierAddress]
+      node: _suppliersInRoundRobinOrder[_currentSupplierAddress]
     });
     return supply;
   }
@@ -467,7 +471,7 @@ contract FIFOMarket is
       _suppliersInRoundRobinOrder[_currentSupplierAddress]
         .previousSupplierAddress = supplierAddress;
     }
-    activeSupplierCount += 1;
+    _activeSupplierCount += 1;
   }
 
   /**
@@ -508,6 +512,6 @@ contract FIFOMarket is
       previousSupplierAddress: address(0)
     });
     // Decrement the total count of active suppliers.
-    activeSupplierCount -= 1;
+    _activeSupplierCount -= 1;
   }
 }

@@ -1,5 +1,6 @@
 import type { BigNumberish, ContractReceipt } from 'ethers';
 import { BigNumber } from 'ethers';
+import { string } from 'yup';
 
 import { formatTokenAmount } from '@/utils/units';
 import type { RemovalDataForListing } from '@/test/helpers';
@@ -19,7 +20,7 @@ interface RemovalDataFromListing {
 
 const setupTestLocal = async (options?: {
   buyerInitialBPNoriBalance?: BigNumberish;
-  removalDataToList?: RemovalDataForListing[]; // todo userFixtures format
+  removalDataToList?: RemovalDataForListing[]; // todo userFixtures format and accept keys of hre.namedAccounts
 }): Promise<Awaited<ReturnType<typeof setupTest>> & RemovalDataFromListing> => {
   const {
     removalDataToList,
@@ -1189,6 +1190,170 @@ describe('FIFOMarket', () => {
       expect(activeSupplierCount.toNumber()).to.equal(0);
       expect(totalReservedSupply).to.equal(
         formatTokenAmount(getTotalAmountOfSupply(removals))
+      );
+    });
+  });
+  describe('activeSupply', () => {
+    it('should return a list of removals for all active suppliers with the current active supplier and the queue for pagination', async () => {
+      const removalDataToListForSupplier1: RemovalDataForListing[] = [
+        { amount: 5, supplierAddress: global.hre.namedAccounts.supplier },
+      ];
+      const removalDataToListForSupplier2: RemovalDataForListing[] = [
+        { amount: 10, supplierAddress: global.hre.namedAccounts.unassigned0 },
+      ];
+      const {
+        fifoMarket,
+        listedRemovalIds: listedRemovalIdsForSupplier1,
+        removal,
+      } = await setupTestLocal({
+        removalDataToList: removalDataToListForSupplier1,
+      });
+      const { listedRemovalIds: listedRemovalIdsForSupplier2 } =
+        await batchMintAndListRemovalsForSale({
+          // todo make setupTestLocal accept multiple suppliers as fixtures
+          removalDataToList: removalDataToListForSupplier2,
+          removal,
+          fifoMarket,
+          hre,
+        });
+      const expectedSuppliers = [
+        ...new Set(
+          [removalDataToListForSupplier1, removalDataToListForSupplier2]
+            .flat()
+            .map((r) => r.supplierAddress)
+        ),
+      ].map((s, index) => ({
+        supplierAddress: s,
+        index: BigNumber.from(index),
+        removalIds: [
+          listedRemovalIdsForSupplier1,
+          listedRemovalIdsForSupplier2,
+        ][index],
+      }));
+      const count = await fifoMarket.activeSupplierCount();
+      const { currentSupplier, suppliers, node } =
+        await fifoMarket.activeSupply(count);
+      expect({
+        currentSupplier,
+        suppliers: suppliers.map(({ supplierAddress, index, removalIds }) => ({
+          supplierAddress,
+          index: BigNumber.from(index),
+          removalIds,
+        })),
+        node: {
+          previousSupplierAddress: node.previousSupplierAddress,
+          nextSupplierAddress: node.nextSupplierAddress,
+        },
+      }).to.deep.eq({
+        currentSupplier: removalDataToListForSupplier1[0].supplierAddress,
+        suppliers: expectedSuppliers,
+        node: {
+          previousSupplierAddress:
+            removalDataToListForSupplier2[0].supplierAddress,
+          nextSupplierAddress: removalDataToListForSupplier2[0].supplierAddress,
+        },
+      });
+    });
+    it('should return a list of removals for 1 active suppliers with the current active supplier and the queue for pagination', async () => {
+      const removalDataToListForSupplier1: RemovalDataForListing[] = [
+        { amount: 5, supplierAddress: global.hre.namedAccounts.supplier },
+      ];
+      const removalDataToListForSupplier2: RemovalDataForListing[] = [
+        { amount: 10, supplierAddress: global.hre.namedAccounts.unassigned0 },
+      ];
+      const {
+        fifoMarket,
+        listedRemovalIds: listedRemovalIdsForSupplier1,
+        removal,
+      } = await setupTestLocal({
+        removalDataToList: removalDataToListForSupplier1,
+      });
+      await batchMintAndListRemovalsForSale({
+        // todo make setupTestLocal accept multiple suppliers as fixtures
+        removalDataToList: removalDataToListForSupplier2,
+        removal,
+        fifoMarket,
+        hre,
+      });
+      const expectedSuppliers = [
+        ...new Set(
+          [removalDataToListForSupplier1].flat().map((r) => r.supplierAddress)
+        ),
+      ].map((s, index) => ({
+        supplierAddress: s,
+        index: BigNumber.from(index),
+        removalIds: [listedRemovalIdsForSupplier1][index],
+      }));
+      const count = 1;
+      const { currentSupplier, suppliers, node } =
+        await fifoMarket.activeSupply(count);
+      expect({
+        currentSupplier,
+        suppliers: suppliers.map(({ supplierAddress, index, removalIds }) => ({
+          supplierAddress,
+          index: BigNumber.from(index),
+          removalIds,
+        })),
+        node: {
+          previousSupplierAddress: node.previousSupplierAddress,
+          nextSupplierAddress: node.nextSupplierAddress,
+        },
+      }).to.deep.eq({
+        currentSupplier: removalDataToListForSupplier1[0].supplierAddress,
+        suppliers: expectedSuppliers,
+        node: {
+          previousSupplierAddress:
+            removalDataToListForSupplier2[0].supplierAddress,
+          nextSupplierAddress: removalDataToListForSupplier2[0].supplierAddress,
+        },
+      });
+    });
+    it('should return an empty list of removals for 0 active suppliers with the current active supplier and the queue for pagination', async () => {
+      const removalDataToListForSupplier1: RemovalDataForListing[] = [
+        { amount: 5, supplierAddress: global.hre.namedAccounts.supplier },
+      ];
+      const removalDataToListForSupplier2: RemovalDataForListing[] = [
+        { amount: 10, supplierAddress: global.hre.namedAccounts.unassigned0 },
+      ];
+      const { fifoMarket, removal } = await setupTestLocal({
+        removalDataToList: removalDataToListForSupplier1,
+      });
+      await batchMintAndListRemovalsForSale({
+        // todo make setupTestLocal accept multiple suppliers as fixtures
+        removalDataToList: removalDataToListForSupplier2,
+        removal,
+        fifoMarket,
+        hre,
+      });
+      const count = 0;
+      const { currentSupplier, suppliers, node } =
+        await fifoMarket.activeSupply(count);
+      expect({
+        currentSupplier,
+        suppliers: suppliers.map(({ supplierAddress, index, removalIds }) => ({
+          supplierAddress,
+          index: BigNumber.from(index),
+          removalIds,
+        })),
+        node: {
+          previousSupplierAddress: node.previousSupplierAddress,
+          nextSupplierAddress: node.nextSupplierAddress,
+        },
+      }).to.deep.eq({
+        currentSupplier: removalDataToListForSupplier1[0].supplierAddress,
+        suppliers: [],
+        node: {
+          previousSupplierAddress:
+            removalDataToListForSupplier2[0].supplierAddress,
+          nextSupplierAddress: removalDataToListForSupplier2[0].supplierAddress,
+        },
+      });
+    });
+    it('should revert when count > current active supply', async () => {
+      const { fifoMarket } = await setupTestLocal();
+      const count = 1;
+      await expect(fifoMarket.activeSupply(count)).to.be.revertedWith(
+        'Market: count exceeds total active supplier count'
       );
     });
   });

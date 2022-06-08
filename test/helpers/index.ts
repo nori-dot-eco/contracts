@@ -195,7 +195,8 @@ export const batchMintAndListRemovalsForSale = async ({
   fifoMarket: FIFOMarket;
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<RemovalDataFromListing> => {
-  const { supplier } = hre.namedAccounts;
+  const supplier =
+    removalDataToList[0].supplierAddress ?? hre.namedAccounts.supplier; // todo allow multiple suppliers using fixture format
   const defaultStartingVintage = 2016;
   const listedRemovalIds = await Promise.all(
     removalDataToList.map((removalData, index) => {

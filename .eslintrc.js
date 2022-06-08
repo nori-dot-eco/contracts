@@ -13,6 +13,10 @@ module.exports = {
       rules: {
         '@typescript-eslint/no-unused-expressions': 'off',
         'jest/valid-expect': 'off',
+        'jest/expect-expect': [
+          'error',
+          { assertFunctionNames: ['expect', '**.should'] },
+        ],
       },
     },
   ],
