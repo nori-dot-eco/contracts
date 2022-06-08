@@ -154,7 +154,7 @@ contract FIFOMarket is
     return totalActiveSupply - priorityRestrictedThreshold;
   }
 
-  function activeSupplierCount() public view returns (uint256) {
+  function activeSupplierCount() external view returns (uint256) {
     return _activeSupplierCount;
   }
 

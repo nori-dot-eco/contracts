@@ -13,7 +13,7 @@ import { getEthernalConfig } from '@/config/ethernal';
 import { getGasReporterConfig } from '@/config/gas-reporter';
 import { solidity } from '@/config/solidity';
 import { docgen } from '@/config/docgen';
-import { mocha } from '@/config/mocha';
+import { getMochaConfig } from '@/config/mocha';
 import { fireblocks } from '@/config/fireblocks';
 
 export const getConfig = (
@@ -28,7 +28,7 @@ export const getConfig = (
     defender,
     gasReporter: getGasReporterConfig(environment), // todo getters for all configs
     solidity,
-    mocha,
+    mocha: getMochaConfig(),
     fireblocks,
     ethernal: getEthernalConfig(environment),
   };
