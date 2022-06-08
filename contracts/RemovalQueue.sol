@@ -23,65 +23,64 @@ library RemovalQueue {
    * @notice Inserts a new removal to the queue.
    * @dev The removal is added by order of vintage, such that it will be inserted before the first removal of a greater
    * vintage that is found. If no removal with a greater vintage is found, it will be pushed to the back of the queue.
-   * @param _removalToInsert new removal to insert
+   * @param removalToInsert new removal to insert
    * @return bool true if success, false otherwise
    */
   function insertRemovalByVintage(
-    RemovalQueueByVintage storage _removalQueue,
-    uint256 _removalToInsert
+    RemovalQueueByVintage storage removalQueue,
+    uint256 removalToInsert
   ) internal returns (bool) {
-    uint16 vintageOfRemoval = _removalToInsert.vintage();
-    if (isRemovalQueueEmpty(_removalQueue)) {
-      _removalQueue.earliestYear = vintageOfRemoval;
-      _removalQueue.latestYear = vintageOfRemoval;
-    } else if (vintageOfRemoval < _removalQueue.earliestYear) {
-      _removalQueue.earliestYear = vintageOfRemoval;
-    } else if (vintageOfRemoval > _removalQueue.latestYear) {
-      _removalQueue.latestYear = vintageOfRemoval;
+    uint16 vintageOfRemoval = removalToInsert.vintage();
+    if (isRemovalQueueEmpty(removalQueue)) {
+      removalQueue.earliestYear = vintageOfRemoval;
+      removalQueue.latestYear = vintageOfRemoval;
+    } else if (vintageOfRemoval < removalQueue.earliestYear) {
+      removalQueue.earliestYear = vintageOfRemoval;
+    } else if (vintageOfRemoval > removalQueue.latestYear) {
+      removalQueue.latestYear = vintageOfRemoval;
     }
-    return _removalQueue.queueByVintage[vintageOfRemoval].add(_removalToInsert);
+    return removalQueue.queueByVintage[vintageOfRemoval].add(removalToInsert);
   }
 
   /**
-   * @param _removalQueue the queue to search through.
+   * @param removalQueue the queue to search through.
    */
   function removeRemoval(
-    RemovalQueueByVintage storage _removalQueue,
-    uint256 _removalToRemove
+    RemovalQueueByVintage storage removalQueue,
+    uint256 removalToRemove
   ) internal returns (bool) {
-    uint16 vintageOfRemoval = _removalToRemove.vintage();
+    uint16 vintageOfRemoval = removalToRemove.vintage();
     require(
-      _removalQueue.queueByVintage[vintageOfRemoval].remove(_removalToRemove) ==
-        true,
+      removalQueue.queueByVintage[vintageOfRemoval].remove(removalToRemove),
       "Market: failed to remove correct removal"
     );
     // If all removals were removed, check to see if there are any updates to the struct we need to make.
-    if (isRemovalQueueEmptyForVintage(_removalQueue, vintageOfRemoval)) {
-      if (_removalQueue.earliestYear == _removalQueue.latestYear) {
+    if (isRemovalQueueEmptyForVintage(removalQueue, vintageOfRemoval)) {
+      if (removalQueue.earliestYear == removalQueue.latestYear) {
         // If there was only one year remaining, clear the values for latest and earliest years.
-        _removalQueue.earliestYear = _DEFAULT_EARLIEST_YEAR;
-        _removalQueue.latestYear = _DEFAULT_LATEST_YEAR;
-      } else if (vintageOfRemoval == _removalQueue.earliestYear) {
+        removalQueue.earliestYear = _DEFAULT_EARLIEST_YEAR;
+        removalQueue.latestYear = _DEFAULT_LATEST_YEAR;
+      } else if (vintageOfRemoval == removalQueue.earliestYear) {
         // If this was the earliest year, find the new earliest year and update the struct.
         for (
-          uint16 currentYear = _removalQueue.earliestYear + 1;
-          currentYear <= _removalQueue.latestYear;
+          uint16 currentYear = removalQueue.earliestYear + 1;
+          currentYear <= removalQueue.latestYear;
           currentYear++
         ) {
-          if (_removalQueue.queueByVintage[currentYear].length() > 0) {
-            _removalQueue.earliestYear = currentYear;
+          if (removalQueue.queueByVintage[currentYear].length() > 0) {
+            removalQueue.earliestYear = currentYear;
             break;
           }
         }
-      } else if (vintageOfRemoval == _removalQueue.latestYear) {
+      } else if (vintageOfRemoval == removalQueue.latestYear) {
         // If this was the latest year, find the new latest year and update the struct.
         for (
-          uint16 currentYear = _removalQueue.latestYear - 1;
-          currentYear >= _removalQueue.earliestYear;
+          uint16 currentYear = removalQueue.latestYear - 1;
+          currentYear >= removalQueue.earliestYear;
           currentYear--
         ) {
-          if (_removalQueue.queueByVintage[currentYear].length() > 0) {
-            _removalQueue.latestYear = currentYear;
+          if (removalQueue.queueByVintage[currentYear].length() > 0) {
+            removalQueue.latestYear = currentYear;
             break;
           }
         }
@@ -90,72 +89,56 @@ library RemovalQueue {
     return true;
   }
 
-  function isRemovalQueueEmpty(RemovalQueueByVintage storage _removalQueue)
+  function isRemovalQueueEmpty(RemovalQueueByVintage storage removalQueue)
     internal
     view
     returns (bool)
   {
-    return _removalQueue.latestYear == _DEFAULT_LATEST_YEAR;
+    return removalQueue.latestYear == _DEFAULT_LATEST_YEAR;
   }
 
   function isRemovalQueueEmptyForVintage(
-    RemovalQueueByVintage storage _removalQueue,
+    RemovalQueueByVintage storage removalQueue,
     uint16 vintage
   ) internal view returns (bool) {
-    return _removalQueue.queueByVintage[vintage].length() == 0;
+    return getSizeOfQueueForVintage(removalQueue, vintage) == 0;
   }
 
   /**
-   * @param _removalQueue the queue to search through.
+   * @param removalQueue the queue to search through.
    */
-  function getNextRemovalForSale(RemovalQueueByVintage storage _removalQueue)
+  function getNextRemovalForSale(RemovalQueueByVintage storage removalQueue)
     internal
     view
     returns (uint256)
   {
-    return _removalQueue.queueByVintage[_removalQueue.earliestYear].at(0);
+    return removalQueue.queueByVintage[removalQueue.earliestYear].at(0);
   }
 
   function getSizeOfQueueForVintage(
-    RemovalQueueByVintage storage _removalQueue,
+    RemovalQueueByVintage storage removalQueue,
     uint16 vintage
   ) internal view returns (uint256) {
-    return _removalQueue.queueByVintage[vintage].length();
-  }
-
-  function getSizeOfRemovalQueue(RemovalQueueByVintage storage _removalQueue)
-    internal
-    view
-    returns (uint256)
-  {
-    uint256 size = 0;
-    for (
-      uint16 currentYear = _removalQueue.earliestYear;
-      currentYear <= _removalQueue.latestYear;
-      currentYear++
-    ) {
-      size += _removalQueue.queueByVintage[currentYear].length();
-    }
-    return size;
+    return removalQueue.queueByVintage[vintage].length();
   }
 
   function getTotalBalanceFromRemovalQueue(
-    RemovalQueueByVintage storage _removalQueue,
-    Removal _removal
+    RemovalQueueByVintage storage removalQueue,
+    Removal removal
   ) internal view returns (uint256) {
     uint256 size = 0;
     uint256 i = 0;
     uint256 totalBalance = 0;
     uint256 currentRemoval;
     for (
-      uint16 currentYear = _removalQueue.earliestYear;
-      currentYear <= _removalQueue.latestYear;
+      uint16 currentYear = removalQueue.earliestYear;
+      currentYear <= removalQueue.latestYear;
       currentYear++
     ) {
-      size = _removalQueue.queueByVintage[currentYear].length();
+      size = removalQueue.queueByVintage[currentYear].length();
       for (i = 0; i < size; i++) {
-        currentRemoval = _removalQueue.queueByVintage[currentYear].at(i);
-        totalBalance += _removal.balanceOf(address(this), currentRemoval);
+        currentRemoval = removalQueue.queueByVintage[currentYear].at(i);
+        totalBalance += removal.balanceOf(address(this), currentRemoval);
       }
     }
     return totalBalance;

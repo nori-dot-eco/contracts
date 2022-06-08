@@ -316,7 +316,7 @@ contract FIFOMarket is
   function reserveRemoval(uint256 removalId) external returns (bool) {
     address supplierAddress = removalId.supplierAddress();
     require(
-      _activeSupply[supplierAddress].removeRemoval(removalId) == true,
+      _activeSupply[supplierAddress].removeRemoval(removalId),
       "Market: removal not in active supply"
     );
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
@@ -328,10 +328,7 @@ contract FIFOMarket is
       _removeActiveSupplier(supplierAddress);
     }
     // todo any checks on whether this id was already in there?
-    require(
-      _reservedSupply.add(removalId) == true,
-      "Market: Removal already reserved"
-    );
+    require(_reservedSupply.add(removalId), "Market: Removal already reserved");
     return true; // returns true if the value was added to the set, that is, if it was not already present
   }
 
@@ -347,7 +344,7 @@ contract FIFOMarket is
     address supplierAddress = removalId.supplierAddress();
 
     require(
-      _reservedSupply.remove(removalId) == true,
+      _reservedSupply.remove(removalId),
       "Market: removal not in reserved supply"
     );
     totalNumberActiveRemovals += 1;
@@ -359,7 +356,7 @@ contract FIFOMarket is
       _addActiveSupplier(supplierAddress);
     }
     require(
-      _activeSupply[supplierAddress].insertRemovalByVintage(removalId) == true,
+      _activeSupply[supplierAddress].insertRemovalByVintage(removalId),
       "Market: Unable to unreserve removal"
     ); // returns true if the value was added to the set, that is, if it was not already present
     return true;
