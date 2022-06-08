@@ -12,8 +12,10 @@ import "solidity-linked-list/contracts/StructuredLinkedList.sol";
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
-import {RemovalQueue} from "./RemovalQueue.sol";
+import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
+
+import "hardhat/console.sol"; // todo
 
 // todo emit events
 
@@ -30,7 +32,7 @@ contract FIFOMarket is
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using StructuredLinkedList for StructuredLinkedList.List;
-  using RemovalQueue for StructuredLinkedList.List;
+  using RemovalQueue for RemovalQueueByVintage;
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -53,8 +55,8 @@ contract FIFOMarket is
   uint256 public activeSupplierCount;
   address private _currentSupplierAddress;
   mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
-  mapping(address => StructuredLinkedList.List) private _activeSupply;
-  StructuredLinkedList.List private _reservedSupply;
+  mapping(address => RemovalQueueByVintage) private _activeSupply;
+  EnumerableSetUpgradeable.UintSet private _reservedSupply;
 
   /**
    * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
@@ -119,17 +121,9 @@ contract FIFOMarket is
     uint256 total = 0;
     address supplierAddress = _currentSupplierAddress;
     for (uint256 i = 0; i < activeSupplierCount; i++) {
-      (, , uint256 currentRemoval) = _activeSupply[supplierAddress].getNode(0);
-      for (uint256 j = 0; j < _activeSupply[supplierAddress].sizeOf(); j++) {
-        uint256 removalBalance = _removal.balanceOf(
-          address(this),
-          currentRemoval
-        );
-        (, currentRemoval) = _activeSupply[supplierAddress].getNextNode(
-          currentRemoval
-        );
-        total += removalBalance;
-      }
+      total += _activeSupply[supplierAddress].getTotalBalanceFromRemovalQueue(
+        _removal
+      );
       supplierAddress = _suppliersInRoundRobinOrder[supplierAddress]
         .nextSupplierAddress;
     }
@@ -179,12 +173,13 @@ contract FIFOMarket is
     bytes memory
   ) public override returns (bytes4) {
     for (uint256 i = 0; i < ids.length; i++) {
+      console.log(i);
       uint256 removalToAdd = ids[i];
-      uint256 removalAmount = _removal.balanceOf(address(this), removalToAdd);
+      uint256 removalAmount = _removal.balanceOf(address(this), removalToAdd); // TODO: Batch get removal amounts
       address supplierAddress = removalToAdd.supplierAddress();
 
       require(
-        _activeSupply[supplierAddress].insertByVintage(removalToAdd),
+        _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd),
         "Market: Unable to add removal by vintage"
       );
       // If a new supplier has been added, or if the supplier had previously sold out
@@ -240,9 +235,8 @@ contract FIFOMarket is
     address[] memory suppliers = new address[](totalNumberActiveRemovals);
     uint256 numberOfRemovals = 0;
     for (uint256 i = 0; i < totalNumberActiveRemovals; i++) {
-      (, , uint256 removalId) = _activeSupply[_currentSupplierAddress].getNode(
-        0
-      ); // grab head of this supplier's queue
+      uint256 removalId = _activeSupply[_currentSupplierAddress]
+        .getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       // order complete, not fully using up this removal, don't increment currentSupplierAddress, don't check about removing active supplier
       if (remainingAmountToFill < removalAmount) {
@@ -264,11 +258,12 @@ contract FIFOMarket is
         remainingAmountToFill -= removalAmount;
 
         require(
-          _activeSupply[_currentSupplierAddress].popFront() == removalId,
-          "Market: Failed to pop removal from supply"
+          _activeSupply[_currentSupplierAddress].removeRemoval(removalId) ==
+            true,
+          "Market: Failed to remove removal from supply"
         );
         // If the supplier is out of supply, remove them from the active suppliers
-        if (_activeSupply[_currentSupplierAddress].sizeOf() == 0) {
+        if (_activeSupply[_currentSupplierAddress].isRemovalQueueEmpty()) {
           _removeActiveSupplier(_currentSupplierAddress);
           // else if the supplier is the only supplier remaining with supply, don't bother incrementing.
         } else if (
@@ -324,20 +319,20 @@ contract FIFOMarket is
   function reserveRemoval(uint256 removalId) external returns (bool) {
     address supplierAddress = removalId.supplierAddress();
     require(
-      _activeSupply[supplierAddress].remove(removalId) == removalId,
+      _activeSupply[supplierAddress].removeRemoval(removalId) == true,
       "Market: removal not in active supply"
     );
-    totalNumberActiveRemovals -= 1;
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     totalActiveSupply -= removalBalance;
     totalReservedSupply += removalBalance;
+    totalNumberActiveRemovals -= 1;
     // If this is the last removal for the supplier, remove them from active suppliers
-    if (_activeSupply[supplierAddress].sizeOf() == 0) {
+    if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _removeActiveSupplier(supplierAddress);
     }
     // todo any checks on whether this id was already in there?
     require(
-      _reservedSupply.pushBack(removalId),
+      _reservedSupply.add(removalId) == true,
       "Market: Removal already reserved"
     );
     return true; // returns true if the value was added to the set, that is, if it was not already present
@@ -355,7 +350,7 @@ contract FIFOMarket is
     address supplierAddress = removalId.supplierAddress();
 
     require(
-      _reservedSupply.remove(removalId) == removalId,
+      _reservedSupply.remove(removalId) == true,
       "Market: removal not in reserved supply"
     );
     totalNumberActiveRemovals += 1;
@@ -363,11 +358,11 @@ contract FIFOMarket is
     totalActiveSupply += removalBalance;
     totalReservedSupply -= removalBalance;
     // If the supplier has previously been removed from the active suppliers, add them back
-    if (_activeSupply[supplierAddress].sizeOf() == 0) {
+    if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _addActiveSupplier(supplierAddress);
     }
     require(
-      _activeSupply[supplierAddress].insertByVintage(removalId) == true,
+      _activeSupply[supplierAddress].insertRemovalByVintage(removalId) == true,
       "Market: Unable to unreserve removal"
     ); // returns true if the value was added to the set, that is, if it was not already present
     return true;

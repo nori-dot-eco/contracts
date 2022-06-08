@@ -54,6 +54,9 @@ export const advanceTime = async ({
   await hre.network.provider.send('hardhat_mine');
 };
 
+const generateRandomSubIdentifier = (): number =>
+  Math.floor(Math.random() * (2 ** 32 - 1));
+
 type UserFixtures = {
   [Property in keyof typeof namedAccounts]?: {
     bpBalance?: BigNumberish;
@@ -205,6 +208,7 @@ export const batchMintAndListRemovalsForSale = async ({
         removalData: {
           supplierAddress: removalData.supplierAddress ?? supplier,
           vintage: removalData.vintage ?? defaultStartingVintage + index,
+          subIdentifier: generateRandomSubIdentifier(),
         },
       });
     })

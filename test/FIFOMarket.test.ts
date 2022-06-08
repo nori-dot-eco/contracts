@@ -714,8 +714,8 @@ describe('FIFOMarket', () => {
       const amountPerRemoval = 50;
       const removalDataToList = [
         ...Array.from({ length: amountOfRemovals }).keys(),
-      ].map((_) => {
-        return { amount: amountPerRemoval };
+      ].map((_, index) => {
+        return { amount: amountPerRemoval, vintage: 2015 + (index % 5) };
       });
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
