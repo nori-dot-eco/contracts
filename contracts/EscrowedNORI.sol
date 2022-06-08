@@ -13,6 +13,11 @@ import "hardhat/console.sol"; // todo
 
 /*
 TODO LIST:
+- ask Radhika if escrow schedule durations could change on a contract-to-contract basis ever?
+
+- consider writing a modifier (or just a private function) that encapsulates the transfer permissions/restrictions?
+    - invoked by _beforeTokenTransfer
+
 - expose a single version of revokeUnreleasedTokens? maybe not
 
 - roles and permissions audit
@@ -31,6 +36,7 @@ TODO LIST:
 uint256 constant SECONDS_IN_TEN_YEARS = 315_569_520;
 
 error BurningNotSupported();
+error OperatorActionsNotSupported();
 error TokenSenderNotBPNORI();
 error RecipientCannotBeZeroAddress();
 error RecipientCannotHaveRole(address recipient, string role);
@@ -47,7 +53,6 @@ error ArrayLengthMismatch(string array1Name, string array2Name);
 error AllTokensAlreadyReleased(uint256 scheduleId);
 error InsufficientUnreleasedTokens(uint256 scheduleId);
 error InsufficientBalance(address account, uint256 scheduleId);
-error LogicError(string message);
 
 contract EscrowedNORI is
   IERC777RecipientUpgradeable,
@@ -489,12 +494,13 @@ contract EscrowedNORI is
     if (!(_msgSender() == address(_bridgedPolygonNori))) {
       revert TokenSenderNotBPNORI();
     }
-    if (!hasRole(ESCROW_CREATOR_ROLE, sender)) {
-      revert MissingRequiredRole({
-        account: sender,
-        role: "ESCROW_CREATOR_ROLE"
-      });
-    }
+    // todo require that _msgSender() IS the market contract (avoid polluting schedule creation)
+    // if (!hasRole(ESCROW_CREATOR_ROLE, sender)) {
+    //   revert MissingRequiredRole({
+    //     account: sender,
+    //     role: "ESCROW_CREATOR_ROLE"
+    //   });
+    // }
 
     uint256 removalId = abi.decode(userData, (uint256));
     _depositFor(removalId, amount, userData, operatorData);
@@ -781,22 +787,35 @@ contract EscrowedNORI is
       quantityToRevoke = revocableQuantityForSchedule(scheduleId);
     }
 
-    escrowSchedule.totalSupply = escrowSchedule.totalSupply - quantityToRevoke;
-    escrowSchedule.releasedAmountFloor = releasedBalance;
-    escrowSchedule.totalQuantityRevoked += quantityToRevoke;
     // burn correct proportion from each token holder
     EnumerableSetUpgradeable.AddressSet storage tokenHolders = escrowSchedule
       .tokenHolders;
+    uint256[] memory burnableAmountsForHolders = new uint256[](
+      tokenHolders.length()
+    );
+    // burnable amounts need to be calculated for each owner before state such as totalSupply is mutated
     for (uint256 i = 0; i < tokenHolders.length(); i++) {
-      uint256 burnableAmountForHolder = _revocableQuantityForScheduleForAccount(
+      burnableAmountsForHolders[i] = _revocableQuantityForScheduleForAccount(
         scheduleId,
         tokenHolders.at(i)
       );
-      super._burn(tokenHolders.at(i), scheduleId, burnableAmountForHolder);
+    }
+    for (uint256 i = 0; i < tokenHolders.length(); i++) {
+      super._burn(tokenHolders.at(i), scheduleId, burnableAmountsForHolders[i]);
       escrowSchedule.quantitiesRevokedByAddress[
         tokenHolders.at(i)
-      ] += burnableAmountForHolder;
+      ] += burnableAmountsForHolders[i];
     }
+    // TODO it's possible that since integer division rounds toward 0 in solidity, we end up with
+    // burned values per holder that don't quite add up to the total quantity to be revoked!
+    // for example, totalSupply 100, revoking 50, one balance is 31, another balance is 69, that's going to
+    // revoke 15.5 and 34.4 respectively, which is actually 15 and 34, which sums to 49 and not 50!
+    // granted, real token amounts will usually be much larger values where the truncations are insignificant
+    // ... but still, we should update this struct with the real value by summing across the burnable amounts
+    // for all holders.
+    escrowSchedule.totalSupply -= quantityToRevoke;
+    escrowSchedule.releasedAmountFloor = releasedBalance;
+    escrowSchedule.totalQuantityRevoked += quantityToRevoke;
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
@@ -860,6 +879,7 @@ contract EscrowedNORI is
         }
       }
     }
+    // todo transfer permission checks here?
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
@@ -940,16 +960,33 @@ contract EscrowedNORI is
   }
 
   // Disabled functions ===========================================
-  // todo what do we do with:
-  // setApprovalForAll ?
-  // isApprovedForAll ?
+  /**
+   * Overridden standard ERC1155.setApprovalForAll that will always revert
+   *
+   * @dev This function is not currently supported from external callers so we override it to revert.
+   */
+  function setApprovalForAll(address, bool) public pure override {
+    revert OperatorActionsNotSupported();
+  }
 
-  // any other ones need disabling??
+  /**
+   * Overridden standard ERC1155.isApprovedForAll that will always revert
+   *
+   * @dev This function is not currently supported from external callers so we override it to revert.
+   */
+  function isApprovedForAll(address, address)
+    public
+    pure
+    override
+    returns (bool)
+  {
+    revert OperatorActionsNotSupported();
+  }
 
   /**
    * Overridden standard ERC1155.burn that will always revert
    *
-   * @dev This function is not currently supported from external callers so we override it so that we can revert.
+   * @dev This function is not currently supported from external callers so we override it to revert.
    */
   function burn(
     address,
@@ -962,7 +999,7 @@ contract EscrowedNORI is
   /**
    * Overridden standard ERC1155.burnBatch that will always revert
    *
-   * @dev This function is not currently supported from external callers so we override it so that we can revert.
+   * @dev This function is not currently supported from external callers so we override it to revert.
    */
   function burnBatch(
     address,

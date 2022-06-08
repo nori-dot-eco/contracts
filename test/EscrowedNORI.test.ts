@@ -852,208 +852,356 @@ describe('EscrowedNORI', () => {
       ).to.be.revertedWith('InsufficientBalance');
     });
   });
-  // describe('Revoking (batchRevokeUnreleasedTokenAmounts)', () => {
-  //   it('should revoke a specific number of tokens, emit events, and account for the quantity revoked', async () => {
-  //     const removalDataToList = [
-  //       {
-  //         amount: 100,
-  //         vintage: 2018,
-  //         escrowScheduleStartTime: UNIX_EPOCH_2018,
-  //       },
-  //     ];
-  //     const testSetup = await setupTestLocal({
-  //       removalDataToList,
-  //     });
+  it('should revert when attempting to withdraw more tokens than are available to claim', async () => {
+    const removalDataToList = [
+      {
+        amount: 100,
+        vintage: 2018,
+        escrowScheduleStartTime: UNIX_EPOCH_2018,
+      },
+    ];
+    const testSetup = await setupTestLocal({
+      removalDataToList,
+    });
+    const { eNori, hre, escrowScheduleIds } = testSetup;
+    const amountToEscrow = removalDataToList[0].amount;
+    await sendRemovalProceedsToEscrow({
+      testSetup,
+      listedRemovalData: removalDataToList,
+      removalAmountsToEscrow: [amountToEscrow],
+    });
+    await advanceTime({
+      hre,
+      timestamp: UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+    });
 
-  //     const { eNori, bpNori, hre, listedRemovalIds } = testSetup;
-  //     const { supplier, admin } = hre.namedAccounts;
-  //     const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
-  //     const amountToEscrow = removalDataToList[0].amount;
-  //     await sendRemovalProceedsToEscrow({
-  //       testSetup,
-  //       listedRemovalData: removalDataToList,
-  //       removalAmountsToEscrow: [amountToEscrow],
-  //     });
-  //     await advanceTime({
-  //       hre,
-  //       timestamp: UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
-  //     });
-  //     const originalRevocableQuantity = await eNori.revocableQuantity(
-  //       supplier,
-  //       UNIX_EPOCH_2018
-  //     );
-  //     expect(originalRevocableQuantity).to.equal(amountToEscrow / 2);
-  //     expect(
-  //       await eNori.batchRevokeUnreleasedTokenAmounts(
-  //         [supplier],
-  //         listedRemovalIds,
-  //         [originalRevocableQuantity]
-  //       )
-  //     )
-  //       .to.emit(eNori, 'UnreleasedTokensRevoked')
-  //       .withArgs(
-  //         UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
-  //         listedRemovalIds[0],
-  //         UNIX_EPOCH_2018,
-  //         originalRevocableQuantity
-  //       )
-  //       .to.emit(eNori, 'Burned')
-  //       .withArgs(admin, supplier, originalRevocableQuantity, '0x', '0x')
-  //       .to.emit(eNori, 'Transfer')
-  //       .withArgs(
-  //         supplier,
-  //         hre.ethers.constants.AddressZero,
-  //         originalRevocableQuantity
-  //       )
-  //       .to.emit(bpNori, 'Sent') // todo are these bpNori events actually getting emitted? are the args right? what happens if you put somethign blatantly wrong in here, does the test fail?
-  //       .withArgs(
-  //         eNori.address,
-  //         eNori.address,
-  //         admin,
-  //         originalRevocableQuantity,
-  //         '0x',
-  //         '0x'
-  //       )
-  //       .to.emit(bpNori, 'Transfer')
-  //       .withArgs(eNori.address, admin, originalRevocableQuantity);
+    const { supplier } = hre.namedAccounts;
+    const claimableBalance = await eNori.claimableBalanceForScheduleForAccount(
+      escrowScheduleIds[0],
+      supplier
+    );
+    const attemptToWithdrawAmount = claimableBalance.add(1);
+    await expect(
+      eNori
+        .connect(await hre.ethers.getSigner(supplier))
+        .withdrawFromEscrowSchedule(
+          supplier,
+          escrowScheduleIds[0],
+          attemptToWithdrawAmount
+        )
+    ).to.be.revertedWith('InsufficientBalance');
+  });
+});
+describe('Revoking (batchRevokeUnreleasedTokenAmounts)', () => {
+  it('should revoke a specific number of tokens, emit events, and account for the quantity revoked - single account', async () => {
+    const removalDataToList = [
+      {
+        amount: 100,
+        vintage: 2018,
+        escrowScheduleStartTime: UNIX_EPOCH_2018,
+      },
+    ];
+    const testSetup = await setupTestLocal({
+      removalDataToList,
+    });
 
-  //     expect(await eNori.revocableQuantity(supplier, UNIX_EPOCH_2018)).to.equal(
-  //       0
-  //     );
-  //     const newBalance = BigNumber.from(amountToEscrow).sub(
-  //       originalRevocableQuantity
-  //     );
-  //     const escrowScheduleDetail = await eNori.getEscrowSchedule(
-  //       supplier,
-  //       UNIX_EPOCH_2018
-  //     );
-  //     expect(escrowScheduleDetail.totalQuantityRevoked).to.equal(
-  //       originalRevocableQuantity
-  //     );
-  //     expect(escrowScheduleDetail.currentAmount).to.equal(newBalance);
-  //     expect(await eNori.balanceOf(supplier)).to.equal(newBalance);
-  //     expect(await eNori.totalSupply()).to.equal(newBalance);
-  //     // todo examine the bpNori admin balance?
-  //   });
-  // });
+    const { eNori, bpNori, hre, listedRemovalIds, escrowScheduleIds } =
+      testSetup;
+    const { supplier, admin } = hre.namedAccounts;
+    const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
+    const amountToEscrow = removalDataToList[0].amount;
+    await sendRemovalProceedsToEscrow({
+      testSetup,
+      listedRemovalData: removalDataToList,
+      removalAmountsToEscrow: [amountToEscrow],
+    });
+    await advanceTime({
+      hre,
+      timestamp: UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+    });
+    const originalRevocableQuantity = await eNori.revocableQuantityForSchedule(
+      escrowScheduleIds[0]
+    );
+    expect(originalRevocableQuantity).to.equal(amountToEscrow / 2);
+    expect(
+      await eNori.batchRevokeUnreleasedTokenAmounts([admin], listedRemovalIds, [
+        originalRevocableQuantity,
+      ])
+    )
+      .to.emit(eNori, 'UnreleasedTokensRevoked')
+      .withArgs(
+        UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+        listedRemovalIds[0],
+        escrowScheduleIds[0],
+        originalRevocableQuantity
+      )
+      .to.emit(eNori, 'Burned')
+      .withArgs(admin, supplier, originalRevocableQuantity, '0x', '0x')
+      .to.emit(eNori, 'Transfer')
+      .withArgs(
+        supplier,
+        hre.ethers.constants.AddressZero,
+        originalRevocableQuantity
+      )
+      .to.emit(bpNori, 'Sent') // todo are these bpNori events actually getting emitted? are the args right? what happens if you put something blatantly wrong in here, does the test fail?
+      .withArgs(
+        eNori.address,
+        eNori.address,
+        admin,
+        originalRevocableQuantity,
+        '0x',
+        '0x'
+      )
+      .to.emit(bpNori, 'Transfer')
+      .withArgs(eNori.address, admin, originalRevocableQuantity);
 
-  // describe('Disabled functions', () => {
-  //   it('should fail to *send*', async () => {
-  //     const removalDataToList = [
-  //       {
-  //         amount: 100,
-  //         vintage: 2018,
-  //         escrowScheduleStartTime: UNIX_EPOCH_2018,
-  //       },
-  //     ];
-  //     const testSetup = await setupTestLocal({ removalDataToList });
-  //     const { eNori, bpNori, hre } = testSetup;
-  //     const amountToEscrow = removalDataToList[0].amount;
-  //     await sendRemovalProceedsToEscrow({
-  //       testSetup,
-  //       listedRemovalData: removalDataToList,
-  //       removalAmountsToEscrow: [amountToEscrow],
-  //     });
-  //     const { supplier, investor1 } = await hre.getNamedAccounts();
-  //     const supplierSigner = await hre.ethers.getSigner(supplier);
-  //     expect(await eNori.balanceOf(supplier)).to.equal(amountToEscrow);
-  //     await expect(
-  //       eNori.connect(supplierSigner).send(investor1, 1, '0x')
-  //     ).to.be.revertedWith('SendDisabled');
-  //     expect(await eNori.balanceOf(supplier)).to.equal(amountToEscrow);
-  //     expect(await eNori.totalSupply()).to.equal(amountToEscrow);
-  //     expect(await bpNori.balanceOf(supplier)).to.equal(0);
-  //   });
+    expect(
+      await eNori.revocableQuantityForSchedule(escrowScheduleIds[0])
+    ).to.equal(0);
+    const newBalance = BigNumber.from(amountToEscrow).sub(
+      originalRevocableQuantity
+    );
+    const escrowScheduleSummary = await eNori.getEscrowScheduleSummary(
+      escrowScheduleIds[0]
+    );
+    expect(escrowScheduleSummary.totalQuantityRevoked).to.equal(
+      originalRevocableQuantity
+    );
+    expect(escrowScheduleSummary.totalSupply).to.equal(newBalance);
+    expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
+      newBalance
+    );
+    expect(await eNori.totalSupply(escrowScheduleIds[0])).to.equal(newBalance);
+    expect(await bpNori.balanceOf(admin)).to.equal(
+      originalAdminBpNoriBalance.sub(
+        BigNumber.from(amountToEscrow).sub(originalRevocableQuantity)
+      )
+    );
+  });
+  it('should revoke tokens correctly when there are multiple token holders for a schedule', async () => {
+    const removalDataToList = [
+      {
+        amount: 100,
+        vintage: 2018,
+        escrowScheduleStartTime: UNIX_EPOCH_2018,
+      },
+    ];
+    const testSetup = await setupTestLocal({
+      removalDataToList,
+    });
 
-  //   it('should fail to *transfer*', async () => {
-  //     const removalDataToList = [
-  //       {
-  //         amount: 100,
-  //         vintage: 2018,
-  //         escrowScheduleStartTime: UNIX_EPOCH_2018,
-  //       },
-  //     ];
-  //     const testSetup = await setupTestLocal({ removalDataToList });
-  //     const { eNori, bpNori, hre } = testSetup;
-  //     const amountToEscrow = removalDataToList[0].amount;
-  //     await sendRemovalProceedsToEscrow({
-  //       testSetup,
-  //       listedRemovalData: removalDataToList,
-  //       removalAmountsToEscrow: [amountToEscrow],
-  //     });
-  //     const { supplier, investor1 } = await hre.getNamedAccounts();
-  //     const supplierSigner = await hre.ethers.getSigner(supplier);
-  //     expect(await eNori.balanceOf(supplier)).to.equal(amountToEscrow);
-  //     await expect(
-  //       eNori.connect(supplierSigner).transfer(investor1, 1)
-  //     ).to.be.revertedWith('TransferDisabled');
-  //     expect(await eNori.balanceOf(supplier)).to.equal(amountToEscrow);
-  //     expect(await eNori.totalSupply()).to.equal(amountToEscrow);
-  //     expect(await bpNori.balanceOf(supplier)).to.equal(0);
-  //   });
+    const { eNori, bpNori, hre, listedRemovalIds, escrowScheduleIds } =
+      testSetup;
+    const { supplier, admin, investor1 } = hre.namedAccounts;
+    const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
+    const amountToEscrow = removalDataToList[0].amount;
+    await sendRemovalProceedsToEscrow({
+      testSetup,
+      listedRemovalData: removalDataToList,
+      removalAmountsToEscrow: [amountToEscrow],
+    });
+    await advanceTime({
+      hre,
+      timestamp: UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+    });
+    const amountToTransferToInvestor = 31;
+    await eNori
+      .connect(hre.namedSigners.supplier)
+      .safeTransferFrom(
+        supplier,
+        investor1,
+        escrowScheduleIds[0],
+        amountToTransferToInvestor,
+        '0x'
+      );
+    const originalRevocableQuantity = await eNori.revocableQuantityForSchedule(
+      escrowScheduleIds[0]
+    );
+    expect(originalRevocableQuantity).to.equal(amountToEscrow / 2);
+    expect(
+      await eNori.batchRevokeUnreleasedTokenAmounts([admin], listedRemovalIds, [
+        originalRevocableQuantity,
+      ])
+    )
+      .to.emit(eNori, 'UnreleasedTokensRevoked')
+      .withArgs(
+        UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+        listedRemovalIds[0],
+        escrowScheduleIds[0],
+        originalRevocableQuantity
+      );
+    // .to.emit(eNori, 'Burned')
+    // .withArgs(admin, supplier, originalRevocableQuantity, '0x', '0x')
+    // .to.emit(eNori, 'Transfer')
+    // .withArgs(
+    //   supplier,
+    //   hre.ethers.constants.AddressZero,
+    //   originalRevocableQuantity
+    // )
+    // .to.emit(bpNori, 'Sent') // todo are these bpNori events actually getting emitted? are the args right? what happens if you put something blatantly wrong in here, does the test fail?
+    // .withArgs(
+    //   eNori.address,
+    //   eNori.address,
+    //   admin,
+    //   originalRevocableQuantity,
+    //   '0x',
+    //   '0x'
+    // )
+    // .to.emit(bpNori, 'Transfer')
+    // .withArgs(eNori.address, admin, originalRevocableQuantity);
 
-  //   it('Should fail to *operatorSend*', async () => {
-  //     const removalDataToList = [
-  //       {
-  //         amount: 100,
-  //         vintage: 2018,
-  //         escrowScheduleStartTime: UNIX_EPOCH_2018,
-  //       },
-  //     ];
-  //     const testSetup = await setupTestLocal({ removalDataToList });
-  //     const { eNori, bpNori, hre } = testSetup;
-  //     const amountToEscrow = removalDataToList[0].amount;
-  //     await sendRemovalProceedsToEscrow({
-  //       testSetup,
-  //       listedRemovalData: removalDataToList,
-  //       removalAmountsToEscrow: [amountToEscrow],
-  //     });
-  //     const { supplier, investor1, admin } = await hre.getNamedAccounts();
-  //     const supplierSigner = await hre.ethers.getSigner(supplier);
-  //     expect(await eNori.balanceOf(supplier)).to.equal(amountToEscrow);
-  //     await expect(
-  //       eNori.connect(supplierSigner).authorizeOperator(admin)
-  //     ).to.be.revertedWith('OperatorActionsDisabled');
-  //     await expect(
-  //       eNori
-  //         .connect(supplierSigner)
-  //         .operatorSend(supplier, investor1, 1, '0x', '0x')
-  //     ).to.be.revertedWith('OperatorSendDisabled');
-  //     expect(await eNori.balanceOf(supplier)).to.equal(amountToEscrow);
-  //     expect(await eNori.totalSupply()).to.equal(amountToEscrow);
-  //     expect(await bpNori.balanceOf(supplier)).to.equal(0);
-  //   });
+    const expectedRevokedFromSupplier = 34; // 34.5 actually (50 * (69/100))
+    const expectedRevokedFromInvestor = 15; // 15.5 actually (50 * (31/100))
 
-  //   it('Should fail to *transferFrom*', async () => {
-  //     const removalDataToList = [
-  //       {
-  //         amount: 100,
-  //         vintage: 2018,
-  //         escrowScheduleStartTime: UNIX_EPOCH_2018,
-  //       },
-  //     ];
-  //     const testSetup = await setupTestLocal({ removalDataToList });
-  //     const { eNori, bpNori, hre } = testSetup;
-  //     const amountToEscrow = removalDataToList[0].amount;
-  //     await sendRemovalProceedsToEscrow({
-  //       testSetup,
-  //       listedRemovalData: removalDataToList,
-  //       removalAmountsToEscrow: [amountToEscrow],
-  //     });
-  //     const { supplier, investor1, admin } = await hre.getNamedAccounts();
-  //     const supplierSigner = await hre.ethers.getSigner(supplier);
-  //     expect(await eNori.balanceOf(supplier)).to.equal(amountToEscrow);
-  //     await expect(
-  //       eNori.connect(supplierSigner).approve(admin, 1)
-  //     ).to.be.revertedWith('OperatorActionsDisabled');
-  //     await expect(
-  //       eNori.connect(supplierSigner).transferFrom(supplier, investor1, 1)
-  //     ).to.be.revertedWith('TransferFromDisabled');
-  //     expect(await eNori.balanceOf(supplier)).to.equal(amountToEscrow);
-  //     expect(await eNori.totalSupply()).to.equal(amountToEscrow);
-  //     expect(await bpNori.balanceOf(supplier)).to.equal(0);
-  //   });
-  // });
+    const supplierEscrowScheduleDetail =
+      await eNori.getEscrowScheduleDetailForAccount(
+        supplier,
+        escrowScheduleIds[0]
+      );
+    const investorEscrowScheduleDetail =
+      await eNori.getEscrowScheduleDetailForAccount(
+        investor1,
+        escrowScheduleIds[0]
+      );
+    console.log({ supplierEscrowScheduleDetail });
+    console.log({ investorEscrowScheduleDetail });
+
+    //  YOU ARE HERE?:
+    // what are our other expectations for this test?
+    // expect(
+    //   await eNori.revocableQuantityForSchedule(escrowScheduleIds[0])
+    // ).to.equal(0);
+    // const newBalance = BigNumber.from(amountToEscrow).sub(
+    //   originalRevocableQuantity
+    // );
+    // const escrowScheduleSummary = await eNori.getEscrowScheduleSummary(
+    //   escrowScheduleIds[0]
+    // );
+    // expect(escrowScheduleSummary.totalQuantityRevoked).to.equal(
+    //   originalRevocableQuantity
+    // );
+    // expect(escrowScheduleSummary.totalSupply).to.equal(newBalance);
+    // expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
+    //   newBalance
+    // );
+    // expect(await eNori.totalSupply(escrowScheduleIds[0])).to.equal(newBalance);
+    expect(await bpNori.balanceOf(admin)).to.equal(
+      originalAdminBpNoriBalance.sub(
+        BigNumber.from(amountToEscrow).sub(originalRevocableQuantity)
+      )
+    );
+  });
+
+  describe('Disabled functions', () => {
+    it('should fail to *burn*', async () => {
+      const removalDataToList = [
+        {
+          amount: 100,
+          vintage: 2018,
+          escrowScheduleStartTime: UNIX_EPOCH_2018,
+        },
+      ];
+      const testSetup = await setupTestLocal({ removalDataToList });
+      const { eNori, hre, escrowScheduleIds } = testSetup;
+      const amountToEscrow = removalDataToList[0].amount;
+      await sendRemovalProceedsToEscrow({
+        testSetup,
+        listedRemovalData: removalDataToList,
+        removalAmountsToEscrow: [amountToEscrow],
+      });
+      const { supplier } = await hre.getNamedAccounts();
+      const supplierSigner = await hre.ethers.getSigner(supplier);
+      expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
+        amountToEscrow
+      );
+      await expect(
+        eNori
+          .connect(supplierSigner)
+          .burn(supplier, escrowScheduleIds[0], amountToEscrow)
+      ).to.be.revertedWith('BurningNotSupported');
+      expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
+        amountToEscrow
+      );
+      expect(await eNori.totalSupply(escrowScheduleIds[0])).to.equal(
+        amountToEscrow
+      );
+    });
+    it('should fail to *burnBatch*', async () => {
+      const removalDataToList = [
+        {
+          amount: 100,
+          vintage: 2018,
+          escrowScheduleStartTime: UNIX_EPOCH_2018,
+        },
+        {
+          amount: 100,
+          vintage: 2019,
+          escrowScheduleStartTime: UNIX_EPOCH_2019,
+        },
+      ];
+      const testSetup = await setupTestLocal({ removalDataToList });
+      const { eNori, hre, escrowScheduleIds } = testSetup;
+      const amountsToEscrow = removalDataToList.map(
+        (removalData) => removalData.amount
+      );
+      await sendRemovalProceedsToEscrow({
+        testSetup,
+        listedRemovalData: removalDataToList,
+        removalAmountsToEscrow: amountsToEscrow,
+      });
+      const { supplier } = await hre.getNamedAccounts();
+      const supplierSigner = await hre.ethers.getSigner(supplier);
+      expect(
+        (
+          await eNori.balanceOfBatch([supplier, supplier], escrowScheduleIds)
+        ).map((balance) => balance.toNumber())
+      ).to.eql(amountsToEscrow);
+      await expect(
+        eNori
+          .connect(supplierSigner)
+          .burnBatch(supplier, escrowScheduleIds, amountsToEscrow)
+      ).to.be.revertedWith('BurningNotSupported');
+      expect(
+        (
+          await eNori.balanceOfBatch([supplier, supplier], escrowScheduleIds)
+        ).map((balance) => balance.toNumber())
+      ).to.eql(amountsToEscrow);
+    });
+
+    it('should fail to *setApprovalForAll*', async () => {
+      const removalDataToList = [
+        {
+          amount: 100,
+          vintage: 2018,
+          escrowScheduleStartTime: UNIX_EPOCH_2018,
+        },
+      ];
+      const testSetup = await setupTestLocal({ removalDataToList });
+      const { eNori, hre } = testSetup;
+      const { supplier, investor1 } = await hre.getNamedAccounts();
+      const supplierSigner = await hre.ethers.getSigner(supplier);
+      await expect(
+        eNori.connect(supplierSigner).setApprovalForAll(investor1, true)
+      ).to.be.revertedWith('OperatorActionsNotSupported');
+    });
+
+    it('should revert on *isApprovedForAll*', async () => {
+      const removalDataToList = [
+        {
+          amount: 100,
+          vintage: 2018,
+          escrowScheduleStartTime: UNIX_EPOCH_2018,
+        },
+      ];
+      const testSetup = await setupTestLocal({ removalDataToList });
+      const { eNori, hre } = testSetup;
+      const { supplier, investor1 } = await hre.getNamedAccounts();
+      const supplierSigner = await hre.ethers.getSigner(supplier);
+      await expect(
+        eNori.connect(supplierSigner).isApprovedForAll(investor1, supplier)
+      ).to.be.revertedWith('OperatorActionsNotSupported');
+    });
+  });
   describe('full lifecycle', () => {
     it('should successfully walk escrowed tokens through all possible actions', async () => {
       const removalDataToList = [
