@@ -1,10 +1,8 @@
-import path from 'path';
-
 import dotenvDefaults from 'dotenv-defaults';
 import dotenvParseVariables from 'dotenv-parse-variables';
 
-const loadEnvironment = ({ pathName }: { pathName: string }): void => {
-  const defaults = dotenvDefaults.config({ path: pathName });
+const loadEnvironment = (): void => {
+  const defaults = dotenvDefaults.config();
 
   if (defaults.error !== undefined || defaults.parsed === undefined) {
     throw defaults.error;
@@ -25,4 +23,4 @@ const loadEnvironment = ({ pathName }: { pathName: string }): void => {
   ) as typeof global.process.env;
 };
 
-loadEnvironment({ pathName: path.join(__dirname, '../.env') });
+loadEnvironment();
