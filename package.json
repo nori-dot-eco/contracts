@@ -78,7 +78,7 @@
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
     "test": "hardhat test",
-    "test:gas": "REPORT_GAS=true hardhat test",
+    "test:gas": "REPORT_GAS=true hardhat test --deploy-fixture",
     "test:coverage": "CI=true hardhat coverage --solcoverjs ./.solcover.js",
     "test:unsafe": "TS_NODE_TRANSPILE_ONLY=1 yarn test --no-compile",
     "prepare": "yarn build",
