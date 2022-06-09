@@ -1,5 +1,5 @@
 import type { ActionType } from 'hardhat/config';
-import { task } from 'hardhat/config';
+import { extendConfig, task } from 'hardhat/config';
 import type { RunSuperFunction } from 'hardhat/types';
 
 import type { TestTaskOverrideParameters } from '@/tasks/test';
