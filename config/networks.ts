@@ -8,7 +8,7 @@ const { INFURA_STAGING_KEY, INFURA_PROD_KEY, MNEMONIC, LOG_HARDHAT_NETWORK } =
 const hardhat: NetworksUserConfig['hardhat'] = {
   blockGasLimit: 20_000_000,
   initialBaseFeePerGas: 1,
-  gasPrice: 2,
+  gasPrice: 3,
   chainId: 9001,
   accounts,
   loggingEnabled: LOG_HARDHAT_NETWORK,
