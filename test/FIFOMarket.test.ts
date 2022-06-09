@@ -1,6 +1,13 @@
 import type { BigNumberish, ContractReceipt } from 'ethers';
 import { BigNumber } from 'ethers';
 
+import type {
+  BridgedPolygonNORI,
+  Certificate,
+  FIFOMarket,
+  Removal,
+} from '@/typechain-types';
+import { getContract } from '@/utils/contracts';
 import { formatTokenAmount } from '@/utils/units';
 import type { RemovalDataForListing } from '@/test/helpers';
 import {
@@ -1191,6 +1198,49 @@ describe('FIFOMarket', () => {
         formatTokenAmount(getTotalAmountOfSupply(removals))
       );
     });
+  });
+});
+
+describe('TEMPORARY AREA FOR SIMULATOR TESTS', () => {
+  it('TODO', async () => {
+    // const { hre } = await setupTestLocal();
+    const removal = (await getContract({
+      contractName: 'Removal',
+      hre,
+    })) as Removal;
+    const bpNori = (await getContract({
+      contractName: 'BridgedPolygonNORI',
+      hre,
+    })) as BridgedPolygonNORI;
+    const fifoMarket = (await getContract({
+      contractName: 'FIFOMarket',
+      hre,
+    })) as FIFOMarket;
+    const certificate = (await getContract({
+      contractName: 'Certificate',
+      hre,
+    })) as Certificate;
+    const fee = 1.5;
+    const totalPrice = 1 + fee;
+    // todo extract gas reporter fixes to another pr
+    // todo extract simulation stuff to separate pr
+    const simulatedTx = await (bpNori as any).simulate.send(
+      fifoMarket.address,
+      hre.ethers.utils.parseUnits(totalPrice.toString()),
+      hre.ethers.utils.hexZeroPad(hre.namedAccounts.buyer, 32)
+    );
+    console.log({
+      data: simulatedTx.simulation.data.transaction.transaction_info,
+    });
+    // todo generalize this
+    for (const log of simulatedTx.simulation.data.transaction.transaction_info
+      .logs) {
+      if (log.raw.address.toLowerCase() === removal.address.toLowerCase()) {
+        const logs = removal.interface.parseLog(log.raw);
+        console.log({ logs, removalIdsPurchasedInSimulation: logs.args.ids });
+      }
+    }
+    expect(true).to.be.true;
   });
 });
 

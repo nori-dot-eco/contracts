@@ -2,8 +2,13 @@ import type { NetworksUserConfig, NetworkUserConfig } from 'hardhat/types';
 
 import { accounts } from '@/config/accounts';
 
-const { INFURA_STAGING_KEY, INFURA_PROD_KEY, MNEMONIC, LOG_HARDHAT_NETWORK } =
-  process.env;
+const {
+  INFURA_STAGING_KEY,
+  INFURA_PROD_KEY,
+  NODE_ENV,
+  MNEMONIC,
+  LOG_HARDHAT_NETWORK,
+} = process.env;
 
 const hardhat: NetworksUserConfig['hardhat'] = {
   blockGasLimit: 20_000_000,
@@ -44,7 +49,11 @@ const mumbai: NetworkUserConfig = {
   chainId: 80_001,
   url: `https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}`,
   gasPrice: 35_000_000_000,
-  live: true,
+  live: NODE_ENV !== 'test',
+  ...(NODE_ENV === 'test' &&
+    typeof MNEMONIC === 'string' && {
+      accounts: { mnemonic: MNEMONIC },
+    }),
   tags: ['polygon', 'staging'],
 };
 

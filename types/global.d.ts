@@ -5,11 +5,7 @@ import type {
   RunSuperFunction,
   TaskArguments,
 } from 'hardhat/types/runtime';
-import type {
-  BaseContract,
-  Contract,
-  ethers as defaultEthers,
-} from 'ethers';
+import type { BaseContract, Contract, ethers as defaultEthers } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
 import { JsonRpcSigner } from '@ethersproject/providers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
@@ -245,6 +241,7 @@ declare global {
       REPORT_GAS_FILE?: string;
       TENDERLY: boolean;
       FAIL: boolean;
+      NODE_ENV: 'test' | 'development' | 'production';
     }
   }
 }

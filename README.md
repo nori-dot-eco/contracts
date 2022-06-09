@@ -241,6 +241,17 @@ Then run
 tenderly completion zsh > ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
 ```
 
+#### Tenderly simulator
+
+##### TODO
+
+Run the following to simulate a transaction
+
+```bash
+TRACE=true TS_NODE_TRANSPILE_ONLY=1 yarn test:gas --grep "TODO" --no-compile --network mumbai
+
+```
+
 ### Deployments
 
 When deploying contract to `polygon` or `mumbai` enmsure you have `POYGONSCAN_API_KEY`
