@@ -3,7 +3,6 @@ import { task } from 'hardhat/config';
 import type { RunSuperFunction } from 'hardhat/types';
 
 import type { TestTaskOverrideParameters } from '@/tasks/test';
-import { validateTestEnvironment } from '@/tasks/utils/validate-environment';
 
 export const TASK = {
   name: 'coverage',
@@ -15,7 +14,6 @@ export const TASK = {
     hre: CustomHardHatRuntimeEnvironment,
     runSuper: RunSuperFunction<typeof taskArguments>
   ) => {
-    validateTestEnvironment({ reportGas: taskArguments?.reportGas });
     return runSuper(taskArguments);
   },
 } as const;
