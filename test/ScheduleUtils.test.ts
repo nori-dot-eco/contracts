@@ -1,7 +1,6 @@
 import type { BigNumberish } from 'ethers';
 
-import { expect } from './helpers';
-
+import { expect } from '@/test/helpers';
 import type { ScheduleTestHarness } from '@/typechain-types';
 
 const NOW = Math.floor(Date.now() / 1000);
@@ -12,7 +11,6 @@ const setupTest = hre.deployments.createFixture(
   ): Promise<{
     scheduleTestHarness: ScheduleTestHarness;
   }> => {
-    hre.ethernalSync = false;
     const ScheduleTestHarness = await hre.ethers.getContractFactory(
       'ScheduleTestHarness' as unknown as ContractNames
     );

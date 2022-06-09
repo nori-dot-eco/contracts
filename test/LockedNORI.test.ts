@@ -564,7 +564,7 @@ describe('LockedNori', () => {
           });
           it(`accounts with the role "${role}" can send bpNori whilst accounts without the role "${role}" cannot`, async () => {
             const { bpNori, lNori, hre } = await setupTest();
-            const { namedAccounts, namedSigners } = hre;
+            const { namedAccounts, namedSigners, ethers } = hre;
             const roleId = await lNori[role]();
             expect(
               await lNori.hasRole(roleId, namedAccounts[accountWithoutRole])
@@ -589,7 +589,7 @@ describe('LockedNori', () => {
             await expect(
               bpNori.send(namedAccounts[accountWithoutRole], grantAmount, '0x')
             );
-            const userData = hre.ethers.utils.defaultAbiCoder.encode(
+            const userData = ethers.utils.defaultAbiCoder.encode(
               ['address', 'uint256'],
               [namedAccounts[accountWithoutRole], 0]
             );
@@ -652,9 +652,8 @@ describe('LockedNori', () => {
     expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT); // todo use as options for setupWithGrant instead of constant
     expect(await lNori.vestedBalanceOf(investor1)).to.equal(0);
     expect(await lNori.unlockedBalanceOf(investor1)).to.equal(0);
-    expect((await lNori.getGrant(investor1)).grantAmount).to.equal(
-      GRANT_AMOUNT
-    );
+    const grant = await lNori.getGrant(investor1);
+    expect(grant.grantAmount).to.equal(GRANT_AMOUNT);
     await expect(
       lNori
         .connect(await hre.ethers.getSigner(investor1))
@@ -735,13 +734,13 @@ describe('LockedNori', () => {
         hre,
         startTime: await getLatestBlockTime({ hre }),
       });
-      const { namedSigners } = hre;
+      const { namedSigners, namedAccounts } = hre;
       await expect(
         lNori
           .connect(namedSigners.admin)
           .createGrant(
             grantAmount,
-            hre.namedAccounts.admin,
+            namedAccounts.admin,
             grant.startTime,
             grant.vestEndTime,
             grant.unlockEndTime,
@@ -1068,7 +1067,8 @@ describe('LockedNori', () => {
       const { bpNori, lNori, grantAmount, grant, hre } = await setupWithGrant(
         (parameters) => employeeParameters(parameters)
       );
-      const { employee, admin } = hre.namedAccounts;
+      const { ethers, namedAccounts } = hre;
+      const { employee, admin } = namedAccounts;
       await advanceTime({
         hre,
         timestamp: grant.startTime + VEST_REVOKED_OFFSET - DELTA,
@@ -1083,7 +1083,7 @@ describe('LockedNori', () => {
       expect(await lNori.vestedBalanceOf(employee)).to.be.lt(newBalance);
       await expect(
         lNori
-          .connect(await hre.ethers.getSigner(admin))
+          .connect(await ethers.getSigner(admin))
           .batchRevokeUnvestedTokenAmounts(
             [employee],
             [admin],
@@ -1098,30 +1098,20 @@ describe('LockedNori', () => {
           quantityRevoked
         )
         .to.emit(lNori, 'Burned')
-        .withArgs(
-          hre.namedAccounts.admin,
-          hre.namedAccounts.employee,
-          quantityRevoked,
-          '0x',
-          '0x'
-        )
+        .withArgs(admin, employee, quantityRevoked, '0x', '0x')
         .to.emit(lNori, 'Transfer')
-        .withArgs(
-          hre.namedAccounts.employee,
-          hre.ethers.constants.AddressZero,
-          quantityRevoked
-        )
+        .withArgs(employee, ethers.constants.AddressZero, quantityRevoked)
         .to.emit(bpNori, 'Sent')
         .withArgs(
           lNori.address,
           lNori.address,
-          hre.namedAccounts.admin,
+          admin,
           quantityRevoked,
           '0x',
           '0x'
         )
         .to.emit(bpNori, 'Transfer')
-        .withArgs(lNori.address, hre.namedAccounts.admin, quantityRevoked);
+        .withArgs(lNori.address, admin, quantityRevoked);
 
       await advanceTime({
         hre,
@@ -1249,11 +1239,11 @@ describe('LockedNori', () => {
       const { lNori, grantAmount, grant, hre } = await setupWithGrant(
         (parameters) => employeeParameters(parameters)
       );
-      const { namedAccounts } = hre;
+      const { namedAccounts, namedSigners } = hre;
       const quantityToRevoke = grantAmount.add(1);
       await expect(
         lNori
-          .connect(await hre.ethers.getSigner(namedAccounts.admin))
+          .connect(namedSigners.admin)
           .batchRevokeUnvestedTokenAmounts(
             [grant.recipient],
             [namedAccounts.admin],
@@ -1269,10 +1259,10 @@ describe('LockedNori', () => {
       const { lNori, grantAmount, grant, hre } = await setupWithGrant(
         (parameters) => linearParameters(parameters)
       );
-      const { namedAccounts } = hre;
+      const { ethers, namedAccounts } = hre;
       await expect(
         lNori
-          .connect(await hre.ethers.getSigner(namedAccounts.admin))
+          .connect(await ethers.getSigner(namedAccounts.admin))
           .batchRevokeUnvestedTokenAmounts(
             [grant.recipient],
             [namedAccounts.admin],
@@ -1287,10 +1277,10 @@ describe('LockedNori', () => {
       const { lNori, grantAmount, grant, hre } = await setupWithGrant(
         (parameters) => investorParameters(parameters)
       );
-      const { namedAccounts } = hre;
+      const { namedAccounts, namedSigners } = hre;
       await expect(
         lNori
-          .connect(hre.namedSigners.admin)
+          .connect(namedSigners.admin)
           .batchRevokeUnvestedTokenAmounts(
             [grant.recipient],
             [namedAccounts.admin],
