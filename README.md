@@ -73,7 +73,7 @@ In both variations the `0_deploy_contracts` script is run so your node starts se
 
 ## Testing
 
-Run tests using an in-process hardhat blockchain:
+Run tests using an in-process hardhat node:
 
 ```
 yarn test
@@ -81,21 +81,27 @@ yarn test
 
 ### Reporting gas usage from tests
 
-Note that gas reporting is disabled by default because it slows tests down significantly.
+> Note that gas reporting is disabled by default because it slows tests down significantly.
 
-First, set `REPORT_GAS` and `COINMARKETCAP_API_KEY` environment variables.
-
-Then, in a first terminal, run the following:
+First, in a first terminal, run the following:
 
 ```
 hardhat node --no-deploy
 ```
 
-Finally, in a second terminal, run the following:
+Second, in a second terminal, run the following:
 
 ```
-REPORT_GAS=true hardhat test --network localhost
+yarn test:gas --network localhost
 ```
+
+Alternatively, you can also get a gas report with by just running a single command in one terminal, but this is not recommended as it will omit per-test gas usage and only output the summary table of functions.
+
+```
+yarn test:gas # omits per-unit test gas usage reports
+```
+
+If you set the `COINMARKETCAP_API_KEY` environment variable you will also get dollar equivalents in the summary table.
 
 ---
 
