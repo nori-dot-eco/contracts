@@ -1,5 +1,5 @@
 import type { ActionType } from 'hardhat/config';
-import { task } from 'hardhat/config';
+import { extendConfig, task } from 'hardhat/config';
 import type { RunSuperFunction } from 'hardhat/types';
 
 import type { TestTaskOverrideParameters } from '@/tasks/test';
@@ -19,3 +19,15 @@ export const TASK = {
 } as const;
 
 task(TASK.name, TASK.description, TASK.run);
+
+extendConfig(() => {
+  // todo these would be set more appropriately in environment.ts
+  process.env.MINT = false;
+  process.env.FORCE_PROXY_DEPLOYMENT = true;
+  process.env.ETHERNAL = false;
+  process.env.TENDERLY = false;
+  process.env.NODE_ENV = 'test';
+  process.env.FIREBLOCKS_API_KEY = undefined;
+  process.env.FIREBLOCKS_API_SECRET_PATH = undefined;
+  process.env.FIREBLOCKS_VAULT_ID = undefined;
+});
