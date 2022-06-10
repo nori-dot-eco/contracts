@@ -28,7 +28,6 @@ contract FIFOMarket is
 {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-  using StructuredLinkedList for StructuredLinkedList.List;
   using RemovalQueue for RemovalQueueByVintage;
 
   /**
