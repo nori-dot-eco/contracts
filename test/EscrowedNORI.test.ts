@@ -211,6 +211,7 @@ describe('EscrowedNORI', () => {
         { role: 'DEFAULT_ADMIN_ROLE', expectedCount: 1 },
         { role: 'PAUSER_ROLE', expectedCount: 1 },
         { role: 'ESCROW_CREATOR_ROLE', expectedCount: 2 }, // Removal contract is an escrow creator
+        { role: 'TOKEN_REVOKER_ROLE', expectedCount: 1 },
       ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
           const { eNori, hre } = await setupTest();
@@ -981,7 +982,7 @@ describe('Revoking (batchRevokeUnreleasedTokenAmounts)', () => {
   it('should revoke tokens correctly when there are multiple token holders for a schedule', async () => {
     const removalDataToList = [
       {
-        amount: 100,
+        amount: 1000,
         vintage: 2018,
         escrowScheduleStartTime: UNIX_EPOCH_2018,
       },
@@ -1004,7 +1005,7 @@ describe('Revoking (batchRevokeUnreleasedTokenAmounts)', () => {
       hre,
       timestamp: UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
     });
-    const amountToTransferToInvestor = 31;
+    const amountToTransferToInvestor = 310;
     await eNori
       .connect(hre.namedSigners.supplier)
       .safeTransferFrom(
@@ -1030,28 +1031,10 @@ describe('Revoking (batchRevokeUnreleasedTokenAmounts)', () => {
         escrowScheduleIds[0],
         originalRevocableQuantity
       );
-    // .to.emit(eNori, 'Burned')
-    // .withArgs(admin, supplier, originalRevocableQuantity, '0x', '0x')
-    // .to.emit(eNori, 'Transfer')
-    // .withArgs(
-    //   supplier,
-    //   hre.ethers.constants.AddressZero,
-    //   originalRevocableQuantity
-    // )
-    // .to.emit(bpNori, 'Sent') // todo are these bpNori events actually getting emitted? are the args right? what happens if you put something blatantly wrong in here, does the test fail?
-    // .withArgs(
-    //   eNori.address,
-    //   eNori.address,
-    //   admin,
-    //   originalRevocableQuantity,
-    //   '0x',
-    //   '0x'
-    // )
-    // .to.emit(bpNori, 'Transfer')
-    // .withArgs(eNori.address, admin, originalRevocableQuantity);
 
-    const expectedRevokedFromSupplier = 34; // 34.5 actually (50 * (69/100))
-    const expectedRevokedFromInvestor = 15; // 15.5 actually (50 * (31/100))
+    const expectedRevokedFromSupplier =
+      (amountToEscrow - amountToTransferToInvestor) / 2; // 345
+    const expectedRevokedFromInvestor = amountToTransferToInvestor / 2; // 155
 
     const supplierEscrowScheduleDetail =
       await eNori.getEscrowScheduleDetailForAccount(
@@ -1063,33 +1046,200 @@ describe('Revoking (batchRevokeUnreleasedTokenAmounts)', () => {
         investor1,
         escrowScheduleIds[0]
       );
+    const scheduleSummary = await eNori.getEscrowScheduleSummary(
+      escrowScheduleIds[0]
+    );
+    const revocableQuantityForScheduleAfterRevocation =
+      await eNori.revocableQuantityForSchedule(escrowScheduleIds[0]);
     console.log({ supplierEscrowScheduleDetail });
     console.log({ investorEscrowScheduleDetail });
+    console.log({ scheduleSummary });
 
-    //  YOU ARE HERE?:
-    // what are our other expectations for this test?
-    // expect(
-    //   await eNori.revocableQuantityForSchedule(escrowScheduleIds[0])
-    // ).to.equal(0);
-    // const newBalance = BigNumber.from(amountToEscrow).sub(
-    //   originalRevocableQuantity
-    // );
-    // const escrowScheduleSummary = await eNori.getEscrowScheduleSummary(
-    //   escrowScheduleIds[0]
-    // );
-    // expect(escrowScheduleSummary.totalQuantityRevoked).to.equal(
-    //   originalRevocableQuantity
-    // );
-    // expect(escrowScheduleSummary.totalSupply).to.equal(newBalance);
-    // expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
-    //   newBalance
-    // );
-    // expect(await eNori.totalSupply(escrowScheduleIds[0])).to.equal(newBalance);
+    expect(supplierEscrowScheduleDetail.quantityRevoked).to.equal(
+      expectedRevokedFromSupplier
+    );
+    expect(investorEscrowScheduleDetail.quantityRevoked).to.equal(
+      expectedRevokedFromInvestor
+    );
+    expect(supplierEscrowScheduleDetail.balance).to.equal(
+      amountToEscrow - amountToTransferToInvestor - expectedRevokedFromSupplier
+    );
+    expect(investorEscrowScheduleDetail.balance).to.equal(
+      amountToTransferToInvestor - expectedRevokedFromInvestor
+    );
+    expect(scheduleSummary.totalQuantityRevoked).to.equal(
+      originalRevocableQuantity
+    );
+    expect(scheduleSummary.totalSupply).to.equal(
+      BigNumber.from(amountToEscrow).sub(originalRevocableQuantity)
+    );
+    expect(revocableQuantityForScheduleAfterRevocation).to.equal(0);
+
     expect(await bpNori.balanceOf(admin)).to.equal(
       originalAdminBpNoriBalance.sub(
         BigNumber.from(amountToEscrow).sub(originalRevocableQuantity)
       )
     );
+  });
+  it('should revoke all revocable tokens when an amount of 0 is passed', async () => {
+    const removalDataToList = [
+      {
+        amount: 1000,
+        vintage: 2018,
+        escrowScheduleStartTime: NOW,
+      },
+    ];
+    const testSetup = await setupTestLocal({
+      removalDataToList,
+    });
+
+    const { eNori, bpNori, hre, listedRemovalIds, escrowScheduleIds } =
+      testSetup;
+    const { supplier, admin } = hre.namedAccounts;
+    const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
+    const amountToEscrow = removalDataToList[0].amount;
+    await sendRemovalProceedsToEscrow({
+      testSetup,
+      listedRemovalData: removalDataToList,
+      removalAmountsToEscrow: [amountToEscrow],
+    });
+    // await advanceTime({
+    //   hre,
+    //   timestamp: UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+    // });
+    const originalRevocableQuantity = await eNori.revocableQuantityForSchedule(
+      escrowScheduleIds[0]
+    );
+    // expect(originalRevocableQuantity).to.equal(amountToEscrow / 2);
+    expect(originalRevocableQuantity).to.equal(amountToEscrow);
+    expect(
+      await eNori.batchRevokeUnreleasedTokenAmounts([admin], listedRemovalIds, [
+        0,
+      ])
+    )
+      .to.emit(eNori, 'UnreleasedTokensRevoked')
+      .withArgs(
+        NOW,
+        listedRemovalIds[0],
+        escrowScheduleIds[0],
+        originalRevocableQuantity
+      );
+
+    expect(
+      await eNori.revocableQuantityForSchedule(escrowScheduleIds[0])
+    ).to.equal(0);
+    const newBalance = BigNumber.from(amountToEscrow).sub(
+      originalRevocableQuantity
+    );
+    const escrowScheduleSummary = await eNori.getEscrowScheduleSummary(
+      escrowScheduleIds[0]
+    );
+    console.log({ escrowScheduleSummary });
+    const supplierScheduleIds = await eNori.getScheduleIdsForAccount(supplier);
+    console.log({ supplierScheduleIds });
+    const supplierScheduleDetail =
+      await eNori.getEscrowScheduleDetailForAccount(
+        supplier,
+        escrowScheduleIds[0]
+      );
+    console.log({ supplierScheduleDetail });
+    expect(escrowScheduleSummary.totalQuantityRevoked).to.equal(
+      originalRevocableQuantity
+    );
+    expect(escrowScheduleSummary.totalSupply).to.equal(newBalance);
+    expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
+      newBalance
+    );
+    expect(await eNori.totalSupply(escrowScheduleIds[0])).to.equal(newBalance);
+    expect(await bpNori.balanceOf(admin)).to.equal(
+      originalAdminBpNoriBalance.sub(
+        BigNumber.from(amountToEscrow).sub(originalRevocableQuantity)
+      )
+    );
+  });
+
+  it('can revoke for more than one removal at a time, and can revoke from the same schedule repeatedly', async () => {
+    const removalDataToList = [
+      {
+        amount: 100,
+        vintage: 2018,
+        escrowScheduleStartTime: UNIX_EPOCH_2018,
+      },
+      {
+        amount: 100,
+        vintage: 2019,
+        escrowScheduleStartTime: UNIX_EPOCH_2019,
+      },
+    ];
+    const testSetup = await setupTestLocal({
+      removalDataToList,
+    });
+
+    const { eNori, hre, listedRemovalIds, escrowScheduleIds } = testSetup;
+    const { admin } = hre.namedAccounts;
+    const amountsToEscrow = removalDataToList.map(
+      (removalData) => removalData.amount
+    );
+    await sendRemovalProceedsToEscrow({
+      testSetup,
+      listedRemovalData: removalDataToList,
+      removalAmountsToEscrow: amountsToEscrow,
+    });
+    await advanceTime({
+      hre,
+      timestamp: UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+    });
+    const quantityToRevoke = 1;
+    expect(
+      await eNori.batchRevokeUnreleasedTokenAmounts(
+        [admin, admin],
+        listedRemovalIds,
+        [quantityToRevoke, quantityToRevoke]
+      )
+    )
+      .to.emit(eNori, 'UnreleasedTokensRevoked')
+      .withArgs(
+        UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+        listedRemovalIds[0],
+        escrowScheduleIds[0],
+        quantityToRevoke
+      )
+      .to.emit(eNori, 'UnreleasedTokensRevoked')
+      .withArgs(
+        UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
+        listedRemovalIds[1],
+        escrowScheduleIds[1],
+        quantityToRevoke
+      );
+    const scheduleSummariesAfterFirstRevocation =
+      await eNori.batchGetEscrowScheduleSummaries(escrowScheduleIds);
+    expect(scheduleSummariesAfterFirstRevocation.length).to.equal(
+      escrowScheduleIds.length
+    );
+    for (let index = 0; index < escrowScheduleIds.length; index += 1) {
+      expect(
+        scheduleSummariesAfterFirstRevocation[index].totalQuantityRevoked
+      ).to.equal(quantityToRevoke);
+      expect(scheduleSummariesAfterFirstRevocation[index].totalSupply).to.equal(
+        amountsToEscrow[index] - quantityToRevoke
+      );
+    }
+    // revoke a second time
+    await eNori.batchRevokeUnreleasedTokenAmounts(
+      [admin, admin],
+      listedRemovalIds,
+      [quantityToRevoke, quantityToRevoke]
+    );
+    const scheduleSummariesAfterSecondRevocation =
+      await eNori.batchGetEscrowScheduleSummaries(escrowScheduleIds);
+    for (let index = 0; index < escrowScheduleIds.length; index += 1) {
+      expect(
+        scheduleSummariesAfterSecondRevocation[index].totalQuantityRevoked
+      ).to.equal(quantityToRevoke * 2);
+      expect(
+        scheduleSummariesAfterSecondRevocation[index].totalSupply
+      ).to.equal(amountsToEscrow[index] - quantityToRevoke * 2);
+    }
   });
 
   describe('Disabled functions', () => {

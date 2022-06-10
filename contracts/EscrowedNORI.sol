@@ -13,15 +13,18 @@ import "hardhat/console.sol"; // todo
 
 /*
 TODO LIST:
-- ask Radhika if escrow schedule durations could change on a contract-to-contract basis ever?
+- require that for tokensReceived the msg sender is the market contract (requires another circular intialization with the market contract)
 
-- consider writing a modifier (or just a private function) that encapsulates the transfer permissions/restrictions?
-    - invoked by _beforeTokenTransfer
+- should we emit an address-specific event for revocation? since balance is indeed being burned from each given address.
 
-- expose a single version of revokeUnreleasedTokens? maybe not
+- when should we remove a schedule from an address's set? (and an address from a schedule's list of holders?)
+  - what if all their tokens are revoked? (not removed in this case)
+  - what if they transfer away all their tokens (removed in this case)
+  - what if some of their tokens were revoked and THEN they transfer them all away (removed in this case, though maybe shouldn't be)
+
+- should we default to using SECONDS_IN_TEN_YEARS if a duration is not set in the duration lookup?
 
 - roles and permissions audit
-  - do we want to split into ESCROW_CREATOR_ROLE and REVOKER_ROLE ? (since the removal contract is an ESCROW_CREATOR)
 
 - look through for other TODOS
 
@@ -53,6 +56,7 @@ error ArrayLengthMismatch(string array1Name, string array2Name);
 error AllTokensAlreadyReleased(uint256 scheduleId);
 error InsufficientUnreleasedTokens(uint256 scheduleId);
 error InsufficientBalance(address account, uint256 scheduleId);
+error InsufficientClaimableBalance(address account, uint256 scheduleId);
 
 contract EscrowedNORI is
   IERC777RecipientUpgradeable,
@@ -101,10 +105,19 @@ contract EscrowedNORI is
   }
 
   /**
-   * @notice Role conferring creation of escrow schedules and revocation of escrowed tokens.
+   * @notice Role conferring creation of escrow schedules.
+   *
+   * @dev the Removal contract is granted this role during this contract's deployment.
    */
   bytes32 public constant ESCROW_CREATOR_ROLE =
     keccak256("ESCROW_CREATOR_ROLE");
+
+  /**
+   * @notice Role conferring revocation of escrowed tokens.
+   *
+   * @dev only Nori admin address should have this role.
+   */
+  bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
 
   /**
    * @notice Used to register the ERC777TokensRecipient recipient interface in the
@@ -180,13 +193,13 @@ contract EscrowedNORI is
     uint256 quantity
   );
 
-  // todo document expected initialzation state (this todo is a holdover from LockedNORI, not totally sure what it means)
+  // todo document expected initialzation state (this is a holdover from LockedNORI, not totally sure what it means)
   function initialize(
     BridgedPolygonNORI bridgedPolygonNoriAddress,
     Removal removalAddress
   ) external initializer {
     super.initialize("https://nori.com/api/escrowschedule/{id}.json"); // todo which URL do we want to use?
-    address[] memory operators = new address[](1);
+    address[] memory operators = new address[](1); // todo is this used anywhere? this is a holdover from LockedNORI.sol
     operators[0] = _msgSender();
     __Context_init_unchained();
     __ERC165_init_unchained();
@@ -202,7 +215,8 @@ contract EscrowedNORI is
       ERC777_TOKENS_RECIPIENT_HASH,
       address(this)
     );
-    _grantRole(ESCROW_CREATOR_ROLE, _msgSender());
+    _setupRole(ESCROW_CREATOR_ROLE, _msgSender());
+    _setupRole(TOKEN_REVOKER_ROLE, _msgSender());
     setEscrowDurationForMethodologyAndVersion(1, 0, SECONDS_IN_TEN_YEARS);
   }
 
@@ -411,10 +425,13 @@ contract EscrowedNORI is
     uint256 claimableBalanceForSchedule = claimableBalanceForSchedule(
       scheduleId
     );
-    // todo this might be a common calculation that could use a utility
-    return
-      (claimableBalanceForSchedule * balanceOf(account, scheduleId)) /
-      totalSupply(scheduleId);
+    if (totalSupply(scheduleId) == 0) {
+      return 0;
+    } else {
+      return
+        (claimableBalanceForSchedule * balanceOf(account, scheduleId)) /
+        totalSupply(scheduleId);
+    }
   }
 
   // External functions ===================================================
@@ -554,18 +571,6 @@ contract EscrowedNORI is
     uint256 amount,
     bytes memory data
   ) public override {
-    if (hasRole(DEFAULT_ADMIN_ROLE, _msgSender())) {
-      revert RoleCannotTransfer({
-        account: _msgSender(),
-        role: "DEFAULT_ADMIN_ROLE"
-      });
-    }
-    if (hasRole(ESCROW_CREATOR_ROLE, _msgSender())) {
-      revert RoleCannotTransfer({
-        account: _msgSender(),
-        role: "ESCROW_CREATOR_ROLE"
-      });
-    }
     super.safeTransferFrom(from, to, id, amount, data);
     EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
@@ -591,18 +596,6 @@ contract EscrowedNORI is
     uint256[] memory amounts,
     bytes memory data
   ) public override {
-    if (hasRole(DEFAULT_ADMIN_ROLE, _msgSender())) {
-      revert RoleCannotTransfer({
-        account: _msgSender(),
-        role: "DEFAULT_ADMIN_ROLE"
-      });
-    }
-    if (hasRole(ESCROW_CREATOR_ROLE, _msgSender())) {
-      revert RoleCannotTransfer({
-        account: _msgSender(),
-        role: "ESCROW_CREATOR_ROLE"
-      });
-    }
     super.safeBatchTransferFrom(from, to, ids, amounts, data);
     for (uint256 i = 0; i < ids.length; i++) {
       EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
@@ -642,7 +635,7 @@ contract EscrowedNORI is
     address[] calldata toAccounts,
     uint256[] calldata removalIds,
     uint256[] calldata amounts
-  ) external whenNotPaused onlyRole(ESCROW_CREATOR_ROLE) {
+  ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
     if (!(toAccounts.length == removalIds.length)) {
       revert ArrayLengthMismatch({
         array1Name: "fromAccounts",
@@ -743,7 +736,7 @@ contract EscrowedNORI is
 
   /**
    * @notice Revokes unreleased tokens from an escrow schedule.
-   * This is an *admin* operation callable only by addresses having ESCROW_CREATOR_ROLE
+   * This is an *admin* operation callable only by addresses having TOKEN_REVOKER_ROLE
    * (enforced in `batchRevokeUnreleasedTokenAmounts`)
    *
    * @dev Only the maximum revocable number of tokens (unreleased tokens) can be revoked.
@@ -790,21 +783,27 @@ contract EscrowedNORI is
     // burn correct proportion from each token holder
     EnumerableSetUpgradeable.AddressSet storage tokenHolders = escrowSchedule
       .tokenHolders;
-    uint256[] memory burnableAmountsForHolders = new uint256[](
+    uint256[] memory quantitiesToBurnForHolders = new uint256[](
       tokenHolders.length()
     );
+    // TODO bug here! we don't always want to burn the total revocable amount for a token holder!
     // burnable amounts need to be calculated for each owner before state such as totalSupply is mutated
     for (uint256 i = 0; i < tokenHolders.length(); i++) {
-      burnableAmountsForHolders[i] = _revocableQuantityForScheduleForAccount(
+      quantitiesToBurnForHolders[i] = _quantityToRevokePerTokenHolder(
+        quantityToRevoke,
         scheduleId,
         tokenHolders.at(i)
       );
     }
     for (uint256 i = 0; i < tokenHolders.length(); i++) {
-      super._burn(tokenHolders.at(i), scheduleId, burnableAmountsForHolders[i]);
+      super._burn(
+        tokenHolders.at(i),
+        scheduleId,
+        quantitiesToBurnForHolders[i]
+      );
       escrowSchedule.quantitiesRevokedByAddress[
         tokenHolders.at(i)
-      ] += burnableAmountsForHolders[i];
+      ] += quantitiesToBurnForHolders[i];
     }
     // TODO it's possible that since integer division rounds toward 0 in solidity, we end up with
     // burned values per holder that don't quite add up to the total quantity to be revoked!
@@ -831,23 +830,25 @@ contract EscrowedNORI is
   }
 
   /**
-   * @notice Hook that is called before send, transfer, mint, and burn.
+   * Hook that is called before any token transfer. This includes minting and burning, as well as batched variants.
    *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+   * @dev See the ERC1155 specific version [here](
+   *  https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#ERC1155-_beforeTokenTransfer-address-address-address-uint256---uint256---bytes-)
    *
    * ##### Requirements:
    *
    * - the contract must not be paused
-   * - the recipient cannot be the zero address (e.g., no burning of tokens is allowed)
    * - One of the following must be true:
-   *    - the operation is minting (which should ONLY occur when BridgedPolygonNORI is being wrapped via `_depositFor`)
-   *    - the operation is a burn and _all_ of the following must be true:
-   *      - the operator has ESCROW_CREATOR_ROLE
-   *      - the operator is not operating on their own balance
-   *      - the transfer amount is <= the sender's released balance
-   *    - the operation is a transfer and the following must be true:
-   *      - the operator does not have the ESCROW_CREATOR_ROLE todo enforce this? other restrictions?
+   *    - the operation is a mint (which should ONLY occur when BridgedPolygonNORI is being wrapped via `_depositFor`)
+   *    - the operation is a burn, which only happens during revocation and withdrawal:
+   *      - if the operation is a revocation, that permission is enforced by the TOKEN_REVOKER_ROLE
+   *      - if the operation is a withdrawal the burn amount must be <= the sender's claimable balance
+   *    - the operation is a transfer and _all_ of the following must be true:
+   *      - the operator does not have the admin roles DEFAULT_ADMIN_ROLE or ESCROW_CREATOR_ROLE
+   *      - the operator is operating on their own balance (enforced in the inherited contract)
+   *      - the operator has sufficient balance to transfer (enforced in the inherited contract)
    */
   function _beforeTokenTransfer(
     address operator,
@@ -862,24 +863,33 @@ contract EscrowedNORI is
   {
     bool isMinting = from == address(0);
     bool isBurning = to == address(0);
-    bool operatorIsEscrowAdmin = hasRole(ESCROW_CREATOR_ROLE, operator);
-    bool operatorIsNotSender = operator != from;
-    if (isBurning && operatorIsNotSender && operatorIsEscrowAdmin) {
-      for (uint256 i = 0; i < ids.length; i++) {
-        if (!(balanceOf(from, ids[i]) >= amounts[i])) {
-          revert InsufficientBalance({account: from, scheduleId: ids[i]});
-        }
-      }
-    } else if (isBurning) {
-      // todo do we need any other conditions here? meant to be for claiming only
-      // let's see what happens when we try to transfer
+
+    bool isWithdrawing = isBurning && from == operator;
+    bool isTransferring = !isMinting && !isBurning;
+
+    if (isWithdrawing) {
       for (uint256 i = 0; i < ids.length; i++) {
         if (amounts[i] > claimableBalanceForScheduleForAccount(ids[i], from)) {
-          revert InsufficientBalance({account: from, scheduleId: ids[i]});
+          revert InsufficientClaimableBalance({
+            account: from,
+            scheduleId: ids[i]
+          });
         }
       }
+    } else if (isTransferring) {
+      if (hasRole(DEFAULT_ADMIN_ROLE, operator)) {
+        revert RoleCannotTransfer({
+          account: operator,
+          role: "DEFAULT_ADMIN_ROLE"
+        });
+      }
+      if (hasRole(ESCROW_CREATOR_ROLE, operator)) {
+        revert RoleCannotTransfer({
+          account: operator,
+          role: "ESCROW_CREATOR_ROLE"
+        });
+      }
     }
-    // todo transfer permission checks here?
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
@@ -909,16 +919,17 @@ contract EscrowedNORI is
    * @dev Calculates the number of tokens that can be revoked from a given token holder and schedule based on their
    * proportion of ownership of that schedule's tokens.
    */
-  function _revocableQuantityForScheduleForAccount(
+  function _quantityToRevokePerTokenHolder(
+    uint256 totalQuantityToRevoke,
     uint256 scheduleId,
     address account
   ) private view returns (uint256) {
-    uint256 revocableQuantityForSchedule = revocableQuantityForSchedule(
-      scheduleId
-    );
-    // todo this might be a common calculation that could use a utility
+    if (totalSupply(scheduleId) == 0) {
+      // avoid division by 0
+      return 0;
+    }
     return
-      (revocableQuantityForSchedule * balanceOf(account, scheduleId)) /
+      (totalQuantityToRevoke * balanceOf(account, scheduleId)) /
       totalSupply(scheduleId);
   }
 
