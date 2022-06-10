@@ -2,7 +2,6 @@
 
 pragma solidity =0.8.13;
 import {RemovalUtils} from "./RemovalUtils.sol";
-import "solidity-linked-list/contracts/StructuredLinkedList.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./Removal.sol";
 
@@ -21,10 +20,9 @@ library RemovalQueue {
 
   /**
    * @notice Inserts a new removal to the queue.
-   * @dev The removal is added by order of vintage, such that it will be inserted before the first removal of a greater
-   * vintage that is found. If no removal with a greater vintage is found, it will be pushed to the back of the queue.
-   * @param removalToInsert new removal to insert
-   * @return bool true if success, false otherwise
+   * @dev The removal is added to the Enumberable Set that maps to the year of its vintage.
+   * @param removalToInsert a new removal to insert.
+   * @return bool true if success, false otherwise.
    */
   function insertRemovalByVintage(
     RemovalQueueByVintage storage removalQueue,
