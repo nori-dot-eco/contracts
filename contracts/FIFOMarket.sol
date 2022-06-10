@@ -254,8 +254,7 @@ contract FIFOMarket is
         remainingAmountToFill -= removalAmount;
 
         require(
-          _activeSupply[_currentSupplierAddress].removeRemoval(removalId) ==
-            true,
+          _activeSupply[_currentSupplierAddress].removeRemoval(removalId),
           "Market: Failed to remove removal from supply"
         );
         // If the supplier is out of supply, remove them from the active suppliers
