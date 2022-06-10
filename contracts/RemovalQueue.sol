@@ -41,7 +41,11 @@ library RemovalQueue {
   }
 
   /**
+   * @notice Removes a removal from the queue.
+   * @dev Removes the removal from the Enumerable Set that corresponds to its vintage.
    * @param removalQueue the queue to search through.
+   * @param removalToRemove the removal to remove.
+   * @return bool true if success, false otherwise.
    */
   function removeRemoval(
     RemovalQueueByVintage storage removalQueue,
@@ -87,6 +91,12 @@ library RemovalQueue {
     return true;
   }
 
+  /**
+   * @notice Checks if the queue is empty across all vintages.
+   * @dev Uses the latestYear property to check if any vintages have been set.
+   * @param removalQueue the queue from storage.
+   * @return bool true if empty, false otherwise.
+   */
   function isRemovalQueueEmpty(RemovalQueueByVintage storage removalQueue)
     internal
     view
@@ -95,6 +105,12 @@ library RemovalQueue {
     return removalQueue.latestYear == _DEFAULT_LATEST_YEAR;
   }
 
+  /**
+   * @notice Checks if the queue is empty for a particular vintage.
+   * @param removalQueue the queue from storage.
+   * @param vintage the vintage to check.
+   * @return bool true if empty, false otherwise.
+   */
   function isRemovalQueueEmptyForVintage(
     RemovalQueueByVintage storage removalQueue,
     uint16 vintage
@@ -103,7 +119,10 @@ library RemovalQueue {
   }
 
   /**
-   * @param removalQueue the queue to search through.
+   * @notice Gets the next removal in the queue for sale.
+   * @dev Gets the first item from the Enumerable Set that corresponds to the earliest vintage.
+   * @param removalQueue the queue from storage.
+   * @return uint256 the removal for sale.
    */
   function getNextRemovalForSale(RemovalQueueByVintage storage removalQueue)
     internal
@@ -113,6 +132,13 @@ library RemovalQueue {
     return removalQueue.queueByVintage[removalQueue.earliestYear].at(0);
   }
 
+  /**
+   * @notice Gets the size of the queue for a particular vintage.
+   * @dev Gets the size of the Enumerable Set that corresponds to the given vintage.
+   * @param removalQueue the queue from storage.
+   * @param vintage the vintage to check.
+   * @return uint256 the size of the queue.
+   */
   function getSizeOfQueueForVintage(
     RemovalQueueByVintage storage removalQueue,
     uint16 vintage
@@ -120,6 +146,13 @@ library RemovalQueue {
     return removalQueue.queueByVintage[vintage].length();
   }
 
+  /**
+   * @notice Gets the total balance of all removals across all vintages.
+   * @dev Gets the size of the Enumerable Set that corresponds to the given vintage.
+   * @param removalQueue the queue from storage.
+   * @param removal the removal contract.
+   * @return uint256 the total balance of the queue.
+   */
   function getTotalBalanceFromRemovalQueue(
     RemovalQueueByVintage storage removalQueue,
     Removal removal
@@ -136,7 +169,7 @@ library RemovalQueue {
       size = removalQueue.queueByVintage[currentYear].length();
       for (i = 0; i < size; i++) {
         currentRemoval = removalQueue.queueByVintage[currentYear].at(i);
-        totalBalance += removal.balanceOf(address(this), currentRemoval);
+        totalBalance += removal.balanceOf(address(this), currentRemoval); // TODO: Use batch get for balanceOf
       }
     }
     return totalBalance;
