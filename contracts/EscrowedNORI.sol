@@ -13,6 +13,8 @@ import "hardhat/console.sol"; // todo
 
 /*
 TODO LIST:
+- any input validation for escrow schedule start times (in Removal.sol) or durations (this contract), other data?
+
 - require that for tokensReceived the msg sender is the market contract (requires another circular intialization with the market contract)
 
 - should we emit an address-specific event for revocation? since balance is indeed being burned from each given address.
@@ -22,7 +24,8 @@ TODO LIST:
   - what if they transfer away all their tokens (removed in this case)
   - what if some of their tokens were revoked and THEN they transfer them all away (removed in this case, though maybe shouldn't be)
 
-- should we default to using SECONDS_IN_TEN_YEARS if a duration is not set in the duration lookup?
+- should we default to using SECONDS_IN_TEN_YEARS if a duration is not set in the duration lookup? or just revert?
+- should we have a default behavior if a start time isn't set for a removal when its schedule is being created? revert?
 
 - roles and permissions audit
 
@@ -786,8 +789,6 @@ contract EscrowedNORI is
     uint256[] memory quantitiesToBurnForHolders = new uint256[](
       tokenHolders.length()
     );
-    // TODO bug here! we don't always want to burn the total revocable amount for a token holder!
-    // burnable amounts need to be calculated for each owner before state such as totalSupply is mutated
     for (uint256 i = 0; i < tokenHolders.length(); i++) {
       quantitiesToBurnForHolders[i] = _quantityToRevokePerTokenHolder(
         quantityToRevoke,
