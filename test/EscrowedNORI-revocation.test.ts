@@ -259,17 +259,6 @@ describe('EscrowedNORI revocation', () => {
         const escrowScheduleSummary = await eNori.getEscrowScheduleSummary(
           escrowScheduleIds[0]
         );
-        console.log({ escrowScheduleSummary });
-        const supplierScheduleIds = await eNori.getScheduleIdsForAccount(
-          supplier
-        );
-        console.log({ supplierScheduleIds });
-        const supplierScheduleDetail =
-          await eNori.getEscrowScheduleDetailForAccount(
-            supplier,
-            escrowScheduleIds[0]
-          );
-        console.log({ supplierScheduleDetail });
         expect(escrowScheduleSummary.totalQuantityRevoked).to.equal(
           originalRevocableQuantity
         );

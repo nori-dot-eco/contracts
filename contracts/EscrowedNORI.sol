@@ -73,7 +73,6 @@ contract EscrowedNORI is
   struct EscrowSchedule {
     uint256 startTime;
     uint256 endTime;
-    uint256 totalSupply;
     uint256 totalClaimedAmount;
     bool exists;
     uint256 totalQuantityRevoked;
@@ -399,7 +398,7 @@ contract EscrowedNORI is
       scheduleId
     ];
     return
-      escrowSchedule.totalSupply -
+      totalSupply(scheduleId) -
       _releasedBalanceOfSingleEscrowSchedule(scheduleId);
   }
 
@@ -420,21 +419,39 @@ contract EscrowedNORI is
       escrowSchedule.totalClaimedAmount;
   }
 
-  /** A single account's released balance less any claimed amount at current block timestamp for an escrow schedule */
+  /**
+   * A single account's claimable balance at current block timestamp for an escrow schedule
+   *
+   * @dev calculations have to consider an account's total proportional claim to the schedule's released tokens,
+   * using totals constructed from current balances and claimed amounts, and then subtract anything that
+   * account has already claimed.
+   */
   function claimableBalanceForScheduleForAccount(
     uint256 scheduleId,
     address account
   ) public view returns (uint256) {
+    EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
+      scheduleId
+    ];
+    uint256 scheduleTrueTotal = escrowSchedule.totalClaimedAmount +
+      totalSupply(scheduleId);
+    // avoid division by 0
+    if (scheduleTrueTotal == 0) {
+      return 0;
+    }
+    uint256 balanceOfAccount = balanceOf(account, scheduleId);
+    uint256 claimedAmountForAccount = escrowSchedule.claimedAmountsByAddress[
+      account
+    ];
     uint256 claimableBalanceForSchedule = claimableBalanceForSchedule(
       scheduleId
     );
-    if (totalSupply(scheduleId) == 0) {
-      return 0;
-    } else {
-      return
-        (claimableBalanceForSchedule * balanceOf(account, scheduleId)) /
-        totalSupply(scheduleId);
-    }
+    uint256 claimableForAccount = ((claimedAmountForAccount +
+      balanceOfAccount) *
+      (claimableBalanceForSchedule + escrowSchedule.totalClaimedAmount)) /
+      scheduleTrueTotal -
+      claimedAmountForAccount;
+    return claimableForAccount;
   }
 
   // External functions ===================================================
@@ -455,22 +472,6 @@ contract EscrowedNORI is
     _methodologyAndVersionToEscrowDuration[methodology][
       methodologyVersion
     ] = durationInSeconds;
-  }
-
-  /**
-   * Sets up an escrow schedule with parameters that are determined from the removal id.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `ESCROW_CREATOR_ROLE` role
-   */
-  function createEscrowSchedule(uint256 removalId)
-    external
-    whenNotPaused
-    onlyRole(ESCROW_CREATOR_ROLE)
-  {
-    _createEscrowSchedule(removalId);
   }
 
   /**
@@ -683,7 +684,6 @@ contract EscrowedNORI is
     EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
       scheduleId
     ];
-    escrowSchedule.totalSupply += amount;
     escrowSchedule.tokenHolders.add(recipient);
     _addressToScheduleIdSet[recipient].add(scheduleId);
     return true;
@@ -729,7 +729,6 @@ contract EscrowedNORI is
       revert EscrowDurationNotSet({removalId: removalId});
     }
     _addressToScheduleIdSet[recipient].add(scheduleId);
-    escrowSchedule.totalSupply = 0;
     escrowSchedule.exists = true;
     escrowSchedule.startTime = startTime;
     escrowSchedule.endTime = startTime + escrowDuration;
@@ -768,7 +767,7 @@ contract EscrowedNORI is
     uint256 releasedBalance = _releasedBalanceOfSingleEscrowSchedule(
       scheduleId
     );
-    if (!(releasedBalance < escrowSchedule.totalSupply)) {
+    if (!(releasedBalance < totalSupply(scheduleId))) {
       revert AllTokensAlreadyReleased({scheduleId: scheduleId});
     }
 
@@ -813,8 +812,6 @@ contract EscrowedNORI is
     // granted, real token amounts will usually be much larger values where the truncations are insignificant
     // ... but still, we should update this struct with the real value by summing across the burnable amounts
     // for all holders.
-    escrowSchedule.totalSupply -= quantityToRevoke;
-    escrowSchedule.releasedAmountFloor = releasedBalance;
     escrowSchedule.totalQuantityRevoked += quantityToRevoke;
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
@@ -868,6 +865,15 @@ contract EscrowedNORI is
     bool isWithdrawing = isBurning && from == operator;
     bool isTransferring = !isMinting && !isBurning;
 
+    if (isBurning) {
+      for (uint256 i = 0; i < ids.length; i++) {
+        EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
+          ids[i]
+        ];
+        escrowSchedule
+          .releasedAmountFloor = _releasedBalanceOfSingleEscrowSchedule(ids[i]);
+      }
+    }
     if (isWithdrawing) {
       for (uint256 i = 0; i < ids.length; i++) {
         if (amounts[i] > claimableBalanceForScheduleForAccount(ids[i], from)) {
@@ -900,19 +906,22 @@ contract EscrowedNORI is
    * or the released amount floor, which is set at the current released amount whenever the balance of a schedule
    * is decreased through revocation.
    */
-  function _linearReleaseAmountAvailable(EscrowSchedule storage escrowSchedule)
+  function _linearReleaseAmountAvailable(uint256 scheduleId)
     internal
     view
     returns (uint256)
   {
+    EscrowSchedule storage escrowSchedule = _scheduleIdToScheduleStruct[
+      scheduleId
+    ];
     if (block.timestamp >= escrowSchedule.endTime) {
-      return escrowSchedule.totalSupply;
+      return totalSupply(scheduleId);
     }
     uint256 rampTotalTime = escrowSchedule.endTime - escrowSchedule.startTime;
     return
       block.timestamp < escrowSchedule.startTime
         ? 0
-        : (escrowSchedule.totalSupply *
+        : (totalSupply(scheduleId) *
           (block.timestamp - escrowSchedule.startTime)) / rampTotalTime;
   }
 
@@ -945,7 +954,7 @@ contract EscrowedNORI is
     ];
     return
       MathUpgradeable.max(
-        _linearReleaseAmountAvailable(escrowSchedule),
+        _linearReleaseAmountAvailable(scheduleId),
         escrowSchedule.releasedAmountFloor
       );
   }

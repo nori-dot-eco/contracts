@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
 
-import { advanceTime } from '@/test/helpers';
+import { expect, advanceTime } from '@/test/helpers';
 import {
   setupTestEscrowedNORI,
   sendRemovalProceedsToEscrow,
@@ -13,7 +13,7 @@ import {
 } from '@/test/helpers/escrowed-nori';
 
 describe('EscrowedNORI transferring', () => {
-  describe('Transferring', () => {
+  describe('success', () => {
     describe('safeTransferFrom', () => {
       // eslint-disable-next-line jest/expect-expect -- assertions are in helper function
       it('should transfer some tokens to another account', async () => {
@@ -75,7 +75,6 @@ describe('EscrowedNORI transferring', () => {
             investor1,
             escrowScheduleIds[0]
           );
-        // console.log(supplierScheduleDetailAfterTransfer);
 
         const expectedSupplierScheduleDetailAfterTransfer = {
           tokenHolder: supplier,
@@ -198,8 +197,7 @@ describe('EscrowedNORI transferring', () => {
       });
     });
     describe('safeBatchTransferFrom', () => {
-      // eslint-disable-next-line jest/expect-expect -- assertions are in helper function
-      it('should transfer multiple tokens to another account', async () => {
+      it('should transfer some of multiple token types to another account', async () => {
         const removalDataToList = [
           {
             amount: 100,
@@ -356,7 +354,177 @@ describe('EscrowedNORI transferring', () => {
             expectedInvestor1ScheduleDetailsAfterTransfer[index]
           );
         }
+        const [
+          supplierScheduleSetAfterTransfer,
+          investorScheduleSetAfterTransfer,
+        ] = await Promise.all([
+          eNori.getScheduleIdsForAccount(supplier),
+          eNori.getScheduleIdsForAccount(investor1),
+        ]);
+        expect(supplierScheduleSetAfterTransfer).to.have.deep.members(
+          escrowScheduleIds
+        );
+        expect(investorScheduleSetAfterTransfer).to.have.deep.members(
+          escrowScheduleIds
+        );
       });
+
+      it('should transfer the full balance of multiple token types to another account', async () => {
+        const removalDataToList = [
+          {
+            amount: 100,
+            vintage: 2018,
+            escrowScheduleStartTime: UNIX_EPOCH_2018,
+          },
+          {
+            amount: 100,
+            vintage: 2019,
+            escrowScheduleStartTime: UNIX_EPOCH_2019,
+          },
+        ];
+        const testSetup = await setupTestEscrowedNORI({
+          removalDataToList,
+        });
+        const { eNori, hre, escrowScheduleIds } = testSetup;
+        const { supplier, investor1 } = hre.namedAccounts;
+        const escrowedAmounts = removalDataToList.map(
+          (removalData) => removalData.amount
+        );
+        await sendRemovalProceedsToEscrow({
+          testSetup,
+          listedRemovalData: removalDataToList,
+          removalAmountsToEscrow: escrowedAmounts,
+        });
+        const supplierScheduleDetailsBeforeTransfer =
+          await eNori.batchGetEscrowScheduleDetailsForAccount(supplier);
+
+        const expectedScheduleDetailsBeforeTransfer = [
+          {
+            tokenHolder: supplier,
+            scheduleTokenId: escrowScheduleIds[0],
+            balance: BigNumber.from(escrowedAmounts[0]),
+          },
+          {
+            tokenHolder: supplier,
+            scheduleTokenId: escrowScheduleIds[1],
+            balance: BigNumber.from(escrowedAmounts[1]),
+          },
+        ];
+        for (const [
+          index,
+          scheduleDetail,
+        ] of supplierScheduleDetailsBeforeTransfer.entries()) {
+          compareEscrowScheduleDetailForAddressStructs(
+            scheduleDetail,
+            expectedScheduleDetailsBeforeTransfer[index]
+          );
+        }
+
+        await eNori
+          .connect(hre.namedSigners.supplier)
+          .safeBatchTransferFrom(
+            supplier,
+            investor1,
+            escrowScheduleIds,
+            [escrowedAmounts[0], escrowedAmounts[0]],
+            '0x'
+          );
+        const supplierScheduleDetailsAfterTransfer =
+          await eNori.batchGetEscrowScheduleDetailsForAccount(supplier);
+        const investor1ScheduleDetailsAfterTransfer =
+          await eNori.batchGetEscrowScheduleDetailsForAccount(investor1);
+
+        const expectedSupplierScheduleDetailsAfterTransfer = [
+          {
+            tokenHolder: supplier,
+            scheduleTokenId: escrowScheduleIds[0],
+            balance: BigNumber.from(0),
+          },
+          {
+            tokenHolder: supplier,
+            scheduleTokenId: escrowScheduleIds[1],
+            balance: BigNumber.from(0),
+          },
+        ];
+        const expectedInvestor1ScheduleDetailsAfterTransfer = [
+          {
+            tokenHolder: investor1,
+            scheduleTokenId: escrowScheduleIds[0],
+            balance: BigNumber.from(escrowedAmounts[0]),
+          },
+          {
+            tokenHolder: investor1,
+            scheduleTokenId: escrowScheduleIds[1],
+            balance: BigNumber.from(escrowedAmounts[1]),
+          },
+        ];
+
+        for (const [
+          index,
+          scheduleDetail,
+        ] of supplierScheduleDetailsAfterTransfer.entries()) {
+          compareEscrowScheduleDetailForAddressStructs(
+            scheduleDetail,
+            expectedSupplierScheduleDetailsAfterTransfer[index]
+          );
+        }
+
+        for (const [
+          index,
+          scheduleDetail,
+        ] of investor1ScheduleDetailsAfterTransfer.entries()) {
+          compareEscrowScheduleDetailForAddressStructs(
+            scheduleDetail,
+            expectedInvestor1ScheduleDetailsAfterTransfer[index]
+          );
+        }
+        const scheduleSummariesAfterTransfer =
+          await eNori.batchGetEscrowScheduleSummaries(escrowScheduleIds);
+
+        for (const scheduleSummary of scheduleSummariesAfterTransfer) {
+          compareEscrowScheduleSummaryStructs(scheduleSummary, {
+            tokenHolders: [investor1],
+          });
+        }
+        const [
+          supplierScheduleSetAfterTransfer,
+          investorScheduleSetAfterTransfer,
+        ] = await Promise.all([
+          eNori.getScheduleIdsForAccount(supplier),
+          eNori.getScheduleIdsForAccount(investor1),
+        ]);
+        expect(supplierScheduleSetAfterTransfer.length).to.equal(0);
+        expect(investorScheduleSetAfterTransfer).to.have.deep.members(
+          escrowScheduleIds
+        );
+      });
+    });
+  });
+  describe('failure', () => {
+    it('should not allow an account with DEFAULT_ADMIN_ROLE or ESCROW_CREATOR_ROLE to transfer tokens', async () => {
+      const removalDataToList = [
+        {
+          amount: 100,
+          vintage: 2018,
+          escrowScheduleStartTime: NOW,
+        },
+      ];
+      const testSetup = await setupTestEscrowedNORI({
+        removalDataToList,
+      });
+      const { eNori, hre, escrowScheduleIds } = testSetup;
+      const { supplier, investor1 } = hre.namedAccounts;
+      const escrowedAmount = removalDataToList[0].amount;
+      await sendRemovalProceedsToEscrow({
+        testSetup,
+        listedRemovalData: removalDataToList,
+        removalAmountsToEscrow: [escrowedAmount],
+      });
+      await expect(
+        eNori
+          .connect(hre.namedSigners.admin)
+          .safeTransferFrom(supplier, investor1, escrowScheduleIds[0], 50, '0x')
+      ).to.be.revertedWith('OperatorActionsNotSupported()');
     });
   });
 });
