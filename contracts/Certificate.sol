@@ -12,6 +12,10 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820Implement
 
 // todo non-transferable/approveable
 // todo disable other mint functions
+// todo whenNotPasused
+// todo can we upgrade lockedNORI with new comments? (would love to see consistency in behaviors/requirements using alpha-numerical lists)
+// todo consider not inheriting pausable 1155 contract so we can use custom errors
+// todo document that all things in requirements list must evaluate to true for a function
 
 /**
  * @title Certificate
@@ -22,6 +26,14 @@ contract Certificate is
 {
   error ForbiddenTransferAfterMinting();
   error ForbiddenFunctionCall();
+
+  /**
+   * @notice Role conferring operator permissions
+   * @dev This role is assigned to operators which can transfer certificates from an address to another by bypassing
+   * the `_beforeTokenTransfer` hook.
+   */
+  bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
+    keccak256("CERTIFICATE_OPERATOR_ROLE");
 
   struct Source {
     uint256 removalId;
@@ -54,10 +66,6 @@ contract Certificate is
   }
 
   function addMinter(address _minter) public {
-    require(
-      hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
-      "Certificate: missing minter role"
-    );
     _setupRole(MINTER_ROLE, _minter);
   }
 
@@ -123,6 +131,28 @@ contract Certificate is
     return _sources[certificateId];
   }
 
+  /**
+   * @notice A hook that is called before all transfers and is used to disallow non-minting, non-burning, and transfers
+   * invoked by addresses which do not have the `CERTIFICATE_OPERATOR_ROLE` role.
+   *
+   * @dev Follows the rules of hooks defined [here](
+   *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+   *
+   * ##### Requirements:
+   *
+   * A. The contract must not be paused
+   * B. One of the following must be true:
+   *    1. the operation is minting
+   *    2. the operation is burning
+   *    3. the operation is transferring and the operator has the `CERTIFICATE_OPERATOR_ROLE` role
+   *
+   * ##### Behaviors (todo: add behaviors and requirements to all function natspec)
+   *
+   * A. Reverts with `ForbiddenTransferAfterMinting` if none of the above requirements for requirement A are met.
+   * B. Reverts with the string `"Pausable: paused"` if the contract is paused // todo consider not inheriting pausable
+   * base contract and reverting with custom error for consistency
+   *
+   */
   function _beforeTokenTransfer(
     address operator,
     address from,
@@ -133,8 +163,13 @@ contract Certificate is
   )
     internal
     override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
+    whenNotPaused
   {
-    if (from != address(0)) {
+    bool isMinting = from != address(0);
+    bool isBurning = to != address(0);
+    if (
+      (isMinting || isBurning) || !hasRole(CERTIFICATE_OPERATOR_ROLE, operator)
+    ) {
       revert ForbiddenTransferAfterMinting();
     }
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
