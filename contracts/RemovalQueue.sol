@@ -19,7 +19,7 @@ library RemovalQueue {
   uint16 private constant _DEFAULT_LATEST_YEAR = 0;
 
   /**
-   * @notice Inserts a new removal to the queue.
+   * @notice Inserts a new removal into the queue.
    * @dev The removal is added to the Enumberable Set that maps to the year of its vintage.
    * @param removalToInsert a new removal to insert.
    * @return bool true if success, false otherwise.
