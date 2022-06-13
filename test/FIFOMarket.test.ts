@@ -17,50 +17,57 @@ interface RemovalDataFromListing {
   totalAmountOfRemovals: number;
 }
 
-const setupTestLocal = async (options?: {
-  buyerInitialBPNoriBalance?: BigNumberish;
-  removalDataToList?: RemovalDataForListing[]; // todo userFixtures format
-}): Promise<Awaited<ReturnType<typeof setupTest>> & RemovalDataFromListing> => {
-  const {
-    removalDataToList,
-    buyerInitialBPNoriBalance,
-  }: Parameters<typeof setupTestLocal>[0] = {
-    buyerInitialBPNoriBalance:
-      options?.buyerInitialBPNoriBalance ?? formatTokenAmount(1_000_000),
-    removalDataToList: options?.removalDataToList ?? [],
-  };
-  const { hre, contracts, removal, fifoMarket, ...rest } = await setupTest({
-    userFixtures: { buyer: { bpBalance: buyerInitialBPNoriBalance } },
-  });
-  let listedRemovalIds: BigNumber[] = [];
-  let totalAmountOfSupply = 0;
-  let totalAmountOfSuppliers = 0;
-  let totalAmountOfRemovals = 0;
-  if (removalDataToList.length > 0) {
-    ({
-      listedRemovalIds,
-      totalAmountOfSupply,
-      totalAmountOfRemovals,
-      totalAmountOfSuppliers,
-    } = await batchMintAndListRemovalsForSale({
+const setupTestLocal = global.hre.deployments.createFixture(
+  async (
+    _,
+    options?: {
+      buyerInitialBPNoriBalance?: BigNumberish;
+      removalDataToList?: RemovalDataForListing[]; // todo userFixtures format
+    }
+  ): Promise<
+    Awaited<ReturnType<typeof setupTest>> & RemovalDataFromListing
+  > => {
+    const {
       removalDataToList,
+      buyerInitialBPNoriBalance,
+    }: Parameters<typeof setupTestLocal>[0] = {
+      buyerInitialBPNoriBalance:
+        options?.buyerInitialBPNoriBalance ?? formatTokenAmount(1_000_000),
+      removalDataToList: options?.removalDataToList ?? [],
+    };
+    const { hre, contracts, removal, fifoMarket, ...rest } = await setupTest({
+      userFixtures: { buyer: { bpBalance: buyerInitialBPNoriBalance } },
+    });
+    let listedRemovalIds: BigNumber[] = [];
+    let totalAmountOfSupply = 0;
+    let totalAmountOfSuppliers = 0;
+    let totalAmountOfRemovals = 0;
+    if (removalDataToList.length > 0) {
+      ({
+        listedRemovalIds,
+        totalAmountOfSupply,
+        totalAmountOfRemovals,
+        totalAmountOfSuppliers,
+      } = await batchMintAndListRemovalsForSale({
+        removalDataToList,
+        removal,
+        fifoMarket,
+        hre,
+      }));
+    }
+    return {
+      hre,
+      contracts,
       removal,
       fifoMarket,
-      hre,
-    }));
+      listedRemovalIds,
+      totalAmountOfSupply,
+      totalAmountOfSuppliers,
+      totalAmountOfRemovals,
+      ...rest,
+    };
   }
-  return {
-    hre,
-    contracts,
-    removal,
-    fifoMarket,
-    listedRemovalIds,
-    totalAmountOfSupply,
-    totalAmountOfSuppliers,
-    totalAmountOfRemovals,
-    ...rest,
-  };
-};
+);
 
 describe('FIFOMarket', () => {
   describe('initialization', () => {
@@ -681,7 +688,7 @@ describe('FIFOMarket', () => {
       const numberOfRemovalsToCreate = 100;
       const removalDataToList = [
         ...Array.from({ length: numberOfRemovalsToCreate }).keys(),
-      ].map((_) => {
+      ].map(() => {
         return { amount: 50 };
       });
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
