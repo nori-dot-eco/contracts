@@ -108,7 +108,7 @@ const employeeParameters = ({
 };
 
 const investorParameters = ({
-  startTime = NOW, // todo use await getLatestBlockTime({hre}) instead
+  startTime = NOW,
   hre,
 }: {
   startTime?: number;
@@ -194,8 +194,7 @@ const setupWithGrant = async (
     },
   } as TokenGrantOptions;
   const userData = formatGrantUserData(grant);
-
-  expect(await bpNori.send(lNori.address, grantAmount, userData))
+  await expect(bpNori.send(lNori.address, grantAmount, userData))
     .to.emit(lNori, 'TokenGrantCreated')
     .withArgs(
       grant.recipient,
@@ -219,9 +218,8 @@ const setupWithGrant = async (
     )
     .to.emit(bpNori, 'Transfer')
     .withArgs(namedAccounts.admin, lNori.address, grantAmount);
-  return { bpNori, lNori, grant, grantAmount, ...rest, hre };
+  return { bpNori, lNori, grant, grantAmount, hre, ...rest };
 };
-
 const setupGrantWithDirectCall = async (
   options: DeepPartial<TokenGrantOptions> = {}
 ): ReturnType<typeof setupWithGrant> => {
@@ -586,8 +584,10 @@ describe('LockedNori', () => {
                 grant.vestEndTime,
                 grant.unlockEndTime
               );
-            await expect(
-              bpNori.send(namedAccounts[accountWithoutRole], grantAmount, '0x')
+            await bpNori.send(
+              namedAccounts[accountWithoutRole],
+              grantAmount,
+              '0x'
             );
             const userData = ethers.utils.defaultAbiCoder.encode(
               ['address', 'uint256'],
@@ -1042,7 +1042,6 @@ describe('LockedNori', () => {
       )
         .to.emit(lNori, 'TokensClaimed')
         .withArgs(investor1, employee, CLIFF1_AMOUNT);
-      // await hre.network.provider.send('evm_mine'); // todo remove?
 
       expect(await lNori.totalSupply()).to.equal(
         GRANT_AMOUNT.sub(CLIFF1_AMOUNT)
@@ -1274,8 +1273,8 @@ describe('LockedNori', () => {
       expect(await lNori.totalSupply()).to.eq(grantAmount);
     });
     it('Should revert when revoking from a non-vesting grant', async () => {
-      const { lNori, grantAmount, grant, hre } = await setupWithGrant(
-        (parameters) => investorParameters(parameters)
+      const { lNori, grantAmount, grant } = await setupWithGrant((parameters) =>
+        investorParameters(parameters)
       );
       const { namedAccounts, namedSigners } = hre;
       await expect(
@@ -1361,15 +1360,15 @@ describe('LockedNori', () => {
       };
       const unnamedAccounts = await ethers.provider.listAccounts();
       const recipients = [...Array.from({ length: 9 })].map(
-        (_) => lNori.address
+        () => lNori.address
       );
-      const amounts = [...Array.from({ length: 9 })].map((_) => grantAmount);
+      const amounts = [...Array.from({ length: 9 })].map(() => grantAmount);
       const userData = [...Array.from({ length: 9 })].map((_, index) =>
         buildUserData({ recipient: unnamedAccounts[index + 1] })
-      ); // todo
-      const operatorData = [...Array.from({ length: 9 })].map((_) => '0x');
+      );
+      const operatorData = [...Array.from({ length: 9 })].map(() => '0x');
       const requireReceptionAck = [...Array.from({ length: 9 })].map(
-        (_) => true
+        () => true
       );
       await expect(
         bpNori.batchSend(
