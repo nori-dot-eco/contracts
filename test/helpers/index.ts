@@ -2,10 +2,9 @@ import type { BigNumberish, BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 
-import { formatRemovalIdData } from '../../utils/removal';
-import type { MockCertificate } from '../../typechain-types/contracts/mocks';
-
-import { mockDepositNoriToPolygon } from '@/test/helpers';
+import type { MockCertificate } from '@/typechain-types/contracts/mocks';
+import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
+import { formatRemovalIdData } from '@/utils/removal';
 import type {
   Removal,
   Certificate,
@@ -42,6 +41,7 @@ export const getLatestBlockTime = async ({
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<number> => {
   const block = await hre.ethers.provider.getBlock('latest');
+  console.log({ block });
   return block.timestamp;
 };
 
@@ -85,19 +85,20 @@ export const setupTest = global.hre.deployments.createFixture(
     };
     await hre.deployments.fixture(['assets', 'market', 'test']);
     const contracts = await getContractsFromDeployments(hre);
-    await Promise.all(
-      Object.entries(userFixtures).flatMap(async ([k, v]) => {
-        return isBigNumberish(v.bpBalance)
-          ? mockDepositNoriToPolygon({
-              hre,
-              contracts,
-              amount: v.bpBalance,
-              to: hre.namedAccounts[k as keyof typeof namedAccounts],
-              signer: hre.namedSigners[k as keyof typeof namedAccounts],
-            })
-          : Promise.reject(new Error(`invalid bpBalance for ${k}`));
-      })
-    );
+    for (const [k, v] of Object.entries(userFixtures)) {
+      if (isBigNumberish(v.bpBalance)) {
+        // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+        await mockDepositNoriToPolygon({
+          hre,
+          contracts,
+          amount: v.bpBalance,
+          to: hre.namedAccounts[k as keyof typeof namedAccounts],
+          signer: hre.namedSigners[k as keyof typeof namedAccounts],
+        });
+      } else {
+        throw new Error(`invalid bpBalance for ${k}`);
+      }
+    }
     return {
       hre,
       contracts,
@@ -200,18 +201,19 @@ export const batchMintAndListRemovalsForSale = async ({
 }): Promise<RemovalDataFromListing> => {
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
-  const listedRemovalIds = await Promise.all(
-    removalDataToList.map((removalData, index) => {
-      return createRemovalTokenId({
-        removal,
-        hre,
-        removalData: {
-          supplierAddress: removalData.supplierAddress ?? supplier,
-          vintage: removalData.vintage ?? defaultStartingVintage + index,
-        },
-      });
-    })
-  );
+  const listedRemovalIds: BigNumber[] = [];
+  for (const [index, removalData] of removalDataToList.entries()) {
+    // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+    const removalTokenId = await createRemovalTokenId({
+      removal,
+      hre,
+      removalData: {
+        supplierAddress: removalData.supplierAddress ?? supplier,
+        vintage: removalData.vintage ?? defaultStartingVintage + index,
+      },
+    });
+    listedRemovalIds.push(removalTokenId);
+  }
   const removalAmounts = removalDataToList.map((removalData) =>
     formatTokenString(removalData.amount.toString())
   );
