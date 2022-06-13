@@ -3,6 +3,9 @@ import path from 'path';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 
+import type { MockCertificate } from '../typechain-types/contracts/mocks';
+import type { MockCertificate__factory } from '../typechain-types/factories/contracts/mocks';
+
 import type { Contracts } from '@/utils/contracts';
 import type {
   LockedNORI,
@@ -132,6 +135,18 @@ export const deployRemovalTestHarness = async ({
     );
   const removalTestHarness = await RemovalTestHarness.deploy();
   return removalTestHarness;
+};
+
+export const deployMockCertificate = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<MockCertificate>> => {
+  return hre.deployOrUpgradeProxy<MockCertificate, MockCertificate__factory>({
+    contractName: 'MockCertificate' as unknown as ContractNames,
+    args: [],
+    options: { initializer: 'initialize()' },
+  });
 };
 
 export const deployCertificateContract = async ({

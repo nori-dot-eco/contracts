@@ -3,6 +3,7 @@ import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 
 import { formatRemovalIdData } from '../../utils/removal';
+import type { MockCertificate } from '../../typechain-types/contracts/mocks';
 
 import { mockDepositNoriToPolygon } from '@/test/helpers';
 import type {
@@ -32,6 +33,7 @@ interface ContractInstances {
   fifoMarket: FIFOMarket;
   lNori: LockedNORI;
   removalTestHarness: RemovalTestHarness;
+  mockCertificate: MockCertificate; // todo key remapping of Contracts
 }
 
 export const getLatestBlockTime = async ({
@@ -106,6 +108,7 @@ export const setupTest = global.hre.deployments.createFixture(
       fifoMarket: contracts.FIFOMarket,
       lNori: contracts.LockedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
+      mockCertificate: contracts.MockCertificate,
       userFixtures,
     };
   }

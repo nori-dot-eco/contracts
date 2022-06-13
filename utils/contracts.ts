@@ -1,5 +1,6 @@
 import type { Contract } from 'ethers';
 
+import type { MockCertificate } from '@/typechain-types/contracts/mocks';
 import type {
   BridgedPolygonNORI,
   Certificate,
@@ -20,6 +21,7 @@ export interface Contracts {
   Certificate?: Certificate;
   ScheduleTestHarness?: ScheduleTestHarness;
   RemovalTestHarness?: RemovalTestHarness;
+  MockCertificate?: MockCertificate; // todo key remapping
 }
 
 export const getContract = async <
@@ -45,6 +47,8 @@ export const getContract = async <
     ? 'ScheduleTestHarness'
     : TContract extends RemovalTestHarness
     ? 'RemovalTestHarness'
+    : TContract extends MockCertificate
+    ? 'MockCertificate'
     : never;
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
@@ -141,6 +145,19 @@ export const getRemovalTestHarness = async ({
     signer,
   });
 
+export const getMockCertificate = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<MockCertificate> =>
+  getContract({
+    contractName: 'MockCertificate' as keyof Contracts[keyof Contracts],
+    hre,
+    signer,
+  });
+
 export const getFIFOMarket = async ({
   hre,
   signer,
@@ -177,6 +194,9 @@ export const getContractsFromDeployments = async (
       : undefined,
     RemovalTestHarness: deployments.RemovalTestHarness?.address
       ? await getRemovalTestHarness({ hre })
+      : undefined,
+    MockCertificate: deployments.MockCertificate?.address
+      ? await getMockCertificate({ hre })
       : undefined,
   } as Required<Contracts>;
   return contracts;
