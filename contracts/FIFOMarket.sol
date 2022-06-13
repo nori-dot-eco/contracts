@@ -158,9 +158,6 @@ contract FIFOMarket is
   //   return nextRemovalId;
   // }
 
-  /**
-   * @dev Will not work if the removals are for more than one supplier!
-   */
   function onERC1155BatchReceived(
     address,
     address,
