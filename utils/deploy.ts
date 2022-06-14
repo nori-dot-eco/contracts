@@ -136,7 +136,7 @@ export const deployRemovalTestHarness = async ({
 }): Promise<InstanceOfContract<RemovalTestHarness>> => {
   const RemovalTestHarness =
     await hre.ethers.getContractFactory<RemovalTestHarness__factory>(
-      'RemovalTestHarness' as unknown as ContractNames
+      'RemovalTestHarness' as ContractNames
     );
   const removalTestHarness = await RemovalTestHarness.deploy();
   return removalTestHarness;
@@ -148,7 +148,7 @@ export const deployMockCertificate = async ({
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<InstanceOfContract<MockCertificate>> => {
   return hre.deployOrUpgradeProxy<MockCertificate, MockCertificate__factory>({
-    contractName: 'MockCertificate' as unknown as ContractNames,
+    contractName: 'MockCertificate' as ContractNames,
     args: [],
     options: { initializer: 'initialize()' },
   });
@@ -163,8 +163,7 @@ export const deployMockERC1155PresetPausableNonTransferrable = async ({
     MockERC1155PresetPausableNonTransferrable,
     MockERC1155PresetPausableNonTransferrable__factory
   >({
-    contractName:
-      'MockERC1155PresetPausableNonTransferrable' as unknown as ContractNames,
+    contractName: 'MockERC1155PresetPausableNonTransferrable' as ContractNames,
     args: [],
     options: { initializer: 'initialize()' },
   });
