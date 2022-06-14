@@ -6,17 +6,17 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "./Removal.sol";
 
 struct RemovalQueueByVintage {
-  mapping(uint16 => EnumerableSetUpgradeable.UintSet) queueByVintage;
-  uint16 earliestYear;
-  uint16 latestYear;
+  mapping(uint256 => EnumerableSetUpgradeable.UintSet) queueByVintage;
+  uint256 earliestYear;
+  uint256 latestYear;
 }
 
 library RemovalQueue {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
-  uint16 private constant _DEFAULT_EARLIEST_YEAR = 2**16 - 1;
-  uint16 private constant _DEFAULT_LATEST_YEAR = 0;
+  uint256 private constant _DEFAULT_EARLIEST_YEAR = 2**256 - 1;
+  uint256 private constant _DEFAULT_LATEST_YEAR = 0;
 
   /**
    * @notice Inserts a new removal into the queue.
@@ -29,7 +29,7 @@ library RemovalQueue {
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToInsert
   ) internal returns (bool) {
-    uint16 vintageOfRemoval = removalToInsert.vintage();
+    uint256 vintageOfRemoval = removalToInsert.vintage();
     if (isRemovalQueueEmpty(removalQueue)) {
       removalQueue.earliestYear = vintageOfRemoval;
       removalQueue.latestYear = vintageOfRemoval;
@@ -52,7 +52,7 @@ library RemovalQueue {
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToRemove
   ) internal returns (bool) {
-    uint16 vintageOfRemoval = removalToRemove.vintage();
+    uint256 vintageOfRemoval = removalToRemove.vintage();
     require(
       removalQueue.queueByVintage[vintageOfRemoval].remove(removalToRemove),
       "Market: failed to remove correct removal"
@@ -66,7 +66,7 @@ library RemovalQueue {
       } else if (vintageOfRemoval == removalQueue.earliestYear) {
         // If this was the earliest year, find the new earliest year and update the struct.
         for (
-          uint16 currentYear = removalQueue.earliestYear + 1;
+          uint256 currentYear = removalQueue.earliestYear + 1;
           currentYear <= removalQueue.latestYear;
           currentYear++
         ) {
@@ -78,7 +78,7 @@ library RemovalQueue {
       } else if (vintageOfRemoval == removalQueue.latestYear) {
         // If this was the latest year, find the new latest year and update the struct.
         for (
-          uint16 currentYear = removalQueue.latestYear - 1;
+          uint256 currentYear = removalQueue.latestYear - 1;
           currentYear >= removalQueue.earliestYear;
           currentYear--
         ) {
@@ -114,7 +114,7 @@ library RemovalQueue {
    */
   function isRemovalQueueEmptyForVintage(
     RemovalQueueByVintage storage removalQueue,
-    uint16 vintage
+    uint256 vintage
   ) internal view returns (bool) {
     return getSizeOfQueueForVintage(removalQueue, vintage) == 0;
   }
@@ -142,7 +142,7 @@ library RemovalQueue {
    */
   function getSizeOfQueueForVintage(
     RemovalQueueByVintage storage removalQueue,
-    uint16 vintage
+    uint256 vintage
   ) internal view returns (uint256) {
     return removalQueue.queueByVintage[vintage].length();
   }
@@ -163,7 +163,7 @@ library RemovalQueue {
     uint256 totalBalance = 0;
     uint256 currentRemoval;
     for (
-      uint16 currentYear = removalQueue.earliestYear;
+      uint256 currentYear = removalQueue.earliestYear;
       currentYear <= removalQueue.latestYear;
       currentYear++
     ) {
