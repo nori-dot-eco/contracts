@@ -59,7 +59,7 @@ export const advanceTime = async ({
   await hre.network.provider.send('hardhat_mine');
 };
 
-interface MockERC1155PresetPausableNonTransferrableFixtures {
+export interface MockERC1155PresetPausableNonTransferrableFixture {
   to: Parameters<MockERC1155PresetPausableNonTransferrable['mintBatch']>[0];
   removalId: Parameters<
     MockERC1155PresetPausableNonTransferrable['mintBatch']
@@ -73,12 +73,12 @@ interface MockERC1155PresetPausableNonTransferrableFixtures {
 interface UserFixture {
   bpBalance?: BigNumberish;
   mockERC1155PresetPausableNonTransferrableFixtures?: {
-    tokens: MockERC1155PresetPausableNonTransferrableFixtures[];
+    tokens: MockERC1155PresetPausableNonTransferrableFixture[];
     approvalsForAll?: string[];
   };
 }
 
-type UserFixtures = {
+export type UserFixtures = {
   [Property in keyof typeof namedAccounts]?: UserFixture;
 };
 
@@ -90,21 +90,36 @@ type ContractFixtures = {
   [Property in keyof Contracts]?: ContractFixture;
 };
 
+type TestFixture<
+  TOptions = {
+    userFixtures?: UserFixtures;
+    contractFixtures?: ContractFixtures;
+  }
+> = ContractInstances &
+  TOptions & {
+    hre: CustomHardHatRuntimeEnvironment;
+    contracts: Required<Contracts>; // todo deprecate
+  };
+
 // todo helpers/setup.ts
 export const setupTest = global.hre.deployments.createFixture(
-  async (
-    hre,
-    options?: {
+  async <
+    TOptions extends {
+      userFixtures?: UserFixtures;
+      contractFixtures?: ContractFixtures;
+    } = {
       userFixtures?: UserFixtures;
       contractFixtures?: ContractFixtures;
     }
+  >(
+    hre: CustomHardHatRuntimeEnvironment,
+    options?: TOptions
   ): Promise<
-    ContractInstances & {
-      hre: CustomHardHatRuntimeEnvironment;
-      contracts: Required<Contracts>; // todo deprecate
-      userFixtures: UserFixtures;
-      contractFixtures: ContractFixtures;
-    }
+    ContractInstances &
+      TOptions & {
+        hre: CustomHardHatRuntimeEnvironment;
+        contracts: Required<Contracts>; // todo deprecate
+      }
   > => {
     const buyerInitialBPNoriBalance = formatTokenAmount(100_000_000);
     const userFixtures: UserFixtures = {
@@ -183,7 +198,7 @@ export const setupTest = global.hre.deployments.createFixture(
         contracts.MockERC1155PresetPausableNonTransferrable,
       userFixtures,
       contractFixtures,
-    };
+    } as TestFixture<TOptions>;
   }
 );
 

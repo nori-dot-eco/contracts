@@ -9,14 +9,14 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "./ERC1155PresetPausableNonTransferrable.sol";
 
-import "hardhat/console.sol"; // todo
-
 // todo non-transferable/approveable
 // todo disable other mint functions
 // todo whenNotPasused
 // todo can we upgrade lockedNORI with new comments? (would love to see consistency in behaviors/requirements using alpha-numerical lists)
 // todo consider not inheriting pausable 1155 contract so we can use custom errors
 // todo document that all things in requirements list must evaluate to true for a function
+// todo setApprovalForAll should only work when called on accounts with CERTIFICATE_OPERATOR_ROLE
+// todo consider not inheriting pausable base contract and reverting with custom error for consistency
 
 /**
  * @title Certificate
