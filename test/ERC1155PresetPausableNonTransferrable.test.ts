@@ -11,10 +11,7 @@ describe('ERC1155PresetPausableNonTransferrable', () => {
           hre.namedAccounts.buyer,
           [0],
           [1],
-          hre.ethers.utils.defaultAbiCoder.encode(
-            ['uint256'],
-            Object.values({ amount: 1 })
-          )
+          createBatchMintData({ amount: 1, hre })
         )
       ).to.emit(
         mockERC1155PresetPausableNonTransferrable,
@@ -96,6 +93,7 @@ describe('ERC1155PresetPausableNonTransferrable', () => {
   });
   // todo rest of BeforeTokenTransfer functions
   describe('_beforeTokenTransfer', () => {
+    // todo rest of _beforeTokenTransfer rules
     describe('when paused', () => {
       it('should revert', async () => {
         const { mockERC1155PresetPausableNonTransferrable, hre } =
@@ -135,9 +133,4 @@ describe('ERC1155PresetPausableNonTransferrable', () => {
       });
     });
   });
-
-  // describe('_beforeTokenTransfer',()=>{ // MockRemoval exposes _beforeTokenTransfer as a public function
-  //   it('doesnt allow minting when x')
-  //   it('doesnt allow minting when y')
-  // })
 });
