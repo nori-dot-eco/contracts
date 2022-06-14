@@ -37,14 +37,14 @@ contract ERC1155PresetPausableNonTransferrable is
   }
 
   // slither-disable-next-line naming-convention, solhint-disable-next-line func-name-mixedcase
-  function __ERC1155PresetPausableNonTransferrable_init(string memory uri)
+  function __ERC1155PresetPausableNonTransferrable_init(string memory uri_)
     internal
     onlyInitializing
   {
     // todo verify all inherited initializers are called
-    __ERC1155_init_unchained(uri);
+    __ERC1155_init_unchained(uri_);
     __Pausable_init_unchained();
-    __ERC1155PresetMinterPauser_init_unchained(uri);
+    __ERC1155PresetMinterPauser_init_unchained(uri_);
     __ERC1155PresetPausableNonTransferrable_init_unchained();
   }
 
