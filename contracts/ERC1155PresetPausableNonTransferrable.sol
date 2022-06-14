@@ -42,7 +42,9 @@ contract ERC1155PresetPausableNonTransferrable is
     onlyInitializing
   {
     // todo verify all inherited initializers are called
-    super.initialize(uri);
+    __ERC1155_init_unchained(uri);
+    __Pausable_init_unchained();
+    __ERC1155PresetMinterPauser_init_unchained(uri);
     __ERC1155PresetPausableNonTransferrable_init_unchained();
   }
 
