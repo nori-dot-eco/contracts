@@ -28,7 +28,7 @@ contract ERC1155PresetPausableNonTransferrable is
   bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
     keccak256("CERTIFICATE_OPERATOR_ROLE");
 
-  // solhint-disable-next-line func-name-mixedcase, slither-disable-next-line naming-convention -- OZ naming convention
+  // solhint-disable-next-line func-name-mixedcase, slither-disable-next-line naming-convention
   function __ERC1155PresetPausableNonTransferrable_init_unchained()
     internal
     onlyInitializing
@@ -36,7 +36,7 @@ contract ERC1155PresetPausableNonTransferrable is
     _grantRole(CERTIFICATE_OPERATOR_ROLE, _msgSender());
   }
 
-  // solhint-disable-next-line func-name-mixedcase, slither-disable-next-line naming-convention -- OZ naming convention
+  // solhint-disable-next-line func-name-mixedcase, slither-disable-next-line naming-convention
   function __ERC1155PresetPausableNonTransferrable_init(string memory uri)
     internal
     onlyInitializing
