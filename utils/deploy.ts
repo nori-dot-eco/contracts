@@ -6,12 +6,11 @@ import type { Address } from 'hardhat-deploy/types';
 import type {
   MockCertificate,
   MockERC1155PresetPausableNonTransferrable,
-} from '../typechain-types/contracts/mocks';
+} from '@/typechain-types/contracts/mocks';
 import type {
   MockCertificate__factory,
   MockERC1155PresetPausableNonTransferrable__factory,
-} from '../typechain-types/factories/contracts/mocks';
-
+} from '@/typechain-types/factories/contracts/mocks';
 import type { Contracts } from '@/utils/contracts';
 import type {
   LockedNORI,
