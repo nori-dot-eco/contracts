@@ -33,10 +33,10 @@ contract ERC1155PresetPausableNonTransferrable is
     internal
     onlyInitializing
   {
-    _setupRole(CERTIFICATE_OPERATOR_ROLE, _msgSender());
+    _grantRole(CERTIFICATE_OPERATOR_ROLE, _msgSender());
   }
 
-  // solhint-disable-next-line func-name-mixedcase
+  // solhint-disable-next-line func-name-mixedcase, slither-disable-next-line naming-convention
   function __ERC1155PresetPausableNonTransferrable_init(string memory uri)
     internal
     onlyInitializing
