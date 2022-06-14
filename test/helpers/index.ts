@@ -82,16 +82,28 @@ type UserFixtures = {
   [Property in keyof typeof namedAccounts]?: UserFixture;
 };
 
+interface ContractFixture {
+  paused: boolean;
+}
+
+type ContractFixtures = {
+  [Property in keyof Contracts]?: ContractFixture;
+};
+
 // todo helpers/setup.ts
 export const setupTest = global.hre.deployments.createFixture(
   async (
     hre,
-    options?: { userFixtures?: UserFixtures }
+    options?: {
+      userFixtures?: UserFixtures;
+      contractFixtures?: ContractFixtures;
+    }
   ): Promise<
     ContractInstances & {
       hre: CustomHardHatRuntimeEnvironment;
       contracts: Required<Contracts>; // todo deprecate
       userFixtures: UserFixtures;
+      contractFixtures: ContractFixtures;
     }
   > => {
     const buyerInitialBPNoriBalance = formatTokenAmount(100_000_000);
@@ -104,9 +116,12 @@ export const setupTest = global.hre.deployments.createFixture(
       },
       ...options?.userFixtures,
     };
+    const contractFixtures: ContractFixtures = {
+      ...options?.contractFixtures,
+    };
     await hre.deployments.fixture(['assets', 'market', 'test']);
     const contracts = await getContractsFromDeployments(hre);
-    for (const [k, v] of Object.entries(userFixtures) as unknown as [
+    for (const [k, v] of Object.entries(userFixtures) as [
       keyof typeof namedAccounts,
       UserFixture
     ][]) {
@@ -144,6 +159,15 @@ export const setupTest = global.hre.deployments.createFixture(
         }
       }
     }
+    for (const [contract, fixture] of Object.entries(contractFixtures) as [
+      keyof Contracts,
+      ContractFixture
+    ][]) {
+      if (fixture.paused) {
+        // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+        await (contracts[contract] as any).pause();
+      }
+    }
     return {
       hre,
       contracts,
@@ -158,6 +182,7 @@ export const setupTest = global.hre.deployments.createFixture(
       mockERC1155PresetPausableNonTransferrable:
         contracts.MockERC1155PresetPausableNonTransferrable,
       userFixtures,
+      contractFixtures,
     };
   }
 );

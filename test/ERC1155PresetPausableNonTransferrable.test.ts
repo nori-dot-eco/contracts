@@ -94,6 +94,47 @@ describe('ERC1155PresetPausableNonTransferrable', () => {
       );
     });
   });
+  // todo rest of BeforeTokenTransfer functions
+  describe('_beforeTokenTransfer', () => {
+    describe('when paused', () => {
+      it('should revert', async () => {
+        const { mockERC1155PresetPausableNonTransferrable, hre } =
+          await setupTest({
+            contractFixtures: {
+              MockERC1155PresetPausableNonTransferrable: {
+                paused: true,
+              },
+            },
+          });
+        await expect(
+          mockERC1155PresetPausableNonTransferrable._test_beforeTokenTransfer(
+            hre.namedAccounts.admin,
+            hre.namedAccounts.admin,
+            hre.namedAccounts.buyer,
+            [0],
+            [1],
+            '0x'
+          )
+        ).to.revertedWith('Pausable: paused');
+      });
+    });
+    describe('when not paused', () => {
+      it('should not revert', async () => {
+        const { mockERC1155PresetPausableNonTransferrable, hre } =
+          await setupTest();
+        await expect(
+          mockERC1155PresetPausableNonTransferrable._test_beforeTokenTransfer(
+            hre.namedAccounts.admin,
+            hre.namedAccounts.admin,
+            hre.namedAccounts.buyer,
+            [0],
+            [1],
+            '0x'
+          )
+        ).not.to.reverted;
+      });
+    });
+  });
 
   // describe('_beforeTokenTransfer',()=>{ // MockRemoval exposes _beforeTokenTransfer as a public function
   //   it('doesnt allow minting when x')
