@@ -166,13 +166,14 @@ contract FIFOMarket is
     bytes memory
   ) public override returns (bytes4) {
     uint256[] memory batchedAmounts = _removal.balanceOfIds(address(this), ids);
+    // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = removalToAdd.supplierAddress();
       uint256 removalAmount = batchedAmounts[i];
       require(
         _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd),
-        "Market: Unable to add removal by vintage"
+        "Market: Unable to add removal by vintage" // TODO (Gas Optimization): Use custom error
       );
       // If a new supplier has been added, or if the supplier had previously sold out
       if (
@@ -207,25 +208,26 @@ contract FIFOMarket is
     if (totalActiveSupply <= priorityRestrictedThreshold) {
       require(
         hasRole(ALLOWLIST_ROLE, from),
-        "Low supply and buyer not on allowlist"
+        "Low supply and buyer not on allowlist" // TODO (Gas Optimization): Use custom error
       );
     }
     uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
     uint256 remainingAmountToFill = certificateAmount;
 
     address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
-    require(recipient == address(recipient), "Market: Invalid address");
-    require(recipient != address(0), "Market: Cannot mint to the 0 address");
+    require(recipient == address(recipient), "Market: Invalid address"); // TODO (Gas Optimization): Use custom error
+    require(recipient != address(0), "Market: Cannot mint to the 0 address"); // TODO (Gas Optimization): Use custom error
     // todo verify this can only be invoked by the nori contract
     require(
       msg.sender == address(_bridgedPolygonNori),
       "Market: This contract can only receive BridgedPolygonNORI"
-    );
+    ); // TODO (Gas Optimization): Use custom error
 
     uint256[] memory ids = new uint256[](totalNumberActiveRemovals);
     uint256[] memory amounts = new uint256[](totalNumberActiveRemovals);
     address[] memory suppliers = new address[](totalNumberActiveRemovals);
     uint256 numberOfRemovals = 0;
+    // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < totalNumberActiveRemovals; i++) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
@@ -252,7 +254,7 @@ contract FIFOMarket is
         require(
           _activeSupply[_currentSupplierAddress].removeRemoval(removalId),
           "Market: Failed to remove removal from supply"
-        );
+        ); // TODO (Gas Optimization): Use custom error
         // If the supplier is out of supply, remove them from the active suppliers
         if (_activeSupply[_currentSupplierAddress].isRemovalQueueEmpty()) {
           _removeActiveSupplier(_currentSupplierAddress);
@@ -288,6 +290,7 @@ contract FIFOMarket is
       address(this),
       batchedIds
     );
+    // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < batchedIds.length; i++) {
       if (batchedAmounts[i] == batchedBalances[i]) {
         totalNumberActiveRemovals -= 1; // removal used up
@@ -314,7 +317,7 @@ contract FIFOMarket is
     require(
       _activeSupply[supplierAddress].removeRemoval(removalId),
       "Market: removal not in active supply"
-    );
+    ); // TODO (Gas Optimization): Use custom error
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     totalActiveSupply -= removalBalance;
     totalReservedSupply += removalBalance;
@@ -324,7 +327,7 @@ contract FIFOMarket is
       _removeActiveSupplier(supplierAddress);
     }
     // todo any checks on whether this id was already in there?
-    require(_reservedSupply.add(removalId), "Market: Removal already reserved");
+    require(_reservedSupply.add(removalId), "Market: Removal already reserved"); // TODO (Gas Optimization): Use custom error
     return true; // returns true if the value was added to the set, that is, if it was not already present
   }
 
@@ -342,7 +345,7 @@ contract FIFOMarket is
     require(
       _reservedSupply.remove(removalId),
       "Market: removal not in reserved supply"
-    );
+    ); // TODO (Gas Optimization): Use custom error
     totalNumberActiveRemovals += 1;
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     totalActiveSupply += removalBalance;
@@ -353,7 +356,7 @@ contract FIFOMarket is
     }
     require(
       _activeSupply[supplierAddress].insertRemovalByVintage(removalId),
-      "Market: Unable to unreserve removal"
+      "Market: Unable to unreserve removal" // TODO (Gas Optimization): Use custom error
     ); // returns true if the value was added to the set, that is, if it was not already present
     return true;
   }

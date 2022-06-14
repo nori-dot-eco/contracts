@@ -161,16 +161,22 @@ library RemovalQueue {
     uint256 size = 0;
     uint256 i = 0;
     uint256 totalBalance = 0;
-    uint256 currentRemoval;
     for (
       uint256 currentYear = removalQueue.earliestYear;
       currentYear <= removalQueue.latestYear;
       currentYear++
     ) {
       size = removalQueue.queueByVintage[currentYear].length();
+      uint256[] memory ids = new uint256[](size);
       for (i = 0; i < size; i++) {
-        currentRemoval = removalQueue.queueByVintage[currentYear].at(i);
-        totalBalance += removal.balanceOf(address(this), currentRemoval); // TODO: Use batch get for balanceOf
+        ids[i] = removalQueue.queueByVintage[currentYear].at(i);
+      }
+      uint256[] memory batchedBalances = removal.balanceOfIds(
+        address(this),
+        ids
+      );
+      for (i = 0; i < size; i++) {
+        totalBalance += batchedBalances[i];
       }
     }
     return totalBalance;
