@@ -13,7 +13,6 @@ import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
-import {ERC1155PresetBatchable} from "./ERC1155PresetBatchable.sol";
 
 // todo emit events
 
@@ -24,7 +23,7 @@ contract FIFOMarket is
   Initializable,
   ContextUpgradeable,
   AccessControlEnumerableUpgradeable,
-  ERC1155PresetBatchable,
+  ERC1155HolderUpgradeable,
   IERC777RecipientUpgradeable
 {
   using RemovalUtils for uint256;
@@ -166,7 +165,7 @@ contract FIFOMarket is
     uint256[] memory,
     bytes memory
   ) public override returns (bytes4) {
-    uint256[] memory batchedAmounts = _removal.balanceOfIds(ids);
+    uint256[] memory batchedAmounts = _removal.balanceOfIds(address(this), ids);
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = removalToAdd.supplierAddress();
@@ -285,7 +284,10 @@ contract FIFOMarket is
       batchedAmounts,
       encodedCertificateAmount
     );
-    uint256 batchedBalances = _removal.balanceOfIds(batchedIds);
+    uint256[] memory batchedBalances = _removal.balanceOfIds(
+      address(this),
+      batchedIds
+    );
     for (uint256 i = 0; i < batchedIds.length; i++) {
       if (batchedAmounts[i] == batchedBalances[i]) {
         totalNumberActiveRemovals -= 1; // removal used up
