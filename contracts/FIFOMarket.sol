@@ -13,6 +13,7 @@ import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
+import {ERC1155PresetBatchable} from "./ERC1155PresetBatchable.sol";
 
 // todo emit events
 
@@ -23,7 +24,7 @@ contract FIFOMarket is
   Initializable,
   ContextUpgradeable,
   AccessControlEnumerableUpgradeable,
-  ERC1155HolderUpgradeable,
+  ERC1155PresetBatchable,
   IERC777RecipientUpgradeable
 {
   using RemovalUtils for uint256;
@@ -165,17 +166,11 @@ contract FIFOMarket is
     uint256[] memory,
     bytes memory
   ) public override returns (bytes4) {
-    address[] memory addresses = new address[](ids.length);
-    uint256[] memory batchedAmounts = new uint256[](ids.length);
-    for (uint256 i = 0; i < ids.length; i++) {
-      addresses[i] = address(this);
-    }
-    batchedAmounts = _removal.balanceOfBatch(addresses, ids);
+    uint256[] memory batchedAmounts = _removal.balanceOfIds(ids);
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = removalToAdd.supplierAddress();
       uint256 removalAmount = batchedAmounts[i];
-
       require(
         _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd),
         "Market: Unable to add removal by vintage"
@@ -290,10 +285,9 @@ contract FIFOMarket is
       batchedAmounts,
       encodedCertificateAmount
     );
+    uint256 batchedBalances = _removal.balanceOfIds(batchedIds);
     for (uint256 i = 0; i < batchedIds.length; i++) {
-      if (
-        batchedAmounts[i] == _removal.balanceOf(address(this), batchedIds[i])
-      ) {
+      if (batchedAmounts[i] == batchedBalances[i]) {
         totalNumberActiveRemovals -= 1; // removal used up
       }
       totalActiveSupply -= batchedAmounts[i];
