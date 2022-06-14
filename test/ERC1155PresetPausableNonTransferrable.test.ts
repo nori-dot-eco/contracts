@@ -10,7 +10,7 @@ describe('ERC1155PresetPausableNonTransferrable', () => {
         mockERC1155PresetPausableNonTransferrable.mintBatch(
           hre.namedAccounts.buyer,
           [0],
-          [1],
+          [0],
           createBatchMintData({ amount: 1, hre })
         )
       ).to.emit(

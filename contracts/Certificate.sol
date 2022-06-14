@@ -12,18 +12,15 @@ import "./ERC1155PresetPausableNonTransferrable.sol";
 // todo non-transferable/approveable
 // todo disable other mint functions
 // todo whenNotPasused
-// todo can we upgrade lockedNORI with new comments? (would love to see consistency in behaviors/requirements using alpha-numerical lists)
-// todo consider not inheriting pausable 1155 contract so we can use custom errors
-// todo document that all things in requirements list must evaluate to true for a function
 // todo setApprovalForAll should only work when called on accounts with CERTIFICATE_OPERATOR_ROLE
 // todo consider not inheriting pausable base contract and reverting with custom error for consistency
+
+error ForbiddenFunctionCall();
 
 /**
  * @title Certificate
  */
 contract Certificate is ERC1155PresetPausableNonTransferrable {
-  error ForbiddenFunctionCall(); // todo add to base?
-
   struct Source {
     uint256 removalId;
     uint256 amount;
@@ -90,20 +87,20 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     // todo only allowed by market contract
     // todo require _sources[_latestTokenId] doesnt exist
     // todo require _sources[_latestTokenId][n] doesnt exist
+    // todo is there a better way to verify that no removal amount == 0?
     for (uint256 i = 0; i < removalIds.length; i++) {
+      console.log("removal amounts", removalAmounts[i]);
       if (removalAmounts[i] == 0) {
         revert("Certificate: Removal amount 0");
       } else {
-        // todo try filtering out the zero amountsbefore calling mint; revert if any are zero
         _sources[_latestTokenId].push(
           Source({removalId: removalIds[i], amount: removalAmounts[i]})
         );
       }
     }
-    super.mint(to, _latestTokenId, certificateAmount, data);
-    emit CertificateCreated(to, _latestTokenId, removalIds, removalAmounts);
-
     _latestTokenId = _latestTokenId += 1;
+    emit CertificateCreated(to, _latestTokenId, removalIds, removalAmounts);
+    super.mint(to, _latestTokenId, certificateAmount, data);
   }
 
   /**
