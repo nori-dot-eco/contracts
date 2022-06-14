@@ -625,18 +625,21 @@ describe('FIFOMarket', () => {
     it('should sell removals in order of vintage regardless of minting order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const {
+        removal,
         bpNori,
         fifoMarket,
         hre,
         totalAmountOfRemovals: totalAmountOfInitialRemovals,
       } = await setupTestLocal({
         buyerInitialBPNoriBalance,
-        removalDataToList: [{ amount: 5, vintage: 2014 }],
+        removalDataToList: [{ amount: 1, vintage: 2015 }],
       });
-      const { totalAmountOfRemovals: totalAmountOfAdditionalRemovals } =
-        await setupTestLocal({
-          removalDataToList: [{ amount: 1, vintage: 2015 }],
-        });
+      await batchMintAndListRemovalsForSale({
+        removalDataToList: [{ amount: 5, vintage: 2014 }],
+        removal,
+        fifoMarket,
+        hre,
+      });
 
       const { buyer } = hre.namedAccounts;
 
