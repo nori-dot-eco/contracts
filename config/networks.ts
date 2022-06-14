@@ -25,6 +25,7 @@ const localhost: NetworkUserConfig = {
   ...(typeof MNEMONIC === 'string' && {
     accounts: { mnemonic: MNEMONIC },
   }),
+  allowUnlimitedContractSize: true,
   loggingEnabled: LOG_HARDHAT_NETWORK,
   url: 'http://127.0.0.1:8545',
   tags: ['test'],

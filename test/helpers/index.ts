@@ -7,7 +7,10 @@ import type {
   MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types/contracts/mocks';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
-import { formatRemovalIdData } from '@/utils/removal';
+import {
+  formatRemovalIdData,
+  generateRandomSubIdentifier,
+} from '@/utils/removal';
 import type {
   Removal,
   Certificate,
@@ -297,6 +300,8 @@ export const batchMintAndListRemovalsForSale = async ({
       removalData: {
         supplierAddress: removalData.supplierAddress ?? supplier,
         vintage: removalData.vintage ?? defaultStartingVintage + index,
+        subIdentifier:
+          removalData.subIdentifier ?? generateRandomSubIdentifier(),
       },
     });
     listedRemovalIds.push(removalTokenId);
