@@ -19,9 +19,6 @@ import type { PopulatedTransaction } from 'ethers';
 import { BigNumber, ethers } from 'ethers';
 import { FireblocksSDK } from 'fireblocks-sdk';
 import { TransactionStatus } from 'fireblocks-sdk';
-
-import { getGasFeeSettings } from '../../utils/gas';
-
 import { EthersCustomBridge } from './from-upstream/fireblocks-bridge';
 import { Chain } from './from-upstream/chain';
 
@@ -138,13 +135,11 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
   async _populateTransaction(
     transaction: Deferrable<TransactionRequest>
   ): Promise<UnsignedTransaction> {
-    const feeData = await getGasFeeSettings(this._bridge.getChainId());
-    console.log(feeData);
     let gasEstimate;
     try {
       gasEstimate = await this.provider?.estimateGas(transaction);
     } catch (error: any) {
-      console.log('Error estimating gas', error.code);
+      log.makeError('Error estimating gas', error.code);
       gasEstimate = BigNumber.from(3_000_000); // 3M fallback (dangerous, improve this!)
     }
     const gasLimit =
@@ -157,12 +152,11 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
             `${transaction.maxPriorityFeePerGas!}`,
             'gwei'
           )
-        : ethers.utils.parseUnits(`${feeData?.maxPriorityFee}`, 'gwei') ||
-          undefined;
+        : undefined;
     const maxFeePerGas =
       transaction.maxFeePerGas !== undefined
         ? ethers.utils.parseUnits(`${await transaction.maxFeePerGas!}`, 'gwei')
-        : ethers.utils.parseUnits(`${feeData?.maxFee!}`, 'gwei') || undefined;
+        : undefined;
     // fills in the nonce and a few other details.
     const tx = await this.populateTransaction({
       type: 2,
@@ -173,7 +167,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
         maxPriorityFeePerGas,
       },
     });
-    console.log(
+    log.debug(
       `Populated Transaction: ${JSON.stringify({
         nonce: tx.nonce,
         type: tx.type,
@@ -267,9 +261,6 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     let tx;
     if (transaction.to) {
       // looks like a contract interaction
-      if (!baseTx.gasLimit) {
-        baseTx.gasLimit = await this.provider?.estimateGas(transaction);
-      }
       tx = await this._signTransaction(baseTx);
     } else {
       // looks like a deploy
@@ -289,9 +280,6 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     );
     if (transaction.to) {
       // looks like a contract interaction
-      if (!baseTx.gasLimit) {
-        baseTx.gasLimit = await this.provider?.estimateGas(transaction);
-      }
       txHash = await this._signTransaction(baseTx);
     } else {
       // looks like a deploy

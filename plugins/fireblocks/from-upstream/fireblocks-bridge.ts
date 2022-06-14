@@ -29,15 +29,12 @@ export class EthersCustomBridge extends BaseBridge {
           : undefined,
       maxFee:
         transaction.maxFeePerGas != undefined
-          ? formatUnits(
-              (await transaction.maxFeePerGas!.toString()) || '0',
-              'gwei'
-            )
+          ? formatUnits(transaction.maxFeePerGas!.toString() || '0', 'gwei')
           : undefined,
       priorityFee:
         transaction.maxPriorityFeePerGas != undefined
           ? formatUnits(
-              (await transaction.maxPriorityFeePerGas!.toString()) || '0',
+              transaction.maxPriorityFeePerGas!.toString() || '0',
               'gwei'
             )
           : undefined,
@@ -57,7 +54,6 @@ export class EthersCustomBridge extends BaseBridge {
         contractCallData: transaction.data,
       },
     };
-    console.log(txArguments);
     return this.params.fireblocksApiClient.createTransaction(txArguments);
   }
 
