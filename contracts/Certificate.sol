@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
+import "./ERC1155PresetPausableNonTransferrable.sol";
 
 import "hardhat/console.sol"; // todo
 
@@ -20,20 +21,8 @@ import "hardhat/console.sol"; // todo
 /**
  * @title Certificate
  */
-contract Certificate is
-  ERC1155PresetMinterPauserUpgradeable,
-  ERC1155SupplyUpgradeable
-{
-  error ForbiddenTransferAfterMinting();
-  error ForbiddenFunctionCall();
-
-  /**
-   * @notice Role conferring operator permissions
-   * @dev This role is assigned to operators which can transfer certificates from an address to another by bypassing
-   * the `_beforeTokenTransfer` hook.
-   */
-  bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
-    keccak256("CERTIFICATE_OPERATOR_ROLE");
+contract Certificate is ERC1155PresetPausableNonTransferrable {
+  error ForbiddenFunctionCall(); // todo add to base?
 
   struct Source {
     uint256 removalId;
@@ -54,23 +43,27 @@ contract Certificate is
    * @dev a mapping of the certificate token ID -> sources
    */
   mapping(uint256 => Source[]) private _sources;
+
   /**
    * @dev auto incrementing token ID
    */
   uint256 private _latestTokenId;
 
-  function initialize() public virtual initializer {
-    super.initialize("https://nori.com/api/certificate/{id}.json");
+  function initialize() external initializer {
+    // todo verify all inherited unchained initializers are called
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
+    __ERC1155_init_unchained("https://nori.com/api/certificate/{id}.json");
+    __Pausable_init_unchained();
+    __ERC1155PresetMinterPauser_init_unchained(
+      "https://nori.com/api/certificate/{id}.json"
+    );
+    __ERC1155PresetPausableNonTransferrable_init_unchained();
     _latestTokenId = 0;
-  }
-
-  function addMinter(address minter) public {
-    _setupRole(MINTER_ROLE, minter);
-  }
-
-  function addCertificateOperator(address operator) public {
-    _setupRole(CERTIFICATE_OPERATOR_ROLE, operator);
   }
 
   /**
@@ -86,12 +79,13 @@ contract Certificate is
    *  - removalIds can be used to look up vintage years, e.g. 0 -> 2018
    */
   function mintBatch(
-    address to,
+    address to, // todo array?
     uint256[] memory removalIds,
     uint256[] memory removalAmounts,
     bytes memory data // todo array?
   ) public override {
-    uint256 certificateAmount = abi.decode(data, (uint256));
+    uint256 certificateAmount = abi.decode(data, (uint256)); // todo verify amount
+    // todo extract to base contract and overload here
     // todo use modified mintCertificate instead of mintBatch. mintBatch should be used to mint multi certificates.
     // todo only allowed by market contract
     // todo require _sources[_latestTokenId] doesnt exist
@@ -121,7 +115,7 @@ contract Certificate is
     uint256,
     bytes memory
   ) public pure override {
-    revert ForbiddenFunctionCall();
+    revert ForbiddenFunctionCall(); // todo is this really what we want?
   }
 
   /**
@@ -133,55 +127,5 @@ contract Certificate is
     returns (Source[] memory)
   {
     return _sources[certificateId];
-  }
-
-  // todo consider not inheriting pausable base contract and reverting with custom error for consistency
-  /**
-   * @notice A hook that is called before all transfers and is used to disallow non-minting, non-burning, and transfers
-   * invoked by addresses which do not have the `CERTIFICATE_OPERATOR_ROLE` role.
-   *
-   * @dev Follows the rules of hooks defined [here](
-   *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks).
-   *
-   * ##### Requirements:
-   *
-   * - The contract must not be paused for the inner-logic to be invoked.
-   * - If the contract is paused, the operation reverts with the string `"Pausable: paused"`.
-   * - The operation reverts with `ForbiddenTransferAfterMinting` if none of the following are not met:
-   *  - The operation is minting.
-   *  - The operation is burning.
-   *  - The operation is transferring and the operator has the `CERTIFICATE_OPERATOR_ROLE` role.
-   *
-   */
-  function _beforeTokenTransfer(
-    address operator,
-    address from,
-    address to,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    bytes memory data
-  )
-    internal
-    virtual
-    override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
-    whenNotPaused
-  {
-    bool isMinting = from == address(0);
-    bool isBurning = to == address(0);
-    if (
-      !isMinting && !isBurning && !hasRole(CERTIFICATE_OPERATOR_ROLE, operator)
-    ) {
-      revert ForbiddenTransferAfterMinting();
-    }
-    return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
-  }
-
-  function supportsInterface(bytes4 interfaceId)
-    public
-    view
-    override(ERC1155Upgradeable, ERC1155PresetMinterPauserUpgradeable)
-    returns (bool)
-  {
-    return super.supportsInterface(interfaceId);
   }
 }

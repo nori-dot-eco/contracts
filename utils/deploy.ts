@@ -3,8 +3,14 @@ import path from 'path';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 
-import type { MockCertificate } from '../typechain-types/contracts/mocks';
-import type { MockCertificate__factory } from '../typechain-types/factories/contracts/mocks';
+import type {
+  MockCertificate,
+  MockERC1155PresetPausableNonTransferrable,
+} from '../typechain-types/contracts/mocks';
+import type {
+  MockCertificate__factory,
+  MockERC1155PresetPausableNonTransferrable__factory,
+} from '../typechain-types/factories/contracts/mocks';
 
 import type { Contracts } from '@/utils/contracts';
 import type {
@@ -144,6 +150,22 @@ export const deployMockCertificate = async ({
 }): Promise<InstanceOfContract<MockCertificate>> => {
   return hre.deployOrUpgradeProxy<MockCertificate, MockCertificate__factory>({
     contractName: 'MockCertificate' as unknown as ContractNames,
+    args: [],
+    options: { initializer: 'initialize()' },
+  });
+};
+
+export const deployMockERC1155PresetPausableNonTransferrable = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<MockERC1155PresetPausableNonTransferrable>> => {
+  return hre.deployOrUpgradeProxy<
+    MockERC1155PresetPausableNonTransferrable,
+    MockERC1155PresetPausableNonTransferrable__factory
+  >({
+    contractName:
+      'MockERC1155PresetPausableNonTransferrable' as unknown as ContractNames,
     args: [],
     options: { initializer: 'initialize()' },
   });

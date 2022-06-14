@@ -2,7 +2,10 @@ import type { BigNumberish, BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 
-import type { MockCertificate } from '@/typechain-types/contracts/mocks';
+import type {
+  MockCertificate,
+  MockERC1155PresetPausableNonTransferrable,
+} from '@/typechain-types/contracts/mocks';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
 import { formatRemovalIdData } from '@/utils/removal';
 import type {
@@ -33,6 +36,7 @@ interface ContractInstances {
   lNori: LockedNORI;
   removalTestHarness: RemovalTestHarness;
   mockCertificate: MockCertificate; // todo key remapping of Contracts
+  mockERC1155PresetPausableNonTransferrable: MockERC1155PresetPausableNonTransferrable; // todo consider TestHarness vs Mock naming convention
 }
 
 export const getLatestBlockTime = async ({
@@ -41,7 +45,6 @@ export const getLatestBlockTime = async ({
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<number> => {
   const block = await hre.ethers.provider.getBlock('latest');
-  console.log({ block });
   return block.timestamp;
 };
 
@@ -56,12 +59,30 @@ export const advanceTime = async ({
   await hre.network.provider.send('hardhat_mine');
 };
 
-type UserFixtures = {
-  [Property in keyof typeof namedAccounts]?: {
-    bpBalance?: BigNumberish;
+interface MockERC1155PresetPausableNonTransferrableFixtures {
+  to: Parameters<MockERC1155PresetPausableNonTransferrable['mintBatch']>[0];
+  removalId: Parameters<
+    MockERC1155PresetPausableNonTransferrable['mintBatch']
+  >[1][number];
+  removalAmount: Parameters<
+    MockERC1155PresetPausableNonTransferrable['mintBatch']
+  >[2][number];
+  data: Parameters<MockERC1155PresetPausableNonTransferrable['mintBatch']>[3];
+}
+
+interface UserFixture {
+  bpBalance?: BigNumberish;
+  mockERC1155PresetPausableNonTransferrableFixtures?: {
+    tokens: MockERC1155PresetPausableNonTransferrableFixtures[];
+    approvalsForAll?: string[];
   };
+}
+
+type UserFixtures = {
+  [Property in keyof typeof namedAccounts]?: UserFixture;
 };
 
+// todo helpers/setup.ts
 export const setupTest = global.hre.deployments.createFixture(
   async (
     hre,
@@ -85,18 +106,42 @@ export const setupTest = global.hre.deployments.createFixture(
     };
     await hre.deployments.fixture(['assets', 'market', 'test']);
     const contracts = await getContractsFromDeployments(hre);
-    for (const [k, v] of Object.entries(userFixtures)) {
-      if (isBigNumberish(v.bpBalance)) {
+    for (const [k, v] of Object.entries(userFixtures) as unknown as [
+      keyof typeof namedAccounts,
+      UserFixture
+    ][]) {
+      if (Boolean(v.bpBalance)) {
+        if (isBigNumberish(v.bpBalance)) {
+          // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+          await mockDepositNoriToPolygon({
+            hre,
+            contracts,
+            amount: v.bpBalance,
+            to: hre.namedAccounts[k],
+            signer: hre.namedSigners[k],
+          });
+        } else {
+          throw new Error(`Invalid bpBalance for ${k}.`);
+        }
+      }
+      if (v.mockERC1155PresetPausableNonTransferrableFixtures !== undefined) {
+        const { tokens, approvalsForAll } =
+          v.mockERC1155PresetPausableNonTransferrableFixtures;
         // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-        await mockDepositNoriToPolygon({
-          hre,
-          contracts,
-          amount: v.bpBalance,
-          to: hre.namedAccounts[k as keyof typeof namedAccounts],
-          signer: hre.namedSigners[k as keyof typeof namedAccounts],
-        });
-      } else {
-        throw new Error(`invalid bpBalance for ${k}`);
+        await contracts.MockERC1155PresetPausableNonTransferrable.mintBatch(
+          tokens[0].to,
+          tokens?.map((f) => f.removalId),
+          tokens?.map((f) => f.removalAmount),
+          tokens[0].data
+        );
+        if (approvalsForAll !== undefined) {
+          for (const approval of approvalsForAll) {
+            // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+            await contracts.MockERC1155PresetPausableNonTransferrable.connect(
+              hre.namedSigners[k]
+            ).setApprovalForAll(approval, true);
+          }
+        }
       }
     }
     return {
@@ -110,6 +155,8 @@ export const setupTest = global.hre.deployments.createFixture(
       lNori: contracts.LockedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
       mockCertificate: contracts.MockCertificate,
+      mockERC1155PresetPausableNonTransferrable:
+        contracts.MockERC1155PresetPausableNonTransferrable,
       userFixtures,
     };
   }
