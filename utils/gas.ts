@@ -1,9 +1,9 @@
 /**
  * This module packages up gas fee estimation logic.
- * 
+ *
  * It currently only has live estimators for polygon and mumbai.  We need to add
  * support for mainnet and goerli at a minimum.
- * 
+ *
  * I'd like to packge this up into a gas feee estimation provider abstraction
  * and have the fireblocks signer take it as a constructor argument
  */

@@ -41,7 +41,7 @@ export class EthersCustomBridge extends BaseBridge {
               'gwei'
             )
           : undefined,
-      gasLimit:  formatUnits(transaction?.gasLimit?.toString() || '0', 'wei'),
+      gasLimit: formatUnits(transaction?.gasLimit?.toString() || '0', 'wei'),
       destination: {
         type: this.params.externalWalletId
           ? PeerType.EXTERNAL_WALLET
