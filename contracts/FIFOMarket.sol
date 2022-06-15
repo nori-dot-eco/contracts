@@ -40,9 +40,6 @@ contract FIFOMarket is
   }
 
   IERC1820RegistryUpgradeable private _erc1820;
-  address private _removalAddress;
-  address private _restrictedNoriAddress;
-  address private _bridgedPolygonNoriAddress;
   Removal private _removal;
   Certificate private _certificate;
   BridgedPolygonNORI private _bridgedPolygonNori;
@@ -82,9 +79,6 @@ contract FIFOMarket is
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __ERC1155Receiver_init_unchained();
-    _removalAddress = removalAddress;
-    _restrictedNoriAddress = restrictedNoriAddress;
-    _bridgedPolygonNoriAddress = bridgedPolygonNoriAddress;
     _removal = Removal(removalAddress);
     _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
     _certificate = Certificate(certificateAddress);
@@ -107,15 +101,6 @@ contract FIFOMarket is
     _currentSupplierAddress = address(0);
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
-  }
-
-  function registerAddresses() external onlyRole(DEFAULT_ADMIN_ROLE) {
-    _restrictedNori.initializeContractInstances(
-      address(this),
-      _bridgedPolygonNoriAddress,
-      _removalAddress
-    );
-    _removal.initializeRestrictedNORI(_restrictedNoriAddress);
   }
 
   function setPriorityRestrictedThreshold(uint256 threshold)

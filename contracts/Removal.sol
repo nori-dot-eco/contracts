@@ -36,14 +36,6 @@ contract Removal is
   }
 
   /**
-   * @notice Role conferring permission to initialize contract instance variables.
-   *
-   * @dev only the market contract should have this role.
-   */
-  bytes32 public constant CONTRACT_INITIALIZER_ROLE =
-    keccak256("CONTRACT_INITIALIZER_ROLE");
-
-  /**
    * @notice The RestrictedNORI contract that manages restricted tokens.
    */
   RestrictedNORI private _restrictedNori;
@@ -60,16 +52,9 @@ contract Removal is
     name = "Removal";
   }
 
-  function addContractInitializer(address _contractInitializer) public {
-    if (!hasRole(DEFAULT_ADMIN_ROLE, _msgSender())) {
-      revert MissingRole({account: _msgSender(), role: "DEFAULT_ADMIN_ROLE"});
-    }
-    _setupRole(CONTRACT_INITIALIZER_ROLE, _contractInitializer);
-  }
-
   function initializeRestrictedNORI(address restrictedNORIAddress)
     external
-    onlyRole(CONTRACT_INITIALIZER_ROLE)
+    onlyRole(DEFAULT_ADMIN_ROLE)
   {
     _restrictedNori = RestrictedNORI(restrictedNORIAddress);
   }
@@ -160,6 +145,8 @@ contract Removal is
       if (_tokenIdExists[ids[i]]) {
         revert TokenIdExists({tokenId: ids[i]});
       }
+      // todo validate start time is reasonable and at least non-zero?
+      // todo remove "restriction" from names?
       _idToRestrictionScheduleStartTime[ids[i]] = restrictionScheduleStartTimes[
         i
       ];

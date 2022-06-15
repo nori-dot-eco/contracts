@@ -7,6 +7,7 @@ import {
 } from '@/constants/addresses';
 import { deployFIFOMarketContract, finalizeDeployments } from '@/utils/deploy';
 import {
+  getBridgedPolygonNori,
   getCertificate,
   getRemoval,
   getRestrictedNORI,
@@ -39,28 +40,17 @@ export const deploy: DeployFunction = async (environment) => {
   hre.trace('Added FIFOMarket as a minter of Certificate');
 
   const rNori = await getRestrictedNORI({ hre, signer });
-  if (
-    !(await rNori.hasRole(
-      await rNori.CONTRACT_INITIALIZER_ROLE(),
-      contract.address
-    ))
-  ) {
-    await rNori.addContractInitializer(contract.address);
-  }
-  hre.trace('Added FIFOMarket as a contract initializer for RestrictedNORI');
-
   const removal = await getRemoval({ hre, signer });
-  if (
-    !(await removal.hasRole(
-      await rNori.CONTRACT_INITIALIZER_ROLE(),
-      contract.address
-    ))
-  ) {
-    await removal.addContractInitializer(contract.address);
-  }
-  hre.trace('Added FIFOMarket as a contract initializer for Removal');
+  const bpNori = await getBridgedPolygonNori({ hre, signer });
+  await rNori.initializeContractInstances(
+    contract.address,
+    bpNori.address,
+    removal.address
+  );
+  hre.trace('Set market, removal and bpNori addresses in rNori');
+  await removal.initializeRestrictedNORI(rNori.address);
+  hre.trace('Set rNori address in Removal');
 
-  await contract.registerAddresses();
   await finalizeDeployments({ hre, contracts: { FIFOMarket: contract } });
 };
 

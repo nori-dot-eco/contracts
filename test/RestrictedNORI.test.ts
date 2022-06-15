@@ -16,14 +16,12 @@ import {
 
 describe('RestrictedNORI', () => {
   describe('initialization', () => {
-    // it.todo('should fire events');
     describe('roles', () => {
       for (const { role, expectedCount } of [
         { role: 'DEFAULT_ADMIN_ROLE', expectedCount: 1 },
         { role: 'PAUSER_ROLE', expectedCount: 1 },
         { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Removal contract is a restriction creator
         { role: 'TOKEN_REVOKER_ROLE', expectedCount: 1 },
-        { role: 'CONTRACT_INITIALIZER_ROLE', expectedCount: 1 },
       ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
           const { rNori, hre } = await setupTest();

@@ -14,10 +14,6 @@ import "hardhat/console.sol"; // todo
 
 /*
 TODO LIST:
-Top priority questions for Scott?
-
-
-============================================================================================
 - write out behavior summary as in LockedNORI
   - consider even more detail in the natspec comments
 
@@ -28,22 +24,17 @@ Top priority questions for Scott?
 - any input validation for restriction schedule start times (in Removal.sol) or durations (this contract), other data?
   - idea: create input validation view function that allowlists a hash/fingerprint of what you're actually going to mint
   - and then the vlaidation during mint simply checks if the hash of your input data has been pre-verified in this way
-  - OR we just limit how many you can mint at once and go ahead and do the validation in -loop
+  - OR we just limit how many you can mint at once and go ahead and do the validation in -loop (probably appropriate to start with this for now)
   - maybe just on the range of earliest possible date and then  20 or so years in the future (maybe use a setter and lookup)
+- maybe this contract also validates that at least thes tart time isn't 0
 
 - todo start a notion page for potential gas optimizations?  maybe use a key word for in-contract comments to track these places
 
-- require that for tokensReceived the msg sender is the market contract (requires another circular intialization with the market contract)
-  - do we need a registry contract?
-  - can we use ENS resolver? (definitely a future PR... maybe create a ticket for this in the future market contract improvements)
-  removal gets deployed
-  rNORI gets deployed (it does not yet have addresses for removal OR market)
-  market gets deployed last and when it's deployed, it calls address setters on its removal and rnori instances from its initializer
-
-- should we emit an address-specific event for revocation? since balance is indeed being burned from each given address.
+- we should emit an address-specific event for revocation since balance is indeed being burned from each given address.
 
 - should we default to using SECONDS_IN_TEN_YEARS if a duration is not set in the duration lookup? or just revert?
-  - no, update the way duration is set to include an "isSet" flag and revert if that isn't set when looking up the duration
+ (basically how should a lookup result of 0 be interpreted?)
+  - no, update the way duration is set to include an "isSet" flag in the duration map and revert if that isn't set when looking up the duration
 
 - should we have a default behavior if a start time isn't set for a removal when its schedule is being created? revert?
       - no, add input validation to setting this start time when removals are minted so it can't be 0
@@ -102,6 +93,8 @@ contract RestrictedNORI is
   }
 
   struct RestrictionScheduleSummary {
+    // todo should we use a project id as the schedule id? can be tied back to datastore?
+    // at the very least, should we put the supplier address in here?
     uint256 scheduleTokenId;
     uint256 startTime;
     uint256 endTime;
@@ -139,14 +132,6 @@ contract RestrictedNORI is
    * @dev only Nori admin address should have this role.
    */
   bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
-
-  /**
-   * @notice Role conferring permission to initialize contract instance variables.
-   *
-   * @dev only the market contract should have this role.
-   */
-  bytes32 public constant CONTRACT_INITIALIZER_ROLE =
-    keccak256("CONTRACT_INITIALIZER_ROLE");
 
   /**
    * @notice Used to register the ERC777TokensRecipient recipient interface in the
@@ -252,17 +237,10 @@ contract RestrictedNORI is
     address marketAddress,
     address bridgedPolygonNoriAddress,
     address removalAddress
-  ) external onlyRole(CONTRACT_INITIALIZER_ROLE) {
+  ) external onlyRole(DEFAULT_ADMIN_ROLE) {
     _market = FIFOMarket(marketAddress);
     _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
     _removal = Removal(removalAddress);
-  }
-
-  function addContractInitializer(address _contractInitializer) public {
-    if (!hasRole(DEFAULT_ADMIN_ROLE, _msgSender())) {
-      revert MissingRole({account: _msgSender(), role: "DEFAULT_ADMIN_ROLE"});
-    }
-    _setupRole(CONTRACT_INITIALIZER_ROLE, _contractInitializer);
   }
 
   function supportsInterface(bytes4 interfaceId)
@@ -507,7 +485,7 @@ contract RestrictedNORI is
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    */
   function setRestrictionDurationForMethodologyAndVersion(
     uint256 methodology,
@@ -527,6 +505,7 @@ contract RestrictedNORI is
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role
    */
+  // todo this should be single create at end of the day
   function batchCreateRestrictionSchedule(uint256[] calldata removalIds)
     external
     whenNotPaused
@@ -560,7 +539,7 @@ contract RestrictedNORI is
     if (!(_msgSender() == address(_bridgedPolygonNori))) {
       revert TokenSenderNotBPNORI();
     }
-    if (!(from == address(_market))) {
+    if (!(from == address(_market) || hasRole(DEFAULT_ADMIN_ROLE, from))) {
       revert InvalidBpNoriSender({account: from});
     }
 
@@ -852,6 +831,8 @@ contract RestrictedNORI is
     // granted, real token amounts will usually be much larger values where the truncations are insignificant
     // ... but still, we should update this struct with the real value by summing across the burnable amounts
     // for all holders.
+    // idea : instead of summing all actual revoked amounts, calculate the final revoked amount as the diff and then
+    // can use quantityToRevoke here which will then be exact
     schedule.totalQuantityRevoked += quantityToRevoke;
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
@@ -859,7 +840,7 @@ contract RestrictedNORI is
       quantityToRevoke,
       ""
     );
-    emit UnreleasedTokensRevoked(
+    emit UnreleasedTokensRevoked( // renamed to TokensRevoke
       block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
       removalId,
       scheduleId,
