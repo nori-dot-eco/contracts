@@ -100,8 +100,8 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
       }
     }
     _latestTokenId = tokenId + 1;
-    super.mint(to, tokenId, certificateAmount, data);
     emit CertificateCreated(to, tokenId, removalIds, removalAmounts);
+    super.mint(to, tokenId, certificateAmount, data);
   }
 
   /**
