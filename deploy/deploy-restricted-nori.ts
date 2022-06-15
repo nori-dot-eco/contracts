@@ -3,34 +3,34 @@ import type { DeployFunction } from 'hardhat-deploy/types';
 
 import { getRemoval } from '../utils/contracts';
 
-import { deployEscrowedNORI, finalizeDeployments } from '@/utils/deploy';
+import { deployRestrictedNORI, finalizeDeployments } from '@/utils/deploy';
 
 export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
-  hre.trace(`deployEscrowedNORI`);
-  const contract = await deployEscrowedNORI({
+  hre.trace(`deployRestrictedNORI`);
+  const contract = await deployRestrictedNORI({
     hre,
   });
   const [signer] = await hre.getSigners();
   const removal = await getRemoval({ hre, signer });
   if (
     !(await contract.hasRole(
-      await contract.ESCROW_CREATOR_ROLE(),
+      await contract.SCHEDULE_CREATOR_ROLE(),
       removal.address
     ))
   ) {
     await contract.grantRole(
-      hre.ethers.utils.id('ESCROW_CREATOR_ROLE'),
+      hre.ethers.utils.id('SCHEDULE_CREATOR_ROLE'),
       removal.address
     );
   }
-  hre.trace("Granted Removal the role 'ESCROW_CREATOR_ROLE'");
-  await finalizeDeployments({ hre, contracts: { EscrowedNORI: contract } });
+  hre.trace("Granted Removal the role 'SCHEDULE_CREATOR_ROLE'");
+  await finalizeDeployments({ hre, contracts: { RestrictedNORI: contract } });
 };
 
 export default deploy;
-deploy.tags = ['EscrowedNORI', 'market'];
+deploy.tags = ['RestrictedNORI', 'market'];
 deploy.dependencies = ['preconditions', 'Removal', 'BridgedPolygonNORI'];
 deploy.skip = async (hre) =>
   Promise.resolve(

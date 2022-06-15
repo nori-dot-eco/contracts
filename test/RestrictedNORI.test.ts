@@ -2,9 +2,9 @@ import { BigNumber } from 'ethers';
 
 import { expect, setupTest, advanceTime } from '@/test/helpers';
 import {
-  setupTestEscrowedNORI,
+  setupTestRestrictedNORI,
   formatTokensReceivedUserData,
-  sendRemovalProceedsToEscrow,
+  restrictRemovalProceeds,
   UNIX_EPOCH_2018,
   UNIX_EPOCH_2019,
   UNIX_EPOCH_2021,
@@ -12,72 +12,72 @@ import {
   SECONDS_IN_10_YEARS,
   SECONDS_IN_1_YEAR_AVG,
   SECONDS_IN_5_YEARS,
-} from '@/test/helpers/escrowed-nori';
+} from '@/test/helpers/restricted-nori';
 
-describe('EscrowedNORI', () => {
+describe('RestrictedNORI', () => {
   describe('initialization', () => {
     // it.todo('should fire events');
     describe('roles', () => {
       for (const { role, expectedCount } of [
         { role: 'DEFAULT_ADMIN_ROLE', expectedCount: 1 },
         { role: 'PAUSER_ROLE', expectedCount: 1 },
-        { role: 'ESCROW_CREATOR_ROLE', expectedCount: 2 }, // Removal contract is an escrow creator
+        { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Removal contract is an restriction creator
         { role: 'TOKEN_REVOKER_ROLE', expectedCount: 1 },
       ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
-          const { eNori, hre } = await setupTest();
+          const { rNori, hre } = await setupTest();
           expect(
-            await eNori.hasRole(await eNori[role](), hre.namedAccounts.admin)
+            await rNori.hasRole(await rNori[role](), hre.namedAccounts.admin)
           ).to.be.true;
-          expect(await eNori.getRoleAdmin(await eNori[role]())).to.eq(
-            await eNori.DEFAULT_ADMIN_ROLE()
+          expect(await rNori.getRoleAdmin(await rNori[role]())).to.eq(
+            await rNori.DEFAULT_ADMIN_ROLE()
           );
-          expect(await eNori.getRoleMemberCount(await eNori[role]())).to.eq(
+          expect(await rNori.getRoleMemberCount(await rNori[role]())).to.eq(
             expectedCount
           );
         });
       }
     });
   });
-  describe('escrow duration map', () => {
+  describe('restriction duration map', () => {
     it('should be initialized to 10 years for a methodology of 1 and methodology version of 0', async () => {
-      const { eNori } = await setupTestEscrowedNORI({});
-      const retrievedEscrowDuration =
-        await eNori.getEscrowDurationForMethodologyAndVersion(1, 0);
-      expect(retrievedEscrowDuration).to.equal(SECONDS_IN_10_YEARS);
+      const { rNori } = await setupTestRestrictedNORI({});
+      const retrievedRestrictionDuration =
+        await rNori.getRestrictionDurationForMethodologyAndVersion(1, 0);
+      expect(retrievedRestrictionDuration).to.equal(SECONDS_IN_10_YEARS);
     });
-    it('should be able to set and get a new escrow duration for a given methodology and version', async () => {
-      const { eNori } = await setupTestEscrowedNORI({});
+    it('should be able to set and get a new restriction duration for a given methodology and version', async () => {
+      const { rNori } = await setupTestRestrictedNORI({});
       const methodology = 2;
       const methodologyVersion = 0;
       const newDuration = SECONDS_IN_1_YEAR_AVG;
       const scheduleDurationBeforeSetting =
-        await eNori.getEscrowDurationForMethodologyAndVersion(
+        await rNori.getRestrictionDurationForMethodologyAndVersion(
           methodology,
           methodologyVersion
         );
       expect(scheduleDurationBeforeSetting).to.equal(0);
-      await eNori.setEscrowDurationForMethodologyAndVersion(
+      await rNori.setRestrictionDurationForMethodologyAndVersion(
         methodology,
         methodologyVersion,
         newDuration
       );
       const scheduleDurationAfterSetting =
-        await eNori.getEscrowDurationForMethodologyAndVersion(
+        await rNori.getRestrictionDurationForMethodologyAndVersion(
           methodology,
           methodologyVersion
         );
       expect(scheduleDurationAfterSetting).to.equal(SECONDS_IN_1_YEAR_AVG);
     });
     it('should revert if the transaction sender does not have the DEFAULT_ADMIN_ROLE', async () => {
-      const { eNori } = await setupTestEscrowedNORI({});
+      const { rNori } = await setupTestRestrictedNORI({});
       const methodology = 2;
       const methodologyVersion = 0;
       const newDuration = SECONDS_IN_1_YEAR_AVG;
       await expect(
-        eNori
+        rNori
           .connect(hre.namedSigners.buyer) // funded address without DEFAULT_ADMIN_ROLE
-          .setEscrowDurationForMethodologyAndVersion(
+          .setRestrictionDurationForMethodologyAndVersion(
             methodology,
             methodologyVersion,
             newDuration
@@ -86,58 +86,64 @@ describe('EscrowedNORI', () => {
     });
   });
   describe('tokensReceived', () => {
-    it('should deposit tokens and automatically create a new escrow schedule where one does not exist', async () => {
+    it('should deposit tokens and automatically create a new restriction schedule where one does not exist', async () => {
       const removalDataToList = [
-        { amount: 5, vintage: 2018, escrowScheduleStartTime: UNIX_EPOCH_2021 },
+        {
+          amount: 5,
+          vintage: 2018,
+          restrictionScheduleStartTime: UNIX_EPOCH_2021,
+        },
       ];
-      const { bpNori, eNori, listedRemovalIds, escrowScheduleIds, hre } =
-        await setupTestEscrowedNORI({
+      const { bpNori, rNori, listedRemovalIds, restrictionScheduleIds, hre } =
+        await setupTestRestrictedNORI({
           removalDataToList,
         });
       const { namedAccounts } = hre;
-      const escrowedAmount = 1;
+      const restrictedAmount = 1;
       const userData = formatTokensReceivedUserData(listedRemovalIds[0]);
-      expect(await bpNori.send(eNori.address, escrowedAmount, userData))
-        .to.emit(eNori, 'Minted')
+      expect(await bpNori.send(rNori.address, restrictedAmount, userData))
+        .to.emit(rNori, 'Minted')
         .withArgs(
           bpNori.address,
           namedAccounts.supplier,
-          escrowedAmount,
+          restrictedAmount,
           userData,
           '0x'
         )
-        .to.emit(eNori, 'Transfer')
+        .to.emit(rNori, 'Transfer')
         .withArgs(
           ethers.constants.AddressZero,
           namedAccounts.supplier,
-          escrowedAmount
+          restrictedAmount
         )
         .to.emit(bpNori, 'Sent')
         .withArgs(
           namedAccounts.admin,
           namedAccounts.admin,
-          eNori.address,
-          escrowedAmount,
+          rNori.address,
+          restrictedAmount,
           userData,
           '0x'
         )
         .to.emit(bpNori, 'Transfer')
-        .withArgs(namedAccounts.admin, eNori.address, escrowedAmount);
-      const escrowScheduleDetail = await eNori.getEscrowScheduleSummary(
-        escrowScheduleIds[0]
+        .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
+      const restrictionScheduleDetail = await rNori.getRestrictionScheduleSummary(
+        restrictionScheduleIds[0]
       );
-      expect(escrowScheduleDetail.scheduleTokenId).equals(escrowScheduleIds[0]);
-      expect(escrowScheduleDetail.totalSupply).equals(escrowedAmount);
-      expect(escrowScheduleDetail.tokenHolders[0]).equals(
+      expect(restrictionScheduleDetail.scheduleTokenId).equals(
+        restrictionScheduleIds[0]
+      );
+      expect(restrictionScheduleDetail.totalSupply).equals(restrictedAmount);
+      expect(restrictionScheduleDetail.tokenHolders[0]).equals(
         namedAccounts.supplier
       );
-      expect(escrowScheduleDetail.startTime).equals(UNIX_EPOCH_2021);
-      expect(escrowScheduleDetail.endTime).equals(
+      expect(restrictionScheduleDetail.startTime).equals(UNIX_EPOCH_2021);
+      expect(restrictionScheduleDetail.endTime).equals(
         UNIX_EPOCH_2021 + SECONDS_IN_10_YEARS
       );
-      expect(escrowScheduleDetail.totalClaimedAmount).equals(0);
-      expect(escrowScheduleDetail.totalQuantityRevoked).equals(0);
-      expect(escrowScheduleDetail.exists).equals(true);
+      expect(restrictionScheduleDetail.totalClaimedAmount).equals(0);
+      expect(restrictionScheduleDetail.totalQuantityRevoked).equals(0);
+      expect(restrictionScheduleDetail.exists).equals(true);
     });
   });
   describe('Linear releasing (claimableBalanceForSchedule)', () => {
@@ -146,70 +152,70 @@ describe('EscrowedNORI', () => {
         {
           amount: 100,
           vintage: 2020,
-          escrowScheduleStartTime: UNIX_EPOCH_2023,
+          restrictionScheduleStartTime: UNIX_EPOCH_2023,
         },
       ];
-      const testSetup = await setupTestEscrowedNORI({
+      const testSetup = await setupTestRestrictedNORI({
         removalDataToList,
       });
-      const { eNori, hre, escrowScheduleIds } = testSetup;
+      const { rNori, hre, restrictionScheduleIds } = testSetup;
       const { supplier } = hre.namedAccounts;
-      const removalAmountsToEscrow = removalDataToList.map(
+      const removalAmountsToRestrict = removalDataToList.map(
         (removalData) => removalData.amount
       );
-      await sendRemovalProceedsToEscrow({
+      await restrictRemovalProceeds({
         testSetup,
         listedRemovalData: removalDataToList,
-        removalAmountsToEscrow,
+        removalAmountsToRestrict,
       });
       const claimableBalanceForSchedule =
-        await eNori.claimableBalanceForSchedule(escrowScheduleIds[0]);
+        await rNori.claimableBalanceForSchedule(restrictionScheduleIds[0]);
       expect(claimableBalanceForSchedule).to.equal(0);
       await expect(
-        eNori
+        rNori
           .connect(hre.namedSigners.supplier)
-          .withdrawFromEscrowSchedule(
+          .withdrawFromRestrictionSchedule(
             supplier,
-            escrowScheduleIds[0],
-            removalAmountsToEscrow[0]
+            restrictionScheduleIds[0],
+            removalAmountsToRestrict[0]
           )
       ).revertedWith(
-        `InsufficientClaimableBalance("${supplier}", ${escrowScheduleIds[0]})`
+        `InsufficientClaimableBalance("${supplier}", ${restrictionScheduleIds[0]})`
       );
     });
-    it('should return the full amount at the end of the escrow schedule', async () => {
+    it('should return the full amount at the end of the restriction schedule', async () => {
       const removalDataToList = [
         {
           amount: 100,
           vintage: 2018,
-          escrowScheduleStartTime: UNIX_EPOCH_2018,
+          restrictionScheduleStartTime: UNIX_EPOCH_2018,
         },
       ];
-      const testSetup = await setupTestEscrowedNORI({
+      const testSetup = await setupTestRestrictedNORI({
         removalDataToList,
       });
-      const { eNori, hre, escrowScheduleIds } = testSetup;
-      const escrowedAmount = removalDataToList[0].amount;
-      await sendRemovalProceedsToEscrow({
+      const { rNori, hre, restrictionScheduleIds } = testSetup;
+      const restrictedAmount = removalDataToList[0].amount;
+      await restrictRemovalProceeds({
         testSetup,
         listedRemovalData: removalDataToList,
-        removalAmountsToEscrow: [escrowedAmount],
+        removalAmountsToRestrict: [restrictedAmount],
       });
       await advanceTime({
         hre,
         timestamp: UNIX_EPOCH_2018 + SECONDS_IN_10_YEARS,
       });
       const claimableBalanceOf =
-        await eNori.claimableBalanceForScheduleForAccount(
-          escrowScheduleIds[0],
+        await rNori.claimableBalanceForScheduleForAccount(
+          restrictionScheduleIds[0],
           hre.namedAccounts.supplier
         );
-      expect(claimableBalanceOf).to.equal(escrowedAmount);
-      await eNori
+      expect(claimableBalanceOf).to.equal(restrictedAmount);
+      await rNori
         .connect(await hre.ethers.getSigner(hre.namedAccounts.supplier))
-        .withdrawFromEscrowSchedule(
+        .withdrawFromRestrictionSchedule(
           hre.namedAccounts.supplier,
-          escrowScheduleIds[0],
+          restrictionScheduleIds[0],
           removalDataToList[0].amount
         );
     });
@@ -218,42 +224,42 @@ describe('EscrowedNORI', () => {
         {
           amount: 100,
           vintage: 2018,
-          escrowScheduleStartTime: UNIX_EPOCH_2018,
+          restrictionScheduleStartTime: UNIX_EPOCH_2018,
         },
         {
           amount: 100,
           vintage: 2019,
-          escrowScheduleStartTime: UNIX_EPOCH_2018,
+          restrictionScheduleStartTime: UNIX_EPOCH_2018,
         },
       ];
-      const testSetup = await setupTestEscrowedNORI({
+      const testSetup = await setupTestRestrictedNORI({
         removalDataToList,
       });
-      const { eNori, hre, escrowScheduleIds } = testSetup;
-      const firstAmountToEscrow = removalDataToList[0].amount;
-      await sendRemovalProceedsToEscrow({
+      const { rNori, hre, restrictionScheduleIds } = testSetup;
+      const firstAmountToRestrict = removalDataToList[0].amount;
+      await restrictRemovalProceeds({
         testSetup,
         listedRemovalData: [removalDataToList[0]],
-        removalAmountsToEscrow: [firstAmountToEscrow],
+        removalAmountsToRestrict: [firstAmountToRestrict],
       });
       await advanceTime({
         hre,
         timestamp: UNIX_EPOCH_2018 + SECONDS_IN_5_YEARS,
       });
       const originalClaimableBalanceForSchedule =
-        await eNori.claimableBalanceForSchedule(escrowScheduleIds[0]);
+        await rNori.claimableBalanceForSchedule(restrictionScheduleIds[0]);
       expect(originalClaimableBalanceForSchedule).to.equal(
         removalDataToList[0].amount / 2
       );
-      const secondAmountToEscrow = removalDataToList[1].amount;
-      await sendRemovalProceedsToEscrow({
+      const secondAmountToRestrict = removalDataToList[1].amount;
+      await restrictRemovalProceeds({
         testSetup,
         listedRemovalData: [removalDataToList[1]],
-        removalAmountsToEscrow: [secondAmountToEscrow],
+        removalAmountsToRestrict: [secondAmountToRestrict],
       });
-      const claimableBalanceAfterSecondEscrowing =
-        await eNori.claimableBalanceForSchedule(escrowScheduleIds[0]);
-      expect(claimableBalanceAfterSecondEscrowing).to.equal(
+      const claimableBalanceAfterSecondRestriction =
+        await rNori.claimableBalanceForSchedule(restrictionScheduleIds[0]);
+      expect(claimableBalanceAfterSecondRestriction).to.equal(
         removalDataToList[0].amount / 2 + removalDataToList[1].amount / 2
       );
     });
@@ -265,18 +271,18 @@ describe('EscrowedNORI', () => {
           {
             amount: 100,
             vintage: 2018,
-            escrowScheduleStartTime: UNIX_EPOCH_2018,
+            restrictionScheduleStartTime: UNIX_EPOCH_2018,
           },
         ];
-        const testSetup = await setupTestEscrowedNORI({
+        const testSetup = await setupTestRestrictedNORI({
           removalDataToList,
         });
-        const { eNori, bpNori, hre, escrowScheduleIds } = testSetup;
-        const amountToEscrow = removalDataToList[0].amount;
-        await sendRemovalProceedsToEscrow({
+        const { rNori, bpNori, hre, restrictionScheduleIds } = testSetup;
+        const amountToRestrict = removalDataToList[0].amount;
+        await restrictRemovalProceeds({
           testSetup,
           listedRemovalData: removalDataToList,
-          removalAmountsToEscrow: [amountToEscrow],
+          removalAmountsToRestrict: [amountToRestrict],
         });
         await advanceTime({
           hre,
@@ -286,31 +292,36 @@ describe('EscrowedNORI', () => {
         const { supplier } = hre.namedAccounts;
         const bpNoriSupplyBeforeWithdrawl = await bpNori.totalSupply();
         const claimableBalance =
-          await eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          await rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             supplier
           );
         expect(
-          await eNori
+          await rNori
             .connect(await hre.ethers.getSigner(supplier))
-            .withdrawFromEscrowSchedule(
+            .withdrawFromRestrictionSchedule(
               supplier,
-              escrowScheduleIds[0],
+              restrictionScheduleIds[0],
               claimableBalance
             )
         )
-          .to.emit(eNori, 'TokensClaimed')
-          .withArgs(supplier, supplier, escrowScheduleIds[0], claimableBalance);
+          .to.emit(rNori, 'TokensClaimed')
+          .withArgs(
+            supplier,
+            supplier,
+            restrictionScheduleIds[0],
+            claimableBalance
+          );
 
-        expect(await eNori.totalSupply(escrowScheduleIds[0])).to.equal(
-          BigNumber.from(amountToEscrow).sub(claimableBalance)
-        );
-        expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
-          BigNumber.from(amountToEscrow).sub(claimableBalance)
+        expect(await rNori.totalSupply(restrictionScheduleIds[0])).to.equal(
+          BigNumber.from(amountToRestrict).sub(claimableBalance)
         );
         expect(
-          await eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          await rNori.balanceOf(supplier, restrictionScheduleIds[0])
+        ).to.equal(BigNumber.from(amountToRestrict).sub(claimableBalance));
+        expect(
+          await rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             supplier
           )
         ).to.equal(0);
@@ -319,23 +330,23 @@ describe('EscrowedNORI', () => {
         );
         expect(await bpNori.balanceOf(supplier)).to.equal(claimableBalance);
       });
-      it('can withdraw to a different address from the escrow schedule holder', async () => {
+      it('can withdraw to a different address from the restriction schedule holder', async () => {
         const removalDataToList = [
           {
             amount: 100,
             vintage: 2018,
-            escrowScheduleStartTime: UNIX_EPOCH_2018,
+            restrictionScheduleStartTime: UNIX_EPOCH_2018,
           },
         ];
-        const testSetup = await setupTestEscrowedNORI({
+        const testSetup = await setupTestRestrictedNORI({
           removalDataToList,
         });
-        const { eNori, bpNori, hre, escrowScheduleIds } = testSetup;
-        const amountToEscrow = removalDataToList[0].amount;
-        await sendRemovalProceedsToEscrow({
+        const { rNori, bpNori, hre, restrictionScheduleIds } = testSetup;
+        const amountToRestrict = removalDataToList[0].amount;
+        await restrictRemovalProceeds({
           testSetup,
           listedRemovalData: removalDataToList,
-          removalAmountsToEscrow: [amountToEscrow],
+          removalAmountsToRestrict: [amountToRestrict],
         });
         await advanceTime({
           hre,
@@ -345,36 +356,36 @@ describe('EscrowedNORI', () => {
         const { supplier, investor1 } = hre.namedAccounts;
         const bpNoriSupplyBeforeWithdrawl = await bpNori.totalSupply();
         const claimableBalance =
-          await eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          await rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             supplier
           );
         expect(
-          await eNori
+          await rNori
             .connect(await hre.ethers.getSigner(supplier))
-            .withdrawFromEscrowSchedule(
+            .withdrawFromRestrictionSchedule(
               investor1,
-              escrowScheduleIds[0],
+              restrictionScheduleIds[0],
               claimableBalance
             )
         )
-          .to.emit(eNori, 'TokensClaimed')
+          .to.emit(rNori, 'TokensClaimed')
           .withArgs(
             supplier,
             investor1,
-            escrowScheduleIds[0],
+            restrictionScheduleIds[0],
             claimableBalance
           );
 
-        expect(await eNori.totalSupply(escrowScheduleIds[0])).to.equal(
-          BigNumber.from(amountToEscrow).sub(claimableBalance)
-        );
-        expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
-          BigNumber.from(amountToEscrow).sub(claimableBalance)
+        expect(await rNori.totalSupply(restrictionScheduleIds[0])).to.equal(
+          BigNumber.from(amountToRestrict).sub(claimableBalance)
         );
         expect(
-          await eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          await rNori.balanceOf(supplier, restrictionScheduleIds[0])
+        ).to.equal(BigNumber.from(amountToRestrict).sub(claimableBalance));
+        expect(
+          await rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             supplier
           )
         ).to.equal(0);
@@ -384,42 +395,42 @@ describe('EscrowedNORI', () => {
         expect(await bpNori.balanceOf(supplier)).to.equal(0);
         expect(await bpNori.balanceOf(investor1)).to.equal(claimableBalance);
       });
-      it('can withdraw correctly from an escrow schedule with multiple token holders', async () => {
+      it('can withdraw correctly from an restriction schedule with multiple token holders', async () => {
         const removalDataToList = [
           {
             amount: 3000,
             vintage: 2018,
-            escrowScheduleStartTime: UNIX_EPOCH_2018,
+            restrictionScheduleStartTime: UNIX_EPOCH_2018,
           },
         ];
-        const testSetup = await setupTestEscrowedNORI({
+        const testSetup = await setupTestRestrictedNORI({
           removalDataToList,
         });
-        const { eNori, bpNori, hre, escrowScheduleIds } = testSetup;
+        const { rNori, bpNori, hre, restrictionScheduleIds } = testSetup;
         const { supplier, investor1, employee } = hre.namedAccounts;
 
-        const amountToEscrow = removalDataToList[0].amount;
-        await sendRemovalProceedsToEscrow({
+        const amountToRestrict = removalDataToList[0].amount;
+        await restrictRemovalProceeds({
           testSetup,
           listedRemovalData: removalDataToList,
-          removalAmountsToEscrow: [amountToEscrow],
+          removalAmountsToRestrict: [amountToRestrict],
         });
         await Promise.all([
-          eNori
+          rNori
             .connect(hre.namedSigners.supplier)
             .safeTransferFrom(
               supplier,
               investor1,
-              escrowScheduleIds[0],
+              restrictionScheduleIds[0],
               1000,
               '0x'
             ),
-          eNori
+          rNori
             .connect(hre.namedSigners.supplier)
             .safeTransferFrom(
               supplier,
               employee,
-              escrowScheduleIds[0],
+              restrictionScheduleIds[0],
               1000,
               '0x'
             ),
@@ -436,33 +447,33 @@ describe('EscrowedNORI', () => {
           investorClaimableBalanceBeforeClaim,
           employeeClaimableBalanceBeforeClaim,
         ] = await Promise.all([
-          eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             supplier
           ),
-          eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             investor1
           ),
-          eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             employee
           ),
         ]);
         expect(supplierClaimableBalanceBeforeClaim).to.equal(
-          amountToEscrow / 3 / 2
+          amountToRestrict / 3 / 2
         );
         expect(supplierClaimableBalanceBeforeClaim).to.equal(
-          amountToEscrow / 3 / 2
+          amountToRestrict / 3 / 2
         );
         expect(employeeClaimableBalanceBeforeClaim).to.equal(
-          amountToEscrow / 3 / 2
+          amountToRestrict / 3 / 2
         );
-        await eNori
+        await rNori
           .connect(await hre.ethers.getSigner(supplier))
-          .withdrawFromEscrowSchedule(
+          .withdrawFromRestrictionSchedule(
             supplier,
-            escrowScheduleIds[0],
+            restrictionScheduleIds[0],
             supplierClaimableBalanceBeforeClaim
           );
         const [
@@ -470,16 +481,16 @@ describe('EscrowedNORI', () => {
           investorClaimableBalanceAfterClaim,
           employeeClaimableBalanceAfterClaim,
         ] = await Promise.all([
-          eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             supplier
           ),
-          eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             investor1
           ),
-          eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             employee
           ),
         ]);
@@ -493,22 +504,24 @@ describe('EscrowedNORI', () => {
           employeeClaimableBalanceBeforeClaim
         );
 
-        expect(await eNori.totalSupply(escrowScheduleIds[0])).to.equal(
-          BigNumber.from(amountToEscrow).sub(
+        expect(await rNori.totalSupply(restrictionScheduleIds[0])).to.equal(
+          BigNumber.from(amountToRestrict).sub(
             supplierClaimableBalanceBeforeClaim
           )
         );
-        expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
-          BigNumber.from(amountToEscrow / 3).sub(
+        expect(
+          await rNori.balanceOf(supplier, restrictionScheduleIds[0])
+        ).to.equal(
+          BigNumber.from(amountToRestrict / 3).sub(
             supplierClaimableBalanceBeforeClaim
           )
         );
-        expect(await eNori.balanceOf(investor1, escrowScheduleIds[0])).to.equal(
-          BigNumber.from(amountToEscrow / 3)
-        );
-        expect(await eNori.balanceOf(employee, escrowScheduleIds[0])).to.equal(
-          BigNumber.from(amountToEscrow / 3)
-        );
+        expect(
+          await rNori.balanceOf(investor1, restrictionScheduleIds[0])
+        ).to.equal(BigNumber.from(amountToRestrict / 3));
+        expect(
+          await rNori.balanceOf(employee, restrictionScheduleIds[0])
+        ).to.equal(BigNumber.from(amountToRestrict / 3));
         expect(await bpNori.totalSupply()).to.equal(
           bpNoriSupplyBeforeWithdrawl
         );
@@ -525,18 +538,18 @@ describe('EscrowedNORI', () => {
           {
             amount: 100,
             vintage: 2018,
-            escrowScheduleStartTime: UNIX_EPOCH_2018,
+            restrictionScheduleStartTime: UNIX_EPOCH_2018,
           },
         ];
-        const testSetup = await setupTestEscrowedNORI({
+        const testSetup = await setupTestRestrictedNORI({
           removalDataToList,
         });
-        const { eNori, hre, escrowScheduleIds } = testSetup;
-        const amountToEscrow = removalDataToList[0].amount;
-        await sendRemovalProceedsToEscrow({
+        const { rNori, hre, restrictionScheduleIds } = testSetup;
+        const amountToRestrict = removalDataToList[0].amount;
+        await restrictRemovalProceeds({
           testSetup,
           listedRemovalData: removalDataToList,
-          removalAmountsToEscrow: [amountToEscrow],
+          removalAmountsToRestrict: [amountToRestrict],
         });
         await advanceTime({
           hre,
@@ -545,21 +558,21 @@ describe('EscrowedNORI', () => {
 
         const { supplier } = hre.namedAccounts;
         const claimableBalance =
-          await eNori.claimableBalanceForScheduleForAccount(
-            escrowScheduleIds[0],
+          await rNori.claimableBalanceForScheduleForAccount(
+            restrictionScheduleIds[0],
             supplier
           );
         const attemptToWithdrawAmount = claimableBalance.add(1);
         await expect(
-          eNori
+          rNori
             .connect(await hre.ethers.getSigner(supplier))
-            .withdrawFromEscrowSchedule(
+            .withdrawFromRestrictionSchedule(
               supplier,
-              escrowScheduleIds[0],
+              restrictionScheduleIds[0],
               attemptToWithdrawAmount
             )
         ).to.be.revertedWith(
-          `InsufficientClaimableBalance("${supplier}", ${escrowScheduleIds[0]})`
+          `InsufficientClaimableBalance("${supplier}", ${restrictionScheduleIds[0]})`
         );
       });
     });
@@ -570,32 +583,32 @@ describe('EscrowedNORI', () => {
         {
           amount: 100,
           vintage: 2018,
-          escrowScheduleStartTime: UNIX_EPOCH_2018,
+          restrictionScheduleStartTime: UNIX_EPOCH_2018,
         },
       ];
-      const testSetup = await setupTestEscrowedNORI({ removalDataToList });
-      const { eNori, hre, escrowScheduleIds } = testSetup;
-      const amountToEscrow = removalDataToList[0].amount;
-      await sendRemovalProceedsToEscrow({
+      const testSetup = await setupTestRestrictedNORI({ removalDataToList });
+      const { rNori, hre, restrictionScheduleIds } = testSetup;
+      const amountToRestrict = removalDataToList[0].amount;
+      await restrictRemovalProceeds({
         testSetup,
         listedRemovalData: removalDataToList,
-        removalAmountsToEscrow: [amountToEscrow],
+        removalAmountsToRestrict: [amountToRestrict],
       });
       const { supplier } = await hre.getNamedAccounts();
       const supplierSigner = await hre.ethers.getSigner(supplier);
-      expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
-        amountToEscrow
-      );
+      expect(
+        await rNori.balanceOf(supplier, restrictionScheduleIds[0])
+      ).to.equal(amountToRestrict);
       await expect(
-        eNori
+        rNori
           .connect(supplierSigner)
-          .burn(supplier, escrowScheduleIds[0], amountToEscrow)
+          .burn(supplier, restrictionScheduleIds[0], amountToRestrict)
       ).to.be.revertedWith('BurningNotSupported');
-      expect(await eNori.balanceOf(supplier, escrowScheduleIds[0])).to.equal(
-        amountToEscrow
-      );
-      expect(await eNori.totalSupply(escrowScheduleIds[0])).to.equal(
-        amountToEscrow
+      expect(
+        await rNori.balanceOf(supplier, restrictionScheduleIds[0])
+      ).to.equal(amountToRestrict);
+      expect(await rNori.totalSupply(restrictionScheduleIds[0])).to.equal(
+        amountToRestrict
       );
     });
     it('should fail to *burnBatch*', async () => {
@@ -603,41 +616,47 @@ describe('EscrowedNORI', () => {
         {
           amount: 100,
           vintage: 2018,
-          escrowScheduleStartTime: UNIX_EPOCH_2018,
+          restrictionScheduleStartTime: UNIX_EPOCH_2018,
         },
         {
           amount: 100,
           vintage: 2019,
-          escrowScheduleStartTime: UNIX_EPOCH_2019,
+          restrictionScheduleStartTime: UNIX_EPOCH_2019,
         },
       ];
-      const testSetup = await setupTestEscrowedNORI({ removalDataToList });
-      const { eNori, hre, escrowScheduleIds } = testSetup;
-      const amountsToEscrow = removalDataToList.map(
+      const testSetup = await setupTestRestrictedNORI({ removalDataToList });
+      const { rNori, hre, restrictionScheduleIds } = testSetup;
+      const amountsToRestrict = removalDataToList.map(
         (removalData) => removalData.amount
       );
-      await sendRemovalProceedsToEscrow({
+      await restrictRemovalProceeds({
         testSetup,
         listedRemovalData: removalDataToList,
-        removalAmountsToEscrow: amountsToEscrow,
+        removalAmountsToRestrict: amountsToRestrict,
       });
       const { supplier } = await hre.getNamedAccounts();
       const supplierSigner = await hre.ethers.getSigner(supplier);
       expect(
         (
-          await eNori.balanceOfBatch([supplier, supplier], escrowScheduleIds)
+          await rNori.balanceOfBatch(
+            [supplier, supplier],
+            restrictionScheduleIds
+          )
         ).map((balance) => balance.toNumber())
-      ).to.eql(amountsToEscrow);
+      ).to.eql(amountsToRestrict);
       await expect(
-        eNori
+        rNori
           .connect(supplierSigner)
-          .burnBatch(supplier, escrowScheduleIds, amountsToEscrow)
+          .burnBatch(supplier, restrictionScheduleIds, amountsToRestrict)
       ).to.be.revertedWith('BurningNotSupported');
       expect(
         (
-          await eNori.balanceOfBatch([supplier, supplier], escrowScheduleIds)
+          await rNori.balanceOfBatch(
+            [supplier, supplier],
+            restrictionScheduleIds
+          )
         ).map((balance) => balance.toNumber())
-      ).to.eql(amountsToEscrow);
+      ).to.eql(amountsToRestrict);
     });
 
     it('should fail to *setApprovalForAll*', async () => {
@@ -645,15 +664,15 @@ describe('EscrowedNORI', () => {
         {
           amount: 100,
           vintage: 2018,
-          escrowScheduleStartTime: UNIX_EPOCH_2018,
+          restrictionScheduleStartTime: UNIX_EPOCH_2018,
         },
       ];
-      const testSetup = await setupTestEscrowedNORI({ removalDataToList });
-      const { eNori, hre } = testSetup;
+      const testSetup = await setupTestRestrictedNORI({ removalDataToList });
+      const { rNori, hre } = testSetup;
       const { supplier, investor1 } = await hre.getNamedAccounts();
       const supplierSigner = await hre.ethers.getSigner(supplier);
       await expect(
-        eNori.connect(supplierSigner).setApprovalForAll(investor1, true)
+        rNori.connect(supplierSigner).setApprovalForAll(investor1, true)
       ).to.be.revertedWith('OperatorActionsNotSupported');
     });
 
@@ -662,15 +681,15 @@ describe('EscrowedNORI', () => {
         {
           amount: 100,
           vintage: 2018,
-          escrowScheduleStartTime: UNIX_EPOCH_2018,
+          restrictionScheduleStartTime: UNIX_EPOCH_2018,
         },
       ];
-      const testSetup = await setupTestEscrowedNORI({ removalDataToList });
-      const { eNori, hre } = testSetup;
+      const testSetup = await setupTestRestrictedNORI({ removalDataToList });
+      const { rNori, hre } = testSetup;
       const { supplier, investor1 } = await hre.getNamedAccounts();
       const supplierSigner = await hre.ethers.getSigner(supplier);
       await expect(
-        eNori.connect(supplierSigner).isApprovedForAll(investor1, supplier)
+        rNori.connect(supplierSigner).isApprovedForAll(investor1, supplier)
       ).to.be.revertedWith('OperatorActionsNotSupported');
     });
   });

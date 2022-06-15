@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import "./EscrowedNORI.sol";
+import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 
 // import "hardhat/console.sol"; // todo
@@ -35,14 +35,14 @@ contract Removal is
   }
 
   /**
-   * @notice The EscrowedNORI contract that manages escrowed tokens.
+   * @notice The RestrictedNORI contract that manages restricted tokens.
    */
-  EscrowedNORI private _eNORI;
+  RestrictedNORI private _eNORI;
   uint256 public tokenIdCounter;
   string public name; // todo why did I add this
   mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
   mapping(uint256 => bool) private _tokenIdExists;
-  mapping(uint256 => uint256) private _idToEscrowScheduleStartTime;
+  mapping(uint256 => uint256) private _idToRestrictionScheduleStartTime;
 
   function initialize() external virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
@@ -51,8 +51,8 @@ contract Removal is
     name = "Removal";
   }
 
-  function initializeEscrowedNORI(address escrowedNORIAddress) external {
-    _eNORI = EscrowedNORI(escrowedNORIAddress);
+  function initializeRestrictedNORI(address restrictedNORIAddress) external {
+    _eNORI = RestrictedNORI(restrictedNORIAddress);
   }
 
   /**
@@ -92,15 +92,15 @@ contract Removal is
 
   // TODO do we want a batch version of this?
   /**
-   * @notice Get the escrow schedule id (which is the schedule's start time in seconds since
+   * @notice Get the restriction schedule id (which is the schedule's start time in seconds since
    * the unix epoch) for a given removal id.
    */
-  function getEscrowScheduleStartTimeForRemoval(uint256 removalId)
+  function getRestrictionScheduleStartTimeForRemoval(uint256 removalId)
     public
     view
     returns (uint256)
   {
-    return _idToEscrowScheduleStartTime[removalId];
+    return _idToRestrictionScheduleStartTime[removalId];
   }
 
   /**
@@ -114,14 +114,14 @@ contract Removal is
    * @param amounts Each removal's tonnes of CO2 formatted as wei
    * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address, a parcel identifier,
    * the vintage, country code, state code, methodology identifer, and methodology version.
-   * @param escrowScheduleStartTimes The start times, in seconds since the unix epoch, of the escrow schedules for each removal (serves as escrow schedule id in EscrowedNORI)
+   * @param restrictionScheduleStartTimes The start times, in seconds since the unix epoch, of the restriction schedules for each removal (serves as restriction schedule id in RestrictedNORI)
    * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals came.
    */
   function mintRemovalBatch(
     address to,
     uint256[] memory amounts,
     uint256[] memory ids,
-    uint256[] memory escrowScheduleStartTimes,
+    uint256[] memory restrictionScheduleStartTimes,
     bytes memory data
   ) public {
     require(
@@ -129,8 +129,8 @@ contract Removal is
       "Removal: amounts and ids length mismatch"
     );
     require(
-      amounts.length == escrowScheduleStartTimes.length,
-      "Removal: amounts and escrowScheduleStartTimes.length"
+      amounts.length == restrictionScheduleStartTimes.length,
+      "Removal: amounts and restrictionScheduleStartTimes.length"
     );
     // todo should we check that the removal id-encoded supplier address for each id is the same as `to` ?
     BatchMintRemovalsData memory decodedData = abi.decode(
@@ -141,7 +141,9 @@ contract Removal is
       if (_tokenIdExists[ids[i]]) {
         revert TokenIdExists({tokenId: ids[i]});
       }
-      _idToEscrowScheduleStartTime[ids[i]] = escrowScheduleStartTimes[i];
+      _idToRestrictionScheduleStartTime[ids[i]] = restrictionScheduleStartTimes[
+        i
+      ];
       _tokenIdExists[ids[i]] = true;
       indexToTokenId[tokenIdCounter] = ids[i];
       tokenIdCounter += 1;
@@ -182,15 +184,7 @@ contract Removal is
     uint256[] memory _amounts,
     bytes memory _data
   ) public override {
-    address[] memory recipients = new address[](_ids.length);
-    uint256[] memory escrowScheduleStartTimes = new uint256[](_ids.length);
-    for (uint256 i = 0; i < _ids.length; i++) {
-      recipients[i] = _ids[i].supplierAddress();
-      escrowScheduleStartTimes[i] = getEscrowScheduleStartTimeForRemoval(
-        _ids[i]
-      );
-    }
-    _eNORI.batchCreateEscrowSchedule(_ids);
+    _eNORI.batchCreateRestrictionSchedule(_ids);
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
   }

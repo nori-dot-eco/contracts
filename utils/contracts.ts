@@ -5,7 +5,7 @@ import type {
   Certificate,
   FIFOMarket,
   LockedNORI,
-  EscrowedNORI,
+  RestrictedNORI,
   NORI,
   Removal,
   ScheduleTestHarness,
@@ -18,7 +18,7 @@ export interface Contracts {
   BridgedPolygonNORI?: BridgedPolygonNORI;
   FIFOMarket?: FIFOMarket;
   LockedNORI?: LockedNORI;
-  EscrowedNORI?: EscrowedNORI;
+  RestrictedNORI?: RestrictedNORI;
   Certificate?: Certificate;
   ScheduleTestHarness?: ScheduleTestHarness;
   RemovalTestHarness?: RemovalTestHarness;
@@ -35,8 +35,8 @@ export const getContract = async <
     ? 'BridgedPolygonNORI'
     : TContract extends LockedNORI
     ? 'LockedNORI'
-    : TContract extends EscrowedNORI
-    ? 'EscrowedNORI'
+    : TContract extends RestrictedNORI
+    ? 'RestrictedNORI'
     : TContract extends NORI
     ? 'NORI'
     : TContract extends Removal
@@ -106,15 +106,15 @@ export const getLockedNORI = ({
     signer,
   });
 
-export const getEscrowedNORI = ({
+export const getRestrictedNORI = ({
   hre,
   signer,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<EscrowedNORI> =>
+}): Promise<RestrictedNORI> =>
   getContract({
-    contractName: 'EscrowedNORI',
+    contractName: 'RestrictedNORI',
     hre,
     signer,
   });
@@ -183,8 +183,8 @@ export const getContractsFromDeployments = async (
     LockedNORI: deployments.LockedNORI?.address
       ? await getLockedNORI({ hre })
       : undefined,
-    EscrowedNORI: deployments.EscrowedNORI?.address
-      ? await getEscrowedNORI({ hre })
+    RestrictedNORI: deployments.RestrictedNORI?.address
+      ? await getRestrictedNORI({ hre })
       : undefined,
     FIFOMarket: deployments.FIFOMarket?.address
       ? await getFIFOMarket({ hre })

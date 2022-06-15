@@ -11,7 +11,7 @@ import type {
   Certificate,
   FIFOMarket,
   LockedNORI,
-  EscrowedNORI,
+  RestrictedNORI,
   NORI,
   BridgedPolygonNORI,
   RemovalTestHarness,
@@ -33,7 +33,7 @@ interface ContractInstances {
   certificate: Certificate;
   fifoMarket: FIFOMarket;
   lNori: LockedNORI;
-  eNori: EscrowedNORI;
+  rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
 }
 
@@ -108,7 +108,7 @@ export const setupTest = global.hre.deployments.createFixture(
       certificate: contracts.Certificate,
       fifoMarket: contracts.FIFOMarket,
       lNori: contracts.LockedNORI,
-      eNori: contracts.EscrowedNORI,
+      rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
       userFixtures,
     };
@@ -145,10 +145,10 @@ export const createRemovalTokenId = async ({
 
 /**
  * Returns an array of unix timestamps that for the vintage of each removal
- * in `removalIds` for convenience of generating realistic escrow schedule start
+ * in `removalIds` for convenience of generating realistic restriction schedule start
  * times for minting removals during test setup.
  */
-export const createEscrowScheduleStartTimeArray = async (
+export const createRestrictionScheduleStartTimeArray = async (
   removalInstance: Removal,
   removalIds: BigNumber[]
 ): Promise<BigNumber[]> => {
@@ -237,7 +237,7 @@ export const batchMintAndListRemovalsForSale = async ({
   const removalAmounts = removalDataToList.map((removalData) =>
     formatTokenString(removalData.amount.toString())
   );
-  const escrowScheduleStartTimes = await createEscrowScheduleStartTimeArray(
+  const restrictionScheduleStartTimes = await createRestrictionScheduleStartTimeArray(
     removal,
     listedRemovalIds
   );
@@ -245,7 +245,7 @@ export const batchMintAndListRemovalsForSale = async ({
     supplier,
     removalAmounts,
     listedRemovalIds,
-    escrowScheduleStartTimes,
+    restrictionScheduleStartTimes,
     createBatchMintData({ hre, fifoMarket })
   );
   const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);

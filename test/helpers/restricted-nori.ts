@@ -1,7 +1,7 @@
 import type { BigNumberish } from 'ethers';
 import { BigNumber } from 'ethers';
 
-import type { EscrowedNORI } from '@/typechain-types/contracts/EscrowedNORI';
+import type { RestrictedNORI } from '@/typechain-types/contracts/RestrictedNORI';
 import { expect, setupTest, createRemovalTokenId } from '@/test/helpers';
 
 export const NOW = Math.floor(Date.now() / 1000);
@@ -14,23 +14,23 @@ export const SECONDS_IN_1_YEAR_AVG = 31_556_952;
 export const SECONDS_IN_10_YEARS = 315_569_520;
 export const SECONDS_IN_5_YEARS = SECONDS_IN_10_YEARS / 2;
 
-export const setupTestEscrowedNORI = async ({
+export const setupTestRestrictedNORI = async ({
   removalDataToList = [],
 }: {
   buyerInitialBPNoriBalance?: BigNumberish;
   removalDataToList?: {
     amount: number;
-    escrowScheduleStartTime: number;
+    restrictionScheduleStartTime: number;
     vintage?: number;
     supplier?: string;
   }[];
 }): Promise<
   Awaited<ReturnType<typeof setupTest>> & {
     listedRemovalIds: BigNumber[];
-    escrowScheduleIds: BigNumber[];
+    restrictionScheduleIds: BigNumber[];
   }
 > => {
-  const { hre, contracts, removal, fifoMarket, eNori, ...rest } =
+  const { hre, contracts, removal, fifoMarket, rNori, ...rest } =
     await setupTest();
   let tokenIds: BigNumber[] = [];
   if (removalDataToList.length > 0) {
@@ -48,11 +48,11 @@ export const setupTestEscrowedNORI = async ({
         });
       })
     );
-    const escrowScheduleStartTimes: BigNumber[] = removalDataToList.map(
+    const restrictionScheduleStartTimes: BigNumber[] = removalDataToList.map(
       (removalData) =>
-        // TODO you might want to add a 0 case here where the escrowScheduleStartTime remains 0
+        // TODO you might want to add a 0 case here where the restrictionScheduleStartTime remains 0
         // to be able to test cases where the removalId basically has an empty entry for this
-        BigNumber.from(removalData.escrowScheduleStartTime)
+        BigNumber.from(removalData.restrictionScheduleStartTime)
     );
     const removalBalances = removalDataToList.map((removalData) =>
       hre.ethers.utils.parseUnits(removalData.amount.toString())
@@ -67,24 +67,24 @@ export const setupTestEscrowedNORI = async ({
         supplier,
         removalBalances,
         tokenIds,
-        escrowScheduleStartTimes,
+        restrictionScheduleStartTimes,
         packedData
       )
-    ).to.emit(eNori, 'EscrowScheduleCreated');
+    ).to.emit(rNori, 'RestrictionScheduleCreated');
   }
 
-  const escrowScheduleIds = await Promise.all(
-    tokenIds.map((removalId) => eNori.removalIdToScheduleId(removalId))
+  const restrictionScheduleIds = await Promise.all(
+    tokenIds.map((removalId) => rNori.removalIdToScheduleId(removalId))
   );
 
   return {
     hre,
     contracts,
     listedRemovalIds: tokenIds,
-    escrowScheduleIds,
+    restrictionScheduleIds,
     removal,
     fifoMarket,
-    eNori,
+    rNori,
     ...rest,
   };
 };
@@ -93,42 +93,42 @@ export const formatTokensReceivedUserData = (removalId: BigNumber): any => {
   return hre.ethers.utils.defaultAbiCoder.encode(['uint256'], [removalId]);
 };
 
-export const sendRemovalProceedsToEscrow = async ({
+export const restrictRemovalProceeds = async ({
   testSetup,
   listedRemovalData,
-  removalAmountsToEscrow,
+  removalAmountsToRestrict,
 }: {
-  testSetup: Awaited<ReturnType<typeof setupTestEscrowedNORI>>;
+  testSetup: Awaited<ReturnType<typeof setupTestRestrictedNORI>>;
   listedRemovalData: {
     amount: number;
-    escrowScheduleStartTime: number;
+    restrictionScheduleStartTime: number;
     vintage?: number;
     supplier?: string;
   }[];
-  removalAmountsToEscrow: number[];
+  removalAmountsToRestrict: number[];
 }): Promise<any> => {
-  // todo where is EscrowScheduleSummaryStructOutput?
-  const { eNori, bpNori, listedRemovalIds, escrowScheduleIds } = testSetup;
+  // todo where is RestrictionScheduleSummaryStructOutput?
+  const { rNori, bpNori, listedRemovalIds, restrictionScheduleIds } = testSetup;
   await Promise.all(
     listedRemovalData.map((_, index) => {
       const userData = formatTokensReceivedUserData(listedRemovalIds[index]);
       return bpNori.send(
-        eNori.address,
-        removalAmountsToEscrow[index],
+        rNori.address,
+        removalAmountsToRestrict[index],
         userData
       );
     })
   );
 
-  const escrowScheduleDetails = await Promise.all(
-    escrowScheduleIds.map((id) => eNori.getEscrowScheduleSummary(id))
+  const restrictionScheduleDetails = await Promise.all(
+    restrictionScheduleIds.map((id) => rNori.getRestrictionScheduleSummary(id))
   );
-  return escrowScheduleDetails;
+  return restrictionScheduleDetails;
 };
 
-export const compareEscrowScheduleDetailForAddressStructs = (
-  receivedScheduleDetail: EscrowedNORI.EscrowScheduleDetailForAddressStruct,
-  expectedScheduleDetail: Partial<EscrowedNORI.EscrowScheduleDetailForAddressStruct>
+export const compareRestrictionScheduleDetailForAddressStructs = (
+  receivedScheduleDetail: RestrictedNORI.RestrictionScheduleDetailForAddressStruct,
+  expectedScheduleDetail: Partial<RestrictedNORI.RestrictionScheduleDetailForAddressStruct>
 ): void => {
   const keys = [
     'tokenHolder',
@@ -148,9 +148,9 @@ export const compareEscrowScheduleDetailForAddressStructs = (
   }
 };
 
-export const compareEscrowScheduleSummaryStructs = (
-  receivedScheduleSummary: EscrowedNORI.EscrowScheduleSummaryStruct,
-  expectedScheduleSummary: Partial<EscrowedNORI.EscrowScheduleSummaryStruct>
+export const compareRestrictionScheduleSummaryStructs = (
+  receivedScheduleSummary: RestrictedNORI.RestrictionScheduleSummaryStruct,
+  expectedScheduleSummary: Partial<RestrictedNORI.RestrictionScheduleSummaryStruct>
 ): void => {
   const keys = [
     'scheduleTokenId',
@@ -163,7 +163,9 @@ export const compareEscrowScheduleSummaryStructs = (
   ] as const;
   for (const key of keys) {
     if (key in expectedScheduleSummary) {
-      expect(receivedScheduleSummary[key]).to.equal(expectedScheduleSummary);
+      expect(receivedScheduleSummary[key]).to.equal(
+        expectedScheduleSummary[key]
+      );
     }
   }
   if (expectedScheduleSummary.tokenHolders !== undefined) {

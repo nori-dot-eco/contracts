@@ -7,8 +7,8 @@ import type { Contracts } from '@/utils/contracts';
 import type {
   LockedNORI,
   LockedNORI__factory,
-  EscrowedNORI,
-  EscrowedNORI__factory,
+  RestrictedNORI,
+  RestrictedNORI__factory,
   Certificate,
   Certificate__factory,
   FIFOMarket,
@@ -26,7 +26,7 @@ import type {
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
 import {
-  createEscrowScheduleStartTimeArray,
+  createRestrictionScheduleStartTimeArray,
   createRemovalTokenId,
   mockDepositNoriToPolygon,
 } from '@/test/helpers';
@@ -177,14 +177,14 @@ export const deployFIFOMarketContract = async ({
   });
 };
 
-export const deployEscrowedNORI = async ({
+export const deployRestrictedNORI = async ({
   hre,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-}): Promise<InstanceOfContract<EscrowedNORI>> => {
+}): Promise<InstanceOfContract<RestrictedNORI>> => {
   const deployments = await hre.deployments.all<Required<Contracts>>();
-  return hre.deployOrUpgradeProxy<EscrowedNORI, EscrowedNORI__factory>({
-    contractName: 'EscrowedNORI',
+  return hre.deployOrUpgradeProxy<RestrictedNORI, RestrictedNORI__factory>({
+    contractName: 'RestrictedNORI',
     args: [deployments.BridgedPolygonNORI.address, deployments.Removal.address],
     options: {
       initializer: 'initialize(address,address)',
@@ -360,10 +360,8 @@ export const seedContracts = async ({
           vintage: 3000, // avoid clashing with likely test vintages and getting TokenIdExists error
         },
       });
-      const escrowScheduleStartTime = await createEscrowScheduleStartTimeArray(
-        contracts.Removal,
-        [tokenId]
-      );
+      const restrictionScheduleStartTime =
+        await createRestrictionScheduleStartTimeArray(contracts.Removal, [tokenId]);
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],
@@ -373,7 +371,7 @@ export const seedContracts = async ({
         hre.namedAccounts.supplier,
         [formatTokenAmount(100)],
         [tokenId],
-        escrowScheduleStartTime,
+        restrictionScheduleStartTime,
         packedData
       );
       hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });

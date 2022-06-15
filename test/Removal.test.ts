@@ -1,5 +1,5 @@
 import {
-  createEscrowScheduleStartTimeArray,
+  createRestrictionScheduleStartTimeArray,
   createRemovalTokenId,
   expect,
   setupTest,
@@ -29,8 +29,8 @@ describe('Removal', () => {
             });
           })
         );
-        const escrowScheduleStartTimes =
-          await createEscrowScheduleStartTimeArray(removal, tokenIds);
+        const restrictionScheduleStartTimes =
+          await createRestrictionScheduleStartTimeArray(removal, tokenIds);
 
         const listNow = false;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
@@ -42,7 +42,7 @@ describe('Removal', () => {
             supplier,
             removalBalances,
             tokenIds,
-            escrowScheduleStartTimes,
+            restrictionScheduleStartTimes,
             packedData
           )
         )
@@ -69,7 +69,7 @@ describe('Removal', () => {
           formatTokenAmount(expectedMarketSupply).toString()
         );
       });
-      it('should mint and list a batch of removals in the same transaction and create escrow schedules', async () => {
+      it('should mint and list a batch of removals in the same transaction and create restriction schedules', async () => {
         const { fifoMarket, removal } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
           formatTokenAmount(balance)
@@ -89,8 +89,8 @@ describe('Removal', () => {
             });
           })
         );
-        const escrowScheduleStartTimes =
-          await createEscrowScheduleStartTimeArray(removal, tokenIds);
+        const restrictionScheduleStartTimes =
+          await createRestrictionScheduleStartTimeArray(removal, tokenIds);
 
         const listNow = true;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
@@ -102,7 +102,7 @@ describe('Removal', () => {
             supplier,
             removalBalances,
             tokenIds,
-            escrowScheduleStartTimes,
+            restrictionScheduleStartTimes,
             packedData
           )
         )
@@ -130,8 +130,8 @@ describe('Removal', () => {
         );
       });
 
-      it('should list pre-minted removals for sale in the atomic marketplace and create escrow schedules', async () => {
-        const { fifoMarket, removal, eNori } = await setupTest();
+      it('should list pre-minted removals for sale in the atomic marketplace and create restriction schedules', async () => {
+        const { fifoMarket, removal, rNori } = await setupTest();
         const removalBalances = [100, 200, 300].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -146,8 +146,8 @@ describe('Removal', () => {
             })
           )
         );
-        const escrowScheduleStartTimes =
-          await createEscrowScheduleStartTimeArray(removal, tokenIds);
+        const restrictionScheduleStartTimes =
+          await createRestrictionScheduleStartTimeArray(removal, tokenIds);
         const listNow = false;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
           ['address', 'bool'],
@@ -158,7 +158,7 @@ describe('Removal', () => {
             hre.namedAccounts.supplier,
             removalBalances,
             tokenIds,
-            escrowScheduleStartTimes,
+            restrictionScheduleStartTimes,
             packedData
           )
         )
@@ -171,10 +171,10 @@ describe('Removal', () => {
             removalBalances
           );
 
-        // removal escrow schedule startTimes had to be set before we can call this and expect to get
-        // the right escrow schedules
-        const escrowScheduleTokenIds = await Promise.all(
-          tokenIds.map((removalId) => eNori.removalIdToScheduleId(removalId))
+        // removal restriction schedule startTimes had to be set before we can call this and expect to get
+        // the right restriction schedules
+        const restrictionScheduleTokenIds = await Promise.all(
+          tokenIds.map((removalId) => rNori.removalIdToScheduleId(removalId))
         );
         await expect(
           removal.safeBatchTransferFrom(
@@ -193,19 +193,19 @@ describe('Removal', () => {
             tokenIds,
             removalBalances
           )
-          .to.emit(eNori, 'EscrowScheduleCreated')
+          .to.emit(rNori, 'RestrictionScheduleCreated')
           .withArgs(
-            escrowScheduleTokenIds[0].toHexString(),
+            restrictionScheduleTokenIds[0].toHexString(),
             tokenIds[0].toHexString()
           )
-          .to.emit(eNori, 'EscrowScheduleCreated')
+          .to.emit(rNori, 'RestrictionScheduleCreated')
           .withArgs(
-            escrowScheduleTokenIds[1].toHexString(),
+            restrictionScheduleTokenIds[1].toHexString(),
             tokenIds[1].toHexString()
           )
-          .to.emit(eNori, 'EscrowScheduleCreated')
+          .to.emit(rNori, 'RestrictionScheduleCreated')
           .withArgs(
-            escrowScheduleTokenIds[2].toHexString(),
+            restrictionScheduleTokenIds[2].toHexString(),
             tokenIds[2].toHexString()
           );
         // market contract should have a balance for each listed tokenId
@@ -238,8 +238,8 @@ describe('Removal', () => {
               })
             )
           );
-          const escrowScheduleStartTimes =
-            await createEscrowScheduleStartTimeArray(removal, tokenIds);
+          const restrictionScheduleStartTimes =
+            await createRestrictionScheduleStartTimeArray(removal, tokenIds);
           const listNow = false;
           const packedData = hre.ethers.utils.defaultAbiCoder.encode(
             ['address', 'bool'],
@@ -250,7 +250,7 @@ describe('Removal', () => {
               hre.namedAccounts.supplier,
               removalBalances,
               tokenIds,
-              escrowScheduleStartTimes,
+              restrictionScheduleStartTimes,
               packedData
             )
           ).revertedWith('TokenIdExists');
@@ -259,8 +259,8 @@ describe('Removal', () => {
     });
   });
   describe('getters', () => {
-    describe('getEscrowScheduleStartTimeForRemoval', () => {
-      it('should return the escrow schedule start time for a removal id', async () => {
+    describe('getRestrictionScheduleStartTimeForRemoval', () => {
+      it('should return the restriction schedule start time for a removal id', async () => {
         const { fifoMarket, removal, hre } = await setupTest();
         const removalBalances = [100].map((balance) =>
           formatTokenAmount(balance)
@@ -276,8 +276,8 @@ describe('Removal', () => {
             })
           )
         );
-        const escrowScheduleStartTimes =
-          await createEscrowScheduleStartTimeArray(removal, tokenIds);
+        const restrictionScheduleStartTimes =
+          await createRestrictionScheduleStartTimeArray(removal, tokenIds);
         const listNow = false;
         const packedData = hre.ethers.utils.defaultAbiCoder.encode(
           ['address', 'bool'],
@@ -287,12 +287,14 @@ describe('Removal', () => {
           hre.namedAccounts.supplier,
           removalBalances,
           tokenIds,
-          escrowScheduleStartTimes,
+          restrictionScheduleStartTimes,
           packedData
         );
-        const escrowScheduleStartTime =
-          await removal.getEscrowScheduleStartTimeForRemoval(tokenIds[0]);
-        expect(escrowScheduleStartTime).to.equal(escrowScheduleStartTimes[0]);
+        const restrictionScheduleStartTime =
+          await removal.getRestrictionScheduleStartTimeForRemoval(tokenIds[0]);
+        expect(restrictionScheduleStartTime).to.equal(
+          restrictionScheduleStartTimes[0]
+        );
       });
     });
   });
