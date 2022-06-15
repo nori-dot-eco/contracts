@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820Registry
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
+import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
@@ -39,9 +40,13 @@ contract FIFOMarket is
   }
 
   IERC1820RegistryUpgradeable private _erc1820;
+  address private _removalAddress;
+  address private _restrictedNoriAddress;
+  address private _bridgedPolygonNoriAddress;
   Removal private _removal;
   Certificate private _certificate;
   BridgedPolygonNORI private _bridgedPolygonNori;
+  RestrictedNORI private _restrictedNori;
   address private _noriFeeWallet;
   uint256 private _noriFee;
   uint256 public priorityRestrictedThreshold;
@@ -68,6 +73,7 @@ contract FIFOMarket is
     address removalAddress,
     address bridgedPolygonNoriAddress,
     address certificateAddress,
+    address restrictedNoriAddress,
     address noriFeeWalletAddress,
     uint256 noriFee
   ) public initializer {
@@ -76,9 +82,14 @@ contract FIFOMarket is
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __ERC1155Receiver_init_unchained();
+    _removalAddress = removalAddress;
+    _restrictedNoriAddress = restrictedNoriAddress;
+    _bridgedPolygonNoriAddress = bridgedPolygonNoriAddress;
     _removal = Removal(removalAddress);
     _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
     _certificate = Certificate(certificateAddress);
+    _restrictedNori = RestrictedNORI(restrictedNoriAddress);
+
     _noriFeeWallet = noriFeeWalletAddress;
     _noriFee = noriFee;
     _erc1820 = IERC1820RegistryUpgradeable(
@@ -96,6 +107,15 @@ contract FIFOMarket is
     _currentSupplierAddress = address(0);
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
+  }
+
+  function registerAddresses() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _restrictedNori.initializeContractInstances(
+      address(this),
+      _bridgedPolygonNoriAddress,
+      _removalAddress
+    );
+    _removal.initializeRestrictedNORI(_restrictedNoriAddress);
   }
 
   function setPriorityRestrictedThreshold(uint256 threshold)

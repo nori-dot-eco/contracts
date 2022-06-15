@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
+import "./FIFOMarket.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
 import "hardhat/console.sol"; // todo
@@ -19,8 +20,6 @@ Top priority questions for Scott?
 ============================================================================================
 - write out behavior summary as in LockedNORI
   - consider even more detail in the natspec comments
-
-- rename everything using "restricted"
 
 - large market test is blowing block gas limit on minting/listing... what to do about this?
   (maybe split the minting/listing into a few different transactions so that the rest of the large market test
@@ -82,7 +81,7 @@ contract RestrictedNORI is
   );
   error RoleCannotTransfer(address account, string role);
   error RoleUnassignableToScheduleHolder(address account, string role);
-  error MissingRequiredRole(address account, string role);
+  error MissingRole(address account, string role);
   error ArrayLengthMismatch(string array1Name, string array2Name);
   error AllTokensAlreadyReleased(uint256 scheduleId);
   error InsufficientUnreleasedTokens(uint256 scheduleId);
@@ -141,6 +140,14 @@ contract RestrictedNORI is
   bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
 
   /**
+   * @notice Role conferring permission to initialize contract instance variables.
+   *
+   * @dev only the market contract should have this role.
+   */
+  bytes32 public constant CONTRACT_INITIALIZER_ROLE =
+    keccak256("CONTRACT_INITIALIZER_ROLE");
+
+  /**
    * @notice Used to register the ERC777TokensRecipient recipient interface in the
    * ERC-1820 registry
    *
@@ -160,6 +167,11 @@ contract RestrictedNORI is
   mapping(uint256 => RestrictionSchedule) private _scheduleIdToScheduleStruct;
 
   EnumerableSetUpgradeable.UintSet private _allScheduleIds;
+
+  /**
+   * @notice The BridgedPolygonNORI contract that this contract wraps tokens for
+   */
+  FIFOMarket private _market;
 
   /**
    * @notice The BridgedPolygonNORI contract that this contract wraps tokens for
@@ -215,10 +227,7 @@ contract RestrictedNORI is
   );
 
   // todo document expected initialzation state (this is a holdover from LockedNORI, not totally sure what it means)
-  function initialize(
-    BridgedPolygonNORI bridgedPolygonNoriAddress,
-    Removal removalAddress
-  ) external initializer {
+  function initialize() external initializer {
     super.initialize("https://nori.com/api/restrictionschedule/{id}.json"); // todo which URL do we want to use?
     address[] memory operators = new address[](1); // todo is this used anywhere? this is a holdover from LockedNORI.sol
     operators[0] = _msgSender();
@@ -228,9 +237,6 @@ contract RestrictedNORI is
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
-    _bridgedPolygonNori = bridgedPolygonNoriAddress;
-    _removal = removalAddress;
-    _removal.initializeRestrictedNORI(address(this));
     _ERC1820_REGISTRY.setInterfaceImplementer(
       address(this),
       ERC777_TOKENS_RECIPIENT_HASH,
@@ -239,6 +245,23 @@ contract RestrictedNORI is
     _setupRole(SCHEDULE_CREATOR_ROLE, _msgSender());
     _setupRole(TOKEN_REVOKER_ROLE, _msgSender());
     setRestrictionDurationForMethodologyAndVersion(1, 0, SECONDS_IN_TEN_YEARS);
+  }
+
+  function initializeContractInstances(
+    address marketAddress,
+    address bridgedPolygonNoriAddress,
+    address removalAddress
+  ) external onlyRole(CONTRACT_INITIALIZER_ROLE) {
+    _market = FIFOMarket(marketAddress);
+    _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
+    _removal = Removal(removalAddress);
+  }
+
+  function addContractInitializer(address _contractInitializer) public {
+    if (!hasRole(DEFAULT_ADMIN_ROLE, _msgSender())) {
+      revert MissingRole({account: _msgSender(), role: "DEFAULT_ADMIN_ROLE"});
+    }
+    _setupRole(CONTRACT_INITIALIZER_ROLE, _contractInitializer);
   }
 
   function supportsInterface(bytes4 interfaceId)
@@ -541,7 +564,7 @@ contract RestrictedNORI is
     // (and if it's not we could put it htere?)
     // because it's coming from the curren towner of the tokens that are being sent here
     // if (!hasRole(SCHEDULE_CREATOR_ROLE, sender)) {
-    //   revert MissingRequiredRole({
+    //   revert MissingRole({
     //     account: sender,
     //     role: "SCHEDULE_CREATOR_ROLE"
     //   });

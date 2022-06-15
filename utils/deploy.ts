@@ -168,11 +168,13 @@ export const deployFIFOMarketContract = async ({
       deployments.Removal.address,
       deployments.BridgedPolygonNORI.address,
       deployments.Certificate.address,
+      deployments.RestrictedNORI.address,
       feeWallet,
       feePercentage,
     ],
     options: {
-      initializer: 'initialize(address,address,address,address,uint256)',
+      initializer:
+        'initialize(address,address,address,address,address,uint256)',
     },
   });
 };
@@ -182,12 +184,11 @@ export const deployRestrictedNORI = async ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<InstanceOfContract<RestrictedNORI>> => {
-  const deployments = await hre.deployments.all<Required<Contracts>>();
   return hre.deployOrUpgradeProxy<RestrictedNORI, RestrictedNORI__factory>({
     contractName: 'RestrictedNORI',
-    args: [deployments.BridgedPolygonNORI.address, deployments.Removal.address],
+    args: [],
     options: {
-      initializer: 'initialize(address,address)',
+      initializer: 'initialize()',
     },
   });
 };
@@ -361,7 +362,9 @@ export const seedContracts = async ({
         },
       });
       const restrictionScheduleStartTime =
-        await createRestrictionScheduleStartTimeArray(contracts.Removal, [tokenId]);
+        await createRestrictionScheduleStartTimeArray(contracts.Removal, [
+          tokenId,
+        ]);
       const listNow = true;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['address', 'bool'],

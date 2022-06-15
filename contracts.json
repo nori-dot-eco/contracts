@@ -1,34 +1,34 @@
 {
   "hardhat": {
     "NORI": {
-      "proxyAddress": "0x0013B38Ffb2EA257427F5d3D5cb1af53e8AF8aC0"
+      "proxyAddress": "0x1BE70016d4D5144124f77DDaB7504ea33d173C03"
     },
     "BridgedPolygonNORI": {
-      "proxyAddress": "0xCC26028B4Ad73bcD74769b8a0f5d1EB213BB8387"
+      "proxyAddress": "0xe35401Eb5078388D49f47d631a0ce0733a31A425"
     },
     "Removal": {
-      "proxyAddress": "0x5D4Ccd1c007cAe21347F3ceD346389b66f7a0ccB"
+      "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
     },
     "Certificate": {
-      "proxyAddress": "0xA7c33e73716EFC39C0d06FeB976B08081682Ad3c"
+      "proxyAddress": "0x2CA5C6C765be11F44519Fc85Bf758723DC3C8cFC"
     },
     "FIFOMarket": {
-      "proxyAddress": "0xa0F45e1cB74F45626A26576E0caB23915197b34D"
+      "proxyAddress": "0x0E585861af9D895D8BcAB3de1a4A923db46d86c8"
     },
     "LockedNORI": {
-      "proxyAddress": "0x825Fff6bC67a7055DE62b0fB18676E3844Ac69dD"
+      "proxyAddress": "0x50562ADF34935aeb8cC86e9bDc66eaBf79097A08"
     },
     "ScheduleTestHarness": {
       "proxyAddress": "0x83207e4a2caC1015bda1A794b57F708C4360924e"
     },
     "RemovalTestHarness": {
-      "proxyAddress": "0xff1518397F44EE39262b282e2F6f51E7023B689F"
+      "proxyAddress": "0x2AE26a38Bc11CE4FdfCaf0431D5a708b17E0dD99"
     },
     "EscrowedNORI": {
       "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
     },
     "RestrictedNORI": {
-      "proxyAddress": "0x50562ADF34935aeb8cC86e9bDc66eaBf79097A08"
+      "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
     }
   },
   "localhost": {

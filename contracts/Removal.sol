@@ -17,6 +17,7 @@ import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 // todo disable other mint functions
 
 error TokenIdExists(uint256 tokenId);
+error MissingRole(address account, string role);
 
 /**
  * @title Removal
@@ -35,9 +36,17 @@ contract Removal is
   }
 
   /**
+   * @notice Role conferring permission to initialize contract instance variables.
+   *
+   * @dev only the market contract should have this role.
+   */
+  bytes32 public constant CONTRACT_INITIALIZER_ROLE =
+    keccak256("CONTRACT_INITIALIZER_ROLE");
+
+  /**
    * @notice The RestrictedNORI contract that manages restricted tokens.
    */
-  RestrictedNORI private _eNORI;
+  RestrictedNORI private _restrictedNori;
   uint256 public tokenIdCounter;
   string public name; // todo why did I add this
   mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
@@ -51,8 +60,18 @@ contract Removal is
     name = "Removal";
   }
 
-  function initializeRestrictedNORI(address restrictedNORIAddress) external {
-    _eNORI = RestrictedNORI(restrictedNORIAddress);
+  function addContractInitializer(address _contractInitializer) public {
+    if (!hasRole(DEFAULT_ADMIN_ROLE, _msgSender())) {
+      revert MissingRole({account: _msgSender(), role: "DEFAULT_ADMIN_ROLE"});
+    }
+    _setupRole(CONTRACT_INITIALIZER_ROLE, _contractInitializer);
+  }
+
+  function initializeRestrictedNORI(address restrictedNORIAddress)
+    external
+    onlyRole(CONTRACT_INITIALIZER_ROLE)
+  {
+    _restrictedNori = RestrictedNORI(restrictedNORIAddress);
   }
 
   /**
@@ -184,7 +203,7 @@ contract Removal is
     uint256[] memory _amounts,
     bytes memory _data
   ) public override {
-    _eNORI.batchCreateRestrictionSchedule(_ids);
+    _restrictedNori.batchCreateRestrictionSchedule(_ids);
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
   }
