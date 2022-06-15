@@ -14,6 +14,7 @@ import "./ERC1155PresetPausableNonTransferrable.sol";
 // todo whenNotPasused
 // todo setApprovalForAll should only work when called on accounts with CERTIFICATE_OPERATOR_ROLE
 // todo consider not inheriting pausable base contract and reverting with custom error for consistency
+// todo use OZ counters for incrementing and decrementing
 
 error ForbiddenFunctionCall();
 
