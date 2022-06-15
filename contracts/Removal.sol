@@ -211,4 +211,16 @@ contract Removal is
   {
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
+
+  function balanceOfIds(address account, uint256[] memory ids)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    uint256[] memory batchBalances = new uint256[](ids.length);
+    for (uint256 i = 0; i < ids.length; ++i) {
+      batchBalances[i] = balanceOf(account, ids[i]);
+    }
+    return batchBalances;
+  }
 }

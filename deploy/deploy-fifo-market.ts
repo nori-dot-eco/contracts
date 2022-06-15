@@ -12,12 +12,11 @@ export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`deployFIFOMarket`);
-  const feeWallet =
-    hre.network.name === 'hardhat'
-      ? hre.namedAccounts.noriWallet
-      : hre.network.name === 'polygon'
-      ? PROD_NORI_FEE_WALLET_ADDRESS
-      : STAGING_NORI_FEE_WALLET_ADDRESS;
+  const feeWallet = ['hardhat', 'localhost'].includes(hre.network.name)
+    ? hre.namedAccounts.noriWallet
+    : hre.network.name === 'polygon'
+    ? PROD_NORI_FEE_WALLET_ADDRESS
+    : STAGING_NORI_FEE_WALLET_ADDRESS;
   const contract = await deployFIFOMarketContract({
     hre,
     feeWallet,

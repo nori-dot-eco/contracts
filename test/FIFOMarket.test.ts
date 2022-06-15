@@ -1,5 +1,6 @@
 import type { BigNumberish, ContractReceipt } from 'ethers';
 import { BigNumber } from 'ethers';
+import { add, multiply } from '@nori-dot-com/math';
 
 import { formatTokenAmount } from '@/utils/units';
 import type { RemovalDataForListing } from '@/test/helpers';
@@ -17,50 +18,57 @@ interface RemovalDataFromListing {
   totalAmountOfRemovals: number;
 }
 
-const setupTestLocal = async (options?: {
-  buyerInitialBPNoriBalance?: BigNumberish;
-  removalDataToList?: RemovalDataForListing[]; // todo userFixtures format
-}): Promise<Awaited<ReturnType<typeof setupTest>> & RemovalDataFromListing> => {
-  const {
-    removalDataToList,
-    buyerInitialBPNoriBalance,
-  }: Parameters<typeof setupTestLocal>[0] = {
-    buyerInitialBPNoriBalance:
-      options?.buyerInitialBPNoriBalance ?? formatTokenAmount(1_000_000),
-    removalDataToList: options?.removalDataToList ?? [],
-  };
-  const { hre, contracts, removal, fifoMarket, ...rest } = await setupTest({
-    userFixtures: { buyer: { bpBalance: buyerInitialBPNoriBalance } },
-  });
-  let listedRemovalIds: BigNumber[] = [];
-  let totalAmountOfSupply = 0;
-  let totalAmountOfSuppliers = 0;
-  let totalAmountOfRemovals = 0;
-  if (removalDataToList.length > 0) {
-    ({
-      listedRemovalIds,
-      totalAmountOfSupply,
-      totalAmountOfRemovals,
-      totalAmountOfSuppliers,
-    } = await batchMintAndListRemovalsForSale({
+const setupTestLocal = global.hre.deployments.createFixture(
+  async (
+    _,
+    options?: {
+      buyerInitialBPNoriBalance?: BigNumberish;
+      removalDataToList?: RemovalDataForListing[]; // todo userFixtures format
+    }
+  ): Promise<
+    Awaited<ReturnType<typeof setupTest>> & RemovalDataFromListing
+  > => {
+    const {
       removalDataToList,
+      buyerInitialBPNoriBalance,
+    }: Parameters<typeof setupTestLocal>[0] = {
+      buyerInitialBPNoriBalance:
+        options?.buyerInitialBPNoriBalance ?? formatTokenAmount(1_000_000),
+      removalDataToList: options?.removalDataToList ?? [],
+    };
+    const { hre, contracts, removal, fifoMarket, ...rest } = await setupTest({
+      userFixtures: { buyer: { bpBalance: buyerInitialBPNoriBalance } },
+    });
+    let listedRemovalIds: BigNumber[] = [];
+    let totalAmountOfSupply = 0;
+    let totalAmountOfSuppliers = 0;
+    let totalAmountOfRemovals = 0;
+    if (removalDataToList.length > 0) {
+      ({
+        listedRemovalIds,
+        totalAmountOfSupply,
+        totalAmountOfRemovals,
+        totalAmountOfSuppliers,
+      } = await batchMintAndListRemovalsForSale({
+        removalDataToList,
+        removal,
+        fifoMarket,
+        hre,
+      }));
+    }
+    return {
+      hre,
+      contracts,
       removal,
       fifoMarket,
-      hre,
-    }));
+      listedRemovalIds,
+      totalAmountOfSupply,
+      totalAmountOfSuppliers,
+      totalAmountOfRemovals,
+      ...rest,
+    };
   }
-  return {
-    hre,
-    contracts,
-    removal,
-    fifoMarket,
-    listedRemovalIds,
-    totalAmountOfSupply,
-    totalAmountOfSuppliers,
-    totalAmountOfRemovals,
-    ...rest,
-  };
-};
+);
 
 describe('FIFOMarket', () => {
   describe('initialization', () => {
@@ -614,6 +622,45 @@ describe('FIFOMarket', () => {
           .toString()
       );
     });
+    it('should sell removals in order of vintage regardless of minting order', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const {
+        removal,
+        bpNori,
+        fifoMarket,
+        hre,
+        totalAmountOfRemovals: totalAmountOfInitialRemovals,
+      } = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+        removalDataToList: [{ amount: 1, vintage: 2015 }],
+      });
+      await batchMintAndListRemovalsForSale({
+        removalDataToList: [{ amount: 5, vintage: 2014 }],
+        removal,
+        fifoMarket,
+        hre,
+      });
+
+      const { buyer } = hre.namedAccounts;
+
+      const purchaseAmount = '4';
+      const fee = '.15';
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+
+      await bpNori
+        .connect(hre.namedSigners.buyer)
+        .send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice),
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        );
+
+      const totalNumberActiveRemovals =
+        await fifoMarket.totalNumberActiveRemovals();
+
+      // Roundabout way of showing that the removal used to fill the order was the removal with amount 5, not 1.
+      expect(totalNumberActiveRemovals.toNumber()).to.equal(2);
+    });
     // TODO: 'should mint a certificate with all of a single removal in round robin order and update state variables'
     it('should mint a certificate with one removal per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
@@ -678,21 +725,23 @@ describe('FIFOMarket', () => {
     });
     it('should mint a certificate with multiple removals per supplier in round robin order and update state variables', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const numberOfRemovalsToCreate = 100;
-      const removalDataToList = [
-        ...Array.from({ length: numberOfRemovalsToCreate }).keys(),
-      ].map((_) => {
-        return { amount: 50 };
-      });
+      const amountPerRemoval = 50;
+      const removalDataToList = [...Array.from({ length: 100 }).keys()].map(
+        (_, index) => {
+          return { amount: amountPerRemoval, vintage: 2015 + (index % 5) };
+        }
+      );
       const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
         buyerInitialBPNoriBalance,
         removalDataToList,
       });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
-      const purchaseAmount = '5000'; // purchase all supply
-      const fee = '750';
-      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+      const purchaseAmount = (
+        amountPerRemoval * removalDataToList.length
+      ).toString(); // purchase all supply
+      const fee = multiply(purchaseAmount, 0.15).toString();
+      const totalPrice = add(purchaseAmount, fee).toString();
 
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
@@ -759,7 +808,7 @@ describe('FIFOMarket', () => {
 
       const purchaseAmount = '10';
       const fee = '1.5';
-      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+      const totalPrice = add(purchaseAmount, fee).toString();
 
       const doublePurchaseAmount = '20';
       const doubleFee = '3';
