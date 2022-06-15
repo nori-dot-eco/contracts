@@ -89,7 +89,6 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     // todo require _sources[_latestTokenId][n] doesnt exist
     // todo is there a better way to verify that no removal amount == 0?
     for (uint256 i = 0; i < removalIds.length; i++) {
-      console.log("removal amounts", removalAmounts[i]);
       if (removalAmounts[i] == 0) {
         revert("Certificate: Removal amount 0");
       } else {
@@ -98,9 +97,9 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
         );
       }
     }
+    super.mint(to, _latestTokenId, certificateAmount, data);
     _latestTokenId = _latestTokenId += 1;
     emit CertificateCreated(to, _latestTokenId, removalIds, removalAmounts);
-    super.mint(to, _latestTokenId, certificateAmount, data);
   }
 
   /**
