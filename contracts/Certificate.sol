@@ -83,6 +83,7 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     bytes memory data // todo array?
   ) public override {
     uint256 certificateAmount = abi.decode(data, (uint256)); // todo verify amount
+    uint256 tokenId = _latestTokenId;
     // todo extract to base contract and overload here
     // todo use modified mintCertificate instead of mintBatch. mintBatch should be used to mint multi certificates.
     // todo only allowed by market contract
@@ -93,14 +94,14 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
       if (removalAmounts[i] == 0) {
         revert("Certificate: Removal amount 0");
       } else {
-        _sources[_latestTokenId].push(
+        _sources[tokenId].push(
           Source({removalId: removalIds[i], amount: removalAmounts[i]})
         );
       }
     }
-    super.mint(to, _latestTokenId, certificateAmount, data);
-    emit CertificateCreated(to, _latestTokenId, removalIds, removalAmounts);
-    _latestTokenId = _latestTokenId += 1;
+    super.mint(to, tokenId, certificateAmount, data);
+    emit CertificateCreated(to, tokenId, removalIds, removalAmounts);
+    _latestTokenId = tokenId + 1;
   }
 
   /**
