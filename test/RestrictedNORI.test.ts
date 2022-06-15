@@ -21,8 +21,9 @@ describe('RestrictedNORI', () => {
       for (const { role, expectedCount } of [
         { role: 'DEFAULT_ADMIN_ROLE', expectedCount: 1 },
         { role: 'PAUSER_ROLE', expectedCount: 1 },
-        { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Removal contract is an restriction creator
+        { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Removal contract is a restriction creator
         { role: 'TOKEN_REVOKER_ROLE', expectedCount: 1 },
+        { role: 'CONTRACT_INITIALIZER_ROLE', expectedCount: 1 },
       ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
           const { rNori, hre } = await setupTest();
@@ -127,9 +128,8 @@ describe('RestrictedNORI', () => {
         )
         .to.emit(bpNori, 'Transfer')
         .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
-      const restrictionScheduleDetail = await rNori.getRestrictionScheduleSummary(
-        restrictionScheduleIds[0]
-      );
+      const restrictionScheduleDetail =
+        await rNori.getRestrictionScheduleSummary(restrictionScheduleIds[0]);
       expect(restrictionScheduleDetail.scheduleTokenId).equals(
         restrictionScheduleIds[0]
       );
@@ -144,6 +144,26 @@ describe('RestrictedNORI', () => {
       expect(restrictionScheduleDetail.totalClaimedAmount).equals(0);
       expect(restrictionScheduleDetail.totalQuantityRevoked).equals(0);
       expect(restrictionScheduleDetail.exists).equals(true);
+    });
+    it('should revert if the sender of bpNori is not the market contract', async () => {
+      const removalDataToList = [
+        {
+          amount: 5,
+          vintage: 2018,
+          restrictionScheduleStartTime: UNIX_EPOCH_2021,
+        },
+      ];
+      const { bpNori, rNori, listedRemovalIds, hre } =
+        await setupTestRestrictedNORI({
+          removalDataToList,
+        });
+      const restrictedAmount = 1;
+      const userData = formatTokensReceivedUserData(listedRemovalIds[0]);
+      await expect(
+        bpNori
+          .connect(hre.namedSigners.buyer)
+          .send(rNori.address, restrictedAmount, userData)
+      ).to.be.revertedWith(`InvalidBpNoriSender("${hre.namedAccounts.buyer}")`);
     });
   });
   describe('Linear releasing (claimableBalanceForSchedule)', () => {
@@ -395,7 +415,7 @@ describe('RestrictedNORI', () => {
         expect(await bpNori.balanceOf(supplier)).to.equal(0);
         expect(await bpNori.balanceOf(investor1)).to.equal(claimableBalance);
       });
-      it('can withdraw correctly from an restriction schedule with multiple token holders', async () => {
+      it('can withdraw correctly from a restriction schedule with multiple token holders', async () => {
         const removalDataToList = [
           {
             amount: 3000,

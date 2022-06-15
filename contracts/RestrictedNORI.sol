@@ -87,6 +87,7 @@ contract RestrictedNORI is
   error InsufficientUnreleasedTokens(uint256 scheduleId);
   error InsufficientBalance(address account, uint256 scheduleId);
   error InsufficientClaimableBalance(address account, uint256 scheduleId);
+  error InvalidBpNoriSender(address account);
 
   struct RestrictionSchedule {
     uint256 startTime;
@@ -549,8 +550,8 @@ contract RestrictedNORI is
    * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
    */
   function tokensReceived(
-    address sender,
     address,
+    address from,
     address,
     uint256 amount,
     bytes calldata userData,
@@ -559,16 +560,9 @@ contract RestrictedNORI is
     if (!(_msgSender() == address(_bridgedPolygonNori))) {
       revert TokenSenderNotBPNORI();
     }
-    // todo require that _msgSender() IS the market contract (avoid polluting schedule creation)
-    // the market address is probably already in on eof these unused data params
-    // (and if it's not we could put it htere?)
-    // because it's coming from the curren towner of the tokens that are being sent here
-    // if (!hasRole(SCHEDULE_CREATOR_ROLE, sender)) {
-    //   revert MissingRole({
-    //     account: sender,
-    //     role: "SCHEDULE_CREATOR_ROLE"
-    //   });
-    // }
+    if (!(from == address(_market))) {
+      revert InvalidBpNoriSender({account: from});
+    }
 
     uint256 removalId = abi.decode(userData, (uint256));
     _depositFor(removalId, amount, userData, operatorData);
@@ -737,7 +731,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * Sets up an restriction schedule for the specified removal id (implementation).
+   * Sets up a restriction schedule for the specified removal id (implementation).
    *
    * @dev schedules are created when removal tokens are listed for sale in the market contract,
    * so this should only be invoked during `tokensReceived` in the exceptional case that
