@@ -1,6 +1,11 @@
 import { BigNumber } from 'ethers';
 
-import { expect, setupTest, advanceTime } from '@/test/helpers';
+import {
+  expect,
+  setupTest,
+  advanceTime,
+  createRemovalTokenId,
+} from '@/test/helpers';
 import {
   setupTestRestrictedNORI,
   formatTokensReceivedUserData,
@@ -43,7 +48,10 @@ describe('RestrictedNORI', () => {
       const { rNori } = await setupTestRestrictedNORI({});
       const retrievedRestrictionDuration =
         await rNori.getRestrictionDurationForMethodologyAndVersion(1, 0);
-      expect(retrievedRestrictionDuration).to.equal(SECONDS_IN_10_YEARS);
+      expect(retrievedRestrictionDuration.wasSet).to.equal(true);
+      expect(retrievedRestrictionDuration.duration).to.equal(
+        SECONDS_IN_10_YEARS
+      );
     });
     it('should be able to set and get a new restriction duration for a given methodology and version', async () => {
       const { rNori } = await setupTestRestrictedNORI({});
@@ -55,7 +63,8 @@ describe('RestrictedNORI', () => {
           methodology,
           methodologyVersion
         );
-      expect(scheduleDurationBeforeSetting).to.equal(0);
+      expect(scheduleDurationBeforeSetting.wasSet).to.equal(false);
+      expect(scheduleDurationBeforeSetting.duration).to.equal(0);
       await rNori.setRestrictionDurationForMethodologyAndVersion(
         methodology,
         methodologyVersion,
@@ -66,7 +75,10 @@ describe('RestrictedNORI', () => {
           methodology,
           methodologyVersion
         );
-      expect(scheduleDurationAfterSetting).to.equal(SECONDS_IN_1_YEAR_AVG);
+      expect(scheduleDurationAfterSetting.wasSet).to.equal(true);
+      expect(scheduleDurationAfterSetting.duration).to.equal(
+        SECONDS_IN_1_YEAR_AVG
+      );
     });
     it('should revert if the transaction sender does not have the DEFAULT_ADMIN_ROLE', async () => {
       const { rNori } = await setupTestRestrictedNORI({});
@@ -82,6 +94,30 @@ describe('RestrictedNORI', () => {
             newDuration
           )
       ).to.be.reverted;
+    });
+    it('should revert if an escrow schedule is being created for a methodology/version that does not have a duration set', async () => {
+      const { removal, fifoMarket, hre } = await setupTestRestrictedNORI({});
+      const removalIdWithMethodology2 = await createRemovalTokenId({
+        removal,
+        removalData: { methodology: 2 },
+        hre,
+      });
+      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'bool'],
+        [fifoMarket.address, true]
+      );
+
+      await expect(
+        removal.mintRemovalBatch(
+          hre.namedAccounts.supplier,
+          [20_000_000],
+          [removalIdWithMethodology2],
+          [1_234_567_890],
+          packedData
+        )
+      ).to.be.revertedWith(
+        `RestrictionDurationNotSet(${removalIdWithMethodology2})`
+      );
     });
   });
   describe('tokensReceived', () => {

@@ -115,6 +115,11 @@ contract RestrictedNORI is
     bool exists;
   }
 
+  struct RestrictionDuration {
+    uint256 duration;
+    bool wasSet;
+  }
+
   /**
    * @notice Role conferring creation of schedules.
    *
@@ -141,7 +146,7 @@ contract RestrictedNORI is
   bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
     keccak256("ERC777TokensRecipient");
 
-  mapping(uint256 => mapping(uint256 => uint256))
+  mapping(uint256 => mapping(uint256 => RestrictionDuration))
     private _methodologyAndVersionToScheduleDuration;
 
   mapping(address => EnumerableSetUpgradeable.UintSet)
@@ -212,8 +217,6 @@ contract RestrictedNORI is
   // todo document expected initialzation state (this is a holdover from LockedNORI, not totally sure what it means)
   function initialize() external initializer {
     super.initialize("https://nori.com/api/restrictionschedule/{id}.json"); // todo which URL do we want to use?
-    // address[] memory operators = new address[](1); // todo is this used anywhere? this is a holdover from LockedNORI.sol
-    // operators[0] = _msgSender();
     __Context_init_unchained();
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
@@ -257,7 +260,7 @@ contract RestrictedNORI is
   function getRestrictionDurationForMethodologyAndVersion(
     uint256 methodology,
     uint256 methodologyVersion
-  ) public view returns (uint256) {
+  ) public view returns (RestrictionDuration memory) {
     return
       _methodologyAndVersionToScheduleDuration[methodology][methodologyVersion];
   }
@@ -275,7 +278,7 @@ contract RestrictedNORI is
     uint256 duration = getRestrictionDurationForMethodologyAndVersion(
       removalId.methodology(),
       removalId.methodologyVersion()
-    );
+    ).duration;
     uint256 scheduleStartTime = _removal
       .getRestrictionScheduleStartTimeForRemoval(removalId);
     return
@@ -476,10 +479,10 @@ contract RestrictedNORI is
     uint256 methodology,
     uint256 methodologyVersion,
     uint256 durationInSeconds
-  ) public whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256) {
+  ) public whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     _methodologyAndVersionToScheduleDuration[methodology][
       methodologyVersion
-    ] = durationInSeconds;
+    ] = RestrictionDuration(durationInSeconds, true);
   }
 
   /**
@@ -718,18 +721,19 @@ contract RestrictedNORI is
     }
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     _allScheduleIds.add(scheduleId);
-    uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
+    RestrictionDuration
+      memory restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
         removalId.methodology(),
         removalId.methodologyVersion()
       );
-    if (restrictionDuration == 0) {
+    if (!restrictionDuration.wasSet) {
       // todo duration is actually a uint256 and bool tuple where bool represent set, check set not duration
       revert RestrictionDurationNotSet({removalId: removalId});
     }
     _addressToScheduleIdSet[recipient].add(scheduleId);
     schedule.exists = true;
     schedule.startTime = startTime;
-    schedule.endTime = startTime + restrictionDuration;
+    schedule.endTime = startTime + restrictionDuration.duration;
     schedule.releasedAmountFloor = 0;
     emit ScheduleCreated(scheduleId, removalId);
   }
