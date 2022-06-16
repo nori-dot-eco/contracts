@@ -70,7 +70,7 @@ export const setupTestRestrictedNORI = async ({
         restrictionScheduleStartTimes,
         packedData
       )
-    ).to.emit(rNori, 'RestrictionScheduleCreated');
+    ).to.emit(rNori, 'ScheduleCreated');
   }
 
   const restrictionScheduleIds = await Promise.all(
@@ -107,7 +107,7 @@ export const restrictRemovalProceeds = async ({
   }[];
   removalAmountsToRestrict: number[];
 }): Promise<any> => {
-  // todo where is RestrictionScheduleSummaryStructOutput?
+  // todo where is ScheduleSummaryStructOutput?
   const { rNori, bpNori, listedRemovalIds, restrictionScheduleIds } = testSetup;
   await Promise.all(
     listedRemovalData.map((_, index) => {
@@ -121,14 +121,14 @@ export const restrictRemovalProceeds = async ({
   );
 
   const restrictionScheduleDetails = await Promise.all(
-    restrictionScheduleIds.map((id) => rNori.getRestrictionScheduleSummary(id))
+    restrictionScheduleIds.map((id) => rNori.getScheduleSummary(id))
   );
   return restrictionScheduleDetails;
 };
 
-export const compareRestrictionScheduleDetailForAddressStructs = (
-  receivedScheduleDetail: RestrictedNORI.RestrictionScheduleDetailForAddressStruct,
-  expectedScheduleDetail: Partial<RestrictedNORI.RestrictionScheduleDetailForAddressStruct>
+export const compareScheduleDetailForAddressStructs = (
+  receivedScheduleDetail: RestrictedNORI.ScheduleDetailForAddressStruct,
+  expectedScheduleDetail: Partial<RestrictedNORI.ScheduleDetailForAddressStruct>
 ): void => {
   const keys = [
     'tokenHolder',
@@ -148,9 +148,9 @@ export const compareRestrictionScheduleDetailForAddressStructs = (
   }
 };
 
-export const compareRestrictionScheduleSummaryStructs = (
-  receivedScheduleSummary: RestrictedNORI.RestrictionScheduleSummaryStruct,
-  expectedScheduleSummary: Partial<RestrictedNORI.RestrictionScheduleSummaryStruct>
+export const compareScheduleSummaryStructs = (
+  receivedScheduleSummary: RestrictedNORI.ScheduleSummaryStruct,
+  expectedScheduleSummary: Partial<RestrictedNORI.ScheduleSummaryStruct>
 ): void => {
   const keys = [
     'scheduleTokenId',

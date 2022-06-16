@@ -190,7 +190,7 @@ contract Removal is
     uint256[] memory _amounts,
     bytes memory _data
   ) public override {
-    _restrictedNori.batchCreateRestrictionSchedule(_ids);
+    _restrictedNori.batchCreateSchedule(_ids);
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
   }

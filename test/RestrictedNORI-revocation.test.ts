@@ -4,8 +4,8 @@ import { expect, advanceTime } from '@/test/helpers';
 import {
   setupTestRestrictedNORI,
   restrictRemovalProceeds,
-  compareRestrictionScheduleSummaryStructs,
-  compareRestrictionScheduleDetailForAddressStructs,
+  compareScheduleSummaryStructs,
+  compareScheduleDetailForAddressStructs,
   UNIX_EPOCH_2018,
   UNIX_EPOCH_2019,
   SECONDS_IN_10_YEARS,
@@ -86,7 +86,7 @@ describe('RestrictedNORI revocation', () => {
         const newBalance = BigNumber.from(amountToRestrict).sub(
           originalRevocableQuantity
         );
-        const restrictionScheduleSummary = await rNori.getRestrictionScheduleSummary(
+        const restrictionScheduleSummary = await rNori.getScheduleSummary(
           restrictionScheduleIds[0]
         );
         expect(restrictionScheduleSummary.totalQuantityRevoked).to.equal(
@@ -164,16 +164,16 @@ describe('RestrictedNORI revocation', () => {
         const expectedRevokedFromInvestor = amountToTransferToInvestor / 2; // 155
 
         const supplierRestrictionScheduleDetail =
-          await rNori.getRestrictionScheduleDetailForAccount(
+          await rNori.getScheduleDetailForAccount(
             supplier,
             restrictionScheduleIds[0]
           );
         const investorRestrictionScheduleDetail =
-          await rNori.getRestrictionScheduleDetailForAccount(
+          await rNori.getScheduleDetailForAccount(
             investor1,
             restrictionScheduleIds[0]
           );
-        const scheduleSummary = await rNori.getRestrictionScheduleSummary(
+        const scheduleSummary = await rNori.getScheduleSummary(
           restrictionScheduleIds[0]
         );
         const revocableQuantityForScheduleAfterRevocation =
@@ -259,7 +259,7 @@ describe('RestrictedNORI revocation', () => {
         const amountToClaimForSupplier = 500;
         await rNori
           .connect(await hre.ethers.getSigner(supplier))
-          .withdrawFromRestrictionSchedule(
+          .withdrawFromSchedule(
             supplier,
             restrictionScheduleIds[0],
             amountToClaimForSupplier
@@ -279,39 +279,39 @@ describe('RestrictedNORI revocation', () => {
           investorScheduleDetail,
           employeeScheduleDetail,
         ] = await Promise.all([
-          rNori.getRestrictionScheduleSummary(restrictionScheduleIds[0]),
-          rNori.getRestrictionScheduleDetailForAccount(
+          rNori.getScheduleSummary(restrictionScheduleIds[0]),
+          rNori.getScheduleDetailForAccount(
             supplier,
             restrictionScheduleIds[0]
           ),
-          rNori.getRestrictionScheduleDetailForAccount(
+          rNori.getScheduleDetailForAccount(
             investor1,
             restrictionScheduleIds[0]
           ),
-          rNori.getRestrictionScheduleDetailForAccount(
+          rNori.getScheduleDetailForAccount(
             employee,
             restrictionScheduleIds[0]
           ),
         ]);
-        compareRestrictionScheduleSummaryStructs(scheduleSummaryAfterRevocation, {
+        compareScheduleSummaryStructs(scheduleSummaryAfterRevocation, {
           totalQuantityRevoked: revocableQuantityForSchedule,
           totalSupply: BigNumber.from(amountToRestrict)
             .sub(revocableQuantityForSchedule)
             .sub(amountToClaimForSupplier),
         });
-        compareRestrictionScheduleDetailForAddressStructs(supplierScheduleDetail, {
+        compareScheduleDetailForAddressStructs(supplierScheduleDetail, {
           quantityRevoked: revocableQuantityForSchedule.div(3),
           balance: 0,
           claimableAmount: 0,
           claimedAmount: 500,
         });
-        compareRestrictionScheduleDetailForAddressStructs(investorScheduleDetail, {
+        compareScheduleDetailForAddressStructs(investorScheduleDetail, {
           quantityRevoked: revocableQuantityForSchedule.div(3),
           balance: 500,
           claimableAmount: 500,
           claimedAmount: 0,
         });
-        compareRestrictionScheduleDetailForAddressStructs(employeeScheduleDetail, {
+        compareScheduleDetailForAddressStructs(employeeScheduleDetail, {
           quantityRevoked: revocableQuantityForSchedule.div(3),
           balance: 500,
           claimableAmount: 500,
@@ -377,7 +377,7 @@ describe('RestrictedNORI revocation', () => {
         const newBalance = BigNumber.from(amountToRestrict).sub(
           originalRevocableQuantity
         );
-        const restrictionScheduleSummary = await rNori.getRestrictionScheduleSummary(
+        const restrictionScheduleSummary = await rNori.getScheduleSummary(
           restrictionScheduleIds[0]
         );
         expect(restrictionScheduleSummary.totalQuantityRevoked).to.equal(
@@ -451,7 +451,7 @@ describe('RestrictedNORI revocation', () => {
             quantityToRevoke
           );
         const scheduleSummariesAfterFirstRevocation =
-          await rNori.batchGetRestrictionScheduleSummaries(restrictionScheduleIds);
+          await rNori.batchGetScheduleSummaries(restrictionScheduleIds);
         expect(scheduleSummariesAfterFirstRevocation.length).to.equal(
           restrictionScheduleIds.length
         );
@@ -470,7 +470,7 @@ describe('RestrictedNORI revocation', () => {
           [quantityToRevoke, quantityToRevoke]
         );
         const scheduleSummariesAfterSecondRevocation =
-          await rNori.batchGetRestrictionScheduleSummaries(restrictionScheduleIds);
+          await rNori.batchGetScheduleSummaries(restrictionScheduleIds);
         for (let index = 0; index < restrictionScheduleIds.length; index += 1) {
           expect(
             scheduleSummariesAfterSecondRevocation[index].totalQuantityRevoked
@@ -513,7 +513,7 @@ describe('RestrictedNORI revocation', () => {
           listedRemovalIds,
           [quantityToRevoke]
         );
-        const scheduleSummary = await rNori.getRestrictionScheduleSummary(
+        const scheduleSummary = await rNori.getScheduleSummary(
           restrictionScheduleIds[0]
         );
         // after revoking 250 tokens, the claimable amount shouldn't drop below the current level of 500
@@ -532,7 +532,7 @@ describe('RestrictedNORI revocation', () => {
           timestamp: expectedTimestampWhereReleasedAmountStartsIncreasingAgain,
         });
         const scheduleSummaryAtTwoThirdsTimestamp =
-          await rNori.getRestrictionScheduleSummary(restrictionScheduleIds[0]);
+          await rNori.getScheduleSummary(restrictionScheduleIds[0]);
         const revocableQuantityAtTwoThirdsTimestamp =
           await rNori.revocableQuantityForSchedule(restrictionScheduleIds[0]);
         expect(
@@ -548,7 +548,7 @@ describe('RestrictedNORI revocation', () => {
             SECONDS_IN_1_YEAR_AVG,
         });
         const scheduleSummaryAfterTwoThirdsTimestamp =
-          await rNori.getRestrictionScheduleSummary(restrictionScheduleIds[0]);
+          await rNori.getScheduleSummary(restrictionScheduleIds[0]);
         const revocableQuantityAfterTwoThirdsTimestamp =
           await rNori.revocableQuantityForSchedule(restrictionScheduleIds[0]);
         expect(
@@ -564,7 +564,7 @@ describe('RestrictedNORI revocation', () => {
           timestamp: UNIX_EPOCH_2018 + SECONDS_IN_10_YEARS,
         });
         const scheduleSummaryAtEndOfSchedule =
-          await rNori.getRestrictionScheduleSummary(restrictionScheduleIds[0]);
+          await rNori.getScheduleSummary(restrictionScheduleIds[0]);
         const revocableQuantityAtEndOfSchedule =
           await rNori.revocableQuantityForSchedule(restrictionScheduleIds[0]);
         expect(scheduleSummaryAtEndOfSchedule.totalClaimableAmount).to.equal(

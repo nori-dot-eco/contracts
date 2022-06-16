@@ -4,8 +4,8 @@ import { expect, advanceTime } from '@/test/helpers';
 import {
   setupTestRestrictedNORI,
   restrictRemovalProceeds,
-  compareRestrictionScheduleDetailForAddressStructs,
-  compareRestrictionScheduleSummaryStructs,
+  compareScheduleDetailForAddressStructs,
+  compareScheduleSummaryStructs,
   NOW,
   UNIX_EPOCH_2018,
   UNIX_EPOCH_2019,
@@ -36,7 +36,7 @@ describe('RestrictedNORI transferring', () => {
           removalAmountsToRestrict: [restrictedAmount],
         });
         const supplierScheduleDetailBeforeTransfer =
-          await rNori.getRestrictionScheduleDetailForAccount(
+          await rNori.getScheduleDetailForAccount(
             supplier,
             restrictionScheduleIds[0]
           );
@@ -52,7 +52,7 @@ describe('RestrictedNORI transferring', () => {
           quantityRevoked: BigNumber.from(0),
           exists: true,
         };
-        compareRestrictionScheduleDetailForAddressStructs(
+        compareScheduleDetailForAddressStructs(
           supplierScheduleDetailBeforeTransfer,
           expectedScheduleDetailBeforeTransfer
         );
@@ -66,12 +66,12 @@ describe('RestrictedNORI transferring', () => {
             '0x'
           );
         const supplierScheduleDetailAfterTransfer =
-          await rNori.getRestrictionScheduleDetailForAccount(
+          await rNori.getScheduleDetailForAccount(
             supplier,
             restrictionScheduleIds[0]
           );
         const investor1ScheduleDetailAfterTransfer =
-          await rNori.getRestrictionScheduleDetailForAccount(
+          await rNori.getScheduleDetailForAccount(
             investor1,
             restrictionScheduleIds[0]
           );
@@ -98,11 +98,11 @@ describe('RestrictedNORI transferring', () => {
           quantityRevoked: BigNumber.from(0),
           exists: true,
         };
-        compareRestrictionScheduleDetailForAddressStructs(
+        compareScheduleDetailForAddressStructs(
           supplierScheduleDetailAfterTransfer,
           expectedSupplierScheduleDetailAfterTransfer
         );
-        compareRestrictionScheduleDetailForAddressStructs(
+        compareScheduleDetailForAddressStructs(
           investor1ScheduleDetailAfterTransfer,
           expectedInvestor1ScheduleDetailAfterTransfer
         );
@@ -128,11 +128,11 @@ describe('RestrictedNORI transferring', () => {
           removalAmountsToRestrict: [restrictedAmount],
         });
         const supplierScheduleDetailBeforeTransfer =
-          await rNori.getRestrictionScheduleDetailForAccount(
+          await rNori.getScheduleDetailForAccount(
             supplier,
             restrictionScheduleIds[0]
           );
-        compareRestrictionScheduleDetailForAddressStructs(
+        compareScheduleDetailForAddressStructs(
           supplierScheduleDetailBeforeTransfer,
           {
             startTime: BigNumber.from(NOW),
@@ -141,8 +141,8 @@ describe('RestrictedNORI transferring', () => {
           }
         );
         const scheduleSummaryBeforeTransfer =
-          await rNori.getRestrictionScheduleSummary(restrictionScheduleIds[0]);
-        compareRestrictionScheduleSummaryStructs(scheduleSummaryBeforeTransfer, {
+          await rNori.getScheduleSummary(restrictionScheduleIds[0]);
+        compareScheduleSummaryStructs(scheduleSummaryBeforeTransfer, {
           tokenHolders: [supplier],
         });
         await rNori
@@ -155,17 +155,17 @@ describe('RestrictedNORI transferring', () => {
             '0x'
           );
         const supplierScheduleDetailAfterTransfer =
-          await rNori.getRestrictionScheduleDetailForAccount(
+          await rNori.getScheduleDetailForAccount(
             supplier,
             restrictionScheduleIds[0]
           );
         const investor1ScheduleDetailAfterTransfer =
-          await rNori.getRestrictionScheduleDetailForAccount(
+          await rNori.getScheduleDetailForAccount(
             investor1,
             restrictionScheduleIds[0]
           );
         const scheduleSummaryAfterTransfer =
-          await rNori.getRestrictionScheduleSummary(restrictionScheduleIds[0]);
+          await rNori.getScheduleSummary(restrictionScheduleIds[0]);
 
         const expectedSupplierScheduleDetailAfterTransfer = {
           tokenHolder: supplier,
@@ -183,15 +183,15 @@ describe('RestrictedNORI transferring', () => {
           quantityRevoked: BigNumber.from(0),
           exists: true,
         };
-        compareRestrictionScheduleDetailForAddressStructs(
+        compareScheduleDetailForAddressStructs(
           supplierScheduleDetailAfterTransfer,
           expectedSupplierScheduleDetailAfterTransfer
         );
-        compareRestrictionScheduleDetailForAddressStructs(
+        compareScheduleDetailForAddressStructs(
           investor1ScheduleDetailAfterTransfer,
           expectedInvestor1ScheduleDetailAfterTransfer
         );
-        compareRestrictionScheduleSummaryStructs(scheduleSummaryAfterTransfer, {
+        compareScheduleSummaryStructs(scheduleSummaryAfterTransfer, {
           tokenHolders: [investor1],
         });
       });
@@ -226,7 +226,7 @@ describe('RestrictedNORI transferring', () => {
         // just to make the claimable balances easily computable
         advanceTime({ hre, timestamp: UNIX_EPOCH_2019 + SECONDS_IN_10_YEARS });
         const supplierScheduleDetailsBeforeTransfer =
-          await rNori.batchGetRestrictionScheduleDetailsForAccount(supplier);
+          await rNori.batchGetScheduleDetailsForAccount(supplier);
 
         const expectedScheduleDetailsBeforeTransfer = [
           {
@@ -256,7 +256,7 @@ describe('RestrictedNORI transferring', () => {
           index,
           scheduleDetail,
         ] of supplierScheduleDetailsBeforeTransfer.entries()) {
-          compareRestrictionScheduleDetailForAddressStructs(
+          compareScheduleDetailForAddressStructs(
             scheduleDetail,
             expectedScheduleDetailsBeforeTransfer[index]
           );
@@ -274,9 +274,9 @@ describe('RestrictedNORI transferring', () => {
             '0x'
           );
         const supplierScheduleDetailsAfterTransfer =
-          await rNori.batchGetRestrictionScheduleDetailsForAccount(supplier);
+          await rNori.batchGetScheduleDetailsForAccount(supplier);
         const investor1ScheduleDetailsAfterTransfer =
-          await rNori.batchGetRestrictionScheduleDetailsForAccount(investor1);
+          await rNori.batchGetScheduleDetailsForAccount(investor1);
 
         const expectedSupplierScheduleDetailsAfterTransfer = [
           {
@@ -339,7 +339,7 @@ describe('RestrictedNORI transferring', () => {
           index,
           scheduleDetail,
         ] of supplierScheduleDetailsAfterTransfer.entries()) {
-          compareRestrictionScheduleDetailForAddressStructs(
+          compareScheduleDetailForAddressStructs(
             scheduleDetail,
             expectedSupplierScheduleDetailsAfterTransfer[index]
           );
@@ -349,7 +349,7 @@ describe('RestrictedNORI transferring', () => {
           index,
           scheduleDetail,
         ] of investor1ScheduleDetailsAfterTransfer.entries()) {
-          compareRestrictionScheduleDetailForAddressStructs(
+          compareScheduleDetailForAddressStructs(
             scheduleDetail,
             expectedInvestor1ScheduleDetailsAfterTransfer[index]
           );
@@ -396,7 +396,7 @@ describe('RestrictedNORI transferring', () => {
           removalAmountsToRestrict: restrictedAmounts,
         });
         const supplierScheduleDetailsBeforeTransfer =
-          await rNori.batchGetRestrictionScheduleDetailsForAccount(supplier);
+          await rNori.batchGetScheduleDetailsForAccount(supplier);
 
         const expectedScheduleDetailsBeforeTransfer = [
           {
@@ -414,7 +414,7 @@ describe('RestrictedNORI transferring', () => {
           index,
           scheduleDetail,
         ] of supplierScheduleDetailsBeforeTransfer.entries()) {
-          compareRestrictionScheduleDetailForAddressStructs(
+          compareScheduleDetailForAddressStructs(
             scheduleDetail,
             expectedScheduleDetailsBeforeTransfer[index]
           );
@@ -430,9 +430,9 @@ describe('RestrictedNORI transferring', () => {
             '0x'
           );
         const supplierScheduleDetailsAfterTransfer =
-          await rNori.batchGetRestrictionScheduleDetailsForAccount(supplier);
+          await rNori.batchGetScheduleDetailsForAccount(supplier);
         const investor1ScheduleDetailsAfterTransfer =
-          await rNori.batchGetRestrictionScheduleDetailsForAccount(investor1);
+          await rNori.batchGetScheduleDetailsForAccount(investor1);
 
         const expectedSupplierScheduleDetailsAfterTransfer = [
           {
@@ -463,7 +463,7 @@ describe('RestrictedNORI transferring', () => {
           index,
           scheduleDetail,
         ] of supplierScheduleDetailsAfterTransfer.entries()) {
-          compareRestrictionScheduleDetailForAddressStructs(
+          compareScheduleDetailForAddressStructs(
             scheduleDetail,
             expectedSupplierScheduleDetailsAfterTransfer[index]
           );
@@ -473,16 +473,16 @@ describe('RestrictedNORI transferring', () => {
           index,
           scheduleDetail,
         ] of investor1ScheduleDetailsAfterTransfer.entries()) {
-          compareRestrictionScheduleDetailForAddressStructs(
+          compareScheduleDetailForAddressStructs(
             scheduleDetail,
             expectedInvestor1ScheduleDetailsAfterTransfer[index]
           );
         }
         const scheduleSummariesAfterTransfer =
-          await rNori.batchGetRestrictionScheduleSummaries(restrictionScheduleIds);
+          await rNori.batchGetScheduleSummaries(restrictionScheduleIds);
 
         for (const scheduleSummary of scheduleSummariesAfterTransfer) {
-          compareRestrictionScheduleSummaryStructs(scheduleSummary, {
+          compareScheduleSummaryStructs(scheduleSummary, {
             tokenHolders: [investor1],
           });
         }

@@ -193,17 +193,17 @@ describe('Removal', () => {
             tokenIds,
             removalBalances
           )
-          .to.emit(rNori, 'RestrictionScheduleCreated')
+          .to.emit(rNori, 'ScheduleCreated')
           .withArgs(
             restrictionScheduleTokenIds[0].toHexString(),
             tokenIds[0].toHexString()
           )
-          .to.emit(rNori, 'RestrictionScheduleCreated')
+          .to.emit(rNori, 'ScheduleCreated')
           .withArgs(
             restrictionScheduleTokenIds[1].toHexString(),
             tokenIds[1].toHexString()
           )
-          .to.emit(rNori, 'RestrictionScheduleCreated')
+          .to.emit(rNori, 'ScheduleCreated')
           .withArgs(
             restrictionScheduleTokenIds[2].toHexString(),
             tokenIds[2].toHexString()

@@ -126,8 +126,9 @@ describe('RestrictedNORI', () => {
         )
         .to.emit(bpNori, 'Transfer')
         .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
-      const restrictionScheduleDetail =
-        await rNori.getRestrictionScheduleSummary(restrictionScheduleIds[0]);
+      const restrictionScheduleDetail = await rNori.getScheduleSummary(
+        restrictionScheduleIds[0]
+      );
       expect(restrictionScheduleDetail.scheduleTokenId).equals(
         restrictionScheduleIds[0]
       );
@@ -192,7 +193,7 @@ describe('RestrictedNORI', () => {
       await expect(
         rNori
           .connect(hre.namedSigners.supplier)
-          .withdrawFromRestrictionSchedule(
+          .withdrawFromSchedule(
             supplier,
             restrictionScheduleIds[0],
             removalAmountsToRestrict[0]
@@ -231,7 +232,7 @@ describe('RestrictedNORI', () => {
       expect(claimableBalanceOf).to.equal(restrictedAmount);
       await rNori
         .connect(await hre.ethers.getSigner(hre.namedAccounts.supplier))
-        .withdrawFromRestrictionSchedule(
+        .withdrawFromSchedule(
           hre.namedAccounts.supplier,
           restrictionScheduleIds[0],
           removalDataToList[0].amount
@@ -317,7 +318,7 @@ describe('RestrictedNORI', () => {
         expect(
           await rNori
             .connect(await hre.ethers.getSigner(supplier))
-            .withdrawFromRestrictionSchedule(
+            .withdrawFromSchedule(
               supplier,
               restrictionScheduleIds[0],
               claimableBalance
@@ -381,7 +382,7 @@ describe('RestrictedNORI', () => {
         expect(
           await rNori
             .connect(await hre.ethers.getSigner(supplier))
-            .withdrawFromRestrictionSchedule(
+            .withdrawFromSchedule(
               investor1,
               restrictionScheduleIds[0],
               claimableBalance
@@ -489,7 +490,7 @@ describe('RestrictedNORI', () => {
         );
         await rNori
           .connect(await hre.ethers.getSigner(supplier))
-          .withdrawFromRestrictionSchedule(
+          .withdrawFromSchedule(
             supplier,
             restrictionScheduleIds[0],
             supplierClaimableBalanceBeforeClaim
@@ -584,7 +585,7 @@ describe('RestrictedNORI', () => {
         await expect(
           rNori
             .connect(await hre.ethers.getSigner(supplier))
-            .withdrawFromRestrictionSchedule(
+            .withdrawFromSchedule(
               supplier,
               restrictionScheduleIds[0],
               attemptToWithdrawAmount
