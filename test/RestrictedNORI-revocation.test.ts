@@ -53,7 +53,7 @@ describe('RestrictedNORI revocation', () => {
             [originalRevocableQuantity]
           )
         )
-          .to.emit(rNori, 'UnreleasedTokensRevoked')
+          .to.emit(rNori, 'TokensRevoked')
           .withArgs(
             scheduleStartTime + SECONDS_IN_5_YEARS,
             listedRemovalIds[0],
@@ -148,7 +148,7 @@ describe('RestrictedNORI revocation', () => {
             [originalRevocableQuantity]
           )
         )
-          .to.emit(rNori, 'UnreleasedTokensRevoked')
+          .to.emit(rNori, 'TokensRevoked')
           .withArgs(
             scheduleStartTime + SECONDS_IN_5_YEARS,
             listedRemovalIds[0],
@@ -320,7 +320,7 @@ describe('RestrictedNORI revocation', () => {
             [0]
           )
         )
-          .to.emit(rNori, 'UnreleasedTokensRevoked')
+          .to.emit(rNori, 'TokensRevoked')
           .withArgs(
             NOW,
             listedRemovalIds[0],
@@ -395,14 +395,14 @@ describe('RestrictedNORI revocation', () => {
             [quantityToRevoke, quantityToRevoke]
           )
         )
-          .to.emit(rNori, 'UnreleasedTokensRevoked')
+          .to.emit(rNori, 'TokensRevoked')
           .withArgs(
             scheduleStartTime + SECONDS_IN_5_YEARS,
             listedRemovalIds1[0],
             projectId1,
             quantityToRevoke
           )
-          .to.emit(rNori, 'UnreleasedTokensRevoked')
+          .to.emit(rNori, 'TokensRevoked')
           .withArgs(
             scheduleStartTime + SECONDS_IN_5_YEARS,
             listedRemovalIds2[0],

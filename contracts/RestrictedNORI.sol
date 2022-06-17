@@ -14,24 +14,15 @@ import "hardhat/console.sol"; // todo
 
 /*
 TODO LIST:
-- we should emit an address-specific event for revocation since balance is indeed being burned from each given address.
-
-- should we have a default behavior if a start time isn't set for a removal when its schedule is being created? revert?
-      - maybe this contract also validates that at least the start time isn't 0
-
 - large market test is blowing block gas limit on minting/listing... what to do about this?
   (maybe split the minting/listing into a few different transactions so that the rest of the large market test
   can proceed as intended)
 
-- check out your remaining test cases!
+- check out your remaining test cases
 
 - write out behavior summary as in LockedNORI
 
 - more detail in the natspec comments
-
-- todo start a notion page for potential gas optimizations?  maybe use a key word for in-contract comments to track these places
-
-- what should the URI be for this 1155? (covered in another ticket)
  */
 
 /** @title RestrictedNORI */
@@ -63,6 +54,7 @@ contract RestrictedNORI is
   error InsufficientBalance(address account, uint256 scheduleId);
   error InsufficientClaimableBalance(address account, uint256 scheduleId);
   error InvalidBpNoriSender(address account);
+  error InvalidScheduleStartTime(uint256 projectId);
 
   struct Schedule {
     uint256 startTime;
@@ -179,7 +171,7 @@ contract RestrictedNORI is
   /**
    * @notice Emitted on when unreleased tokens of an active schedule are revoked.
    */
-  event UnreleasedTokensRevoked(
+  event TokensRevoked(
     uint256 indexed atTime,
     uint256 indexed removalId,
     uint256 indexed scheduleId,
@@ -659,6 +651,9 @@ contract RestrictedNORI is
     Removal.ScheduleData memory scheduleData = _removal.getScheduleData(
       projectId
     );
+    if (scheduleData.startTime == 0) {
+      revert InvalidScheduleStartTime({projectId: projectId});
+    }
     address recipient = scheduleData.supplierAddress;
     if (recipient == address(0)) {
       revert RecipientCannotBeZeroAddress();
@@ -767,7 +762,7 @@ contract RestrictedNORI is
       quantityToRevoke,
       ""
     );
-    emit UnreleasedTokensRevoked( // renamed to TokensRevoke
+    emit TokensRevoked(
       block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
       removalId,
       scheduleId,
