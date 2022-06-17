@@ -3,6 +3,14 @@ import path from 'path';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 
+import type {
+  MockCertificate,
+  MockERC1155PresetPausableNonTransferrable,
+} from '@/typechain-types/contracts/mocks';
+import type {
+  MockCertificate__factory,
+  MockERC1155PresetPausableNonTransferrable__factory,
+} from '@/typechain-types/factories/contracts/mocks';
 import type { Contracts } from '@/utils/contracts';
 import type {
   LockedNORI,
@@ -128,10 +136,37 @@ export const deployRemovalTestHarness = async ({
 }): Promise<InstanceOfContract<RemovalTestHarness>> => {
   const RemovalTestHarness =
     await hre.ethers.getContractFactory<RemovalTestHarness__factory>(
-      'RemovalTestHarness' as unknown as ContractNames
+      'RemovalTestHarness' as ContractNames
     );
   const removalTestHarness = await RemovalTestHarness.deploy();
   return removalTestHarness;
+};
+
+export const deployMockCertificate = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<MockCertificate>> => {
+  return hre.deployOrUpgradeProxy<MockCertificate, MockCertificate__factory>({
+    contractName: 'MockCertificate' as ContractNames,
+    args: [],
+    options: { initializer: 'initialize()' },
+  });
+};
+
+export const deployMockERC1155PresetPausableNonTransferrable = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<MockERC1155PresetPausableNonTransferrable>> => {
+  return hre.deployOrUpgradeProxy<
+    MockERC1155PresetPausableNonTransferrable,
+    MockERC1155PresetPausableNonTransferrable__factory
+  >({
+    contractName: 'MockERC1155PresetPausableNonTransferrable' as ContractNames,
+    args: [],
+    options: { initializer: 'initialize()' },
+  });
 };
 
 export const deployCertificateContract = async ({

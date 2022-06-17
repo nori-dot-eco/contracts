@@ -30,7 +30,10 @@ export const deploy: DeployFunction = async (environment) => {
       contract.address
     ))
   ) {
-    await certificate.addMinter(contract.address); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
+    await certificate.grantRole(
+      await certificate.MINTER_ROLE(),
+      contract.address
+    ); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
   }
   hre.trace('Added FIFOMarket as a minter of Certificate');
   await finalizeDeployments({ hre, contracts: { FIFOMarket: contract } });

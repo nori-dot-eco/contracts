@@ -7,19 +7,21 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
-
-// import "hardhat/console.sol"; // todo
+import "./ERC1155PresetPausableNonTransferrable.sol";
 
 // todo non-transferable/approveable
 // todo disable other mint functions
+// todo whenNotPasused
+// todo setApprovalForAll should only work when called on accounts with CERTIFICATE_OPERATOR_ROLE
+// todo consider not inheriting pausable base contract and reverting with custom error for consistency
+// todo use OZ counters for incrementing and decrementing
+
+error ForbiddenFunctionCall();
 
 /**
  * @title Certificate
  */
-contract Certificate is
-  ERC1155PresetMinterPauserUpgradeable,
-  ERC1155SupplyUpgradeable
-{
+contract Certificate is ERC1155PresetPausableNonTransferrable {
   struct Source {
     uint256 removalId;
     uint256 amount;
@@ -39,23 +41,27 @@ contract Certificate is
    * @dev a mapping of the certificate token ID -> sources
    */
   mapping(uint256 => Source[]) private _sources;
+
   /**
    * @dev auto incrementing token ID
    */
   uint256 private _latestTokenId;
 
-  function initialize() public virtual initializer {
-    super.initialize("https://nori.com/api/certificate/{id}.json");
+  function initialize() external initializer {
+    // todo verify all inherited unchained initializers are called
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
-    _latestTokenId = 0;
-  }
-
-  function addMinter(address _minter) public {
-    require(
-      hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
-      "Certificate: missing minter role"
+    __ERC1155_init_unchained("https://nori.com/api/certificate/{id}.json");
+    __Pausable_init_unchained();
+    __ERC1155PresetMinterPauser_init_unchained(
+      "https://nori.com/api/certificate/{id}.json"
     );
-    _setupRole(MINTER_ROLE, _minter);
+    __ERC1155PresetPausableNonTransferrable_init_unchained();
+    _latestTokenId = 0;
   }
 
   /**
@@ -71,30 +77,43 @@ contract Certificate is
    *  - removalIds can be used to look up vintage years, e.g. 0 -> 2018
    */
   function mintBatch(
-    address to,
+    address to, // todo array?
     uint256[] memory removalIds,
     uint256[] memory removalAmounts,
-    bytes memory data
+    bytes memory data // todo array?
   ) public override {
-    uint256 certificateAmount = abi.decode(data, (uint256));
+    uint256 certificateAmount = abi.decode(data, (uint256)); // todo verify amount
+    uint256 tokenId = _latestTokenId;
+    // todo extract to base contract and overload here
     // todo use modified mintCertificate instead of mintBatch. mintBatch should be used to mint multi certificates.
     // todo only allowed by market contract
     // todo require _sources[_latestTokenId] doesnt exist
     // todo require _sources[_latestTokenId][n] doesnt exist
+    // todo is there a better way to verify that no removal amount == 0?
     for (uint256 i = 0; i < removalIds.length; i++) {
       if (removalAmounts[i] == 0) {
         revert("Certificate: Removal amount 0");
       } else {
-        // todo try filtering out the zero amountsbefore calling mint; revert if any are zero
-        _sources[_latestTokenId].push(
+        _sources[tokenId].push(
           Source({removalId: removalIds[i], amount: removalAmounts[i]})
         );
       }
     }
-    super.mint(to, _latestTokenId, certificateAmount, data);
-    emit CertificateCreated(to, _latestTokenId, removalIds, removalAmounts);
+    _latestTokenId = tokenId + 1;
+    emit CertificateCreated(to, tokenId, removalIds, removalAmounts);
+    super.mint(to, tokenId, certificateAmount, data);
+  }
 
-    _latestTokenId = _latestTokenId += 1;
+  /**
+   * @dev Use the `mintBatch` function instead.
+   */
+  function mint(
+    address,
+    uint256,
+    uint256,
+    bytes memory
+  ) public pure override {
+    revert ForbiddenFunctionCall(); // todo is this really what we want?
   }
 
   /**
@@ -106,28 +125,5 @@ contract Certificate is
     returns (Source[] memory)
   {
     return _sources[certificateId];
-  }
-
-  function _beforeTokenTransfer(
-    address operator,
-    address from,
-    address to,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    bytes memory data
-  )
-    internal
-    override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
-  {
-    return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
-  }
-
-  function supportsInterface(bytes4 interfaceId)
-    public
-    view
-    override(ERC1155Upgradeable, ERC1155PresetMinterPauserUpgradeable)
-    returns (bool)
-  {
-    return super.supportsInterface(interfaceId);
   }
 }
