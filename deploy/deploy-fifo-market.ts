@@ -35,7 +35,10 @@ export const deploy: DeployFunction = async (environment) => {
       contract.address
     ))
   ) {
-    await certificate.addMinter(contract.address);
+    await certificate.grantRole(
+      await certificate.MINTER_ROLE(),
+      contract.address
+    );
   }
   hre.trace('Added FIFOMarket as a minter of Certificate');
 
