@@ -16,14 +16,8 @@ import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
 
-error TokenIdExists(uint256 tokenId);
-error MissingRole(address account, string role);
-error ArrayLengthMismatch(string array1Name, string array2Name);
-error InvalidProjectId(uint256 projectId);
-error InvalidScheduleStartTime(uint256 startTime);
-
-uint256 constant UNIX_EPOCH_2010 = 1262304000;
-uint256 constant UNIX_EPOCH_2050 = 2524608000;
+uint256 constant UNIX_EPOCH_2010 = 1_262_304_000;
+uint256 constant UNIX_EPOCH_2050 = 2_524_608_000;
 
 /**
  * @title Removal
@@ -34,6 +28,12 @@ contract Removal is
 {
   using SafeMathUpgradeable for uint256;
   using RemovalUtils for uint256;
+
+  error TokenIdExists(uint256 tokenId);
+  error MissingRole(address account, string role);
+  error ArrayLengthMismatch(string array1Name, string array2Name);
+  error InvalidProjectId(uint256 projectId);
+  error InvalidScheduleStartTime(uint256 startTime);
 
   struct BatchMintRemovalsData {
     // todo why doesnt typechain generate this as a type?
@@ -68,7 +68,7 @@ contract Removal is
     name = "Removal";
   }
 
-  function initializeRestrictedNORI(address restrictedNORIAddress)
+  function registerRestrictedNORIAddress(address restrictedNORIAddress)
     external
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
@@ -178,6 +178,7 @@ contract Removal is
     }
     for (uint256 i = 0; i < ids.length; i++) {
       if (_tokenIdExists[ids[i]]) {
+        // TODO (Gas Optimization): Is there a way to check once for all ids if they exist? e.g. via a merkle proof of some kind
         revert TokenIdExists({tokenId: ids[i]});
       }
       _removalIdToProjectId[ids[i]] = decodedData.projectId;

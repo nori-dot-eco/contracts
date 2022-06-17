@@ -14,25 +14,24 @@ import "hardhat/console.sol"; // todo
 
 /*
 TODO LIST:
-- overhaul how project ids are used while minting removals, setting the start time, listing them, creating schedules, getting the start time, and the schedule summary view struct
+- we should emit an address-specific event for revocation since balance is indeed being burned from each given address.
 
-- write out behavior summary as in LockedNORI
-  - consider even more detail in the natspec comments
+- should we have a default behavior if a start time isn't set for a removal when its schedule is being created? revert?
+      - maybe this contract also validates that at least the start time isn't 0
 
 - large market test is blowing block gas limit on minting/listing... what to do about this?
   (maybe split the minting/listing into a few different transactions so that the rest of the large market test
   can proceed as intended)
 
+- check out your remaining test cases!
+
+- write out behavior summary as in LockedNORI
+
+- more detail in the natspec comments
+
 - todo start a notion page for potential gas optimizations?  maybe use a key word for in-contract comments to track these places
 
-- we should emit an address-specific event for revocation since balance is indeed being burned from each given address.
-
-- should we have a default behavior if a start time isn't set for a removal when its schedule is being created? revert?
-      - maybe this contract also validates that at least thes tart time isn't 0
-
 - what should the URI be for this 1155? (covered in another ticket)
-
-- tests tests tests!
  */
 
 /** @title RestrictedNORI */
@@ -78,8 +77,6 @@ contract RestrictedNORI is
   }
 
   struct ScheduleSummary {
-    // todo should we use a project id as the schedule id? can be tied back to datastore?
-    // at the very least, should we put the supplier address in here?
     uint256 scheduleTokenId;
     uint256 startTime;
     uint256 endTime;
@@ -218,7 +215,7 @@ contract RestrictedNORI is
     setRestrictionDurationForMethodologyAndVersion(1, 0, SECONDS_IN_TEN_YEARS);
   }
 
-  function initializeContractInstances(
+  function registerContractAddresses(
     address marketAddress,
     address bridgedPolygonNoriAddress,
     address removalAddress

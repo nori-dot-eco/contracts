@@ -42,13 +42,13 @@ export const deploy: DeployFunction = async (environment) => {
   const rNori = await getRestrictedNORI({ hre, signer });
   const removal = await getRemoval({ hre, signer });
   const bpNori = await getBridgedPolygonNori({ hre, signer });
-  await rNori.initializeContractInstances(
+  await rNori.registerContractAddresses(
     contract.address,
     bpNori.address,
     removal.address
   );
   hre.trace('Set market, removal and bpNori addresses in rNori');
-  await removal.initializeRestrictedNORI(rNori.address);
+  await removal.registerRestrictedNORIAddress(rNori.address);
   hre.trace('Set rNori address in Removal');
 
   await finalizeDeployments({ hre, contracts: { FIFOMarket: contract } });
