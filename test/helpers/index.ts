@@ -1,5 +1,4 @@
-import { BigNumber } from 'ethers';
-import type { BigNumberish } from 'ethers';
+import type { BigNumber, BigNumberish } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 
@@ -35,6 +34,8 @@ interface ContractInstances {
   rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
 }
+
+export const NOW = Math.floor(Date.now() / 1000);
 
 export const getLatestBlockTime = async ({
   hre,
@@ -147,38 +148,23 @@ export const createRemovalTokenId = async ({
   return removalId;
 };
 
-/**
- * Returns an array of unix timestamps that for the vintage of each removal
- * in `removalIds` for convenience of generating realistic restriction schedule start
- * times for minting removals during test setup.
- */
-export const createRestrictionScheduleStartTimeArray = async (
-  removalInstance: Removal,
-  removalIds: BigNumber[]
-): Promise<BigNumber[]> => {
-  const removalVintages = (
-    await Promise.all(
-      removalIds.map((removalId) =>
-        removalInstance.unpackRemovalIdV0(removalId)
-      )
-    )
-  ).map((unpackedRemovalId) => unpackedRemovalId.vintage);
-  return removalVintages.map((vintage) =>
-    BigNumber.from(Math.floor(new Date(vintage, 0).getTime() / 1000))
-  );
-};
-
 // todo helpers/removal.ts
 export const createBatchMintData = ({
   hre,
   fifoMarket,
+  listNow = true,
+  projectId = 1_234_567_890,
+  scheduleStartTime = NOW,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   fifoMarket: FIFOMarket;
+  listNow?: boolean;
+  projectId?: number;
+  scheduleStartTime?: number;
 }): Parameters<Removal['mintBatch']>[3] => {
   const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-    ['address', 'bool'],
-    [fifoMarket.address, true] // todo parameterize listing option
+    ['uint256', 'uint256', 'address', 'bool'],
+    [projectId, scheduleStartTime, fifoMarket.address, listNow]
   );
   return packedData;
 };
@@ -190,6 +176,8 @@ interface RemovalDataFromListing {
   totalAmountOfSuppliers: number;
   totalAmountOfRemovals: number;
   removalAmounts: BigNumber[];
+  projectId: number;
+  scheduleStartTime: number;
 }
 
 // todo helpers/removal.ts
@@ -218,11 +206,17 @@ export const batchMintAndListRemovalsForSale = async ({
   removal,
   fifoMarket,
   hre,
+  listNow = true,
+  projectId = 1_234_567_890,
+  scheduleStartTime = NOW,
 }: {
   removalDataToList: RemovalDataForListing[];
   removal: Removal;
   fifoMarket: FIFOMarket;
   hre: CustomHardHatRuntimeEnvironment;
+  listNow?: boolean;
+  projectId?: number;
+  scheduleStartTime?: number;
 }): Promise<RemovalDataFromListing> => {
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
@@ -244,16 +238,17 @@ export const batchMintAndListRemovalsForSale = async ({
   const removalAmounts = removalDataToList.map((removalData) =>
     formatTokenString(removalData.amount.toString())
   );
-  const restrictionScheduleStartTimes = await createRestrictionScheduleStartTimeArray(
-    removal,
-    listedRemovalIds
-  );
-  await removal.mintRemovalBatch(
+  await removal.mintBatch(
     supplier,
     removalAmounts,
     listedRemovalIds,
-    restrictionScheduleStartTimes,
-    createBatchMintData({ hre, fifoMarket })
+    createBatchMintData({
+      hre,
+      fifoMarket,
+      listNow,
+      projectId,
+      scheduleStartTime,
+    })
   );
   const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);
   const totalAmountOfSuppliers = getTotalAmountOfSuppliers(removalDataToList);
@@ -264,5 +259,7 @@ export const batchMintAndListRemovalsForSale = async ({
     totalAmountOfSuppliers,
     totalAmountOfRemovals,
     removalAmounts,
+    projectId,
+    scheduleStartTime,
   };
 };

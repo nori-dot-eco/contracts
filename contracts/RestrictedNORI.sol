@@ -27,17 +27,7 @@ TODO LIST:
 
 - we should emit an address-specific event for revocation since balance is indeed being burned from each given address.
 
-- should we default to using SECONDS_IN_TEN_YEARS if a duration is not set in the duration lookup? or just revert?
- (basically how should a lookup result of 0 be interpreted?)
-  - no, update the way duration is set to include an "isSet" flag in the duration map and revert if that isn't set when looking up the duration
-
 - should we have a default behavior if a start time isn't set for a removal when its schedule is being created? revert?
-      - no, add input validation to setting this start time when removals are minted so it can't be 0
-      - any input validation for schedule start times (in Removal.sol) or durations (this contract), other data?
-        - idea: create input validation view function that allowlists a hash/fingerprint of what you're actually going to mint
-        - and then the vlaidation during mint simply checks if the hash of your input data has been pre-verified in this way
-        - OR we just limit how many you can mint at once and go ahead and do the validation in -loop (probably appropriate to start with this for now)
-        - maybe just on the range of earliest possible date and then  20 or so years in the future (maybe use a setter and lookup)
       - maybe this contract also validates that at least thes tart time isn't 0
 
 - what should the URI be for this 1155? (covered in another ticket)
@@ -45,6 +35,7 @@ TODO LIST:
 - tests tests tests!
  */
 
+/** @title RestrictedNORI */
 contract RestrictedNORI is
   IERC777RecipientUpgradeable,
   ERC1155PresetMinterPauserUpgradeable,
@@ -62,12 +53,9 @@ contract RestrictedNORI is
   error TokenSenderNotBPNORI();
   error RecipientCannotBeZeroAddress();
   error RecipientCannotHaveRole(address recipient, string role);
-  error RestrictionDurationNotSet(uint256 removalId);
+  error RestrictionDurationNotSet(uint256 projectId);
   error NonexistentSchedule(uint256 scheduleId);
-  error ScheduleExists(
-    uint256 scheduleTokenId,
-    uint256 removalIdTriggeredCreation
-  );
+  error ScheduleExists(uint256 scheduleTokenId);
   error RoleCannotTransfer(address account, string role);
   error RoleUnassignableToScheduleHolder(address account, string role);
   error MissingRole(address account, string role);
@@ -189,10 +177,7 @@ contract RestrictedNORI is
   /**
    * @notice Emitted on successful creation of a new schedule.
    */
-  event ScheduleCreated(
-    uint256 indexed scheduleId,
-    uint256 indexed removalIdTriggeredCreation
-  );
+  event ScheduleCreated(uint256 indexed projectId);
 
   /**
    * @notice Emitted on when unreleased tokens of an active schedule are revoked.
@@ -263,30 +248,6 @@ contract RestrictedNORI is
   ) public view returns (RestrictionDuration memory) {
     return
       _methodologyAndVersionToScheduleDuration[methodology][methodologyVersion];
-  }
-
-  /**
-   * Creates a unique, deterministic schedule token id based on a supplier's address, schedule start time,
-   * and schedule duration, all of which can be acquired from a removal id.
-   */
-  function removalIdToScheduleId(uint256 removalId)
-    public
-    view
-    returns (uint256)
-  {
-    address supplierAddress = removalId.supplierAddress();
-    uint256 duration = getRestrictionDurationForMethodologyAndVersion(
-      removalId.methodology(),
-      removalId.methodologyVersion()
-    ).duration;
-    uint256 scheduleStartTime = _removal
-      .getRestrictionScheduleStartTimeForRemoval(removalId);
-    return
-      uint256(
-        keccak256(
-          abi.encodePacked(supplierAddress, duration, scheduleStartTime)
-        )
-      );
   }
 
   /** Returns an array of all existing schedule ids, regardless of the status of the schedule. */
@@ -486,24 +447,20 @@ contract RestrictedNORI is
   }
 
   /**
-   * Sets up a batch of schedules with parameters determined from the removal ids.
+   * Sets up a restriction schedule with parameters determined from the project id.
    *
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role
    */
-  // todo this should be single create at end of the day
-  function batchCreateSchedule(uint256[] calldata removalIds)
+  function createSchedule(uint256 projectId)
     external
     whenNotPaused
     onlyRole(SCHEDULE_CREATOR_ROLE)
   {
-    for (uint256 i = 0; i < removalIds.length; i++) {
-      uint256 scheduleId = removalIdToScheduleId(removalIds[i]);
-      if (!_scheduleIdToScheduleStruct[scheduleId].exists) {
-        _createSchedule(removalIds[i]);
-      }
+    if (!_scheduleIdToScheduleStruct[projectId].exists) {
+      _createSchedule(projectId);
     }
   }
 
@@ -679,32 +636,34 @@ contract RestrictedNORI is
     bytes memory userData,
     bytes memory operatorData
   ) internal returns (bool) {
-    address recipient = removalId.supplierAddress();
-    uint256 scheduleId = removalIdToScheduleId(removalId);
-    if (!_scheduleIdToScheduleStruct[scheduleId].exists) {
-      _createSchedule(removalId);
+    uint256 projectId = _removal.getProjectIdForRemoval(removalId);
+    Removal.ScheduleData memory scheduleData = _removal.getScheduleData(
+      projectId
+    );
+    address recipient = scheduleData.supplierAddress;
+    if (!_scheduleIdToScheduleStruct[projectId].exists) {
+      _createSchedule(projectId);
     }
-    super._mint(recipient, scheduleId, amount, "");
-    Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
+    super._mint(recipient, projectId, amount, "");
+    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     schedule.tokenHolders.add(recipient);
-    _addressToScheduleIdSet[recipient].add(scheduleId);
+    _addressToScheduleIdSet[recipient].add(projectId);
     return true;
   }
 
   /**
-   * Sets up a schedule for the specified removal id (implementation).
+   * Sets up a schedule for the specified project id (implementation).
    *
    * @dev schedules are created when removal tokens are listed for sale in the market contract,
    * so this should only be invoked during `tokensReceived` in the exceptional case that
    * tokens were sent to this contract without a schedule set up.
    */
-  function _createSchedule(uint256 removalId) internal {
-    address recipient = removalId.supplierAddress();
-    uint256 startTime = _removal.getRestrictionScheduleStartTimeForRemoval(
-      removalId
+  function _createSchedule(uint256 projectId) internal {
+    Removal.ScheduleData memory scheduleData = _removal.getScheduleData(
+      projectId
     );
-    uint256 scheduleId = removalIdToScheduleId(removalId);
-    if (address(recipient) == address(0)) {
+    address recipient = scheduleData.supplierAddress;
+    if (recipient == address(0)) {
       revert RecipientCannotBeZeroAddress();
     }
     if (hasRole(SCHEDULE_CREATOR_ROLE, recipient)) {
@@ -713,29 +672,25 @@ contract RestrictedNORI is
         role: "SCHEDULE_CREATOR_ROLE"
       });
     }
-    if (_scheduleIdToScheduleStruct[scheduleId].exists) {
-      revert ScheduleExists({
-        scheduleTokenId: scheduleId,
-        removalIdTriggeredCreation: removalId
-      });
+    if (_scheduleIdToScheduleStruct[projectId].exists) {
+      revert ScheduleExists({scheduleTokenId: projectId});
     }
-    Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    _allScheduleIds.add(scheduleId);
+    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
+    _allScheduleIds.add(projectId);
     RestrictionDuration
       memory restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
-        removalId.methodology(),
-        removalId.methodologyVersion()
+        scheduleData.methodology,
+        scheduleData.methodologyVersion
       );
     if (!restrictionDuration.wasSet) {
-      // todo duration is actually a uint256 and bool tuple where bool represent set, check set not duration
-      revert RestrictionDurationNotSet({removalId: removalId});
+      revert RestrictionDurationNotSet({projectId: projectId});
     }
-    _addressToScheduleIdSet[recipient].add(scheduleId);
+    _addressToScheduleIdSet[recipient].add(projectId);
     schedule.exists = true;
-    schedule.startTime = startTime;
-    schedule.endTime = startTime + restrictionDuration.duration;
+    schedule.startTime = scheduleData.startTime;
+    schedule.endTime = scheduleData.startTime + restrictionDuration.duration;
     schedule.releasedAmountFloor = 0;
-    emit ScheduleCreated(scheduleId, removalId);
+    emit ScheduleCreated(projectId);
   }
 
   /**
@@ -758,7 +713,7 @@ contract RestrictedNORI is
     uint256 removalId,
     uint256 amount
   ) internal {
-    uint256 scheduleId = removalIdToScheduleId(removalId);
+    uint256 scheduleId = _removal.getProjectIdForRemoval(removalId);
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: scheduleId});

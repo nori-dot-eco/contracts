@@ -1,37 +1,33 @@
-import type { BigNumberish } from 'ethers';
-import { BigNumber } from 'ethers';
+import type { BigNumber } from 'ethers';
 
 import type { RestrictedNORI } from '@/typechain-types/contracts/RestrictedNORI';
-import { expect, setupTest, createRemovalTokenId } from '@/test/helpers';
+import type { setupTest } from '@/test/helpers';
+import { expect, createRemovalTokenId, NOW } from '@/test/helpers';
 
-export const NOW = Math.floor(Date.now() / 1000);
-export const UNIX_EPOCH_2018 = 1_514_793_600;
-export const UNIX_EPOCH_2019 = 1_546_329_600;
-export const UNIX_EPOCH_2020 = 1_577_865_600;
-export const UNIX_EPOCH_2021 = 1_609_488_000;
-export const UNIX_EPOCH_2023 = 1_672_560_000;
 export const SECONDS_IN_1_YEAR_AVG = 31_556_952;
 export const SECONDS_IN_10_YEARS = 315_569_520;
 export const SECONDS_IN_5_YEARS = SECONDS_IN_10_YEARS / 2;
 
-export const setupTestRestrictedNORI = async ({
+export const mintAndListRemovals = async ({
+  testSetup,
+  projectId = 1_234_567_890,
+  scheduleStartTime = NOW,
   removalDataToList = [],
 }: {
-  buyerInitialBPNoriBalance?: BigNumberish;
+  testSetup: Awaited<ReturnType<typeof setupTest>>;
+  projectId?: number;
+  scheduleStartTime?: number;
   removalDataToList?: {
     amount: number;
-    restrictionScheduleStartTime: number;
     vintage?: number;
     supplier?: string;
   }[];
-}): Promise<
-  Awaited<ReturnType<typeof setupTest>> & {
-    listedRemovalIds: BigNumber[];
-    restrictionScheduleIds: BigNumber[];
-  }
-> => {
-  const { hre, contracts, removal, fifoMarket, rNori, ...rest } =
-    await setupTest();
+}): Promise<{
+  listedRemovalIds: BigNumber[];
+  projectId: number;
+  scheduleStartTime: number;
+}> => {
+  const { hre, removal, fifoMarket, rNori } = testSetup;
   let tokenIds: BigNumber[] = [];
   if (removalDataToList.length > 0) {
     const { supplier } = hre.namedAccounts;
@@ -48,44 +44,23 @@ export const setupTestRestrictedNORI = async ({
         });
       })
     );
-    const restrictionScheduleStartTimes: BigNumber[] = removalDataToList.map(
-      (removalData) =>
-        // TODO you might want to add a 0 case here where the restrictionScheduleStartTime remains 0
-        // to be able to test cases where the removalId basically has an empty entry for this
-        BigNumber.from(removalData.restrictionScheduleStartTime)
-    );
     const removalBalances = removalDataToList.map((removalData) =>
       hre.ethers.utils.parseUnits(removalData.amount.toString())
     );
 
     const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-      ['address', 'bool'],
-      [fifoMarket.address, true]
+      ['uint256', 'uint256', 'address', 'bool'],
+      [projectId, scheduleStartTime, fifoMarket.address, true]
     );
     expect(
-      await removal.mintRemovalBatch(
-        supplier,
-        removalBalances,
-        tokenIds,
-        restrictionScheduleStartTimes,
-        packedData
-      )
+      await removal.mintBatch(supplier, removalBalances, tokenIds, packedData)
     ).to.emit(rNori, 'ScheduleCreated');
   }
 
-  const restrictionScheduleIds = await Promise.all(
-    tokenIds.map((removalId) => rNori.removalIdToScheduleId(removalId))
-  );
-
   return {
-    hre,
-    contracts,
     listedRemovalIds: tokenIds,
-    restrictionScheduleIds,
-    removal,
-    fifoMarket,
-    rNori,
-    ...rest,
+    projectId,
+    scheduleStartTime,
   };
 };
 
@@ -95,23 +70,17 @@ export const formatTokensReceivedUserData = (removalId: BigNumber): any => {
 
 export const restrictRemovalProceeds = async ({
   testSetup,
-  listedRemovalData,
+  removalIds,
   removalAmountsToRestrict,
 }: {
-  testSetup: Awaited<ReturnType<typeof setupTestRestrictedNORI>>;
-  listedRemovalData: {
-    amount: number;
-    restrictionScheduleStartTime: number;
-    vintage?: number;
-    supplier?: string;
-  }[];
+  testSetup: Awaited<ReturnType<typeof setupTest>>;
+  removalIds: BigNumber[];
   removalAmountsToRestrict: number[];
-}): Promise<any> => {
-  // todo where is ScheduleSummaryStructOutput?
-  const { rNori, bpNori, listedRemovalIds, restrictionScheduleIds } = testSetup;
+}): Promise<void> => {
+  const { rNori, bpNori } = testSetup;
   await Promise.all(
-    listedRemovalData.map((_, index) => {
-      const userData = formatTokensReceivedUserData(listedRemovalIds[index]);
+    removalIds.map((id, index) => {
+      const userData = formatTokensReceivedUserData(id);
       return bpNori.send(
         rNori.address,
         removalAmountsToRestrict[index],
@@ -119,11 +88,6 @@ export const restrictRemovalProceeds = async ({
       );
     })
   );
-
-  const restrictionScheduleDetails = await Promise.all(
-    restrictionScheduleIds.map((id) => rNori.getScheduleSummary(id))
-  );
-  return restrictionScheduleDetails;
 };
 
 export const compareScheduleDetailForAddressStructs = (

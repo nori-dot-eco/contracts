@@ -26,9 +26,10 @@ import type {
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
 import {
-  createRestrictionScheduleStartTimeArray,
   createRemovalTokenId,
   mockDepositNoriToPolygon,
+  createBatchMintData,
+  NOW,
 } from '@/test/helpers';
 
 interface ContractConfig {
@@ -361,20 +362,17 @@ export const seedContracts = async ({
           vintage: 3000, // avoid clashing with likely test vintages and getting TokenIdExists error
         },
       });
-      const restrictionScheduleStartTime =
-        await createRestrictionScheduleStartTimeArray(contracts.Removal, [
-          tokenId,
-        ]);
       const listNow = true;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [contracts.FIFOMarket.address, listNow]
-      );
-      const tx = await contracts.Removal.mintRemovalBatch(
+      const packedData = createBatchMintData({
+        hre,
+        fifoMarket: contracts.FIFOMarket,
+        listNow,
+        scheduleStartTime: NOW,
+      });
+      const tx = await contracts.Removal.mintBatch(
         hre.namedAccounts.supplier,
         [formatTokenAmount(100)],
         [tokenId],
-        restrictionScheduleStartTime,
         packedData
       );
       hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });

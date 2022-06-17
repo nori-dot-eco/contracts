@@ -1,13 +1,14 @@
 import {
-  createRestrictionScheduleStartTimeArray,
   createRemovalTokenId,
   expect,
   setupTest,
+  createBatchMintData,
+  NOW,
 } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 
 describe('Removal', () => {
-  describe('mintRemovalBatch', () => {
+  describe('mintBatch', () => {
     describe('success', () => {
       it('should mint a batch of removals without listing any', async () => {
         const { fifoMarket, removal, hre } = await setupTest();
@@ -29,22 +30,11 @@ describe('Removal', () => {
             });
           })
         );
-        const restrictionScheduleStartTimes =
-          await createRestrictionScheduleStartTimeArray(removal, tokenIds);
 
         const listNow = false;
-        const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-          ['address', 'bool'],
-          [fifoMarket.address, listNow]
-        );
+        const packedData = createBatchMintData({ hre, fifoMarket, listNow });
         await expect(
-          removal.mintRemovalBatch(
-            supplier,
-            removalBalances,
-            tokenIds,
-            restrictionScheduleStartTimes,
-            packedData
-          )
+          removal.mintBatch(supplier, removalBalances, tokenIds, packedData)
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
@@ -89,22 +79,11 @@ describe('Removal', () => {
             });
           })
         );
-        const restrictionScheduleStartTimes =
-          await createRestrictionScheduleStartTimeArray(removal, tokenIds);
 
         const listNow = true;
-        const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-          ['address', 'bool'],
-          [fifoMarket.address, listNow]
-        );
+        const packedData = createBatchMintData({ hre, fifoMarket, listNow });
         await expect(
-          removal.mintRemovalBatch(
-            supplier,
-            removalBalances,
-            tokenIds,
-            restrictionScheduleStartTimes,
-            packedData
-          )
+          removal.mintBatch(supplier, removalBalances, tokenIds, packedData)
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
@@ -146,19 +125,20 @@ describe('Removal', () => {
             })
           )
         );
-        const restrictionScheduleStartTimes =
-          await createRestrictionScheduleStartTimeArray(removal, tokenIds);
+
+        const projectId = 1_234_567_890;
         const listNow = false;
-        const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-          ['address', 'bool'],
-          [fifoMarket.address, listNow]
-        );
+        const packedData = createBatchMintData({
+          hre,
+          fifoMarket,
+          listNow,
+          projectId,
+        });
         await expect(
-          removal.mintRemovalBatch(
+          removal.mintBatch(
             hre.namedAccounts.supplier,
             removalBalances,
             tokenIds,
-            restrictionScheduleStartTimes,
             packedData
           )
         )
@@ -171,11 +151,6 @@ describe('Removal', () => {
             removalBalances
           );
 
-        // removal restriction schedule startTimes had to be set before we can call this and expect to get
-        // the right restriction schedules
-        const restrictionScheduleTokenIds = await Promise.all(
-          tokenIds.map((removalId) => rNori.removalIdToScheduleId(removalId))
-        );
         await expect(
           removal.safeBatchTransferFrom(
             hre.namedAccounts.supplier,
@@ -194,20 +169,7 @@ describe('Removal', () => {
             removalBalances
           )
           .to.emit(rNori, 'ScheduleCreated')
-          .withArgs(
-            restrictionScheduleTokenIds[0].toHexString(),
-            tokenIds[0].toHexString()
-          )
-          .to.emit(rNori, 'ScheduleCreated')
-          .withArgs(
-            restrictionScheduleTokenIds[1].toHexString(),
-            tokenIds[1].toHexString()
-          )
-          .to.emit(rNori, 'ScheduleCreated')
-          .withArgs(
-            restrictionScheduleTokenIds[2].toHexString(),
-            tokenIds[2].toHexString()
-          );
+          .withArgs(projectId);
         // market contract should have a balance for each listed tokenId
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {
@@ -238,19 +200,13 @@ describe('Removal', () => {
               })
             )
           );
-          const restrictionScheduleStartTimes =
-            await createRestrictionScheduleStartTimeArray(removal, tokenIds);
           const listNow = false;
-          const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-            ['address', 'bool'],
-            [fifoMarket.address, listNow]
-          );
+          const packedData = createBatchMintData({ hre, fifoMarket, listNow });
           await expect(
-            removal.mintRemovalBatch(
+            removal.mintBatch(
               hre.namedAccounts.supplier,
               removalBalances,
               tokenIds,
-              restrictionScheduleStartTimes,
               packedData
             )
           ).revertedWith('TokenIdExists');
@@ -259,7 +215,7 @@ describe('Removal', () => {
     });
   });
   describe('getters', () => {
-    describe('getRestrictionScheduleStartTimeForRemoval', () => {
+    describe('getScheduleStartTimeForRemoval', () => {
       it('should return the restriction schedule start time for a removal id', async () => {
         const { fifoMarket, removal, hre } = await setupTest();
         const removalBalances = [100].map((balance) =>
@@ -276,25 +232,23 @@ describe('Removal', () => {
             })
           )
         );
-        const restrictionScheduleStartTimes =
-          await createRestrictionScheduleStartTimeArray(removal, tokenIds);
         const listNow = false;
-        const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-          ['address', 'bool'],
-          [fifoMarket.address, listNow]
-        );
-        await removal.mintRemovalBatch(
+        const scheduleStartTime = NOW;
+        const packedData = createBatchMintData({
+          hre,
+          fifoMarket,
+          listNow,
+          scheduleStartTime,
+        });
+        await removal.mintBatch(
           hre.namedAccounts.supplier,
           removalBalances,
           tokenIds,
-          restrictionScheduleStartTimes,
           packedData
         );
-        const restrictionScheduleStartTime =
-          await removal.getRestrictionScheduleStartTimeForRemoval(tokenIds[0]);
-        expect(restrictionScheduleStartTime).to.equal(
-          restrictionScheduleStartTimes[0]
-        );
+        const projectId = await removal.getProjectIdForRemoval(tokenIds[0]);
+        const scheduleData = await removal.getScheduleData(projectId);
+        expect(scheduleData.startTime).to.equal(scheduleStartTime);
       });
     });
   });
