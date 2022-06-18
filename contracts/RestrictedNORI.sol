@@ -19,13 +19,99 @@ TODO LIST:
   can proceed as intended)
 
 - check out your remaining test cases
-
-- write out behavior summary as in LockedNORI
-
-- more detail in the natspec comments
  */
 
-/** @title RestrictedNORI */
+/**
+ * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance collateral.
+ *
+ * @author Nori Inc.
+ *
+ * @notice Based on the mechanics of a wrapped ERC-777 token, this contract layers schedules over the withdrawal
+ * functionality to implement _restriction_, a time-based release of tokens that, until released, can be reclaimed
+ * by Nori to enforce the permanence guarantee of carbon removals.
+ *
+ * ##### Behaviors and features
+ *
+ * ###### Schedules
+ *
+ * - _Schedules_ define the release timeline for restricted tokens.
+ * - A specific schedule is associated with one ERC1155 token id and can have multiple token holders.
+ *
+ * ###### Restricting
+ *
+ * - _Restricting_ is the process of gradually releasing tokens that may need to be recaptured by Nori in the event
+ * that the sequestered carbon for which the tokens were exchanged is found to violate its permanence guarantee.
+ * In this case, tokens need to be recaptured to mitigate the loss and make the original buyer whole by using them to
+ * purchase new NRTs on their behalf.
+ * - Tokens are released linearly from the schedule's start time until its end time. As NRTs are sold, proceeds may
+ * be routed to a restriction schedule at any point in the schedule's timeline, thus increasing the total balance of
+ * the schedule as well as the released amount at the current timestamp (assuming it's after the schedule start time).
+ *
+ * ###### Transferring
+ * - A given schedule is a logical overlay to a specific 1155 token. This token can have any number of token holders,
+ * and transferability via `safeTransferFrom` and `safeBatchTransferFrom` is enabled.
+ * Ownership percentages only become relevant and are enforced during withdrawal and revocation.
+ *
+ * ###### Withdrawal
+ * _Withdrawal_ is the process of a token holder claiming the tokens that have been released by the restriction
+ * schedule. When tokens are withdrawn, the 1155 schedule token is burned, and the BridgedPolygonNORI being held
+ * by this contract is sent to the address specified by the token holder performing the withdrawal.
+ * Tokens are released by a schedule based on the linear release of the schedule's totalSupply, but a token holder
+ * can only withdraw released tokens in proportion to their percentage ownership of the schedule tokens.
+ *
+ * ###### Revocation
+ * _Revocation_ is the process of tokens being recaptured by Nori to enforce carbon permanence guarantees.
+ * Only unreleased tokens can ever be revoked. When tokens are revoked from a schedule, the current number of released
+ * tokens does not decrease, even as the schedule's total supply decreases through revocation (a floor is enforced).
+ * When these tokens are revoked, the 1155 schedule token is burned, and the BridgedPolygonNORI held by this contract
+ * is sent to the address specified by Nori. If a schedule has multiple token holders, tokens are burned from each
+ * holder in proportion to their total percentage ownership of the schedule.
+ *
+ *
+ * ###### Additional behaviors and features
+ *
+ * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
+ * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ *   - all functions that mutate state are pausable
+ * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
+ *    - SCHEDULE_CREATOR_ROLE
+ *      - Can create restriction schedules without sending BridgedPolygonNORI to the contract
+ *      - The Removal contract has this role and sets up relevant schedules as removal tokens are listed for sale
+ *    - PAUSER_ROLE
+ *      - Can pause and unpause the contract
+ *    - DEFAULT_ADMIN_ROLE
+ *      - This is the only role that can add/revoke other accounts to any of the roles
+ * - [Can receive BridgedPolygonNORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
+ *   - BridgedPolygonNORI is wrapped and schedules are created (if necessary) upon receipt
+ * - [Limited ERC-1155 functionality](https://eips.ethereum.org/EIPS/eip-1155)
+ *   - mint and mintBatch will revert as only the internal variants are expected to be used
+ *   - burn and burnBatch will revert as only the internal variants are expected to be used
+ *   - setApprovalForAll and isApprovedForAll will revert as operator actions are disabled
+ *
+ * ##### Inherits
+ *
+ * - [ERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155)
+ * - [PausableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ * - [AccessControlEnumerableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/access)
+ * - [ContextUpgradeable](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
+ * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
+ *
+ * ##### Implements
+ *
+ * - [IERC777RecipientUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc777#IERC777Recipient)
+ * - [IERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155)
+ * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
+ * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
+ *
+ * ##### Uses
+ *
+ * - [RemovalUtils](./RemovalUtils.md) for uint256
+ * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
+ * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
+ *
+ */
 contract RestrictedNORI is
   IERC777RecipientUpgradeable,
   ERC1155PresetMinterPauserUpgradeable,
@@ -39,6 +125,7 @@ contract RestrictedNORI is
   uint256 constant SECONDS_IN_TEN_YEARS = 315_569_520;
 
   error BurningNotSupported();
+  error MintingNotSupported();
   error OperatorActionsNotSupported();
   error TokenSenderNotBPNORI();
   error RecipientCannotBeZeroAddress();
@@ -56,6 +143,7 @@ contract RestrictedNORI is
   error InvalidBpNoriSender(address account);
   error InvalidScheduleStartTime(uint256 projectId);
 
+  /** The internal governing parameters and data for a schedule */
   struct Schedule {
     uint256 startTime;
     uint256 endTime;
@@ -68,6 +156,7 @@ contract RestrictedNORI is
     mapping(address => uint256) quantitiesRevokedByAddress;
   }
 
+  /** View information for the current state of one schedule */
   struct ScheduleSummary {
     uint256 scheduleTokenId;
     uint256 startTime;
@@ -80,6 +169,7 @@ contract RestrictedNORI is
     bool exists;
   }
 
+  /** View information for one account's ownership of a schedule */
   struct ScheduleDetailForAddress {
     address tokenHolder;
     uint256 scheduleTokenId;
@@ -134,12 +224,12 @@ contract RestrictedNORI is
   EnumerableSetUpgradeable.UintSet private _allScheduleIds;
 
   /**
-   * @notice The BridgedPolygonNORI contract that this contract wraps tokens for
+   * @notice The BridgedPolygonNORI contract for which this contract wraps tokens.
    */
   FIFOMarket private _market;
 
   /**
-   * @notice The BridgedPolygonNORI contract that this contract wraps tokens for
+   * @notice The BridgedPolygonNORI contract for which this contract wraps tokens.
    */
   BridgedPolygonNORI private _bridgedPolygonNori;
 
@@ -169,7 +259,7 @@ contract RestrictedNORI is
   event ScheduleCreated(uint256 indexed projectId);
 
   /**
-   * @notice Emitted on when unreleased tokens of an active schedule are revoked.
+   * @notice Emitted when unreleased tokens of an active schedule are revoked.
    */
   event TokensRevoked(
     uint256 indexed atTime,
@@ -207,16 +297,7 @@ contract RestrictedNORI is
     setRestrictionDurationForMethodologyAndVersion(1, 0, SECONDS_IN_TEN_YEARS);
   }
 
-  function registerContractAddresses(
-    address marketAddress,
-    address bridgedPolygonNoriAddress,
-    address removalAddress
-  ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    _market = FIFOMarket(marketAddress);
-    _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
-    _removal = Removal(removalAddress);
-  }
-
+  // View functions and getters =========================================
   function supportsInterface(bytes4 interfaceId)
     public
     view
@@ -226,7 +307,6 @@ contract RestrictedNORI is
     return super.supportsInterface(interfaceId);
   }
 
-  // View functions and getters =========================================
   /**
    * Returns the schedule duration in seconds that has been set for a given methodology and
    * methodology version.
@@ -404,18 +484,36 @@ contract RestrictedNORI is
     }
     uint256 balanceOfAccount = balanceOf(account, scheduleId);
     uint256 claimedAmountForAccount = schedule.claimedAmountsByAddress[account];
-    uint256 claimableBalanceForSchedule = claimableBalanceForSchedule(
+    uint256 claimableBalanceForFullSchedule = claimableBalanceForSchedule(
       scheduleId
     );
     uint256 claimableForAccount = ((claimedAmountForAccount +
       balanceOfAccount) *
-      (claimableBalanceForSchedule + schedule.totalClaimedAmount)) /
+      (claimableBalanceForFullSchedule + schedule.totalClaimedAmount)) /
       scheduleTrueTotal -
       claimedAmountForAccount;
     return claimableForAccount;
   }
 
   // External functions ===================================================
+
+  /**
+   * Registers the addresses of the market, bpNori, and removal contracts in this contract.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   */
+  function registerContractAddresses(
+    address marketAddress,
+    address bridgedPolygonNoriAddress,
+    address removalAddress
+  ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _market = FIFOMarket(marketAddress);
+    _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
+    _removal = Removal(removalAddress);
+  }
+
   /**
    * Sets the duration in seconds that should be applied to schedules created on behalf of removals
    * originating from the given methodology and methodology version.
@@ -581,7 +679,7 @@ contract RestrictedNORI is
    *
    * ##### Requirements:
    *
-   * - Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role
+   * - Can only be used when the caller has the `TOKEN_REVOKER_ROLE`
    * - The requirements of _beforeTokenTransfer apply to this function
    * - toAccounts.length == removalIds.length == amounts.length
    */
@@ -787,7 +885,6 @@ contract RestrictedNORI is
    *      - if the operation is a revocation, that permission is enforced by the TOKEN_REVOKER_ROLE
    *      - if the operation is a withdrawal the burn amount must be <= the sender's claimable balance
    *    - the operation is a transfer and _all_ of the following must be true:
-   *      - the operator does not have the admin roles DEFAULT_ADMIN_ROLE or SCHEDULE_CREATOR_ROLE
    *      - the operator is operating on their own balance (enforced in the inherited contract)
    *      - the operator has sufficient balance to transfer (enforced in the inherited contract)
    */
@@ -828,10 +925,8 @@ contract RestrictedNORI is
   }
 
   /**
-   * @dev The total amount of the linear release available at the current block timestamp for the schedule.
-   * Takes the maximum of either the calculated released amount based on the schedule parameters and total amount,
-   * or the released amount floor, which is set at the current released amount whenever the balance of a schedule
-   * is decreased through revocation.
+   * Linearly released balance for a single schedule at the current block timestamp, ignoring any
+   * released amount floor that has been set for the schedule.
    */
   function _linearReleaseAmountAvailable(uint256 scheduleId)
     internal
@@ -851,8 +946,8 @@ contract RestrictedNORI is
   }
 
   /**
-   * @dev Calculates the number of tokens that can be revoked from a given token holder and schedule based on their
-   * proportion of ownership of that schedule's tokens.
+   * @dev Calculates the number of tokens that should be revoked from a given token holder and schedule based on their
+   * proportion of ownership of that schedule's tokens and the total number of tokens being revoked.
    */
   function _quantityToRevokePerTokenHolder(
     uint256 totalQuantityToRevoke,
@@ -868,16 +963,18 @@ contract RestrictedNORI is
     }
     uint256 balanceOfAccount = balanceOf(account, scheduleId);
     uint256 claimedAmountForAccount = schedule.claimedAmountsByAddress[account];
-    uint256 claimableBalanceForSchedule = claimableBalanceForSchedule(
-      scheduleId
-    );
     uint256 revocableForAccount = ((claimedAmountForAccount +
       balanceOfAccount) * (totalQuantityToRevoke)) / scheduleTrueTotal;
 
     return revocableForAccount;
   }
 
-  /** Released balance for a single schedule at the current block timestamp. */
+  /**
+   * @dev The total amount of released tokens available at the current block timestamp for the schedule.
+   * Takes the maximum of either the calculated linearly released amount based on the schedule parameters,
+   * or the released amount floor, which is set at the current released amount whenever the balance of a
+   * schedule is decreased through revocation or withdrawal.
+   */
   function _releasedBalanceOfSingleSchedule(uint256 scheduleId)
     internal
     view
@@ -960,5 +1057,33 @@ contract RestrictedNORI is
     uint256[] calldata
   ) public pure override {
     revert BurningNotSupported();
+  }
+
+  /**
+   * Overridden standard ERC1155.mint that will always revert
+   *
+   * @dev This function is not currently supported from external callers so we override it to revert.
+   */
+  function mint(
+    address to,
+    uint256 id,
+    uint256 amount,
+    bytes memory data
+  ) public pure override {
+    revert MintingNotSupported();
+  }
+
+  /**
+   * Overridden standard ERC1155.mintBatch that will always revert
+   *
+   * @dev This function is not currently supported from external callers so we override it to revert.
+   */
+  function mintBatch(
+    address to,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    bytes memory data
+  ) public pure override {
+    revert MintingNotSupported();
   }
 }

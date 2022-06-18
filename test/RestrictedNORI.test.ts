@@ -684,5 +684,21 @@ describe('RestrictedNORI', () => {
         rNori.connect(supplierSigner).isApprovedForAll(investor1, supplier)
       ).to.be.revertedWith('OperatorActionsNotSupported');
     });
+    it('should fail to *mint*', async () => {
+      const { rNori, hre } = await setupTest({});
+      const { supplier } = await hre.getNamedAccounts();
+      const supplierSigner = await hre.ethers.getSigner(supplier);
+      await expect(
+        rNori.connect(supplierSigner).mint(supplier, 0, 2000, '0x')
+      ).to.be.revertedWith('MintingNotSupported');
+    });
+    it('should fail to *mintBatch*', async () => {
+      const { rNori, hre } = await setupTest({});
+      const { supplier } = await hre.getNamedAccounts();
+      const supplierSigner = await hre.ethers.getSigner(supplier);
+      await expect(
+        rNori.connect(supplierSigner).mintBatch(supplier, [0], [2000], '0x')
+      ).to.be.revertedWith('MintingNotSupported');
+    });
   });
 });
