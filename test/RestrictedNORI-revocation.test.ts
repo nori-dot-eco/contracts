@@ -383,6 +383,13 @@ describe('RestrictedNORI revocation', () => {
           removalIds: [listedRemovalIds1[0], listedRemovalIds2[0]],
           removalAmountsToRestrict: restrictedAmounts,
         });
+        const allScheduleIds = await rNori.getAllScheduleIds();
+        expect(
+          allScheduleIds.map((scheduleId) => scheduleId.toHexString())
+        ).to.have.deep.members([
+          BigNumber.from(projectId1).toHexString(),
+          BigNumber.from(projectId2).toHexString(),
+        ]);
         await advanceTime({
           hre,
           timestamp: scheduleStartTime + SECONDS_IN_5_YEARS,
