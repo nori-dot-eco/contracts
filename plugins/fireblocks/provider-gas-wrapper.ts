@@ -15,9 +15,10 @@ import { BigNumber } from 'ethers';
 // curl -H "Authorization: xxxx" https://api.blocknative.com/gasprices/blockprices
 // {"system":"ethereum","network":"main","unit":"gwei","maxPrice":55,"currentBlockNumber":14562255,"msSinceLastBlock":29419,"blockPrices":[{"blockNumber":14562256,"estimatedTransactionCount":431,"baseFee":31.171002417,"estimatedPrices":[{"confidence":99,"price":33,"maxPriorityFee":2,"maxFee":64.34},{"confidence":95,"price":32,"maxPriorityFee":1.62,"maxFee":63.96},{"confidence":90,"price":32,"maxPriorityFee":1.51,"maxFee":63.85},{"confidence":80,"price":32,"maxPriorityFee":1.5,"maxFee":63.84},{"confidence":70,"price":32,"maxPriorityFee":1.17,"maxFee":63.51}]}]}%
 
-
 // Sensible defaults -- TODO query the gas station services above
-const defaultGasFeeSettings: { [key: number]: Pick<FeeData, 'maxFeePerGas' | 'maxPriorityFeePerGas' > } = {
+const defaultGasFeeSettings: {
+  [key: number]: Pick<FeeData, 'maxFeePerGas' | 'maxPriorityFeePerGas'>;
+} = {
   137: {
     maxFeePerGas: BigNumber.from(120),
     maxPriorityFeePerGas: BigNumber.from(60),
@@ -39,9 +40,9 @@ const defaultGasFeeSettings: { [key: number]: Pick<FeeData, 'maxFeePerGas' | 'ma
 type GAS_SPEED = 'safeLow' | 'standard' | 'fast';
 
 interface GasStationResponse {
-  safeLow: { maxFee: number, maxPriorityFee: number };
-  standard: { maxFee: number, maxPriorityFee: number };
-  fast: { maxFee: number, maxPriorityFee: number };
+  safeLow: { maxFee: number; maxPriorityFee: number };
+  standard: { maxFee: number; maxPriorityFee: number };
+  fast: { maxFee: number; maxPriorityFee: number };
   blockTime: number;
   blockNumber: number;
 }
@@ -54,12 +55,16 @@ const polygonGasStation = async (
   url: string
 ): Promise<FeeData> => {
   const response = await fetch(url);
+  // Gas station data is in gwei
   const fees: GasStationResponse = await response.json();
   const feeData = fees[level];
   return {
-    maxFeePerGas: BigNumber.from(Math.round(feeData.maxFee)),
-    maxPriorityFeePerGas: BigNumber.from(Math.round(feeData.maxPriorityFee)),
-    gasPrice: BigNumber.from(Math.round(feeData.maxFee)),
+    maxFeePerGas: ethers.utils.parseUnits(feeData.maxFee.toFixed(3), 'gwei'),
+    maxPriorityFeePerGas: ethers.utils.parseUnits(
+      feeData.maxPriorityFee.toFixed(3),
+      'gwei'
+    ),
+    gasPrice: ethers.utils.parseUnits(feeData.maxFee.toFixed(3), 'gwei'),
   };
 };
 
@@ -72,9 +77,14 @@ async function getFeeDataForChain(
   } else if (chainId === 80001) {
     return await polygonGasStation(level, POLYGON_MUMBAI_URL);
   }
-  return Promise.resolve({ ...defaultGasFeeSettings[chainId], gasPrice: defaultGasFeeSettings[chainId].maxFeePerGas });
+  return Promise.resolve({
+    ...defaultGasFeeSettings[chainId],
+    gasPrice: defaultGasFeeSettings[chainId].maxFeePerGas,
+  });
 }
 
 export class JsonRpcBatchProviderWithGasFees extends JsonRpcBatchProvider {
-    async getFeeData(): Promise<FeeData> { return getFeeDataForChain(this.network.chainId); }
+  async getFeeData(): Promise<FeeData> {
+    return getFeeDataForChain(this.network.chainId);
+  }
 }
