@@ -5,6 +5,7 @@
   "license": "MIT",
   "devDependencies": {
     "@codechecks/client": "^0.1.12",
+    "@foundry-rs/hardhat": "^0.1.6",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.0.3",
     "@nomiclabs/hardhat-solhint": "^2.0.0",

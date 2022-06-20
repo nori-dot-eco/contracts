@@ -1,6 +1,7 @@
 import 'tsconfig-paths/register';
 import '@/config/environment';
 import '@/plugins';
+import '@foundry-rs/hardhat';
 
 import type { HardhatUserConfig } from 'hardhat/types';
 
