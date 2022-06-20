@@ -13,4 +13,5 @@ export const deploy: CustomHardhatDeployFunction = async (environment) => {
 
 export default deploy;
 deploy.tags = ['seed'];
-deploy.runAtTheEnd = true;
+deploy.dependencies = ['assets', 'market'];
+deploy.skip = async () => Promise.resolve(process.env.REPORT_GAS === true);
