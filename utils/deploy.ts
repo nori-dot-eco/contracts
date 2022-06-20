@@ -329,6 +329,7 @@ export const saveDeployments = async ({
         const { abi, bytecode, deployedBytecode } =
           await hre.artifacts.readArtifact(name);
         if (process.env.TENDERLY === true) {
+          // todo move to own deploy script
           hre.trace('persisting artifacts to tenderly');
           await hre.tenderly.persistArtifacts({
             name,
@@ -360,63 +361,61 @@ export const seedContracts = async ({
   hre: CustomHardHatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
-  if (process.env.MINT) {
-    if (
-      contracts.Certificate !== undefined &&
-      contracts.FIFOMarket !== undefined &&
-      contracts.Removal !== undefined
-    ) {
-      const tokenId = await createRemovalTokenId({
-        removal: contracts.Removal,
-        hre,
-        removalData: {
-          supplierAddress: hre.namedAccounts.supplier,
-        },
-      });
-      const listNow = true;
-      const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-        ['address', 'bool'],
-        [contracts.FIFOMarket.address, listNow]
-      );
-      const tx = await contracts.Removal.mintBatch(
-        hre.namedAccounts.supplier,
-        [formatTokenAmount(100)],
-        [tokenId],
-        packedData
-      );
-      hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });
-    }
-    if (
-      contracts.BridgedPolygonNORI !== undefined &&
-      contracts.NORI !== undefined &&
-      (hre.network.name === 'hardhat' || hre.network.name === 'localhost')
-    ) {
-      await mockDepositNoriToPolygon({
-        hre,
-        contracts: {
-          BridgedPolygonNORI: contracts.BridgedPolygonNORI,
-          NORI: contracts.NORI,
-        },
-        amount: formatTokenAmount(100_000_000),
-        to: hre.namedAccounts.admin,
-        signer: hre.namedSigners.admin,
-      });
-      hre.trace(
-        'Mock deposited 100_000_000 NORI into BridgedPolygonNORI for the admin account'
-      );
-      const tx = await contracts.BridgedPolygonNORI.connect(
-        hre.namedSigners.admin
-      ).send(
-        // todo stop minting/seeding during deployment
-        hre.namedAccounts.buyer,
-        formatTokenAmount(1_000_000),
-        hre.ethers.utils.formatBytes32String('0x0')
-      );
-      hre.trace(
-        'Sent some BridgedPolygonNORI from the admin account to the buyer account',
-        tx.hash
-      );
-    }
+  if (
+    contracts.Certificate !== undefined &&
+    contracts.FIFOMarket !== undefined &&
+    contracts.Removal !== undefined
+  ) {
+    const tokenId = await createRemovalTokenId({
+      removal: contracts.Removal,
+      hre,
+      removalData: {
+        supplierAddress: hre.namedAccounts.supplier,
+      },
+    });
+    const listNow = true;
+    const packedData = hre.ethers.utils.defaultAbiCoder.encode(
+      ['address', 'bool'],
+      [contracts.FIFOMarket.address, listNow]
+    );
+    const tx = await contracts.Removal.mintBatch(
+      hre.namedAccounts.supplier,
+      [formatTokenAmount(100)],
+      [tokenId],
+      packedData
+    );
+    hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });
+  }
+  if (
+    contracts.BridgedPolygonNORI !== undefined &&
+    contracts.NORI !== undefined &&
+    (hre.network.name === 'hardhat' || hre.network.name === 'localhost')
+  ) {
+    await mockDepositNoriToPolygon({
+      hre,
+      contracts: {
+        BridgedPolygonNORI: contracts.BridgedPolygonNORI,
+        NORI: contracts.NORI,
+      },
+      amount: formatTokenAmount(100_000_000),
+      to: hre.namedAccounts.admin,
+      signer: hre.namedSigners.admin,
+    });
+    hre.trace(
+      'Mock deposited 100_000_000 NORI into BridgedPolygonNORI for the admin account'
+    );
+    const tx = await contracts.BridgedPolygonNORI.connect(
+      hre.namedSigners.admin
+    ).send(
+      // todo stop minting/seeding during deployment
+      hre.namedAccounts.buyer,
+      formatTokenAmount(1_000_000),
+      hre.ethers.utils.formatBytes32String('0x0')
+    );
+    hre.trace(
+      'Sent some BridgedPolygonNORI from the admin account to the buyer account',
+      tx.hash
+    );
   }
 };
 

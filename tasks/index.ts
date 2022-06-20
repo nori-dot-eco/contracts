@@ -22,8 +22,6 @@ import { TASK as LOCKED_NORI_TASK } from './locked-nori';
 import { TASK as BRIDGED_POLYGON_NORI_TASK } from './bridged-polygon-nori';
 import { DEFENDER_ADD_TASK } from './defender';
 import { GET_VESTING_TASK } from './vesting';
-import { TASK as TEST_TASK } from './test';
-import { TASK as COVERAGE_TASK } from './coverage';
 import { TASK as FORCE_UPGRADE_TASK } from './force-ugrade';
 import { TASK as SIGN_MESSAGE_TASK } from './sign-message';
 
@@ -74,8 +72,6 @@ export const TASKS = {
   [BRIDGED_POLYGON_NORI_TASK.name]: { ...BRIDGED_POLYGON_NORI_TASK },
   [DEFENDER_ADD_TASK.name]: { ...DEFENDER_ADD_TASK },
   [VESTING_TASK.name]: { ...VESTING_TASK },
-  [TEST_TASK.name]: { ...TEST_TASK },
-  [COVERAGE_TASK.name]: { ...COVERAGE_TASK },
   [FORCE_UPGRADE_TASK.name]: { ...FORCE_UPGRADE_TASK },
   [SIGN_MESSAGE_TASK.name]: { ...SIGN_MESSAGE_TASK },
 } as const;
