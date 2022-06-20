@@ -16,6 +16,7 @@ import moment from 'moment';
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import { getOctokit } from '@/tasks/utils/github';
 import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
+import { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
 
 // todo cleanup: move utils to utils folder)
 // todo cli: add optional param to allow a revoking tokens to a different address than the first signer index
@@ -472,9 +473,9 @@ interface VestingTaskOptions {
   diff?: boolean;
   expand?: boolean;
   commit?: string;
-  account?: number;
   action?: 'createAndRevoke' | 'revoke' | 'create';
   file?: string;
+  memo?: string;
   asJson?: boolean;
   dryRun?: boolean;
 }
@@ -501,9 +502,9 @@ export const GET_VESTING_TASK = () =>
         diff: showDiff,
         expand,
         commit,
-        account,
         action,
         file,
+        memo,
         asJson,
         dryRun,
       } = options as ParsedVestingTaskOptions;
@@ -512,16 +513,12 @@ export const GET_VESTING_TASK = () =>
         revoke: action === 'revoke',
         create: action === 'create',
       };
-      hre.log(`Account index: ${account}`);
-      if (typeof account !== 'number' || account < 0 || account > 10) {
-        throw new Error('Invalid account/signer index');
-      }
       if (asJson && !showDiff && !expand) {
         throw new Error(
           'You must specify --diff or --expand when using --as-json'
         );
       }
-      const signer = (await hre.getSigners())[account];
+      const signer = (await hre.getSigners())[0];
       const { getBridgedPolygonNori, getLockedNORI } = await import(
         '@/utils/contracts'
       );
@@ -559,6 +556,7 @@ export const GET_VESTING_TASK = () =>
           bpNori,
           lNori,
           dryRun,
+          memo,
         });
       }
       if (createAndRevoke || revoke) {
@@ -567,6 +565,7 @@ export const GET_VESTING_TASK = () =>
           lNori,
           signer,
           dryRun,
+          memo,
         });
       }
       if (!expand && !showDiff && !createAndRevoke && !create && !revoke) {
@@ -743,11 +742,13 @@ const CREATE_SUBTASK = {
       bpNori,
       lNori,
       dryRun,
+      memo,
     }: {
       grants: Pick<Grants, 'github'>;
       bpNori: BridgedPolygonNORI;
       lNori: LockedNORI;
       dryRun: boolean;
+      memo?: string;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -828,6 +829,10 @@ const CREATE_SUBTASK = {
         )}`
       );
       if (!dryRun) {
+        const fireblocksSigner = bpNori.signer as FireblocksSigner;
+        if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
+          fireblocksSigner.setNextTransactionMemo(`Vesting Create: ${memo || ''}`);
+        }
         const batchCreateGrantsTx = await bpNori.batchSend(
           recipients,
           amounts,
@@ -881,11 +886,13 @@ const REVOKE_SUBTASK = {
       lNori,
       signer,
       dryRun,
+      memo,
     }: {
       grants: Pick<Grants, 'github'>;
       lNori: LockedNORI;
       signer: Signer;
       dryRun: boolean;
+      memo?: string;
     },
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
@@ -923,6 +930,10 @@ const REVOKE_SUBTASK = {
         )
       );
       if (!Boolean(dryRun)) {
+        const fireblocksSigner = lNori.signer as FireblocksSigner;
+        if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
+          fireblocksSigner.setNextTransactionMemo(`Vesting Revoke: ${memo || ''}`);
+        }
         const batchRevokeUnvestedTokenAmountsTx =
           await lNori.batchRevokeUnvestedTokenAmounts(
             fromAccounts,
@@ -983,13 +994,8 @@ const REVOKE_SUBTASK = {
       'master',
       types.string
     )
-    .addOptionalParam(
-      'account',
-      'The account index to connect using',
-      0,
-      types.int
-    )
     .addOptionalParam('file', 'Use a file instead of github')
+    .addOptionalParam('memo', 'Add a custom memo to the transaction (Fireblocks only)')
     .addFlag('dryRun', 'simulate the transaction without actually sending it')
     .addFlag(DIFF_SUBTASK.name, DIFF_SUBTASK.description)
     .addFlag(

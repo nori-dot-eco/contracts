@@ -1,6 +1,6 @@
 import type { PopulatedTransaction } from '@ethersproject/contracts';
 import type { Deferrable } from '@ethersproject/properties';
-import type {
+import {
   CreateTransactionResponse,
   TransactionArguments,
 } from 'fireblocks-sdk';
@@ -23,7 +23,21 @@ export class EthersCustomBridge extends BaseBridge {
         type: PeerType.VAULT_ACCOUNT,
         id: this.params.vaultAccountId,
       },
-      gasPrice: formatUnits(transaction?.gasPrice?.toString() || '0', 'gwei'),
+      gasPrice:
+        transaction.gasPrice != undefined
+          ? formatUnits(transaction?.gasPrice?.toString() || '0', 'gwei')
+          : undefined,
+      maxFee:
+        transaction.maxFeePerGas != undefined
+          ? formatUnits(transaction.maxFeePerGas!.toString() || '0', 'gwei')
+          : undefined,
+      priorityFee:
+        transaction.maxPriorityFeePerGas != undefined
+          ? formatUnits(
+              transaction.maxPriorityFeePerGas!.toString() || '0',
+              'gwei'
+            )
+          : undefined,
       gasLimit: formatUnits(transaction?.gasLimit?.toString() || '0', 'wei'),
       destination: {
         type: this.params.externalWalletId

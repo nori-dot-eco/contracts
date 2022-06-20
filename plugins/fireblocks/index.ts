@@ -10,11 +10,11 @@ import type {
   HttpNetworkConfig,
 } from 'hardhat/types';
 import './type-extensions';
-import { JsonRpcBatchProvider } from '@ethersproject/providers';
 import { FireblocksSDK } from 'fireblocks-sdk';
 
 import { Chain } from './from-upstream/chain';
 import { FireblocksSigner } from './fireblocks-signer';
+import { JsonRpcBatchProviderWithGasFees } from './provider-gas-wrapper';
 
 type NetworkMap = {
   [K in CustomHardHatRuntimeEnvironment['network']['name']]: Chain | undefined;
@@ -45,7 +45,7 @@ const setupFireblocksSigner = async (
       const signer = new FireblocksSigner(
         fireblocksApiClient,
         networkNameToChain[hre.network.name],
-        new JsonRpcBatchProvider(networkConfig.url, networkConfig.chainId),
+        new JsonRpcBatchProviderWithGasFees(networkConfig.url, networkConfig.chainId),
         config.vaultId
       );
       const address = await signer.getAddress();
