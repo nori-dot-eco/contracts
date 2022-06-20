@@ -1,15 +1,10 @@
-// import type { BigNumberish, BigNumber } from 'ethers';
+// import { expect, setupTest } from '@/test/helpers';
+// import { createBatchMintData } from '@/test/helpers/certificate';
 
-// import { formatTokenAmount } from '@/utils/units';
-// import {
-//   expect,
-//   mockDepositNoriToPolygon,
-//   setupTest,
-//   createRemovalTokenId,
-// } from '@/test/helpers';
+// // todo test that it implements ERC1155PresetPausableNonTransferrable (perhaps by emitting event in mock?)
 
 // describe('Certificate', () => {
-//   describe('mint', () => {
-
+//   it('todo', async () => {
+//     const { mockCertificate, hre } = await setupTest();
 //   });
 // });

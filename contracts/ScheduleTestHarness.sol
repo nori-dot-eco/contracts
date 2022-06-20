@@ -8,8 +8,9 @@ import {ScheduleUtils, Schedule} from "./ScheduleUtils.sol";
  *
  * Not intended for deployment in productionish environments.
  */
-
 contract ScheduleTestHarness {
+  // todo consider TestHarness vs Mock naming convention
+  // todo consider moving to mocks folder
   using ScheduleUtils for Schedule;
 
   mapping(uint256 => Schedule) private _schedules;

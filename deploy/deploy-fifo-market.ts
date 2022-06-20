@@ -12,12 +12,11 @@ export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`deployFIFOMarket`);
-  const feeWallet =
-    hre.network.name === 'hardhat'
-      ? hre.namedAccounts.noriWallet
-      : hre.network.name === 'polygon'
-      ? PROD_NORI_FEE_WALLET_ADDRESS
-      : STAGING_NORI_FEE_WALLET_ADDRESS;
+  const feeWallet = ['hardhat', 'localhost'].includes(hre.network.name)
+    ? hre.namedAccounts.noriWallet
+    : hre.network.name === 'polygon'
+    ? PROD_NORI_FEE_WALLET_ADDRESS
+    : STAGING_NORI_FEE_WALLET_ADDRESS;
   const contract = await deployFIFOMarketContract({
     hre,
     feeWallet,
@@ -31,7 +30,10 @@ export const deploy: DeployFunction = async (environment) => {
       contract.address
     ))
   ) {
-    await certificate.addMinter(contract.address); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
+    await certificate.grantRole(
+      await certificate.MINTER_ROLE(),
+      contract.address
+    ); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
   }
   hre.trace('Added FIFOMarket as a minter of Certificate');
   await finalizeDeployments({ hre, contracts: { FIFOMarket: contract } });
