@@ -474,20 +474,25 @@ contract RestrictedNORI is
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 scheduleTrueTotal = schedule.totalClaimedAmount +
       totalSupply(scheduleId);
+    uint256 claimableForAccount;
     // avoid division by 0
     if (scheduleTrueTotal == 0) {
-      return 0;
+      claimableForAccount = 0;
+    } else {
+      uint256 balanceOfAccount = balanceOf(account, scheduleId);
+      uint256 claimedAmountForAccount = schedule.claimedAmountsByAddress[
+        account
+      ];
+      uint256 claimableBalanceForFullSchedule = claimableBalanceForSchedule(
+        scheduleId
+      );
+      claimableForAccount =
+        ((claimedAmountForAccount + balanceOfAccount) *
+          (claimableBalanceForFullSchedule + schedule.totalClaimedAmount)) /
+        scheduleTrueTotal -
+        claimedAmountForAccount;
     }
-    uint256 balanceOfAccount = balanceOf(account, scheduleId);
-    uint256 claimedAmountForAccount = schedule.claimedAmountsByAddress[account];
-    uint256 claimableBalanceForFullSchedule = claimableBalanceForSchedule(
-      scheduleId
-    );
-    uint256 claimableForAccount = ((claimedAmountForAccount +
-      balanceOfAccount) *
-      (claimableBalanceForFullSchedule + schedule.totalClaimedAmount)) /
-      scheduleTrueTotal -
-      claimedAmountForAccount;
+
     return claimableForAccount;
   }
 
@@ -720,9 +725,8 @@ contract RestrictedNORI is
     bytes memory operatorData
   ) internal returns (bool) {
     uint256 projectId = _removal.getProjectIdForRemoval(removalId);
-    Removal.ScheduleData memory scheduleData = _removal.getScheduleData(
-      projectId
-    );
+    Removal.ScheduleData memory scheduleData = _removal
+      .getScheduleDataForProjectId(projectId);
     address recipient = scheduleData.supplierAddress;
     if (!_scheduleIdToScheduleStruct[projectId].exists) {
       _createSchedule(projectId);
@@ -742,9 +746,8 @@ contract RestrictedNORI is
    * tokens were sent to this contract without a schedule set up.
    */
   function _createSchedule(uint256 projectId) internal {
-    Removal.ScheduleData memory scheduleData = _removal.getScheduleData(
-      projectId
-    );
+    Removal.ScheduleData memory scheduleData = _removal
+      .getScheduleDataForProjectId(projectId);
     if (scheduleData.startTime == 0) {
       revert InvalidScheduleStartTime({projectId: projectId});
     }
@@ -903,17 +906,16 @@ contract RestrictedNORI is
 
     if (isBurning) {
       for (uint256 i = 0; i < ids.length; i++) {
-        Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
-        schedule.releasedAmountFloor = _releasedBalanceOfSingleSchedule(ids[i]);
+        uint256 id = ids[i];
+        Schedule storage schedule = _scheduleIdToScheduleStruct[id];
+        schedule.releasedAmountFloor = _releasedBalanceOfSingleSchedule(id);
       }
     }
     if (isWithdrawing) {
       for (uint256 i = 0; i < ids.length; i++) {
-        if (amounts[i] > claimableBalanceForScheduleForAccount(ids[i], from)) {
-          revert InsufficientClaimableBalance({
-            account: from,
-            scheduleId: ids[i]
-          });
+        uint256 id = ids[i];
+        if (amounts[i] > claimableBalanceForScheduleForAccount(id, from)) {
+          revert InsufficientClaimableBalance({account: from, scheduleId: id});
         }
       }
     }
@@ -931,15 +933,17 @@ contract RestrictedNORI is
     returns (uint256)
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
+    uint256 linearAmountAvailable;
     if (block.timestamp >= schedule.endTime) {
-      return totalSupply(scheduleId);
-    }
-    uint256 rampTotalTime = schedule.endTime - schedule.startTime;
-    return
-      block.timestamp < schedule.startTime
+      linearAmountAvailable = totalSupply(scheduleId);
+    } else {
+      uint256 rampTotalTime = schedule.endTime - schedule.startTime;
+      linearAmountAvailable = block.timestamp < schedule.startTime
         ? 0
         : (totalSupply(scheduleId) * (block.timestamp - schedule.startTime)) /
           rampTotalTime;
+    }
+    return linearAmountAvailable;
   }
 
   /* solhint-enable not-rely-on-time */
@@ -956,14 +960,20 @@ contract RestrictedNORI is
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 scheduleTrueTotal = schedule.totalClaimedAmount +
       totalSupply(scheduleId);
+    uint256 revocableForAccount;
     // avoid division by 0
     if (scheduleTrueTotal == 0) {
-      return 0;
+      revocableForAccount = 0;
+    } else {
+      uint256 balanceOfAccount = balanceOf(account, scheduleId);
+      uint256 claimedAmountForAccount = schedule.claimedAmountsByAddress[
+        account
+      ];
+      revocableForAccount =
+        ((claimedAmountForAccount + balanceOfAccount) *
+          (totalQuantityToRevoke)) /
+        scheduleTrueTotal;
     }
-    uint256 balanceOfAccount = balanceOf(account, scheduleId);
-    uint256 claimedAmountForAccount = schedule.claimedAmountsByAddress[account];
-    uint256 revocableForAccount = ((claimedAmountForAccount +
-      balanceOfAccount) * (totalQuantityToRevoke)) / scheduleTrueTotal;
 
     return revocableForAccount;
   }
@@ -985,27 +995,6 @@ contract RestrictedNORI is
         _linearReleaseAmountAvailable(scheduleId),
         schedule.releasedAmountFloor
       );
-  }
-
-  /**
-   * Grants `role` to `account`
-   *
-   * ### Requirements:
-   *    - SCHEDULE_CREATOR_ROLE cannot be granted to an owner of RestrictedNORI tokens
-   *
-   * [See OZ Access Control docs for more] (
-   *  https://docs.openzeppelin.com/contracts/3.x/access-control)
-   */
-  function _grantRole(bytes32 role, address account) internal virtual override {
-    if (role == SCHEDULE_CREATOR_ROLE) {
-      if (_addressToScheduleIdSet[account].length() > 0) {
-        revert RoleUnassignableToScheduleHolder({
-          account: account,
-          role: "SCHEDULE_CREATOR_ROLE"
-        });
-      }
-    }
-    super._grantRole(role, account);
   }
 
   // Disabled functions ===========================================

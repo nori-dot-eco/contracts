@@ -3,7 +3,7 @@ import {
   expect,
   setupTest,
   createBatchMintData,
-  NOW,
+  getLatestBlockTime,
 } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 
@@ -32,7 +32,11 @@ describe('Removal', () => {
         );
 
         const listNow = false;
-        const packedData = createBatchMintData({ hre, fifoMarket, listNow });
+        const packedData = await createBatchMintData({
+          hre,
+          fifoMarket,
+          listNow,
+        });
         await expect(
           removal.mintBatch(supplier, removalBalances, tokenIds, packedData)
         )
@@ -81,7 +85,11 @@ describe('Removal', () => {
         );
 
         const listNow = true;
-        const packedData = createBatchMintData({ hre, fifoMarket, listNow });
+        const packedData = await createBatchMintData({
+          hre,
+          fifoMarket,
+          listNow,
+        });
         await expect(
           removal.mintBatch(supplier, removalBalances, tokenIds, packedData)
         )
@@ -128,7 +136,7 @@ describe('Removal', () => {
 
         const projectId = 1_234_567_890;
         const listNow = false;
-        const packedData = createBatchMintData({
+        const packedData = await createBatchMintData({
           hre,
           fifoMarket,
           listNow,
@@ -201,7 +209,11 @@ describe('Removal', () => {
             )
           );
           const listNow = false;
-          const packedData = createBatchMintData({ hre, fifoMarket, listNow });
+          const packedData = await createBatchMintData({
+            hre,
+            fifoMarket,
+            listNow,
+          });
           await expect(
             removal.mintBatch(
               hre.namedAccounts.supplier,
@@ -233,8 +245,8 @@ describe('Removal', () => {
           )
         );
         const listNow = false;
-        const scheduleStartTime = NOW;
-        const packedData = createBatchMintData({
+        const scheduleStartTime = await getLatestBlockTime({ hre });
+        const packedData = await createBatchMintData({
           hre,
           fifoMarket,
           listNow,
@@ -247,7 +259,9 @@ describe('Removal', () => {
           packedData
         );
         const projectId = await removal.getProjectIdForRemoval(tokenIds[0]);
-        const scheduleData = await removal.getScheduleData(projectId);
+        const scheduleData = await removal.getScheduleDataForProjectId(
+          projectId
+        );
         expect(scheduleData.startTime).to.equal(scheduleStartTime);
       });
     });

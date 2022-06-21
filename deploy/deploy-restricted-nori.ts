@@ -1,14 +1,13 @@
 import { Logger } from 'ethers/lib/utils';
 import type { DeployFunction } from 'hardhat-deploy/types';
 
-import { getRemoval } from '../utils/contracts';
-
+import { getRemoval } from '@/utils/contracts';
 import { deployRestrictedNORI, finalizeDeployments } from '@/utils/deploy';
 
 export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
-  hre.trace(`deployRestrictedNORI`);
+  hre.trace(`deploy-restricted-nori`);
   const contract = await deployRestrictedNORI({
     hre,
   });

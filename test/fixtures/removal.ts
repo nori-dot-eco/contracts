@@ -7,6 +7,6 @@ export const defaultRemovalTokenIdFixture: UnpackedRemovalIdV0Struct = {
   vintage: 2018,
   country: '0x5553', // asciiStringToHexString('US')
   subdivision: '0x4941', // asciiStringToHexString('IA')
-  supplierAddress: '0x6b9d03759E9F14a641f0703fBD84F1F726159B6B', // hre.namedAccounts.supplier
+  supplierAddress: hre.namedAccounts.supplier, // hre.namedAccounts.supplier
   subIdentifier: 99_039_930, // parcel id
 };

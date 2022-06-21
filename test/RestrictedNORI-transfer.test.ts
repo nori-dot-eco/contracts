@@ -1,12 +1,16 @@
 import { BigNumber } from 'ethers';
 
-import { expect, advanceTime, setupTest, NOW } from '@/test/helpers';
+import {
+  expect,
+  advanceTime,
+  setupTest,
+  batchMintAndListRemovalsForSale,
+} from '@/test/helpers';
 import {
   restrictRemovalProceeds,
   compareScheduleDetailForAddressStructs,
   compareScheduleSummaryStructs,
   SECONDS_IN_10_YEARS,
-  mintAndListRemovals,
 } from '@/test/helpers/restricted-nori';
 
 describe('RestrictedNORI transferring', () => {
@@ -22,10 +26,11 @@ describe('RestrictedNORI transferring', () => {
         ];
         const testSetup = await setupTest({});
         const { rNori, hre } = testSetup;
-        const { listedRemovalIds, projectId } = await mintAndListRemovals({
-          testSetup,
-          removalDataToList,
-        });
+        const { listedRemovalIds, projectId, scheduleStartTime } =
+          await batchMintAndListRemovalsForSale({
+            testSetup,
+            removalDataToList,
+          });
         const { supplier, investor1 } = hre.namedAccounts;
         const restrictedAmount = removalDataToList[0].amount;
         await restrictRemovalProceeds({
@@ -39,8 +44,8 @@ describe('RestrictedNORI transferring', () => {
         const expectedScheduleDetailBeforeTransfer = {
           tokenHolder: supplier,
           scheduleTokenId: projectId,
-          startTime: BigNumber.from(NOW),
-          endTime: BigNumber.from(NOW).add(SECONDS_IN_10_YEARS),
+          startTime: BigNumber.from(scheduleStartTime),
+          endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
           balance: BigNumber.from(restrictedAmount),
           claimableAmount: BigNumber.from(0),
           claimedAmount: BigNumber.from(0),
@@ -62,8 +67,8 @@ describe('RestrictedNORI transferring', () => {
         const expectedSupplierScheduleDetailAfterTransfer = {
           tokenHolder: supplier,
           scheduleTokenId: projectId,
-          startTime: BigNumber.from(NOW),
-          endTime: BigNumber.from(NOW).add(SECONDS_IN_10_YEARS),
+          startTime: BigNumber.from(scheduleStartTime),
+          endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
           balance: BigNumber.from(restrictedAmount / 2),
           claimableAmount: BigNumber.from(0),
           claimedAmount: BigNumber.from(0),
@@ -73,8 +78,8 @@ describe('RestrictedNORI transferring', () => {
         const expectedInvestor1ScheduleDetailAfterTransfer = {
           tokenHolder: investor1,
           scheduleTokenId: projectId,
-          startTime: BigNumber.from(NOW),
-          endTime: BigNumber.from(NOW).add(SECONDS_IN_10_YEARS),
+          startTime: BigNumber.from(scheduleStartTime),
+          endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
           balance: BigNumber.from(restrictedAmount / 2),
           claimableAmount: BigNumber.from(0),
           claimedAmount: BigNumber.from(0),
@@ -100,10 +105,11 @@ describe('RestrictedNORI transferring', () => {
         ];
         const testSetup = await setupTest({});
         const { rNori, hre } = testSetup;
-        const { listedRemovalIds, projectId } = await mintAndListRemovals({
-          testSetup,
-          removalDataToList,
-        });
+        const { listedRemovalIds, projectId, scheduleStartTime } =
+          await batchMintAndListRemovalsForSale({
+            testSetup,
+            removalDataToList,
+          });
         const { supplier, investor1 } = hre.namedAccounts;
         const restrictedAmount = removalDataToList[0].amount;
         await restrictRemovalProceeds({
@@ -116,8 +122,8 @@ describe('RestrictedNORI transferring', () => {
         compareScheduleDetailForAddressStructs(
           supplierScheduleDetailBeforeTransfer,
           {
-            startTime: BigNumber.from(NOW),
-            endTime: BigNumber.from(NOW).add(SECONDS_IN_10_YEARS),
+            startTime: BigNumber.from(scheduleStartTime),
+            endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(restrictedAmount),
           }
         );
@@ -190,17 +196,20 @@ describe('RestrictedNORI transferring', () => {
         const {
           listedRemovalIds: listedRemovalIds1,
           projectId: projectId1,
-          scheduleStartTime,
-        } = await mintAndListRemovals({
+          scheduleStartTime: scheduleStartTime1,
+        } = await batchMintAndListRemovalsForSale({
           testSetup,
           removalDataToList: [removalDataToList[0]],
         });
-        const { listedRemovalIds: listedRemovalIds2, projectId: projectId2 } =
-          await mintAndListRemovals({
-            testSetup,
-            projectId: 999_999_999,
-            removalDataToList: [removalDataToList[1]],
-          });
+        const {
+          listedRemovalIds: listedRemovalIds2,
+          projectId: projectId2,
+          scheduleStartTime: scheduleStartTime2,
+        } = await batchMintAndListRemovalsForSale({
+          testSetup,
+          projectId: 999_999_999,
+          removalDataToList: [removalDataToList[1]],
+        });
         const { supplier, investor1 } = hre.namedAccounts;
         const restrictedAmounts = removalDataToList.map(
           (removalData) => removalData.amount
@@ -213,7 +222,7 @@ describe('RestrictedNORI transferring', () => {
         // just to make the claimable balances easily computable
         await advanceTime({
           hre,
-          timestamp: scheduleStartTime + SECONDS_IN_10_YEARS,
+          timestamp: scheduleStartTime2 + SECONDS_IN_10_YEARS,
         });
 
         const supplierScheduleDetailsBeforeTransfer =
@@ -223,8 +232,9 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: supplier,
             scheduleTokenId: projectId1,
-            startTime: BigNumber.from(scheduleStartTime),
-            endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
+            startTime: BigNumber.from(scheduleStartTime1),
+            endTime:
+              BigNumber.from(scheduleStartTime1).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(restrictedAmounts[0]),
             claimableAmount: BigNumber.from(restrictedAmounts[0]),
             claimedAmount: BigNumber.from(0),
@@ -234,8 +244,9 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: supplier,
             scheduleTokenId: projectId2,
-            startTime: BigNumber.from(scheduleStartTime),
-            endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
+            startTime: BigNumber.from(scheduleStartTime2),
+            endTime:
+              BigNumber.from(scheduleStartTime2).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(restrictedAmounts[1]),
             claimableAmount: BigNumber.from(restrictedAmounts[1]),
             claimedAmount: BigNumber.from(0),
@@ -273,8 +284,9 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: supplier,
             scheduleTokenId: projectId1,
-            startTime: BigNumber.from(scheduleStartTime),
-            endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
+            startTime: BigNumber.from(scheduleStartTime1),
+            endTime:
+              BigNumber.from(scheduleStartTime1).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(
               restrictedAmounts[0] - amountToTransferFirstSchedule
             ),
@@ -288,8 +300,9 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: supplier,
             scheduleTokenId: projectId2,
-            startTime: BigNumber.from(scheduleStartTime),
-            endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
+            startTime: BigNumber.from(scheduleStartTime2),
+            endTime:
+              BigNumber.from(scheduleStartTime2).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(
               restrictedAmounts[1] - amountToTransferSecondSchedule
             ),
@@ -305,8 +318,9 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: investor1,
             scheduleTokenId: projectId1,
-            startTime: BigNumber.from(scheduleStartTime),
-            endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
+            startTime: BigNumber.from(scheduleStartTime1),
+            endTime:
+              BigNumber.from(scheduleStartTime1).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(amountToTransferFirstSchedule),
             claimableAmount: BigNumber.from(amountToTransferFirstSchedule),
             claimedAmount: BigNumber.from(0),
@@ -316,8 +330,9 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: investor1,
             scheduleTokenId: projectId2,
-            startTime: BigNumber.from(scheduleStartTime),
-            endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
+            startTime: BigNumber.from(scheduleStartTime2),
+            endTime:
+              BigNumber.from(scheduleStartTime2).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(amountToTransferSecondSchedule),
             claimableAmount: BigNumber.from(amountToTransferSecondSchedule),
             claimedAmount: BigNumber.from(0),
@@ -384,12 +399,12 @@ describe('RestrictedNORI transferring', () => {
         const testSetup = await setupTest({});
         const { rNori, hre } = testSetup;
         const { listedRemovalIds: listedRemovalIds1, projectId: projectId1 } =
-          await mintAndListRemovals({
+          await batchMintAndListRemovalsForSale({
             testSetup,
             removalDataToList: [removalDataToList[0]],
           });
         const { listedRemovalIds: listedRemovalIds2, projectId: projectId2 } =
-          await mintAndListRemovals({
+          await batchMintAndListRemovalsForSale({
             testSetup,
             projectId: 999_999_999,
             removalDataToList: [removalDataToList[1]],
@@ -523,10 +538,11 @@ describe('RestrictedNORI transferring', () => {
       ];
       const testSetup = await setupTest({});
       const { rNori, hre } = testSetup;
-      const { listedRemovalIds, projectId } = await mintAndListRemovals({
-        testSetup,
-        removalDataToList,
-      });
+      const { listedRemovalIds, projectId } =
+        await batchMintAndListRemovalsForSale({
+          testSetup,
+          removalDataToList,
+        });
       const { supplier, investor1 } = hre.namedAccounts;
       const restrictedAmount = removalDataToList[0].amount;
       await restrictRemovalProceeds({

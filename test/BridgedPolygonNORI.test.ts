@@ -28,14 +28,12 @@ describe('BridgedPolygonNORI', () => {
   describe('send', () => {
     it('should mint a certificate when bpNORI is sent to the FIFOMarket minted', async () => {
       const removalDataToList = [{ amount: 3 }, { amount: 3 }, { amount: 4 }];
-      const { bpNori, removal, certificate, fifoMarket, hre } =
-        await setupTest();
+      const testSetup = await setupTest();
+      const { bpNori, certificate, fifoMarket, hre } = testSetup;
       const { listedRemovalIds, removalAmounts, totalAmountOfSupply } =
         await batchMintAndListRemovalsForSale({
+          testSetup,
           removalDataToList,
-          removal,
-          fifoMarket,
-          hre,
         });
       const { buyer } = hre.namedAccounts;
       const fee = 1.5;

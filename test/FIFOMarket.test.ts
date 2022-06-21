@@ -36,9 +36,10 @@ const setupTestLocal = global.hre.deployments.createFixture(
         options?.buyerInitialBPNoriBalance ?? formatTokenAmount(1_000_000),
       removalDataToList: options?.removalDataToList ?? [],
     };
-    const { hre, contracts, removal, fifoMarket, ...rest } = await setupTest({
+    const testSetup = await setupTest({
       userFixtures: { buyer: { bpBalance: buyerInitialBPNoriBalance } },
     });
+    const { hre, contracts, removal, fifoMarket, ...rest } = testSetup;
     let listedRemovalIds: BigNumber[] = [];
     let totalAmountOfSupply = 0;
     let totalAmountOfSuppliers = 0;
@@ -50,10 +51,8 @@ const setupTestLocal = global.hre.deployments.createFixture(
         totalAmountOfRemovals,
         totalAmountOfSuppliers,
       } = await batchMintAndListRemovalsForSale({
+        testSetup,
         removalDataToList,
-        removal,
-        fifoMarket,
-        hre,
       }));
     }
     return {
@@ -624,15 +623,14 @@ describe('FIFOMarket', () => {
     });
     it('should sell removals in order of vintage regardless of minting order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { removal, bpNori, fifoMarket, hre } = await setupTestLocal({
+      const testSetup = await setupTestLocal({
         buyerInitialBPNoriBalance,
         removalDataToList: [{ amount: 1, vintage: 2015 }],
       });
+      const { bpNori, fifoMarket, hre } = testSetup;
       await batchMintAndListRemovalsForSale({
         removalDataToList: [{ amount: 5, vintage: 2014 }],
-        removal,
-        fifoMarket,
-        hre,
+        testSetup,
       });
 
       const { buyer } = hre.namedAccounts;

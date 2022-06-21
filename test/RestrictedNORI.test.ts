@@ -5,10 +5,10 @@ import {
   setupTest,
   advanceTime,
   createRemovalTokenId,
-  NOW,
+  getLatestBlockTime,
+  batchMintAndListRemovalsForSale,
 } from '@/test/helpers';
 import {
-  mintAndListRemovals,
   restrictRemovalProceeds,
   formatTokensReceivedUserData,
   SECONDS_IN_10_YEARS,
@@ -92,7 +92,7 @@ describe('RestrictedNORI', () => {
           )
       ).to.be.reverted;
     });
-    it('should revert if an escrow schedule is being created for a methodology/version that does not have a duration set', async () => {
+    it('should revert if a restriction schedule is being created for a methodology/version that does not have a duration set', async () => {
       const { removal, fifoMarket, hre } = await setupTest({});
       const removalIdWithMethodology2 = await createRemovalTokenId({
         removal,
@@ -100,7 +100,7 @@ describe('RestrictedNORI', () => {
         hre,
       });
       const projectId = 1_234_567_890;
-      const scheduleStartTime = NOW;
+      const scheduleStartTime = await getLatestBlockTime({ hre });
       const amount = 20_000_000;
       const packedData = hre.ethers.utils.defaultAbiCoder.encode(
         ['uint256', 'uint256', 'address', 'bool'],
@@ -128,7 +128,7 @@ describe('RestrictedNORI', () => {
       const testSetup = await setupTest({});
       const { bpNori, rNori } = testSetup;
       const { listedRemovalIds, projectId, scheduleStartTime } =
-        await mintAndListRemovals({
+        await batchMintAndListRemovalsForSale({
           testSetup,
           removalDataToList,
         });
@@ -186,7 +186,7 @@ describe('RestrictedNORI', () => {
       ];
       const testSetup = await setupTest({});
       const { bpNori, rNori, hre } = testSetup;
-      const { listedRemovalIds } = await mintAndListRemovals({
+      const { listedRemovalIds } = await batchMintAndListRemovalsForSale({
         testSetup,
         removalDataToList,
       });
@@ -209,10 +209,11 @@ describe('RestrictedNORI', () => {
       ];
       const testSetup = await setupTest({});
       const { rNori, hre } = testSetup;
-      const { listedRemovalIds, projectId } = await mintAndListRemovals({
-        testSetup,
-        removalDataToList,
-      });
+      const { listedRemovalIds, projectId } =
+        await batchMintAndListRemovalsForSale({
+          testSetup,
+          removalDataToList,
+        });
       const { supplier } = hre.namedAccounts;
       const removalAmountsToRestrict = removalDataToList.map(
         (removalData) => removalData.amount
@@ -247,7 +248,7 @@ describe('RestrictedNORI', () => {
       const testSetup = await setupTest({});
       const { rNori, hre } = testSetup;
       const { listedRemovalIds, projectId, scheduleStartTime } =
-        await mintAndListRemovals({
+        await batchMintAndListRemovalsForSale({
           testSetup,
           removalDataToList,
         });
@@ -283,7 +284,7 @@ describe('RestrictedNORI', () => {
       const testSetup = await setupTest({});
       const { rNori, hre } = testSetup;
       const { listedRemovalIds, projectId, scheduleStartTime } =
-        await mintAndListRemovals({
+        await batchMintAndListRemovalsForSale({
           testSetup,
           removalDataToList,
         });
@@ -327,7 +328,7 @@ describe('RestrictedNORI', () => {
         const testSetup = await setupTest({});
         const { rNori, bpNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
-          await mintAndListRemovals({
+          await batchMintAndListRemovalsForSale({
             testSetup,
             removalDataToList,
           });
@@ -381,7 +382,7 @@ describe('RestrictedNORI', () => {
         const testSetup = await setupTest({});
         const { rNori, bpNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
-          await mintAndListRemovals({
+          await batchMintAndListRemovalsForSale({
             testSetup,
             removalDataToList,
           });
@@ -436,7 +437,7 @@ describe('RestrictedNORI', () => {
         const testSetup = await setupTest({});
         const { rNori, bpNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
-          await mintAndListRemovals({
+          await batchMintAndListRemovalsForSale({
             testSetup,
             removalDataToList,
           });
@@ -543,7 +544,7 @@ describe('RestrictedNORI', () => {
         const testSetup = await setupTest({});
         const { rNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
-          await mintAndListRemovals({
+          await batchMintAndListRemovalsForSale({
             testSetup,
             removalDataToList,
           });
@@ -585,10 +586,11 @@ describe('RestrictedNORI', () => {
       ];
       const testSetup = await setupTest({});
       const { rNori, hre } = testSetup;
-      const { listedRemovalIds, projectId } = await mintAndListRemovals({
-        testSetup,
-        removalDataToList,
-      });
+      const { listedRemovalIds, projectId } =
+        await batchMintAndListRemovalsForSale({
+          testSetup,
+          removalDataToList,
+        });
       const { supplier } = hre.namedAccounts;
       const restrictedAmount = removalDataToList[0].amount;
       await restrictRemovalProceeds({
@@ -624,12 +626,12 @@ describe('RestrictedNORI', () => {
       const testSetup = await setupTest({});
       const { rNori, hre } = testSetup;
       const { listedRemovalIds: listedRemovalIds1, projectId: projectId1 } =
-        await mintAndListRemovals({
+        await batchMintAndListRemovalsForSale({
           testSetup,
           removalDataToList: [removalDataToList[0]],
         });
       const { listedRemovalIds: listedRemovalIds2, projectId: projectId2 } =
-        await mintAndListRemovals({
+        await batchMintAndListRemovalsForSale({
           testSetup,
           projectId: 999_999_999,
           removalDataToList: [removalDataToList[1]],

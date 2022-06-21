@@ -123,9 +123,20 @@ contract Removal is
   }
 
   /**
+   * @notice Get the restriction schedule data for a given removal id.
+   */
+  function getScheduleDataForRemovalId(uint256 removalId)
+    external
+    view
+    returns (ScheduleData memory)
+  {
+    return _projectIdToScheduleData[_removalIdToProjectId[removalId]];
+  }
+
+  /**
    * @notice Get the restriction schedule data for a given project id.
    */
-  function getScheduleData(uint256 projectId)
+  function getScheduleDataForProjectId(uint256 projectId)
     external
     view
     returns (ScheduleData memory)
@@ -154,7 +165,8 @@ contract Removal is
     uint256[] memory ids,
     bytes memory data
   ) public override {
-    if (!(amounts.length == ids.length)) {
+    uint256 idsLength = ids.length;
+    if (!(amounts.length == idsLength)) {
       revert ArrayLengthMismatch({array1Name: "amounts", array2Name: "ids"});
     }
     // todo should we check that the removal id-encoded supplier address for each id is the same as `to` ?
@@ -165,38 +177,41 @@ contract Removal is
       data,
       (BatchMintRemovalsData)
     );
-    if (decodedData.projectId == 0) {
-      revert InvalidProjectId({projectId: decodedData.projectId});
+    uint256 projectId = decodedData.projectId;
+    uint256 scheduleStartTime = decodedData.scheduleStartTime;
+    bool list = decodedData.list;
+    address marketAddress = decodedData.marketAddress;
+    if (projectId == 0) {
+      revert InvalidProjectId({projectId: projectId});
     }
     if (
-      decodedData.scheduleStartTime < UNIX_EPOCH_2010 ||
-      decodedData.scheduleStartTime > UNIX_EPOCH_2050
+      scheduleStartTime < UNIX_EPOCH_2010 || scheduleStartTime > UNIX_EPOCH_2050
     ) {
-      revert InvalidScheduleStartTime({
-        startTime: decodedData.scheduleStartTime
-      });
+      revert InvalidScheduleStartTime({startTime: scheduleStartTime});
     }
-    for (uint256 i = 0; i < ids.length; i++) {
-      if (_tokenIdExists[ids[i]]) {
-        // TODO (Gas Optimization): Is there a way to check once for all ids if they exist? e.g. via a merkle proof of some kind
-        revert TokenIdExists({tokenId: ids[i]});
+    uint256 newTokenIdCounter = tokenIdCounter;
+    for (uint256 i = 0; i < idsLength; i++) {
+      uint256 id = ids[i];
+      if (_tokenIdExists[id]) {
+        revert TokenIdExists({tokenId: id});
       }
-      _removalIdToProjectId[ids[i]] = decodedData.projectId;
-      _tokenIdExists[ids[i]] = true;
-      indexToTokenId[tokenIdCounter] = ids[i];
-      tokenIdCounter += 1;
+      _removalIdToProjectId[id] = projectId;
+      _tokenIdExists[id] = true;
+      indexToTokenId[newTokenIdCounter] = id;
+      newTokenIdCounter += 1;
     }
-    _projectIdToScheduleData[decodedData.projectId] = ScheduleData(
-      decodedData.scheduleStartTime,
-      ids[0].supplierAddress(),
-      ids[0].methodology(),
-      ids[0].methodologyVersion()
+    uint256 firstId = ids[0];
+    tokenIdCounter = newTokenIdCounter;
+    _projectIdToScheduleData[projectId] = ScheduleData(
+      scheduleStartTime,
+      firstId.supplierAddress(), // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
+      firstId.methodology(), // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
+      firstId.methodologyVersion() // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
     );
     super.mintBatch(to, ids, amounts, data);
-
     setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
-    if (decodedData.list) {
-      safeBatchTransferFrom(to, decodedData.marketAddress, ids, amounts, data);
+    if (list) {
+      safeBatchTransferFrom(to, marketAddress, ids, amounts, data);
     }
   }
 

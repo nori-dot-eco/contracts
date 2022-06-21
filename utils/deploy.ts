@@ -39,7 +39,7 @@ import {
   createRemovalTokenId,
   mockDepositNoriToPolygon,
   createBatchMintData,
-  NOW,
+  getLatestBlockTime,
 } from '@/test/helpers';
 
 interface ContractConfig {
@@ -400,11 +400,11 @@ export const seedContracts = async ({
       },
     });
     const listNow = true;
-    const packedData = createBatchMintData({
+    const packedData = await createBatchMintData({
       hre,
       fifoMarket: contracts.FIFOMarket,
       listNow,
-      scheduleStartTime: NOW,
+      scheduleStartTime: await getLatestBlockTime({ hre }),
     });
     const tx = await contracts.Removal.mintBatch(
       hre.namedAccounts.supplier,

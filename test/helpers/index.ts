@@ -2,6 +2,8 @@ import type { BigNumber, BigNumberish } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 
+import { defaultRemovalTokenIdFixture } from '../fixtures/removal';
+
 import type {
   MockCertificate,
   MockERC1155PresetPausableNonTransferrable,
@@ -22,7 +24,6 @@ import type {
   RemovalTestHarness,
 } from '@/typechain-types';
 import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
-import { asciiStringToHexString } from '@/utils/bytes';
 import { formatTokenAmount, formatTokenString } from '@/utils/units';
 import type { Contracts } from '@/utils/contracts';
 import { getContractsFromDeployments } from '@/utils/contracts';
@@ -223,14 +224,7 @@ export const createRemovalTokenId = async ({
   const formattedRemovalData = formatRemovalIdData({
     hre,
     removalData: {
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: asciiStringToHexString('US'),
-      subdivision: asciiStringToHexString('IA'),
-      supplierAddress: hre.namedAccounts.supplier,
-      subIdentifier: 99_039_930, // parcel id
+      ...defaultRemovalTokenIdFixture,
       ...removalData,
     },
   });
@@ -239,22 +233,24 @@ export const createRemovalTokenId = async ({
 };
 
 // todo helpers/removal.ts
-export const createBatchMintData = ({
+export const createBatchMintData = async ({
   hre,
   fifoMarket,
   listNow = true,
   projectId = 1_234_567_890,
-  scheduleStartTime = NOW,
+  scheduleStartTime,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   fifoMarket: FIFOMarket;
   listNow?: boolean;
   projectId?: number;
   scheduleStartTime?: number;
-}): Parameters<Removal['mintBatch']>[3] => {
+}): Promise<Parameters<Removal['mintBatch']>[3]> => {
+  const actualScheduleStartTime =
+    scheduleStartTime ?? (await getLatestBlockTime({ hre }));
   const packedData = hre.ethers.utils.defaultAbiCoder.encode(
     ['uint256', 'uint256', 'address', 'bool'],
-    [projectId, scheduleStartTime, fifoMarket.address, listNow]
+    [projectId, actualScheduleStartTime, fifoMarket.address, listNow]
   );
   return packedData;
 };
@@ -292,24 +288,21 @@ const getTotalAmountOfRemovals = (removals: RemovalDataForListing[]): number =>
 // todo de-dupe this logic from tests
 // todo helpers/removal.ts
 export const batchMintAndListRemovalsForSale = async ({
-  removalDataToList,
-  removal,
-  fifoMarket,
-  hre,
-  listNow = true,
+  testSetup,
   projectId = 1_234_567_890,
-  scheduleStartTime = NOW,
+  scheduleStartTime,
+  removalDataToList,
 }: {
-  removalDataToList: RemovalDataForListing[];
-  removal: Removal;
-  fifoMarket: FIFOMarket;
-  hre: CustomHardHatRuntimeEnvironment;
-  listNow?: boolean;
+  testSetup: Awaited<ReturnType<typeof setupTest>>;
   projectId?: number;
   scheduleStartTime?: number;
+  removalDataToList: RemovalDataForListing[];
 }): Promise<RemovalDataFromListing> => {
+  const { removal, fifoMarket, hre } = testSetup;
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
+  const actualScheduleStartTime =
+    scheduleStartTime ?? (await getLatestBlockTime({ hre }));
   const listedRemovalIds: BigNumber[] = [];
   for (const [index, removalData] of removalDataToList.entries()) {
     // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
@@ -332,12 +325,12 @@ export const batchMintAndListRemovalsForSale = async ({
     supplier,
     removalAmounts,
     listedRemovalIds,
-    createBatchMintData({
+    await createBatchMintData({
       hre,
       fifoMarket,
-      listNow,
+      listNow: true,
       projectId,
-      scheduleStartTime,
+      scheduleStartTime: actualScheduleStartTime,
     })
   );
   const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);
@@ -350,6 +343,6 @@ export const batchMintAndListRemovalsForSale = async ({
     totalAmountOfRemovals,
     removalAmounts,
     projectId,
-    scheduleStartTime,
+    scheduleStartTime: actualScheduleStartTime,
   };
 };
