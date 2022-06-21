@@ -239,7 +239,6 @@ declare global {
       REPORT_GAS: boolean;
       COINMARKETCAP_API_KEY?: string;
       GITHUB_PERSONAL_ACCESS_TOKEN?: string;
-      MINT: boolean;
       TRACE: boolean;
       FORCE_PROXY_DEPLOYMENT: boolean;
       LOG_HARDHAT_NETWORK: boolean;

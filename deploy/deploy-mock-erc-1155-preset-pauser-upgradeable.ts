@@ -21,6 +21,6 @@ export const deploy: DeployFunction = async (environment) => {
 
 export default deploy;
 deploy.tags = ['MockERC1155PresetPausableNonTransferrable', 'test'];
-deploy.dependencies = ['preconditions', 'seed'];
+deploy.dependencies = ['preconditions'];
 deploy.skip = async (hre) =>
   Promise.resolve(!['localhost', 'hardhat'].includes(hre.network.name));

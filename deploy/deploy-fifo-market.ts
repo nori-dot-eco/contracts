@@ -65,7 +65,6 @@ deploy.dependencies = [
   'Certificate',
   'BridgedPolygonNORI',
   'RestrictedNORI',
-  'seed',
 ];
 deploy.skip = async (hre) =>
   Promise.resolve(
