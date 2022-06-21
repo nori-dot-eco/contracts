@@ -2,7 +2,12 @@ import type { BigNumber } from 'ethers';
 
 import type { RestrictedNORI } from '@/typechain-types/contracts/RestrictedNORI';
 import type { setupTest } from '@/test/helpers';
-import { expect, createRemovalTokenId, NOW } from '@/test/helpers';
+import {
+  createBatchMintData,
+  expect,
+  createRemovalTokenId,
+  NOW,
+} from '@/test/helpers';
 
 export const SECONDS_IN_1_YEAR_AVG = 31_556_952;
 export const SECONDS_IN_10_YEARS = 315_569_520;
@@ -48,10 +53,13 @@ export const mintAndListRemovals = async ({
       hre.ethers.utils.parseUnits(removalData.amount.toString())
     );
 
-    const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-      ['uint256', 'uint256', 'address', 'bool'],
-      [projectId, scheduleStartTime, fifoMarket.address, true]
-    );
+    const packedData = createBatchMintData({
+      hre,
+      fifoMarket,
+      listNow: true,
+      projectId,
+      scheduleStartTime,
+    });
     expect(
       await removal.mintBatch(supplier, removalBalances, tokenIds, packedData)
     ).to.emit(rNori, 'ScheduleCreated');

@@ -126,7 +126,7 @@ contract Removal is
    * @notice Get the restriction schedule data for a given project id.
    */
   function getScheduleData(uint256 projectId)
-    public
+    external
     view
     returns (ScheduleData memory)
   {
@@ -216,17 +216,17 @@ contract Removal is
    *  - all removals being listed must belong to the same project id.
    */
   function safeBatchTransferFrom(
-    address _from,
-    address _to,
+    address from,
+    address to,
     uint256[] memory ids,
-    uint256[] memory _amounts,
-    bytes memory _data
+    uint256[] memory amounts,
+    bytes memory data
   ) public override {
     // todo do we add any validation to enforce that all removals in batch belong to the same project id?
     uint256 projectId = _removalIdToProjectId[ids[0]];
     _restrictedNori.createSchedule(projectId);
     // todo require _to is a known market contract
-    super.safeBatchTransferFrom(_from, _to, ids, _amounts, _data);
+    super.safeBatchTransferFrom(from, to, ids, amounts, data);
   }
 
   function supportsInterface(bytes4 interfaceId)

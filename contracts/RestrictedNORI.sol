@@ -246,10 +246,6 @@ contract RestrictedNORI is
    * requirement to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
    * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
    */
-  IERC1820RegistryUpgradeable private _erc1820; // todo is this even used anywhere?
-
-  // todo we lost access to _ERC1820_REGISTRY when we became an 1155 over a 777, so I dug this
-  // straight out of the OZ ERC777 implementation is that ok?
   IERC1820RegistryUpgradeable internal constant _ERC1820_REGISTRY =
     IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
 
@@ -320,7 +316,7 @@ contract RestrictedNORI is
   }
 
   /** Returns an array of all existing schedule ids, regardless of the status of the schedule. */
-  function getAllScheduleIds() public view returns (uint256[] memory) {
+  function getAllScheduleIds() external view returns (uint256[] memory) {
     uint256[] memory allScheduleIdsArray = new uint256[](
       _allScheduleIds.length()
     );
@@ -332,7 +328,7 @@ contract RestrictedNORI is
 
   /** Returns an array of all schedule ids of which an address currently owns any tokens. */
   function getScheduleIdsForAccount(address account)
-    public
+    external
     view
     returns (uint256[] memory)
   {
@@ -369,7 +365,7 @@ contract RestrictedNORI is
 
   /** Returns an account-specific view of the details of all schedules that an account has ownership of. */
   function batchGetScheduleDetailsForAccount(address account)
-    public
+    external
     view
     returns (ScheduleDetailForAddress[] memory)
   {
@@ -423,7 +419,7 @@ contract RestrictedNORI is
    * Returns an array of summary structs for the specified schedules.
    */
   function batchGetScheduleSummaries(uint256[] calldata scheduleIds)
-    public
+    external
     view
     returns (ScheduleSummary[] memory)
   {
@@ -928,6 +924,7 @@ contract RestrictedNORI is
    * Linearly released balance for a single schedule at the current block timestamp, ignoring any
    * released amount floor that has been set for the schedule.
    */
+  /* solhint-disable not-rely-on-time, this is time-dependent */
   function _linearReleaseAmountAvailable(uint256 scheduleId)
     internal
     view
@@ -944,6 +941,8 @@ contract RestrictedNORI is
         : (totalSupply(scheduleId) * (block.timestamp - schedule.startTime)) /
           rampTotalTime;
   }
+
+  /* solhint-enable not-rely-on-time */
 
   /**
    * @dev Calculates the number of tokens that should be revoked from a given token holder and schedule based on their
