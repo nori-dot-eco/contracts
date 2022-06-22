@@ -102,3 +102,6 @@ grants.csv
 
 # tenderly
 scripts/tenderly.ts
+
+# foundry
+out
