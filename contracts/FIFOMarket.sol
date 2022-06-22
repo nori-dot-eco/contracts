@@ -168,9 +168,11 @@ contract FIFOMarket is
     address,
     uint256[] memory ids,
     uint256[] memory,
-    bytes memory
+    bytes memory data
   ) public override returns (bytes4) {
     uint256[] memory batchedAmounts = _removal.balanceOfIds(address(this), ids);
+    uint256 projectId = abi.decode(data, (uint256));
+    _restrictedNori.createSchedule(projectId);
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];

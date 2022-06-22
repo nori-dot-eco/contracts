@@ -31,6 +31,20 @@ export const deploy: DeployFunction = async (environment) => {
     );
   }
   hre.trace('Added FIFOMarket as a minter of Certificate');
+  if (
+    !(await rNori.hasRole(
+      await rNori.SCHEDULE_CREATOR_ROLE(),
+      fifoMarket.address
+    ))
+  ) {
+    await rNori.grantRole(
+      hre.ethers.utils.id('SCHEDULE_CREATOR_ROLE'),
+      fifoMarket.address
+    );
+  }
+  hre.trace(
+    "Granted FIFOMarket the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI"
+  );
 
   await rNori.registerContractAddresses(
     fifoMarket.address,

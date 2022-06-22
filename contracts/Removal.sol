@@ -238,10 +238,9 @@ contract Removal is
     bytes memory data
   ) public override {
     // todo do we add any validation to enforce that all removals in batch belong to the same project id?
-    uint256 projectId = _removalIdToProjectId[ids[0]];
-    _restrictedNori.createSchedule(projectId);
+    bytes memory projectId = abi.encode(_removalIdToProjectId[ids[0]]);
     // todo require _to is a known market contract
-    super.safeBatchTransferFrom(from, to, ids, amounts, data);
+    super.safeBatchTransferFrom(from, to, ids, amounts, projectId);
   }
 
   function supportsInterface(bytes4 interfaceId)
