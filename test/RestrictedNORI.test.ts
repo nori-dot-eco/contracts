@@ -2,7 +2,6 @@ import { BigNumber } from 'ethers';
 
 import {
   expect,
-  setupTest,
   advanceTime,
   createRemovalTokenId,
   getLatestBlockTime,
@@ -10,6 +9,7 @@ import {
   createBatchMintData,
 } from '@/test/helpers';
 import {
+  setupTestLocal,
   restrictRemovalProceeds,
   formatTokensReceivedUserData,
   SECONDS_IN_10_YEARS,
@@ -23,11 +23,11 @@ describe('RestrictedNORI', () => {
       for (const { role, expectedCount } of [
         { role: 'DEFAULT_ADMIN_ROLE', expectedCount: 1 },
         { role: 'PAUSER_ROLE', expectedCount: 1 },
-        { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Removal contract is a restriction creator
+        { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Market contract and admin are both schedule creators
         { role: 'TOKEN_REVOKER_ROLE', expectedCount: 1 },
       ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
-          const { rNori, hre } = await setupTest();
+          const { rNori, hre } = await setupTestLocal();
           expect(
             await rNori.hasRole(await rNori[role](), hre.namedAccounts.admin)
           ).to.be.true;
@@ -39,11 +39,24 @@ describe('RestrictedNORI', () => {
           );
         });
       }
+      for (const { role } of [
+        { role: 'SCHEDULE_CREATOR_ROLE' },
+        { role: 'TOKEN_DEPOSITOR_ROLE' },
+      ] as const) {
+        it(`will assign the role ${role} to the market contract`, async () => {
+          const { rNori, fifoMarket } = await setupTestLocal();
+          expect(await rNori.hasRole(await rNori[role](), fifoMarket.address))
+            .to.be.true;
+          expect(await rNori.getRoleAdmin(await rNori[role]())).to.eq(
+            await rNori.DEFAULT_ADMIN_ROLE()
+          );
+        });
+      }
     });
   });
   describe('pausing', () => {
     it('can be paused by the PAUSER_ROLE', async () => {
-      const { rNori, hre } = await setupTest();
+      const { rNori, hre } = await setupTestLocal();
       expect(
         await rNori.hasRole(
           await rNori['PAUSER_ROLE'](),
@@ -54,7 +67,7 @@ describe('RestrictedNORI', () => {
       expect(await rNori.paused()).to.be.true;
     });
     it('can be unpaused by the PAUSER_ROLE', async () => {
-      const { rNori, hre } = await setupTest();
+      const { rNori, hre } = await setupTestLocal();
       expect(
         await rNori.hasRole(
           await rNori['PAUSER_ROLE'](),
@@ -68,7 +81,7 @@ describe('RestrictedNORI', () => {
     });
 
     it('can not be paused by an account that does not have the PAUSER_ROLE', async () => {
-      const { rNori, hre } = await setupTest();
+      const { rNori, hre } = await setupTestLocal();
       expect(
         await rNori.hasRole(
           await rNori['PAUSER_ROLE'](),
@@ -82,7 +95,7 @@ describe('RestrictedNORI', () => {
   });
   describe('restriction duration map', () => {
     it('should be initialized to 10 years for a methodology of 1 and methodology version of 0', async () => {
-      const { rNori } = await setupTest({});
+      const { rNori } = await setupTestLocal({});
       const retrievedRestrictionDuration =
         await rNori.getRestrictionDurationForMethodologyAndVersion(1, 0);
       expect(retrievedRestrictionDuration.wasSet).to.equal(true);
@@ -91,7 +104,7 @@ describe('RestrictedNORI', () => {
       );
     });
     it('should be able to set and get a new restriction duration for a given methodology and version', async () => {
-      const { rNori } = await setupTest({});
+      const { rNori } = await setupTestLocal({});
       const methodology = 2;
       const methodologyVersion = 0;
       const newDuration = SECONDS_IN_1_YEAR_AVG;
@@ -118,7 +131,7 @@ describe('RestrictedNORI', () => {
       );
     });
     it('should revert if the transaction sender does not have the DEFAULT_ADMIN_ROLE', async () => {
-      const { rNori } = await setupTest({});
+      const { rNori } = await setupTestLocal({});
       const methodology = 2;
       const methodologyVersion = 0;
       const newDuration = SECONDS_IN_1_YEAR_AVG;
@@ -133,7 +146,7 @@ describe('RestrictedNORI', () => {
       ).to.be.reverted;
     });
     it('should revert if a restriction schedule is being created for a methodology/version that does not have a duration set', async () => {
-      const { removal, fifoMarket, hre } = await setupTest({});
+      const { removal, fifoMarket, hre } = await setupTestLocal({});
       const removalIdWithMethodology2 = await createRemovalTokenId({
         removal,
         removalData: { methodology: 2 },
@@ -169,7 +182,7 @@ describe('RestrictedNORI', () => {
           vintage: 2018,
         },
       ];
-      const testSetup = await setupTest({});
+      const testSetup = await setupTestLocal({});
       const { bpNori, rNori } = testSetup;
       const { listedRemovalIds, projectId, scheduleStartTime } =
         await batchMintAndListRemovalsForSale({
@@ -228,7 +241,7 @@ describe('RestrictedNORI', () => {
           vintage: 2018,
         },
       ];
-      const testSetup = await setupTest({});
+      const testSetup = await setupTestLocal({});
       const { bpNori, rNori, hre } = testSetup;
       const { listedRemovalIds } = await batchMintAndListRemovalsForSale({
         testSetup,
@@ -251,7 +264,7 @@ describe('RestrictedNORI', () => {
           vintage: 2020,
         },
       ];
-      const testSetup = await setupTest({});
+      const testSetup = await setupTestLocal({});
       const { rNori, hre } = testSetup;
       const { listedRemovalIds, projectId } =
         await batchMintAndListRemovalsForSale({
@@ -289,7 +302,7 @@ describe('RestrictedNORI', () => {
           vintage: 2018,
         },
       ];
-      const testSetup = await setupTest({});
+      const testSetup = await setupTestLocal({});
       const { rNori, hre } = testSetup;
       const { listedRemovalIds, projectId, scheduleStartTime } =
         await batchMintAndListRemovalsForSale({
@@ -325,7 +338,7 @@ describe('RestrictedNORI', () => {
           vintage: 2019,
         },
       ];
-      const testSetup = await setupTest({});
+      const testSetup = await setupTestLocal({});
       const { rNori, hre } = testSetup;
       const { listedRemovalIds, projectId, scheduleStartTime } =
         await batchMintAndListRemovalsForSale({
@@ -369,7 +382,7 @@ describe('RestrictedNORI', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, bpNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
           await batchMintAndListRemovalsForSale({
@@ -416,6 +429,55 @@ describe('RestrictedNORI', () => {
         );
         expect(await bpNori.balanceOf(supplier)).to.equal(claimableBalance);
       });
+      it('provides the correct claimable quantity when some tokens have already been claimed', async () => {
+        const removalDataToList = [
+          {
+            amount: 100,
+            vintage: 2018,
+          },
+        ];
+        const testSetup = await setupTestLocal({});
+        const { rNori, hre } = testSetup;
+        const { listedRemovalIds, projectId, scheduleStartTime } =
+          await batchMintAndListRemovalsForSale({
+            testSetup,
+            removalDataToList,
+          });
+        const { supplier } = hre.namedAccounts;
+        const restrictedAmount = removalDataToList[0].amount;
+        await restrictRemovalProceeds({
+          testSetup,
+          removalIds: listedRemovalIds,
+          removalAmountsToRestrict: [restrictedAmount],
+        });
+        await advanceTime({
+          hre,
+          timestamp: scheduleStartTime + SECONDS_IN_5_YEARS,
+        });
+
+        const claimableBalanceAtHalfway =
+          await rNori.claimableBalanceForScheduleForAccount(
+            projectId,
+            supplier
+          );
+        await rNori
+          .connect(await hre.ethers.getSigner(supplier))
+          .withdrawFromSchedule(supplier, projectId, claimableBalanceAtHalfway);
+
+        // advance to 3/4 of the way through schedule
+        await advanceTime({
+          hre,
+          timestamp: scheduleStartTime + 7.5 * SECONDS_IN_1_YEAR_AVG,
+        });
+
+        const claimableBalanceAtThreeQuarters =
+          await rNori.claimableBalanceForSchedule(projectId);
+        expect(claimableBalanceAtThreeQuarters).to.equal(
+          BigNumber.from(
+            restrictedAmount * 0.75 - claimableBalanceAtHalfway.toNumber()
+          )
+        );
+      });
       it('can withdraw to a different address from the restriction schedule holder', async () => {
         const removalDataToList = [
           {
@@ -423,7 +485,7 @@ describe('RestrictedNORI', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, bpNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
           await batchMintAndListRemovalsForSale({
@@ -478,7 +540,7 @@ describe('RestrictedNORI', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, bpNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
           await batchMintAndListRemovalsForSale({
@@ -585,7 +647,7 @@ describe('RestrictedNORI', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
           await batchMintAndListRemovalsForSale({

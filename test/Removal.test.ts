@@ -1,3 +1,5 @@
+import { SECONDS_IN_10_YEARS } from './helpers/restricted-nori';
+
 import {
   createRemovalTokenId,
   expect,
@@ -133,7 +135,7 @@ describe('Removal', () => {
             })
           )
         );
-
+        const scheduleStartTime = await getLatestBlockTime({ hre });
         const projectId = 1_234_567_890;
         const listNow = false;
         const packedData = await createBatchMintData({
@@ -141,6 +143,7 @@ describe('Removal', () => {
           fifoMarket,
           listNow,
           projectId,
+          scheduleStartTime,
         });
         await expect(
           removal.mintBatch(
@@ -177,7 +180,11 @@ describe('Removal', () => {
             removalBalances
           )
           .to.emit(rNori, 'ScheduleCreated')
-          .withArgs(projectId);
+          .withArgs(
+            projectId,
+            scheduleStartTime,
+            scheduleStartTime + SECONDS_IN_10_YEARS
+          );
         // market contract should have a balance for each listed tokenId
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {

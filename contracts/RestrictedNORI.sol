@@ -193,10 +193,18 @@ contract RestrictedNORI is
   /**
    * @notice Role conferring creation of schedules.
    *
-   * @dev the Removal contract is granted this role during this contract's deployment.
+   * @dev the Market contract is granted this role after deployments.
    */
   bytes32 public constant SCHEDULE_CREATOR_ROLE =
     keccak256("SCHEDULE_CREATOR_ROLE");
+
+  /**
+   * @notice Role conferring sending of bpNori to this contract.
+   *
+   * @dev the Market contract is granted this role after deployments.
+   */
+  bytes32 public constant TOKEN_DEPOSITOR_ROLE =
+    keccak256("TOKEN_DEPOSITOR_ROLE");
 
   /**
    * @notice Role conferring revocation of restricted tokens.
@@ -229,11 +237,6 @@ contract RestrictedNORI is
   /**
    * @notice The BridgedPolygonNORI contract for which this contract wraps tokens.
    */
-  FIFOMarket private _market;
-
-  /**
-   * @notice The BridgedPolygonNORI contract for which this contract wraps tokens.
-   */
   BridgedPolygonNORI private _bridgedPolygonNori;
 
   /**
@@ -255,7 +258,11 @@ contract RestrictedNORI is
   /**
    * @notice Emitted on successful creation of a new schedule.
    */
-  event ScheduleCreated(uint256 indexed projectId);
+  event ScheduleCreated(
+    uint256 indexed projectId,
+    uint256 startTime,
+    uint256 endTime
+  );
 
   /**
    * @notice Emitted when unreleased tokens of an active schedule are revoked.
@@ -341,11 +348,7 @@ contract RestrictedNORI is
   {
     EnumerableSetUpgradeable.UintSet
       storage scheduleIdSet = _addressToScheduleIdSet[account];
-    uint256[] memory scheduleIds = new uint256[](scheduleIdSet.length());
-    for (uint256 i = 0; i < scheduleIds.length; i++) {
-      scheduleIds[i] = scheduleIdSet.at(i);
-    }
-    return scheduleIds;
+    return _enumerableSetToArray(scheduleIdSet);
   }
 
   /** Returns an account-specific view of the details of a specific schedule. */
@@ -446,9 +449,11 @@ contract RestrictedNORI is
     returns (uint256)
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
+    if (!schedule.exists) {
+      revert NonexistentSchedule({scheduleId: scheduleId});
+    }
     return
-      totalSupply(scheduleId) +
-      schedule.totalClaimedAmount -
+      _scheduleTrueTotal(schedule, scheduleId) -
       _releasedBalanceOfSingleSchedule(scheduleId);
   }
 
@@ -479,8 +484,7 @@ contract RestrictedNORI is
     address account
   ) public view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    uint256 scheduleTrueTotal = schedule.totalClaimedAmount +
-      totalSupply(scheduleId);
+    uint256 scheduleTrueTotal = _scheduleTrueTotal(schedule, scheduleId);
     uint256 claimableForAccount;
     // avoid division by 0
     if (scheduleTrueTotal == 0) {
@@ -539,11 +543,9 @@ contract RestrictedNORI is
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    */
   function registerContractAddresses(
-    address marketAddress,
     address bridgedPolygonNoriAddress,
     address removalAddress
   ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    _market = FIFOMarket(marketAddress);
     _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
     _removal = Removal(removalAddress);
   }
@@ -605,7 +607,7 @@ contract RestrictedNORI is
     if (!(_msgSender() == address(_bridgedPolygonNori))) {
       revert TokenSenderNotBPNORI();
     }
-    if (!(from == address(_market) || hasRole(DEFAULT_ADMIN_ROLE, from))) {
+    if (!hasRole(TOKEN_DEPOSITOR_ROLE, from)) {
       revert InvalidBpNoriSender({account: from});
     }
 
@@ -812,7 +814,7 @@ contract RestrictedNORI is
     schedule.startTime = scheduleData.startTime;
     schedule.endTime = scheduleData.startTime + restrictionDuration.duration;
     schedule.releasedAmountFloor = 0;
-    emit ScheduleCreated(projectId);
+    emit ScheduleCreated(projectId, schedule.startTime, schedule.endTime);
   }
 
   /**
@@ -965,8 +967,8 @@ contract RestrictedNORI is
       uint256 rampTotalTime = schedule.endTime - schedule.startTime;
       linearAmountAvailable = block.timestamp < schedule.startTime
         ? 0
-        : (totalSupply(scheduleId) * (block.timestamp - schedule.startTime)) /
-          rampTotalTime;
+        : (_scheduleTrueTotal(schedule, scheduleId) *
+          (block.timestamp - schedule.startTime)) / rampTotalTime;
     }
     return linearAmountAvailable;
   }
@@ -983,8 +985,7 @@ contract RestrictedNORI is
     address account
   ) private view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    uint256 scheduleTrueTotal = schedule.totalClaimedAmount +
-      totalSupply(scheduleId);
+    uint256 scheduleTrueTotal = _scheduleTrueTotal(schedule, scheduleId);
     uint256 revocableForAccount;
     // avoid division by 0
     if (scheduleTrueTotal == 0) {
@@ -1020,5 +1021,30 @@ contract RestrictedNORI is
         _linearReleaseAmountAvailable(scheduleId),
         schedule.releasedAmountFloor
       );
+  }
+
+  /** Converts an enumerable set into an array */
+  function _enumerableSetToArray(
+    EnumerableSetUpgradeable.UintSet storage enumerableSet
+  ) internal view returns (uint256[] memory) {
+    uint256[] memory array = new uint256[](enumerableSet.length());
+    for (uint256 i = 0; i < array.length; i++) {
+      array[i] = enumerableSet.at(i);
+    }
+    return array;
+  }
+
+  /**
+   * Reconstructs a schedule's true total based on claimed and unclaimed tokens.
+   *
+   * @dev claiming burns the 1155, so the true total of a schedule has to be reconstructed
+   * from the totalSupply of the token and any claimed amount.
+   */
+  function _scheduleTrueTotal(Schedule storage schedule, uint256 scheduleId)
+    internal
+    view
+    returns (uint256)
+  {
+    return schedule.totalClaimedAmount + totalSupply(scheduleId);
   }
 }

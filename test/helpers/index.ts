@@ -302,8 +302,6 @@ export const batchMintAndListRemovalsForSale = async (options: {
   };
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
-  // const actualScheduleStartTime =
-  //   scheduleStartTime ??
   const listedRemovalIds: BigNumber[] = [];
   for (const [index, removalData] of removalDataToList.entries()) {
     // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter

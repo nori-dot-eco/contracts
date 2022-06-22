@@ -3,10 +3,10 @@ import { BigNumber } from 'ethers';
 import {
   expect,
   advanceTime,
-  setupTest,
   batchMintAndListRemovalsForSale,
 } from '@/test/helpers';
 import {
+  setupTestLocal,
   restrictRemovalProceeds,
   compareScheduleSummaryStructs,
   compareScheduleDetailForAddressStructs,
@@ -25,7 +25,7 @@ describe('RestrictedNORI revocation', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, bpNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
           await batchMintAndListRemovalsForSale({
@@ -110,7 +110,7 @@ describe('RestrictedNORI revocation', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, bpNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
           await batchMintAndListRemovalsForSale({
@@ -209,7 +209,7 @@ describe('RestrictedNORI revocation', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
           await batchMintAndListRemovalsForSale({
@@ -294,7 +294,7 @@ describe('RestrictedNORI revocation', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, bpNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
           await batchMintAndListRemovalsForSale({
@@ -363,7 +363,7 @@ describe('RestrictedNORI revocation', () => {
             vintage: 2019,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, hre } = testSetup;
         const {
           listedRemovalIds: listedRemovalIds1,
@@ -458,7 +458,7 @@ describe('RestrictedNORI revocation', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, hre } = testSetup;
         const { listedRemovalIds, projectId, scheduleStartTime } =
           await batchMintAndListRemovalsForSale({
@@ -552,7 +552,7 @@ describe('RestrictedNORI revocation', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, hre } = testSetup;
         const { listedRemovalIds } = await batchMintAndListRemovalsForSale({
           testSetup,
@@ -579,7 +579,7 @@ describe('RestrictedNORI revocation', () => {
             vintage: 2018,
           },
         ];
-        const testSetup = await setupTest({});
+        const testSetup = await setupTestLocal({});
         const { rNori, hre } = testSetup;
         const { listedRemovalIds, projectId } =
           await batchMintAndListRemovalsForSale({

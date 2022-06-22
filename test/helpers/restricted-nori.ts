@@ -1,12 +1,23 @@
 import type { BigNumber } from 'ethers';
 
 import type { RestrictedNORI } from '@/typechain-types/contracts/RestrictedNORI';
-import type { setupTest } from '@/test/helpers';
-import { expect } from '@/test/helpers';
+import { setupTest, expect } from '@/test/helpers';
 
 export const SECONDS_IN_1_YEAR_AVG = 31_556_952;
 export const SECONDS_IN_10_YEARS = 315_569_520;
 export const SECONDS_IN_5_YEARS = SECONDS_IN_10_YEARS / 2;
+
+export const setupTestLocal = global.hre.deployments.createFixture(
+  async (): Promise<Awaited<ReturnType<typeof setupTest>>> => {
+    const testSetup = await setupTest({});
+    const { hre, rNori } = testSetup;
+    await rNori.grantRole(
+      await rNori.TOKEN_DEPOSITOR_ROLE(),
+      hre.namedAccounts.admin
+    );
+    return testSetup;
+  }
+);
 
 export const formatTokensReceivedUserData = (removalId: BigNumber): any => {
   return hre.ethers.utils.defaultAbiCoder.encode(['uint256'], [removalId]);

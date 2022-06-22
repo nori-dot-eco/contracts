@@ -45,12 +45,21 @@ export const deploy: DeployFunction = async (environment) => {
   hre.trace(
     "Granted FIFOMarket the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI"
   );
-
-  await rNori.registerContractAddresses(
-    fifoMarket.address,
-    bpNori.address,
-    removal.address
+  if (
+    !(await rNori.hasRole(
+      await rNori.TOKEN_DEPOSITOR_ROLE(),
+      fifoMarket.address
+    ))
+  ) {
+    await rNori.grantRole(
+      hre.ethers.utils.id('TOKEN_DEPOSITOR_ROLE'),
+      fifoMarket.address
+    );
+  }
+  hre.trace(
+    "Granted FIFOMarket the role 'TOKEN_DEPOSITOR_ROLE' for RestrictedNORI"
   );
+  await rNori.registerContractAddresses(bpNori.address, removal.address);
   hre.trace('Set market, removal and bpNori addresses in rNori');
   await removal.registerRestrictedNORIAddress(rNori.address);
   hre.trace('Set rNori address in Removal');
