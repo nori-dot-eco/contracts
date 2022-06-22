@@ -287,22 +287,23 @@ const getTotalAmountOfRemovals = (removals: RemovalDataForListing[]): number =>
 
 // todo de-dupe this logic from tests
 // todo helpers/removal.ts
-export const batchMintAndListRemovalsForSale = async ({
-  testSetup,
-  projectId = 1_234_567_890,
-  scheduleStartTime,
-  removalDataToList,
-}: {
+export const batchMintAndListRemovalsForSale = async (options: {
   testSetup: Awaited<ReturnType<typeof setupTest>>;
   projectId?: number;
   scheduleStartTime?: number;
   removalDataToList: RemovalDataForListing[];
 }): Promise<RemovalDataFromListing> => {
+  const { testSetup, removalDataToList } = options;
   const { removal, fifoMarket, hre } = testSetup;
+  const { projectId, scheduleStartTime } = {
+    projectId: options.projectId ?? 1_234_567_890,
+    scheduleStartTime:
+      options.scheduleStartTime ?? (await getLatestBlockTime({ hre })),
+  };
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
-  const actualScheduleStartTime =
-    scheduleStartTime ?? (await getLatestBlockTime({ hre }));
+  // const actualScheduleStartTime =
+  //   scheduleStartTime ??
   const listedRemovalIds: BigNumber[] = [];
   for (const [index, removalData] of removalDataToList.entries()) {
     // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
@@ -330,7 +331,7 @@ export const batchMintAndListRemovalsForSale = async ({
       fifoMarket,
       listNow: true,
       projectId,
-      scheduleStartTime: actualScheduleStartTime,
+      scheduleStartTime,
     })
   );
   const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);
@@ -343,6 +344,6 @@ export const batchMintAndListRemovalsForSale = async ({
     totalAmountOfRemovals,
     removalAmounts,
     projectId,
-    scheduleStartTime: actualScheduleStartTime,
+    scheduleStartTime,
   };
 };

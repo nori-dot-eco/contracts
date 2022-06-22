@@ -230,9 +230,7 @@ describe('Removal', () => {
     describe('getScheduleStartTimeForRemoval', () => {
       it('should return the restriction schedule start time for a removal id', async () => {
         const { fifoMarket, removal, hre } = await setupTest();
-        const removalBalances = [100].map((balance) =>
-          formatTokenAmount(balance)
-        );
+        const removalBalances = [formatTokenAmount(100)];
         const tokenIds = await Promise.all(
           [2016].map((vintage) =>
             createRemovalTokenId({
