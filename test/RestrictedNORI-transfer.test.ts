@@ -529,7 +529,7 @@ describe('RestrictedNORI transferring', () => {
     });
   });
   describe('failure', () => {
-    it('should not allow an account with DEFAULT_ADMIN_ROLE or SCHEDULE_CREATOR_ROLE to transfer tokens', async () => {
+    it('should not allow an unapproved account even with DEFAULT_ADMIN_ROLE or SCHEDULE_CREATOR_ROLE to transfer tokens', async () => {
       const removalDataToList = [
         {
           amount: 100,
@@ -554,7 +554,7 @@ describe('RestrictedNORI transferring', () => {
         rNori
           .connect(hre.namedSigners.admin)
           .safeTransferFrom(supplier, investor1, projectId, 50, '0x')
-      ).to.be.revertedWith('OperatorActionsNotSupported()');
+      ).to.be.reverted;
     });
   });
 });

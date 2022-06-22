@@ -40,6 +40,45 @@ describe('RestrictedNORI', () => {
       }
     });
   });
+  describe('pausing', () => {
+    it('can be paused by the PAUSER_ROLE', async () => {
+      const { rNori, hre } = await setupTest();
+      expect(
+        await rNori.hasRole(
+          await rNori['PAUSER_ROLE'](),
+          hre.namedAccounts.admin
+        )
+      ).to.be.true;
+      await rNori.pause();
+      expect(await rNori.paused()).to.be.true;
+    });
+    it('can be unpaused by the PAUSER_ROLE', async () => {
+      const { rNori, hre } = await setupTest();
+      expect(
+        await rNori.hasRole(
+          await rNori['PAUSER_ROLE'](),
+          hre.namedAccounts.admin
+        )
+      ).to.be.true;
+      await rNori.pause();
+      expect(await rNori.paused()).to.be.true;
+      await rNori.unpause();
+      expect(await rNori.paused()).to.be.false;
+    });
+
+    it('can not be paused by an account that does not have the PAUSER_ROLE', async () => {
+      const { rNori, hre } = await setupTest();
+      expect(
+        await rNori.hasRole(
+          await rNori['PAUSER_ROLE'](),
+          hre.namedAccounts.buyer
+        )
+      ).to.be.false;
+      await expect(rNori.connect(hre.namedSigners.buyer).pause()).to.be
+        .reverted;
+      expect(await rNori.paused()).to.be.false;
+    });
+  });
   describe('restriction duration map', () => {
     it('should be initialized to 10 years for a methodology of 1 and methodology version of 0', async () => {
       const { rNori } = await setupTest({});
@@ -574,133 +613,6 @@ describe('RestrictedNORI', () => {
           `InsufficientClaimableBalance("${supplier}", ${projectId})`
         );
       });
-    });
-  });
-  describe('Disabled functions', () => {
-    it('should fail to *burn*', async () => {
-      const removalDataToList = [
-        {
-          amount: 100,
-          vintage: 2018,
-        },
-      ];
-      const testSetup = await setupTest({});
-      const { rNori, hre } = testSetup;
-      const { listedRemovalIds, projectId } =
-        await batchMintAndListRemovalsForSale({
-          testSetup,
-          removalDataToList,
-        });
-      const { supplier } = hre.namedAccounts;
-      const restrictedAmount = removalDataToList[0].amount;
-      await restrictRemovalProceeds({
-        testSetup,
-        removalIds: listedRemovalIds,
-        removalAmountsToRestrict: [restrictedAmount],
-      });
-      const supplierSigner = await hre.ethers.getSigner(supplier);
-      expect(await rNori.balanceOf(supplier, projectId)).to.equal(
-        restrictedAmount
-      );
-      await expect(
-        rNori
-          .connect(supplierSigner)
-          .burn(supplier, projectId, restrictedAmount)
-      ).to.be.revertedWith('BurningNotSupported');
-      expect(await rNori.balanceOf(supplier, projectId)).to.equal(
-        restrictedAmount
-      );
-      expect(await rNori.totalSupply(projectId)).to.equal(restrictedAmount);
-    });
-    it('should fail to *burnBatch*', async () => {
-      const removalDataToList = [
-        {
-          amount: 100,
-          vintage: 2018,
-        },
-        {
-          amount: 100,
-          vintage: 2019,
-        },
-      ];
-      const testSetup = await setupTest({});
-      const { rNori, hre } = testSetup;
-      const { listedRemovalIds: listedRemovalIds1, projectId: projectId1 } =
-        await batchMintAndListRemovalsForSale({
-          testSetup,
-          removalDataToList: [removalDataToList[0]],
-        });
-      const { listedRemovalIds: listedRemovalIds2, projectId: projectId2 } =
-        await batchMintAndListRemovalsForSale({
-          testSetup,
-          projectId: 999_999_999,
-          removalDataToList: [removalDataToList[1]],
-        });
-      const amountsToRestrict = removalDataToList.map(
-        (removalData) => removalData.amount
-      );
-      await restrictRemovalProceeds({
-        testSetup,
-        removalIds: [listedRemovalIds1[0], listedRemovalIds2[0]],
-        removalAmountsToRestrict: amountsToRestrict,
-      });
-      const { supplier } = await hre.getNamedAccounts();
-      const supplierSigner = await hre.ethers.getSigner(supplier);
-      expect(
-        (
-          await rNori.balanceOfBatch(
-            [supplier, supplier],
-            [projectId1, projectId2]
-          )
-        ).map((balance) => balance.toNumber())
-      ).to.eql(amountsToRestrict);
-      await expect(
-        rNori
-          .connect(supplierSigner)
-          .burnBatch(supplier, [projectId1, projectId2], amountsToRestrict)
-      ).to.be.revertedWith('BurningNotSupported');
-      expect(
-        (
-          await rNori.balanceOfBatch(
-            [supplier, supplier],
-            [projectId1, projectId2]
-          )
-        ).map((balance) => balance.toNumber())
-      ).to.eql(amountsToRestrict);
-    });
-
-    it('should fail to *setApprovalForAll*', async () => {
-      const { rNori, hre } = await setupTest({});
-      const { supplier, investor1 } = await hre.getNamedAccounts();
-      const supplierSigner = await hre.ethers.getSigner(supplier);
-      await expect(
-        rNori.connect(supplierSigner).setApprovalForAll(investor1, true)
-      ).to.be.revertedWith('OperatorActionsNotSupported');
-    });
-
-    it('should revert on *isApprovedForAll*', async () => {
-      const { rNori, hre } = await setupTest({});
-      const { supplier, investor1 } = await hre.getNamedAccounts();
-      const supplierSigner = await hre.ethers.getSigner(supplier);
-      await expect(
-        rNori.connect(supplierSigner).isApprovedForAll(investor1, supplier)
-      ).to.be.revertedWith('OperatorActionsNotSupported');
-    });
-    it('should fail to *mint*', async () => {
-      const { rNori, hre } = await setupTest({});
-      const { supplier } = await hre.getNamedAccounts();
-      const supplierSigner = await hre.ethers.getSigner(supplier);
-      await expect(
-        rNori.connect(supplierSigner).mint(supplier, 0, 2000, '0x')
-      ).to.be.revertedWith('MintingNotSupported');
-    });
-    it('should fail to *mintBatch*', async () => {
-      const { rNori, hre } = await setupTest({});
-      const { supplier } = await hre.getNamedAccounts();
-      const supplierSigner = await hre.ethers.getSigner(supplier);
-      await expect(
-        rNori.connect(supplierSigner).mintBatch(supplier, [0], [2000], '0x')
-      ).to.be.revertedWith('MintingNotSupported');
     });
   });
 });

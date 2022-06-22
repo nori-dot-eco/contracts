@@ -2,7 +2,7 @@
 pragma solidity =0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
@@ -114,8 +114,9 @@ TODO LIST:
  */
 contract RestrictedNORI is
   IERC777RecipientUpgradeable,
-  ERC1155PresetMinterPauserUpgradeable,
-  ERC1155SupplyUpgradeable
+  ERC1155PausableUpgradeable,
+  ERC1155SupplyUpgradeable,
+  AccessControlEnumerableUpgradeable
 {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
@@ -186,6 +187,8 @@ contract RestrictedNORI is
     uint256 duration;
     bool wasSet;
   }
+
+  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
   /**
    * @notice Role conferring creation of schedules.
@@ -276,7 +279,9 @@ contract RestrictedNORI is
 
   // todo document expected initialzation state (this is a holdover from LockedNORI, not totally sure what it means)
   function initialize() external initializer {
-    super.initialize("https://nori.com/api/restrictionschedule/{id}.json"); // todo which URL do we want to use?
+    __ERC1155_init_unchained(
+      "https://nori.com/api/restrictionschedule/{id}.json"
+    );
     __Context_init_unchained();
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
@@ -288,6 +293,8 @@ contract RestrictedNORI is
       ERC777_TOKENS_RECIPIENT_HASH,
       address(this)
     );
+    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _setupRole(PAUSER_ROLE, _msgSender());
     _setupRole(SCHEDULE_CREATOR_ROLE, _msgSender());
     _setupRole(TOKEN_REVOKER_ROLE, _msgSender());
     setRestrictionDurationForMethodologyAndVersion(1, 0, SECONDS_IN_TEN_YEARS);
@@ -297,7 +304,7 @@ contract RestrictedNORI is
   function supportsInterface(bytes4 interfaceId)
     public
     view
-    override(ERC1155Upgradeable, ERC1155PresetMinterPauserUpgradeable)
+    override(ERC1155Upgradeable, AccessControlEnumerableUpgradeable)
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
@@ -497,6 +504,32 @@ contract RestrictedNORI is
   }
 
   // External functions ===================================================
+
+  /**
+   * @dev Pauses all token transfers.
+   *
+   * See {ERC1155Pausable} and {Pausable-_pause}.
+   *
+   * Requirements:
+   *
+   * - the caller must have the `PAUSER_ROLE`.
+   */
+  function pause() external onlyRole(PAUSER_ROLE) {
+    _pause();
+  }
+
+  /**
+   * @dev Unpauses all token transfers.
+   *
+   * See {ERC1155Pausable} and {Pausable-_unpause}.
+   *
+   * Requirements:
+   *
+   * - the caller must have the `PAUSER_ROLE`.
+   */
+  function unpause() external onlyRole(PAUSER_ROLE) {
+    _unpause();
+  }
 
   /**
    * Registers the addresses of the market, bpNori, and removal contracts in this contract.
@@ -807,8 +840,6 @@ contract RestrictedNORI is
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
-    uint256 releasedBalance = _releasedBalanceOfSingleSchedule(scheduleId);
-
     uint256 quantityToRevoke;
     // amount of zero indicates revocation of all remaining tokens.
     if (amount > 0) {
@@ -894,15 +925,9 @@ contract RestrictedNORI is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  )
-    internal
-    override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
-  {
-    bool isMinting = from == address(0);
+  ) internal override(ERC1155SupplyUpgradeable, ERC1155PausableUpgradeable) {
     bool isBurning = to == address(0);
-
     bool isWithdrawing = isBurning && from == operator;
-    bool isTransferring = !isMinting && !isBurning;
 
     if (isBurning) {
       for (uint256 i = 0; i < ids.length; i++) {
@@ -995,83 +1020,5 @@ contract RestrictedNORI is
         _linearReleaseAmountAvailable(scheduleId),
         schedule.releasedAmountFloor
       );
-  }
-
-  // Disabled functions ===========================================
-  /**
-   * Overridden standard ERC1155.setApprovalForAll that will always revert
-   *
-   * @dev This function is not currently supported from external callers so we override it to revert.
-   */
-  function setApprovalForAll(address, bool) public pure override {
-    revert OperatorActionsNotSupported();
-  }
-
-  /**
-   * Overridden standard ERC1155.isApprovedForAll that will always revert
-   *
-   * @dev This function is not currently supported from external callers so we override it to revert.
-   */
-  function isApprovedForAll(address, address)
-    public
-    pure
-    override
-    returns (bool)
-  {
-    revert OperatorActionsNotSupported();
-  }
-
-  /**
-   * Overridden standard ERC1155.burn that will always revert
-   *
-   * @dev This function is not currently supported from external callers so we override it to revert.
-   */
-  function burn(
-    address,
-    uint256,
-    uint256
-  ) public pure override {
-    revert BurningNotSupported();
-  }
-
-  /**
-   * Overridden standard ERC1155.burnBatch that will always revert
-   *
-   * @dev This function is not currently supported from external callers so we override it to revert.
-   */
-  function burnBatch(
-    address,
-    uint256[] calldata,
-    uint256[] calldata
-  ) public pure override {
-    revert BurningNotSupported();
-  }
-
-  /**
-   * Overridden standard ERC1155.mint that will always revert
-   *
-   * @dev This function is not currently supported from external callers so we override it to revert.
-   */
-  function mint(
-    address to,
-    uint256 id,
-    uint256 amount,
-    bytes memory data
-  ) public pure override {
-    revert MintingNotSupported();
-  }
-
-  /**
-   * Overridden standard ERC1155.mintBatch that will always revert
-   *
-   * @dev This function is not currently supported from external callers so we override it to revert.
-   */
-  function mintBatch(
-    address to,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    bytes memory data
-  ) public pure override {
-    revert MintingNotSupported();
   }
 }
