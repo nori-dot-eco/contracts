@@ -664,14 +664,18 @@ contract RestrictedNORI is
     super.safeTransferFrom(from, to, id, amount, data);
     Schedule storage schedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
-      _addressToScheduleIdSet[to].add(id); // slither-disable unused-return
-      schedule.tokenHolders.add(to); // slither-disable unused-return
+      // slither-disable-next-line unused-return
+      _addressToScheduleIdSet[to].add(id);
+      // slither-disable-next-line unused-return
+      schedule.tokenHolders.add(to);
     }
     if (balanceOf(from, id) == 0) {
-      _addressToScheduleIdSet[from].remove(id); // slither-disable unused-return
-      schedule.tokenHolders.remove(from); // slither-disable
+      // slither-disable-next-line unused-return
+      _addressToScheduleIdSet[from].remove(id);
+      // slither-disable-next-line unused-return
+      schedule.tokenHolders.remove(from);
     }
-  } // slither-disable unused-return
+  }
 
   /**
    * Batched version of `safeTransferFrom`.
@@ -690,12 +694,16 @@ contract RestrictedNORI is
     for (uint256 i = 0; i < ids.length; i++) {
       Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
       if (amounts[i] != 0) {
-        _addressToScheduleIdSet[to].add(ids[i]); // slither-disable unused-return
-        schedule.tokenHolders.add(to); // slither-disable unused-return
+        // slither-disable-next-line unused-return
+        _addressToScheduleIdSet[to].add(ids[i]);
+        // slither-disable-next-line unused-return
+        schedule.tokenHolders.add(to);
       }
       if (balanceOf(from, ids[i]) == 0) {
-        _addressToScheduleIdSet[from].remove(ids[i]); // slither-disable unused-return
-        schedule.tokenHolders.remove(from); // slither-disable unused-return
+        // slither-disable-next-line unused-return
+        _addressToScheduleIdSet[from].remove(ids[i]);
+        // slither-disable-next-line unused-return
+        schedule.tokenHolders.remove(from);
       }
     }
   }
@@ -800,7 +808,8 @@ contract RestrictedNORI is
       revert ScheduleExists({scheduleTokenId: projectId});
     }
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    _allScheduleIds.add(projectId); // slither-disable unused-return
+    // slither-disable-next-line unused-return
+    _allScheduleIds.add(projectId);
     RestrictionDuration
       memory restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
         scheduleData.methodology,
@@ -809,7 +818,8 @@ contract RestrictedNORI is
     if (!restrictionDuration.wasSet) {
       revert RestrictionDurationNotSet({projectId: projectId});
     }
-    _addressToScheduleIdSet[recipient].add(projectId); // slither-disable unused-return
+    // slither-disable-next-line unused-return
+    _addressToScheduleIdSet[recipient].add(projectId);
     schedule.exists = true;
     schedule.startTime = scheduleData.startTime;
     schedule.endTime = scheduleData.startTime + restrictionDuration.duration;
@@ -837,7 +847,8 @@ contract RestrictedNORI is
     uint256 removalId,
     uint256 amount
   ) internal {
-    uint256 scheduleId = _removal.getProjectIdForRemoval(removalId); // slither-disable calls-loop
+    // slither-disable-next-line calls-loop
+    uint256 scheduleId = _removal.getProjectIdForRemoval(removalId);
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: scheduleId});
@@ -892,7 +903,8 @@ contract RestrictedNORI is
       scheduleId,
       quantityToRevoke
     );
-    _bridgedPolygonNori.send( // slither-disable calls-loop
+    // slither-disable-next-line calls-loop
+    _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
       quantityToRevoke,
@@ -961,9 +973,9 @@ contract RestrictedNORI is
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 linearAmountAvailable;
-    if (block.timestamp >= schedule.endTime) {
-      // slither-disable timestamp
+    // slither-disable-next-line timestamp
 
+    if (block.timestamp >= schedule.endTime) {
       linearAmountAvailable = totalSupply(scheduleId);
     } else {
       uint256 rampTotalTime = schedule.endTime - schedule.startTime;
