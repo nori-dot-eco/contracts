@@ -636,7 +636,7 @@ contract RestrictedNORI is
       // slither-disable-next-line unused-return return value irrelevant, address guaranteed removed
       schedule.tokenHolders.remove(from);
     }
-  }
+  } // slither-disable unused-return
 
   /**
    * Batched version of `safeTransferFrom`.
