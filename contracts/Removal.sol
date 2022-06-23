@@ -107,12 +107,11 @@ contract Removal is
     return removalId.unpackRemovalIdV0();
   }
 
-  // TODO do we want a batch version of this?
   /**
    * @notice Get the restriction schedule id (which is the removal's project id) for a given removal id.
    */
   function getProjectIdForRemoval(uint256 removalId)
-    public
+    external
     view
     returns (uint256)
   {

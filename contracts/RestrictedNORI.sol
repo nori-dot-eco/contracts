@@ -671,7 +671,7 @@ contract RestrictedNORI is
       _addressToScheduleIdSet[from].remove(id); // slither-disable unused-return
       schedule.tokenHolders.remove(from); // slither-disable
     }
-  }
+  } // slither-disable unused-return
 
   /**
    * Batched version of `safeTransferFrom`.
