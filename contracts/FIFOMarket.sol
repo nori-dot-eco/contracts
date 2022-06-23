@@ -188,8 +188,8 @@ contract FIFOMarket is
         _addActiveSupplier(supplierAddress);
       }
 
-      totalActiveSupply += removalAmount; // slither-disable 3-1-costly-loop
-      totalNumberActiveRemovals += 1; // slither-disable 3-1-costly-loop
+      totalActiveSupply += removalAmount; // slither-disable costly-loop
+      totalNumberActiveRemovals += 1; // slither-disable costly-loop
     }
     uint256 projectId = abi.decode(data, (uint256));
     _restrictedNori.createSchedule(projectId);
