@@ -239,18 +239,26 @@ export const createBatchMintData = async ({
   listNow = true,
   projectId = 1_234_567_890,
   scheduleStartTime,
+  holdbackPercentage = 40,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   fifoMarket: FIFOMarket;
   listNow?: boolean;
   projectId?: number;
   scheduleStartTime?: number;
+  holdbackPercentage?: number;
 }): Promise<Parameters<Removal['mintBatch']>[3]> => {
   const actualScheduleStartTime =
     scheduleStartTime ?? (await getLatestBlockTime({ hre }));
   const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-    ['uint256', 'uint256', 'address', 'bool'],
-    [projectId, actualScheduleStartTime, fifoMarket.address, listNow]
+    ['uint256', 'uint256', 'uint256', 'address', 'bool'],
+    [
+      projectId,
+      actualScheduleStartTime,
+      holdbackPercentage,
+      fifoMarket.address,
+      listNow,
+    ]
   );
   return packedData;
 };

@@ -10,6 +10,59 @@ import {
 import { formatTokenAmount } from '@/utils/units';
 
 describe('Removal', () => {
+  describe('holdback percentage', () => {
+    it('should set the holdback percentage for a removal while minting it', async () => {
+      const { fifoMarket, removal, hre } = await setupTest();
+      const tokenId = 1;
+      const holdbackPercentage = 40;
+      const packedData = await createBatchMintData({
+        hre,
+        holdbackPercentage,
+        fifoMarket,
+        listNow: false,
+      });
+      await removal.mintBatch(
+        hre.namedAccounts.supplier,
+        [formatTokenAmount(100)],
+        [tokenId],
+        packedData
+      );
+      const retrievedHoldbackPercentages =
+        await removal.batchGetHoldbackPercentages([tokenId]);
+      expect(retrievedHoldbackPercentages[0]).equal(holdbackPercentage);
+    });
+    it('should update the holdback percentage for a removal after it has been minted', async () => {
+      const { fifoMarket, removal } = await setupTest();
+      const tokenId = 1;
+      const originalHoldbackPercentage = 40;
+      const packedData = await createBatchMintData({
+        hre,
+        holdbackPercentage: originalHoldbackPercentage,
+        fifoMarket,
+        listNow: false,
+      });
+      await removal.mintBatch(
+        hre.namedAccounts.supplier,
+        [formatTokenAmount(100)],
+        [tokenId],
+        packedData
+      );
+
+      const updatedHoldback = 20;
+      await removal.batchSetHoldbackPercentage([tokenId], updatedHoldback);
+      const retrievedHoldbackPercentages =
+        await removal.batchGetHoldbackPercentages([tokenId]);
+      expect(retrievedHoldbackPercentages[0]).equal(updatedHoldback);
+    });
+    it('should revert if trying to set a holdback percentage for a removal that does not exist', async () => {
+      const { removal } = await setupTest();
+      const tokenId = 1;
+      const holdbackPercentage = 40;
+      await expect(
+        removal.batchSetHoldbackPercentage([tokenId], holdbackPercentage)
+      ).to.be.revertedWith('TokenIdDoesNotExist');
+    });
+  });
   describe('mintBatch', () => {
     describe('success', () => {
       it('should mint a batch of removals without listing any', async () => {
