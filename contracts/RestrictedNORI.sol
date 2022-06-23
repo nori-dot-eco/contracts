@@ -776,7 +776,9 @@ contract RestrictedNORI is
     }
     super._mint(recipient, projectId, amount, "");
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
+    // slither-disable-next-line unused-return
     schedule.tokenHolders.add(recipient);
+    // slither-disable-next-line unused-return
     _addressToScheduleIdSet[recipient].add(projectId);
     return true;
   }
