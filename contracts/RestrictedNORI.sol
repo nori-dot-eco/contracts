@@ -295,16 +295,16 @@ contract RestrictedNORI is
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
-    _ERC1820_REGISTRY.setInterfaceImplementer(
-      address(this),
-      ERC777_TOKENS_RECIPIENT_HASH,
-      address(this)
-    );
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _setupRole(PAUSER_ROLE, _msgSender());
     _setupRole(SCHEDULE_CREATOR_ROLE, _msgSender());
     _setupRole(TOKEN_REVOKER_ROLE, _msgSender());
     setRestrictionDurationForMethodologyAndVersion(1, 0, SECONDS_IN_TEN_YEARS);
+    _ERC1820_REGISTRY.setInterfaceImplementer(
+      address(this),
+      ERC777_TOKENS_RECIPIENT_HASH,
+      address(this)
+    );
   }
 
   // View functions and getters =========================================
@@ -635,16 +635,16 @@ contract RestrictedNORI is
     uint256 amount
   ) external returns (bool) {
     super._burn(_msgSender(), scheduleId, amount);
+    Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
+    schedule.totalClaimedAmount += amount;
+    schedule.claimedAmountsByAddress[_msgSender()] += amount;
+    emit TokensClaimed(_msgSender(), recipient, scheduleId, amount);
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       recipient,
       amount,
       ""
     );
-    Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    schedule.totalClaimedAmount += amount;
-    schedule.claimedAmountsByAddress[_msgSender()] += amount;
-    emit TokensClaimed(_msgSender(), recipient, scheduleId, amount);
     return true;
   }
 
@@ -664,12 +664,12 @@ contract RestrictedNORI is
     super.safeTransferFrom(from, to, id, amount, data);
     Schedule storage schedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
-      _addressToScheduleIdSet[to].add(id);
-      schedule.tokenHolders.add(to);
+      _addressToScheduleIdSet[to].add(id); // slither-disable unused-return
+      schedule.tokenHolders.add(to); // slither-disable unused-return
     }
     if (balanceOf(from, id) == 0) {
-      _addressToScheduleIdSet[from].remove(id);
-      schedule.tokenHolders.remove(from);
+      _addressToScheduleIdSet[from].remove(id); // slither-disable unused-return
+      schedule.tokenHolders.remove(from); // slither-disable
     }
   }
 
@@ -690,12 +690,12 @@ contract RestrictedNORI is
     for (uint256 i = 0; i < ids.length; i++) {
       Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
       if (amounts[i] != 0) {
-        _addressToScheduleIdSet[to].add(ids[i]);
-        schedule.tokenHolders.add(to);
+        _addressToScheduleIdSet[to].add(ids[i]); // slither-disable unused-return
+        schedule.tokenHolders.add(to); // slither-disable unused-return
       }
       if (balanceOf(from, ids[i]) == 0) {
-        _addressToScheduleIdSet[from].remove(ids[i]);
-        schedule.tokenHolders.remove(from);
+        _addressToScheduleIdSet[from].remove(ids[i]); // slither-disable unused-return
+        schedule.tokenHolders.remove(from); // slither-disable unused-return
       }
     }
   }
@@ -800,7 +800,7 @@ contract RestrictedNORI is
       revert ScheduleExists({scheduleTokenId: projectId});
     }
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    _allScheduleIds.add(projectId);
+    _allScheduleIds.add(projectId); // slither-disable unused-return
     RestrictionDuration
       memory restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
         scheduleData.methodology,
@@ -809,7 +809,7 @@ contract RestrictedNORI is
     if (!restrictionDuration.wasSet) {
       revert RestrictionDurationNotSet({projectId: projectId});
     }
-    _addressToScheduleIdSet[recipient].add(projectId);
+    _addressToScheduleIdSet[recipient].add(projectId); // slither-disable unused-return
     schedule.exists = true;
     schedule.startTime = scheduleData.startTime;
     schedule.endTime = scheduleData.startTime + restrictionDuration.duration;
@@ -837,7 +837,7 @@ contract RestrictedNORI is
     uint256 removalId,
     uint256 amount
   ) internal {
-    uint256 scheduleId = _removal.getProjectIdForRemoval(removalId);
+    uint256 scheduleId = _removal.getProjectIdForRemoval(removalId); // slither-disable calls-loop
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: scheduleId});
@@ -886,17 +886,17 @@ contract RestrictedNORI is
     }
 
     schedule.totalQuantityRevoked += quantityToRevoke;
-    _bridgedPolygonNori.send(
-      // solhint-disable-previous-line check-send-result, because this isn't a solidity send
-      to,
-      quantityToRevoke,
-      ""
-    );
     emit TokensRevoked(
       block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
       removalId,
       scheduleId,
       quantityToRevoke
+    );
+    _bridgedPolygonNori.send( // slither-disable calls-loop
+      // solhint-disable-previous-line check-send-result, because this isn't a solidity send
+      to,
+      quantityToRevoke,
+      ""
     );
   }
 
@@ -962,9 +962,12 @@ contract RestrictedNORI is
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 linearAmountAvailable;
     if (block.timestamp >= schedule.endTime) {
+      // slither-disable timestamp
+
       linearAmountAvailable = totalSupply(scheduleId);
     } else {
       uint256 rampTotalTime = schedule.endTime - schedule.startTime;
+      // slither-disable-next-line timestamp
       linearAmountAvailable = block.timestamp < schedule.startTime
         ? 0
         : (_scheduleTrueTotal(schedule, scheduleId) *
