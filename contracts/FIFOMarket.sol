@@ -171,8 +171,6 @@ contract FIFOMarket is
     bytes memory data
   ) public override returns (bytes4) {
     uint256[] memory batchedAmounts = _removal.balanceOfIds(address(this), ids);
-    uint256 projectId = abi.decode(data, (uint256));
-    _restrictedNori.createSchedule(projectId);
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
@@ -189,9 +187,12 @@ contract FIFOMarket is
       ) {
         _addActiveSupplier(supplierAddress);
       }
-      totalActiveSupply += removalAmount;
-      totalNumberActiveRemovals += 1;
+
+      totalActiveSupply += removalAmount; // slither-disable 3-1-costly-loop
+      totalNumberActiveRemovals += 1; // slither-disable 3-1-costly-loop
     }
+    uint256 projectId = abi.decode(data, (uint256));
+    _restrictedNori.createSchedule(projectId);
     return this.onERC1155BatchReceived.selector;
   }
 

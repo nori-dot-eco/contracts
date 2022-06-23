@@ -16,9 +16,6 @@ import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
 
-uint256 constant UNIX_EPOCH_2010 = 1_262_304_000;
-uint256 constant UNIX_EPOCH_2050 = 2_524_608_000;
-
 /**
  * @title Removal
  */
@@ -183,11 +180,6 @@ contract Removal is
     address marketAddress = decodedData.marketAddress;
     if (projectId == 0) {
       revert InvalidProjectId({projectId: projectId});
-    }
-    if (
-      scheduleStartTime < UNIX_EPOCH_2010 || scheduleStartTime > UNIX_EPOCH_2050
-    ) {
-      revert InvalidScheduleStartTime({startTime: scheduleStartTime});
     }
     uint256 newTokenIdCounter = tokenIdCounter;
     for (uint256 i = 0; i < idsLength; i++) {
