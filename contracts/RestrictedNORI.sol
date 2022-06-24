@@ -10,17 +10,6 @@ import "./Removal.sol";
 import "./FIFOMarket.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
-import "hardhat/console.sol"; // todo
-
-/*
-TODO LIST:
-- large market test is blowing block gas limit on minting/listing... what to do about this?
-  (maybe split the minting/listing into a few different transactions so that the rest of the large market test
-  can proceed as intended)
-
-- check out your remaining test cases
- */
-
 /**
  * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance collateral.
  *
@@ -77,7 +66,13 @@ TODO LIST:
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
  *    - SCHEDULE_CREATOR_ROLE
  *      - Can create restriction schedules without sending BridgedPolygonNORI to the contract
- *      - The Removal contract has this role and sets up relevant schedules as removal tokens are listed for sale
+ *      - The Market contract has this role and sets up relevant schedules as removal tokens are listed for sale
+ *    - TOKEN_DEPOSITOR_ROLE
+ *      - Can send bpNori to this contract
+ *      - The Market contract has this role and can route sale proceeds to this contract
+ *    - TOKEN_REVOKER_ROLE
+ *      - Can revoke unreleased tokens from a schedule
+ *      - Only Nori admin wallet should have this role
  *    - PAUSER_ROLE
  *      - Can pause and unpause the contract
  *    - DEFAULT_ADMIN_ROLE
@@ -651,15 +646,15 @@ contract RestrictedNORI is
     super.safeTransferFrom(from, to, id, amount, data);
     Schedule storage schedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
-      // slither-disable-next-line unused-return
+      // slither-disable-next-line unused-return id may already be in set and that is ok
       _addressToScheduleIdSet[to].add(id);
-      // slither-disable-next-line unused-return
+      // slither-disable-next-line unused-return address may already be in set and that is ok
       schedule.tokenHolders.add(to);
     }
     if (balanceOf(from, id) == 0) {
-      // slither-disable-next-line unused-return
+      // slither-disable-next-line unused-return return value irrelevant, id guaranteed removed
       _addressToScheduleIdSet[from].remove(id);
-      // slither-disable-next-line unused-return
+      // slither-disable-next-line unused-return return value irrelevant, address guaranteed removed
       schedule.tokenHolders.remove(from);
     }
   }
@@ -681,15 +676,15 @@ contract RestrictedNORI is
     for (uint256 i = 0; i < ids.length; i++) {
       Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
       if (amounts[i] != 0) {
-        // slither-disable-next-line unused-return
+        // slither-disable-next-line unused-return id may already be in set and that is ok
         _addressToScheduleIdSet[to].add(ids[i]);
-        // slither-disable-next-line unused-return
+        // slither-disable-next-line unused-return address may already be in set and that is ok
         schedule.tokenHolders.add(to);
       }
       if (balanceOf(from, ids[i]) == 0) {
-        // slither-disable-next-line unused-return
+        // slither-disable-next-line unused-return return value irrelevant, id guaranteed removed
         _addressToScheduleIdSet[from].remove(ids[i]);
-        // slither-disable-next-line unused-return
+        // slither-disable-next-line unused-return return value irrelevant, address guaranteed removed
         schedule.tokenHolders.remove(from);
       }
     }
@@ -763,9 +758,9 @@ contract RestrictedNORI is
     }
     super._mint(recipient, projectId, amount, "");
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    // slither-disable-next-line unused-return
+    // slither-disable-next-line unused-return address may already be in set and that is ok
     schedule.tokenHolders.add(recipient);
-    // slither-disable-next-line unused-return
+    // slither-disable-next-line unused-return id may already be in the set and that is ok
     _addressToScheduleIdSet[recipient].add(projectId);
     return true;
   }
@@ -797,7 +792,7 @@ contract RestrictedNORI is
       revert ScheduleExists({scheduleTokenId: projectId});
     }
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    // slither-disable-next-line unused-return
+    // slither-disable-next-line unused-return return value irrelevant
     _allScheduleIds.add(projectId);
     RestrictionDuration
       memory restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
@@ -807,7 +802,7 @@ contract RestrictedNORI is
     if (!restrictionDuration.wasSet) {
       revert RestrictionDurationNotSet({projectId: projectId});
     }
-    // slither-disable-next-line unused-return
+    // slither-disable-next-line unused-return return value irrelevant
     _addressToScheduleIdSet[recipient].add(projectId);
     schedule.exists = true;
     schedule.startTime = scheduleData.startTime;
@@ -962,13 +957,13 @@ contract RestrictedNORI is
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 linearAmountAvailable;
-    // slither-disable-next-line timestamp
+    // slither-disable-next-line timestamp this contract is block time dependent
 
     if (block.timestamp >= schedule.endTime) {
       linearAmountAvailable = totalSupply(scheduleId);
     } else {
       uint256 rampTotalTime = schedule.endTime - schedule.startTime;
-      // slither-disable-next-line timestamp
+      // slither-disable-next-line timestamp this contract is block time dependent
       linearAmountAvailable = block.timestamp < schedule.startTime
         ? 0
         : (_scheduleTrueTotal(schedule, scheduleId) *
