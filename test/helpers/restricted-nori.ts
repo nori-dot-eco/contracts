@@ -8,7 +8,7 @@ export const SECONDS_IN_10_YEARS = 315_569_520;
 export const SECONDS_IN_5_YEARS = SECONDS_IN_10_YEARS / 2;
 
 export const setupTestLocal = global.hre.deployments.createFixture(
-  async (): Promise<Awaited<ReturnType<typeof setupTest>>> => {
+  async (): ReturnType<typeof setupTest> => {
     const testSetup = await setupTest({});
     const { hre, rNori } = testSetup;
     await rNori.grantRole(
@@ -46,7 +46,7 @@ export const restrictRemovalProceeds = async ({
 };
 
 export const compareScheduleDetailForAddressStructs = (
-  receivedScheduleDetail: RestrictedNORI.ScheduleDetailForAddressStruct,
+  receivedScheduleDetail: RestrictedNORI.ScheduleDetailForAddressStructOutput,
   expectedScheduleDetail: Partial<RestrictedNORI.ScheduleDetailForAddressStruct>
 ): void => {
   const keys = [

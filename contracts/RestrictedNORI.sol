@@ -125,21 +125,14 @@ contract RestrictedNORI is
   // Based on average year duration of 365.2425 days, which accounts for leap years
   uint256 constant SECONDS_IN_TEN_YEARS = 315_569_520;
 
-  error BurningNotSupported();
-  error MintingNotSupported();
-  error OperatorActionsNotSupported();
   error TokenSenderNotBPNORI();
   error RecipientCannotBeZeroAddress();
   error RecipientCannotHaveRole(address recipient, string role);
   error RestrictionDurationNotSet(uint256 projectId);
   error NonexistentSchedule(uint256 scheduleId);
   error ScheduleExists(uint256 scheduleTokenId);
-  error RoleCannotTransfer(address account, string role);
-  error RoleUnassignableToScheduleHolder(address account, string role);
-  error MissingRole(address account, string role);
   error ArrayLengthMismatch(string array1Name, string array2Name);
   error InsufficientUnreleasedTokens(uint256 scheduleId);
-  error InsufficientBalance(address account, uint256 scheduleId);
   error InsufficientClaimableBalance(address account, uint256 scheduleId);
   error InvalidBpNoriSender(address account);
   error InvalidScheduleStartTime(uint256 projectId);
