@@ -13,42 +13,46 @@ abstract contract ERC777ERC1820 is
   IERC777SenderUpgradeable
 {
   function tokensReceived(
-    address operator,
-    address from,
-    address to,
-    uint256 amount,
-    bytes calldata userData,
-    bytes calldata operatorData
-  ) external {
-    console.log("tokensReceived");
+    address,
+    address,
+    address,
+    uint256,
+    bytes calldata,
+    bytes calldata
+  ) external view {
+    console2.log("ERC777ERC1820: tokensReceived");
   }
 
   function tokensToSend(
-    address operator,
-    address from,
-    address to,
-    uint256 amount,
-    bytes calldata userData,
-    bytes calldata operatorData
-  ) external {
-    console.log("tokensToSend");
+    address,
+    address,
+    address,
+    uint256,
+    bytes calldata,
+    bytes calldata
+  ) external view {
+    console2.log("ERC777ERC1820: tokensToSend");
   }
 }
 
 contract Recipient {
   address constant _ERC1820_REGISTRY_ADDRESS =
     0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24;
-  uint256 counter;
-  bool shouldAttack;
+  uint256 receiveCounter;
+  uint256 sendCounter;
+  bool shouldAttackToSend;
+  bool shouldAttackReceived;
   LockedNORI lNori;
   BridgedPolygonNORI bpNori;
 
-  constructor(bool attack) {
-    counter = 0;
-    shouldAttack = attack;
+  constructor(address lNoriAddress, bool attackReceived, bool attackToSend) {
+    receiveCounter = 0;
+    shouldAttackToSend = attackToSend;
+    shouldAttackReceived = attackReceived;
     IERC1820RegistryUpgradeable registry = IERC1820RegistryUpgradeable(
       _ERC1820_REGISTRY_ADDRESS
     );
+    lNori = LockedNORI(lNoriAddress);
     registry.setInterfaceImplementer(
       address(this),
       keccak256("ERC777TokensSender"),
@@ -63,34 +67,48 @@ contract Recipient {
 
   function tokensReceived(
     address operator,
-    address from,
-    address to,
+    address,
+    address,
     uint256 amount,
-    bytes calldata userData,
-    bytes calldata operatorData
+    bytes calldata,
+    bytes calldata
   ) external {
-    counter = counter + 1;
-    if (counter == 1) {
-        bpNori = BridgedPolygonNORI(operator);
-    }
-    console.log("tokensReceived - recipient contract, call count", counter);
-    console.log('operator %s, amount %d', operator, amount);
-    if (counter == 2 && shouldAttack) {
-      lNori = LockedNORI(operator);
-      console.log("Re-entry attempt");
-      lNori.withdrawTo(address(this), amount);
+    receiveCounter = receiveCounter + 1;
+    console2.log(
+      "tokensReceived - recipient contract, call count: %s, operator: %s, amount: %s",
+      sendCounter,
+      operator,
+      amount
+    );
+    if (shouldAttackReceived) {
+      if (receiveCounter == 2) {
+        console2.log("Re-entry attempt from tokensReceived");
+        lNori.withdrawTo(address(this), amount - 1);
+      }
     }
   }
 
   function tokensToSend(
     address operator,
-    address from,
-    address to,
+    address,
+    address,
     uint256 amount,
-    bytes calldata userData,
-    bytes calldata operatorData
+    bytes calldata,
+    bytes calldata
   ) external {
-    console.log("tokensToSend - recipient contract");
+    sendCounter = sendCounter + 1;
+    console2.log(
+      "tokensToSend - recipient contract, call count: %s, operator: %s, amount: %s",
+      sendCounter,
+      operator,
+      amount
+    );
+    if (shouldAttackToSend) {
+      if (msg.sender == address(lNori) && sendCounter < 2) {
+        console2.log("Re-entry attempt from tokensToSend");
+        lNori.withdrawTo(address(this), amount - 1);
+      }
+    }
   }
 }
 
@@ -106,8 +124,6 @@ contract LockedNORITest is Test, ERC777ERC1820 {
   IERC1820RegistryUpgradeable registry;
   LockedNORI lNori;
   BridgedPolygonNORI bpNori;
-  Recipient badRecipient;
-  Recipient goodRecipient;
 
   function issueGrant(address recipientAddress) internal {
     address[] memory recipients = new address[](1);
@@ -159,33 +175,44 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     lNori = new LockedNORI();
     lNori.initialize(bpNori);
 
-    goodRecipient = new Recipient(false);
-    badRecipient = new Recipient(true);
-
     bpNori.deposit(address(this), abi.encode(SEED_AMOUNT));
     assertEq(bpNori.balanceOf(address(this)), SEED_AMOUNT);
   }
 
-  function testReentry() public {
-    issueGrant(address(badRecipient));
+  function testReentryTokensReceived() public {
+    Recipient recipient = new Recipient(address(lNori), true, false);
+    issueGrant(address(recipient));
     skip(100);
 
-    uint256 balance = lNori.unlockedBalanceOf(address(badRecipient));
-    console.log('Unlocked balance is: ', balance);
-    vm.prank(address(badRecipient));
-    vm.expectRevert('ERC777: burn amount exceeds balance');
-    lNori.withdrawTo(address(badRecipient), balance);
+    uint256 balance = lNori.unlockedBalanceOf(address(recipient));
+    console2.log("Unlocked balance is: ", balance);
+    vm.prank(address(recipient));
+    vm.expectRevert("ERC777: burn amount exceeds balance");
+    lNori.withdrawTo(address(recipient), balance);
+  }
+
+  function testReentryTokensToSend() public {
+    Recipient recipient = new Recipient(address(lNori), false, true);
+    issueGrant(address(recipient));
+    skip(100);
+
+    uint256 balance = lNori.unlockedBalanceOf(address(recipient));
+    console2.log("Unlocked balance is: ", balance);
+    vm.prank(address(recipient));
+    vm.expectRevert("lNORI: insufficient balance");
+    lNori.withdrawTo(address(recipient), balance);
   }
 
   function testNormalWithdrawl() public {
-    issueGrant(address(goodRecipient));
+    Recipient recipient = new Recipient(address(lNori), false, false);
+    issueGrant(address(recipient));
     skip(100);
 
-    uint256 balance = lNori.unlockedBalanceOf(address(goodRecipient));
-    console.log('Unlocked balance is: ', balance);
-    vm.prank(address(goodRecipient));
-    lNori.withdrawTo(address(goodRecipient), balance);
-    assertEq(lNori.unlockedBalanceOf(address(goodRecipient)), 0);
-    assertEq(bpNori.balanceOf(address(goodRecipient)), GRANT_AMOUNT);
+    uint256 balance = lNori.unlockedBalanceOf(address(recipient));
+    console2.log("Unlocked balance is: ", balance);
+    vm.prank(address(recipient));
+    lNori.withdrawTo(address(recipient), balance);
+    assertEq(lNori.unlockedBalanceOf(address(recipient)), 0);
+    assertEq(bpNori.balanceOf(address(recipient)), GRANT_AMOUNT);
   }
 }
