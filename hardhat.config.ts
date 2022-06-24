@@ -2,7 +2,6 @@ import 'tsconfig-paths/register';
 import 'hardhat-preprocessor';
 import '@/config/environment';
 import '@/plugins';
-import '@foundry-rs/hardhat';
 
 import type { HardhatUserConfig } from 'hardhat/types';
 
@@ -36,7 +35,7 @@ export const getConfig = (
     ethernal: getEthernalConfig(environment),
     preprocess,
     paths: {
-        sources: "./src",
+        sources: "./contracts",
         cache: "./cache_hardhat",
     },
   };
