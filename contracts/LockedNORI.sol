@@ -264,13 +264,13 @@ contract LockedNORI is
   {
     TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
+    grant.claimedAmount += amount;
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       recipient,
       amount,
       ""
     );
-    grant.claimedAmount += amount;
     emit TokensClaimed(_msgSender(), recipient, amount);
     return true;
   }

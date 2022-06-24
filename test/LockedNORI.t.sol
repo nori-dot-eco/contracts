@@ -187,7 +187,7 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     uint256 balance = lNori.unlockedBalanceOf(address(recipient));
     console2.log("Unlocked balance is: ", balance);
     vm.prank(address(recipient));
-    vm.expectRevert("ERC777: burn amount exceeds balance");
+    vm.expectRevert("lNORI: insufficient balance");
     lNori.withdrawTo(address(recipient), balance);
   }
 
