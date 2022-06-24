@@ -239,7 +239,7 @@ export const createBatchMintData = async ({
   listNow = true,
   projectId = 1_234_567_890,
   scheduleStartTime,
-  holdbackPercentage = 40,
+  holdbackPercentage = 0,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   fifoMarket: FIFOMarket;
@@ -299,14 +299,16 @@ export const batchMintAndListRemovalsForSale = async (options: {
   testSetup: Awaited<ReturnType<typeof setupTest>>;
   projectId?: number;
   scheduleStartTime?: number;
+  holdbackPercentage?: number;
   removalDataToList: RemovalDataForListing[];
 }): Promise<RemovalDataFromListing> => {
   const { testSetup, removalDataToList } = options;
   const { removal, fifoMarket, hre } = testSetup;
-  const { projectId, scheduleStartTime } = {
+  const { projectId, scheduleStartTime, holdbackPercentage } = {
     projectId: options.projectId ?? 1_234_567_890,
     scheduleStartTime:
       options.scheduleStartTime ?? (await getLatestBlockTime({ hre })),
+    holdbackPercentage: options.holdbackPercentage ?? 0,
   };
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
@@ -338,6 +340,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
       listNow: true,
       projectId,
       scheduleStartTime,
+      holdbackPercentage,
     })
   );
   const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);

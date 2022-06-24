@@ -301,16 +301,35 @@ contract FIFOMarket is
       address(this),
       batchedIds
     );
+    uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
+      batchedIds
+    );
+
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < batchedIds.length; i++) {
       if (batchedAmounts[i] == batchedBalances[i]) {
         totalNumberActiveRemovals -= 1; // removal used up
       }
       totalActiveSupply -= batchedAmounts[i];
-      uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
-      uint256 supplierFee = batchedAmounts[i];
+      uint256 noriFee = (batchedAmounts[i] * _noriFee) / 100;
+      uint256 restrictedSupplierFee = 0;
+      uint256 unrestrictedSupplierFee = batchedAmounts[i];
+      if (holdbackPercentages[i] > 0) {
+        restrictedSupplierFee =
+          (unrestrictedSupplierFee * holdbackPercentages[i]) /
+          100;
+        unrestrictedSupplierFee =
+          unrestrictedSupplierFee -
+          restrictedSupplierFee;
+        bytes memory removalIdData = abi.encode(batchedIds[i]);
+        _bridgedPolygonNori.send(
+          address(_restrictedNori),
+          restrictedSupplierFee,
+          removalIdData
+        );
+      }
       _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
-      _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
+      _bridgedPolygonNori.transfer(suppliers[i], unrestrictedSupplierFee);
     }
     _removal.burnBatch(address(this), batchedIds, batchedAmounts);
   }

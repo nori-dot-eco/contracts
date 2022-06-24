@@ -24,6 +24,9 @@ const setupTestLocal = global.hre.deployments.createFixture(
     options?: {
       buyerInitialBPNoriBalance?: BigNumberish;
       removalDataToList?: RemovalDataForListing[]; // todo userFixtures format
+      projectId?: number;
+      scheduleStartTime?: number;
+      holdbackPercentage?: number;
     }
   ): Promise<
     Awaited<ReturnType<typeof setupTest>> & RemovalDataFromListing
@@ -53,6 +56,9 @@ const setupTestLocal = global.hre.deployments.createFixture(
       } = await batchMintAndListRemovalsForSale({
         testSetup,
         removalDataToList,
+        projectId: options?.projectId,
+        scheduleStartTime: options?.scheduleStartTime,
+        holdbackPercentage: options?.holdbackPercentage,
       }));
     }
     return {
@@ -1124,6 +1130,63 @@ describe('FIFOMarket', () => {
       expect(await certificate.balanceOf(buyer, 0)).to.equal(
         hre.ethers.utils.parseUnits('0', 18)
       );
+    });
+  });
+  describe('restricted tokens', () => {
+    it('should correctly route restricted tokens to the RestrictedNORI contract', async () => {
+      const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
+      const projectId1 = 1_111_111_111;
+      const projectId2 = 2_222_222_222;
+      // const scheduleStartTime1 = 1_577_836_800; // unix epoch 2020
+      // const scheduleStartTime2 = 1_609_459_200; // unix epoch 2021
+      const project1HoldbackPercentage = 30;
+      const project2HoldbackPercentage = 40;
+      const project1RemovalData = [{ amount: 100 }];
+      const project2RemovalData = [{ amount: 100 }];
+
+      const testSetup = await setupTestLocal({
+        buyerInitialBPNoriBalance,
+        removalDataToList: project1RemovalData,
+        projectId: projectId1,
+        // scheduleStartTime: scheduleStartTime1,
+        holdbackPercentage: project1HoldbackPercentage,
+      });
+      await batchMintAndListRemovalsForSale({
+        testSetup,
+        removalDataToList: project2RemovalData,
+        projectId: projectId2,
+        // scheduleStartTime: scheduleStartTime2,
+        holdbackPercentage: project2HoldbackPercentage,
+      });
+      const { bpNori, certificate, fifoMarket, rNori, hre } = testSetup;
+      const { supplier, buyer, noriWallet } = hre.namedAccounts;
+
+      const purchaseAmount = '200';
+      const fee = Number(purchaseAmount) * 0.15;
+      const totalPrice = (Number(purchaseAmount) + Number(fee)).toString();
+
+      const supplierInitialNoriBalance = '0';
+      const noriInitialNoriBalance = '0';
+
+      const initialFifoSupply =
+        await fifoMarket.numberOfActiveNrtsInMarketComputed();
+
+      await bpNori
+        .connect(hre.namedSigners.buyer)
+        .send(
+          fifoMarket.address,
+          hre.ethers.utils.parseUnits(totalPrice),
+          hre.ethers.utils.hexZeroPad(buyer, 32)
+        );
+
+      const scheduleSummaries = await rNori.batchGetScheduleSummaries([
+        projectId1,
+        projectId2,
+      ]);
+      console.log({ scheduleSummaries });
+      expect(0).to.be.false;
+      // examine the resulting balances for the nori fee, supplier unrestricted, and supplier restricted
+      // examine the schedules created
     });
   });
 
