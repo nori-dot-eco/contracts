@@ -52,8 +52,6 @@ export const compareScheduleDetailForAddressStructs = (
   const keys = [
     'tokenHolder',
     'scheduleTokenId',
-    'startTime',
-    'endTime',
     'balance',
     'claimableAmount',
     'claimedAmount',

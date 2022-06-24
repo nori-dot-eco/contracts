@@ -218,21 +218,17 @@ describe('RestrictedNORI', () => {
         )
         .to.emit(bpNori, 'Transfer')
         .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
-      const restrictionScheduleDetail = await rNori.getScheduleSummary(
-        projectId
-      );
-      expect(restrictionScheduleDetail.scheduleTokenId).equals(projectId);
-      expect(restrictionScheduleDetail.totalSupply).equals(restrictedAmount);
-      expect(restrictionScheduleDetail.tokenHolders[0]).equals(
-        namedAccounts.supplier
-      );
-      expect(restrictionScheduleDetail.startTime).equals(scheduleStartTime);
-      expect(restrictionScheduleDetail.endTime).equals(
+      const scheduleSummary = await rNori.getScheduleSummary(projectId);
+      expect(scheduleSummary.scheduleTokenId).equals(projectId);
+      expect(scheduleSummary.totalSupply).equals(restrictedAmount);
+      expect(scheduleSummary.tokenHolders[0]).equals(namedAccounts.supplier);
+      expect(scheduleSummary.startTime).equals(scheduleStartTime);
+      expect(scheduleSummary.endTime).equals(
         scheduleStartTime + SECONDS_IN_10_YEARS
       );
-      expect(restrictionScheduleDetail.totalClaimedAmount).equals(0);
-      expect(restrictionScheduleDetail.totalQuantityRevoked).equals(0);
-      expect(restrictionScheduleDetail.exists).equals(true);
+      expect(scheduleSummary.totalClaimedAmount).equals(0);
+      expect(scheduleSummary.totalQuantityRevoked).equals(0);
+      expect(scheduleSummary.exists).equals(true);
     });
     it('should revert if the sender of bpNori is not the market contract', async () => {
       const removalDataToList = [

@@ -155,8 +155,6 @@ contract RestrictedNORI is
   struct ScheduleDetailForAddress {
     address tokenHolder;
     uint256 scheduleTokenId;
-    uint256 startTime;
-    uint256 endTime;
     uint256 balance;
     uint256 claimableAmount;
     uint256 claimedAmount;
@@ -345,8 +343,6 @@ contract RestrictedNORI is
       ScheduleDetailForAddress(
         account,
         scheduleId,
-        schedule.startTime,
-        schedule.endTime,
         balanceOf(account, scheduleId),
         claimableBalanceForScheduleForAccount(scheduleId, account),
         schedule.claimedAmountsByAddress[account],
@@ -368,10 +364,12 @@ contract RestrictedNORI is
         scheduleIds.length()
       );
     for (uint256 i = 0; i < scheduleIds.length(); i++) {
-      scheduleDetails[i] = getScheduleDetailForAccount(
-        account,
-        scheduleIds.at(i)
-      );
+      if (_scheduleIdToScheduleStruct[scheduleIds.at(i)].exists) {
+        scheduleDetails[i] = getScheduleDetailForAccount(
+          account,
+          scheduleIds.at(i)
+        );
+      }
     }
     return scheduleDetails;
   }

@@ -26,7 +26,7 @@ describe('RestrictedNORI transferring', () => {
         ];
         const testSetup = await setupTestLocal({});
         const { rNori, hre } = testSetup;
-        const { listedRemovalIds, projectId, scheduleStartTime } =
+        const { listedRemovalIds, projectId } =
           await batchMintAndListRemovalsForSale({
             testSetup,
             removalDataToList,
@@ -44,8 +44,6 @@ describe('RestrictedNORI transferring', () => {
         const expectedScheduleDetailBeforeTransfer = {
           tokenHolder: supplier,
           scheduleTokenId: projectId,
-          startTime: BigNumber.from(scheduleStartTime),
-          endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
           balance: BigNumber.from(restrictedAmount),
           claimableAmount: BigNumber.from(0),
           claimedAmount: BigNumber.from(0),
@@ -67,8 +65,6 @@ describe('RestrictedNORI transferring', () => {
         const expectedSupplierScheduleDetailAfterTransfer = {
           tokenHolder: supplier,
           scheduleTokenId: projectId,
-          startTime: BigNumber.from(scheduleStartTime),
-          endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
           balance: BigNumber.from(restrictedAmount / 2),
           claimableAmount: BigNumber.from(0),
           claimedAmount: BigNumber.from(0),
@@ -78,8 +74,6 @@ describe('RestrictedNORI transferring', () => {
         const expectedInvestor1ScheduleDetailAfterTransfer = {
           tokenHolder: investor1,
           scheduleTokenId: projectId,
-          startTime: BigNumber.from(scheduleStartTime),
-          endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
           balance: BigNumber.from(restrictedAmount / 2),
           claimableAmount: BigNumber.from(0),
           claimedAmount: BigNumber.from(0),
@@ -105,7 +99,7 @@ describe('RestrictedNORI transferring', () => {
         ];
         const testSetup = await setupTestLocal({});
         const { rNori, hre } = testSetup;
-        const { listedRemovalIds, projectId, scheduleStartTime } =
+        const { listedRemovalIds, projectId } =
           await batchMintAndListRemovalsForSale({
             testSetup,
             removalDataToList,
@@ -122,8 +116,6 @@ describe('RestrictedNORI transferring', () => {
         compareScheduleDetailForAddressStructs(
           supplierScheduleDetailBeforeTransfer,
           {
-            startTime: BigNumber.from(scheduleStartTime),
-            endTime: BigNumber.from(scheduleStartTime).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(restrictedAmount),
           }
         );
@@ -193,14 +185,11 @@ describe('RestrictedNORI transferring', () => {
         ];
         const testSetup = await setupTestLocal({});
         const { rNori, hre } = testSetup;
-        const {
-          listedRemovalIds: listedRemovalIds1,
-          projectId: projectId1,
-          scheduleStartTime: scheduleStartTime1,
-        } = await batchMintAndListRemovalsForSale({
-          testSetup,
-          removalDataToList: [removalDataToList[0]],
-        });
+        const { listedRemovalIds: listedRemovalIds1, projectId: projectId1 } =
+          await batchMintAndListRemovalsForSale({
+            testSetup,
+            removalDataToList: [removalDataToList[0]],
+          });
         const {
           listedRemovalIds: listedRemovalIds2,
           projectId: projectId2,
@@ -232,9 +221,6 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: supplier,
             scheduleTokenId: projectId1,
-            startTime: BigNumber.from(scheduleStartTime1),
-            endTime:
-              BigNumber.from(scheduleStartTime1).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(restrictedAmounts[0]),
             claimableAmount: BigNumber.from(restrictedAmounts[0]),
             claimedAmount: BigNumber.from(0),
@@ -244,9 +230,6 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: supplier,
             scheduleTokenId: projectId2,
-            startTime: BigNumber.from(scheduleStartTime2),
-            endTime:
-              BigNumber.from(scheduleStartTime2).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(restrictedAmounts[1]),
             claimableAmount: BigNumber.from(restrictedAmounts[1]),
             claimedAmount: BigNumber.from(0),
@@ -284,9 +267,6 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: supplier,
             scheduleTokenId: projectId1,
-            startTime: BigNumber.from(scheduleStartTime1),
-            endTime:
-              BigNumber.from(scheduleStartTime1).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(
               restrictedAmounts[0] - amountToTransferFirstSchedule
             ),
@@ -300,9 +280,6 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: supplier,
             scheduleTokenId: projectId2,
-            startTime: BigNumber.from(scheduleStartTime2),
-            endTime:
-              BigNumber.from(scheduleStartTime2).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(
               restrictedAmounts[1] - amountToTransferSecondSchedule
             ),
@@ -318,9 +295,6 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: investor1,
             scheduleTokenId: projectId1,
-            startTime: BigNumber.from(scheduleStartTime1),
-            endTime:
-              BigNumber.from(scheduleStartTime1).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(amountToTransferFirstSchedule),
             claimableAmount: BigNumber.from(amountToTransferFirstSchedule),
             claimedAmount: BigNumber.from(0),
@@ -330,9 +304,6 @@ describe('RestrictedNORI transferring', () => {
           {
             tokenHolder: investor1,
             scheduleTokenId: projectId2,
-            startTime: BigNumber.from(scheduleStartTime2),
-            endTime:
-              BigNumber.from(scheduleStartTime2).add(SECONDS_IN_10_YEARS),
             balance: BigNumber.from(amountToTransferSecondSchedule),
             claimableAmount: BigNumber.from(amountToTransferSecondSchedule),
             claimedAmount: BigNumber.from(0),
