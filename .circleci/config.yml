@@ -69,6 +69,22 @@ jobs:
             yarn build && yarn run test:coverage
       - coveralls/upload
 
+  run-forge-tests:
+    <<: *defaults
+    resource_class: xlarge
+    steps:
+      - checkout
+      - restore_cache:
+          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+      - run:
+          name: Setup Environment
+          command: |
+            echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
+            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
+      - run:
+          name: Run Forge Tests
+          command: yarn test:forge
+
   run-gas-reporter:
     <<: *defaults
     steps:
