@@ -723,9 +723,17 @@ describe('FIFOMarket', () => {
           return { amount: amountPerRemoval, vintage: 2015 + (index % 5) };
         }
       );
-      const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
+      // split into two batches to avoid blowing block gas limit while minting/listing large supply
+      const firstBatch = removalDataToList.slice(0, 50);
+      const secondBatch = removalDataToList.slice(50, 100);
+      const testSetup = await setupTestLocal({
         buyerInitialBPNoriBalance,
-        removalDataToList,
+        removalDataToList: firstBatch,
+      });
+      const { bpNori, certificate, fifoMarket, hre } = testSetup;
+      await batchMintAndListRemovalsForSale({
+        testSetup,
+        removalDataToList: secondBatch,
       });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 

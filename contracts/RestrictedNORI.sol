@@ -84,10 +84,6 @@ TODO LIST:
  *      - This is the only role that can add/revoke other accounts to any of the roles
  * - [Can receive BridgedPolygonNORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
  *   - BridgedPolygonNORI is wrapped and schedules are created (if necessary) upon receipt
- * - [Limited ERC-1155 functionality](https://eips.ethereum.org/EIPS/eip-1155)
- *   - mint and mintBatch will revert as only the internal variants are expected to be used
- *   - burn and burnBatch will revert as only the internal variants are expected to be used
- *   - setApprovalForAll and isApprovedForAll will revert as operator actions are disabled
  *
  * ##### Inherits
  *
@@ -121,9 +117,6 @@ contract RestrictedNORI is
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-
-  // Based on average year duration of 365.2425 days, which accounts for leap years
-  uint256 constant SECONDS_IN_TEN_YEARS = 315_569_520;
 
   error TokenSenderNotBPNORI();
   error RecipientCannotBeZeroAddress();
@@ -292,7 +285,8 @@ contract RestrictedNORI is
     _setupRole(PAUSER_ROLE, _msgSender());
     _setupRole(SCHEDULE_CREATOR_ROLE, _msgSender());
     _setupRole(TOKEN_REVOKER_ROLE, _msgSender());
-    setRestrictionDurationForMethodologyAndVersion(1, 0, SECONDS_IN_TEN_YEARS);
+    // Seconds in 10 years, based on average year duration of 365.2425 days, which accounts for leap years
+    setRestrictionDurationForMethodologyAndVersion(1, 0, 315_569_520);
     _ERC1820_REGISTRY.setInterfaceImplementer(
       address(this),
       ERC777_TOKENS_RECIPIENT_HASH,
