@@ -124,6 +124,7 @@ contract RestrictedNORI is
   error InsufficientClaimableBalance(address account, uint256 scheduleId);
   error InvalidBpNoriSender(address account);
   error InvalidScheduleStartTime(uint256 projectId);
+  error InvalidZeroDuration();
 
   /** The internal governing parameters and data for a schedule */
   struct Schedule {
@@ -162,11 +163,6 @@ contract RestrictedNORI is
     bool exists;
   }
 
-  struct RestrictionDuration {
-    uint256 duration;
-    bool wasSet;
-  }
-
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
   /**
@@ -203,7 +199,7 @@ contract RestrictedNORI is
   bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
     keccak256("ERC777TokensRecipient");
 
-  mapping(uint256 => mapping(uint256 => RestrictionDuration))
+  mapping(uint256 => mapping(uint256 => uint256))
     private _methodologyAndVersionToScheduleDuration;
 
   mapping(address => EnumerableSetUpgradeable.UintSet)
@@ -304,7 +300,7 @@ contract RestrictedNORI is
   function getRestrictionDurationForMethodologyAndVersion(
     uint256 methodology,
     uint256 methodologyVersion
-  ) public view returns (RestrictionDuration memory) {
+  ) public view returns (uint256) {
     return
       _methodologyAndVersionToScheduleDuration[methodology][methodologyVersion];
   }
@@ -326,9 +322,7 @@ contract RestrictedNORI is
     view
     returns (uint256[] memory)
   {
-    EnumerableSetUpgradeable.UintSet
-      storage scheduleIdSet = _addressToScheduleIdSet[account];
-    return _enumerableSetToArray(scheduleIdSet);
+    return _addressToScheduleIdSet[account].values();
   }
 
   /** Returns an account-specific view of the details of a specific schedule. */
@@ -433,8 +427,11 @@ contract RestrictedNORI is
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
     return
-      _scheduleTrueTotal(schedule, scheduleId) -
-      _releasedBalanceOfSingleSchedule(scheduleId);
+      _scheduleTrueTotal(schedule.totalClaimedAmount, scheduleId) -
+      _releasedBalanceOfSingleSchedule(
+        scheduleId,
+        schedule.releasedAmountFloor
+      );
   }
 
   /** Released balance less the total claimed amount at current block timestamp for a schedule. */
@@ -448,8 +445,10 @@ contract RestrictedNORI is
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
     return
-      _releasedBalanceOfSingleSchedule(scheduleId) -
-      schedule.totalClaimedAmount;
+      _releasedBalanceOfSingleSchedule(
+        scheduleId,
+        schedule.releasedAmountFloor
+      ) - schedule.totalClaimedAmount;
   }
 
   /**
@@ -464,7 +463,10 @@ contract RestrictedNORI is
     address account
   ) public view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    uint256 scheduleTrueTotal = _scheduleTrueTotal(schedule, scheduleId);
+    uint256 scheduleTrueTotal = _scheduleTrueTotal(
+      schedule.totalClaimedAmount,
+      scheduleId
+    );
     uint256 claimableForAccount;
     // avoid division by 0
     if (scheduleTrueTotal == 0) {
@@ -544,9 +546,12 @@ contract RestrictedNORI is
     uint256 methodologyVersion,
     uint256 durationInSeconds
   ) public whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+    if (durationInSeconds == 0) {
+      revert InvalidZeroDuration();
+    }
     _methodologyAndVersionToScheduleDuration[methodology][
       methodologyVersion
-    ] = RestrictionDuration(durationInSeconds, true);
+    ] = durationInSeconds;
   }
 
   /**
@@ -738,14 +743,12 @@ contract RestrictedNORI is
    *
    * @param removalId uint256 The removal for which funds are being deposited.
    * @param amount uint256 Quantity of `_bridgedPolygonNori` to deposit
-   * @param userData bytes extra information provided by the user (if any)
-   * @param operatorData bytes extra information provided by the operator (if any)
    */
   function _depositFor(
     uint256 removalId,
     uint256 amount,
-    bytes memory userData,
-    bytes memory operatorData
+    bytes memory,
+    bytes memory
   ) internal returns (bool) {
     uint256 projectId = _removal.getProjectIdForRemoval(removalId);
     Removal.ScheduleData memory scheduleData = _removal
@@ -786,26 +789,20 @@ contract RestrictedNORI is
         role: "SCHEDULE_CREATOR_ROLE"
       });
     }
-    if (_scheduleIdToScheduleStruct[projectId].exists) {
+    if (!_allScheduleIds.add(projectId)) {
       revert ScheduleExists({scheduleTokenId: projectId});
     }
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    // slither-disable-next-line unused-return return value irrelevant
-    _allScheduleIds.add(projectId);
-    RestrictionDuration
-      memory restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
+    uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
         scheduleData.methodology,
         scheduleData.methodologyVersion
       );
-    if (!restrictionDuration.wasSet) {
+    if (restrictionDuration == 0) {
       revert RestrictionDurationNotSet({projectId: projectId});
     }
-    // slither-disable-next-line unused-return return value irrelevant
-    _addressToScheduleIdSet[recipient].add(projectId);
-    schedule.exists = true;
+    schedule.exists = _addressToScheduleIdSet[recipient].add(projectId);
     schedule.startTime = scheduleData.startTime;
-    schedule.endTime = scheduleData.startTime + restrictionDuration.duration;
-    schedule.releasedAmountFloor = 0;
+    schedule.endTime = scheduleData.startTime + restrictionDuration;
     emit ScheduleCreated(projectId, schedule.startTime, schedule.endTime);
   }
 
@@ -814,7 +811,7 @@ contract RestrictedNORI is
    * This is an *admin* operation callable only by addresses having TOKEN_REVOKER_ROLE
    * (enforced in `batchRevokeUnreleasedTokenAmounts`)
    *
-   * @dev Only the maximum revocable number of tokens (unreleased tokens) can be revoked.
+   * @dev Only unreleased tokens can be revoked from a schedule.
    * Once the tokens have been revoked, the current released amount can never fall below
    * its current level, even if the linear release schedule of the new amount would cause
    * the released amount to be lowered at the current timestamp (a floor is established).
@@ -829,52 +826,52 @@ contract RestrictedNORI is
     uint256 removalId,
     uint256 amount
   ) internal {
-    // slither-disable-next-line calls-loop
+    // slither-disable-next-line calls-loop choose to get the project id from the removal contract
     uint256 scheduleId = _removal.getProjectIdForRemoval(removalId);
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
-    uint256 quantityToRevoke;
-    // amount of zero indicates revocation of all remaining tokens.
-    if (amount > 0) {
-      if (!(amount <= revocableQuantityForSchedule(scheduleId))) {
-        revert InsufficientUnreleasedTokens({scheduleId: scheduleId});
-      }
-      quantityToRevoke = amount;
-    } else {
-      quantityToRevoke = revocableQuantityForSchedule(scheduleId);
+    if (!(amount <= revocableQuantityForSchedule(scheduleId))) {
+      revert InsufficientUnreleasedTokens({scheduleId: scheduleId});
     }
 
+    // amount of zero indicates revocation of all remaining tokens.
+    uint256 quantityToRevoke = amount > 0
+      ? amount
+      : revocableQuantityForSchedule(scheduleId);
+
     // burn correct proportion from each token holder
-    EnumerableSetUpgradeable.AddressSet storage tokenHolders = schedule
-      .tokenHolders;
+    address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
     uint256[] memory quantitiesToBurnForHolders = new uint256[](
-      tokenHolders.length()
+      tokenHoldersLocal.length
     );
 
+    // Calculate the final holder's quantity to revoke by subtracting the sum of other quantities
+    // from the desired total to revoke, thus avoiding any precision rounding errors from affecting
+    // the total quantity revoked by up to several wei.
     uint256 cumulativeQuantityToBurn = 0;
-    for (uint256 i = 0; i < (tokenHolders.length() - 1); i++) {
+    for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); i++) {
       uint256 quantityToBurnForHolder = _quantityToRevokePerTokenHolder(
         quantityToRevoke,
         scheduleId,
-        tokenHolders.at(i)
+        tokenHoldersLocal[i]
       );
       quantitiesToBurnForHolders[i] = quantityToBurnForHolder;
       cumulativeQuantityToBurn += quantityToBurnForHolder;
     }
-    quantitiesToBurnForHolders[tokenHolders.length() - 1] =
+    quantitiesToBurnForHolders[tokenHoldersLocal.length - 1] =
       quantityToRevoke -
       cumulativeQuantityToBurn;
 
-    for (uint256 i = 0; i < (tokenHolders.length()); i++) {
+    for (uint256 i = 0; i < (tokenHoldersLocal.length); i++) {
       super._burn(
-        tokenHolders.at(i),
+        tokenHoldersLocal[i],
         scheduleId,
         quantitiesToBurnForHolders[i]
       );
       schedule.quantitiesRevokedByAddress[
-        tokenHolders.at(i)
+        tokenHoldersLocal[i]
       ] += quantitiesToBurnForHolders[i];
     }
 
@@ -885,7 +882,7 @@ contract RestrictedNORI is
       scheduleId,
       quantityToRevoke
     );
-    // slither-disable-next-line calls-loop
+    // slither-disable-next-line calls-loop no option for batch send on ERC777
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
@@ -929,7 +926,10 @@ contract RestrictedNORI is
       for (uint256 i = 0; i < ids.length; i++) {
         uint256 id = ids[i];
         Schedule storage schedule = _scheduleIdToScheduleStruct[id];
-        schedule.releasedAmountFloor = _releasedBalanceOfSingleSchedule(id);
+        schedule.releasedAmountFloor = _releasedBalanceOfSingleSchedule(
+          id,
+          _scheduleIdToScheduleStruct[id].releasedAmountFloor
+        );
       }
     }
     if (isWithdrawing) {
@@ -947,16 +947,15 @@ contract RestrictedNORI is
    * Linearly released balance for a single schedule at the current block timestamp, ignoring any
    * released amount floor that has been set for the schedule.
    */
-  /* solhint-disable not-rely-on-time, this is time-dependent */
   function _linearReleaseAmountAvailable(uint256 scheduleId)
     internal
     view
     returns (uint256)
   {
+    /* solhint-disable not-rely-on-time, this is time-dependent */
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 linearAmountAvailable;
     // slither-disable-next-line timestamp this contract is block time dependent
-
     if (block.timestamp >= schedule.endTime) {
       linearAmountAvailable = totalSupply(scheduleId);
     } else {
@@ -964,13 +963,12 @@ contract RestrictedNORI is
       // slither-disable-next-line timestamp this contract is block time dependent
       linearAmountAvailable = block.timestamp < schedule.startTime
         ? 0
-        : (_scheduleTrueTotal(schedule, scheduleId) *
+        : (_scheduleTrueTotal(schedule.totalClaimedAmount, scheduleId) *
           (block.timestamp - schedule.startTime)) / rampTotalTime;
     }
     return linearAmountAvailable;
+    /* solhint-enable not-rely-on-time */
   }
-
-  /* solhint-enable not-rely-on-time */
 
   /**
    * @dev Calculates the number of tokens that should be revoked from a given token holder and schedule based on their
@@ -982,10 +980,13 @@ contract RestrictedNORI is
     address account
   ) private view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    uint256 scheduleTrueTotal = _scheduleTrueTotal(schedule, scheduleId);
+    uint256 scheduleTrueTotal = _scheduleTrueTotal(
+      schedule.totalClaimedAmount,
+      scheduleId
+    );
     uint256 revocableForAccount;
     // avoid division by 0
-    if (scheduleTrueTotal == 0) {
+    if (scheduleTrueTotal == 0 || totalQuantityToRevoke == 0) {
       revocableForAccount = 0;
     } else {
       uint256 balanceOfAccount = balanceOf(account, scheduleId);
@@ -1007,28 +1008,15 @@ contract RestrictedNORI is
    * or the released amount floor, which is set at the current released amount whenever the balance of a
    * schedule is decreased through revocation or withdrawal.
    */
-  function _releasedBalanceOfSingleSchedule(uint256 scheduleId)
-    internal
-    view
-    returns (uint256)
-  {
-    Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
+  function _releasedBalanceOfSingleSchedule(
+    uint256 scheduleId,
+    uint256 releasedAmountFloor
+  ) internal view returns (uint256) {
     return
       MathUpgradeable.max(
         _linearReleaseAmountAvailable(scheduleId),
-        schedule.releasedAmountFloor
+        releasedAmountFloor
       );
-  }
-
-  /** Converts an enumerable set into an array */
-  function _enumerableSetToArray(
-    EnumerableSetUpgradeable.UintSet storage enumerableSet
-  ) internal view returns (uint256[] memory) {
-    uint256[] memory array = new uint256[](enumerableSet.length());
-    for (uint256 i = 0; i < array.length; i++) {
-      array[i] = enumerableSet.at(i);
-    }
-    return array;
   }
 
   /**
@@ -1037,11 +1025,10 @@ contract RestrictedNORI is
    * @dev claiming burns the 1155, so the true total of a schedule has to be reconstructed
    * from the totalSupply of the token and any claimed amount.
    */
-  function _scheduleTrueTotal(Schedule storage schedule, uint256 scheduleId)
-    internal
-    view
-    returns (uint256)
-  {
-    return schedule.totalClaimedAmount + totalSupply(scheduleId);
+  function _scheduleTrueTotal(
+    uint256 scheduleTotalClaimedAmount,
+    uint256 scheduleId
+  ) internal view returns (uint256) {
+    return scheduleTotalClaimedAmount + totalSupply(scheduleId);
   }
 }

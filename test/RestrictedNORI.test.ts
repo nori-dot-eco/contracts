@@ -1,5 +1,7 @@
 import { BigNumber } from 'ethers';
 
+import { formatTokenString } from '../utils/units';
+
 import {
   expect,
   advanceTime,
@@ -18,6 +20,52 @@ import {
 } from '@/test/helpers/restricted-nori';
 
 describe('RestrictedNORI', () => {
+  describe(`create schedule`, () => {
+    // eslint-disable-next-line jest/expect-expect
+    it('should create a schedule', async () => {
+      const removalDataToList = [
+        {
+          amount: 5,
+          vintage: 2018,
+        },
+      ];
+      const testSetup = await setupTestLocal({});
+      // mint removals but don't lsit
+      const { removal, fifoMarket, rNori, hre } = testSetup;
+      const { projectId, scheduleStartTime } = {
+        projectId: 1_234_567_890,
+        scheduleStartTime: await getLatestBlockTime({ hre }),
+      };
+      const { supplier } = hre.namedAccounts;
+
+      const removalTokenId = await createRemovalTokenId({
+        removal,
+        hre,
+        removalData: {
+          supplierAddress: supplier,
+          vintage: 2016,
+          subIdentifier: 9_999_999,
+        },
+      });
+
+      const removalAmounts = removalDataToList.map((removalData) =>
+        formatTokenString(removalData.amount.toString())
+      );
+      await removal.mintBatch(
+        supplier,
+        removalAmounts,
+        [removalTokenId],
+        await createBatchMintData({
+          hre,
+          fifoMarket,
+          listNow: false,
+          projectId,
+          scheduleStartTime,
+        })
+      );
+      await rNori.createSchedule(projectId);
+    });
+  });
   describe('initialization', () => {
     describe('roles', () => {
       for (const { role, expectedCount } of [
@@ -98,10 +146,7 @@ describe('RestrictedNORI', () => {
       const { rNori } = await setupTestLocal({});
       const retrievedRestrictionDuration =
         await rNori.getRestrictionDurationForMethodologyAndVersion(1, 0);
-      expect(retrievedRestrictionDuration.wasSet).to.equal(true);
-      expect(retrievedRestrictionDuration.duration).to.equal(
-        SECONDS_IN_10_YEARS
-      );
+      expect(retrievedRestrictionDuration).to.equal(SECONDS_IN_10_YEARS);
     });
     it('should be able to set and get a new restriction duration for a given methodology and version', async () => {
       const { rNori } = await setupTestLocal({});
@@ -113,8 +158,7 @@ describe('RestrictedNORI', () => {
           methodology,
           methodologyVersion
         );
-      expect(scheduleDurationBeforeSetting.wasSet).to.equal(false);
-      expect(scheduleDurationBeforeSetting.duration).to.equal(0);
+      expect(scheduleDurationBeforeSetting).to.equal(0);
       await rNori.setRestrictionDurationForMethodologyAndVersion(
         methodology,
         methodologyVersion,
@@ -125,10 +169,7 @@ describe('RestrictedNORI', () => {
           methodology,
           methodologyVersion
         );
-      expect(scheduleDurationAfterSetting.wasSet).to.equal(true);
-      expect(scheduleDurationAfterSetting.duration).to.equal(
-        SECONDS_IN_1_YEAR_AVG
-      );
+      expect(scheduleDurationAfterSetting).to.equal(SECONDS_IN_1_YEAR_AVG);
     });
     it('should revert if the transaction sender does not have the DEFAULT_ADMIN_ROLE', async () => {
       const { rNori } = await setupTestLocal({});
