@@ -1,6 +1,5 @@
+name: Foundry Tests
 on: [push]
-
-name: test
 
 jobs:
   check:
@@ -16,7 +15,7 @@ jobs:
         with:
           version: nightly
 
-      - name: Run tests
+      - name: Run foundry tests
         run: forge test -vvv
 
       - name: Run snapshot
