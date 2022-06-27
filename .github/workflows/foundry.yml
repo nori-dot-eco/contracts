@@ -15,6 +15,9 @@ jobs:
         with:
           version: nightly
 
+      - name: Install Hardhat Dependencies
+        run: yarn install
+
       - name: Run foundry tests
         env:
           INFURA_STAGING_LEY: ${{ secrets.INFURA_STAGING_KEY }}
