@@ -24,4 +24,6 @@ jobs:
         run: forge test -vvv --fork-url https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}
 
       - name: Run forge snapshot
-        run: forge snapshot >> $GITHUB_STEP_SUMMARY
+        env:
+          INFURA_STAGING_KEY: ${{ secrets.INFURA_STAGING_KEY }}
+        run: forge snapshot --fork-url https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY} >> $GITHUB_STEP_SUMMARY
