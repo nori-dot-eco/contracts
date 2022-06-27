@@ -36,9 +36,10 @@ const setupTestLocal = global.hre.deployments.createFixture(
         options?.buyerInitialBPNoriBalance ?? formatTokenAmount(1_000_000),
       removalDataToList: options?.removalDataToList ?? [],
     };
-    const { hre, contracts, removal, fifoMarket, ...rest } = await setupTest({
+    const testSetup = await setupTest({
       userFixtures: { buyer: { bpBalance: buyerInitialBPNoriBalance } },
     });
+    const { hre, contracts, removal, fifoMarket, ...rest } = testSetup;
     let listedRemovalIds: BigNumber[] = [];
     let totalAmountOfSupply = 0;
     let totalAmountOfSuppliers = 0;
@@ -50,10 +51,8 @@ const setupTestLocal = global.hre.deployments.createFixture(
         totalAmountOfRemovals,
         totalAmountOfSuppliers,
       } = await batchMintAndListRemovalsForSale({
+        testSetup,
         removalDataToList,
-        removal,
-        fifoMarket,
-        hre,
       }));
     }
     return {
@@ -624,15 +623,14 @@ describe('FIFOMarket', () => {
     });
     it('should sell removals in order of vintage regardless of minting order', async () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
-      const { removal, bpNori, fifoMarket, hre } = await setupTestLocal({
+      const testSetup = await setupTestLocal({
         buyerInitialBPNoriBalance,
         removalDataToList: [{ amount: 1, vintage: 2015 }],
       });
+      const { bpNori, fifoMarket, hre } = testSetup;
       await batchMintAndListRemovalsForSale({
         removalDataToList: [{ amount: 5, vintage: 2014 }],
-        removal,
-        fifoMarket,
-        hre,
+        testSetup,
       });
 
       const { buyer } = hre.namedAccounts;
@@ -725,9 +723,17 @@ describe('FIFOMarket', () => {
           return { amount: amountPerRemoval, vintage: 2015 + (index % 5) };
         }
       );
-      const { bpNori, certificate, fifoMarket, hre } = await setupTestLocal({
+      // split into two batches to avoid blowing block gas limit while minting/listing large supply
+      const firstBatch = removalDataToList.slice(0, 50);
+      const secondBatch = removalDataToList.slice(50, 100);
+      const testSetup = await setupTestLocal({
         buyerInitialBPNoriBalance,
-        removalDataToList,
+        removalDataToList: firstBatch,
+      });
+      const { bpNori, certificate, fifoMarket, hre } = testSetup;
+      await batchMintAndListRemovalsForSale({
+        testSetup,
+        removalDataToList: secondBatch,
       });
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 

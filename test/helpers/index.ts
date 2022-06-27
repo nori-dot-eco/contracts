@@ -1,6 +1,8 @@
-import type { BigNumberish, BigNumber } from 'ethers';
+import type { BigNumber, BigNumberish } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
+
+import { defaultRemovalTokenIdFixture } from '../fixtures/removal';
 
 import type {
   MockCertificate,
@@ -16,12 +18,12 @@ import type {
   Certificate,
   FIFOMarket,
   LockedNORI,
+  RestrictedNORI,
   NORI,
   BridgedPolygonNORI,
   RemovalTestHarness,
 } from '@/typechain-types';
 import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
-import { asciiStringToHexString } from '@/utils/bytes';
 import { formatTokenAmount, formatTokenString } from '@/utils/units';
 import type { Contracts } from '@/utils/contracts';
 import { getContractsFromDeployments } from '@/utils/contracts';
@@ -37,10 +39,13 @@ interface ContractInstances {
   certificate: Certificate;
   fifoMarket: FIFOMarket;
   lNori: LockedNORI;
+  rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
   mockCertificate: MockCertificate; // todo key remapping of Contracts
   mockERC1155PresetPausableNonTransferrable: MockERC1155PresetPausableNonTransferrable; // todo consider TestHarness vs Mock naming convention
 }
+
+export const NOW = Math.floor(Date.now() / 1000);
 
 export const getLatestBlockTime = async ({
   hre,
@@ -195,6 +200,7 @@ export const setupTest = global.hre.deployments.createFixture(
       certificate: contracts.Certificate,
       fifoMarket: contracts.FIFOMarket,
       lNori: contracts.LockedNORI,
+      rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
       mockCertificate: contracts.MockCertificate,
       mockERC1155PresetPausableNonTransferrable:
@@ -218,14 +224,7 @@ export const createRemovalTokenId = async ({
   const formattedRemovalData = formatRemovalIdData({
     hre,
     removalData: {
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 1,
-      vintage: 2018,
-      country: asciiStringToHexString('US'),
-      subdivision: asciiStringToHexString('IA'),
-      supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
-      subIdentifier: 99_039_930, // parcel id
+      ...defaultRemovalTokenIdFixture,
       ...removalData,
     },
   });
@@ -234,16 +233,24 @@ export const createRemovalTokenId = async ({
 };
 
 // todo helpers/removal.ts
-export const createBatchMintData = ({
+export const createBatchMintData = async ({
   hre,
   fifoMarket,
+  listNow = true,
+  projectId = 1_234_567_890,
+  scheduleStartTime,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   fifoMarket: FIFOMarket;
-}): Parameters<Removal['mintBatch']>[3] => {
+  listNow?: boolean;
+  projectId?: number;
+  scheduleStartTime?: number;
+}): Promise<Parameters<Removal['mintBatch']>[3]> => {
+  const actualScheduleStartTime =
+    scheduleStartTime ?? (await getLatestBlockTime({ hre }));
   const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-    ['address', 'bool'],
-    [fifoMarket.address, true] // todo parameterize listing option
+    ['uint256', 'uint256', 'address', 'bool'],
+    [projectId, actualScheduleStartTime, fifoMarket.address, listNow]
   );
   return packedData;
 };
@@ -255,6 +262,8 @@ interface RemovalDataFromListing {
   totalAmountOfSuppliers: number;
   totalAmountOfRemovals: number;
   removalAmounts: BigNumber[];
+  projectId: number;
+  scheduleStartTime: number;
 }
 
 // todo helpers/removal.ts
@@ -278,17 +287,19 @@ const getTotalAmountOfRemovals = (removals: RemovalDataForListing[]): number =>
 
 // todo de-dupe this logic from tests
 // todo helpers/removal.ts
-export const batchMintAndListRemovalsForSale = async ({
-  removalDataToList,
-  removal,
-  fifoMarket,
-  hre,
-}: {
+export const batchMintAndListRemovalsForSale = async (options: {
+  testSetup: Awaited<ReturnType<typeof setupTest>>;
+  projectId?: number;
+  scheduleStartTime?: number;
   removalDataToList: RemovalDataForListing[];
-  removal: Removal;
-  fifoMarket: FIFOMarket;
-  hre: CustomHardHatRuntimeEnvironment;
 }): Promise<RemovalDataFromListing> => {
+  const { testSetup, removalDataToList } = options;
+  const { removal, fifoMarket, hre } = testSetup;
+  const { projectId, scheduleStartTime } = {
+    projectId: options.projectId ?? 1_234_567_890,
+    scheduleStartTime:
+      options.scheduleStartTime ?? (await getLatestBlockTime({ hre })),
+  };
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
   const listedRemovalIds: BigNumber[] = [];
@@ -313,7 +324,13 @@ export const batchMintAndListRemovalsForSale = async ({
     supplier,
     removalAmounts,
     listedRemovalIds,
-    createBatchMintData({ hre, fifoMarket })
+    await createBatchMintData({
+      hre,
+      fifoMarket,
+      listNow: true,
+      projectId,
+      scheduleStartTime,
+    })
   );
   const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);
   const totalAmountOfSuppliers = getTotalAmountOfSuppliers(removalDataToList);
@@ -324,5 +341,7 @@ export const batchMintAndListRemovalsForSale = async ({
     totalAmountOfSuppliers,
     totalAmountOfRemovals,
     removalAmounts,
+    projectId,
+    scheduleStartTime,
   };
 };

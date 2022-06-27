@@ -8,14 +8,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 
 // import "hardhat/console.sol"; // todo
 
 // todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
 // todo disable other mint functions
-
-error TokenIdExists();
 
 /**
  * @title Removal
@@ -27,22 +26,48 @@ contract Removal is
   using SafeMathUpgradeable for uint256;
   using RemovalUtils for uint256;
 
+  error TokenIdExists(uint256 tokenId);
+  error ArrayLengthMismatch(string array1Name, string array2Name);
+  error InvalidProjectId(uint256 projectId);
+
   struct BatchMintRemovalsData {
     // todo why doesnt typechain generate this as a type?
+    uint256 projectId;
+    uint256 scheduleStartTime;
     address marketAddress;
     bool list;
   }
 
-  uint256 private _tokenIdCounter;
+  struct ScheduleData {
+    uint256 startTime;
+    address supplierAddress;
+    uint256 methodology;
+    uint256 methodologyVersion;
+  }
+
+  /**
+   * @notice The RestrictedNORI contract that manages restricted tokens.
+   */
+  RestrictedNORI private _restrictedNori;
+  uint256 public tokenIdCounter;
   string public name; // todo why did I add this
   mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
   mapping(uint256 => bool) private _tokenIdExists;
+  mapping(uint256 => uint256) private _removalIdToProjectId;
+  mapping(uint256 => ScheduleData) private _projectIdToScheduleData;
 
-  function initialize() public virtual initializer {
+  function initialize() external virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
-    _tokenIdCounter = 0;
+    tokenIdCounter = 0;
     name = "Removal";
+  }
+
+  function registerRestrictedNORIAddress(address restrictedNORIAddress)
+    external
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    _restrictedNori = RestrictedNORI(restrictedNORIAddress);
   }
 
   /**
@@ -81,17 +106,52 @@ contract Removal is
   }
 
   /**
+   * @notice Get the restriction schedule id (which is the removal's project id) for a given removal id.
+   */
+  function getProjectIdForRemoval(uint256 removalId)
+    external
+    view
+    returns (uint256)
+  {
+    return _removalIdToProjectId[removalId];
+  }
+
+  /**
+   * @notice Get the restriction schedule data for a given removal id.
+   */
+  function getScheduleDataForRemovalId(uint256 removalId)
+    external
+    view
+    returns (ScheduleData memory)
+  {
+    return _projectIdToScheduleData[_removalIdToProjectId[removalId]];
+  }
+
+  /**
+   * @notice Get the restriction schedule data for a given project id.
+   */
+  function getScheduleDataForProjectId(uint256 projectId)
+    external
+    view
+    returns (ScheduleData memory)
+  {
+    return _projectIdToScheduleData[projectId];
+  }
+
+  /**
    * @dev mints multiple removals at once (for a single supplier).
    * If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
    * amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
    * token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
    * token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
    * token id 2 URI points to vintage information (e.g., 2020) nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
+   *
    * @param to The supplier address
    * @param amounts Each removal's tonnes of CO2 formatted as wei
    * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address, a parcel identifier,
-   * the vintage, country code, state code, methodology identifer, and methodology version.
-   * @param data Encodes the market contract address and a unique identifier for the parcel from whence these removals came.
+   * the vintage, country code, state code, methodology identifer, methodology version, and id format.
+   * @param data Encodes the project id and schedule start time for this batch of removals, the market contract
+   * address and a boolean that indicates whether to list these removals for sale now.
    */
   function mintBatch(
     address to,
@@ -99,38 +159,77 @@ contract Removal is
     uint256[] memory ids,
     bytes memory data
   ) public override {
+    uint256 idsLength = ids.length;
+    if (!(amounts.length == idsLength)) {
+      revert ArrayLengthMismatch({array1Name: "amounts", array2Name: "ids"});
+    }
+    // todo should we check that the removal id-encoded supplier address for each id is the same as `to` ?
+    // todo should we validate the removal ids any further? what about other malformed fields?
+    //    note that there is validation performed when creating ids in the first place, but room for errors/changes between id creation and then submission to this function
+    // todo do we add any validation to enforce that all removals in batch belong to the same project id?
     BatchMintRemovalsData memory decodedData = abi.decode(
       data,
       (BatchMintRemovalsData)
     );
-    for (uint256 i = 0; i < ids.length; i++) {
-      if (_tokenIdExists[ids[i]]) {
-        revert TokenIdExists(); // todo can the duplicate token id be reported here?
-      }
-      _tokenIdExists[ids[i]] = true;
-      indexToTokenId[_tokenIdCounter] = ids[i];
-      _tokenIdCounter += 1;
+    uint256 projectId = decodedData.projectId;
+    uint256 scheduleStartTime = decodedData.scheduleStartTime;
+    bool list = decodedData.list;
+    address marketAddress = decodedData.marketAddress;
+    if (projectId == 0) {
+      revert InvalidProjectId({projectId: projectId});
     }
+    uint256 newTokenIdCounter = tokenIdCounter;
+    for (uint256 i = 0; i < idsLength; i++) {
+      uint256 id = ids[i];
+      if (_tokenIdExists[id]) {
+        revert TokenIdExists({tokenId: id});
+      }
+      _removalIdToProjectId[id] = projectId;
+      _tokenIdExists[id] = true;
+      indexToTokenId[newTokenIdCounter] = id;
+      newTokenIdCounter += 1;
+    }
+    uint256 firstId = ids[0];
+    tokenIdCounter = newTokenIdCounter;
+    _projectIdToScheduleData[projectId] = ScheduleData(
+      scheduleStartTime,
+      firstId.supplierAddress(), // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
+      firstId.methodology(), // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
+      firstId.methodologyVersion() // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
+    );
     super.mintBatch(to, ids, amounts, data);
-
     setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
-    if (decodedData.list) {
-      safeBatchTransferFrom(to, decodedData.marketAddress, ids, amounts, data);
+    if (list) {
+      safeBatchTransferFrom(to, marketAddress, ids, amounts, data);
     }
   }
 
+  function mint(
+    address,
+    uint256,
+    uint256,
+    bytes calldata
+  ) public pure override {
+    revert("Removal: ERC 1155 mint disabled");
+  }
+
   /**
-   * @dev used to initiate a sale of removals by transferring the removals to the market contract
+   * @dev used to list removals for sale by transferring the removals to the market contract
+   *
+   * ### Requirements:
+   *  - all removals being listed must belong to the same project id.
    */
   function safeBatchTransferFrom(
-    address _from,
-    address _to,
-    uint256[] memory _ids,
-    uint256[] memory _amounts,
-    bytes memory _data
+    address from,
+    address to,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    bytes memory data
   ) public override {
+    // todo do we add any validation to enforce that all removals in batch belong to the same project id?
+    bytes memory projectId = abi.encode(_removalIdToProjectId[ids[0]]);
     // todo require _to is a known market contract
-    super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
+    super.safeBatchTransferFrom(from, to, ids, amounts, projectId);
   }
 
   function supportsInterface(bytes4 interfaceId)
