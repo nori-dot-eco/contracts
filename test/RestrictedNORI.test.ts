@@ -929,7 +929,10 @@ describe('RestrictedNORI', () => {
           });
 
           const supplierScheduleDetailsBeforeTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(supplier);
+            await rNori.batchGetScheduleDetailsForAccount(supplier, [
+              projectId1,
+              projectId2,
+            ]);
 
           const expectedScheduleDetailsBeforeTransfer = [
             {
@@ -973,9 +976,15 @@ describe('RestrictedNORI', () => {
               '0x'
             );
           const supplierScheduleDetailsAfterTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(supplier);
+            await rNori.batchGetScheduleDetailsForAccount(supplier, [
+              projectId1,
+              projectId2,
+            ]);
           const investor1ScheduleDetailsAfterTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(investor1);
+            await rNori.batchGetScheduleDetailsForAccount(investor1, [
+              projectId1,
+              projectId2,
+            ]);
 
           const expectedSupplierScheduleDetailsAfterTransfer = [
             {
@@ -1045,24 +1054,6 @@ describe('RestrictedNORI', () => {
               expectedInvestor1ScheduleDetailsAfterTransfer[index]
             );
           }
-          const [
-            supplierScheduleSetAfterTransfer,
-            investorScheduleSetAfterTransfer,
-          ] = await Promise.all([
-            rNori.getScheduleIdsForAccount(supplier),
-            rNori.getScheduleIdsForAccount(investor1),
-          ]);
-          for (const schedule of [
-            supplierScheduleSetAfterTransfer,
-            investorScheduleSetAfterTransfer,
-          ]) {
-            expect(
-              schedule.map((scheduleId) => scheduleId.toHexString())
-            ).to.have.deep.members([
-              BigNumber.from(projectId1).toHexString(),
-              BigNumber.from(projectId2).toHexString(),
-            ]);
-          }
         });
 
         it('should transfer the full balance of multiple token types to another account', async () => {
@@ -1099,7 +1090,10 @@ describe('RestrictedNORI', () => {
             removalAmountsToRestrict: restrictedAmounts,
           });
           const supplierScheduleDetailsBeforeTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(supplier);
+            await rNori.batchGetScheduleDetailsForAccount(supplier, [
+              projectId1,
+              projectId2,
+            ]);
 
           const expectedScheduleDetailsBeforeTransfer = [
             {
@@ -1133,9 +1127,15 @@ describe('RestrictedNORI', () => {
               '0x'
             );
           const supplierScheduleDetailsAfterTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(supplier);
+            await rNori.batchGetScheduleDetailsForAccount(supplier, [
+              projectId1,
+              projectId2,
+            ]);
           const investor1ScheduleDetailsAfterTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(investor1);
+            await rNori.batchGetScheduleDetailsForAccount(investor1, [
+              projectId1,
+              projectId2,
+            ]);
 
           const expectedSupplierScheduleDetailsAfterTransfer = [
             {
@@ -1189,22 +1189,6 @@ describe('RestrictedNORI', () => {
               tokenHolders: [investor1],
             });
           }
-          const [
-            supplierScheduleSetAfterTransfer,
-            investorScheduleSetAfterTransfer,
-          ] = await Promise.all([
-            rNori.getScheduleIdsForAccount(supplier),
-            rNori.getScheduleIdsForAccount(investor1),
-          ]);
-          expect(supplierScheduleSetAfterTransfer.length).to.equal(0);
-          expect(
-            investorScheduleSetAfterTransfer.map((scheduleId) =>
-              scheduleId.toHexString()
-            )
-          ).to.have.deep.members([
-            BigNumber.from(projectId1).toHexString(),
-            BigNumber.from(projectId2).toHexString(),
-          ]);
         });
       });
     });

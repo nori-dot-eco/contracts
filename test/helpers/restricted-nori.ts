@@ -56,7 +56,6 @@ export const compareScheduleDetailForAddressStructs = (
     'claimableAmount',
     'claimedAmount',
     'quantityRevoked',
-    'exists',
   ] as const;
   for (const key of keys) {
     if (key in expectedScheduleDetail) {

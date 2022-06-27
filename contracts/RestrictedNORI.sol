@@ -156,7 +156,6 @@ contract RestrictedNORI is
     uint256 claimableAmount;
     uint256 claimedAmount;
     uint256 quantityRevoked;
-    bool exists;
   }
 
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -197,9 +196,6 @@ contract RestrictedNORI is
 
   mapping(uint256 => mapping(uint256 => uint256))
     private _methodologyAndVersionToScheduleDuration;
-
-  mapping(address => EnumerableSetUpgradeable.UintSet)
-    private _addressToScheduleIdSet;
 
   mapping(uint256 => Schedule) private _scheduleIdToScheduleStruct;
 
@@ -312,15 +308,6 @@ contract RestrictedNORI is
     return allScheduleIdsArray;
   }
 
-  /** Returns an array of all schedule ids of which an address currently owns any tokens. */
-  function getScheduleIdsForAccount(address account)
-    external
-    view
-    returns (uint256[] memory)
-  {
-    return _addressToScheduleIdSet[account].values();
-  }
-
   /** Returns an account-specific view of the details of a specific schedule. */
   function getScheduleDetailForAccount(address account, uint256 scheduleId)
     public
@@ -336,28 +323,24 @@ contract RestrictedNORI is
         balanceOf(account, scheduleId),
         claimableBalanceForScheduleForAccount(scheduleId, account),
         schedule.claimedAmountsByAddress[account],
-        schedule.quantitiesRevokedByAddress[account],
-        schedule.exists
+        schedule.quantitiesRevokedByAddress[account]
       );
   }
 
-  /** Returns an account-specific view of the details of all schedules that an account has ownership of. */
-  function batchGetScheduleDetailsForAccount(address account)
-    external
-    view
-    returns (ScheduleDetailForAddress[] memory)
-  {
-    EnumerableSetUpgradeable.UintSet
-      storage scheduleIds = _addressToScheduleIdSet[account];
+  /** Returns an account-specific view of the details of specified schedules. */
+  function batchGetScheduleDetailsForAccount(
+    address account,
+    uint256[] memory scheduleIds
+  ) external view returns (ScheduleDetailForAddress[] memory) {
     ScheduleDetailForAddress[]
       memory scheduleDetails = new ScheduleDetailForAddress[](
-        scheduleIds.length()
+        scheduleIds.length
       );
-    for (uint256 i = 0; i < scheduleIds.length(); i++) {
-      if (_scheduleIdToScheduleStruct[scheduleIds.at(i)].exists) {
+    for (uint256 i = 0; i < scheduleIds.length; i++) {
+      if (_scheduleIdToScheduleStruct[scheduleIds[i]].exists) {
         scheduleDetails[i] = getScheduleDetailForAccount(
           account,
-          scheduleIds.at(i)
+          scheduleIds[i]
         );
       }
     }
@@ -646,14 +629,10 @@ contract RestrictedNORI is
     super.safeTransferFrom(from, to, id, amount, data);
     Schedule storage schedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
-      // slither-disable-next-line unused-return id may already be in set and that is ok
-      _addressToScheduleIdSet[to].add(id);
       // slither-disable-next-line unused-return address may already be in set and that is ok
       schedule.tokenHolders.add(to);
     }
     if (balanceOf(from, id) == 0) {
-      // slither-disable-next-line unused-return return value irrelevant, id guaranteed removed
-      _addressToScheduleIdSet[from].remove(id);
       // slither-disable-next-line unused-return return value irrelevant, address guaranteed removed
       schedule.tokenHolders.remove(from);
     }
@@ -676,14 +655,10 @@ contract RestrictedNORI is
     for (uint256 i = 0; i < ids.length; i++) {
       Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
       if (amounts[i] != 0) {
-        // slither-disable-next-line unused-return id may already be in set and that is ok
-        _addressToScheduleIdSet[to].add(ids[i]);
         // slither-disable-next-line unused-return address may already be in set and that is ok
         schedule.tokenHolders.add(to);
       }
       if (balanceOf(from, ids[i]) == 0) {
-        // slither-disable-next-line unused-return return value irrelevant, id guaranteed removed
-        _addressToScheduleIdSet[from].remove(ids[i]);
         // slither-disable-next-line unused-return return value irrelevant, address guaranteed removed
         schedule.tokenHolders.remove(from);
       }
@@ -720,6 +695,8 @@ contract RestrictedNORI is
      * single and not batch send.  Consider whether we still want to know which removal specifically and want to combine
      * any other administrative action such as marking as invalidated in the removal contract (though invalidated numbers
      * won't necessarily be the same as the amounts that are able to actually be revoked).
+     * https://github.com/nori-dot-eco/contracts/pull/249#discussion_r907703042
+     *
      */
     if (!(toAccounts.length == removalIds.length)) {
       revert ArrayLengthMismatch({
@@ -759,14 +736,12 @@ contract RestrictedNORI is
       .getScheduleDataForProjectId(projectId);
     address recipient = scheduleData.supplierAddress;
     if (!_scheduleIdToScheduleStruct[projectId].exists) {
-      _createSchedule(projectId);
+      revert NonexistentSchedule({scheduleId: projectId});
     }
     super._mint(recipient, projectId, amount, "");
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     // slither-disable-next-line unused-return address may already be in set and that is ok
     schedule.tokenHolders.add(recipient);
-    // slither-disable-next-line unused-return id may already be in the set and that is ok
-    _addressToScheduleIdSet[recipient].add(projectId);
     return true;
   }
 
@@ -783,25 +758,19 @@ contract RestrictedNORI is
   function _createSchedule(uint256 projectId) internal {
     Removal.ScheduleData memory scheduleData = _removal
       .getScheduleDataForProjectId(projectId);
-    if (scheduleData.startTime == 0) {
-      revert("InvalidScheduleStartTime");
-    }
+    require(scheduleData.startTime != 0, "InvalidScheduleStartTime");
     address recipient = scheduleData.supplierAddress;
     if (recipient == address(0)) {
       revert RecipientCannotBeZeroAddress();
     }
-    if (!_allScheduleIds.add(projectId)) {
-      revert("Schedule exists");
-    }
+    require(_allScheduleIds.add(projectId), "Schedule exists");
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
         scheduleData.methodology,
         scheduleData.methodologyVersion
       );
-    if (restrictionDuration == 0) {
-      revert("Restriction duration not set");
-    }
-    schedule.exists = _addressToScheduleIdSet[recipient].add(projectId);
+    require(restrictionDuration != 0, "Restriction duration not set");
+    schedule.exists = true;
     schedule.startTime = scheduleData.startTime;
     schedule.endTime = scheduleData.startTime + restrictionDuration;
     emit ScheduleCreated(projectId, schedule.startTime, schedule.endTime);
@@ -844,6 +813,7 @@ contract RestrictedNORI is
 
     // burn correct proportion from each token holder
     address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
+    // todo gas optimization -- is it more expensive to call balanceOf multiple times, or to construct this array?
     uint256[] memory scheduleIdsForBalanceOfBatch = new uint256[](
       tokenHoldersLocal.length
     );
@@ -895,7 +865,6 @@ contract RestrictedNORI is
       scheduleId,
       quantityToRevoke
     );
-    // slither-disable-next-line calls-loop send individually for each schedule after calculating quantity to revoke
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
@@ -940,6 +909,7 @@ contract RestrictedNORI is
         uint256 id = ids[i];
         if (isWithdrawing) {
           if (amounts[i] > claimableBalanceForScheduleForAccount(id, from)) {
+            // todo https://github.com/nori-dot-eco/contracts/pull/249/files/fb97bb8a727a24cdc034f908b27899c6a7b61e26..303b99415db21bc73cd2304d30a8d364a8097f49#r907710195
             revert InsufficientClaimableBalance({
               account: from,
               scheduleId: id
