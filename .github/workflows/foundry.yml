@@ -18,5 +18,5 @@ jobs:
       - name: Run foundry tests
         run: forge test -vvv
 
-      - name: Run snapshot
+      - name: Run forge snapshot
         run: forge snapshot >> $GITHUB_STEP_SUMMARY
