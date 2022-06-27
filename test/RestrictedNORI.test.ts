@@ -168,9 +168,7 @@ describe('RestrictedNORI', () => {
           [removalIdWithMethodology2],
           packedData
         )
-      ).to.be.revertedWith(
-        'ERC1155: transfer to non ERC1155Receiver implementer' // this revert comes from the `tokensReceived` hook in the Market contract
-      );
+      ).to.be.revertedWith('Restriction duration not set');
     });
   });
   describe(`create schedule`, () => {

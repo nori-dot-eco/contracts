@@ -115,15 +115,11 @@ contract RestrictedNORI is
 
   error TokenSenderNotBPNORI();
   error RecipientCannotBeZeroAddress();
-  error RecipientCannotHaveRole(address recipient, string role);
-  error RestrictionDurationNotSet(uint256 projectId);
   error NonexistentSchedule(uint256 scheduleId);
-  error ScheduleExists(uint256 scheduleTokenId);
   error ArrayLengthMismatch(string array1Name, string array2Name);
   error InsufficientUnreleasedTokens(uint256 scheduleId);
   error InsufficientClaimableBalance(address account, uint256 scheduleId);
   error InvalidBpNoriSender(address account);
-  error InvalidScheduleStartTime(uint256 projectId);
   error InvalidZeroDuration();
 
   /** The internal governing parameters and data for a schedule */
@@ -149,7 +145,7 @@ contract RestrictedNORI is
     uint256 totalClaimedAmount;
     uint256 totalQuantityRevoked;
     address[] tokenHolders;
-    bool exists;
+    bool exists; // todo can we remove the need for this?
   }
 
   /** View information for one account's ownership of a schedule */
@@ -467,12 +463,13 @@ contract RestrictedNORI is
       schedule.totalClaimedAmount,
       scheduleId
     );
+    uint256 balanceOfAccount = balanceOf(account, scheduleId);
+
     uint256 claimableForAccount;
-    // avoid division by 0
-    if (scheduleTrueTotal == 0) {
+    // avoid division by or of 0
+    if (scheduleTrueTotal == 0 || balanceOfAccount == 0) {
       claimableForAccount = 0;
     } else {
-      uint256 balanceOfAccount = balanceOf(account, scheduleId);
       uint256 claimedAmountForAccount = schedule.claimedAmountsByAddress[
         account
       ];
@@ -717,6 +714,13 @@ contract RestrictedNORI is
     uint256[] calldata removalIds,
     uint256[] calldata amounts
   ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
+    /* todo consider simplifying this function to either require that all removal ids belong to the same project id,
+     * or, if we can do away with the specific removal ids entirely, simply specify the projectId/scheduleId from which
+     * we are revoking, which eliminates the need to call _revokeUnreleasedTokens inside a loop and will allow for a
+     * single and not batch send.  Consider whether we still want to know which removal specifically and want to combine
+     * any other administrative action such as marking as invalidated in the removal contract (though invalidated numbers
+     * won't necessarily be the same as the amounts that are able to actually be revoked).
+     */
     if (!(toAccounts.length == removalIds.length)) {
       revert ArrayLengthMismatch({
         array1Name: "fromAccounts",
@@ -772,25 +776,22 @@ contract RestrictedNORI is
    * @dev schedules are created when removal tokens are listed for sale in the market contract,
    * so this should only be invoked during `tokensReceived` in the exceptional case that
    * tokens were sent to this contract without a schedule set up.
+   *
+   * Note that revert strings are used instead of custom errors here for proper surfacing
+   * from within the market contract `onERC1155BatchReceived` hook.
    */
   function _createSchedule(uint256 projectId) internal {
     Removal.ScheduleData memory scheduleData = _removal
       .getScheduleDataForProjectId(projectId);
     if (scheduleData.startTime == 0) {
-      revert InvalidScheduleStartTime({projectId: projectId});
+      revert("InvalidScheduleStartTime");
     }
     address recipient = scheduleData.supplierAddress;
     if (recipient == address(0)) {
       revert RecipientCannotBeZeroAddress();
     }
-    if (hasRole(SCHEDULE_CREATOR_ROLE, recipient)) {
-      revert RecipientCannotHaveRole({
-        recipient: recipient,
-        role: "SCHEDULE_CREATOR_ROLE"
-      });
-    }
     if (!_allScheduleIds.add(projectId)) {
-      revert ScheduleExists({scheduleTokenId: projectId});
+      revert("Schedule exists");
     }
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
@@ -798,7 +799,7 @@ contract RestrictedNORI is
         scheduleData.methodologyVersion
       );
     if (restrictionDuration == 0) {
-      revert RestrictionDurationNotSet({projectId: projectId});
+      revert("Restriction duration not set");
     }
     schedule.exists = _addressToScheduleIdSet[recipient].add(projectId);
     schedule.startTime = scheduleData.startTime;
@@ -843,6 +844,12 @@ contract RestrictedNORI is
 
     // burn correct proportion from each token holder
     address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
+    uint256[] memory scheduleIdsForBalanceOfBatch = new uint256[](
+      tokenHoldersLocal.length
+    );
+    for (uint256 i = 0; i < tokenHoldersLocal.length; i++) {
+      scheduleIdsForBalanceOfBatch[i] = scheduleId;
+    }
     uint256[] memory quantitiesToBurnForHolders = new uint256[](
       tokenHoldersLocal.length
     );
@@ -850,12 +857,17 @@ contract RestrictedNORI is
     // Calculate the final holder's quantity to revoke by subtracting the sum of other quantities
     // from the desired total to revoke, thus avoiding any precision rounding errors from affecting
     // the total quantity revoked by up to several wei.
+    uint256[] memory accountBalances = balanceOfBatch(
+      tokenHoldersLocal,
+      scheduleIdsForBalanceOfBatch
+    );
     uint256 cumulativeQuantityToBurn = 0;
     for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); i++) {
       uint256 quantityToBurnForHolder = _quantityToRevokePerTokenHolder(
         quantityToRevoke,
         scheduleId,
-        tokenHoldersLocal[i]
+        tokenHoldersLocal[i],
+        accountBalances[i]
       );
       quantitiesToBurnForHolders[i] = quantityToBurnForHolder;
       cumulativeQuantityToBurn += quantityToBurnForHolder;
@@ -864,6 +876,7 @@ contract RestrictedNORI is
       quantityToRevoke -
       cumulativeQuantityToBurn;
 
+    // todo consider writing a batch variant of burn that accommodates multiple addresses for a single token
     for (uint256 i = 0; i < (tokenHoldersLocal.length); i++) {
       super._burn(
         tokenHoldersLocal[i],
@@ -882,7 +895,7 @@ contract RestrictedNORI is
       scheduleId,
       quantityToRevoke
     );
-    // slither-disable-next-line calls-loop no option for batch send on ERC777
+    // slither-disable-next-line calls-loop send individually for each schedule after calculating quantity to revoke
     _bridgedPolygonNori.send(
       // solhint-disable-previous-line check-send-result, because this isn't a solidity send
       to,
@@ -925,19 +938,19 @@ contract RestrictedNORI is
     if (isBurning) {
       for (uint256 i = 0; i < ids.length; i++) {
         uint256 id = ids[i];
+        if (isWithdrawing) {
+          if (amounts[i] > claimableBalanceForScheduleForAccount(id, from)) {
+            revert InsufficientClaimableBalance({
+              account: from,
+              scheduleId: id
+            });
+          }
+        }
         Schedule storage schedule = _scheduleIdToScheduleStruct[id];
         schedule.releasedAmountFloor = _releasedBalanceOfSingleSchedule(
           id,
           _scheduleIdToScheduleStruct[id].releasedAmountFloor
         );
-      }
-    }
-    if (isWithdrawing) {
-      for (uint256 i = 0; i < ids.length; i++) {
-        uint256 id = ids[i];
-        if (amounts[i] > claimableBalanceForScheduleForAccount(id, from)) {
-          revert InsufficientClaimableBalance({account: from, scheduleId: id});
-        }
       }
     }
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
@@ -947,6 +960,7 @@ contract RestrictedNORI is
    * Linearly released balance for a single schedule at the current block timestamp, ignoring any
    * released amount floor that has been set for the schedule.
    */
+  // todo move calculation functions into a library for this contract
   function _linearReleaseAmountAvailable(uint256 scheduleId)
     internal
     view
@@ -977,7 +991,8 @@ contract RestrictedNORI is
   function _quantityToRevokePerTokenHolder(
     uint256 totalQuantityToRevoke,
     uint256 scheduleId,
-    address account
+    address account,
+    uint256 balanceOfAccount
   ) private view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 scheduleTrueTotal = _scheduleTrueTotal(
@@ -985,11 +1000,10 @@ contract RestrictedNORI is
       scheduleId
     );
     uint256 revocableForAccount;
-    // avoid division by 0
+    // avoid division by or of 0
     if (scheduleTrueTotal == 0 || totalQuantityToRevoke == 0) {
       revocableForAccount = 0;
     } else {
-      uint256 balanceOfAccount = balanceOf(account, scheduleId);
       uint256 claimedAmountForAccount = schedule.claimedAmountsByAddress[
         account
       ];
