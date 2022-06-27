@@ -20,7 +20,7 @@ jobs:
 
       - name: Run foundry tests
         env:
-          INFURA_STAGING_LEY: ${{ secrets.INFURA_STAGING_KEY }}
+          INFURA_STAGING_KEY: ${{ secrets.INFURA_STAGING_KEY }}
         run: forge test -vvv --fork-url https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}
 
       - name: Run forge snapshot
