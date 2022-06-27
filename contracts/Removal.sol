@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
+import "./FIFOMarket.sol";
 
 // import "hardhat/console.sol"; // todo
 
@@ -38,11 +39,25 @@ contract Removal is
   mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
   mapping(uint256 => bool) private _tokenIdExists;
 
+  /**
+   * @notice Role conferring the the ability to mark a removal as released.
+   */
+  bytes32 public constant RELEASER_ROLE = keccak256("RELEASER_ROLE");
+
+  /**
+   * @notice A mapping of removal token IDs to a released state. If a removal has been marked as released, it will
+   * exist within this mapping with a value greater than 0.
+   * @dev We rely on the defaut `uint` value of 0 for unreleased removals so that we never need to explicitly set
+   * this value for a removal when it is created.
+   */
+  mapping(uint256 => uint256) private _tokenIdToReleased;
+
   function initialize() public virtual initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
     _tokenIdCounter = 0;
     name = "Removal";
+    _grantRole(RELEASER_ROLE, _msgSender());
   }
 
   /**
@@ -131,6 +146,32 @@ contract Removal is
   ) public override {
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
+  }
+
+  /**
+   * @notice Marks an amount of a removal as released given a removal ID and a quantity.
+   * @param removalId The ID of the removal to mark as released.
+   * @param amount The amount of the removal to release.
+   *
+   * ##### Requirements:
+   *
+   * - The contract must not be paused.
+   * - The caller must have the `RELEASER_ROLE`.
+   * - The `amount` for the removal must be <= the removal's initial amount
+   */
+  function release(
+    address owner,
+    uint256 removalId,
+    uint256 amount
+  ) external whenNotPaused onlyRole(RELEASER_ROLE) {
+    // todo initialBalanceOf? should be amount + released?
+    // Querying the details of a removal returns a flag showing the quantity that was invalidated.
+    // If this Removal has not been completely sold, we will not sell the invalidated amount of that Removal
+    _tokenIdToReleased[removalId] = amount;
+    burn(owner, removalId, amount);
+    // if(owner == market) {  // todo
+    FIFOMarket(owner).release(removalId, amount);
+    // }
   }
 
   function supportsInterface(bytes4 interfaceId)

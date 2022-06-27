@@ -49,6 +49,7 @@ library RemovalQueue {
    * @return bool true if success, false otherwise.
    */
   function removeRemoval(
+    // todo rename as `.remove`
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToRemove
   ) internal returns (bool) {

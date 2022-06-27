@@ -182,8 +182,7 @@ contract FIFOMarket is
       ) {
         _addActiveSupplier(supplierAddress);
       }
-      totalActiveSupply += removalAmount;
-      totalNumberActiveRemovals += 1;
+      totalNumberActiveRemovals += 1; // todo should Removal.sol expose tokenIds for address instead?
     }
     return this.onERC1155BatchReceived.selector;
   }
@@ -202,7 +201,7 @@ contract FIFOMarket is
   ) external override {
     // todo we need to treat totalActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s. priority reserved etc.
-    if (totalActiveSupply == 0) {
+    if (_removal.balanceOf(address(this)) == 0) {
       revert("Market: Out of stock");
     }
     if (totalActiveSupply <= priorityRestrictedThreshold) {
@@ -329,6 +328,29 @@ contract FIFOMarket is
     // todo any checks on whether this id was already in there?
     require(_reservedSupply.add(removalId), "Market: Removal already reserved"); // TODO (Gas Optimization): Use custom error
     return true; // returns true if the value was added to the set, that is, if it was not already present
+  }
+
+  // todo consider making this a generalized `withdrawRemoval`?
+  function release(uint256 removalId, uint256 amount) external returns (bool) {
+    // todo whenNotPaused
+    // todo require sender is Removal address
+    address supplierAddress = removalId.supplierAddress();
+    uint256 removalBalance = _removal.balanceOf(address(this), removalId);
+    if (amount == removalBalance) {
+      require(
+        _activeSupply[supplierAddress].removeRemoval(removalId) ||
+          _reservedSupply.remove(removalId),
+        "Market: removal not in supply"
+      ); // todo custom error
+    }
+    totalActiveSupply -= removalBalance; // todo should rely on balanceOf?
+    totalReservedSupply += removalBalance; // todo should rely on balanceOf?
+    totalNumberActiveRemovals -= 1; // todo should rely on tokens of?
+    // If this is the last removal for the supplier, remove them from active suppliers
+    if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
+      _removeActiveSupplier(supplierAddress);
+    }
+    return true;
   }
 
   // TODO batch version of this?
