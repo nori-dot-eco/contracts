@@ -16,7 +16,7 @@ jobs:
           version: nightly
 
       - name: Install Hardhat Dependencies
-        run: yarn install
+        run: yarn install --ignore-scripts
 
       - name: Run foundry tests
         env:
