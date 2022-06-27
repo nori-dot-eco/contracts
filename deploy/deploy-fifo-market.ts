@@ -46,7 +46,6 @@ deploy.dependencies = [
   'Removal',
   'Certificate',
   'BridgedPolygonNORI',
-  'seed',
 ];
 deploy.skip = async (hre) =>
   Promise.resolve(
