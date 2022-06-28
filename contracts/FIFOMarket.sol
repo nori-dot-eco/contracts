@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820Registry
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
+import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
@@ -42,6 +43,7 @@ contract FIFOMarket is
   Removal private _removal;
   Certificate private _certificate;
   BridgedPolygonNORI private _bridgedPolygonNori;
+  RestrictedNORI private _restrictedNori;
   address private _noriFeeWallet;
   uint256 private _noriFee;
   uint256 public priorityRestrictedThreshold;
@@ -68,6 +70,7 @@ contract FIFOMarket is
     address removalAddress,
     address bridgedPolygonNoriAddress,
     address certificateAddress,
+    address restrictedNoriAddress,
     address noriFeeWalletAddress,
     uint256 noriFee
   ) public initializer {
@@ -79,6 +82,8 @@ contract FIFOMarket is
     _removal = Removal(removalAddress);
     _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
     _certificate = Certificate(certificateAddress);
+    _restrictedNori = RestrictedNORI(restrictedNoriAddress);
+
     _noriFeeWallet = noriFeeWalletAddress;
     _noriFee = noriFee;
     _erc1820 = IERC1820RegistryUpgradeable(
@@ -163,10 +168,12 @@ contract FIFOMarket is
     address,
     uint256[] memory ids,
     uint256[] memory,
-    bytes memory
+    bytes memory data
   ) public override returns (bytes4) {
     uint256[] memory batchedAmounts = _removal.balanceOfIds(address(this), ids);
     // TODO (Gas Optimization): Declare variables outside of loop
+    uint256 localActiveSupplyIncrease = 0;
+    uint256 localTotalNumberActiveRemovalsIncrease = 0;
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = removalToAdd.supplierAddress();
@@ -182,9 +189,13 @@ contract FIFOMarket is
       ) {
         _addActiveSupplier(supplierAddress);
       }
-      totalActiveSupply += removalAmount;
-      totalNumberActiveRemovals += 1;
+      localActiveSupplyIncrease += removalAmount;
+      localTotalNumberActiveRemovalsIncrease += 1;
     }
+    totalActiveSupply += localActiveSupplyIncrease;
+    totalNumberActiveRemovals += localTotalNumberActiveRemovalsIncrease;
+    uint256 projectId = abi.decode(data, (uint256));
+    _restrictedNori.createSchedule(projectId);
     return this.onERC1155BatchReceived.selector;
   }
 

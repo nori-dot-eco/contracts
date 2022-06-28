@@ -6,7 +6,7 @@ import { finalizeDeployments, deployRemovalContract } from '@/utils/deploy';
 export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
-  hre.trace(`deployRemoval`);
+  hre.trace(`deploy-removal`);
   const contract = await deployRemovalContract({
     hre,
   });
