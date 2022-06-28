@@ -2,6 +2,8 @@ import type { BigNumberish, ContractReceipt } from 'ethers';
 import { BigNumber } from 'ethers';
 import { add, multiply } from '@nori-dot-com/math';
 
+import { compareScheduleSummaryStructs } from './helpers/restricted-nori';
+
 import { formatTokenAmount } from '@/utils/units';
 import type { RemovalDataForListing } from '@/test/helpers';
 import {
@@ -1145,8 +1147,6 @@ describe('FIFOMarket', () => {
       const buyerInitialBPNoriBalance = formatTokenAmount(1_000_000);
       const projectId1 = 1_111_111_111;
       const projectId2 = 2_222_222_222;
-      // const scheduleStartTime1 = 1_577_836_800; // unix epoch 2020
-      // const scheduleStartTime2 = 1_609_459_200; // unix epoch 2021
       const project1HoldbackPercentage = 30;
       const project2HoldbackPercentage = 40;
       const project1RemovalData = [{ amount: 100 }];
@@ -1156,17 +1156,15 @@ describe('FIFOMarket', () => {
         buyerInitialBPNoriBalance,
         removalDataToList: project1RemovalData,
         projectId: projectId1,
-        // scheduleStartTime: scheduleStartTime1,
         holdbackPercentage: project1HoldbackPercentage,
       });
       await batchMintAndListRemovalsForSale({
         testSetup,
         removalDataToList: project2RemovalData,
         projectId: projectId2,
-        // scheduleStartTime: scheduleStartTime2,
         holdbackPercentage: project2HoldbackPercentage,
       });
-      const { bpNori, certificate, fifoMarket, rNori, hre } = testSetup;
+      const { bpNori, fifoMarket, rNori, hre } = testSetup;
       const { supplier, buyer, noriWallet } = hre.namedAccounts;
 
       const purchaseAmount = '200';
@@ -1175,9 +1173,6 @@ describe('FIFOMarket', () => {
 
       const supplierInitialNoriBalance = '0';
       const noriInitialNoriBalance = '0';
-
-      const initialFifoSupply =
-        await fifoMarket.numberOfActiveNrtsInMarketComputed();
 
       await bpNori
         .connect(hre.namedSigners.buyer)
@@ -1191,10 +1186,49 @@ describe('FIFOMarket', () => {
         projectId1,
         projectId2,
       ]);
-      console.log({ scheduleSummaries });
-      expect(0).to.be.false;
-      // examine the resulting balances for the nori fee, supplier unrestricted, and supplier restricted
-      // examine the schedules created
+      const buyerFinalNoriBalance = await bpNori.balanceOf(buyer);
+      const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
+      const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
+
+      expect(buyerFinalNoriBalance).to.equal(
+        buyerInitialBPNoriBalance
+          .sub(hre.ethers.utils.parseUnits(totalPrice, 18))
+          .toString()
+      );
+
+      expect(supplierFinalNoriBalance).to.equal(
+        hre.ethers.utils
+          .parseUnits(supplierInitialNoriBalance)
+          .add(hre.ethers.utils.parseUnits(purchaseAmount, 18))
+          .sub(
+            hre.ethers.utils.parseUnits(
+              (
+                project1HoldbackPercentage + project2HoldbackPercentage
+              ).toString()
+            )
+          )
+          .toString()
+      );
+
+      expect(noriFinalNoriBalance).to.equal(
+        hre.ethers.utils
+          .parseUnits(noriInitialNoriBalance)
+          .add(hre.ethers.utils.parseUnits(fee.toString(), 18))
+          .toString()
+      );
+
+      compareScheduleSummaryStructs(scheduleSummaries[0], {
+        totalSupply: BigNumber.from(
+          formatTokenAmount(project1HoldbackPercentage)
+        ),
+        tokenHolders: [supplier],
+      });
+      compareScheduleSummaryStructs(scheduleSummaries[1], {
+        totalSupply: BigNumber.from(
+          formatTokenAmount(project2HoldbackPercentage)
+        ),
+        tokenHolders: [supplier],
+      });
     });
   });
 
