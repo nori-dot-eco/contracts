@@ -252,6 +252,10 @@ contract RestrictedNORI is
     uint256 quantity
   );
 
+  constructor() {
+    _disableInitializers();
+  }
+
   // todo document expected initialzation state (this is a holdover from LockedNORI, not totally sure what it means)
   function initialize() external initializer {
     __ERC1155_init_unchained(

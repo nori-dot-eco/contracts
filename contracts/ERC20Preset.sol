@@ -21,6 +21,10 @@ contract ERC20Preset is
    */
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
+  constructor() {
+    _disableInitializers();
+  }
+
   /**
    * @notice Pauses all functions that can mutate state
    *
