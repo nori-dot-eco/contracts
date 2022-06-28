@@ -4,10 +4,6 @@ pragma solidity =0.8.15;
 import "./ERC20Preset.sol";
 
 contract NORI is ERC20Preset {
-  constructor() {
-    _disableInitializers();
-  }
-
   function initialize() external virtual initializer {
     __Context_init_unchained();
     __ERC165_init_unchained();

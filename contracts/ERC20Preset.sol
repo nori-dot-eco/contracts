@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 
+// slither-disable-next-line naming-convention https://github.com/crytic/slither/issues/1236
 contract ERC20Preset is
   ERC20Upgradeable,
   ERC20BurnableUpgradeable,
@@ -20,6 +21,10 @@ contract ERC20Preset is
    * @notice Role conferring the ability to pause and unpause mutable functions of the contract
    */
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+  constructor() {
+    _disableInitializers();
+  }
 
   /**
    * @notice Pauses all functions that can mutate state

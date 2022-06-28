@@ -8,10 +8,6 @@ error InvalidInitializerCall();
 contract BridgedPolygonNORI is NORI {
   bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
 
-  constructor() {
-    _disableInitializers();
-  }
-
   /**
    * @notice Called when token is deposited on root chain.
    * @dev Should be callable only by ChildChainManager. See [here](
