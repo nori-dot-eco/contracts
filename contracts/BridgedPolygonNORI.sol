@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "./NORI.sol";
+import "./ERC20Preset.sol";
 
-error InvalidInitializerCall();
-
-contract BridgedPolygonNORI is NORI {
+// todo documentation
+contract BridgedPolygonNORI is ERC20Preset {
   bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
 
   /**
@@ -51,14 +50,5 @@ contract BridgedPolygonNORI is NORI {
     __Multicall_init_unchained();
     __ERC20Preset_init_unchained();
     _grantRole(DEPOSITOR_ROLE, childChainManagerProxy);
-  }
-
-  /**
-   * @notice Overrides the NORI initializer so that it reverts and is never initialized with a call to the mint
-   * function.
-   */
-  // slither-disable-next-line naming-convention https://github.com/crytic/slither/issues/1236
-  function initialize() external pure override {
-    revert InvalidInitializerCall();
   }
 }

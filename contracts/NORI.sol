@@ -3,6 +3,7 @@ pragma solidity =0.8.15;
 
 import "./ERC20Preset.sol";
 
+// todo documentation
 contract NORI is ERC20Preset {
   function initialize() external virtual initializer {
     __Context_init_unchained();
