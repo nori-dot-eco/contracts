@@ -8,7 +8,6 @@ import type {
   BridgedPolygonNORI,
   Certificate,
   FIFOMarket,
-  LockedNORI,
   RestrictedNORI,
   NORI,
   Removal,
@@ -21,7 +20,7 @@ export interface Contracts {
   NORI?: NORI;
   BridgedPolygonNORI?: BridgedPolygonNORI;
   FIFOMarket?: FIFOMarket;
-  LockedNORI?: LockedNORI;
+  // LockedNORI?: LockedNORI; // todo import from forked repo
   RestrictedNORI?: RestrictedNORI;
   Certificate?: Certificate;
   ScheduleTestHarness?: ScheduleTestHarness;
@@ -39,9 +38,9 @@ export const getContract = async <
 }: {
   contractName: TContract extends BridgedPolygonNORI
     ? 'BridgedPolygonNORI'
-    : TContract extends LockedNORI
-    ? 'LockedNORI'
-    : TContract extends RestrictedNORI
+    : // : TContract extends LockedNORI
+    // ? 'LockedNORI' // todo import from forked repo
+    TContract extends RestrictedNORI
     ? 'RestrictedNORI'
     : TContract extends NORI
     ? 'NORI'
@@ -103,18 +102,18 @@ export const getNORI = async ({
     signer,
   });
 
-export const getLockedNORI = ({
-  hre,
-  signer,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-  signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<LockedNORI> =>
-  getContract({
-    contractName: 'LockedNORI',
-    hre,
-    signer,
-  });
+// export const getLockedNORI = ({ // todo import from forked repo
+//   hre,
+//   signer,
+// }: {
+//   hre: CustomHardHatRuntimeEnvironment;
+//   signer?: ConstructorParameters<typeof Contract>[2];
+// }): Promise<LockedNORI> =>
+//   getContract({
+//     contractName: 'LockedNORI',
+//     hre,
+//     signer,
+//   });
 
 export const getRestrictedNORI = ({
   hre,
@@ -217,9 +216,9 @@ export const getContractsFromDeployments = async (
     BridgedPolygonNORI: deployments.BridgedPolygonNORI?.address
       ? await getBridgedPolygonNori({ hre })
       : undefined,
-    LockedNORI: deployments.LockedNORI?.address
-      ? await getLockedNORI({ hre })
-      : undefined,
+    // LockedNORI: deployments.LockedNORI?.address
+    //   ? await getLockedNORI({ hre })
+    //   : undefined, // todo import from forked repo
     RestrictedNORI: deployments.RestrictedNORI?.address
       ? await getRestrictedNORI({ hre })
       : undefined,

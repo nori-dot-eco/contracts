@@ -1,4 +1,4 @@
-import * as path from 'path';
+import path from 'path';
 
 import type { HardhatUserConfig } from 'hardhat/types';
 
@@ -11,7 +11,6 @@ export const docgen: HardhatUserConfig['docgen'] = {
       'NORI',
       'Removal',
       'Certificate',
-      'LockedNORI',
       'BridgedPolygonNORI',
       'ERC20PresetPausablePermissioned',
       'ScheduleUtils',

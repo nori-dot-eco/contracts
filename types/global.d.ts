@@ -170,7 +170,7 @@ declare global {
     | 'NORI'
     | 'Removal'
     | 'Certificate'
-    | 'LockedNORI'
+    // | 'LockedNORI' // todo import from forked repo
     | 'RestrictedNORI'
     | 'BridgedPolygonNORI'
     | 'ScheduleTestHarness';

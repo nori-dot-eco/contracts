@@ -3,6 +3,7 @@ pragma solidity =0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
@@ -15,6 +16,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 contract ERC20PresetPausablePermissioned is
   ERC20Upgradeable,
   ERC20BurnableUpgradeable,
+  ERC20PermitUpgradeable,
   PausableUpgradeable,
   AccessControlEnumerableUpgradeable
 {

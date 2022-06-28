@@ -605,12 +605,7 @@ contract RestrictedNORI is
     schedule.totalClaimedAmount += amount;
     schedule.claimedAmountsByAddress[_msgSender()] += amount;
     emit TokensClaimed(_msgSender(), recipient, scheduleId, amount);
-    _bridgedPolygonNori.send(
-      // solhint-disable-previous-line check-send-result, because this isn't a solidity send
-      recipient,
-      amount,
-      ""
-    );
+    _bridgedPolygonNori.transfer(recipient, amount);
     return true;
   }
 
@@ -866,12 +861,7 @@ contract RestrictedNORI is
       scheduleId,
       quantityToRevoke
     );
-    _bridgedPolygonNori.send(
-      // solhint-disable-previous-line check-send-result, because this isn't a solidity send
-      to,
-      quantityToRevoke,
-      ""
-    );
+    _bridgedPolygonNori.transfer(to, quantityToRevoke);
   }
 
   /**
