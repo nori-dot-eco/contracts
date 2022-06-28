@@ -3,43 +3,45 @@ pragma solidity =0.8.13;
 
 import "./NORI.sol";
 
+// todo check new erc 20 initializers are called
 contract BridgedPolygonNORI is NORI {
   bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
 
   /**
-   * @notice called when token is deposited on root chain
-   * @dev Should be callable only by ChildChainManager
-   * Should handle deposit by minting the required amount for user
-   * Make sure minting is done only by this function
-   * @param user user address for whom deposit is being done
-   * @param depositData abi encoded amount
+   * @notice Called when token is deposited on root chain.
+   * @dev Should be callable only by ChildChainManager. See [here](
+   * https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more
+   * @param user The user address for whom deposit is being done.
+   * @param depositData The ABI encoded deposit amount.
    */
   function deposit(address user, bytes calldata depositData)
     external
     onlyRole(DEPOSITOR_ROLE)
   {
     uint256 amount = abi.decode(depositData, (uint256));
-    _mint(user, amount, depositData, "");
+    _mint(user, amount);
   }
 
   /**
-   * @notice called when user wants to withdraw tokens back to root chain
-   * @dev Should burn user's tokens. This transaction will be verified when exiting on root chain
-   * @param amount amount of tokens to withdraw
+   * @notice Called when user wants to withdraw tokens back to root chain.
+   * @dev Burns user's tokens on polygon. This transaction will be verified when exiting on root chain. See [here](
+   * https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more
+   * @param amount The amount of tokens to withdraw from polygon as NORI on layer one.
    */
   function withdraw(uint256 amount) external {
-    _burn(_msgSender(), amount, "", "");
+    _burn(_msgSender(), amount);
   }
 
   /**
-   * @notice initializes the BridgedPolygonNORI contract
+   * @notice Initializes the BridgedPolygonNORI contract.
    */
   function initialize(address childChainManagerProxy) public initializer {
     __BridgedPolygonNORI_init(childChainManagerProxy);
   }
 
   /**
-   * @notice overrides the NORI initializer so that it reverts and is never initialized with a call to the mint function
+   * @notice Overrides the NORI initializer so that it reverts and is never initialized with a call to the mint
+   * function.
    */
   function initialize() public override initializer {
     revert("BridgedPolygonNORI: disallowed");
@@ -60,8 +62,8 @@ contract BridgedPolygonNORI is NORI {
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
-    __ERC777PresetPausablePermissioned_init_unchained();
-    __ERC777_init_unchained("NORI", "NORI", new address[](0));
+    __ERC20PresetPausablePermissioned_init_unchained();
+    __ERC20_init_unchained("NORI", "bpNORI");
     __NORI_init_unchained();
     __BridgedPolygonNORI_init_unchained(childChainManagerProxy);
   }

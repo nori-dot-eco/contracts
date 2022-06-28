@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.13;
 
-import "./ERC777PresetPausablePermissioned.sol";
+import "./ERC20PresetPausablePermissioned.sol";
 
-contract NORI is ERC777PresetPausablePermissioned {
+// todo investigate `.cap` in ERC20Capped
+// todo check new erc 20 initializers are called
+
+contract NORI is ERC20PresetPausablePermissioned {
   function initialize() public virtual initializer {
     __NORI_init();
     _mint(
       _msgSender(),
-      500_000_000 * 10**18, // 500,000,000 NORI
-      "",
-      ""
+      500_000_000 * 10**18 // 500,000,000 NORI
     );
   }
 
@@ -27,8 +28,8 @@ contract NORI is ERC777PresetPausablePermissioned {
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
-    __ERC777PresetPausablePermissioned_init_unchained();
-    __ERC777_init_unchained("NORI", "NORI", new address[](0));
+    __ERC20PresetPausablePermissioned_init_unchained();
+    __ERC20_init_unchained("NORI", "NORI");
     __NORI_init_unchained();
   }
 
