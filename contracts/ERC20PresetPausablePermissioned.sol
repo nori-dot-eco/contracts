@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20Pe
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
-// todo burnFrom from burnpreset
 // todo initializers in implementers such as bpNORI and NORI (__ERC20Burnable_init_unchained)
 // todo OZ erc20 pausable checks if paused AFTER _beforeTokenTransfer (do we need to do this? Possible miss in our 777 preset)
 // todo investigate multicall as alternatibe batch function executor
