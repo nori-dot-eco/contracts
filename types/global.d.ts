@@ -170,22 +170,22 @@ declare global {
     | 'NORI'
     | 'Removal'
     | 'Certificate'
-    // | 'LockedNORI' // todo import from forked repo
+    | 'LockedNORIV2'
     | 'RestrictedNORI'
     | 'BridgedPolygonNORI'
     | 'ScheduleTestHarness';
 
-  var ethers: Omit<
-    typeof defaultEthers & HardhatEthersHelpers,
-    'getContractFactory'
-  > & {
-    getContractFactory<
-      TContractFactory extends ContractFactory = ContractFactory
-    >(
-      name: ContractNames,
-      signerOrOptions?: Signer | FactoryOptions
-    ): Promise<TContractFactory>;
-  }; // todo remove from global types to prevent usage
+//   var ethers: Omit<
+//     typeof defaultEthers & HardhatEthersHelpers,
+//     'getContractFactory'
+//   > & {
+//     getContractFactory<
+//       TContractFactory extends ContractFactory = ContractFactory
+//     >(
+//       name: ContractNames,
+//       signerOrOptions?: Signer | FactoryOptions
+//     ): Promise<TContractFactory>;
+//   }; // todo remove from global types to prevent usage
 
   type CustomHardHatRuntimeEnvironment = Omit<
     HardhatRuntimeEnvironment,

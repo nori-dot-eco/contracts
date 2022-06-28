@@ -15,6 +15,7 @@ import { solidity } from '@/config/solidity';
 import { docgen } from '@/config/docgen';
 import { getMochaConfig } from '@/config/mocha';
 import { fireblocks } from '@/config/fireblocks';
+import { preprocess } from '@/config/preprocess';
 
 export const getConfig = (
   environment: NodeJS.ProcessEnv = process.env
@@ -31,6 +32,7 @@ export const getConfig = (
     mocha: getMochaConfig(environment),
     fireblocks,
     ethernal: getEthernalConfig(environment),
+    preprocess,
   };
   return config;
 };

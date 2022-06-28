@@ -15,8 +15,8 @@ import type {
 } from '@/typechain-types/factories/contracts/mocks';
 import type { Contracts } from '@/utils/contracts';
 import type {
-  // LockedNORI, // todo import from forked repo
-  // LockedNORI__factory, // todo import from forked repo
+  LockedNORIV2,
+  LockedNORIV2__factory,
   RestrictedNORI,
   RestrictedNORI__factory,
   Certificate,
@@ -259,17 +259,17 @@ export const deployNORIContract = async ({
   });
 };
 
-// export const deployLockedNORIContract = async ({ // todo import from forked repo
-//   hre,
-// }: {
-//   hre: CustomHardHatRuntimeEnvironment;
-// }): Promise<InstanceOfContract<LockedNORI>> => {
-//   return hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
-//     contractName: 'LockedNORI',
-//     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
-//     options: { initializer: 'initialize(address)' },
-//   });
-// };
+export const deployLockedNORIContract = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<LockedNORIV2>> => {
+  return hre.deployOrUpgradeProxy<LockedNORIV2, LockedNORIV2__factory>({
+    contractName: 'LockedNORI',
+    args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
+    options: { initializer: 'initialize(address)' },
+  });
+};
 
 export const deployTestContracts = async ({
   hre,

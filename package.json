@@ -47,6 +47,7 @@
     "hardhat-deploy": "^0.11.9",
     "hardhat-ethernal": "^1.0.0",
     "hardhat-gas-reporter": "^1.0.8",
+    "hardhat-preprocessor": "^0.1.4",
     "json-diff": "^0.7.1",
     "moment": "^2.29.2",
     "prettier": "^2.6.2",

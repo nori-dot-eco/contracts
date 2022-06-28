@@ -1,6 +1,6 @@
 import { JsonRpcBatchProvider } from '@ethersproject/providers';
 import { FeeData } from '@ethersproject/abstract-provider';
-import { BigNumber } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
 /**
  * This module packages up gas fee estimation logic.
