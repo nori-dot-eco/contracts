@@ -68,9 +68,9 @@ import {RemovalUtils} from "./RemovalUtils.sol";
  *    - SCHEDULE_CREATOR_ROLE
  *      - Can create restriction schedules without sending BridgedPolygonNORI to the contract
  *      - The Market contract has this role and sets up relevant schedules as removal tokens are listed for sale
- *    - TOKEN_DEPOSITOR_ROLE
- *      - Can send bpNori to this contract
- *      - The Market contract has this role and can route sale proceeds to this contract
+ *    - MINTER_ROLE
+ *      - Can call `mint` on this contract, which mints tokens of the correct schedule id (token id) for a given removal
+ *      - The Market contract has this role and can mint RestrictedNORI while routing sale proceeds to this contract
  *    - TOKEN_REVOKER_ROLE
  *      - Can revoke unreleased tokens from a schedule
  *      - Only Nori admin wallet should have this role
@@ -120,7 +120,7 @@ contract RestrictedNORI is
   error ArrayLengthMismatch(string array1Name, string array2Name);
   error InsufficientUnreleasedTokens(uint256 scheduleId);
   error InsufficientClaimableBalance(address account, uint256 scheduleId);
-  error InvalidBpNoriSender(address account);
+  error InvalidMinter(address account);
   error InvalidZeroDuration();
 
   /** The internal governing parameters and data for a schedule */
@@ -174,8 +174,7 @@ contract RestrictedNORI is
    *
    * @dev the Market contract is granted this role after deployments.
    */
-  bytes32 public constant TOKEN_DEPOSITOR_ROLE =
-    keccak256("TOKEN_DEPOSITOR_ROLE");
+  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
    * @notice Role conferring revocation of restricted tokens.
@@ -558,6 +557,8 @@ contract RestrictedNORI is
   }
 
   /**
+   *  TODO remove this function when BPNori is no longer an ERC777
+   *
    * This function is triggered when BridgedPolygonNORI is sent to this contract
    *
    * @dev Sending BridgedPolygonNORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard
@@ -573,16 +574,27 @@ contract RestrictedNORI is
     uint256 amount,
     bytes calldata userData,
     bytes calldata operatorData
-  ) external override {
-    if (!(_msgSender() == address(_bridgedPolygonNori))) {
-      revert TokenSenderNotBPNORI();
-    }
-    if (!hasRole(TOKEN_DEPOSITOR_ROLE, from)) {
-      revert InvalidBpNoriSender({account: from});
-    }
+  ) external override {}
 
-    uint256 removalId = abi.decode(userData, (uint256));
-    _depositFor(removalId, amount, userData, operatorData);
+  /**
+   * Mints RestrictedNORI to the correct schedule id (1155 token id) for a given removal id
+   *
+   */
+  function mint(uint256 amount, uint256 removalId) external {
+    if (!hasRole(MINTER_ROLE, _msgSender())) {
+      revert InvalidMinter({account: _msgSender()});
+    }
+    uint256 projectId = _removal.getProjectIdForRemoval(removalId);
+    Removal.ScheduleData memory scheduleData = _removal
+      .getScheduleDataForProjectId(projectId);
+    address recipient = scheduleData.supplierAddress;
+    if (!_scheduleIdToScheduleStruct[projectId].exists) {
+      revert NonexistentSchedule({scheduleId: projectId});
+    }
+    super._mint(recipient, projectId, amount, "");
+    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
+    // slither-disable-next-line unused-return address may already be in set and that is ok
+    schedule.tokenHolders.add(recipient);
   }
 
   /**
@@ -716,35 +728,6 @@ contract RestrictedNORI is
   }
 
   // Private implementations ==========================================
-
-  /**
-   * Wraps minting of wrapper token and schedule setup.
-   *
-   * @dev If no schedule is set up for the specified removal id, one is created.
-   *
-   * @param removalId uint256 The removal for which funds are being deposited.
-   * @param amount uint256 Quantity of `_bridgedPolygonNori` to deposit
-   */
-  function _depositFor(
-    uint256 removalId,
-    uint256 amount,
-    bytes memory,
-    bytes memory
-  ) internal returns (bool) {
-    uint256 projectId = _removal.getProjectIdForRemoval(removalId);
-    Removal.ScheduleData memory scheduleData = _removal
-      .getScheduleDataForProjectId(projectId);
-    address recipient = scheduleData.supplierAddress;
-    if (!_scheduleIdToScheduleStruct[projectId].exists) {
-      revert NonexistentSchedule({scheduleId: projectId});
-    }
-    super._mint(recipient, projectId, amount, "");
-    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    // slither-disable-next-line unused-return address may already be in set and that is ok
-    schedule.tokenHolders.add(recipient);
-    return true;
-  }
-
   /**
    * Sets up a schedule for the specified project id (implementation).
    *

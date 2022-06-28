@@ -46,7 +46,7 @@ describe('RestrictedNORI', () => {
       }
       for (const { role } of [
         { role: 'SCHEDULE_CREATOR_ROLE' },
-        { role: 'TOKEN_DEPOSITOR_ROLE' },
+        { role: 'MINTER_ROLE' },
       ] as const) {
         it(`will assign the role ${role} to the market contract`, async () => {
           const { rNori, fifoMarket } = await setupTestLocal();
@@ -224,7 +224,7 @@ describe('RestrictedNORI', () => {
       expect(scheduleSummary.totalSupply).to.equal(0);
     });
   });
-  describe('tokensReceived', () => {
+  describe('mint', () => {
     it('should deposit tokens and automatically create a new restriction schedule where one does not exist', async () => {
       const removalDataToList = [
         {
@@ -241,33 +241,33 @@ describe('RestrictedNORI', () => {
         });
       const { namedAccounts } = hre;
       const restrictedAmount = 1;
-      const userData = formatTokensReceivedUserData(listedRemovalIds[0]);
-      expect(await bpNori.send(rNori.address, restrictedAmount, userData))
-        .to.emit(rNori, 'Minted')
-        .withArgs(
-          bpNori.address,
-          namedAccounts.supplier,
-          restrictedAmount,
-          userData,
-          '0x'
-        )
-        .to.emit(rNori, 'Transfer')
-        .withArgs(
-          ethers.constants.AddressZero,
-          namedAccounts.supplier,
-          restrictedAmount
-        )
+      expect(await bpNori.transfer(rNori.address, restrictedAmount))
         .to.emit(bpNori, 'Sent')
         .withArgs(
           namedAccounts.admin,
           namedAccounts.admin,
           rNori.address,
           restrictedAmount,
-          userData,
+          '0x',
           '0x'
         )
         .to.emit(bpNori, 'Transfer')
         .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
+      expect(await rNori.mint(restrictedAmount, listedRemovalIds[0]))
+        .to.emit(rNori, 'TransferSingle')
+        .withArgs(
+          namedAccounts.admin,
+          ethers.constants.AddressZero,
+          namedAccounts.supplier,
+          projectId,
+          restrictedAmount
+        )
+        .to.emit(rNori, 'Transfer')
+        .withArgs(
+          ethers.constants.AddressZero,
+          namedAccounts.supplier,
+          restrictedAmount
+        );
       const scheduleSummary = await rNori.getScheduleSummary(projectId);
       expect(scheduleSummary.scheduleTokenId).equals(projectId);
       expect(scheduleSummary.totalSupply).equals(restrictedAmount);
@@ -280,7 +280,7 @@ describe('RestrictedNORI', () => {
       expect(scheduleSummary.totalQuantityRevoked).equals(0);
       expect(scheduleSummary.exists).equals(true);
     });
-    it('should revert if the sender of bpNori is not the market contract', async () => {
+    it('should revert if the minter of RestrictedNORI is not the market contract', async () => {
       const removalDataToList = [
         {
           amount: 5,
@@ -288,18 +288,15 @@ describe('RestrictedNORI', () => {
         },
       ];
       const testSetup = await setupTestLocal({});
-      const { bpNori, rNori, hre } = testSetup;
+      const { rNori, bpNori, hre } = testSetup;
       const { listedRemovalIds } = await batchMintAndListRemovalsForSale({
         testSetup,
         removalDataToList,
       });
-      const restrictedAmount = 1;
-      const userData = formatTokensReceivedUserData(listedRemovalIds[0]);
+      await bpNori.transfer(rNori.address, 1);
       await expect(
-        bpNori
-          .connect(hre.namedSigners.buyer)
-          .send(rNori.address, restrictedAmount, userData)
-      ).to.be.revertedWith(`InvalidBpNoriSender("${hre.namedAccounts.buyer}")`);
+        rNori.connect(hre.namedSigners.buyer).mint(1, listedRemovalIds[0])
+      ).to.be.revertedWith(`InvalidMinter("${hre.namedAccounts.buyer}")`);
     });
   });
   describe('Linear releasing (claimableBalanceForSchedule)', () => {

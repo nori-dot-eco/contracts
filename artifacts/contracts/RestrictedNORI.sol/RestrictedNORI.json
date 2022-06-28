@@ -59,7 +59,7 @@
           "type": "address"
         }
       ],
-      "name": "InvalidBpNoriSender",
+      "name": "InvalidMinter",
       "type": "error"
     },
     {
@@ -435,6 +435,19 @@
     },
     {
       "inputs": [],
+      "name": "MINTER_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "PAUSER_ROLE",
       "outputs": [
         {
@@ -449,19 +462,6 @@
     {
       "inputs": [],
       "name": "SCHEDULE_CREATOR_ROLE",
-      "outputs": [
-        {
-          "internalType": "bytes32",
-          "name": "",
-          "type": "bytes32"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "TOKEN_DEPOSITOR_ROLE",
       "outputs": [
         {
           "internalType": "bytes32",
@@ -1045,6 +1045,24 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "removalId",
+          "type": "uint256"
+        }
+      ],
+      "name": "mint",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
