@@ -3,6 +3,8 @@ import path from 'path';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 
+import { generateRandomSubIdentifier } from './removal';
+
 import type {
   MockCertificate,
   MockERC1155PresetPausableNonTransferrable,
@@ -14,15 +16,17 @@ import type {
 import type { Contracts } from '@/utils/contracts';
 import type {
   LockedNORI,
-  Certificate,
-  FIFOMarket,
-  NORI,
-  Removal,
-  Certificate__factory,
-  Removal__factory,
-  NORI__factory,
-  FIFOMarket__factory,
   LockedNORI__factory,
+  RestrictedNORI,
+  RestrictedNORI__factory,
+  Certificate,
+  Certificate__factory,
+  FIFOMarket,
+  FIFOMarket__factory,
+  NORI,
+  NORI__factory,
+  Removal,
+  Removal__factory,
   BridgedPolygonNORI,
   BridgedPolygonNORI__factory,
   ScheduleTestHarness,
@@ -31,7 +35,12 @@ import type {
   RemovalTestHarness__factory,
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
-import { createRemovalTokenId, mockDepositNoriToPolygon } from '@/test/helpers';
+import {
+  createRemovalTokenId,
+  mockDepositNoriToPolygon,
+  createBatchMintData,
+  getLatestBlockTime,
+} from '@/test/helpers';
 
 interface ContractConfig {
   [key: string]: { proxyAddress: string };
@@ -197,11 +206,27 @@ export const deployFIFOMarketContract = async ({
       deployments.Removal.address,
       deployments.BridgedPolygonNORI.address,
       deployments.Certificate.address,
+      deployments.RestrictedNORI.address,
       feeWallet,
       feePercentage,
     ],
     options: {
-      initializer: 'initialize(address,address,address,address,uint256)',
+      initializer:
+        'initialize(address,address,address,address,address,uint256)',
+    },
+  });
+};
+
+export const deployRestrictedNORI = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<RestrictedNORI>> => {
+  return hre.deployOrUpgradeProxy<RestrictedNORI, RestrictedNORI__factory>({
+    contractName: 'RestrictedNORI',
+    args: [],
+    options: {
+      initializer: 'initialize()',
     },
   });
 };
@@ -371,13 +396,16 @@ export const seedContracts = async ({
       hre,
       removalData: {
         supplierAddress: hre.namedAccounts.supplier,
+        subIdentifier: generateRandomSubIdentifier(), // keep token ids unique
       },
     });
     const listNow = true;
-    const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-      ['address', 'bool'],
-      [contracts.FIFOMarket.address, listNow]
-    );
+    const packedData = await createBatchMintData({
+      hre,
+      fifoMarket: contracts.FIFOMarket,
+      listNow,
+      scheduleStartTime: await getLatestBlockTime({ hre }),
+    });
     const tx = await contracts.Removal.mintBatch(
       hre.namedAccounts.supplier,
       [formatTokenAmount(100)],

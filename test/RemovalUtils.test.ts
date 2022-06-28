@@ -91,11 +91,11 @@ describe('RemovalUtils', () => {
     const removalDataMissingParcelId = {
       idVersion: 0,
       methodology: 1,
-      methodologyVersion: 1,
+      methodologyVersion: 0,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
-      supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
+      supplierAddress: hre.namedAccounts.supplier,
     };
     const encodedRemovalDataTooShort = hre.ethers.utils.defaultAbiCoder.encode(
       ['uint8', 'uint8', 'uint8', 'uint16', 'bytes2', 'bytes2', 'address'],
@@ -114,11 +114,11 @@ describe('RemovalUtils', () => {
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0,
       methodology: 16, // too large
-      methodologyVersion: 1,
+      methodologyVersion: 0,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
-      supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
+      supplierAddress: hre.namedAccounts.supplier,
       subIdentifier: 99_039_930,
     };
 
@@ -134,11 +134,11 @@ describe('RemovalUtils', () => {
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0,
       methodology: 1,
-      methodologyVersion: 1,
+      methodologyVersion: 0,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
-      supplierAddress: '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450',
+      supplierAddress: hre.namedAccounts.supplier,
       subIdentifier: 99_039_930,
     };
 
