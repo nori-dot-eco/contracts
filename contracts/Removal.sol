@@ -28,10 +28,8 @@ contract Removal is
 
   error TokenIdExists(uint256 tokenId);
   error TokenIdDoesNotExist(uint256 tokenId);
-  error MissingRole(address account, string role);
   error ArrayLengthMismatch(string array1Name, string array2Name);
   error InvalidProjectId(uint256 projectId);
-  error InvalidScheduleStartTime(uint256 startTime);
 
   struct BatchMintRemovalsData {
     // todo why doesnt typechain generate this as a type?

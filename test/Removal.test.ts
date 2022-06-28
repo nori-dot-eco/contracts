@@ -1,5 +1,4 @@
-import { SECONDS_IN_10_YEARS } from './helpers/restricted-nori';
-
+import { SECONDS_IN_10_YEARS } from '@/test/helpers/restricted-nori';
 import {
   createRemovalTokenId,
   expect,
