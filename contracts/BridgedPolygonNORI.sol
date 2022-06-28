@@ -57,6 +57,7 @@ contract BridgedPolygonNORI is NORI {
    * @notice Overrides the NORI initializer so that it reverts and is never initialized with a call to the mint
    * function.
    */
+  // slither-disable-next-line naming-convention https://github.com/crytic/slither/issues/1236
   function initialize() external pure override {
     revert InvalidInitializerCall();
   }
