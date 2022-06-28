@@ -10,8 +10,6 @@ import "./Removal.sol";
 import "./FIFOMarket.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
-import "hardhat/console.sol"; // todo
-
 /**
  * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance collateral.
  *
@@ -733,9 +731,7 @@ contract RestrictedNORI is
     bytes memory,
     bytes memory
   ) internal returns (bool) {
-    console.log("calling depositFor");
     uint256 projectId = _removal.getProjectIdForRemoval(removalId);
-    console.log("projectID: ", projectId);
     Removal.ScheduleData memory scheduleData = _removal
       .getScheduleDataForProjectId(projectId);
     address recipient = scheduleData.supplierAddress;
