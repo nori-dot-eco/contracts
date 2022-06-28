@@ -6,18 +6,19 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20Burnable
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 
 // todo initializers in implementers such as bpNORI and NORI (__ERC20Burnable_init_unchained)
 // todo OZ erc20 pausable checks if paused AFTER _beforeTokenTransfer (do we need to do this? Possible miss in our 777 preset)
-// todo investigate multicall as alternatibe batch function executor
 // todo check if we need to override any public overrideable fuctions in erc 20 abi
 
-contract ERC20PresetPausablePermissioned is
+contract ERC20Preset is
   ERC20Upgradeable,
   ERC20BurnableUpgradeable,
   ERC20PermitUpgradeable,
   PausableUpgradeable,
-  AccessControlEnumerableUpgradeable
+  AccessControlEnumerableUpgradeable,
+  MulticallUpgradeable
 {
   /**
    * @notice Role conferring the ability to pause and unpause mutable functions of the contract
@@ -32,40 +33,6 @@ contract ERC20PresetPausablePermissioned is
    * https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps)
    */
   uint256[50] private __gap; // todo add to all contracts
-
-  /**
-   * @notice An event emitted when a batch of transfers are bundled into a single transaction
-   */
-  event TransferredBatch(
-    address[] indexed recipients,
-    uint256[] indexed amounts
-  );
-
-  /**
-   * @notice Batches multiple transfers into a single transaction
-   *
-   * @param recipients address[] list of recipient addresses
-   * @param amounts uint256[] list of amounts to transfer
-   *
-   * Emits a TransferredBatch event.
-   *
-   * ##### Requirements:
-   *
-   * - The contract must not be paused.
-   */
-  function batchTransfer(address[] memory recipients, uint256[] memory amounts)
-    public
-  {
-    // todo investigate why this doesn't exist in the OZ implementation (is multicall or send a preferred alternative?)
-    require(
-      recipients.length == amounts.length,
-      "ERC20PresetPausablePermissioned: recipient and amount length mismatch"
-    );
-    for (uint256 i = 0; i < recipients.length; i++) {
-      transfer(recipients[i], amounts[i]);
-    }
-    emit TransferredBatch(recipients, amounts);
-  }
 
   /**
    * @notice See ERC20-approve for details [here](
@@ -117,26 +84,8 @@ contract ERC20PresetPausablePermissioned is
     _unpause();
   }
 
-  /**
-   * @notice Returns the balances of a batch of addresses in a single call
-   */
-  function balanceOfBatch(address[] memory accounts)
-    public
-    view
-    returns (uint256[] memory)
-  {
-    uint256[] memory batchBalances = new uint256[](accounts.length);
-    for (uint256 i = 0; i < accounts.length; ++i) {
-      batchBalances[i] = balanceOf(accounts[i]);
-    }
-    return batchBalances;
-  }
-
   // solhint-disable-next-line func-name-mixedcase
-  function __ERC20PresetPausablePermissioned_init_unchained()
-    internal
-    onlyInitializing
-  {
+  function __ERC20Preset_init_unchained() internal onlyInitializing {
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(PAUSER_ROLE, _msgSender());
   }

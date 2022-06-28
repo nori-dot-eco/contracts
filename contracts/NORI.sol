@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.13;
 
-import "./ERC20PresetPausablePermissioned.sol";
+import "./ERC20Preset.sol";
 
 // todo investigate `.cap` in ERC20Capped
 // todo check new erc 20 initializers are called
 
-contract NORI is ERC20PresetPausablePermissioned {
+contract NORI is ERC20Preset {
   function initialize() public virtual initializer {
     __NORI_init();
     _mint(
@@ -28,7 +28,8 @@ contract NORI is ERC20PresetPausablePermissioned {
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
-    __ERC20PresetPausablePermissioned_init_unchained();
+    __ERC20Preset_init_unchained();
+    __Multicall_init_unchained();
     __ERC20_init_unchained("NORI", "NORI");
     __ERC20Permit_init_unchained("NORI");
     __NORI_init_unchained();

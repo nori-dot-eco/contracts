@@ -62,7 +62,8 @@ contract BridgedPolygonNORI is NORI {
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
-    __ERC20PresetPausablePermissioned_init_unchained();
+    __ERC20Preset_init_unchained();
+    __Multicall_init_unchained();
     __ERC20_init_unchained("NORI", "NORI");
     __ERC20Permit_init_unchained("NORI");
     __NORI_init_unchained();
