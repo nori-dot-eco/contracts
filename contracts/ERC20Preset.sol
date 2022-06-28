@@ -8,7 +8,6 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 
-// slither-disable-next-line naming-convention https://github.com/crytic/slither/issues/1236
 contract ERC20Preset is
   ERC20Upgradeable,
   ERC20BurnableUpgradeable,
