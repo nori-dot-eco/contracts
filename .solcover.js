@@ -1,3 +1,7 @@
 module.exports = {
-  skipFiles: ['ScheduleTestHarness.sol']
+  skipFiles: [
+    'ScheduleTestHarness.sol',
+    'LockedNORI.sol',
+    'deprecated/ERC777PresetPausablePermissioned.sol',
+  ],
 };

@@ -1,4 +1,5 @@
 import type { Contract } from 'ethers';
+import { LockedNORIV2 } from '../typechain-types/contracts/LockedNORIV2';
 
 import type {
   MockERC1155PresetPausableNonTransferrable,
@@ -20,7 +21,7 @@ export interface Contracts {
   NORI?: NORI;
   BridgedPolygonNORI?: BridgedPolygonNORI;
   FIFOMarket?: FIFOMarket;
-  // LockedNORI?: LockedNORI; // todo import from forked repo
+  LockedNORIV2?: LockedNORIV2;
   RestrictedNORI?: RestrictedNORI;
   Certificate?: Certificate;
   ScheduleTestHarness?: ScheduleTestHarness;
@@ -36,11 +37,12 @@ export const getContract = async <
   hre,
   signer,
 }: {
-  contractName: TContract extends BridgedPolygonNORI
+  contractName:
+   TContract extends BridgedPolygonNORI
     ? 'BridgedPolygonNORI'
-    : // : TContract extends LockedNORI
-    // ? 'LockedNORI' // todo import from forked repo
-    TContract extends RestrictedNORI
+    : TContract extends LockedNORIV2
+    ? 'LockedNORIV2'
+    : TContract extends RestrictedNORI
     ? 'RestrictedNORI'
     : TContract extends NORI
     ? 'NORI'
