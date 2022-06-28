@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
@@ -7,10 +7,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20Pe
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-
-// todo initializers in implementers such as bpNORI and NORI (__ERC20Burnable_init_unchained)
-// todo OZ erc20 pausable checks if paused AFTER _beforeTokenTransfer (do we need to do this? Possible miss in our 777 preset)
-// todo check if we need to override any public overrideable fuctions in erc 20 abi
 
 contract ERC20Preset is
   ERC20Upgradeable,
@@ -26,39 +22,6 @@ contract ERC20Preset is
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
   /**
-   * @notice Reserved storage slot for upgradeability
-   *
-   * @dev This empty reserved space is put in place to allow future versions to add new variables without shifting
-   * down storage in the inheritance chain. See more [here](
-   * https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps)
-   */
-  uint256[50] private __gap; // todo add to all contracts
-
-  /**
-   * @notice See ERC20-approve for details [here](
-   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20-approve-address-uint256-)
-   *
-   * @dev This function is a wrapper around ERC20-approve.
-   *
-   * ##### Requirements:
-   *
-   * - The contract must not be paused.
-   * - Accounts cannot have allowance issued by their operators.
-   * - If `value` is the maximum `uint256`, the allowance is not updated on `transferFrom`. This is semantically
-   * equivalent to an infinite approval.
-   */
-  function approve(address spender, uint256 value)
-    public
-    virtual
-    override
-    whenNotPaused
-    returns (bool)
-  {
-    _beforeOperatorChange(spender, value);
-    return super.approve(spender, value);
-  }
-
-  /**
    * @notice Pauses all functions that can mutate state
    *
    * @dev Used to effectively freeze a contract so that no state updates can occur
@@ -72,7 +35,7 @@ contract ERC20Preset is
   }
 
   /**
-   * @notice Unpauses **all** token transfers.
+   * @notice Unpauses all token transfers.
    *
    * @dev
    *
@@ -84,41 +47,11 @@ contract ERC20Preset is
     _unpause();
   }
 
-  // solhint-disable-next-line func-name-mixedcase
   function __ERC20Preset_init_unchained() internal onlyInitializing {
+    // solhint-disable-previous-line func-name-mixedcase
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(PAUSER_ROLE, _msgSender());
   }
-
-  /**
-   * @notice Hook that is called before granting/revoking operator allowances
-   *
-   * @dev This overrides the behavior of `approve`, `authorizeOperator, and `revokeOperator` with pausable behavior.
-   * When the contract is paused, these functions will not be callable. Follows the rules of hooks defined
-   * [here](https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
-   *
-   * ##### Requirements:
-   *
-   * - The contract must not be paused.
-   */
-  function _beforeOperatorChange(address, uint256)
-    internal
-    virtual
-    whenNotPaused
-  {} // solhint-disable-line no-empty-blocks
-
-  /**
-   * @notice Hook that is called before granting/revoking roles via `grantRole`, `revokeRole`, `renounceRole`
-   *
-   * @dev This overrides the behavior of `_grantRole`, `_setupRole`, `_revokeRole`, and `_renounceRole` with pausable
-   * behavior. When the contract is paused, these functions will not be callable. Follows the rules of hooks
-   * defined [here](https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
-   *
-   * ##### Requirements:
-   *
-   * - The contract must not be paused.
-   */
-  function _beforeRoleChange(bytes32, address) internal virtual whenNotPaused {} // solhint-disable-line no-empty-blocks
 
   /**
    * @notice A hook that is called before a token transfer occurs.
@@ -146,10 +79,13 @@ contract ERC20Preset is
    * ##### Requirements:
    *
    * - The contract must not be paused.
-   * - The requirements of _beforeRoleGranted_ must be satisfied.
    */
-  function _grantRole(bytes32 role, address account) internal virtual override {
-    _beforeRoleChange(role, account);
+  function _grantRole(bytes32 role, address account)
+    internal
+    virtual
+    override
+    whenNotPaused
+  {
     super._grantRole(role, account);
   }
 
@@ -161,14 +97,37 @@ contract ERC20Preset is
    * ##### Requirements:
    *
    * - The contract must not be paused.
-   * - The requirements of _beforeRoleGranted_ must be satisfied.
    */
   function _revokeRole(bytes32 role, address account)
     internal
     virtual
     override
+    whenNotPaused
   {
-    _beforeRoleChange(role, account);
     super._revokeRole(role, account);
+  }
+
+  /**
+   * @notice See ERC20-approve for more details [here](
+   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20-approve-address-uint256-)
+   *
+   * @dev This override applies the `whenNotPaused` to the `approve`, `increaseAllowance`, `decreaseAllowance`,
+   * and `_spendAllowance` (used by `transferFrom`) functions.
+   *
+   * ##### Requirements:
+   *
+   * - The contract must not be paused.
+   * - Accounts cannot have allowance issued by their operators.
+   * - If `value` is the maximum `uint256`, the allowance is not updated on `transferFrom`. This is semantically
+   * equivalent to an infinite approval.
+   * - `owner` cannot be the zero address.
+   * - The `spender` cannot be the zero address.
+   */
+  function _approve(
+    address owner,
+    address spender,
+    uint256 amount
+  ) internal virtual override whenNotPaused {
+    return super._approve(owner, spender, amount);
   }
 }
