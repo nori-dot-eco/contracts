@@ -12,7 +12,7 @@ export const docgen: HardhatUserConfig['docgen'] = {
       'Removal',
       'Certificate',
       'BridgedPolygonNORI',
-      'ERC20PresetPausablePermissioned',
+      'ERC20Preset',
       'ScheduleUtils',
       'RemovalQueue',
       'RemovalUtils',

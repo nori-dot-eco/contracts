@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
@@ -56,7 +56,14 @@ contract Removal is
   mapping(uint256 => uint256) private _removalIdToProjectId;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData;
 
-  function initialize() external virtual initializer {
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
+  constructor() {
+    _disableInitializers();
+  }
+
+  function initialize() external initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
     tokenIdCounter = 0;
@@ -208,7 +215,7 @@ contract Removal is
     address,
     uint256,
     uint256,
-    bytes calldata
+    bytes memory
   ) public pure override {
     revert("Removal: ERC 1155 mint disabled");
   }
@@ -224,7 +231,7 @@ contract Removal is
     address to,
     uint256[] memory ids,
     uint256[] memory amounts,
-    bytes memory data
+    bytes memory
   ) public override {
     // todo do we add any validation to enforce that all removals in batch belong to the same project id?
     bytes memory projectId = abi.encode(_removalIdToProjectId[ids[0]]);

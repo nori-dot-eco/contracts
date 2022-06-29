@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
@@ -251,6 +251,13 @@ contract RestrictedNORI is
     uint256 indexed scheduleId,
     uint256 quantity
   );
+
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
+  constructor() {
+    _disableInitializers();
+  }
 
   // todo document expected initialzation state (this is a holdover from LockedNORI, not totally sure what it means)
   function initialize() external initializer {

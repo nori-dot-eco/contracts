@@ -25,31 +25,32 @@ describe('BridgedPolygonNORI', () => {
       });
     });
   });
-  describe('send', () => {
-    it('should mint a certificate when bpNORI is sent to the FIFOMarket minted', async () => {
-      const removalDataToList = [{ amount: 3 }, { amount: 3 }, { amount: 4 }];
-      const testSetup = await setupTest();
-      const { bpNori, certificate, fifoMarket, hre } = testSetup;
-      const { listedRemovalIds, removalAmounts, totalAmountOfSupply } =
-        await batchMintAndListRemovalsForSale({
-          testSetup,
-          removalDataToList,
-        });
-      const { buyer } = hre.namedAccounts;
-      const fee = 1.5;
-      const totalPrice = totalAmountOfSupply + fee;
-      expect(
-        await bpNori
-          .connect(hre.namedSigners.buyer)
-          .send(
-            fifoMarket.address,
-            hre.ethers.utils.parseUnits(totalPrice.toString()),
-            hre.ethers.utils.hexZeroPad(buyer, 32)
-          )
-      )
-        .to.emit(certificate, 'CertificateCreated')
-        .withArgs(buyer, 0, listedRemovalIds, removalAmounts);
-      // todo test that certificate is minted
-    });
-  });
+  // todo write corresponding erc 20 version instead
+  // describe('send', () => {
+  //   it('should mint a certificate when bpNORI is sent to the FIFOMarket minted', async () => {
+  //     const removalDataToList = [{ amount: 3 }, { amount: 3 }, { amount: 4 }];
+  //     const testSetup = await setupTest();
+  //     const { bpNori, certificate, fifoMarket, hre } = testSetup;
+  //     const { listedRemovalIds, removalAmounts, totalAmountOfSupply } =
+  //       await batchMintAndListRemovalsForSale({
+  //         testSetup,
+  //         removalDataToList,
+  //       });
+  //     const { buyer } = hre.namedAccounts;
+  //     const fee = 1.5;
+  //     const totalPrice = totalAmountOfSupply + fee;
+  //     expect(
+  //       await bpNori
+  //         .connect(hre.namedSigners.buyer)
+  //         .send(
+  //           fifoMarket.address,
+  //           hre.ethers.utils.parseUnits(totalPrice.toString()),
+  //           hre.ethers.utils.hexZeroPad(buyer, 32)
+  //         )
+  //     )
+  //       .to.emit(certificate, 'CertificateCreated')
+  //       .withArgs(buyer, 0, listedRemovalIds, removalAmounts);
+  //     // todo test that certificate is minted
+  //   });
+  // });
 });

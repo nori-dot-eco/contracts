@@ -8,9 +8,13 @@ const optimizer = {
 export const solidity: HardhatUserConfig['solidity'] = {
   compilers: [
     {
-      version: '0.8.13',
+      version: '0.8.15',
       settings: {
-        optimizer,
+        viaIR: true, // todo remove
+        optimizer: {
+          enabled: true,
+          runs: 5_000_000,
+        },
       },
     },
   ],

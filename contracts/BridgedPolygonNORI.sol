@@ -1,11 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.15;
 
-import "./NORI.sol";
+import "./ERC20Preset.sol";
 
-// todo check new erc 20 initializers are called
-contract BridgedPolygonNORI is NORI {
+// todo documentation
+// todo Security aduit item: https://github.com/nori-dot-eco/contracts/security/code-scanning/499
+contract BridgedPolygonNORI is ERC20Preset {
   bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
+
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
+  constructor() {
+    _disableInitializers();
+  }
 
   /**
    * @notice Called when token is deposited on root chain.
@@ -35,50 +43,18 @@ contract BridgedPolygonNORI is NORI {
   /**
    * @notice Initializes the BridgedPolygonNORI contract.
    */
-  function initialize(address childChainManagerProxy) public initializer {
-    __BridgedPolygonNORI_init(childChainManagerProxy);
-  }
-
-  /**
-   * @notice Overrides the NORI initializer so that it reverts and is never initialized with a call to the mint
-   * function.
-   */
-  function initialize() public override initializer {
-    revert("BridgedPolygonNORI: disallowed");
-  }
-
-  /**
-   * @notice Initializer variant that embeds the linearized calls to all parent initializers.
-   * @dev Follows the multiple inheritance initializer rules defined [here](
-   * https://docs.openzeppelin.com/contracts/3.x/upgradeable#multiple-inheritance). As a consequence,
-   * calling two of these init functions can potentially initialize the same contract twice.
-   */
-  function __BridgedPolygonNORI_init(
-    // solhint-disable-previous-line func-name-mixedcase
-    address childChainManagerProxy
-  ) internal onlyInitializing {
+  function initialize(address childChainManagerProxy) external initializer {
     __Context_init_unchained();
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
-    __ERC20PresetPausablePermissioned_init_unchained();
+    __EIP712_init_unchained("NORI", "1");
     __ERC20_init_unchained("NORI", "NORI");
     __ERC20Permit_init_unchained("NORI");
-    __NORI_init_unchained();
-    __BridgedPolygonNORI_init_unchained(childChainManagerProxy);
-  }
-
-  /**
-   * @notice Initializer variant that does **not** embed linearized calls to any parent initializers.
-   * @dev Follows the multiple inheritance initializer rules defined [here](
-   * https://docs.openzeppelin.com/contracts/3.x/upgradeable#multiple-inheritance). As a consequence,
-   * calling two of these init functions can potentially initialize the same contract twice.
-   */
-  function __BridgedPolygonNORI_init_unchained(
-    // solhint-disable-previous-line func-name-mixedcase
-    address childChainManagerProxy
-  ) internal onlyInitializing {
+    __ERC20Burnable_init_unchained();
+    __ERC20Preset_init_unchained();
+    __Multicall_init_unchained();
     _grantRole(DEPOSITOR_ROLE, childChainManagerProxy);
   }
 }
