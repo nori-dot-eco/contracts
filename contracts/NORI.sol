@@ -6,6 +6,9 @@ import "./ERC20Preset.sol";
 // todo documentation
 // todo Security aduit item: https://github.com/nori-dot-eco/contracts/security/code-scanning/499
 contract NORI is ERC20Preset {
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
   constructor() {
     _disableInitializers();
   }

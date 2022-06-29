@@ -31,7 +31,7 @@ abstract contract ERC20Preset is
    *
    * - The caller must have the `PAUSER_ROLE`.
    */
-  function pause() public onlyRole(PAUSER_ROLE) {
+  function pause() external onlyRole(PAUSER_ROLE) {
     _pause();
   }
 
@@ -44,7 +44,7 @@ abstract contract ERC20Preset is
    *
    * - The caller must have the `PAUSER_ROLE`.
    */
-  function unpause() public onlyRole(PAUSER_ROLE) {
+  function unpause() external onlyRole(PAUSER_ROLE) {
     _unpause();
   }
 
