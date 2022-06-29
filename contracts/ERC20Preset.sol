@@ -9,6 +9,8 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 
 // todo documentation
+// todo add CrossChainEnabledPolygonChild.sol?
+// todo AUDIT https://norinauts.slack.com/archives/C023A5VN86R/p1656529393031139
 abstract contract ERC20Preset is
   ERC20Upgradeable,
   ERC20BurnableUpgradeable,

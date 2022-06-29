@@ -225,7 +225,7 @@ contract FIFOMarket is
     address[] memory suppliers = new address[](totalNumberActiveRemovals);
     uint256 numberOfRemovals = 0;
     // TODO (Gas Optimization): Declare variables outside of loop
-    for (; numberOfRemovals < totalNumberActiveRemovals; numberOfRemovals++) {
+    for (uint256 i = 0; i < totalNumberActiveRemovals; i++) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
@@ -238,7 +238,7 @@ contract FIFOMarket is
         // we will use up this removal while completing the order, move on to next one
       } else {
         if (
-          numberOfRemovals == totalNumberActiveRemovals - 1 &&
+          i == totalNumberActiveRemovals - 1 &&
           remainingAmountToFill > removalAmount
         ) {
           revert("Market: Not enough supply");
@@ -294,6 +294,7 @@ contract FIFOMarket is
       totalActiveSupply -= batchedAmounts[i]; // todo check-effects pattern
       uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
       uint256 supplierFee = batchedAmounts[i];
+      console.log("abc123!!!", _msgSender(), _noriFeeWallet, suppliers[i]);
       _bridgedPolygonNori.transferFrom(_msgSender(), _noriFeeWallet, noriFee); // todo use multicall to batch transfer
       _bridgedPolygonNori.transferFrom(_msgSender(), suppliers[i], supplierFee);
     }
