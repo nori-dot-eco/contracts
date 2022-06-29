@@ -11,10 +11,7 @@ export const setupTestLocal = global.hre.deployments.createFixture(
   async (): ReturnType<typeof setupTest> => {
     const testSetup = await setupTest({});
     const { hre, rNori } = testSetup;
-    await rNori.grantRole(
-      await rNori.TOKEN_DEPOSITOR_ROLE(),
-      hre.namedAccounts.admin
-    );
+    await rNori.grantRole(await rNori.MINTER_ROLE(), hre.namedAccounts.admin);
     return testSetup;
   }
 );
@@ -34,13 +31,11 @@ export const restrictRemovalProceeds = async ({
 }): Promise<void> => {
   const { rNori, bpNori } = testSetup;
   await Promise.all(
-    removalIds.map((id, index) => {
-      // const userData = formatTokensReceivedUserData(id); // todo
-      return bpNori.transfer(
-        rNori.address,
-        removalAmountsToRestrict[index]
-        // userData  // todo
-      );
+    removalIds.map(async (id, index) => {
+      return Promise.all([
+        rNori.mint(removalAmountsToRestrict[index], id),
+        bpNori.transfer(rNori.address, removalAmountsToRestrict[index]),
+      ]);
     })
   );
 };

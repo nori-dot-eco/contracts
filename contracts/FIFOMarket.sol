@@ -277,6 +277,10 @@ contract FIFOMarket is
       address(this),
       batchedIds
     );
+    uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
+      batchedIds
+    );
+
     _bridgedPolygonNori.permit(
       _msgSender(),
       address(this),
@@ -291,11 +295,30 @@ contract FIFOMarket is
       if (batchedAmounts[i] == batchedBalances[i]) {
         totalNumberActiveRemovals -= 1; // removal used up
       }
-      totalActiveSupply -= batchedAmounts[i]; // todo check-effects pattern
-      uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
-      uint256 supplierFee = batchedAmounts[i];
+      totalActiveSupply -= batchedAmounts[i];
+      uint256 noriFee = (batchedAmounts[i] * _noriFee) / 100;
+      uint256 restrictedSupplierFee = 0;
+      uint256 unrestrictedSupplierFee = batchedAmounts[i];
+      if (holdbackPercentages[i] > 0) {
+        restrictedSupplierFee =
+          (unrestrictedSupplierFee * holdbackPercentages[i]) /
+          100;
+        unrestrictedSupplierFee =
+          unrestrictedSupplierFee -
+          restrictedSupplierFee;
+        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo extract to single batch call
+        _bridgedPolygonNori.transferFrom(
+          _msgSender(),
+          address(_restrictedNori),
+          restrictedSupplierFee
+        );
+      }
       _bridgedPolygonNori.transferFrom(_msgSender(), _noriFeeWallet, noriFee); // todo use multicall to batch transfer
-      _bridgedPolygonNori.transferFrom(_msgSender(), suppliers[i], supplierFee);
+      _bridgedPolygonNori.transferFrom(
+        _msgSender(),
+        suppliers[i],
+        unrestrictedSupplierFee
+      );
     }
     _certificate.mintBatch(
       recipient,
