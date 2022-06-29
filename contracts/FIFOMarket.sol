@@ -209,6 +209,84 @@ contract FIFOMarket is
   ) external {
     // todo we need to treat totalActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s. priority reserved etc.
+    _checkSupply();
+    uint256 certificateAmount = _certificateAmountFromPurchaseTotal(amount);
+    (
+      uint256 numberOfRemovals,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    ) = _allocateSupplyRoundRobin(certificateAmount);
+    _bridgedPolygonNori.permit(
+      _msgSender(),
+      address(this),
+      amount,
+      deadline,
+      v,
+      r,
+      s
+    );
+    _fulfillOrder(
+      certificateAmount,
+      recipient,
+      numberOfRemovals,
+      ids,
+      amounts,
+      suppliers
+    );
+  }
+
+  // todo optimize gas (perhaps consider setting the last sold id instead of looping -- not sure if it's possible to reduce array size yet or not)
+  /**
+   * Overloaded version of swap that additionally accepts a supplier address and will fulfill an order using
+   * only supply from this supplier.
+   * @dev // todo
+   */
+  function swap(
+    address recipient,
+    uint256 amount,
+    address supplierToBuyFrom,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external {
+    _checkSupply();
+    uint256 certificateAmount = _certificateAmountFromPurchaseTotal(amount);
+    (
+      uint256 numberOfRemovals,
+      uint256[] memory ids,
+      uint256[] memory amounts
+    ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
+
+    address[] memory suppliers = new address[](numberOfRemovals);
+    for (uint256 i = 0; i < numberOfRemovals; i++) {
+      suppliers[i] = supplierToBuyFrom;
+    }
+    _bridgedPolygonNori.permit(
+      _msgSender(),
+      address(this),
+      amount,
+      deadline,
+      v,
+      r,
+      s
+    );
+    _fulfillOrder(
+      certificateAmount,
+      recipient,
+      numberOfRemovals,
+      ids,
+      amounts,
+      suppliers
+    );
+  }
+
+  /**
+   *Reverts if market is out of stock or if available stock is being reserved for priority buyers
+   * and buyer is not priority.
+   */
+  function _checkSupply() internal {
     if (totalActiveSupply == 0) {
       revert("Market: Out of stock");
     }
@@ -218,7 +296,32 @@ contract FIFOMarket is
         "Low supply and buyer not on allowlist" // TODO (Gas Optimization): Use custom error
       );
     }
-    uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
+  }
+
+  /**
+   * Calculates the quantity of carbon removals being purchased given the purchase total and the
+   * percentage of that purchase total that is due to Nori as a transaction fee.
+   */
+  function _certificateAmountFromPurchaseTotal(uint256 purchaseTotal)
+    internal
+    returns (uint256)
+  {
+    return (purchaseTotal * 100) / (100 + _noriFee);
+  }
+
+  /**
+   * Determines the removal ids, amounts, and suppliers to fill the given purchase quantity in
+   * a round-robin order.
+   */
+  function _allocateSupplyRoundRobin(uint256 certificateAmount)
+    internal
+    returns (
+      uint256,
+      uint256[] memory,
+      uint256[] memory,
+      address[] memory
+    )
+  {
     uint256 remainingAmountToFill = certificateAmount;
     uint256[] memory ids = new uint256[](totalNumberActiveRemovals);
     uint256[] memory amounts = new uint256[](totalNumberActiveRemovals);
@@ -267,6 +370,95 @@ contract FIFOMarket is
         break;
       }
     }
+    return (numberOfRemovals, ids, amounts, suppliers);
+  }
+
+  /**
+   * Determines the removal ids and amounts to fill the given purchase quantity, sourcing only
+   * from a single supplier.
+   */
+  function _allocateSupplySingleSupplier(
+    uint256 certificateAmount,
+    address supplier
+  )
+    internal
+    returns (
+      uint256,
+      uint256[] memory,
+      uint256[] memory
+    )
+  {
+    RemovalQueueByVintage storage supplierRemovalQueue = _activeSupply[
+      supplier
+    ];
+    uint256 totalNumberOfRemovalsForSupplier = 0;
+    for (
+      uint256 vintage = supplierRemovalQueue.earliestYear;
+      vintage <= supplierRemovalQueue.latestYear;
+      vintage++
+    ) {
+      totalNumberOfRemovalsForSupplier += supplierRemovalQueue
+        .queueByVintage[vintage]
+        .length();
+    }
+    uint256 remainingAmountToFill = certificateAmount;
+    uint256[] memory ids = new uint256[](totalNumberActiveRemovals);
+    uint256[] memory amounts = new uint256[](totalNumberActiveRemovals);
+    uint256 numberOfRemovals = 0;
+    // TODO (Gas Optimization): Declare variables outside of loop
+    for (
+      ;
+      numberOfRemovals < totalNumberOfRemovalsForSupplier;
+      numberOfRemovals++
+    ) {
+      uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
+      uint256 removalAmount = _removal.balanceOf(address(this), removalId);
+      // order complete, not fully using up this removal
+      if (remainingAmountToFill < removalAmount) {
+        ids[numberOfRemovals] = removalId;
+        amounts[numberOfRemovals] = remainingAmountToFill;
+        remainingAmountToFill = 0;
+        // we will use up this removal while completing the order, move on to next one
+      } else {
+        if (
+          numberOfRemovals == totalNumberOfRemovalsForSupplier - 1 &&
+          remainingAmountToFill > removalAmount
+        ) {
+          revert("Market: Not enough supply");
+        }
+        ids[numberOfRemovals] = removalId;
+        amounts[numberOfRemovals] = removalAmount; // this removal is getting used up
+        remainingAmountToFill -= removalAmount;
+        require(
+          supplierRemovalQueue.removeRemoval(removalId),
+          "Market: Failed to remove removal from supply"
+        ); // TODO (Gas Optimization): Use custom error
+        // If the supplier is out of supply, remove them from the active suppliers
+        if (supplierRemovalQueue.isRemovalQueueEmpty()) {
+          _removeActiveSupplier(supplier);
+        }
+      }
+      numberOfRemovals++;
+      if (remainingAmountToFill == 0) {
+        break;
+      }
+    }
+    return (numberOfRemovals, ids, amounts);
+  }
+
+  /**
+   * Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
+   * RestrictedNORI contract, pays Nori the order fee, updates accounting, and mints the certificate.
+   *
+   */
+  function _fulfillOrder(
+    uint256 certificateAmount,
+    address recipient,
+    uint256 numberOfRemovals,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    address[] memory suppliers
+  ) internal {
     uint256[] memory batchedIds = new uint256[](numberOfRemovals);
     uint256[] memory batchedAmounts = new uint256[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
@@ -281,15 +473,6 @@ contract FIFOMarket is
       batchedIds
     );
 
-    _bridgedPolygonNori.permit(
-      _msgSender(),
-      address(this),
-      amount,
-      deadline,
-      v,
-      r,
-      s
-    );
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < batchedIds.length; i++) {
       if (batchedAmounts[i] == batchedBalances[i]) {
