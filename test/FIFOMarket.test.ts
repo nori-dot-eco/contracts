@@ -1136,21 +1136,18 @@ describe('FIFOMarket', () => {
       const fee = formatTokenAmount(0.15);
       const value = purchaseAmount.add(fee);
       const recipient = hre.namedAccounts.investor1;
-      const { v, r, s } = await hre.namedSigners.buyer.permit({
+      const buyer = hre.namedSigners.buyer;
+      const deadline = hre.ethers.constants.MaxUint256;
+      const { v, r, s } = await buyer.permit({
         verifyingContract: bpNori,
         spender: fifoMarket.address,
         value,
       });
-      await fifoMarket
-        .connect(hre.namedSigners.buyer)
-        .swap(recipient, value, hre.ethers.constants.MaxUint256, v, r, s);
       expect(await bpNori.balanceOf(hre.namedAccounts.buyer)).to.equal(
         buyerInitialBPNoriBalance
       );
       expect(await certificate.balanceOf(recipient, 0)).to.equal(0);
-      await fifoMarket
-        .connect(hre.namedSigners.buyer)
-        .swap(recipient, value, hre.ethers.constants.MaxUint256, v, r, s);
+      await fifoMarket.connect(buyer).swap(recipient, value, deadline, v, r, s);
       expect(await bpNori.balanceOf(hre.namedAccounts.buyer)).to.equal(
         buyerInitialBPNoriBalance.sub(value)
       );
