@@ -1132,7 +1132,7 @@ describe('FIFOMarket', () => {
       });
       const purchaseAmount = formatTokenAmount(1);
       const fee = formatTokenAmount(0.15);
-      const value = purchaseAmount.add(fee).toString();
+      const value = purchaseAmount.add(fee);
       const owner = hre.namedAccounts.buyer;
       const [nonce, name, version, chainId] = await Promise.all([
         bpNori.nonces(owner),
