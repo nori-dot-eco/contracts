@@ -4,6 +4,7 @@ pragma solidity =0.8.15;
 import "./ERC20Preset.sol";
 
 // todo documentation
+// todo Security aduit item: https://github.com/nori-dot-eco/contracts/security/code-scanning/499
 contract NORI is ERC20Preset {
   constructor() {
     _disableInitializers();
