@@ -252,6 +252,9 @@ contract RestrictedNORI is
     uint256 quantity
   );
 
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
   constructor() {
     _disableInitializers();
   }

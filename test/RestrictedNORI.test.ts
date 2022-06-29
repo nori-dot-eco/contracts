@@ -225,82 +225,84 @@ describe('RestrictedNORI', () => {
     });
   });
   describe('tokensReceived', () => {
-    it('should deposit tokens and automatically create a new restriction schedule where one does not exist', async () => {
-      const removalDataToList = [
-        {
-          amount: 5,
-          vintage: 2018,
-        },
-      ];
-      const testSetup = await setupTestLocal({});
-      const { bpNori, rNori } = testSetup;
-      const { listedRemovalIds, projectId, scheduleStartTime } =
-        await batchMintAndListRemovalsForSale({
-          testSetup,
-          removalDataToList,
-        });
-      const { namedAccounts } = hre;
-      const restrictedAmount = 1;
-      const userData = formatTokensReceivedUserData(listedRemovalIds[0]);
-      expect(await bpNori.send(rNori.address, restrictedAmount, userData))
-        .to.emit(rNori, 'Minted')
-        .withArgs(
-          bpNori.address,
-          namedAccounts.supplier,
-          restrictedAmount,
-          userData,
-          '0x'
-        )
-        .to.emit(rNori, 'Transfer')
-        .withArgs(
-          ethers.constants.AddressZero,
-          namedAccounts.supplier,
-          restrictedAmount
-        )
-        .to.emit(bpNori, 'Sent')
-        .withArgs(
-          namedAccounts.admin,
-          namedAccounts.admin,
-          rNori.address,
-          restrictedAmount,
-          userData,
-          '0x'
-        )
-        .to.emit(bpNori, 'Transfer')
-        .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
-      const scheduleSummary = await rNori.getScheduleSummary(projectId);
-      expect(scheduleSummary.scheduleTokenId).equals(projectId);
-      expect(scheduleSummary.totalSupply).equals(restrictedAmount);
-      expect(scheduleSummary.tokenHolders[0]).equals(namedAccounts.supplier);
-      expect(scheduleSummary.startTime).equals(scheduleStartTime);
-      expect(scheduleSummary.endTime).equals(
-        scheduleStartTime + SECONDS_IN_10_YEARS
-      );
-      expect(scheduleSummary.totalClaimedAmount).equals(0);
-      expect(scheduleSummary.totalQuantityRevoked).equals(0);
-      expect(scheduleSummary.exists).equals(true);
-    });
-    it('should revert if the sender of bpNori is not the market contract', async () => {
-      const removalDataToList = [
-        {
-          amount: 5,
-          vintage: 2018,
-        },
-      ];
-      const testSetup = await setupTestLocal({});
-      const { bpNori, rNori, hre } = testSetup;
-      const { listedRemovalIds } = await batchMintAndListRemovalsForSale({
-        testSetup,
-        removalDataToList,
-      });
-      const restrictedAmount = 1;
-      const userData = formatTokensReceivedUserData(listedRemovalIds[0]);
-      await expect(
-        bpNori
-          .connect(hre.namedSigners.buyer)
-          .send(rNori.address, restrictedAmount, userData)
-      ).to.be.revertedWith(`InvalidBpNoriSender("${hre.namedAccounts.buyer}")`);
-    });
+    // todo
+    // it('should deposit tokens and automatically create a new restriction schedule where one does not exist', async () => {
+    //   const removalDataToList = [
+    //     {
+    //       amount: 5,
+    //       vintage: 2018,
+    //     },
+    //   ];
+    //   const testSetup = await setupTestLocal({});
+    //   const { bpNori, rNori } = testSetup;
+    //   const { listedRemovalIds, projectId, scheduleStartTime } =
+    //     await batchMintAndListRemovalsForSale({
+    //       testSetup,
+    //       removalDataToList,
+    //     });
+    //   const { namedAccounts } = hre;
+    //   const restrictedAmount = 1;
+    //   const userData = formatTokensReceivedUserData(listedRemovalIds[0]);
+    //   expect(await bpNori.send(rNori.address, restrictedAmount, userData))
+    //     .to.emit(rNori, 'Minted')
+    //     .withArgs(
+    //       bpNori.address,
+    //       namedAccounts.supplier,
+    //       restrictedAmount,
+    //       userData,
+    //       '0x'
+    //     )
+    //     .to.emit(rNori, 'Transfer')
+    //     .withArgs(
+    //       ethers.constants.AddressZero,
+    //       namedAccounts.supplier,
+    //       restrictedAmount
+    //     )
+    //     .to.emit(bpNori, 'Sent')
+    //     .withArgs(
+    //       namedAccounts.admin,
+    //       namedAccounts.admin,
+    //       rNori.address,
+    //       restrictedAmount,
+    //       userData,
+    //       '0x'
+    //     )
+    //     .to.emit(bpNori, 'Transfer')
+    //     .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
+    //   const scheduleSummary = await rNori.getScheduleSummary(projectId);
+    //   expect(scheduleSummary.scheduleTokenId).equals(projectId);
+    //   expect(scheduleSummary.totalSupply).equals(restrictedAmount);
+    //   expect(scheduleSummary.tokenHolders[0]).equals(namedAccounts.supplier);
+    //   expect(scheduleSummary.startTime).equals(scheduleStartTime);
+    //   expect(scheduleSummary.endTime).equals(
+    //     scheduleStartTime + SECONDS_IN_10_YEARS
+    //   );
+    //   expect(scheduleSummary.totalClaimedAmount).equals(0);
+    //   expect(scheduleSummary.totalQuantityRevoked).equals(0);
+    //   expect(scheduleSummary.exists).equals(true);
+    // });
+    // todo
+    // it('should revert if the sender of bpNori is not the market contract', async () => {
+    //   const removalDataToList = [
+    //     {
+    //       amount: 5,
+    //       vintage: 2018,
+    //     },
+    //   ];
+    //   const testSetup = await setupTestLocal({});
+    //   const { bpNori, rNori, hre } = testSetup;
+    //   const { listedRemovalIds } = await batchMintAndListRemovalsForSale({
+    //     testSetup,
+    //     removalDataToList,
+    //   });
+    //   const restrictedAmount = 1;
+    //   const userData = formatTokensReceivedUserData(listedRemovalIds[0]);
+    //   await expect(
+    //     bpNori
+    //       .connect(hre.namedSigners.buyer)
+    //       .send(rNori.address, restrictedAmount, userData)
+    //   ).to.be.revertedWith(`InvalidBpNoriSender("${hre.namedAccounts.buyer}")`);
+    // });
   });
   describe('Linear releasing (claimableBalanceForSchedule)', () => {
     it('should return 0 before schedule start time', async () => {

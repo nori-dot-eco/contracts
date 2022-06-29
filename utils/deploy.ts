@@ -244,7 +244,10 @@ export const deployBridgedPolygonNORIContract = async ({
   >({
     contractName: 'BridgedPolygonNORI',
     args: [childChainManagerProxyAddress],
-    options: { initializer: 'initialize(address)' },
+    options: {
+      initializer: 'initialize(address)',
+      unsafeAllow: ['delegatecall'],
+    },
   });
 };
 
@@ -256,6 +259,9 @@ export const deployNORIContract = async ({
   return hre.deployOrUpgradeProxy<NORI, NORI__factory>({
     contractName: 'NORI',
     args: [],
+    options: {
+      unsafeAllow: ['delegatecall'],
+    },
   });
 };
 
@@ -434,11 +440,10 @@ export const seedContracts = async ({
     );
     const tx = await contracts.BridgedPolygonNORI.connect(
       hre.namedSigners.admin
-    ).send(
+    ).transfer(
       // todo stop minting/seeding during deployment
       hre.namedAccounts.buyer,
-      formatTokenAmount(1_000_000),
-      hre.ethers.utils.formatBytes32String('0x0')
+      formatTokenAmount(1_000_000)
     );
     hre.trace(
       'Sent some BridgedPolygonNORI from the admin account to the buyer account',

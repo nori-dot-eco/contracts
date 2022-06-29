@@ -8,6 +8,9 @@ import "./ERC20Preset.sol";
 contract BridgedPolygonNORI is ERC20Preset {
   bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
 
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
   constructor() {
     _disableInitializers();
   }

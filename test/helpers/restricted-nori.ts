@@ -35,11 +35,11 @@ export const restrictRemovalProceeds = async ({
   const { rNori, bpNori } = testSetup;
   await Promise.all(
     removalIds.map((id, index) => {
-      const userData = formatTokensReceivedUserData(id);
-      return bpNori.send(
+      // const userData = formatTokensReceivedUserData(id); // todo
+      return bpNori.transfer(
         rNori.address,
-        removalAmountsToRestrict[index],
-        userData
+        removalAmountsToRestrict[index]
+        // userData  // todo
       );
     })
   );

@@ -5,6 +5,7 @@ export const solidity: HardhatUserConfig['solidity'] = {
     {
       version: '0.8.15',
       settings: {
+        viaIR: true, // todo remove
         optimizer: {
           enabled: true,
           runs: 5_000_000,

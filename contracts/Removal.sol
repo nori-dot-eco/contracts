@@ -56,6 +56,9 @@ contract Removal is
   mapping(uint256 => uint256) private _removalIdToProjectId;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData;
 
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
   constructor() {
     _disableInitializers();
   }

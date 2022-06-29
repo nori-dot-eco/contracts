@@ -46,6 +46,9 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
    */
   uint256 private _latestTokenId;
 
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
   constructor() {
     _disableInitializers();
   }
