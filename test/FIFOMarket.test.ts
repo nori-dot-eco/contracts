@@ -4,6 +4,8 @@ import { add, multiply } from '@nori-dot-com/math';
 import { splitSignature } from 'ethers/lib/utils';
 import { compareScheduleSummaryStructs } from './helpers/restricted-nori';
 
+import { Eip2612Signer } from '../signers/eip-26126';
+
 import { formatTokenAmount } from '@/utils/units';
 import type { RemovalDataForListing } from '@/test/helpers';
 import {
@@ -1229,70 +1231,22 @@ describe('FIFOMarket', () => {
       const purchaseAmount = formatTokenAmount(1);
       const fee = formatTokenAmount(0.15);
       const value = purchaseAmount.add(fee);
-      const owner = hre.namedAccounts.buyer;
-      const [nonce, name, version, chainId] = await Promise.all([
-        bpNori.nonces(owner),
-        bpNori.name(),
-        '1',
-        hre.getChainId(),
-      ]);
-      const { v, r, s } = splitSignature(
-        await hre.namedSigners.buyer._signTypedData(
-          {
-            name,
-            version,
-            chainId,
-            verifyingContract: bpNori.address,
-          },
-          {
-            Permit: [
-              {
-                name: 'owner',
-                type: 'address',
-              },
-              {
-                name: 'spender',
-                type: 'address',
-              },
-              {
-                name: 'value',
-                type: 'uint256',
-              },
-              {
-                name: 'nonce',
-                type: 'uint256',
-              },
-              {
-                name: 'deadline',
-                type: 'uint256',
-              },
-            ],
-          },
-          {
-            owner,
-            spender: fifoMarket.address,
-            value,
-            nonce,
-            deadline: hre.ethers.constants.MaxUint256,
-          }
-        )
-      );
+      const recipient = hre.namedAccounts.investor1;
+      const { v, r, s } = await hre.namedSigners.buyer.permit({
+        verifyingContract: bpNori,
+        spender: fifoMarket.address,
+        value,
+      });
+      await fifoMarket
+        .connect(hre.namedSigners.buyer)
+        .swap(recipient, value, hre.ethers.constants.MaxUint256, v, r, s);
       expect(await bpNori.balanceOf(hre.namedAccounts.buyer)).to.equal(
         buyerInitialBPNoriBalance
       );
-      expect(
-        await certificate.balanceOf(hre.namedAccounts.investor1, 0)
-      ).to.equal(0);
+      expect(await certificate.balanceOf(recipient, 0)).to.equal(0);
       await fifoMarket
         .connect(hre.namedSigners.buyer)
-        .swap(
-          hre.namedAccounts.investor1,
-          value,
-          hre.ethers.constants.MaxUint256,
-          v,
-          r,
-          s
-        );
+        .swap(recipient, value, hre.ethers.constants.MaxUint256, v, r, s);
       expect(await bpNori.balanceOf(hre.namedAccounts.buyer)).to.equal(
         buyerInitialBPNoriBalance.sub(value)
       );
