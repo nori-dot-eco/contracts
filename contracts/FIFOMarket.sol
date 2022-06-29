@@ -306,7 +306,7 @@ contract FIFOMarket is
         unrestrictedSupplierFee =
           unrestrictedSupplierFee -
           restrictedSupplierFee;
-        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]);
+        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo extract to single batch call
         _bridgedPolygonNori.transferFrom(
           _msgSender(),
           address(_restrictedNori),
