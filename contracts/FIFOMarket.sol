@@ -314,7 +314,11 @@ contract FIFOMarket is
         );
       }
       _bridgedPolygonNori.transferFrom(_msgSender(), _noriFeeWallet, noriFee); // todo use multicall to batch transfer
-      _bridgedPolygonNori.transferFrom(_msgSender(), suppliers[i], supplierFee);
+      _bridgedPolygonNori.transferFrom(
+        _msgSender(),
+        suppliers[i],
+        unrestrictedSupplierFee
+      );
     }
     _certificate.mintBatch(
       recipient,
