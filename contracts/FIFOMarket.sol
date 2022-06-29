@@ -322,11 +322,10 @@ contract FIFOMarket is
         unrestrictedSupplierFee =
           unrestrictedSupplierFee -
           restrictedSupplierFee;
-        bytes memory removalIdData = abi.encode(batchedIds[i]);
-        _bridgedPolygonNori.send(
+        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]);
+        _bridgedPolygonNori.transfer(
           address(_restrictedNori),
-          restrictedSupplierFee,
-          removalIdData
+          restrictedSupplierFee
         );
       }
       _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
