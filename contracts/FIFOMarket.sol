@@ -5,8 +5,6 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820RegistryUpgradeable.sol";
 
 import "./Removal.sol";
 import "./Certificate.sol";
@@ -17,6 +15,7 @@ import {RemovalUtils} from "./RemovalUtils.sol";
 
 // todo emit events
 
+// todo pausable
 /**
  * @title FIFOMarket
  * // todo documentation
@@ -25,8 +24,7 @@ contract FIFOMarket is
   Initializable,
   ContextUpgradeable,
   AccessControlEnumerableUpgradeable,
-  ERC1155HolderUpgradeable,
-  IERC777RecipientUpgradeable
+  ERC1155HolderUpgradeable
 {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
@@ -40,7 +38,6 @@ contract FIFOMarket is
     address nextSupplierAddress;
   }
 
-  IERC1820RegistryUpgradeable private _erc1820;
   Removal private _removal;
   Certificate private _certificate;
   BridgedPolygonNORI private _bridgedPolygonNori;
@@ -67,6 +64,13 @@ contract FIFOMarket is
    */
   event PriorityRestrictedThresholdSet(uint256 threshold);
 
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
+  constructor() {
+    _disableInitializers();
+  }
+
   function initialize(
     address removalAddress,
     address bridgedPolygonNoriAddress,
@@ -84,17 +88,8 @@ contract FIFOMarket is
     _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
     _certificate = Certificate(certificateAddress);
     _restrictedNori = RestrictedNORI(restrictedNoriAddress);
-
     _noriFeeWallet = noriFeeWalletAddress;
     _noriFee = noriFee;
-    _erc1820 = IERC1820RegistryUpgradeable(
-      0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24
-    ); // todo
-    _erc1820.setInterfaceImplementer(
-      address(this),
-      keccak256("ERC777TokensRecipient"),
-      address(this)
-    );
     priorityRestrictedThreshold = 0;
     totalActiveSupply = 0;
     totalReservedSupply = 0;
@@ -202,16 +197,16 @@ contract FIFOMarket is
 
   // todo optimize gas (perhaps consider setting the last sold id instead of looping -- not sure if it's possible to reduce array size yet or not)
   /**
-   * @dev Called automatically by the ERC777 (nori) contract when a batch of tokens are transferred to the contract.
+   * @dev // todo
    */
-  function tokensReceived(
-    address,
-    address from,
-    address,
+  function swap(
+    address recipient,
     uint256 amount,
-    bytes calldata userData,
-    bytes calldata
-  ) external override {
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external {
     // todo we need to treat totalActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s. priority reserved etc.
     if (totalActiveSupply == 0) {
@@ -219,28 +214,18 @@ contract FIFOMarket is
     }
     if (totalActiveSupply <= priorityRestrictedThreshold) {
       require(
-        hasRole(ALLOWLIST_ROLE, from),
+        hasRole(ALLOWLIST_ROLE, _msgSender()),
         "Low supply and buyer not on allowlist" // TODO (Gas Optimization): Use custom error
       );
     }
     uint256 certificateAmount = (amount * 100) / (100 + _noriFee);
     uint256 remainingAmountToFill = certificateAmount;
-
-    address recipient = abi.decode(userData, (address)); // todo handle the case where someone invokes this function without operatorData
-    require(recipient == address(recipient), "Market: Invalid address"); // TODO (Gas Optimization): Use custom error
-    require(recipient != address(0), "Market: Cannot mint to the 0 address"); // TODO (Gas Optimization): Use custom error
-    // todo verify this can only be invoked by the nori contract
-    require(
-      msg.sender == address(_bridgedPolygonNori),
-      "Market: This contract can only receive BridgedPolygonNORI"
-    ); // TODO (Gas Optimization): Use custom error
-
     uint256[] memory ids = new uint256[](totalNumberActiveRemovals);
     uint256[] memory amounts = new uint256[](totalNumberActiveRemovals);
     address[] memory suppliers = new address[](totalNumberActiveRemovals);
     uint256 numberOfRemovals = 0;
     // TODO (Gas Optimization): Declare variables outside of loop
-    for (uint256 i = 0; i < totalNumberActiveRemovals; i++) {
+    for (; numberOfRemovals < totalNumberActiveRemovals; numberOfRemovals++) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
@@ -253,7 +238,7 @@ contract FIFOMarket is
         // we will use up this removal while completing the order, move on to next one
       } else {
         if (
-          i == totalNumberActiveRemovals - 1 &&
+          numberOfRemovals == totalNumberActiveRemovals - 1 &&
           remainingAmountToFill > removalAmount
         ) {
           revert("Market: Not enough supply");
@@ -262,7 +247,6 @@ contract FIFOMarket is
         amounts[numberOfRemovals] = removalAmount; // this removal is getting used up
         suppliers[numberOfRemovals] = _currentSupplierAddress;
         remainingAmountToFill -= removalAmount;
-
         require(
           _activeSupply[_currentSupplierAddress].removeRemoval(removalId),
           "Market: Failed to remove removal from supply"
@@ -283,36 +267,42 @@ contract FIFOMarket is
         break;
       }
     }
-
     uint256[] memory batchedIds = new uint256[](numberOfRemovals);
     uint256[] memory batchedAmounts = new uint256[](numberOfRemovals);
-
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       batchedIds[i] = ids[i];
       batchedAmounts[i] = amounts[i];
     }
-    bytes memory encodedCertificateAmount = abi.encode(certificateAmount);
-    _certificate.mintBatch(
-      recipient,
-      batchedIds,
-      batchedAmounts,
-      encodedCertificateAmount
-    );
     uint256[] memory batchedBalances = _removal.balanceOfIds(
       address(this),
       batchedIds
+    );
+    _bridgedPolygonNori.permit(
+      _msgSender(),
+      address(this),
+      amount,
+      deadline,
+      v,
+      r,
+      s
     );
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < batchedIds.length; i++) {
       if (batchedAmounts[i] == batchedBalances[i]) {
         totalNumberActiveRemovals -= 1; // removal used up
       }
-      totalActiveSupply -= batchedAmounts[i];
+      totalActiveSupply -= batchedAmounts[i]; // todo check-effects pattern
       uint256 noriFee = (batchedAmounts[i] / 100) * _noriFee;
       uint256 supplierFee = batchedAmounts[i];
-      _bridgedPolygonNori.transfer(_noriFeeWallet, noriFee);
-      _bridgedPolygonNori.transfer(suppliers[i], supplierFee);
+      _bridgedPolygonNori.transferFrom(_msgSender(), _noriFeeWallet, noriFee); // todo use multicall to batch transfer
+      _bridgedPolygonNori.transferFrom(_msgSender(), suppliers[i], supplierFee);
     }
+    _certificate.mintBatch(
+      recipient,
+      batchedIds,
+      batchedAmounts, // todo can be = to amount
+      abi.encode(certificateAmount)
+    );
     _removal.burnBatch(address(this), batchedIds, batchedAmounts);
   }
 
