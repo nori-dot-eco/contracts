@@ -43,6 +43,17 @@
           "type": "uint256"
         }
       ],
+      "name": "TokenIdDoesNotExist",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
       "name": "TokenIdExists",
       "type": "error"
     },
@@ -387,6 +398,43 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "removalIds",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "batchGetHoldbackPercentages",
+      "outputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "removalIds",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "holdbackPercentage",
+          "type": "uint256"
+        }
+      ],
+      "name": "batchSetHoldbackPercentage",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {

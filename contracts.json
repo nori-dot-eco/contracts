@@ -13,10 +13,10 @@
       "proxyAddress": "0xA7c33e73716EFC39C0d06FeB976B08081682Ad3c"
     },
     "FIFOMarket": {
-      "proxyAddress": "0xA85991C70a743ffcE508b2E520C685C9d8ea6F4d"
+      "proxyAddress": "0x68881d6266f3Ae8f4e3bf4a5CACd9319f26103aB"
     },
     "LockedNORI": {
-      "proxyAddress": "0x50562ADF34935aeb8cC86e9bDc66eaBf79097A08"
+      "proxyAddress": "0x2AE26a38Bc11CE4FdfCaf0431D5a708b17E0dD99"
     },
     "ScheduleTestHarness": {
       "proxyAddress": "0x83207e4a2caC1015bda1A794b57F708C4360924e"
@@ -31,7 +31,7 @@
       "proxyAddress": "0x83207e4a2caC1015bda1A794b57F708C4360924e"
     },
     "RestrictedNORI": {
-      "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
+      "proxyAddress": "0x0E585861af9D895D8BcAB3de1a4A923db46d86c8"
     }
   },
   "localhost": {
