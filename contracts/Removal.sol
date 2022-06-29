@@ -56,6 +56,10 @@ contract Removal is
   mapping(uint256 => uint256) private _removalIdToProjectId;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData;
 
+  constructor() {
+    _disableInitializers();
+  }
+
   function initialize() external initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();

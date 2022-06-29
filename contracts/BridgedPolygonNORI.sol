@@ -7,6 +7,10 @@ import "./ERC20Preset.sol";
 contract BridgedPolygonNORI is ERC20Preset {
   bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
 
+  constructor() {
+    _disableInitializers();
+  }
+
   /**
    * @notice Called when token is deposited on root chain.
    * @dev Should be callable only by ChildChainManager. See [here](
@@ -41,14 +45,12 @@ contract BridgedPolygonNORI is ERC20Preset {
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
-    __ERC20Preset_init_unchained();
-    __Multicall_init_unchained();
-    __ERC20_init_unchained("NORI", "NORI");
     __EIP712_init_unchained("NORI", "1");
+    __ERC20_init_unchained("NORI", "NORI");
     __ERC20Permit_init_unchained("NORI");
     __ERC20Burnable_init_unchained();
-    __Multicall_init_unchained();
     __ERC20Preset_init_unchained();
+    __Multicall_init_unchained();
     _grantRole(DEPOSITOR_ROLE, childChainManagerProxy);
   }
 }

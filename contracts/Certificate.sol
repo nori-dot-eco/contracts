@@ -9,7 +9,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "./ERC1155PresetPausableNonTransferrable.sol";
 
-// todo non-transferable/approveable
 // todo disable other mint functions
 // todo whenNotPasused
 // todo setApprovalForAll should only work when called on accounts with CERTIFICATE_OPERATOR_ROLE
@@ -46,6 +45,10 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
    * @dev auto incrementing token ID
    */
   uint256 private _latestTokenId;
+
+  constructor() {
+    _disableInitializers();
+  }
 
   function initialize() external initializer {
     // todo verify all inherited unchained initializers are called

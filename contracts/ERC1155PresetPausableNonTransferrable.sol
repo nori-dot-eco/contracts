@@ -13,7 +13,7 @@ import "hardhat/console.sol"; // todo rm
 /**
  * @title ERC1155PresetPausableNonTransferrable
  */
-contract ERC1155PresetPausableNonTransferrable is
+abstract contract ERC1155PresetPausableNonTransferrable is
   ERC1155SupplyUpgradeable,
   ERC1155PresetMinterPauserUpgradeable
 {
@@ -27,10 +27,6 @@ contract ERC1155PresetPausableNonTransferrable is
    */
   bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
     keccak256("CERTIFICATE_OPERATOR_ROLE");
-
-  constructor() {
-    _disableInitializers();
-  }
 
   // slither-disable-next-line naming-convention, solhint-disable-next-line func-name-mixedcase
   function __ERC1155PresetPausableNonTransferrable_init_unchained()

@@ -8,7 +8,8 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 
-contract ERC20Preset is
+// todo documentation
+abstract contract ERC20Preset is
   ERC20Upgradeable,
   ERC20BurnableUpgradeable,
   ERC20PermitUpgradeable,
@@ -20,10 +21,6 @@ contract ERC20Preset is
    * @notice Role conferring the ability to pause and unpause mutable functions of the contract
    */
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-
-  constructor() {
-    _disableInitializers();
-  }
 
   /**
    * @notice Pauses all functions that can mutate state
