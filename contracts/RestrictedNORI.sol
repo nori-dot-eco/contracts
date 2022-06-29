@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import "./FIFOMarket.sol";
@@ -16,7 +14,7 @@ import {RemovalUtils} from "./RemovalUtils.sol";
  *
  * @author Nori Inc.
  *
- * @notice Based on the mechanics of a wrapped ERC-777 token, this contract layers schedules over the withdrawal
+ * @notice Based on the mechanics of a wrapped ERC-20 token, this contract layers schedules over the withdrawal
  * functionality to implement _restriction_, a time-based release of tokens that, until released, can be reclaimed
  * by Nori to enforce the permanence guarantee of carbon removals.
  *
@@ -78,8 +76,6 @@ import {RemovalUtils} from "./RemovalUtils.sol";
  *      - Can pause and unpause the contract
  *    - DEFAULT_ADMIN_ROLE
  *      - This is the only role that can add/revoke other accounts to any of the roles
- * - [Can receive BridgedPolygonNORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
- *   - BridgedPolygonNORI is wrapped and schedules are created (if necessary) upon receipt
  *
  * ##### Inherits
  *
@@ -92,7 +88,6 @@ import {RemovalUtils} from "./RemovalUtils.sol";
  *
  * ##### Implements
  *
- * - [IERC777RecipientUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc777#IERC777Recipient)
  * - [IERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155)
  * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
  * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
@@ -105,7 +100,6 @@ import {RemovalUtils} from "./RemovalUtils.sol";
  *
  */
 contract RestrictedNORI is
-  IERC777RecipientUpgradeable,
   ERC1155PausableUpgradeable,
   ERC1155SupplyUpgradeable,
   AccessControlEnumerableUpgradeable
@@ -183,17 +177,6 @@ contract RestrictedNORI is
    */
   bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
 
-  /**
-   * @notice Used to register the ERC777TokensRecipient recipient interface in the
-   * ERC-1820 registry
-   *
-   * @dev Registering that RestrictedNORI implements the ERC777TokensRecipient interface with the registry is a
-   * requirement to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
-   * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
-   */
-  bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
-    keccak256("ERC777TokensRecipient");
-
   mapping(uint256 => mapping(uint256 => uint256))
     private _methodologyAndVersionToScheduleDuration;
 
@@ -210,17 +193,6 @@ contract RestrictedNORI is
    * @notice The Removal contract that accounts for carbon removal supply.
    */
   Removal private _removal;
-
-  /**
-   * @notice The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection registry
-   * contract
-   *
-   * @dev Registering that RestrictedNORI implements the ERC777TokensRecipient interface with the registry is a
-   * requirement to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
-   * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
-   */
-  IERC1820RegistryUpgradeable internal constant _ERC1820_REGISTRY =
-    IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
 
   /**
    * @notice Emitted on successful creation of a new schedule.
@@ -272,11 +244,6 @@ contract RestrictedNORI is
     _setupRole(TOKEN_REVOKER_ROLE, _msgSender());
     // Seconds in 10 years, based on average year duration of 365.2425 days, which accounts for leap years
     setRestrictionDurationForMethodologyAndVersion(1, 0, 315_569_520);
-    _ERC1820_REGISTRY.setInterfaceImplementer(
-      address(this),
-      ERC777_TOKENS_RECIPIENT_HASH,
-      address(this)
-    );
   }
 
   // View functions and getters =========================================
@@ -555,26 +522,6 @@ contract RestrictedNORI is
       _createSchedule(projectId);
     }
   }
-
-  /**
-   *  TODO remove this function when BPNori is no longer an ERC777
-   *
-   * This function is triggered when BridgedPolygonNORI is sent to this contract
-   *
-   * @dev Sending BridgedPolygonNORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard
-   * because this contract is a registered ERC777 tokens recipient.
-   *
-   * [See here for more](
-   * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
-   */
-  function tokensReceived(
-    address,
-    address from,
-    address,
-    uint256 amount,
-    bytes calldata userData,
-    bytes calldata operatorData
-  ) external override {}
 
   /**
    * Mints RestrictedNORI to the correct schedule id (1155 token id) for a given removal id
