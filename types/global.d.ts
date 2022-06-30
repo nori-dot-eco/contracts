@@ -5,7 +5,12 @@ import type {
   RunSuperFunction,
   TaskArguments,
 } from 'hardhat/types/runtime';
-import type { BaseContract, Contract, ethers as defaultEthers } from 'ethers';
+import type {
+  BaseContract,
+  BytesLike,
+  Contract,
+  ethers as defaultEthers,
+} from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
@@ -194,6 +199,13 @@ declare global {
     >(
       name: string,
       signerOrOptions?: Signer | FactoryOptions
+    ): Promise<TContractFactory>;
+    getContractFactory<
+      TContractFactory extends ContractFactory = ContractFactory
+    >(
+      abi: any[],
+      bytecode: BytesLike,
+      signer?: Signer
     ): Promise<TContractFactory>;
   }; // todo remove from global types to prevent usage
 
