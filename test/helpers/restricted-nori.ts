@@ -1,33 +1,26 @@
 import type { BigNumber } from 'ethers';
 
 import type { RestrictedNORI } from '@/typechain-types/contracts/RestrictedNORI';
-import { setupTest, expect } from '@/test/helpers';
+import type { setupTest } from '@/test/helpers';
+import { expect } from '@/test/helpers';
 
 export const SECONDS_IN_1_YEAR_AVG = 31_556_952;
 export const SECONDS_IN_10_YEARS = 315_569_520;
 export const SECONDS_IN_5_YEARS = SECONDS_IN_10_YEARS / 2;
 
-export const setupTestLocal = global.hre.deployments.createFixture(
-  async (): ReturnType<typeof setupTest> => {
-    const testSetup = await setupTest({});
-    const { hre, rNori } = testSetup;
-    await rNori.grantRole(await rNori.MINTER_ROLE(), hre.namedAccounts.admin);
-    return testSetup;
-  }
-);
-
-export const formatTokensReceivedUserData = (removalId: BigNumber): any => {
+export const formatTokensReceivedUserData = (removalId: BigNumber): string => {
   return hre.ethers.utils.defaultAbiCoder.encode(['uint256'], [removalId]);
 };
 
 export const restrictRemovalProceeds = async ({
+  // todo fixture
   testSetup,
   removalIds,
   removalAmountsToRestrict,
 }: {
   testSetup: Awaited<ReturnType<typeof setupTest>>;
   removalIds: BigNumber[];
-  removalAmountsToRestrict: number[];
+  removalAmountsToRestrict: BigNumber[];
 }): Promise<void> => {
   const { rNori, bpNori } = testSetup;
   await Promise.all(

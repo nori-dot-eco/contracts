@@ -5,11 +5,13 @@ export const solidity: HardhatUserConfig['solidity'] = {
     {
       version: '0.8.15',
       settings: {
-        viaIR: true, // todo remove
-        optimizer: {
-          enabled: true,
-          runs: 5_000_000,
-        },
+        viaIR: process.env.VIA_IR,
+        ...(process.env.OPTIMIZER === true && {
+          optimizer: {
+            enabled: process.env.OPTIMIZER,
+            runs: process.env.OPTIMIZER_RUNS,
+          },
+        }),
       },
     },
   ],

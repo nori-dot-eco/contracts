@@ -254,6 +254,9 @@ declare global {
       REPORT_GAS_FILE?: string;
       TENDERLY: boolean;
       FAIL: boolean;
+      VIA_IR: boolean;
+      OPTIMIZER_RUNS: number;
+      OPTIMIZER: boolean;
     }
   }
 }

@@ -1,9 +1,11 @@
-import type { BigNumber, BigNumberish } from 'ethers';
+import { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
+import { add } from '@nori-dot-com/math';
 
 import { defaultRemovalTokenIdFixture } from '../fixtures/removal';
 
+import { sum } from '@/utils/math';
 import type {
   MockCertificate,
   MockERC1155PresetPausableNonTransferrable,
@@ -79,11 +81,13 @@ export interface MockERC1155PresetPausableNonTransferrableFixture {
 }
 
 interface UserFixture {
-  bpBalance?: BigNumberish;
+  bpBalance?: BigNumber;
   mockERC1155PresetPausableNonTransferrableFixtures?: {
     tokens: MockERC1155PresetPausableNonTransferrableFixture[];
     approvalsForAll?: string[];
   };
+  removalDataToList?: RemovalDataForListing;
+  roles?: RoleFixtures;
 }
 
 export type UserFixtures = {
@@ -91,125 +95,35 @@ export type UserFixtures = {
 };
 
 interface ContractFixture {
-  paused: boolean;
+  paused?: boolean;
 }
 
 type ContractFixtures = {
   [Property in keyof Contracts]?: ContractFixture;
 };
 
-type TestFixture<
-  TOptions = {
-    userFixtures?: UserFixtures;
-    contractFixtures?: ContractFixtures;
-  }
-> = ContractInstances &
-  TOptions & {
-    hre: CustomHardHatRuntimeEnvironment;
-    contracts: Required<Contracts>; // todo deprecate
-  };
+type RoleFixtures = {
+  [Property in keyof ContractFixtures]?: string[];
+};
 
-// todo helpers/setup.ts
-export const setupTest = global.hre.deployments.createFixture(
-  async <
-    TOptions extends {
-      userFixtures?: UserFixtures;
-      contractFixtures?: ContractFixtures;
-    } = {
-      userFixtures?: UserFixtures;
-      contractFixtures?: ContractFixtures;
-    }
-  >(
-    hre: CustomHardHatRuntimeEnvironment,
-    options?: TOptions
-  ): Promise<
-    ContractInstances &
-      TOptions & {
-        hre: CustomHardHatRuntimeEnvironment;
-        contracts: Required<Contracts>; // todo deprecate
-      }
-  > => {
-    const buyerInitialBPNoriBalance = formatTokenAmount(100_000_000);
-    const userFixtures: UserFixtures = {
-      buyer: {
-        bpBalance: buyerInitialBPNoriBalance,
-      },
-      admin: {
-        bpBalance: formatTokenAmount(100_000_000),
-      },
-      ...options?.userFixtures,
+export interface SetupTestOptions {
+  userFixtures?: UserFixtures;
+  contractFixtures?: ContractFixtures;
+  fee?: BigNumber; // todo market fixture
+}
+
+type TestEnvironment<TOptions extends SetupTestOptions = SetupTestOptions> =
+  ContractInstances &
+    Required<TOptions> &
+    RemovalDataFromListing & {
+      hre: CustomHardHatRuntimeEnvironment;
+      contracts: Required<Contracts>; // todo deprecate
+    } & {
+      userFixtures: RequiredKeys<UserFixtures, 'admin' | 'buyer'> &
+        TOptions['userFixtures'] & {
+          buyer: RequiredKeys<UserFixture, 'bpBalance'>;
+        };
     };
-    const contractFixtures: ContractFixtures = {
-      ...options?.contractFixtures,
-    };
-    await hre.deployments.fixture(['assets', 'market', 'test']);
-    const contracts = await getContractsFromDeployments(hre);
-    for (const [k, v] of Object.entries(userFixtures) as [
-      keyof typeof namedAccounts,
-      UserFixture
-    ][]) {
-      if (Boolean(v.bpBalance)) {
-        if (isBigNumberish(v.bpBalance)) {
-          // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-          await mockDepositNoriToPolygon({
-            hre,
-            contracts,
-            amount: v.bpBalance,
-            to: hre.namedAccounts[k],
-            signer: hre.namedSigners[k],
-          });
-        } else {
-          throw new Error(`Invalid bpBalance for ${k}.`);
-        }
-      }
-      if (v.mockERC1155PresetPausableNonTransferrableFixtures !== undefined) {
-        const { tokens, approvalsForAll } =
-          v.mockERC1155PresetPausableNonTransferrableFixtures;
-        // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-        await contracts.MockERC1155PresetPausableNonTransferrable.mintBatch(
-          tokens[0].to,
-          tokens?.map((f) => f.removalId),
-          tokens?.map((f) => f.removalAmount),
-          tokens[0].data
-        );
-        if (approvalsForAll !== undefined) {
-          for (const approval of approvalsForAll) {
-            // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-            await contracts.MockERC1155PresetPausableNonTransferrable.connect(
-              hre.namedSigners[k]
-            ).setApprovalForAll(approval, true);
-          }
-        }
-      }
-    }
-    for (const [contract, fixture] of Object.entries(contractFixtures) as [
-      keyof Contracts,
-      ContractFixture
-    ][]) {
-      if (fixture.paused) {
-        // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-        await (contracts[contract] as any).pause();
-      }
-    }
-    return {
-      hre,
-      contracts,
-      nori: contracts.NORI,
-      bpNori: contracts.BridgedPolygonNORI,
-      removal: contracts.Removal,
-      certificate: contracts.Certificate,
-      fifoMarket: contracts.FIFOMarket,
-      // lNori: contracts.LockedNORI, // todo import from forked repo
-      rNori: contracts.RestrictedNORI,
-      removalTestHarness: contracts.RemovalTestHarness,
-      mockCertificate: contracts.MockCertificate,
-      mockERC1155PresetPausableNonTransferrable:
-        contracts.MockERC1155PresetPausableNonTransferrable,
-      userFixtures,
-      contractFixtures,
-    } as TestFixture<TOptions>;
-  }
-);
 
 // todo helpers/removal.ts
 export const createRemovalTokenId = async ({
@@ -266,54 +180,62 @@ export const createBatchMintData = async ({
 // todo helpers/removal.ts
 interface RemovalDataFromListing {
   listedRemovalIds: BigNumber[];
-  totalAmountOfSupply: number;
+  totalAmountOfSupply: BigNumber; // todo bignumber ?
   totalAmountOfSuppliers: number;
   totalAmountOfRemovals: number;
   removalAmounts: BigNumber[];
   projectId: number;
   scheduleStartTime: number;
+  holdbackPercentage: number;
 }
 
 // todo helpers/removal.ts
-export type RemovalDataForListing = Partial<UnpackedRemovalIdV0Struct> & {
-  amount: number;
-};
+export interface RemovalDataForListing {
+  projectId?: number;
+  scheduleStartTime?: number;
+  holdbackPercentage?: number;
+  removals: (Partial<UnpackedRemovalIdV0Struct> & {
+    amount: number; // todo bignumber
+    projectId?: number;
+    scheduleStartTime?: number;
+    holdbackPercentage?: number;
+  })[];
+}
 
 // todo helpers/removal.ts
-export const getTotalAmountOfSupply = (
-  removals: RemovalDataForListing[]
-): number => removals.reduce((sum, removal) => sum + removal.amount, 0);
-// todo helpers/removal.ts
-const getTotalAmountOfSuppliers = (removals: RemovalDataForListing[]): number =>
+const getTotalAmountOfSuppliers = ({
+  removals,
+}: RemovalDataForListing): number =>
   removals.reduce(
     (supplierSet, removal) => supplierSet.add(removal.supplierAddress),
     new Set()
   ).size ?? 1;
+
 // todo helpers/removal.ts
-const getTotalAmountOfRemovals = (removals: RemovalDataForListing[]): number =>
-  removals.length;
+const getTotalAmountOfRemovals = ({
+  removals,
+}: RemovalDataForListing): number => removals.length;
 
 // todo de-dupe this logic from tests
 // todo helpers/removal.ts
 export const batchMintAndListRemovalsForSale = async (options: {
-  testSetup: Awaited<ReturnType<typeof setupTest>>;
-  projectId?: number;
-  scheduleStartTime?: number;
-  holdbackPercentage?: number;
-  removalDataToList: RemovalDataForListing[];
+  hre: CustomHardHatRuntimeEnvironment;
+  removal: Removal;
+  fifoMarket: FIFOMarket;
+  removalDataToList: RemovalDataForListing;
 }): Promise<RemovalDataFromListing> => {
-  const { testSetup, removalDataToList } = options;
-  const { removal, fifoMarket, hre } = testSetup;
+  const { removal, hre, fifoMarket, removalDataToList } = options;
   const { projectId, scheduleStartTime, holdbackPercentage } = {
-    projectId: options.projectId ?? 1_234_567_890,
+    projectId: removalDataToList.projectId ?? 1_234_567_890,
     scheduleStartTime:
-      options.scheduleStartTime ?? (await getLatestBlockTime({ hre })),
-    holdbackPercentage: options.holdbackPercentage ?? 0,
+      removalDataToList.scheduleStartTime ??
+      (await getLatestBlockTime({ hre })),
+    holdbackPercentage: removalDataToList.holdbackPercentage ?? 0,
   };
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
   const listedRemovalIds: BigNumber[] = [];
-  for (const [index, removalData] of removalDataToList.entries()) {
+  for (const [index, removalData] of removalDataToList.removals.entries()) {
     // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
     const removalTokenId = await createRemovalTokenId({
       removal,
@@ -327,8 +249,8 @@ export const batchMintAndListRemovalsForSale = async (options: {
     });
     listedRemovalIds.push(removalTokenId);
   }
-  const removalAmounts = removalDataToList.map((removalData) =>
-    formatTokenString(removalData.amount.toString())
+  const removalAmounts = removalDataToList.removals.map((removalData) =>
+    formatTokenAmount(removalData.amount)
   );
   await removal.mintBatch(
     supplier,
@@ -343,7 +265,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
       holdbackPercentage,
     })
   );
-  const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);
+  const totalAmountOfSupply = sum(removalAmounts);
   const totalAmountOfSuppliers = getTotalAmountOfSuppliers(removalDataToList);
   const totalAmountOfRemovals = getTotalAmountOfRemovals(removalDataToList);
   return {
@@ -354,5 +276,157 @@ export const batchMintAndListRemovalsForSale = async (options: {
     removalAmounts,
     projectId,
     scheduleStartTime,
+    holdbackPercentage,
   };
 };
+
+// todo helpers/setup.ts
+export const setupTest = global.hre.deployments.createFixture(
+  async <TOptions extends SetupTestOptions = SetupTestOptions>(
+    hre: CustomHardHatRuntimeEnvironment,
+    options?: TOptions
+  ): Promise<TestEnvironment<SetupTestOptions & TOptions>> => {
+    const userFixtures: UserFixtures = {
+      ...options?.userFixtures,
+      buyer: {
+        bpBalance: formatTokenAmount(100_000_000),
+        ...options?.userFixtures?.buyer,
+      },
+      admin: {
+        bpBalance: formatTokenAmount(100_000_000),
+        ...options?.userFixtures?.admin,
+      },
+    };
+    const contractFixtures: ContractFixtures = {
+      ...options?.contractFixtures,
+    };
+    await hre.deployments.fixture(['assets', 'market', 'test']);
+    const contracts = await getContractsFromDeployments(hre);
+    for (const [contract, fixture] of Object.entries(contractFixtures) as [
+      keyof Contracts,
+      ContractFixture
+    ][]) {
+      if (fixture.paused !== undefined) {
+        // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+        await (contracts[contract] as any).pause();
+      }
+    }
+    let listedRemovalIds: BigNumber[] = [];
+    let totalAmountOfSupply = BigNumber.from(0);
+    let totalAmountOfSuppliers = 0;
+    let totalAmountOfRemovals = 0;
+    let projectId = 0;
+    let scheduleStartTime = 0;
+    let holdbackPercentage = 0;
+    let removalAmounts: BigNumber[] = [];
+    for (const [k, v] of Object.entries(userFixtures) as [
+      keyof typeof namedAccounts,
+      UserFixture
+    ][]) {
+      if (v.roles !== undefined) {
+        for (const [contract, roles] of Object.entries(v.roles) as [
+          keyof RoleFixtures,
+          RoleFixtures[keyof RoleFixtures]
+        ][]) {
+          if (roles !== undefined) {
+            for (const role of roles) {
+              // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+              await (contracts[contract] as any).grantRole(
+                // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+                await (contracts[contract] as any)[role](),
+                hre.namedAccounts[k]
+              );
+            }
+          }
+        }
+      }
+      if (v.removalDataToList !== undefined) {
+        // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+        const mintResultData = await batchMintAndListRemovalsForSale({
+          removalDataToList: v.removalDataToList,
+          removal: contracts.Removal,
+          fifoMarket: contracts.FIFOMarket,
+          hre,
+        });
+        removalAmounts = [...removalAmounts, ...mintResultData.removalAmounts];
+        mintResultData.removalAmounts;
+        listedRemovalIds = [
+          ...listedRemovalIds,
+          ...mintResultData.listedRemovalIds,
+        ];
+        totalAmountOfSupply =
+          mintResultData.totalAmountOfSupply.add(totalAmountOfSupply);
+        totalAmountOfSuppliers = add(
+          mintResultData.totalAmountOfSuppliers,
+          totalAmountOfSuppliers
+        );
+        totalAmountOfRemovals = add(
+          mintResultData.totalAmountOfRemovals,
+          totalAmountOfRemovals
+        );
+        projectId = mintResultData.projectId; // todo allow multiple schedules/projects/percentages per fixture
+        scheduleStartTime = mintResultData.scheduleStartTime; // todo allow multiple schedules/projects/percentages per fixture
+        holdbackPercentage = mintResultData.holdbackPercentage; // todo allow multiple schedules/projects/percentages per fixture
+      }
+      if (Boolean(v.bpBalance)) {
+        if (isBigNumberish(v.bpBalance)) {
+          // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+          await mockDepositNoriToPolygon({
+            hre,
+            contracts,
+            amount: v.bpBalance,
+            to: hre.namedAccounts[k],
+            signer: hre.namedSigners[k],
+          });
+        } else {
+          throw new Error(`Invalid bpBalance for ${k}.`);
+        }
+      }
+      if (v.mockERC1155PresetPausableNonTransferrableFixtures !== undefined) {
+        const { tokens, approvalsForAll } =
+          v.mockERC1155PresetPausableNonTransferrableFixtures;
+        // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+        await contracts.MockERC1155PresetPausableNonTransferrable.mintBatch(
+          tokens[0].to,
+          tokens?.map((f) => f.removalId),
+          tokens?.map((f) => f.removalAmount),
+          tokens[0].data
+        );
+        if (approvalsForAll !== undefined) {
+          for (const approval of approvalsForAll) {
+            // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+            await contracts.MockERC1155PresetPausableNonTransferrable.connect(
+              hre.namedSigners[k]
+            ).setApprovalForAll(approval, true);
+          }
+        }
+      }
+    }
+    return {
+      hre,
+      fee: options?.fee ?? formatTokenAmount(0.15),
+      contracts,
+      nori: contracts.NORI,
+      bpNori: contracts.BridgedPolygonNORI,
+      removal: contracts.Removal,
+      certificate: contracts.Certificate,
+      fifoMarket: contracts.FIFOMarket,
+      // lNori: contracts.LockedNORI, // todo import from forked repo
+      rNori: contracts.RestrictedNORI,
+      removalTestHarness: contracts.RemovalTestHarness,
+      mockCertificate: contracts.MockCertificate,
+      mockERC1155PresetPausableNonTransferrable:
+        contracts.MockERC1155PresetPausableNonTransferrable,
+      userFixtures,
+      contractFixtures,
+      listedRemovalIds,
+      totalAmountOfSupply,
+      totalAmountOfSuppliers,
+      totalAmountOfRemovals,
+      projectId,
+      scheduleStartTime,
+      holdbackPercentage,
+      removalAmounts,
+    } as TestEnvironment<SetupTestOptions & TOptions>;
+  }
+);
