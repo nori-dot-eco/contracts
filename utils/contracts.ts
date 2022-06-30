@@ -1,5 +1,4 @@
 import type { Contract } from 'ethers';
-import { LockedNORIV2 } from '../typechain-types/contracts/LockedNORIV2';
 
 import type {
   MockERC1155PresetPausableNonTransferrable,
@@ -9,6 +8,7 @@ import type {
   BridgedPolygonNORI,
   Certificate,
   FIFOMarket,
+  LockedNORIV2,
   RestrictedNORI,
   NORI,
   Removal,

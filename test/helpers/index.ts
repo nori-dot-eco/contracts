@@ -17,7 +17,7 @@ import type {
   Removal,
   Certificate,
   FIFOMarket,
-  // LockedNORI, // todo import from forked repo
+  LockedNORIV2,
   RestrictedNORI,
   NORI,
   BridgedPolygonNORI,
@@ -38,7 +38,7 @@ interface ContractInstances {
   removal: Removal;
   certificate: Certificate;
   fifoMarket: FIFOMarket;
-  // lNori: LockedNORI; // todo import from forked repo
+  lNori: LockedNORIV2;
   rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
   mockCertificate: MockCertificate; // todo key remapping of Contracts
@@ -199,7 +199,7 @@ export const setupTest = global.hre.deployments.createFixture(
       removal: contracts.Removal,
       certificate: contracts.Certificate,
       fifoMarket: contracts.FIFOMarket,
-      // lNori: contracts.LockedNORI, // todo import from forked repo
+      lNori: contracts.LockedNORIV2,
       rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
       mockCertificate: contracts.MockCertificate,

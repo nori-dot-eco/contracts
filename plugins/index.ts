@@ -56,14 +56,15 @@ extendEnvironment((hre) => {
   // All live networks will try to use fireblocks
   if (Boolean(hre.config.fireblocks.apiKey) && hre.network.config.live) {
     hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
-    // todo namedFireblocksAccounts
-    // todo namedFireblocksSigners
     hre.log('Installed fireblocks signers');
+  } else if (hre.network.name != 'hardhat') {
+    hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
+    hre.log('Installed ethers default signers');
   } else {
     hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
     hre.namedSigners = getNamedSigners(hre); // for testing only // todo rename namedHardhatSigners or { hardhat: {...}, fireblocks: {...}}
     hre.namedAccounts = namedAccounts!; // todo rename namedHardhatAccounts or { hardhat: {...}, fireblocks: {...}}
-    hre.log('Installed ethers default signers');
+    hre.log('Installed hardhat ethers signers');
   }
 
   const deployNonUpgradeable = async <

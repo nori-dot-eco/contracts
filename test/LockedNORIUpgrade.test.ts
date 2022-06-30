@@ -3,10 +3,7 @@ import { expect, setupTest } from '@/test/helpers';
 import { LockedNORIV2 } from '../typechain-types';
 // Not sure if this will exist in a clean build.  Does typechain build from artifacts or source?
 import { LockedNORI } from '../typechain-types/contracts/LockedNORI';
-import {
-  abi,
-  bytecode,
-} from '../legacy-artifacts/LockedNORI.sol/LockedNORI.json';
+import LockedNORIArtifact from '../legacy-artifacts/LockedNORI.sol/LockedNORI.json';
 import { TestToken777 } from '../typechain-types/contracts/test/TestToken777';
 
 describe('LockedNORI V1 to V2 upgrade', () => {
@@ -16,20 +13,23 @@ describe('LockedNORI V1 to V2 upgrade', () => {
     const recipient = hre.namedAccounts.investor1;
     const GRANT_AMOUNT = ethers.utils.parseEther('100');
 
-    const helperFactory = await ethers.getContractFactory('LockedNORIV2Helper');
+    const helperFactory = await hre.ethers.getContractFactory(
+      'LockedNORIV2Helper'
+    );
     const helper = await helperFactory.deploy();
     await helper.deployed();
 
-    const TestToken777Factory = await ethers.getContractFactory('TestToken777');
+    const TestToken777Factory = await hre.ethers.getContractFactory(
+      'TestToken777'
+    );
     const testTokenInstance = (await upgrades.deployProxy(
       TestToken777Factory,
       [],
       { initializer: 'initialize()' }
     )) as TestToken777;
 
-    const LockedNORIFactory = await hre.ethers.getContractFactory(
-      abi,
-      bytecode
+    const LockedNORIFactory = await hre.ethers.getContractFactoryFromArtifact(
+      LockedNORIArtifact
     );
     const lnori = (await upgrades.deployProxy(
       LockedNORIFactory,
