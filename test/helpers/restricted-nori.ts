@@ -30,14 +30,14 @@ export const restrictRemovalProceeds = async ({
   removalAmountsToRestrict: number[];
 }): Promise<void> => {
   const { rNori, bpNori } = testSetup;
-  const promiseArray = [];
-  for (const [index, id] of removalIds.entries()) {
-    promiseArray.push(
-      rNori.mint(removalAmountsToRestrict[index], id),
-      bpNori.transfer(rNori.address, removalAmountsToRestrict[index])
-    );
-  }
-  await Promise.all(promiseArray);
+  await Promise.all(
+    removalIds.map(async (id, index) => {
+      return Promise.all([
+        rNori.mint(removalAmountsToRestrict[index], id),
+        bpNori.transfer(rNori.address, removalAmountsToRestrict[index]),
+      ]);
+    })
+  );
 };
 
 export const compareScheduleDetailForAddressStructs = (

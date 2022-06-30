@@ -2,10 +2,12 @@ import type { BigNumberish, BigNumber } from 'ethers';
 import { ContractReceipt } from 'ethers';
 import { add, multiply } from '@nori-dot-com/math';
 import { splitSignature } from 'ethers/lib/utils';
-import { compareScheduleSummaryStructs } from './helpers/restricted-nori';
 
 import { Eip2612Signer } from '../signers/eip-26126';
 
+import { compareScheduleSummaryStructs } from './helpers/restricted-nori';
+
+import { compareScheduleSummaryStructs } from '@/test/helpers/restricted-nori';
 import { formatTokenAmount } from '@/utils/units';
 import type { RemovalDataForListing } from '@/test/helpers';
 import {
