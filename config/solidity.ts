@@ -19,13 +19,5 @@ export const solidity: HardhatUserConfig['solidity'] = {
     },
   ],
   overrides: {
-    "contracts/LockedNORI.sol": {
-        version: '0.8.13',
-        settings: { optimizer, },
-    },
-    "contracts/deprecates/ERC777PresetPausablePermissioned.sol": {
-        version: '0.8.13',
-        settings: { optimizer, },
-    }
   }
 };

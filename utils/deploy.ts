@@ -271,7 +271,7 @@ export const deployLockedNORIContract = async ({
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<InstanceOfContract<LockedNORIV2>> => {
   return hre.deployOrUpgradeProxy<LockedNORIV2, LockedNORIV2__factory>({
-    contractName: 'LockedNORI',
+    contractName: 'LockedNORIV2',
     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
     options: { initializer: 'initialize(address)' },
   });

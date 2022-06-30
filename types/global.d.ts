@@ -184,17 +184,17 @@ declare global {
     | 'BridgedPolygonNORI'
     | 'ScheduleTestHarness';
 
-//   var ethers: Omit<
-//     typeof defaultEthers & HardhatEthersHelpers,
-//     'getContractFactory'
-//   > & {
-//     getContractFactory<
-//       TContractFactory extends ContractFactory = ContractFactory
-//     >(
-//       name: ContractNames,
-//       signerOrOptions?: Signer | FactoryOptions
-//     ): Promise<TContractFactory>;
-//   }; // todo remove from global types to prevent usage
+  var ethers: Omit<
+    typeof defaultEthers & HardhatEthersHelpers,
+    'getContractFactory'
+  > & {
+    getContractFactory<
+      TContractFactory extends ContractFactory = ContractFactory
+    >(
+      name: string,
+      signerOrOptions?: Signer | FactoryOptions
+    ): Promise<TContractFactory>;
+  }; // todo remove from global types to prevent usage
 
   type CustomHardHatRuntimeEnvironment = Omit<
     HardhatRuntimeEnvironment,
