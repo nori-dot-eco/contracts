@@ -9,11 +9,11 @@ export const deploy: DeployFunction = async (environment) => {
     const contract = await deployLockedNORIContract({
       hre,
     });
-    await finalizeDeployments({ hre, contracts: { LockedNORI: contract } });
+    await finalizeDeployments({ hre, contracts: { LockedNORIV2: contract } });
   };
   
 export default deploy;
-deploy.tags = ['LockedNORI', 'assets'];
+deploy.tags = ['LockedNORI', 'LockedNORIV2', 'assets'];
 deploy.dependencies = ['preconditions', 'BridgedPolygonNORI'];
 deploy.skip = async (hre) =>
 Promise.resolve(
