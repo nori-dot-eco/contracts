@@ -80,7 +80,7 @@
     "test": "hardhat test",
     "test:gas": "REPORT_GAS=true hardhat test --deploy-fixture",
     "test:coverage": "CI=true hardhat coverage --solcoverjs ./.solcover.js",
-    "test:unsafe": "TS_NODE_TRANSPILE_ONLY=1 yarn test --no-compile",
+    "test:unsafe": "OPTIMIZER=false VIA_IR=false TS_NODE_TRANSPILE_ONLY=1 yarn test --no-compile",
     "prepare": "yarn build",
     "typechain": "TS_NODE_TRANSPILE_ONLY=1 hardhat typechain",
     "build": "yarn run typechain && hardhat compile",
