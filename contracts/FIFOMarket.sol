@@ -13,6 +13,8 @@ import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
+// import "hardhat/console.sol"; // todo
+
 // todo emit events
 
 // todo pausable
@@ -401,16 +403,13 @@ contract FIFOMarket is
         .queueByVintage[vintage]
         .length();
     }
+    require(totalNumberOfRemovalsForSupplier > 0, "Market: Not enough supply");
     uint256 remainingAmountToFill = certificateAmount;
-    uint256[] memory ids = new uint256[](totalNumberActiveRemovals);
-    uint256[] memory amounts = new uint256[](totalNumberActiveRemovals);
+    uint256[] memory ids = new uint256[](totalNumberOfRemovalsForSupplier);
+    uint256[] memory amounts = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256 numberOfRemovals = 0;
     // TODO (Gas Optimization): Declare variables outside of loop
-    for (
-      ;
-      numberOfRemovals < totalNumberOfRemovalsForSupplier;
-      numberOfRemovals++
-    ) {
+    for (uint256 i = 0; i < totalNumberOfRemovalsForSupplier; i++) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       // order complete, not fully using up this removal
