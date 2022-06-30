@@ -1187,4 +1187,79 @@ describe('FIFOMarket', () => {
       // todo track balances using a class and before/after snapshotting
     });
   });
+  describe('purchasing from a specified supplier', () => {
+    it('should purchase supply from a specific supplier when they have enough supply', async () => {
+      const {
+        bpNori,
+        certificate,
+        fifoMarket,
+        feePercentage,
+        userFixtures,
+        totalAmountOfSupply,
+        listedRemovalIds,
+      } = await setupTest({
+        userFixtures: {
+          supplier: {
+            removalDataToList: {
+              removals: [
+                { amount: 10, supplierAddress: hre.namedAccounts.supplier }, // 2 removals each for 2 different suppliers
+                { amount: 10, supplierAddress: hre.namedAccounts.supplier },
+                { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
+                { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
+              ],
+            },
+          },
+        },
+      });
+      const purchaseAmount = totalAmountOfSupply.div(2); // purchase half of supply, exactly two full removal tokens
+      const fee = purchaseAmount.mul(feePercentage).div(100);
+      const value = purchaseAmount.add(fee);
+      const supplierInitialNoriBalance = formatTokenAmount(0);
+      const investor1InitialNoriBalance = formatTokenAmount(0);
+      const noriInitialNoriBalance = formatTokenAmount(0);
+      const { buyer } = hre.namedSigners;
+      const { v, r, s } = await buyer.permit({
+        verifyingContract: bpNori,
+        spender: fifoMarket.address,
+        value,
+      });
+      await fifoMarket
+        .connect(buyer)
+        .swapFromSpecificSupplier(
+          buyer.address,
+          value,
+          hre.namedAccounts.supplier,
+          hre.ethers.constants.MaxUint256,
+          v,
+          r,
+          s
+        );
+      const [
+        buyerFinalNoriBalance,
+        supplierFinalNoriBalance,
+        investor1FinalNoriBalance,
+        noriFinalNoriBalance,
+      ] = await Promise.all([
+        bpNori.balanceOf(buyer.address),
+        bpNori.balanceOf(hre.namedAccounts.supplier),
+        bpNori.balanceOf(hre.namedAccounts.investor1),
+        bpNori.balanceOf(hre.namedAccounts.investor2),
+        bpNori.balanceOf(hre.namedAccounts.noriWallet),
+        fifoMarket.numberOfActiveNrtsInMarketComputed(),
+      ]);
+      expect(buyerFinalNoriBalance).to.equal(
+        userFixtures.buyer.bpBalance.sub(value)
+      );
+      expect(supplierFinalNoriBalance).to.equal(
+        supplierInitialNoriBalance.add(purchaseAmount)
+      );
+      expect(investor1FinalNoriBalance).to.equal(investor1InitialNoriBalance);
+      expect(noriFinalNoriBalance).to.equal(noriInitialNoriBalance.add(fee));
+      expect(await certificate.balanceOf(buyer.address, 0)).to.equal(
+        purchaseAmount
+      );
+      const sources = await certificate.sources(0);
+      console.log({ sources });
+    });
+  });
 });

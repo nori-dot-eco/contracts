@@ -242,7 +242,7 @@ contract FIFOMarket is
    * only supply from this supplier.
    * @dev // todo
    */
-  function swap(
+  function swapFromSpecificSupplier(
     address recipient,
     uint256 amount,
     address supplierToBuyFrom,
