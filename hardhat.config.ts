@@ -16,7 +16,6 @@ import { docgen } from '@/config/docgen';
 import { getMochaConfig } from '@/config/mocha';
 import { fireblocks } from '@/config/fireblocks';
 import { tracer } from '@/config/tracer';
-import { preprocess } from '@/config/preprocess';
 
 export const getConfig = (
   environment: NodeJS.ProcessEnv = process.env
@@ -34,7 +33,6 @@ export const getConfig = (
     fireblocks,
     ethernal: getEthernalConfig(environment),
     tracer,
-    preprocess,
   };
   return config;
 };

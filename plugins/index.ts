@@ -17,7 +17,6 @@ import 'solidity-coverage';
 import 'hardhat-tracer'; // todo add to release notes
 import '@/config/environment';
 import '@/tasks/index';
-import 'hardhat-preprocessor';
 
 import { extendEnvironment } from 'hardhat/config';
 import type { BaseContract, ContractFactory, Signer } from 'ethers';

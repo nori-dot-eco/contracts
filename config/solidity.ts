@@ -1,10 +1,5 @@
 import type { HardhatUserConfig } from 'hardhat/types';
 
-const optimizer = {
-    enabled: true,
-    runs: 200,
-  };
-
 export const solidity: HardhatUserConfig['solidity'] = {
   compilers: [
     {
@@ -14,6 +9,4 @@ export const solidity: HardhatUserConfig['solidity'] = {
       },
     },
   ],
-  overrides: {
-  }
 };
