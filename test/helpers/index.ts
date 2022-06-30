@@ -1,10 +1,11 @@
-import type { BigNumber, BigNumberish } from 'ethers';
+import { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import { add } from '@nori-dot-com/math';
 
 import { defaultRemovalTokenIdFixture } from '../fixtures/removal';
 
+import { sum } from '@/utils/math';
 import type {
   MockCertificate,
   MockERC1155PresetPausableNonTransferrable,
@@ -179,7 +180,7 @@ export const createBatchMintData = async ({
 // todo helpers/removal.ts
 interface RemovalDataFromListing {
   listedRemovalIds: BigNumber[];
-  totalAmountOfSupply: number; // todo bignumber ?
+  totalAmountOfSupply: BigNumber; // todo bignumber ?
   totalAmountOfSuppliers: number;
   totalAmountOfRemovals: number;
   removalAmounts: BigNumber[];
@@ -202,11 +203,6 @@ export interface RemovalDataForListing {
 }
 
 // todo helpers/removal.ts
-export const getTotalAmountOfSupply = ({
-  removals,
-}: RemovalDataForListing): number =>
-  removals.reduce((sum, removal) => sum + removal.amount, 0);
-// todo helpers/removal.ts
 const getTotalAmountOfSuppliers = ({
   removals,
 }: RemovalDataForListing): number =>
@@ -214,6 +210,7 @@ const getTotalAmountOfSuppliers = ({
     (supplierSet, removal) => supplierSet.add(removal.supplierAddress),
     new Set()
   ).size ?? 1;
+
 // todo helpers/removal.ts
 const getTotalAmountOfRemovals = ({
   removals,
@@ -253,7 +250,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
     listedRemovalIds.push(removalTokenId);
   }
   const removalAmounts = removalDataToList.removals.map((removalData) =>
-    formatTokenString(removalData.amount.toString())
+    formatTokenAmount(removalData.amount)
   );
   await removal.mintBatch(
     supplier,
@@ -268,7 +265,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
       holdbackPercentage,
     })
   );
-  const totalAmountOfSupply = getTotalAmountOfSupply(removalDataToList);
+  const totalAmountOfSupply = sum(removalAmounts);
   const totalAmountOfSuppliers = getTotalAmountOfSuppliers(removalDataToList);
   const totalAmountOfRemovals = getTotalAmountOfRemovals(removalDataToList);
   return {
@@ -309,28 +306,29 @@ export const setupTest = global.hre.deployments.createFixture(
       keyof Contracts,
       ContractFixture
     ][]) {
-      if (fixture.paused) {
+      if (fixture.paused !== undefined) {
         // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
         await (contracts[contract] as any).pause();
       }
     }
     let listedRemovalIds: BigNumber[] = [];
-    let totalAmountOfSupply = 0;
+    let totalAmountOfSupply = BigNumber.from(0);
     let totalAmountOfSuppliers = 0;
     let totalAmountOfRemovals = 0;
-    let projectId;
-    let scheduleStartTime;
-    let holdbackPercentage;
+    let projectId = 0;
+    let scheduleStartTime = 0;
+    let holdbackPercentage = 0;
+    let removalAmounts: BigNumber[] = [];
     for (const [k, v] of Object.entries(userFixtures) as [
       keyof typeof namedAccounts,
       UserFixture
     ][]) {
-      if (v.roles != undefined) {
+      if (v.roles !== undefined) {
         for (const [contract, roles] of Object.entries(v.roles) as [
           keyof RoleFixtures,
           RoleFixtures[keyof RoleFixtures]
         ][]) {
-          if (roles != undefined) {
+          if (roles !== undefined) {
             for (const role of roles) {
               // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
               await (contracts[contract] as any).grantRole(
@@ -350,14 +348,14 @@ export const setupTest = global.hre.deployments.createFixture(
           fifoMarket: contracts.FIFOMarket,
           hre,
         });
+        removalAmounts = [...removalAmounts, ...mintResultData.removalAmounts];
+        mintResultData.removalAmounts;
         listedRemovalIds = [
           ...listedRemovalIds,
           ...mintResultData.listedRemovalIds,
         ];
-        totalAmountOfSupply = add(
-          mintResultData.totalAmountOfSupply,
-          totalAmountOfSupply
-        );
+        totalAmountOfSupply =
+          mintResultData.totalAmountOfSupply.add(totalAmountOfSupply);
         totalAmountOfSuppliers = add(
           mintResultData.totalAmountOfSuppliers,
           totalAmountOfSuppliers
@@ -428,6 +426,7 @@ export const setupTest = global.hre.deployments.createFixture(
       projectId,
       scheduleStartTime,
       holdbackPercentage,
+      removalAmounts,
     } as TestEnvironment<SetupTestOptions & TOptions>;
   }
 );

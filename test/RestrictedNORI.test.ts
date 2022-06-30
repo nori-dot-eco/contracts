@@ -1,3 +1,4 @@
+/* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "compareScheduleDetailForAddressStructs", "compareScheduleSummaryStructs"] }] -- have ticket to fix expect statements in these utilities */
 import { BigNumber } from 'ethers';
 
 import { formatTokenString } from '../utils/units';
@@ -21,522 +22,434 @@ import {
   compareScheduleSummaryStructs,
 } from '@/test/helpers/restricted-nori';
 
-/* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "compareScheduleDetailForAddressStructs", "compareScheduleSummaryStructs"] }] -- have ticket to fix expect statements in these utilities */
 describe('RestrictedNORI', () => {
-  // describe('initialization', () => {
-  //   describe('roles', () => {
-  //     for (const { role, expectedCount } of [
-  //       { role: 'DEFAULT_ADMIN_ROLE', expectedCount: 1 },
-  //       { role: 'PAUSER_ROLE', expectedCount: 1 },
-  //       { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Market contract and admin are both schedule creators
-  //       { role: 'TOKEN_REVOKER_ROLE', expectedCount: 1 },
-  //     ] as const) {
-  //       it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
-  //         const { rNori, hre } = await await setupTest({
-  //           userFixtures: {
-  //             admin: {
-  //               roles: {
-  //                 RestrictedNORI: ['MINTER_ROLE'],
-  //               },
-  //             },
-  //           },
-  //         });
-  //         expect(
-  //           await rNori.hasRole(await rNori[role](), hre.namedAccounts.admin)
-  //         ).to.be.true;
-  //         expect(await rNori.getRoleAdmin(await rNori[role]())).to.eq(
-  //           await rNori.DEFAULT_ADMIN_ROLE()
-  //         );
-  //         expect(await rNori.getRoleMemberCount(await rNori[role]())).to.eq(
-  //           expectedCount
-  //         );
-  //       });
-  //     }
-  //     for (const { role } of [
-  //       { role: 'SCHEDULE_CREATOR_ROLE' },
-  //       { role: 'MINTER_ROLE' },
-  //     ] as const) {
-  //       it(`will assign the role ${role} to the market contract`, async () => {
-  //         const { rNori, fifoMarket } = await await setupTest({
-  //           userFixtures: {
-  //             admin: {
-  //               roles: {
-  //                 RestrictedNORI: ['MINTER_ROLE'],
-  //               },
-  //             },
-  //           },
-  //         });
-  //         expect(await rNori.hasRole(await rNori[role](), fifoMarket.address))
-  //           .to.be.true;
-  //         expect(await rNori.getRoleAdmin(await rNori[role]())).to.eq(
-  //           await rNori.DEFAULT_ADMIN_ROLE()
-  //         );
-  //       });
-  //     }
-  //   });
-  // });
-  // describe('pausing', () => {
-  //   it('can be paused by the PAUSER_ROLE', async () => {
-  //     const { rNori, hre } = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     expect(
-  //       await rNori.hasRole(
-  //         await rNori['PAUSER_ROLE'](),
-  //         hre.namedAccounts.admin
-  //       )
-  //     ).to.be.true;
-  //     await rNori.pause();
-  //     expect(await rNori.paused()).to.be.true;
-  //   });
-  //   it('can be unpaused by the PAUSER_ROLE', async () => {
-  //     const { rNori, hre } = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     expect(
-  //       await rNori.hasRole(
-  //         await rNori['PAUSER_ROLE'](),
-  //         hre.namedAccounts.admin
-  //       )
-  //     ).to.be.true;
-  //     await rNori.pause();
-  //     expect(await rNori.paused()).to.be.true;
-  //     await rNori.unpause();
-  //     expect(await rNori.paused()).to.be.false;
-  //   });
+  describe('initialization', () => {
+    describe('roles', () => {
+      for (const { role, expectedCount } of [
+        { role: 'DEFAULT_ADMIN_ROLE', expectedCount: 1 },
+        { role: 'PAUSER_ROLE', expectedCount: 1 },
+        { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Market contract and admin are both schedule creators
+        { role: 'TOKEN_REVOKER_ROLE', expectedCount: 1 },
+      ] as const) {
+        it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
+          const { rNori, hre } = await setupTest();
+          expect(
+            await rNori.hasRole(await rNori[role](), hre.namedAccounts.admin)
+          ).to.be.true;
+          expect(await rNori.getRoleAdmin(await rNori[role]())).to.eq(
+            await rNori.DEFAULT_ADMIN_ROLE()
+          );
+          expect(await rNori.getRoleMemberCount(await rNori[role]())).to.eq(
+            expectedCount
+          );
+        });
+      }
+      for (const { role } of [
+        { role: 'SCHEDULE_CREATOR_ROLE' },
+        { role: 'MINTER_ROLE' },
+      ] as const) {
+        it(`will assign the role ${role} to the market contract`, async () => {
+          const { rNori, fifoMarket } = await setupTest();
+          expect(await rNori.hasRole(await rNori[role](), fifoMarket.address))
+            .to.be.true;
+          expect(await rNori.getRoleAdmin(await rNori[role]())).to.eq(
+            await rNori.DEFAULT_ADMIN_ROLE()
+          );
+        });
+      }
+    });
+  });
+  describe('pausing', () => {
+    it('can be paused by the PAUSER_ROLE', async () => {
+      const { rNori, hre } = await setupTest();
+      expect(
+        await rNori.hasRole(
+          await rNori['PAUSER_ROLE'](),
+          hre.namedAccounts.admin
+        )
+      ).to.be.true;
+      await rNori.pause();
+      expect(await rNori.paused()).to.be.true;
+    });
+    it('can be unpaused by the PAUSER_ROLE', async () => {
+      const { rNori, hre } = await setupTest();
+      expect(
+        await rNori.hasRole(
+          await rNori['PAUSER_ROLE'](),
+          hre.namedAccounts.admin
+        )
+      ).to.be.true;
+      await rNori.pause();
+      expect(await rNori.paused()).to.be.true;
+      await rNori.unpause();
+      expect(await rNori.paused()).to.be.false;
+    });
+    it('can not be paused by an account that does not have the PAUSER_ROLE', async () => {
+      const { rNori, hre } = await setupTest();
+      expect(
+        await rNori.hasRole(
+          await rNori['PAUSER_ROLE'](),
+          hre.namedAccounts.buyer
+        )
+      ).to.be.false;
+      await expect(rNori.connect(hre.namedSigners.buyer).pause()).to.be
+        .reverted;
+      expect(await rNori.paused()).to.be.false;
+    });
+  });
+  describe('restriction duration map', () => {
+    it('should be initialized to 10 years for a methodology of 1 and methodology version of 0', async () => {
+      const { rNori } = await setupTest();
+      const retrievedRestrictionDuration =
+        await rNori.getRestrictionDurationForMethodologyAndVersion(1, 0);
+      expect(retrievedRestrictionDuration).to.equal(SECONDS_IN_10_YEARS);
+    });
+    it('should be able to set and get a new restriction duration for a given methodology and version', async () => {
+      const { rNori } = await setupTest();
+      const methodology = 2;
+      const methodologyVersion = 0;
+      const newDuration = SECONDS_IN_1_YEAR_AVG;
+      const scheduleDurationBeforeSetting =
+        await rNori.getRestrictionDurationForMethodologyAndVersion(
+          methodology,
+          methodologyVersion
+        );
+      expect(scheduleDurationBeforeSetting).to.equal(0);
+      await rNori.setRestrictionDurationForMethodologyAndVersion(
+        methodology,
+        methodologyVersion,
+        newDuration
+      );
+      const scheduleDurationAfterSetting =
+        await rNori.getRestrictionDurationForMethodologyAndVersion(
+          methodology,
+          methodologyVersion
+        );
+      expect(scheduleDurationAfterSetting).to.equal(SECONDS_IN_1_YEAR_AVG);
+    });
+    it('should revert if the transaction sender does not have the DEFAULT_ADMIN_ROLE', async () => {
+      const { rNori } = await setupTest();
+      const methodology = 2;
+      const methodologyVersion = 0;
+      const newDuration = SECONDS_IN_1_YEAR_AVG;
+      await expect(
+        rNori
+          .connect(hre.namedSigners.buyer) // funded address without DEFAULT_ADMIN_ROLE
+          .setRestrictionDurationForMethodologyAndVersion(
+            methodology,
+            methodologyVersion,
+            newDuration
+          )
+      ).to.be.reverted;
+    });
+    it('should revert if a restriction schedule is being created for a methodology/version that does not have a duration set', async () => {
+      const { removal, fifoMarket, hre } = await setupTest();
+      const removalIdWithMethodology2 = await createRemovalTokenId({
+        removal,
+        removalData: { methodology: 2 },
+        hre,
+      });
+      const projectId = 1_234_567_890;
+      const scheduleStartTime = await getLatestBlockTime({ hre });
+      const amount = 20_000_000;
+      const packedData = await createBatchMintData({
+        hre,
+        fifoMarket,
+        listNow: true,
+        projectId,
+        scheduleStartTime,
+      });
 
-  //   it('can not be paused by an account that does not have the PAUSER_ROLE', async () => {
-  //     const { rNori, hre } = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     expect(
-  //       await rNori.hasRole(
-  //         await rNori['PAUSER_ROLE'](),
-  //         hre.namedAccounts.buyer
-  //       )
-  //     ).to.be.false;
-  //     await expect(rNori.connect(hre.namedSigners.buyer).pause()).to.be
-  //       .reverted;
-  //     expect(await rNori.paused()).to.be.false;
-  //   });
-  // });
-  // describe('restriction duration map', () => {
-  //   it('should be initialized to 10 years for a methodology of 1 and methodology version of 0', async () => {
-  //     const { rNori } = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     const retrievedRestrictionDuration =
-  //       await rNori.getRestrictionDurationForMethodologyAndVersion(1, 0);
-  //     expect(retrievedRestrictionDuration).to.equal(SECONDS_IN_10_YEARS);
-  //   });
-  //   it('should be able to set and get a new restriction duration for a given methodology and version', async () => {
-  //     const { rNori } = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     const methodology = 2;
-  //     const methodologyVersion = 0;
-  //     const newDuration = SECONDS_IN_1_YEAR_AVG;
-  //     const scheduleDurationBeforeSetting =
-  //       await rNori.getRestrictionDurationForMethodologyAndVersion(
-  //         methodology,
-  //         methodologyVersion
-  //       );
-  //     expect(scheduleDurationBeforeSetting).to.equal(0);
-  //     await rNori.setRestrictionDurationForMethodologyAndVersion(
-  //       methodology,
-  //       methodologyVersion,
-  //       newDuration
-  //     );
-  //     const scheduleDurationAfterSetting =
-  //       await rNori.getRestrictionDurationForMethodologyAndVersion(
-  //         methodology,
-  //         methodologyVersion
-  //       );
-  //     expect(scheduleDurationAfterSetting).to.equal(SECONDS_IN_1_YEAR_AVG);
-  //   });
-  //   it('should revert if the transaction sender does not have the DEFAULT_ADMIN_ROLE', async () => {
-  //     const { rNori } = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     const methodology = 2;
-  //     const methodologyVersion = 0;
-  //     const newDuration = SECONDS_IN_1_YEAR_AVG;
-  //     await expect(
-  //       rNori
-  //         .connect(hre.namedSigners.buyer) // funded address without DEFAULT_ADMIN_ROLE
-  //         .setRestrictionDurationForMethodologyAndVersion(
-  //           methodology,
-  //           methodologyVersion,
-  //           newDuration
-  //         )
-  //     ).to.be.reverted;
-  //   });
-  //   it('should revert if a restriction schedule is being created for a methodology/version that does not have a duration set', async () => {
-  //     const { removal, fifoMarket, hre } = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     const removalIdWithMethodology2 = await createRemovalTokenId({
-  //       removal,
-  //       removalData: { methodology: 2 },
-  //       hre,
-  //     });
-  //     const projectId = 1_234_567_890;
-  //     const scheduleStartTime = await getLatestBlockTime({ hre });
-  //     const amount = 20_000_000;
-  //     const packedData = await createBatchMintData({
-  //       hre,
-  //       fifoMarket,
-  //       listNow: true,
-  //       projectId,
-  //       scheduleStartTime,
-  //     });
-
-  //     await expect(
-  //       removal.mintBatch(
-  //         hre.namedAccounts.supplier,
-  //         [amount],
-  //         [removalIdWithMethodology2],
-  //         packedData
-  //       )
-  //     ).to.be.revertedWith('Restriction duration not set');
-  //   });
-  // });
-  // describe(`create schedule`, () => {
-  //   it('should create a schedule with a direct call', async () => {
-  //     const removals = [
-  //       {
-  //         amount: 5,
-  //         vintage: 2018,
-  //       },
-  //     ];
-  //     const testSetup = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     // mint removals but don't list yet (or a schedule will be created via listing)
-  //     const { removal, fifoMarket, rNori, hre } = testSetup;
-  //     const { projectId, scheduleStartTime } = {
-  //       projectId: 1_234_567_890,
-  //       scheduleStartTime: await getLatestBlockTime({ hre }),
-  //     };
-  //     const { supplier } = hre.namedAccounts;
-
-  //     const removalTokenId = await createRemovalTokenId({
-  //       removal,
-  //       hre,
-  //       removalData: {
-  //         supplierAddress: supplier,
-  //         vintage: 2016,
-  //         subIdentifier: 9_999_999,
-  //       },
-  //     });
-
-  //     const removalAmounts = removalDataToList.map((removalData) =>
-  //       formatTokenString(removalData.amount.toString())
-  //     );
-  //     await removal.mintBatch(
-  //       supplier,
-  //       removalAmounts,
-  //       [removalTokenId],
-  //       await createBatchMintData({
-  //         hre,
-  //         fifoMarket,
-  //         listNow: false,
-  //         projectId,
-  //         scheduleStartTime,
-  //       })
-  //     );
-  //     await rNori.createSchedule(projectId);
-  //     const scheduleSummary = await rNori.getScheduleSummary(projectId);
-  //     expect(scheduleSummary.scheduleTokenId).to.equal(projectId);
-  //     expect(scheduleSummary.startTime).to.equal(scheduleStartTime);
-  //     expect(scheduleSummary.endTime).to.equal(
-  //       scheduleStartTime + SECONDS_IN_10_YEARS
-  //     );
-  //     expect(scheduleSummary.tokenHolders).to.be.empty;
-  //     expect(scheduleSummary.totalSupply).to.equal(0);
-  //   });
-  // });
-  // describe('mint', () => {
-  //   // todo
-  //   // it('should deposit tokens and automatically create a new restriction schedule where one does not exist', async () => {
-  //   //   const removals = [
-  //   //     {
-  //   //       amount: 5,
-  //   //       vintage: 2018,
-  //   //     },
-  //   //   ];
-  //   //   const testSetup = await await setupTest({
-  //   // userFixtures: {
-  //   //     admin: {
-  //   //       roles: {
-  //   //         RestrictedNORI: ['MINTER_ROLE'],
-  //   //       },
-  //   //     },
-  //   //   },
-  //   // });
-  //   //   const { bpNori, rNori } = testSetup;
-  //   //   const { listedRemovalIds, projectId, scheduleStartTime } =
-  //   //     await batchMintAndListRemovalsForSale({
-  //   //       ...testSetup,
-  //   //       removalDataToList,
-  //   //     });
-  //   //   const { namedAccounts } = hre;
-  //   //   const restrictedAmount = 1;
-  //   //   expect(await bpNori.transfer(rNori.address, restrictedAmount))
-  //   //     .to.emit(bpNori, 'Sent')
-  //   //     .withArgs(
-  //   //       namedAccounts.admin,
-  //   //       namedAccounts.admin,
-  //   //       rNori.address,
-  //   //       restrictedAmount,
-  //   //       '0x',
-  //   //       '0x'
-  //   //     )
-  //   //     .to.emit(bpNori, 'Transfer')
-  //   //     .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
-  //   //   expect(await rNori.mint(restrictedAmount, listedRemovalIds[0]))
-  //   //     .to.emit(rNori, 'TransferSingle')
-  //   //     .withArgs(
-  //   //       namedAccounts.admin,
-  //   //       ethers.constants.AddressZero,
-  //   //       namedAccounts.supplier,
-  //   //       projectId,
-  //   //       restrictedAmount
-  //   //     )
-  //   //     .to.emit(rNori, 'Transfer')
-  //   //     .withArgs(
-  //   //       ethers.constants.AddressZero,
-  //   //       namedAccounts.supplier,
-  //   //       restrictedAmount
-  //   //     );
-  //   //   const scheduleSummary = await rNori.getScheduleSummary(projectId);
-  //   //   expect(scheduleSummary.scheduleTokenId).equals(projectId);
-  //   //   expect(scheduleSummary.totalSupply).equals(restrictedAmount);
-  //   //   expect(scheduleSummary.tokenHolders[0]).equals(namedAccounts.supplier);
-  //   //   expect(scheduleSummary.startTime).equals(scheduleStartTime);
-  //   //   expect(scheduleSummary.endTime).equals(
-  //   //     scheduleStartTime + SECONDS_IN_10_YEARS
-  //   //   );
-  //   //   expect(scheduleSummary.totalClaimedAmount).equals(0);
-  //   //   expect(scheduleSummary.totalQuantityRevoked).equals(0);
-  //   //   expect(scheduleSummary.exists).equals(true);
-  //   // });
-  //   it('should revert if the minter of RestrictedNORI is not the market contract', async () => {
-  //     const removals = [
-  //       {
-  //         amount: 5,
-  //         vintage: 2018,
-  //       },
-  //     ];
-  //     const testSetup = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     const { rNori, bpNori, hre } = testSetup;
-  //     const { listedRemovalIds } = await batchMintAndListRemovalsForSale({
-  //       ...testSetup,
-  //       removalDataToList,
-  //     });
-  //     await bpNori.transfer(rNori.address, 1);
-  //     await expect(
-  //       rNori.connect(hre.namedSigners.buyer).mint(1, listedRemovalIds[0])
-  //     ).to.be.revertedWith(`InvalidMinter("${hre.namedAccounts.buyer}")`);
-  //   });
-  // });
-  // describe('Linear releasing (claimableBalanceForSchedule)', () => {
-  //   it('should return 0 before schedule start time', async () => {
-  //     const removals = [
-  //       {
-  //         amount: 100,
-  //         vintage: 2020,
-  //       },
-  //     ];
-  //     const testSetup = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     const { rNori, hre } = testSetup;
-  //     const { listedRemovalIds, projectId } =
-  //       await batchMintAndListRemovalsForSale({
-  //         ...testSetup,
-  //         removalDataToList,
-  //       });
-  //     const { supplier } = hre.namedAccounts;
-  //     const removalAmountsToRestrict = removalDataToList.map(
-  //       (removalData) => removalData.amount
-  //     );
-  //     await restrictRemovalProceeds({
-  //       testSetup,
-  //       removalIds: listedRemovalIds,
-  //       removalAmountsToRestrict,
-  //     });
-  //     const claimableBalanceForSchedule =
-  //       await rNori.claimableBalanceForSchedule(projectId);
-  //     expect(claimableBalanceForSchedule).to.equal(0);
-  //     await expect(
-  //       rNori
-  //         .connect(hre.namedSigners.supplier)
-  //         .withdrawFromSchedule(
-  //           supplier,
-  //           projectId,
-  //           removalAmountsToRestrict[0]
-  //         )
-  //     ).revertedWith(
-  //       `InsufficientClaimableBalance("${supplier}", ${projectId})`
-  //     );
-  //   });
-  //   it('should return the full amount at the end of the restriction schedule', async () => {
-  //     const removals = [
-  //       {
-  //         amount: 100,
-  //         vintage: 2018,
-  //       },
-  //     ];
-  //     const testSetup = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     const { rNori, hre } = testSetup;
-  //     const { listedRemovalIds, projectId, scheduleStartTime } =
-  //       await batchMintAndListRemovalsForSale({
-  //         ...testSetup,
-  //         removalDataToList,
-  //       });
-  //     const { supplier } = hre.namedAccounts;
-  //     const restrictedAmount = removalDataToList[0].amount;
-  //     await restrictRemovalProceeds({
-  //       testSetup,
-  //       removalIds: listedRemovalIds,
-  //       removalAmountsToRestrict: [restrictedAmount],
-  //     });
-  //     await advanceTime({
-  //       hre,
-  //       timestamp: scheduleStartTime + SECONDS_IN_10_YEARS,
-  //     });
-  //     const claimableBalanceOf =
-  //       await rNori.claimableBalanceForScheduleForAccount(projectId, supplier);
-  //     expect(claimableBalanceOf).to.equal(restrictedAmount);
-  //     await rNori
-  //       .connect(await hre.ethers.getSigner(supplier))
-  //       .withdrawFromSchedule(supplier, projectId, removalDataToList[0].amount);
-  //   });
-  //   it('should release linearly as expected and increase the current released amount when the total amount increases', async () => {
-  //     const removals = [
-  //       {
-  //         amount: 100,
-  //         vintage: 2018,
-  //       },
-  //       {
-  //         amount: 100,
-  //         vintage: 2019,
-  //       },
-  //     ];
-  //     const testSetup = await await setupTest({
-  //       userFixtures: {
-  //         admin: {
-  //           roles: {
-  //             RestrictedNORI: ['MINTER_ROLE'],
-  //           },
-  //         },
-  //       },
-  //     });
-  //     const { rNori, hre } = testSetup;
-  //     const { listedRemovalIds, projectId, scheduleStartTime } =
-  //       await batchMintAndListRemovalsForSale({
-  //         ...testSetup,
-  //         removalDataToList,
-  //       });
-  //     const firstAmountToRestrict = removalDataToList[0].amount;
-  //     await restrictRemovalProceeds({
-  //       testSetup,
-  //       removalIds: [listedRemovalIds[0]],
-  //       removalAmountsToRestrict: [firstAmountToRestrict],
-  //     });
-  //     await advanceTime({
-  //       hre,
-  //       timestamp: scheduleStartTime + SECONDS_IN_5_YEARS,
-  //     });
-  //     const originalClaimableBalanceForSchedule =
-  //       await rNori.claimableBalanceForSchedule(projectId);
-  //     expect(originalClaimableBalanceForSchedule).to.equal(
-  //       removalDataToList[0].amount / 2
-  //     );
-  //     const secondAmountToRestrict = removalDataToList[1].amount;
-  //     await restrictRemovalProceeds({
-  //       testSetup,
-  //       removalIds: [listedRemovalIds[1]],
-  //       removalAmountsToRestrict: [secondAmountToRestrict],
-  //     });
-  //     const claimableBalanceAfterSecondRestriction =
-  //       await rNori.claimableBalanceForSchedule(projectId);
-  //     expect(claimableBalanceAfterSecondRestriction).to.equal(
-  //       removalDataToList[0].amount / 2 + removalDataToList[1].amount / 2
-  //     );
-  //   });
-  // });
+      await expect(
+        removal.mintBatch(
+          hre.namedAccounts.supplier,
+          [amount],
+          [removalIdWithMethodology2],
+          packedData
+        )
+      ).to.be.revertedWith('Restriction duration not set');
+    });
+  });
+  describe(`create schedule`, () => {
+    it('should create a schedule with a direct call', async () => {
+      const removals = [
+        {
+          amount: 5,
+          vintage: 2018,
+        },
+      ];
+      const testSetup = await setupTest();
+      const { removal, fifoMarket, rNori, hre } = testSetup;
+      const { projectId, scheduleStartTime } = {
+        projectId: 1_234_567_890,
+        scheduleStartTime: await getLatestBlockTime({ hre }),
+      };
+      const { supplier } = hre.namedAccounts;
+      const removalTokenId = await createRemovalTokenId({
+        removal,
+        hre,
+        removalData: {
+          supplierAddress: supplier,
+          vintage: 2016,
+          subIdentifier: 9_999_999,
+        },
+      });
+      const removalAmounts = removals.map((removalData) =>
+        formatTokenString(removalData.amount.toString())
+      );
+      await removal.mintBatch(
+        // mint removals but don't list yet (or a schedule will be created via listing)
+        supplier,
+        removalAmounts,
+        [removalTokenId],
+        await createBatchMintData({
+          hre,
+          fifoMarket,
+          listNow: false,
+          projectId,
+          scheduleStartTime,
+        })
+      );
+      await rNori.createSchedule(projectId);
+      const scheduleSummary = await rNori.getScheduleSummary(projectId);
+      expect(scheduleSummary.scheduleTokenId).to.equal(projectId);
+      expect(scheduleSummary.startTime).to.equal(scheduleStartTime);
+      expect(scheduleSummary.endTime).to.equal(
+        scheduleStartTime + SECONDS_IN_10_YEARS
+      );
+      expect(scheduleSummary.tokenHolders).to.be.empty;
+      expect(scheduleSummary.totalSupply).to.equal(0);
+    });
+  });
+  describe('mint', () => {
+    //   // todo
+    //   // it('should deposit tokens and automatically create a new restriction schedule where one does not exist', async () => {
+    //   //   const removals = [
+    //   //     {
+    //   //       amount: 5,
+    //   //       vintage: 2018,
+    //   //     },
+    //   //   ];
+    //   //   const testSetup = await  setupTest({
+    //   // userFixtures: {
+    //   //     admin: {
+    //   //       roles: {
+    //   //         RestrictedNORI: ['MINTER_ROLE'],
+    //   //       },
+    //   //     },
+    //   //   },
+    //   // });
+    //   //   const { bpNori, rNori } = testSetup;
+    //   //   const { listedRemovalIds, projectId, scheduleStartTime } =
+    //   //     await batchMintAndListRemovalsForSale({
+    //   //       ...testSetup,
+    //   //       removalDataToList,
+    //   //     });
+    //   //   const { namedAccounts } = hre;
+    //   //   const restrictedAmount = 1;
+    //   //   expect(await bpNori.transfer(rNori.address, restrictedAmount))
+    //   //     .to.emit(bpNori, 'Sent')
+    //   //     .withArgs(
+    //   //       namedAccounts.admin,
+    //   //       namedAccounts.admin,
+    //   //       rNori.address,
+    //   //       restrictedAmount,
+    //   //       '0x',
+    //   //       '0x'
+    //   //     )
+    //   //     .to.emit(bpNori, 'Transfer')
+    //   //     .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
+    //   //   expect(await rNori.mint(restrictedAmount, listedRemovalIds[0]))
+    //   //     .to.emit(rNori, 'TransferSingle')
+    //   //     .withArgs(
+    //   //       namedAccounts.admin,
+    //   //       ethers.constants.AddressZero,
+    //   //       namedAccounts.supplier,
+    //   //       projectId,
+    //   //       restrictedAmount
+    //   //     )
+    //   //     .to.emit(rNori, 'Transfer')
+    //   //     .withArgs(
+    //   //       ethers.constants.AddressZero,
+    //   //       namedAccounts.supplier,
+    //   //       restrictedAmount
+    //   //     );
+    //   //   const scheduleSummary = await rNori.getScheduleSummary(projectId);
+    //   //   expect(scheduleSummary.scheduleTokenId).equals(projectId);
+    //   //   expect(scheduleSummary.totalSupply).equals(restrictedAmount);
+    //   //   expect(scheduleSummary.tokenHolders[0]).equals(namedAccounts.supplier);
+    //   //   expect(scheduleSummary.startTime).equals(scheduleStartTime);
+    //   //   expect(scheduleSummary.endTime).equals(
+    //   //     scheduleStartTime + SECONDS_IN_10_YEARS
+    //   //   );
+    //   //   expect(scheduleSummary.totalClaimedAmount).equals(0);
+    //   //   expect(scheduleSummary.totalQuantityRevoked).equals(0);
+    //   //   expect(scheduleSummary.exists).equals(true);
+    //   // });
+    it('should revert if the minter of RestrictedNORI is not the market contract', async () => {
+      const testSetup = await setupTest({
+        userFixtures: {
+          supplier: {
+            removalDataToList: {
+              removals: [
+                {
+                  amount: 100,
+                  vintage: 2018,
+                },
+              ],
+            },
+          },
+        },
+      });
+      const { rNori, bpNori, hre, listedRemovalIds } = testSetup;
+      await bpNori.transfer(rNori.address, 1);
+      await expect(
+        rNori.connect(hre.namedSigners.buyer).mint(1, listedRemovalIds[0])
+      ).to.be.revertedWith(`InvalidMinter("${hre.namedAccounts.buyer}")`);
+    });
+  });
+  describe('Linear releasing (claimableBalanceForSchedule)', () => {
+    it('should return 0 before schedule start time', async () => {
+      const testSetup = await setupTest({
+        userFixtures: {
+          admin: {
+            roles: {
+              RestrictedNORI: ['MINTER_ROLE'],
+            },
+          },
+          supplier: {
+            removalDataToList: {
+              scheduleStartTime: Number.MAX_SAFE_INTEGER - 1,
+              removals: [
+                {
+                  amount: 100,
+                  vintage: 2020,
+                },
+              ],
+            },
+          },
+        },
+      });
+      const { rNori, hre, removalAmounts, listedRemovalIds, projectId } =
+        testSetup;
+      const { supplier } = hre.namedAccounts;
+      await restrictRemovalProceeds({
+        testSetup,
+        removalIds: listedRemovalIds,
+        removalAmountsToRestrict: removalAmounts,
+      });
+      const claimableBalanceForSchedule =
+        await rNori.claimableBalanceForSchedule(projectId);
+      expect(claimableBalanceForSchedule).to.equal(0);
+      await expect(
+        rNori
+          .connect(hre.namedSigners.supplier)
+          .withdrawFromSchedule(supplier, projectId, removalAmounts[0])
+      ).revertedWith(
+        `InsufficientClaimableBalance("${supplier}", ${projectId})`
+      );
+    });
+    it('should return the full amount at the end of the restriction schedule', async () => {
+      const testSetup = await setupTest({
+        userFixtures: {
+          admin: {
+            roles: {
+              RestrictedNORI: ['MINTER_ROLE'],
+            },
+          },
+          supplier: {
+            removalDataToList: {
+              removals: [
+                {
+                  amount: 100,
+                  vintage: 2018,
+                },
+              ],
+            },
+          },
+        },
+      });
+      const {
+        rNori,
+        hre,
+        listedRemovalIds,
+        projectId,
+        scheduleStartTime,
+        totalAmountOfSupply,
+        removalAmounts,
+      } = testSetup;
+      const { supplier } = hre.namedAccounts;
+      await restrictRemovalProceeds({
+        testSetup,
+        removalIds: listedRemovalIds,
+        removalAmountsToRestrict: removalAmounts,
+      });
+      await advanceTime({
+        hre,
+        timestamp: scheduleStartTime + SECONDS_IN_10_YEARS,
+      });
+      const claimableBalanceOf =
+        await rNori.claimableBalanceForScheduleForAccount(projectId, supplier);
+      expect(claimableBalanceOf).to.equal(totalAmountOfSupply);
+      await expect(
+        rNori
+          .connect(hre.namedSigners.supplier)
+          .withdrawFromSchedule(supplier, projectId, totalAmountOfSupply)
+      ).not.to.be.reverted;
+    });
+    it('should release linearly as expected and increase the current released amount when the total amount increases', async () => {
+      const testSetup = await setupTest({
+        userFixtures: {
+          admin: {
+            roles: {
+              RestrictedNORI: ['MINTER_ROLE'],
+            },
+          },
+          supplier: {
+            removalDataToList: {
+              removals: [
+                { amount: 100, vintage: 2018 },
+                { amount: 100, vintage: 2019 },
+              ],
+            },
+          },
+        },
+      });
+      const {
+        rNori,
+        hre,
+        listedRemovalIds,
+        projectId,
+        scheduleStartTime,
+        removalAmounts,
+      } = testSetup;
+      await restrictRemovalProceeds({
+        testSetup,
+        removalIds: [listedRemovalIds[0]],
+        removalAmountsToRestrict: [removalAmounts[0]],
+      });
+      await advanceTime({
+        hre,
+        timestamp: scheduleStartTime + SECONDS_IN_5_YEARS,
+      });
+      const originalClaimableBalanceForSchedule =
+        await rNori.claimableBalanceForSchedule(projectId);
+      expect(originalClaimableBalanceForSchedule).to.equal(
+        removalAmounts[0].div(2)
+      );
+      await restrictRemovalProceeds({
+        testSetup,
+        removalIds: [listedRemovalIds[1]],
+        removalAmountsToRestrict: [removalAmounts[1]],
+      });
+      const claimableBalanceAfterSecondRestriction =
+        await rNori.claimableBalanceForSchedule(projectId);
+      expect(claimableBalanceAfterSecondRestriction).to.be.closeTo(
+        removalAmounts[0].div(2).add(removalAmounts[1].div(2)),
+        ethers.utils.parseUnits('1', 'finney')
+      );
+    });
+  });
   // describe('Claiming (withdrawTo)', () => {
   //   describe('success', () => {
   //     it('can withdraw claimable tokens', async () => {
@@ -546,7 +459,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -581,7 +494,7 @@ describe('RestrictedNORI', () => {
   //         );
   //       expect(
   //         await rNori
-  //           .connect(await hre.ethers.getSigner(supplier))
+  //           .connect(hre.namedSigners.supplier)
   //           .withdrawFromSchedule(supplier, projectId, claimableBalance)
   //       )
   //         .to.emit(rNori, 'TokensClaimed')
@@ -608,7 +521,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -641,7 +554,7 @@ describe('RestrictedNORI', () => {
   //           supplier
   //         );
   //       await rNori
-  //         .connect(await hre.ethers.getSigner(supplier))
+  //         .connect(hre.namedSigners.supplier)
   //         .withdrawFromSchedule(supplier, projectId, claimableBalanceAtHalfway);
 
   //       // advance to 3/4 of the way through schedule
@@ -665,7 +578,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -700,7 +613,7 @@ describe('RestrictedNORI', () => {
   //         );
   //       expect(
   //         await rNori
-  //           .connect(await hre.ethers.getSigner(supplier))
+  //           .connect(hre.namedSigners.supplier)
   //           .withdrawFromSchedule(investor1, projectId, claimableBalance)
   //       )
   //         .to.emit(rNori, 'TokensClaimed')
@@ -728,7 +641,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -784,7 +697,7 @@ describe('RestrictedNORI', () => {
   //         restrictedAmount / 3 / 2
   //       );
   //       await rNori
-  //         .connect(await hre.ethers.getSigner(supplier))
+  //         .connect(hre.namedSigners.supplier)
   //         .withdrawFromSchedule(
   //           supplier,
   //           projectId,
@@ -843,7 +756,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -878,7 +791,7 @@ describe('RestrictedNORI', () => {
   //       const attemptToWithdrawAmount = claimableBalance.add(1);
   //       await expect(
   //         rNori
-  //           .connect(await hre.ethers.getSigner(supplier))
+  //           .connect(hre.namedSigners.supplier)
   //           .withdrawFromSchedule(supplier, projectId, attemptToWithdrawAmount)
   //       ).to.be.revertedWith(
   //         `InsufficientClaimableBalance("${supplier}", ${projectId})`
@@ -896,7 +809,7 @@ describe('RestrictedNORI', () => {
   //             vintage: 2018,
   //           },
   //         ];
-  //         const testSetup = await await setupTest({
+  //         const testSetup = await  setupTest({
   //           userFixtures: {
   //             admin: {
   //               roles: {
@@ -977,7 +890,7 @@ describe('RestrictedNORI', () => {
   //             vintage: 2018,
   //           },
   //         ];
-  //         const testSetup = await await setupTest({
+  //         const testSetup = await  setupTest({
   //           userFixtures: {
   //             admin: {
   //               roles: {
@@ -1071,7 +984,7 @@ describe('RestrictedNORI', () => {
   //             vintage: 2019,
   //           },
   //         ];
-  //         const testSetup = await await setupTest({
+  //         const testSetup = await  setupTest({
   //           userFixtures: {
   //             admin: {
   //               roles: {
@@ -1249,7 +1162,7 @@ describe('RestrictedNORI', () => {
   //             vintage: 2019,
   //           },
   //         ];
-  //         const testSetup = await await setupTest({
+  //         const testSetup = await  setupTest({
   //           userFixtures: {
   //             admin: {
   //               roles: {
@@ -1390,7 +1303,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -1429,7 +1342,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -1522,7 +1435,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -1628,7 +1541,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -1667,7 +1580,7 @@ describe('RestrictedNORI', () => {
 
   //       const amountToClaimForSupplier = 500;
   //       await rNori
-  //         .connect(await hre.ethers.getSigner(supplier))
+  //         .connect(hre.namedSigners.supplier)
   //         .withdrawFromSchedule(supplier, projectId, amountToClaimForSupplier);
 
   //       const revocableQuantityForSchedule =
@@ -1721,7 +1634,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -1798,7 +1711,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2019,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -1901,7 +1814,7 @@ describe('RestrictedNORI', () => {
   //           vintage: 2018,
   //         },
   //       ];
-  //       const testSetup = await await setupTest({
+  //       const testSetup = await  setupTest({
   //         userFixtures: {
   //           admin: {
   //             roles: {
@@ -1995,79 +1908,84 @@ describe('RestrictedNORI', () => {
   //       expect(revocableQuantityAtEndOfSchedule).to.equal(0);
   //     });
   //   });
-  //   describe('failure', () => {
-  //     it('should revert when the account attempting to revoke is missing the TOKEN_REVOKER_ROLE', async () => {
-  //       const removals = [
-  //         {
-  //           amount: 100,
-  //           vintage: 2018,
-  //         },
-  //       ];
-  //       const testSetup = await await setupTest({
-  //         userFixtures: {
-  //           admin: {
-  //             roles: {
-  //               RestrictedNORI: ['MINTER_ROLE'],
-  //             },
-  //           },
-  //         },
-  //       });
-  //       const { rNori, hre } = testSetup;
-  //       const { listedRemovalIds } = await batchMintAndListRemovalsForSale({
-  //         ...testSetup,
-  //         removalDataToList,
-  //       });
-  //       const { buyer } = hre.namedAccounts;
-
-  //       const restrictedAmount = removalDataToList[0].amount;
-  //       await restrictRemovalProceeds({
-  //         testSetup,
-  //         removalIds: listedRemovalIds,
-  //         removalAmountsToRestrict: [restrictedAmount],
-  //       });
-  //       await expect(
-  //         rNori
-  //           .connect(hre.namedSigners.buyer) // missing TOKEN_REVOKE_ROLE (but funded)
-  //           .batchRevokeUnreleasedTokenAmounts([buyer], listedRemovalIds, [1])
-  //       ).to.be.reverted;
-  //     });
-  it('should revert when attempting to revoke more tokens than are revocable', async () => {
-    const testSetup = await await setupTest({
-      userFixtures: {
-        admin: {
-          roles: {
-            RestrictedNORI: ['MINTER_ROLE'],
+  describe('failure', () => {
+    it('should revert when the account attempting to revoke is missing the TOKEN_REVOKER_ROLE', async () => {
+      const testSetup = await setupTest({
+        userFixtures: {
+          admin: {
+            roles: {
+              RestrictedNORI: ['MINTER_ROLE'],
+            },
+          },
+          supplier: {
+            removalDataToList: {
+              removals: [
+                {
+                  amount: 100,
+                  vintage: 2018,
+                },
+              ],
+            },
           },
         },
-        supplier: {
-          removalDataToList: {
-            removals: [
-              {
-                amount: 100,
-                vintage: 2018,
-              },
-            ],
+      });
+      const { rNori, hre, listedRemovalIds, userFixtures } = testSetup;
+      const { buyer } = hre.namedAccounts;
+      const restrictedAmount =
+        userFixtures.supplier.removalDataToList.removals[0].amount;
+      await restrictRemovalProceeds({
+        testSetup,
+        removalIds: listedRemovalIds,
+        removalAmountsToRestrict: [restrictedAmount],
+      });
+      await expect(
+        rNori
+          .connect(hre.namedSigners.buyer) // missing TOKEN_REVOKE_ROLE (but funded)
+          .batchRevokeUnreleasedTokenAmounts([buyer], listedRemovalIds, [1])
+      ).to.be.reverted;
+    });
+    it('should revert when attempting to revoke more tokens than are revocable', async () => {
+      const testSetup = await setupTest({
+        userFixtures: {
+          admin: {
+            roles: {
+              RestrictedNORI: ['MINTER_ROLE'],
+            },
+          },
+          supplier: {
+            removalDataToList: {
+              removals: [
+                {
+                  amount: 100,
+                  vintage: 2018,
+                },
+              ],
+            },
           },
         },
-      },
+      });
+      const {
+        rNori,
+        hre,
+        listedRemovalIds,
+        projectId,
+        userFixtures,
+        removalAmounts,
+      } = testSetup;
+      const { admin } = hre.namedAccounts;
+      await restrictRemovalProceeds({
+        testSetup,
+        removalIds: listedRemovalIds,
+        removalAmountsToRestrict: removalAmounts,
+      });
+      const revocableQuantityForSchedule =
+        await rNori.revocableQuantityForSchedule(projectId);
+      await expect(
+        rNori.batchRevokeUnreleasedTokenAmounts([admin], listedRemovalIds, [
+          revocableQuantityForSchedule.add(1),
+        ])
+      ).to.be.revertedWith(`InsufficientUnreleasedTokens(${projectId})`);
     });
-    const { rNori, hre, listedRemovalIds, projectId, userFixtures } = testSetup;
-    const { admin } = hre.namedAccounts;
-    const restrictedAmount =
-      userFixtures.supplier.removalDataToList.removals[0].amount;
-    await restrictRemovalProceeds({
-      testSetup,
-      removalIds: listedRemovalIds,
-      removalAmountsToRestrict: [restrictedAmount],
-    });
-    const revocableQuantityForSchedule =
-      await rNori.revocableQuantityForSchedule(projectId);
-    await expect(
-      rNori.batchRevokeUnreleasedTokenAmounts([admin], listedRemovalIds, [
-        revocableQuantityForSchedule.add(1),
-      ])
-    ).to.be.revertedWith(`InsufficientUnreleasedTokens(${projectId})`);
   });
 });
-// });
 // });

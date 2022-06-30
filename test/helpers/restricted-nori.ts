@@ -20,7 +20,7 @@ export const restrictRemovalProceeds = async ({
 }: {
   testSetup: Awaited<ReturnType<typeof setupTest>>;
   removalIds: BigNumber[];
-  removalAmountsToRestrict: number[];
+  removalAmountsToRestrict: BigNumber[];
 }): Promise<void> => {
   const { rNori, bpNori } = testSetup;
   await Promise.all(
