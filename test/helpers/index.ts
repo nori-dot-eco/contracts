@@ -19,7 +19,7 @@ import type {
   Removal,
   Certificate,
   FIFOMarket,
-  // LockedNORI, // todo import from forked repo
+  LockedNORIV2,
   RestrictedNORI,
   NORI,
   BridgedPolygonNORI,
@@ -40,7 +40,7 @@ interface ContractInstances {
   removal: Removal;
   certificate: Certificate;
   fifoMarket: FIFOMarket;
-  // lNori: LockedNORI; // todo import from forked repo
+  lNori: LockedNORIV2;
   rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
   mockCertificate: MockCertificate; // todo key remapping of Contracts
