@@ -1,7 +1,7 @@
-import { ethers, upgrades } from 'hardhat';
+import { upgrades } from 'hardhat';
 import { expect, setupTest } from '@/test/helpers';
 import { LockedNORIV2 } from '../typechain-types';
-// Not sure if this will exist in a clean build?  Does typechain build from artifacts or source?
+// Not sure if this will exist in a clean build.  Does typechain build from artifacts or source?
 import { LockedNORI } from '../typechain-types/contracts/LockedNORI';
 import {
   abi,
@@ -27,7 +27,10 @@ describe('LockedNORI V1 to V2 upgrade', () => {
       { initializer: 'initialize()' }
     )) as TestToken777;
 
-    const LockedNORIFactory = await ethers.getContractFactory(abi, bytecode);
+    const LockedNORIFactory = await hre.ethers.getContractFactory(
+      abi,
+      bytecode
+    );
     const lnori = (await upgrades.deployProxy(
       LockedNORIFactory,
       [testTokenInstance.address],
