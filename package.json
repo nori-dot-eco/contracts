@@ -14,7 +14,7 @@
     "@octokit/rest": "^18.12.0",
     "@openzeppelin/contracts-upgradeable": "4.6.0",
     "@openzeppelin/hardhat-defender": "^1.7.0",
-    "@openzeppelin/hardhat-upgrades": "^1.19.0",
+    "@openzeppelin/hardhat-upgrades": "=1.17.0",
     "@openzeppelin/test-helpers": "^0.5.15",
     "@tenderly/hardhat-tenderly": "^1.0.13",
     "@typechain/ethers-v5": "^10.0.0",
