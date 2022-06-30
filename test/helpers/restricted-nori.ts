@@ -1,29 +1,19 @@
 import type { BigNumber } from 'ethers';
 
 import type { RestrictedNORI } from '@/typechain-types/contracts/RestrictedNORI';
-import { setupTest, expect } from '@/test/helpers';
+import type { setupTest } from '@/test/helpers';
+import { expect } from '@/test/helpers';
 
 export const SECONDS_IN_1_YEAR_AVG = 31_556_952;
 export const SECONDS_IN_10_YEARS = 315_569_520;
 export const SECONDS_IN_5_YEARS = SECONDS_IN_10_YEARS / 2;
 
-export const setupTestLocal = global.hre.deployments.createFixture(
-  async (): ReturnType<typeof setupTest> => {
-    const testSetup = await setupTest({});
-    const { hre, rNori } = testSetup;
-    await rNori.grantRole(
-      await rNori.TOKEN_DEPOSITOR_ROLE(),
-      hre.namedAccounts.admin
-    );
-    return testSetup;
-  }
-);
-
-export const formatTokensReceivedUserData = (removalId: BigNumber): any => {
+export const formatTokensReceivedUserData = (removalId: BigNumber): string => {
   return hre.ethers.utils.defaultAbiCoder.encode(['uint256'], [removalId]);
 };
 
 export const restrictRemovalProceeds = async ({
+  // todo fixture
   testSetup,
   removalIds,
   removalAmountsToRestrict,
@@ -34,13 +24,11 @@ export const restrictRemovalProceeds = async ({
 }): Promise<void> => {
   const { rNori, bpNori } = testSetup;
   await Promise.all(
-    removalIds.map((id, index) => {
-      // const userData = formatTokensReceivedUserData(id); // todo
-      return bpNori.transfer(
-        rNori.address,
-        removalAmountsToRestrict[index]
-        // userData  // todo
-      );
+    removalIds.map(async (id, index) => {
+      return Promise.all([
+        rNori.mint(removalAmountsToRestrict[index], id),
+        bpNori.transfer(rNori.address, removalAmountsToRestrict[index]),
+      ]);
     })
   );
 };
