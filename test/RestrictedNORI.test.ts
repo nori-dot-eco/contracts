@@ -1913,26 +1913,18 @@ describe('RestrictedNORI', () => {
       const testSetup = await setupTest({
         userFixtures: {
           admin: {
-            roles: {
-              RestrictedNORI: ['MINTER_ROLE'],
-            },
+            roles: { RestrictedNORI: ['MINTER_ROLE'] },
           },
           supplier: {
             removalDataToList: {
-              removals: [
-                {
-                  amount: 100,
-                  vintage: 2018,
-                },
-              ],
+              removals: [{ amount: 100, vintage: 2018 }],
             },
           },
         },
       });
-      const { rNori, hre, listedRemovalIds, userFixtures } = testSetup;
+      const { rNori, hre, listedRemovalIds, removalAmounts } = testSetup;
       const { buyer } = hre.namedAccounts;
-      const restrictedAmount =
-        userFixtures.supplier.removalDataToList.removals[0].amount;
+      const restrictedAmount = removalAmounts[0];
       await restrictRemovalProceeds({
         testSetup,
         removalIds: listedRemovalIds,
@@ -1948,30 +1940,17 @@ describe('RestrictedNORI', () => {
       const testSetup = await setupTest({
         userFixtures: {
           admin: {
-            roles: {
-              RestrictedNORI: ['MINTER_ROLE'],
-            },
+            roles: { RestrictedNORI: ['MINTER_ROLE'] },
           },
           supplier: {
             removalDataToList: {
-              removals: [
-                {
-                  amount: 100,
-                  vintage: 2018,
-                },
-              ],
+              removals: [{ amount: 100, vintage: 2018 }],
             },
           },
         },
       });
-      const {
-        rNori,
-        hre,
-        listedRemovalIds,
-        projectId,
-        userFixtures,
-        removalAmounts,
-      } = testSetup;
+      const { rNori, hre, listedRemovalIds, projectId, removalAmounts } =
+        testSetup;
       const { admin } = hre.namedAccounts;
       await restrictRemovalProceeds({
         testSetup,

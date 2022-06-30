@@ -28,7 +28,7 @@ export const mockDepositNoriToPolygon = async ({
     hre.ethers.utils.defaultAbiCoder.encode(['uint256'], [amount])
   );
   hre.trace(
-    `BridgedPolygonNORI: Deposited ${hre.namedSigners.admin} NORI for BridgedPolygonNORI`
+    `BridgedPolygonNORI: Deposited ${amount} NORI for BridgedPolygonNORI`
   );
   const bridgeTx = await contracts.NORI.connect(signer).transfer(
     hre.namedAccounts.mockPolygonBridge,
