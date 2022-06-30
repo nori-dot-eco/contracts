@@ -109,7 +109,7 @@ type RoleFixtures = {
 export interface SetupTestOptions {
   userFixtures?: UserFixtures;
   contractFixtures?: ContractFixtures;
-  fee?: BigNumber; // todo market fixture
+  feePercentage?: number; // todo market fixture
 }
 
 type TestEnvironment<TOptions extends SetupTestOptions = SetupTestOptions> =
@@ -404,7 +404,7 @@ export const setupTest = global.hre.deployments.createFixture(
     }
     return {
       hre,
-      fee: options?.fee ?? formatTokenAmount(0.15),
+      feePercentage: options?.feePercentage ?? 15,
       contracts,
       nori: contracts.NORI,
       bpNori: contracts.BridgedPolygonNORI,
