@@ -106,7 +106,7 @@ type RoleFixtures = {
   [Property in keyof ContractFixtures]?: string[];
 };
 
-export interface SetupTestOptions {
+interface SetupTestOptions {
   userFixtures?: UserFixtures;
   contractFixtures?: ContractFixtures;
   feePercentage?: number; // todo market fixture
@@ -190,7 +190,7 @@ interface RemovalDataFromListing {
 }
 
 // todo helpers/removal.ts
-export interface RemovalDataForListing {
+interface RemovalDataForListing {
   projectId?: number;
   scheduleStartTime?: number;
   holdbackPercentage?: number;
@@ -282,10 +282,10 @@ export const batchMintAndListRemovalsForSale = async (options: {
 
 // todo helpers/setup.ts
 export const setupTest = global.hre.deployments.createFixture(
-  async <TOptions extends SetupTestOptions = SetupTestOptions>(
+  async (
     hre: CustomHardHatRuntimeEnvironment,
-    options?: TOptions
-  ): Promise<TestEnvironment<SetupTestOptions & TOptions>> => {
+    options?: SetupTestOptions
+  ): Promise<TestEnvironment<SetupTestOptions>> => {
     const userFixtures: UserFixtures = {
       ...options?.userFixtures,
       buyer: {
@@ -427,6 +427,6 @@ export const setupTest = global.hre.deployments.createFixture(
       scheduleStartTime,
       holdbackPercentage,
       removalAmounts,
-    } as TestEnvironment<SetupTestOptions & TOptions>;
+    } as TestEnvironment<SetupTestOptions>;
   }
 );
