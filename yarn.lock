@@ -2319,29 +2319,21 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.6.0.tgz#1bf55f230f008554d4c6fe25eb165b85112108b0"
   integrity sha512-5OnVuO4HlkjSCJO165a4i2Pu1zQGzMs//o54LPrwUgxvEO2P3ax1QuaSI0cEHHTveA77guS0PnNugpR2JMsPfA==
 
-"@openzeppelin/hardhat-defender@^1.6.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-defender/-/hardhat-defender-1.6.0.tgz#19512a893a778ed58c833c7c1d350118193dd79a"
-  integrity sha512-8LgE6fGI9D8WnhBEQQ3eOHL5gfW7G0fx5UktJdBPwUtQcD3kG4mVqqxj2zabTaC3NsimL7BZ+vsCdwKZ58jMFQ==
+"@openzeppelin/hardhat-defender@^1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-defender/-/hardhat-defender-1.7.0.tgz#de0aafdffe4530db1272fc01c271ab7efd227688"
+  integrity sha512-4o1KTs03fomhEjBjWx9/p2rTy26l1Ls82+rgpUZaoej2UKEAG5n3YJeMEpQbG0Oir5DfbJqFD39tUck1gC8bfw==
   dependencies:
-    "@openzeppelin/hardhat-upgrades" "^1.13.0"
+    "@openzeppelin/hardhat-upgrades" "^1.19.0"
     defender-admin-client "^1.6.0-rc.0"
     defender-base-client "^1.3.1"
 
-"@openzeppelin/hardhat-upgrades@^1.13.0":
-  version "1.13.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.13.0.tgz#c2b6a3e0a1694f877b501003b159cf4550452a8b"
-  integrity sha512-0pSSUimzd4JL/mKhdNcczDGhv6ELPcI8cWWyCYjTwKoI3wL+AnRrbIQ+yrpHVpia3dAmI/+1sLOz70HvFKNzNQ==
+"@openzeppelin/hardhat-upgrades@^1.19.0":
+  version "1.19.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.19.0.tgz#8f17210b924eb04c3ea4aa9795c1bb01d8a7dc3f"
+  integrity sha512-351QqDO3nZ96g0BO/bQnaTflix4Nw4ELWC/hZ8PwicsuVxRmxN/GZhxPrs62AOdiQdZ+xweawrVXa5knliRd4A==
   dependencies:
-    "@openzeppelin/upgrades-core" "^1.11.0"
-    chalk "^4.1.0"
-
-"@openzeppelin/hardhat-upgrades@^1.17.0":
-  version "1.17.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.17.0.tgz#24ea0f366c3b2df985263cf8b1b796afd04d7e13"
-  integrity sha512-GNxR3/3fCKQsFpBi/r+5ib6U81UM9KCypmcOQxuCkVp9JKJ80/3hQdg1R+AQku/dlnhutPsfkCokH2LZFc5mNA==
-  dependencies:
-    "@openzeppelin/upgrades-core" "^1.14.1"
+    "@openzeppelin/upgrades-core" "^1.16.0"
     chalk "^4.1.0"
     proper-lockfile "^4.1.1"
 
@@ -2361,7 +2353,7 @@
     web3 "^1.2.5"
     web3-utils "^1.2.5"
 
-"@openzeppelin/upgrades-core@^1.11.0", "@openzeppelin/upgrades-core@^1.14.1":
+"@openzeppelin/upgrades-core@^1.14.1", "@openzeppelin/upgrades-core@^1.16.0":
   version "1.14.1"
   resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.14.1.tgz#a0e1c83f9811186ac49d286e6b43ae129097422b"
   integrity sha512-iKlh1mbUxyfdjdEiUFyhMkqirfas+DMUu7ED53nZbHEyhcYsm+5Fl/g0Bv6bZA+a7k8kO8+22DNEKsqaDUBc2Q==
@@ -8343,13 +8335,6 @@ hardhat-gas-reporter@^1.0.8:
     array-uniq "1.0.3"
     eth-gas-reporter "^0.2.24"
     sha1 "^1.1.1"
-
-hardhat-preprocessor@^0.1.4:
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/hardhat-preprocessor/-/hardhat-preprocessor-0.1.4.tgz#daa3004c3d2cca2ce1b5555c0c9b1940670fd022"
-  integrity sha512-TeIi9y5xXf6oKa2BMqXAFQV0tAJRy9MKDElu0VrHMsEVpiUXRh47AEJqWkFpWr2lVLFweif40n1RGxGIEFOPXw==
-  dependencies:
-    murmur-128 "^0.2.1"
 
 hardhat@2.9.4:
   version "2.9.4"
