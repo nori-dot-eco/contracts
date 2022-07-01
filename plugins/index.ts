@@ -14,6 +14,7 @@ import 'hardhat-gas-reporter';
 import 'solidity-docgen';
 import '@nomiclabs/hardhat-solhint';
 import 'solidity-coverage';
+import 'hardhat-tracer'; // todo add to release notes
 import '@/config/environment';
 import '@/tasks/index';
 
@@ -28,6 +29,7 @@ import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { namedAccountIndices, namedAccounts } from '@/config/accounts';
 import { trace, log } from '@/utils/log';
 import { getContract } from '@/utils/contracts';
+import { debug } from '@/utils/debug';
 
 const getNamedSigners = (
   hre: CustomHardHatRuntimeEnvironment
@@ -52,6 +54,7 @@ extendEnvironment((hre) => {
   // todo move to @/extensions/signers, @extensions/deployments
   hre.log = log;
   hre.trace = trace;
+  hre.debug = debug;
 
   // All live networks will try to use fireblocks
   if (Boolean(hre.config.fireblocks.apiKey) && hre.network.config.live) {

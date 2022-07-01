@@ -34,6 +34,7 @@ import { HardhatUserConfig } from 'hardhat/types';
 import { Address, Deployment } from 'hardhat-deploy/types';
 import { Contracts } from '@/utils/contracts';
 import { Eip2612Signer } from '@/signers/eip-26126';
+import { debug } from '@/utils/debug';
 
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
@@ -218,6 +219,7 @@ declare global {
     deployNonUpgradeable: DeployNonUpgradeableFunction;
     log: Console['log'];
     trace: Console['log'];
+    debug: typeof debug;
     ethernalSync: boolean; // todo figure out why we need to re-write types like this
     ethernalTrace: boolean;
     ethernalWorkspace: string;
@@ -262,6 +264,7 @@ declare global {
       VIA_IR: boolean;
       OPTIMIZER_RUNS: number;
       OPTIMIZER: boolean;
+      CI: boolean;
     }
   }
 }

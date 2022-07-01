@@ -58,8 +58,8 @@ describe('FIFOMarket', () => {
         expect(await fifoMarket.hasRole(roleId, namedAccounts[accountWithRole]))
           .to.be.true;
         const newThreshold = formatTokenAmount(100);
-        expect(
-          await fifoMarket
+        await expect(
+          fifoMarket
             .connect(namedSigners[accountWithRole])
             .setPriorityRestrictedThreshold(newThreshold)
         )
@@ -554,7 +554,6 @@ describe('FIFOMarket', () => {
         // Roundabout way of showing that the removal used to fill the order was the removal with amount 5, not 1.
         expect(totalNumberActiveRemovals).to.equal(2);
       });
-      ('should mint a certificate with all of a single removal in round robin order and update state variables');
       it('should mint a certificate with one removal per supplier in round robin order and update state variables', async () => {
         const {
           bpNori,
@@ -1184,6 +1183,148 @@ describe('FIFOMarket', () => {
         // TODO: check that removals are getting burned correctly?
         // todo track balances using a class and before/after snapshotting
       });
+    });
+  });
+  describe('purchasing from a specified supplier', () => {
+    it('should purchase supply from a specific supplier when they have enough supply', async () => {
+      const {
+        bpNori,
+        removal,
+        certificate,
+        fifoMarket,
+        feePercentage,
+        totalAmountOfSupply,
+      } = await setupTest({
+        userFixtures: {
+          supplier: {
+            removalDataToList: {
+              removals: [
+                { amount: 10, supplierAddress: hre.namedAccounts.supplier }, // 2 removals each for 2 different suppliers
+                { amount: 10, supplierAddress: hre.namedAccounts.supplier },
+                { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
+                { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
+              ],
+            },
+          },
+        },
+      });
+      const purchaseAmount = totalAmountOfSupply.div(2); // purchase half of supply, exactly two full removal tokens
+      const fee = purchaseAmount.mul(feePercentage).div(100);
+      const value = purchaseAmount.add(fee);
+      const supplierInitialNoriBalance = formatTokenAmount(0);
+      const investor1InitialNoriBalance = formatTokenAmount(0);
+      const { buyer } = hre.namedSigners;
+      const { v, r, s } = await buyer.permit({
+        verifyingContract: bpNori,
+        spender: fifoMarket.address,
+        value,
+      });
+      await fifoMarket
+        .connect(buyer)
+        .swapFromSpecificSupplier(
+          buyer.address,
+          value,
+          hre.namedAccounts.supplier,
+          hre.ethers.constants.MaxUint256,
+          v,
+          r,
+          s
+        );
+      const [supplierFinalNoriBalance, investor1FinalNoriBalance] =
+        await Promise.all([
+          bpNori.balanceOf(hre.namedAccounts.supplier),
+          bpNori.balanceOf(hre.namedAccounts.investor1),
+        ]);
+      expect(supplierFinalNoriBalance).to.equal(
+        supplierInitialNoriBalance.add(purchaseAmount)
+      );
+      expect(investor1FinalNoriBalance).to.equal(investor1InitialNoriBalance);
+      const sources = await certificate.sources(0);
+      expect(sources.length).to.equal(2);
+      const decodedRemovalIds = await Promise.all(
+        sources.map((source) => removal.unpackRemovalIdV0(source.removalId))
+      );
+      expect(decodedRemovalIds.map((e) => e.supplierAddress)).to.deep.equal(
+        Array.from({ length: decodedRemovalIds.length }).fill(
+          hre.namedAccounts.supplier
+        )
+      );
+    });
+    it('should revert when purchasing supply from a specific supplier who does not have enough supply', async () => {
+      const { bpNori, fifoMarket, feePercentage } = await setupTest({
+        userFixtures: {
+          supplier: {
+            removalDataToList: {
+              removals: [
+                { amount: 10, supplierAddress: hre.namedAccounts.supplier }, // 2 removals each for 2 different suppliers
+                { amount: 10, supplierAddress: hre.namedAccounts.supplier },
+                { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
+                { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
+              ],
+            },
+          },
+        },
+      });
+      const purchaseAmount = formatTokenAmount(30); // enough total supply, not enough from specific supplier
+      const fee = purchaseAmount.mul(feePercentage).div(100);
+      const value = purchaseAmount.add(fee);
+      const { buyer } = hre.namedSigners;
+      const { v, r, s } = await buyer.permit({
+        verifyingContract: bpNori,
+        spender: fifoMarket.address,
+        value,
+      });
+      await expect(
+        fifoMarket
+          .connect(buyer)
+          .swapFromSpecificSupplier(
+            buyer.address,
+            value,
+            hre.namedAccounts.supplier,
+            hre.ethers.constants.MaxUint256,
+            v,
+            r,
+            s
+          )
+      ).to.be.revertedWith('Market: Not enough supply');
+    });
+    it('should revert when purchasing supply from a specific supplier who does not exist in the market', async () => {
+      const { bpNori, fifoMarket, feePercentage } = await setupTest({
+        userFixtures: {
+          supplier: {
+            removalDataToList: {
+              removals: [
+                { amount: 10, supplierAddress: hre.namedAccounts.supplier }, // 2 removals each for 2 different suppliers
+                { amount: 10, supplierAddress: hre.namedAccounts.supplier },
+                { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
+                { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
+              ],
+            },
+          },
+        },
+      });
+      const purchaseAmount = formatTokenAmount(30); // enough total supply, but not enough from specific supplier
+      const fee = purchaseAmount.mul(feePercentage).div(100);
+      const value = purchaseAmount.add(fee);
+      const { buyer } = hre.namedSigners;
+      const { v, r, s } = await buyer.permit({
+        verifyingContract: bpNori,
+        spender: fifoMarket.address,
+        value,
+      });
+      await expect(
+        fifoMarket
+          .connect(buyer)
+          .swapFromSpecificSupplier(
+            buyer.address,
+            value,
+            hre.namedAccounts.investor2,
+            hre.ethers.constants.MaxUint256,
+            v,
+            r,
+            s
+          )
+      ).to.be.revertedWith('Market: Not enough supply');
     });
   });
 });
