@@ -411,7 +411,7 @@ export const setupTest = global.hre.deployments.createFixture(
       removal: contracts.Removal,
       certificate: contracts.Certificate,
       fifoMarket: contracts.FIFOMarket,
-      // lNori: contracts.LockedNORI, // todo import from forked repo
+      lNori: contracts.LockedNORIV2,
       rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
       mockCertificate: contracts.MockCertificate,
