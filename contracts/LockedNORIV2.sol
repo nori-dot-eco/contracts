@@ -3,7 +3,7 @@ pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "./BridgedPolygonNORI.sol";
 import "./deprecated/ERC777PresetPausablePermissioned.sol";
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
@@ -83,7 +83,6 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
  *
  * ##### Implements
  *
- * - [IERC777RecipientUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc777#IERC777Recipient)
  * - [IERC777Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc777#IERC777)
  * - [IERC20Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20)
  * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
@@ -96,7 +95,6 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
  *
  */
 contract LockedNORIV2 is
-  IERC777RecipientUpgradeable,
   ERC777PresetPausablePermissioned
 {
   using ScheduleUtils for Schedule;
@@ -173,15 +171,11 @@ contract LockedNORIV2 is
   /**
    * @notice The BridgedPolygonNORI contract that this contract wraps tokens for
    */
-  IERC20Upgradeable private _bridgedPolygonNori;
+  BridgedPolygonNORI private _bridgedPolygonNori;
 
   /**
    * @notice The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection registry
    * contract
-   *
-   * @dev Registering that LockedNORI implements the ERC777TokensRecipient interface with the registry is a
-   * requiremnt to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
-   * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
    */
   IERC1820RegistryUpgradeable private _erc1820;
 
@@ -220,21 +214,7 @@ contract LockedNORIV2 is
   event UnderlyingTokenAddressUpdated(address from, address to);
 
   /**
-   * @dev The tokensReceived callback reverts so we avoid receipt of ERC777 tokens.
-   */
-  function tokensReceived(
-    address,
-    address,
-    address,
-    uint256,
-    bytes calldata,
-    bytes calldata
-  ) external override {
-    revert("Funding via tokensReceived callback in not supported");
-  }
-
-  /**
-   * @notice Wraps minting of wrapper token and grant setup.
+   * @notice Mints wrapper token to *recipient* if a grant exists.
    *
    * @dev If `startTime` is zero no grant is set up. Satisfies situations where funding of the grant happens over time.
    *
@@ -246,9 +226,11 @@ contract LockedNORIV2 is
     returns (bool)
   {
     require(_grants[recipient].exists, "lNORI: Cannot deposit without a grant");
-    _bridgedPolygonNori.transferFrom(_msgSender(), address(this), amount);
-    super._mint(recipient, amount, "", "");
-    return true;
+    if (_bridgedPolygonNori.transferFrom(_msgSender(), address(this), amount)) {
+      super._mint(recipient, amount, "", "");
+      return true;
+    }
+    revert('lNori: transferFrom underlying asset failed');
   }
 
   /**
@@ -273,9 +255,11 @@ contract LockedNORIV2 is
     TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
     grant.claimedAmount += amount;
-    _bridgedPolygonNori.transfer(recipient, amount);
-    emit TokensClaimed(_msgSender(), recipient, amount);
-    return true;
+    if (_bridgedPolygonNori.transfer(recipient, amount)) {
+        emit TokensClaimed(_msgSender(), recipient, amount);
+        return true;
+    }
+    revert('lNori: Transfer to underlying asset failed');
   }
 
   /**
@@ -429,8 +413,17 @@ contract LockedNORIV2 is
       );
   }
 
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   *
+   * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract
+   */
+  constructor() {
+    _disableInitializers();
+  }
+
   // todo document expected initialzation state
-  function initialize(IERC20Upgradeable bridgedPolygonNoriAddress)
+  function initialize(BridgedPolygonNORI bridgedPolygonNoriAddress)
     public
     initializer
   {
@@ -457,14 +450,15 @@ contract LockedNORIV2 is
    *
    * @dev Used in case of major migrations only.
    */
-  function updateUnderlying(IERC20Upgradeable bridgedPolygonNori)
+  function updateUnderlying(BridgedPolygonNORI newUnderlying)
     external
     whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     address old = address(_bridgedPolygonNori);
-    emit UnderlyingTokenAddressUpdated(old, address(bridgedPolygonNori));
-    _bridgedPolygonNori = bridgedPolygonNori;
+    require(old != address(newUnderlying), 'lNori: updating underlying address to existing address');
+    _bridgedPolygonNori = newUnderlying;
+    emit UnderlyingTokenAddressUpdated(old, address(newUnderlying));
   }
 
   /**
@@ -503,9 +497,6 @@ contract LockedNORIV2 is
    * @dev All grants must include a lockup schedule and can optionally *also*
    * include a vesting schedule.  Tokens are withdrawble once they are
    * vested *and* unlocked.
-   *
-   * This will be invoked via the `tokensReceived` callback for cases
-   * where we have the tokens in hand at the time we set up the grant.
    *
    * It is also callable externally (see `grantTo`) to handle cases
    * where tokens are incrementally deposited after the grant is established.
@@ -625,8 +616,10 @@ contract LockedNORIV2 is
     grant.lastRevocationTime = revocationTime;
     grant.lastQuantityRevoked = quantityRevoked;
     super._burn(from, quantityRevoked, "", "");
-    _bridgedPolygonNori.transfer(to, quantityRevoked);
-    emit UnvestedTokensRevoked(revocationTime, from, quantityRevoked);
+    if (_bridgedPolygonNori.transfer(to, quantityRevoked)) {
+      emit UnvestedTokensRevoked(revocationTime, from, quantityRevoked);
+    }
+    revert('lNori: transfer of underlying asset failed.');
   }
 
   /**
