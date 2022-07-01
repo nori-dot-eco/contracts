@@ -224,6 +224,7 @@ contract FIFOMarket is
     uint256[] memory amounts = new uint256[](totalNumberActiveRemovals);
     address[] memory suppliers = new address[](totalNumberActiveRemovals);
     uint256 numberOfRemovals = 0;
+
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < totalNumberActiveRemovals; i++) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
@@ -267,19 +268,6 @@ contract FIFOMarket is
         break;
       }
     }
-    uint256[] memory batchedIds = new uint256[](numberOfRemovals);
-    uint256[] memory batchedAmounts = new uint256[](numberOfRemovals);
-    for (uint256 i = 0; i < numberOfRemovals; i++) {
-      batchedIds[i] = ids[i];
-      batchedAmounts[i] = amounts[i];
-    }
-    uint256[] memory batchedBalances = _removal.balanceOfIds(
-      address(this),
-      batchedIds
-    );
-    uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
-      batchedIds
-    );
     _bridgedPolygonNori.permit(
       _msgSender(),
       address(this),
@@ -288,6 +276,25 @@ contract FIFOMarket is
       v,
       r,
       s
+    );
+    uint256[] memory batchedIds = new uint256[](numberOfRemovals);
+    uint256[] memory batchedAmounts = new uint256[](numberOfRemovals);
+    for (uint256 i = 0; i < numberOfRemovals; i++) {
+      batchedIds[i] = ids[i];
+      batchedAmounts[i] = amounts[i];
+    }
+    _certificate.mintBatch(
+      recipient,
+      batchedIds,
+      batchedAmounts,
+      abi.encode(certificateAmount)
+    );
+    uint256[] memory batchedBalances = _removal.balanceOfIds(
+      address(this),
+      batchedIds
+    );
+    uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
+      batchedIds
     );
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < batchedIds.length; i++) {
@@ -317,12 +324,6 @@ contract FIFOMarket is
         unrestrictedSupplierFee
       );
     }
-    _certificate.mintBatch(
-      recipient,
-      batchedIds,
-      batchedAmounts, // todo should just be able to use amount param
-      abi.encode(certificateAmount)
-    );
     _removal.burnBatch(address(this), batchedIds, batchedAmounts);
   }
 

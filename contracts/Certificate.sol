@@ -88,8 +88,8 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     uint256[] memory removalAmounts,
     bytes memory data // todo array?
   ) public override {
-    uint256 certificateAmount = abi.decode(data, (uint256)); // todo verify amount
     uint256 tokenId = _latestTokenId;
+    uint256 certificateAmount = abi.decode(data, (uint256)); // todo verify amount (would we be better of computing amount from the removalIds loop? how does gas compare)
     // todo extract to base contract and overload here
     // todo use modified mintCertificate instead of mintBatch. mintBatch should be used to mint multi certificates.
     // todo only allowed by market contract
