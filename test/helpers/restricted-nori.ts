@@ -1,5 +1,6 @@
 import type { BigNumber } from 'ethers';
 
+import { sum } from '@/utils/math';
 import type { RestrictedNORI } from '@/typechain-types/contracts/RestrictedNORI';
 import type { setupTest } from '@/test/helpers';
 import { expect } from '@/test/helpers';
@@ -7,10 +8,6 @@ import { expect } from '@/test/helpers';
 export const SECONDS_IN_1_YEAR_AVG = 31_556_952;
 export const SECONDS_IN_10_YEARS = 315_569_520;
 export const SECONDS_IN_5_YEARS = SECONDS_IN_10_YEARS / 2;
-
-export const formatTokensReceivedUserData = (removalId: BigNumber): string => {
-  return hre.ethers.utils.defaultAbiCoder.encode(['uint256'], [removalId]);
-};
 
 export const restrictRemovalProceeds = async ({
   // todo fixture
@@ -21,7 +18,7 @@ export const restrictRemovalProceeds = async ({
   testSetup: Awaited<ReturnType<typeof setupTest>>;
   removalIds: BigNumber[];
   removalAmountsToRestrict: BigNumber[];
-}): Promise<void> => {
+}): Promise<BigNumber> => {
   const { rNori, bpNori } = testSetup;
   await Promise.all(
     removalIds.map(async (id, index) => {
@@ -31,6 +28,7 @@ export const restrictRemovalProceeds = async ({
       ]);
     })
   );
+  return sum(removalAmountsToRestrict);
 };
 
 export const compareScheduleDetailForAddressStructs = (
