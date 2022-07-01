@@ -33,6 +33,9 @@ export const getConfig = (
     fireblocks,
     ethernal: getEthernalConfig(environment),
     tracer,
+    typechain: {
+      externalArtifacts: ['legacy-artifacts/contracts/LockedNORI.sol/LockedNORI.json']
+    }
   };
   return config;
 };
