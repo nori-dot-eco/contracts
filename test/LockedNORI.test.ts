@@ -200,11 +200,7 @@ const setupWithGrant = async (
       grant.startTime,
       grant.vestEndTime,
       grant.unlockEndTime
-    )
-    .to.emit(lNori, 'Minted')
-    .withArgs(bpNori.address, grant.recipient, grantAmount)
-    .to.emit(lNori, 'Transfer')
-    .withArgs(ethers.constants.AddressZero, grant.recipient, grantAmount);
+    );
 
   await expect(bpNori.approve(lNori.address, grantAmount))
     .to.emit(bpNori, 'Approval')
@@ -213,6 +209,8 @@ const setupWithGrant = async (
 
   if (fund) {
     await expect(lNori.depositFor(grant.recipient, grantAmount))
+      .to.emit(lNori, 'Mint')
+      .withArgs(ethers.constants.AddressZero, grant.recipient, grantAmount)
       .to.emit(bpNori, 'Transfer')
       .withArgs(namedAccounts.admin, lNori.address, grantAmount);
   }
@@ -505,19 +503,21 @@ it('Prevents wrapping bpNori when no grant is present', async () => {
   );
 });
 
-it('Should return zero before startTime', async () => {
-  const { lNori } = await setupWithGrant();
-  const { investor1 } = await hre.getNamedAccounts();
-  expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT); // todo use as options for setupWithGrant instead of constant
-  expect(await lNori.vestedBalanceOf(investor1)).to.equal(0);
-  expect(await lNori.unlockedBalanceOf(investor1)).to.equal(0);
-  const grant = await lNori.getGrant(investor1);
-  expect(grant.grantAmount).to.equal(GRANT_AMOUNT);
-  await expect(
-    lNori
-      .connect(await hre.ethers.getSigner(investor1))
-      .withdrawTo(investor1, 1)
-  ).to.be.revertedWith('lNORI: insufficient balance');
+describe('unlockedBalanceOf', () => {
+  it('returns zero before startTime', async () => {
+    const { lNori, grantAmount } = await setupWithGrant();
+    const { investor1 } = await hre.getNamedAccounts();
+    expect(await lNori.balanceOf(investor1)).to.equal(grantAmount);
+    expect(await lNori.vestedBalanceOf(investor1)).to.equal(0);
+    expect(await lNori.unlockedBalanceOf(investor1)).to.equal(0);
+    const grant = await lNori.getGrant(investor1);
+    expect(grant.grantAmount).to.equal(grantAmount);
+    await expect(
+      lNori
+        .connect(await hre.ethers.getSigner(investor1))
+        .withdrawTo(investor1, grantAmount)
+    ).to.be.revertedWith('lNORI: insufficient balance');
+  });
 });
 
 describe('grantRole', () => {
@@ -697,18 +697,20 @@ describe('Unlocking', () => {
   });
 
   it('Should revert if N wrapped tokens < N requested (even if unlocked)', async () => {
-    // cliff1 == now
-    const { lNori, hre, grant } = await setupWithGrant();
+    const { lNori, hre, grant, grantAmount } = await setupWithGrant({}, false);
     const { investor1 } = hre.namedAccounts;
     const addr1Signer = hre.namedSigners.investor1;
     await advanceTime({ hre, timestamp: grant.cliff1Time });
-    expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
-    expect(await lNori.vestedBalanceOf(investor1)).to.equal(CLIFF1_AMOUNT);
-    expect(await lNori.unlockedBalanceOf(investor1)).to.equal(CLIFF1_AMOUNT);
+    expect(await lNori.balanceOf(investor1)).to.equal(0);
+    await expect(lNori.depositFor(investor1, grant.vestCliff1Amount.sub(1)));
+    expect(await lNori.vestedBalanceOf(investor1)).to.equal(
+      grant.vestCliff1Amount
+    );
+    expect(await lNori.unlockedBalanceOf(investor1)).to.equal(
+      grant.unlockCliff1Amount
+    );
     await expect(
-      lNori
-        .connect(addr1Signer)
-        .withdrawTo(investor1, hre.ethers.utils.parseUnits((500).toString()))
+      lNori.connect(addr1Signer).withdrawTo(investor1, grant.vestCliff1Amount)
     ).to.be.revertedWith('lNORI: insufficient balance');
   });
 
@@ -812,7 +814,10 @@ describe('Unlocking', () => {
   });
 
   it('Should handle a linear unlock with funding lagging vesting', async () => {
-    const { lNori, grantAmount, grant, hre } = await setupWithGrant();
+    const { lNori, grantAmount, grant, hre } = await setupWithGrant(
+      linearParameters,
+      false
+    );
     await advanceTime({ hre, timestamp: grant.startTime + DELTA });
 
     expect(await lNori.balanceOf(grant.recipient)).to.equal(0);
@@ -1131,25 +1136,31 @@ describe('batchRevokeUnvestedTokenAmounts', () => {
   });
 });
 
-it('Should return details of a grant', async () => {
-  const { lNori, grant, grantAmount, hre } = await setupWithGrant(
-    (parameters) => employeeParameters(parameters)
-  );
-  const { employee } = hre.namedAccounts;
-  const grantFromContract = await lNori.getGrant(employee);
-  expect(grantFromContract.grantAmount).to.eq(grantAmount);
-  expect(grantFromContract.recipient).to.eq(employee);
-  expect(grantFromContract.startTime).to.eq(grant.startTime);
-  expect(grantFromContract.vestEndTime).to.eq(grant.vestEndTime);
-  expect(grantFromContract.unlockEndTime).to.eq(grant.unlockEndTime);
-  expect(grantFromContract.cliff1Time).to.eq(grant.cliff1Time);
-  expect(grantFromContract.cliff2Time).to.eq(grant.cliff2Time);
-  expect(grantFromContract.vestCliff1Amount).to.eq(grant.vestCliff1Amount);
-  expect(grantFromContract.vestCliff2Amount).to.eq(grant.vestCliff2Amount);
-  expect(grantFromContract.unlockCliff1Amount).to.eq(grant.unlockCliff1Amount);
-  expect(grantFromContract.unlockCliff2Amount).to.eq(grant.unlockCliff2Amount);
-  expect(grantFromContract.claimedAmount).to.eq(BigNumber.from(0));
-  expect(grantFromContract.originalAmount).to.eq(grantAmount);
-  expect(grantFromContract.lastRevocationTime).to.eq(BigNumber.from(0));
-  expect(grantFromContract.lastQuantityRevoked).to.eq(BigNumber.from(0));
+describe('getGrant', () => {
+  it('Should return details of a grant', async () => {
+    const { lNori, grant, grantAmount, hre } = await setupWithGrant(
+      (parameters) => employeeParameters(parameters)
+    );
+    const { employee } = hre.namedAccounts;
+    const grantFromContract = await lNori.getGrant(employee);
+    expect(grantFromContract.grantAmount).to.eq(grantAmount);
+    expect(grantFromContract.recipient).to.eq(employee);
+    expect(grantFromContract.startTime).to.eq(grant.startTime);
+    expect(grantFromContract.vestEndTime).to.eq(grant.vestEndTime);
+    expect(grantFromContract.unlockEndTime).to.eq(grant.unlockEndTime);
+    expect(grantFromContract.cliff1Time).to.eq(grant.cliff1Time);
+    expect(grantFromContract.cliff2Time).to.eq(grant.cliff2Time);
+    expect(grantFromContract.vestCliff1Amount).to.eq(grant.vestCliff1Amount);
+    expect(grantFromContract.vestCliff2Amount).to.eq(grant.vestCliff2Amount);
+    expect(grantFromContract.unlockCliff1Amount).to.eq(
+      grant.unlockCliff1Amount
+    );
+    expect(grantFromContract.unlockCliff2Amount).to.eq(
+      grant.unlockCliff2Amount
+    );
+    expect(grantFromContract.claimedAmount).to.eq(BigNumber.from(0));
+    expect(grantFromContract.originalAmount).to.eq(grantAmount);
+    expect(grantFromContract.lastRevocationTime).to.eq(BigNumber.from(0));
+    expect(grantFromContract.lastQuantityRevoked).to.eq(BigNumber.from(0));
+  });
 });

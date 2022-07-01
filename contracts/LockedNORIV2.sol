@@ -278,8 +278,8 @@ contract LockedNORIV2 is
   {
     TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
-    _bridgedPolygonNori.transfer(recipient, amount);
     grant.claimedAmount += amount;
+    _bridgedPolygonNori.transfer(recipient, amount);
     emit TokensClaimed(_msgSender(), recipient, amount);
     return true;
   }
@@ -652,24 +652,30 @@ contract LockedNORIV2 is
    *      - the operator is not operating on their own balance
    *      - the transfer amount is <= the sender's unlocked balance
    */
-  //   function _beforeTokenTransfer(
-  //     address operator,
-  //     address from,
-  //     address to,
-  //     uint256 amount
-  //   ) internal override {
-  //     bool isMinting = from == address(0);
-  //     bool isBurning = to == address(0);
-  //     bool operatorIsGrantAdmin = hasRole(TOKEN_GRANTER_ROLE, operator);
-  //     bool operatorIsNotSender = operator != from;
-  //     bool ownerHasSufficientUnlockedBalance = amount <= unlockedBalanceOf(from);
-  //     if (isBurning && operatorIsNotSender && operatorIsGrantAdmin) {
-  //       require(balanceOf(from) >= amount, "lNORI: insufficient balance");
-  //     } else if (!isMinting) {
-  //       require(ownerHasSufficientUnlockedBalance, "lNORI: insufficient balance");
-  //     }
-  //     return super._beforeTokenTransfer(operator, from, to, amount);
-  //   }
+  function _beforeTokenTransfer(
+    address operator,
+    address from,
+    address to,
+    uint256 amount
+  ) internal override {
+    bool isMinting = from == address(0);
+    bool isBurning = to == address(0);
+    bool operatorIsGrantAdmin = hasRole(TOKEN_GRANTER_ROLE, operator);
+    bool operatorIsNotSender = operator != from;
+    bool ownerHasSufficientUnlockedBalance = amount <= unlockedBalanceOf(from);
+    bool ownerHasSufficientWrappedToken = amount <= balanceOf(from);
+    if (isBurning && operatorIsNotSender && operatorIsGrantAdmin) {
+      // Revocation
+      require(balanceOf(from) >= amount, "lNORI: insufficient balance");
+    } else if (!isMinting) {
+      // Withdrawal
+      require(
+        ownerHasSufficientUnlockedBalance && ownerHasSufficientWrappedToken,
+        "lNORI: insufficient balance"
+      );
+    }
+    return super._beforeTokenTransfer(operator, from, to, amount);
+  }
 
   /**
    * @notice Vested balance less any claimed amount at `atTime` (implementation)
