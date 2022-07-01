@@ -70,25 +70,6 @@ contract LockedNORIV2Helper is DSTest {
 
   event logNamedTokenGrant(string, LockedNORIV2.TokenGrantDetail grant);
 
-  //   struct TokenGrantDetail {
-  //     uint256 grantAmount;
-  //     address recipient;
-  //     uint256 startTime;
-  //     uint256 vestEndTime;
-  //     uint256 unlockEndTime;
-  //     uint256 cliff1Time;
-  //     uint256 cliff2Time;
-  //     uint256 vestCliff1Amount;
-  //     uint256 vestCliff2Amount;
-  //     uint256 unlockCliff1Amount;
-  //     uint256 unlockCliff2Amount;
-  //     uint256 claimedAmount;
-  //     uint256 originalAmount;
-  //     uint256 lastRevocationTime;
-  //     uint256 lastQuantityRevoked;
-  //     bool exists;
-  //   }
-
   function get(address lnori, address recipient)
     public
     view

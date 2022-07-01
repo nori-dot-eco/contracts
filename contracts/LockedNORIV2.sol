@@ -94,9 +94,7 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  */
-contract LockedNORIV2 is
-  ERC777PresetPausablePermissioned
-{
+contract LockedNORIV2 is ERC777PresetPausablePermissioned {
   using ScheduleUtils for Schedule;
 
   struct TokenGrant {
@@ -230,7 +228,7 @@ contract LockedNORIV2 is
       super._mint(recipient, amount, "", "");
       return true;
     }
-    revert('lNori: transferFrom underlying asset failed');
+    revert("lNori: transferFrom underlying asset failed");
   }
 
   /**
@@ -256,10 +254,10 @@ contract LockedNORIV2 is
     super._burn(_msgSender(), amount, "", "");
     grant.claimedAmount += amount;
     if (_bridgedPolygonNori.transfer(recipient, amount)) {
-        emit TokensClaimed(_msgSender(), recipient, amount);
-        return true;
+      emit TokensClaimed(_msgSender(), recipient, amount);
+      return true;
     }
-    revert('lNori: Transfer to underlying asset failed');
+    revert("lNori: Transfer to underlying asset failed");
   }
 
   /**
@@ -414,7 +412,7 @@ contract LockedNORIV2 is
   }
 
   /**
-   * @custom:oz-upgrades-unsafe-allow constructor
+   * @dev Ensure implementation contract is minimally initialized
    *
    * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract
    */
@@ -456,7 +454,10 @@ contract LockedNORIV2 is
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     address old = address(_bridgedPolygonNori);
-    require(old != address(newUnderlying), 'lNori: updating underlying address to existing address');
+    require(
+      old != address(newUnderlying),
+      "lNori: updating underlying address to existing address"
+    );
     _bridgedPolygonNori = newUnderlying;
     emit UnderlyingTokenAddressUpdated(old, address(newUnderlying));
   }
@@ -616,10 +617,10 @@ contract LockedNORIV2 is
     grant.lastRevocationTime = revocationTime;
     grant.lastQuantityRevoked = quantityRevoked;
     super._burn(from, quantityRevoked, "", "");
-    if (_bridgedPolygonNori.transfer(to, quantityRevoked)) {
-      emit UnvestedTokensRevoked(revocationTime, from, quantityRevoked);
+    if (!_bridgedPolygonNori.transfer(to, quantityRevoked)) {
+      revert("lNori: transfer of underlying asset failed.");
     }
-    revert('lNori: transfer of underlying asset failed.');
+    emit UnvestedTokensRevoked(revocationTime, from, quantityRevoked);
   }
 
   /**
