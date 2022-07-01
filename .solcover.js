@@ -8,4 +8,5 @@ module.exports = {
     'mocks/MockCertificate.sol',
     'mocks/MockERC1155PresetPausableNonTransferrable.sol'
   ],
+  configureYulOptimizer: true
 };
