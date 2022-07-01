@@ -12,7 +12,7 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
  *
  * @author Nori Inc.
  *
- * @notice Based on the mechanics of a wrapped ERC-777 token, this contract layers schedules over the withdrawal
+ * @notice Based on the mechanics of a wrapped ERC-20 token, this contract layers schedules over the withdrawal
  * functionality to implement _vesting_ (a revocable grant)
  * and _lockup_ (an irrevocable timelock on utility).
  *
@@ -248,9 +248,11 @@ contract LockedNORIV2 is
    */
   function depositFor(address recipient, uint256 amount)
     external
+    whenNotPaused
     returns (bool)
   {
     require(_grants[recipient].exists, "lNORI: Cannot deposit without a grant");
+    _bridgedPolygonNori.transferFrom(_msgSender(), address(this), amount);
     super._mint(recipient, amount, "", "");
     return true;
   }
@@ -271,6 +273,7 @@ contract LockedNORIV2 is
    */
   function withdrawTo(address recipient, uint256 amount)
     external
+    whenNotPaused
     returns (bool)
   {
     TokenGrant storage grant = _grants[_msgSender()];

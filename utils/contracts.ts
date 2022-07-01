@@ -104,18 +104,18 @@ export const getNORI = async ({
     signer,
   });
 
-// export const getLockedNORI = ({ // todo import from forked repo
-//   hre,
-//   signer,
-// }: {
-//   hre: CustomHardHatRuntimeEnvironment;
-//   signer?: ConstructorParameters<typeof Contract>[2];
-// }): Promise<LockedNORI> =>
-//   getContract({
-//     contractName: 'LockedNORI',
-//     hre,
-//     signer,
-//   });
+export const getLockedNORIV2 = ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<LockedNORIV2> =>
+  getContract({
+    contractName: 'LockedNORIV2',
+    hre,
+    signer,
+  });
 
 export const getRestrictedNORI = ({
   hre,
@@ -218,9 +218,9 @@ export const getContractsFromDeployments = async (
     BridgedPolygonNORI: deployments.BridgedPolygonNORI?.address
       ? await getBridgedPolygonNori({ hre })
       : undefined,
-    // LockedNORI: deployments.LockedNORI?.address
-    //   ? await getLockedNORI({ hre })
-    //   : undefined, // todo import from forked repo
+    LockedNORIV2: deployments.LockedNORIV2?.address
+      ? await getLockedNORIV2({ hre })
+      : undefined,
     RestrictedNORI: deployments.RestrictedNORI?.address
       ? await getRestrictedNORI({ hre })
       : undefined,
