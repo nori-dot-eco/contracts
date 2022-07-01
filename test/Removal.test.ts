@@ -213,7 +213,6 @@ describe('Removal', () => {
             tokenIds,
             removalBalances
           );
-
         await expect(
           removal.safeBatchTransferFrom(
             hre.namedAccounts.supplier,
