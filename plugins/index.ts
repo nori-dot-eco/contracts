@@ -183,7 +183,8 @@ extendEnvironment((hre) => {
       if (deployment.bytecode !== artifact.bytecode) {
         contract = await hre.upgrades.upgradeProxy<TContract>(
           maybeProxyAddress,
-          contractFactory
+          contractFactory,
+          { ...options }
         );
         const newImplementationAddress =
           await hre.upgrades.erc1967.getImplementationAddress(

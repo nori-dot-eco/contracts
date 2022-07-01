@@ -373,8 +373,8 @@ describe('role access', () => {
           const roleId = await lNori[role]();
           expect(await lNori.hasRole(roleId, namedAccounts[accountWithRole])).to
             .be.true;
-          expect(
-            await lNori
+          await expect(
+            lNori
               .connect(namedSigners[accountWithRole])
               .batchRevokeUnvestedTokenAmounts(
                 [grant.recipient],
@@ -415,8 +415,8 @@ describe('role access', () => {
             hre,
             startTime: await getLatestBlockTime({ hre }),
           });
-          expect(
-            await lNori
+          await expect(
+            lNori
               .connect(namedSigners[accountWithRole])
               .createGrant(
                 grantAmount,
@@ -739,8 +739,8 @@ describe('Unlocking', () => {
     expect(await lNori.vestedBalanceOf(investor1)).to.equal(grantAmount);
     expect(await lNori.unlockedBalanceOf(investor1)).to.equal(grantAmount);
     const withdrawlAmount = hre.ethers.utils.parseUnits((100).toString());
-    expect(
-      await lNori
+    await expect(
+      lNori
         .connect(investor1Signer)
         .withdrawTo(investor1, withdrawlAmount)
     )
@@ -770,8 +770,8 @@ describe('Unlocking', () => {
     expect(await lNori.unlockedBalanceOf(investor1)).to.equal(
       grantAmount.sub(withdrawlAmount)
     );
-    expect(
-      await lNori
+    await expect(
+      lNori
         .connect(investor1Signer)
         .withdrawTo(investor1, grantAmount.sub(withdrawlAmount))
     ).to.emit(lNori, 'Transfer');

@@ -1,13 +1,12 @@
 import { upgrades } from 'hardhat';
 import { expect, setupTest } from '@/test/helpers';
 import { LockedNORIV2 } from '@/typechain-types';
-// Not sure if this will exist in a clean build.  Does typechain build from artifacts or source?
-import { LockedNORI } from '../typechain-types/contracts/LockedNORI';
-import LockedNORIArtifact from '../legacy-artifacts/LockedNORI.sol/LockedNORI.json';
-import { TestToken777 } from '../typechain-types/contracts/test/TestToken777';
+import { LockedNORI } from '@/typechain-types/contracts/LockedNORI';
+import LockedNORIArtifact from '@/legacy-artifacts/LockedNORI.sol/LockedNORI.json';
+import { TestToken777 } from '@/typechain-types/contracts/test/TestToken777';
 
 describe('LockedNORI V1 to V2 upgrade', () => {
-  it('works before and after upgrading', async function () {
+  it('works before and after upgrading', async () => {
     const { bpNori, hre, ...rest } = await setupTest();
 
     const recipient = hre.namedAccounts.investor1;
@@ -36,7 +35,7 @@ describe('LockedNORI V1 to V2 upgrade', () => {
       [testTokenInstance.address],
       { initializer: 'initialize(address)' }
     )) as LockedNORI;
-    lnori.grantRole(await lnori.TOKEN_GRANTER_ROLE(), helper.address);
+    await lnori.grantRole(await lnori.TOKEN_GRANTER_ROLE(), helper.address);
 
     // Create state is LockedNORI v1
 
@@ -46,7 +45,7 @@ describe('LockedNORI V1 to V2 upgrade', () => {
       recipient
     );
     const createdGrantDetail = await helper.get(lnori.address, recipient);
-    helper.assertSimplePastGrant(lnori.address, createdGrantDetail);
+    await helper.assertSimplePastGrant(lnori.address, createdGrantDetail);
     expect(await lnori.balanceOf(recipient)).to.eq(0);
     await expect(
       testTokenInstance.send(
@@ -67,7 +66,8 @@ describe('LockedNORI V1 to V2 upgrade', () => {
     const LockedNORIV2Factory = await ethers.getContractFactory('LockedNORIV2');
     const lNoriV2 = (await upgrades.upgradeProxy(
       lnori.address,
-      LockedNORIV2Factory
+      LockedNORIV2Factory,
+      { unsafeAllow: ['constructor'] }
     )) as LockedNORIV2;
     lNoriV2.updateUnderlying(bpNori.address);
     expect(await lNoriV2.balanceOf(recipient)).to.eq(GRANT_AMOUNT);
@@ -75,7 +75,7 @@ describe('LockedNORI V1 to V2 upgrade', () => {
 
     // And assert that state is still intact
 
-    helper.assertSimplePastGrant(lnori.address, createdGrantDetail);
+    await helper.assertSimplePastGrant(lnori.address, createdGrantDetail);
     await lNoriV2
       .connect(hre.namedSigners.investor1)
       .withdrawTo(recipient, GRANT_AMOUNT);

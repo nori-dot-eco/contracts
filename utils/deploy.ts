@@ -273,7 +273,10 @@ export const deployLockedNORIContract = async ({
   return hre.deployOrUpgradeProxy<LockedNORIV2, LockedNORIV2__factory>({
     contractName: 'LockedNORIV2',
     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
-    options: { initializer: 'initialize(address)' },
+    options: {
+      initializer: 'initialize(address)',
+      unsafeAllow: ['constructor'],
+    },
   });
 };
 
