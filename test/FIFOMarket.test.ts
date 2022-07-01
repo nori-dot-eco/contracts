@@ -554,7 +554,6 @@ describe('FIFOMarket', () => {
         // Roundabout way of showing that the removal used to fill the order was the removal with amount 5, not 1.
         expect(totalNumberActiveRemovals).to.equal(2);
       });
-      ('should mint a certificate with all of a single removal in round robin order and update state variables');
       it('should mint a certificate with one removal per supplier in round robin order and update state variables', async () => {
         const {
           bpNori,
