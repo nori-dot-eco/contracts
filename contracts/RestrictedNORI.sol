@@ -10,6 +10,7 @@ import "./FIFOMarket.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
 // todo extract some of this contract to a preset (makes contracts more re-usable going forward without needing duplicate audit scope, also  makes it easier to isolate tests (e.g., pausability), w/o having to test it per-contract)
+// todo we should allow passing a timestamp to schedule revocation and summary functions (where 0 will set the timestamp to the current time)
 
 /**
  * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance collateral.
@@ -737,15 +738,12 @@ contract RestrictedNORI is
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
-    if (!(amount <= revocableQuantityForSchedule(scheduleId))) {
+    uint256 quantityRevocable = revocableQuantityForSchedule(scheduleId);
+    if (!(amount <= quantityRevocable)) {
       revert InsufficientUnreleasedTokens({scheduleId: scheduleId});
     }
-
     // amount of zero indicates revocation of all remaining tokens.
-    uint256 quantityToRevoke = amount > 0
-      ? amount
-      : revocableQuantityForSchedule(scheduleId);
-
+    uint256 quantityToRevoke = amount > 0 ? amount : quantityRevocable;
     // burn correct proportion from each token holder
     address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
     // todo gas optimization -- is it more expensive to call balanceOf multiple times, or to construct this array?
@@ -758,7 +756,6 @@ contract RestrictedNORI is
     uint256[] memory quantitiesToBurnForHolders = new uint256[](
       tokenHoldersLocal.length
     );
-
     // Calculate the final holder's quantity to revoke by subtracting the sum of other quantities
     // from the desired total to revoke, thus avoiding any precision rounding errors from affecting
     // the total quantity revoked by up to several wei.
@@ -780,7 +777,6 @@ contract RestrictedNORI is
     quantitiesToBurnForHolders[tokenHoldersLocal.length - 1] =
       quantityToRevoke -
       cumulativeQuantityToBurn;
-
     // todo consider writing a batch variant of burn that accommodates multiple addresses for a single token
     for (uint256 i = 0; i < (tokenHoldersLocal.length); i++) {
       super._burn(
@@ -792,7 +788,6 @@ contract RestrictedNORI is
         tokenHoldersLocal[i]
       ] += quantitiesToBurnForHolders[i];
     }
-
     schedule.totalQuantityRevoked += quantityToRevoke;
     emit TokensRevoked(
       block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent

@@ -329,6 +329,7 @@ contract FIFOMarket is
     uint256[] memory amounts = new uint256[](totalNumberActiveRemovals);
     address[] memory suppliers = new address[](totalNumberActiveRemovals);
     uint256 numberOfRemovals = 0;
+
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < totalNumberActiveRemovals; i++) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
@@ -464,6 +465,12 @@ contract FIFOMarket is
       batchedIds[i] = ids[i];
       batchedAmounts[i] = amounts[i];
     }
+    _certificate.mintBatch(
+      recipient,
+      batchedIds,
+      batchedAmounts,
+      abi.encode(certificateAmount)
+    );
     uint256[] memory batchedBalances = _removal.balanceOfIds(
       address(this),
       batchedIds
@@ -499,12 +506,6 @@ contract FIFOMarket is
         unrestrictedSupplierFee
       );
     }
-    _certificate.mintBatch(
-      recipient,
-      batchedIds,
-      batchedAmounts, // todo should just be able to use amount param
-      abi.encode(certificateAmount)
-    );
     _removal.burnBatch(address(this), batchedIds, batchedAmounts);
   }
 

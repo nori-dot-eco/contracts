@@ -58,8 +58,8 @@ describe('FIFOMarket', () => {
         expect(await fifoMarket.hasRole(roleId, namedAccounts[accountWithRole]))
           .to.be.true;
         const newThreshold = formatTokenAmount(100);
-        expect(
-          await fifoMarket
+        await expect(
+          fifoMarket
             .connect(namedSigners[accountWithRole])
             .setPriorityRestrictedThreshold(newThreshold)
         )
