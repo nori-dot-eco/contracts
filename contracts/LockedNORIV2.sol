@@ -220,21 +220,15 @@ contract LockedNORIV2 is
   event UnderlyingTokenAddressUpdated(address from, address to);
 
   /**
-   * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
-   *
-   * @dev Sending BridgedPolygonNORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard
-   * because this contract is a registered ERC777 tokens recipient.
-   *
-   * [See here for more](
-   * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
+   * @dev The tokensReceived callback reverts so we avoid receipt of ERC777 tokens.
    */
   function tokensReceived(
-    address sender,
     address,
     address,
-    uint256 amount,
-    bytes calldata userData,
-    bytes calldata operatorData
+    address,
+    uint256,
+    bytes calldata,
+    bytes calldata
   ) external override {
     revert("Funding via tokensReceived callback in not supported");
   }
