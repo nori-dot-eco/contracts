@@ -1245,8 +1245,11 @@ describe('FIFOMarket', () => {
       const decodedRemovalIds = await Promise.all(
         sources.map((source) => removal.unpackRemovalIdV0(source.removalId))
       );
-      for (const decodedId of decodedRemovalIds)
-        expect(decodedId.supplierAddress).to.equal(hre.namedAccounts.supplier);
+      expect(decodedRemovalIds.map((e) => e.supplierAddress)).to.deep.equal(
+        Array.from({ length: decodedRemovalIds.length }).fill(
+          hre.namedAccounts.supplier
+        )
+      );
     });
     it('should revert when purchasing supply from a specific supplier who does not have enough supply', async () => {
       const { bpNori, fifoMarket, feePercentage } = await setupTest({

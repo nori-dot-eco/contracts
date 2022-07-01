@@ -288,7 +288,7 @@ contract FIFOMarket is
    *Reverts if market is out of stock or if available stock is being reserved for priority buyers
    * and buyer is not priority.
    */
-  function _checkSupply() internal {
+  function _checkSupply() private {
     if (totalActiveSupply == 0) {
       revert("Market: Out of stock");
     }
@@ -305,7 +305,7 @@ contract FIFOMarket is
    * percentage of that purchase total that is due to Nori as a transaction fee.
    */
   function _certificateAmountFromPurchaseTotal(uint256 purchaseTotal)
-    internal
+    private
     returns (uint256)
   {
     return (purchaseTotal * 100) / (100 + _noriFee);
@@ -316,7 +316,7 @@ contract FIFOMarket is
    * a round-robin order.
    */
   function _allocateSupplyRoundRobin(uint256 certificateAmount)
-    internal
+    private
     returns (
       uint256,
       uint256[] memory,
@@ -384,7 +384,7 @@ contract FIFOMarket is
     uint256 certificateAmount,
     address supplier
   )
-    internal
+    private
     returns (
       uint256,
       uint256[] memory,
