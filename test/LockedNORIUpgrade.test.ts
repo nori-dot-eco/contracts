@@ -1,6 +1,6 @@
 import { upgrades } from 'hardhat';
 import { expect, setupTest } from '@/test/helpers';
-import { LockedNORIV2 } from '../typechain-types';
+import { LockedNORIV2 } from '@/typechain-types';
 // Not sure if this will exist in a clean build.  Does typechain build from artifacts or source?
 import { LockedNORI } from '../typechain-types/contracts/LockedNORI';
 import LockedNORIArtifact from '../legacy-artifacts/LockedNORI.sol/LockedNORI.json';
