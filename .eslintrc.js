@@ -9,10 +9,16 @@ module.exports = {
   }),
   overrides: [
     {
+      extends: [
+        'plugin:@fintechstudios/chai-as-promised/recommended',
+        'plugin:chai-expect/recommended',
+        'plugin:chai-friendly/recommended',
+      ],
       files: ['**/*.test.*', './test/helpers/**/*.*'],
       rules: {
-        '@typescript-eslint/no-unused-expressions': 'off',
-        'jest/valid-expect': 'off',
+        '@typescript-eslint/no-unused-expressions': 0,
+        'jest/valid-expect': 0,
+        'local-rules/waffle-as-promised': 2,
       },
     },
   ],

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
@@ -27,6 +27,7 @@ contract Removal is
   using RemovalUtils for uint256;
 
   error TokenIdExists(uint256 tokenId);
+  error TokenIdDoesNotExist(uint256 tokenId);
   error ArrayLengthMismatch(string array1Name, string array2Name);
   error InvalidProjectId(uint256 projectId);
 
@@ -34,6 +35,7 @@ contract Removal is
     // todo why doesnt typechain generate this as a type?
     uint256 projectId;
     uint256 scheduleStartTime;
+    uint256 holdbackPercentage;
     address marketAddress;
     bool list;
   }
@@ -45,18 +47,30 @@ contract Removal is
     uint256 methodologyVersion;
   }
 
+  struct RemovalData {
+    uint256 projectId;
+    uint256 holdbackPercentage;
+  }
+
   /**
    * @notice The RestrictedNORI contract that manages restricted tokens.
    */
   RestrictedNORI private _restrictedNori;
   uint256 public tokenIdCounter;
   string public name; // todo why did I add this
-  mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
+  mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate. consider using enumerable map
   mapping(uint256 => bool) private _tokenIdExists;
-  mapping(uint256 => uint256) private _removalIdToProjectId;
+  mapping(uint256 => RemovalData) private _removalIdToRemovalData;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData;
 
-  function initialize() external virtual initializer {
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
+  constructor() {
+    _disableInitializers();
+  }
+
+  function initialize() external initializer {
     super.initialize("https://nori.com/api/removal/{id}.json");
     __ERC1155Supply_init_unchained();
     tokenIdCounter = 0;
@@ -113,7 +127,7 @@ contract Removal is
     view
     returns (uint256)
   {
-    return _removalIdToProjectId[removalId];
+    return _removalIdToRemovalData[removalId].projectId;
   }
 
   /**
@@ -124,7 +138,8 @@ contract Removal is
     view
     returns (ScheduleData memory)
   {
-    return _projectIdToScheduleData[_removalIdToProjectId[removalId]];
+    return
+      _projectIdToScheduleData[_removalIdToRemovalData[removalId].projectId];
   }
 
   /**
@@ -136,6 +151,38 @@ contract Removal is
     returns (ScheduleData memory)
   {
     return _projectIdToScheduleData[projectId];
+  }
+
+  /** Get the holdback percentages for a batch of removal ids. */
+  function batchGetHoldbackPercentages(uint256[] memory removalIds)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    uint256[] memory holdbackPercentages = new uint256[](removalIds.length);
+    for (uint256 i = 0; i < removalIds.length; i++) {
+      uint256 id = removalIds[i];
+      if (!_tokenIdExists[id]) {
+        revert TokenIdDoesNotExist({tokenId: id});
+      }
+      holdbackPercentages[i] = _removalIdToRemovalData[removalIds[i]]
+        .holdbackPercentage;
+    }
+    return holdbackPercentages;
+  }
+
+  /** Set the holdback percentages for a batch of removal ids. */
+  function batchSetHoldbackPercentage(
+    uint256[] calldata removalIds,
+    uint256 holdbackPercentage
+  ) external {
+    for (uint256 i = 0; i < removalIds.length; i++) {
+      uint256 id = removalIds[i];
+      if (!_tokenIdExists[id]) {
+        revert TokenIdDoesNotExist({tokenId: id});
+      }
+      _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
+    }
   }
 
   /**
@@ -173,6 +220,7 @@ contract Removal is
     );
     uint256 projectId = decodedData.projectId;
     uint256 scheduleStartTime = decodedData.scheduleStartTime;
+    uint256 holdbackPercentage = decodedData.holdbackPercentage;
     bool list = decodedData.list;
     address marketAddress = decodedData.marketAddress;
     if (projectId == 0) {
@@ -184,7 +232,9 @@ contract Removal is
       if (_tokenIdExists[id]) {
         revert TokenIdExists({tokenId: id});
       }
-      _removalIdToProjectId[id] = projectId;
+      _removalIdToRemovalData[id].projectId = projectId;
+      _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
+
       _tokenIdExists[id] = true;
       indexToTokenId[newTokenIdCounter] = id;
       newTokenIdCounter += 1;
@@ -208,7 +258,7 @@ contract Removal is
     address,
     uint256,
     uint256,
-    bytes calldata
+    bytes memory
   ) public pure override {
     revert("Removal: ERC 1155 mint disabled");
   }
@@ -224,10 +274,12 @@ contract Removal is
     address to,
     uint256[] memory ids,
     uint256[] memory amounts,
-    bytes memory data
+    bytes memory
   ) public override {
     // todo do we add any validation to enforce that all removals in batch belong to the same project id?
-    bytes memory projectId = abi.encode(_removalIdToProjectId[ids[0]]);
+    bytes memory projectId = abi.encode(
+      _removalIdToRemovalData[ids[0]].projectId
+    );
     // todo require _to is a known market contract
     super.safeBatchTransferFrom(from, to, ids, amounts, projectId);
   }

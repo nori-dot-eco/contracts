@@ -10,15 +10,21 @@ import type {
   TransactionRequest,
   TransactionResponse,
 } from '@ethersproject/providers';
-import { resolveProperties, UnsignedTransaction } from 'ethers/lib/utils';
-import { Logger, keccak256, toUtf8Bytes } from 'ethers/lib/utils';
+import type { UnsignedTransaction } from 'ethers/lib/utils';
+import {
+  resolveProperties,
+  Logger,
+  keccak256,
+  toUtf8Bytes,
+} from 'ethers/lib/utils';
 import type { Deferrable } from '@ethersproject/properties';
 import { defineReadOnly } from '@ethersproject/properties';
 import type { Bytes } from '@ethersproject/bytes';
 import type { PopulatedTransaction } from 'ethers';
-import { BigNumber, ethers } from 'ethers';
-import { FireblocksSDK } from 'fireblocks-sdk';
+import { BigNumber, ethers, constants } from 'ethers';
 import { TransactionStatus } from 'fireblocks-sdk';
+import type { FireblocksSDK } from 'fireblocks-sdk';
+
 import { EthersCustomBridge } from './from-upstream/fireblocks-bridge';
 import { Chain } from './from-upstream/chain';
 
@@ -162,10 +168,9 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       type: 2,
       ...transaction,
       gasLimit,
-      ...{
-        maxFeePerGas,
-        maxPriorityFeePerGas,
-      },
+
+      maxFeePerGas,
+      maxPriorityFeePerGas,
     });
     log.debug(
       `Populated Transaction: ${JSON.stringify({
@@ -275,7 +280,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     this._checkProvider('sendTransaction');
     let txHash: string;
 
-    let baseTx: UnsignedTransaction = await this._populateTransaction(
+    const baseTx: UnsignedTransaction = await this._populateTransaction(
       transaction
     );
     if (transaction.to) {
@@ -314,7 +319,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       value:
         baseTx.value !== undefined
           ? BigNumber.from(baseTx.value)
-          : BigNumber.from(0),
+          : constants.Zero,
       chainId: await this.getChainId(),
       wait: async (): Promise<TransactionReceipt> =>
         this.provider!.waitForTransaction(txHash),
