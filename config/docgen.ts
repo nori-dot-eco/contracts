@@ -16,6 +16,7 @@ export const docgen: HardhatUserConfig['docgen'] = {
       'ScheduleUtils',
       'RemovalQueue',
       'RemovalUtils',
+      'RestrictedNORI',
     ].includes((item as any)?.canonicalName)
       ? (item as any)?.canonicalName?.concat('.md')
       : undefined;

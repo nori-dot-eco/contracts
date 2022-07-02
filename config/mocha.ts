@@ -6,10 +6,11 @@ export const getMochaConfig = (
   const { REPORT_GAS, CI } = environment;
   const mochaConfig: HardhatUserConfig['mocha'] =
     REPORT_GAS || CI
-      ? {
+      ? {}
+      : {
           parallel: !REPORT_GAS && !CI,
-        }
-      : {};
+        };
+
   return mochaConfig;
 };
 

@@ -58,7 +58,7 @@ contract Removal is
   RestrictedNORI private _restrictedNori;
   uint256 public tokenIdCounter;
   string public name; // todo why did I add this
-  mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate
+  mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate. consider using enumerable map
   mapping(uint256 => bool) private _tokenIdExists;
   mapping(uint256 => RemovalData) private _removalIdToRemovalData;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData;

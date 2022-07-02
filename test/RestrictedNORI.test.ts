@@ -1,9 +1,8 @@
 /* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "compareScheduleDetailForAddressStructs", "compareScheduleSummaryStructs"] }] -- have ticket to fix expect statements in these utilities */
-import { BigNumber, constants } from 'ethers';
+import { BigNumber } from 'ethers';
 
-import { formatTokenAmount, formatTokenString } from '../utils/units';
-import { FINNEY } from '../constants/units';
-
+import { formatTokenAmount, formatTokenString } from '@/utils/units';
+import { FINNEY, Zero } from '@/constants/units';
 import {
   expect,
   advanceTime,
@@ -223,70 +222,70 @@ describe('RestrictedNORI', () => {
     });
   });
   describe('mint', () => {
-    //   // todo
-    //   // it('should deposit tokens and automatically create a new restriction schedule where one does not exist', async () => {
-    //   //   const removals = [
-    //   //     {
-    //   //       amount: 5,
-    //   //       vintage: 2018,
-    //   //     },
-    //   //   ];
-    //   //   const testSetup = await  setupTest({
-    //   // userFixtures: {
-    //   //     admin: {
-    //   //       roles: {
-    //   //         RestrictedNORI: ['MINTER_ROLE'],
-    //   //       },
-    //   //     },
-    //   //   },
-    //   // });
-    //   //   const { bpNori, rNori } = testSetup;
-    //   //   const { listedRemovalIds, projectId, scheduleStartTime } =
-    //   //     await batchMintAndListRemovalsForSale({
-    //   //       ...testSetup,
-    //   //       removalDataToList,
-    //   //     });
-    //   //   const { namedAccounts } = hre;
-    //   //   const restrictedAmount = 1;
-    //   //   await expect(bpNori.transfer(rNori.address, restrictedAmount))
-    //   //     .to.emit(bpNori, 'Sent')
-    //   //     .withArgs(
-    //   //       namedAccounts.admin,
-    //   //       namedAccounts.admin,
-    //   //       rNori.address,
-    //   //       restrictedAmount,
-    //   //       '0x',
-    //   //       '0x'
-    //   //     )
-    //   //     .to.emit(bpNori, 'Transfer')
-    //   //     .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
-    //   //   await expect( rNori.mint(restrictedAmount, listedRemovalIds[0]))
-    //   //     .to.emit(rNori, 'TransferSingle')
-    //   //     .withArgs(
-    //   //       namedAccounts.admin,
-    //   //       ethers.constants.AddressZero,
-    //   //       namedAccounts.supplier,
-    //   //       projectId,
-    //   //       restrictedAmount
-    //   //     )
-    //   //     .to.emit(rNori, 'Transfer')
-    //   //     .withArgs(
-    //   //       ethers.constants.AddressZero,
-    //   //       namedAccounts.supplier,
-    //   //       restrictedAmount
-    //   //     );
-    //   //   const scheduleSummary = await rNori.getScheduleSummary(projectId);
-    //   //   expect(scheduleSummary.scheduleTokenId).equals(projectId);
-    //   //   expect(scheduleSummary.totalSupply).equals(restrictedAmount);
-    //   //   expect(scheduleSummary.tokenHolders[0]).equals(namedAccounts.supplier);
-    //   //   expect(scheduleSummary.startTime).equals(scheduleStartTime);
-    //   //   expect(scheduleSummary.endTime).equals(
-    //   //     scheduleStartTime + SECONDS_IN_10_YEARS
-    //   //   );
-    //   //   expect(scheduleSummary.totalClaimedAmount).equals(0);
-    //   //   expect(scheduleSummary.totalQuantityRevoked).equals(0);
-    //   //   expect(scheduleSummary.exists).equals(true);
-    //   // });
+    // // todo
+    // it('should deposit tokens and automatically create a new restriction schedule where one does not exist', async () => {
+    //   const testSetup = await setupTest({
+    //     userFixtures: {
+    //       admin: {
+    //         roles: {
+    //           RestrictedNORI: ['MINTER_ROLE'],
+    //         },
+    //       },
+    //       supplier: {
+    //         removalDataToList: {
+    //           removals: [
+    //             {
+    //               amount: 5,
+    //               vintage: 2018,
+    //             },
+    //           ],
+    //         },
+    //       },
+    //     },
+    //   });
+    //   const { bpNori, rNori, listedRemovalIds, projectId, scheduleStartTime } =
+    //     testSetup;
+    //   const { namedAccounts } = hre;
+    //   const restrictedAmount = formatTokenAmount(1);
+    //   await expect(bpNori.transfer(rNori.address, restrictedAmount))
+    //     .to.emit(bpNori, 'Sent')
+    //     .withArgs(
+    //       namedAccounts.admin,
+    //       namedAccounts.admin,
+    //       rNori.address,
+    //       restrictedAmount,
+    //       '0x',
+    //       '0x'
+    //     )
+    //     .to.emit(bpNori, 'Transfer')
+    //     .withArgs(namedAccounts.admin, rNori.address, restrictedAmount);
+    //   await expect(rNori.mint(restrictedAmount, listedRemovalIds[0]))
+    //     .to.emit(rNori, 'TransferSingle')
+    //     .withArgs(
+    //       namedAccounts.admin,
+    //       ethers.constants.AddressZero,
+    //       namedAccounts.supplier,
+    //       projectId,
+    //       restrictedAmount
+    //     )
+    //     .to.emit(rNori, 'Transfer')
+    //     .withArgs(
+    //       ethers.constants.AddressZero,
+    //       namedAccounts.supplier,
+    //       restrictedAmount
+    //     );
+    //   const scheduleSummary = await rNori.getScheduleSummary(projectId);
+    //   expect(scheduleSummary.scheduleTokenId).equals(projectId);
+    //   expect(scheduleSummary.totalSupply).equals(restrictedAmount);
+    //   expect(scheduleSummary.tokenHolders[0]).equals(namedAccounts.supplier);
+    //   expect(scheduleSummary.startTime).equals(scheduleStartTime);
+    //   expect(scheduleSummary.endTime).equals(
+    //     scheduleStartTime + SECONDS_IN_10_YEARS
+    //   );
+    //   expect(scheduleSummary.totalClaimedAmount).equals(0);
+    //   expect(scheduleSummary.totalQuantityRevoked).equals(0);
+    //   expect(scheduleSummary.exists).equals(true);
+    // });
     it('should revert if the minter of RestrictedNORI is not the market contract', async () => {
       const testSetup = await setupTest({
         userFixtures: {
@@ -707,10 +706,7 @@ describe('RestrictedNORI', () => {
           rNori.claimableBalanceForScheduleForAccount(projectId, investor1),
           rNori.claimableBalanceForScheduleForAccount(projectId, employee),
         ]);
-        expect(supplierClaimableBalanceAfterClaim).to.be.closeTo(
-          constants.Zero,
-          FINNEY
-        );
+        expect(supplierClaimableBalanceAfterClaim).to.be.closeTo(Zero, FINNEY);
         expect(investorClaimableBalanceAfterClaim).to.be.closeTo(
           investorClaimableBalanceBeforeClaim,
           FINNEY
@@ -826,8 +822,8 @@ describe('RestrictedNORI', () => {
             balance: removalAmounts[0],
             claimableAmount:
               supplierScheduleDetailBeforeTransfer.claimableAmount,
-            claimedAmount: constants.Zero,
-            quantityRevoked: constants.Zero,
+            claimedAmount: Zero,
+            quantityRevoked: Zero,
             exists: true,
           };
           const amountToTransfer = removalAmounts[0].div(2);
@@ -854,8 +850,8 @@ describe('RestrictedNORI', () => {
             balance: amountToTransfer,
             claimableAmount:
               supplierScheduleDetailAfterTransfer.claimableAmount,
-            claimedAmount: constants.Zero,
-            quantityRevoked: constants.Zero,
+            claimedAmount: Zero,
+            quantityRevoked: Zero,
             exists: true,
           };
           const expectedInvestor1ScheduleDetailAfterTransfer = {
@@ -864,8 +860,8 @@ describe('RestrictedNORI', () => {
             balance: amountToTransfer,
             claimableAmount:
               investor1ScheduleDetailAfterTransfer.claimableAmount,
-            claimedAmount: constants.Zero,
-            quantityRevoked: constants.Zero,
+            claimedAmount: Zero,
+            quantityRevoked: Zero,
             exists: true,
           };
           compareScheduleDetailForAddressStructs(
@@ -932,10 +928,10 @@ describe('RestrictedNORI', () => {
           );
           const expectedSupplierScheduleDetailAfterTransfer = {
             tokenHolder: supplier,
-            balance: constants.Zero,
-            claimableAmount: constants.Zero,
-            claimedAmount: constants.Zero,
-            quantityRevoked: constants.Zero,
+            balance: Zero,
+            claimableAmount: Zero,
+            claimedAmount: Zero,
+            quantityRevoked: Zero,
             exists: true,
           };
           const expectedInvestor1ScheduleDetailAfterTransfer = {
@@ -943,8 +939,8 @@ describe('RestrictedNORI', () => {
             balance: removalAmounts[0],
             claimableAmount:
               investor1ScheduleDetailAfterTransfer.claimableAmount,
-            claimedAmount: constants.Zero,
-            quantityRevoked: constants.Zero,
+            claimedAmount: Zero,
+            quantityRevoked: Zero,
             exists: true,
           };
           compareScheduleDetailForAddressStructs(
@@ -1021,19 +1017,19 @@ describe('RestrictedNORI', () => {
             {
               tokenHolder: supplier,
               scheduleTokenId: projectId1,
-              balance: BigNumber.from(restrictedAmounts[0]),
-              claimableAmount: BigNumber.from(restrictedAmounts[0]),
-              claimedAmount: constants.Zero,
-              quantityRevoked: constants.Zero,
+              balance: restrictedAmounts[0],
+              claimableAmount: restrictedAmounts[0],
+              claimedAmount: Zero,
+              quantityRevoked: Zero,
               exists: true,
             },
             {
               tokenHolder: supplier,
               scheduleTokenId: projectId2,
-              balance: BigNumber.from(restrictedAmounts[1]),
-              claimableAmount: BigNumber.from(restrictedAmounts[1]),
-              claimedAmount: constants.Zero,
-              quantityRevoked: constants.Zero,
+              balance: restrictedAmounts[1],
+              claimableAmount: restrictedAmounts[1],
+              claimedAmount: Zero,
+              quantityRevoked: Zero,
               exists: true,
             },
           ];
@@ -1076,8 +1072,8 @@ describe('RestrictedNORI', () => {
               claimableAmount: restrictedAmounts[0].sub(
                 amountToTransferFirstSchedule
               ),
-              claimedAmount: constants.Zero,
-              quantityRevoked: constants.Zero,
+              claimedAmount: Zero,
+              quantityRevoked: Zero,
               exists: true,
             },
             {
@@ -1087,8 +1083,8 @@ describe('RestrictedNORI', () => {
               claimableAmount: restrictedAmounts[1].sub(
                 amountToTransferSecondSchedule
               ),
-              claimedAmount: constants.Zero,
-              quantityRevoked: constants.Zero,
+              claimedAmount: Zero,
+              quantityRevoked: Zero,
               exists: true,
             },
           ];
@@ -1098,8 +1094,8 @@ describe('RestrictedNORI', () => {
               scheduleTokenId: projectId1,
               balance: amountToTransferFirstSchedule,
               claimableAmount: amountToTransferFirstSchedule,
-              claimedAmount: constants.Zero,
-              quantityRevoked: constants.Zero,
+              claimedAmount: Zero,
+              quantityRevoked: Zero,
               exists: true,
             },
             {
@@ -1107,8 +1103,8 @@ describe('RestrictedNORI', () => {
               scheduleTokenId: projectId2,
               balance: amountToTransferSecondSchedule,
               claimableAmount: amountToTransferSecondSchedule,
-              claimedAmount: constants.Zero,
-              quantityRevoked: constants.Zero,
+              claimedAmount: Zero,
+              quantityRevoked: Zero,
               exists: true,
             },
           ];
@@ -1186,12 +1182,12 @@ describe('RestrictedNORI', () => {
             {
               tokenHolder: supplier,
               scheduleTokenId: projectId1,
-              balance: BigNumber.from(restrictedAmounts[0]),
+              balance: restrictedAmounts[0],
             },
             {
               tokenHolder: supplier,
               scheduleTokenId: projectId2,
-              balance: BigNumber.from(restrictedAmounts[1]),
+              balance: restrictedAmounts[1],
             },
           ];
           for (const [
@@ -1226,12 +1222,12 @@ describe('RestrictedNORI', () => {
             {
               tokenHolder: supplier,
               scheduleTokenId: projectId1,
-              balance: constants.Zero,
+              balance: Zero,
             },
             {
               tokenHolder: supplier,
               scheduleTokenId: projectId2,
-              balance: constants.Zero,
+              balance: Zero,
             },
           ];
           const expectedInvestor1ScheduleDetailsAfterTransfer = [
@@ -1732,14 +1728,14 @@ describe('RestrictedNORI', () => {
             listedRemovalIds1[0],
             projectId1,
             quantityToRevoke
+          )
+          .to.emit(rNori, 'TokensRevoked')
+          .withArgs(
+            await getLatestBlockTime({ hre }),
+            listedRemovalIds2[0],
+            projectId2,
+            quantityToRevoke
           );
-        // .to.emit(rNori, 'TokensRevoked')
-        // .withArgs(
-        //   scheduleStartTime + SECONDS_IN_5_YEARS,
-        //   listedRemovalIds2[0],
-        //   projectId2,
-        //   quantityToRevoke
-        // );
         const scheduleSummariesAfterFirstRevocation =
           await rNori.batchGetScheduleSummaries([projectId1, projectId2]);
         expect(scheduleSummariesAfterFirstRevocation.length).to.equal(2);

@@ -26,7 +26,7 @@ import type {
   RemovalTestHarness,
 } from '@/typechain-types';
 import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
-import { formatTokenAmount, formatTokenString } from '@/utils/units';
+import { formatTokenAmount } from '@/utils/units';
 import type { Contracts } from '@/utils/contracts';
 import { getContractsFromDeployments } from '@/utils/contracts';
 
@@ -349,7 +349,6 @@ export const setupTest = global.hre.deployments.createFixture(
           hre,
         });
         removalAmounts = [...removalAmounts, ...mintResultData.removalAmounts];
-        mintResultData.removalAmounts;
         listedRemovalIds = [
           ...listedRemovalIds,
           ...mintResultData.listedRemovalIds,

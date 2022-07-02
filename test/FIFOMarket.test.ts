@@ -66,7 +66,7 @@ describe('FIFOMarket', () => {
           .to.emit(fifoMarket, 'PriorityRestrictedThresholdSet')
           .withArgs(newThreshold);
         expect(await fifoMarket.priorityRestrictedThreshold()).to.equal(
-          BigNumber.from(newThreshold)
+          newThreshold
         );
         await expect(
           fifoMarket
@@ -166,7 +166,7 @@ describe('FIFOMarket', () => {
       //     it('should return 0', async () => {
       //       const { fifoMarket } = await setupTest();
       //       expect(await fifoMarket.nextRemovalForSale(true)).to.equal(
-      //         BigNumber.from(0)
+      //         constants.Zero
       //       );
       //     });
       //     it('should have defined behavior if there are multiple removals and all of them were purchased', async () => {
@@ -185,7 +185,7 @@ describe('FIFOMarket', () => {
       //           hre.ethers.utils.hexZeroPad(buyer, 32)
       //         );
       //       expect(await fifoMarket.nextRemovalForSale(true)).to.equal(
-      //         BigNumber.from(0)
+      //         constants.Zero
       //       );
       //     });
       //   });
@@ -245,7 +245,7 @@ describe('FIFOMarket', () => {
       //         ethers.utils.parseUnits(priorityThreshold)
       //       );
       //       expect(await fifoMarket.nextRemovalForSale(false)).to.equal(
-      //         BigNumber.from(0)
+      //         constants.Zero
       //       );
       //     });
       //   });
@@ -330,7 +330,7 @@ describe('FIFOMarket', () => {
             formatTokenAmount(200)
           );
           expect(await fifoMarket.totalUnrestrictedSupply()).to.equal(
-            BigNumber.from(0)
+            constants.Zero
           );
         });
         it('should return the unrestricted portion of supply when inventory is above the priority restricted threshold', async () => {

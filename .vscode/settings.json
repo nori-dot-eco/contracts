@@ -73,31 +73,8 @@
 
   /** BEGIN SOLIDITY OPTIONS */
   "solidity.linter": "solhint",
-  "solidity.remappings": [
-    "@openzeppelin/=@nori-dot-com/contracts/node_modules/@openzeppelin/"
-  ],
   "solidity.compileUsingRemoteVersion": "0.8.15",
   /** END SOLIDITY OPTIONS */
-
-  /** BEGIN CYPRESS OPTIONS */
-  "json.schemas": [
-    {
-      "fileMatch": ["cypress.json"],
-      "url": "https://on.cypress.io/cypress.schema.json"
-    }
-  ],
-  /** END CYPRESS OPTIONS */
-
-  /** BEGIN CSPELL OPTIONS */
-  "cSpell.customDictionaries": {
-    "custom-words": {
-      "name": "custom-words",
-      "path": "@nori-dot-com/nori-dot-com/packages/cspell/custom-words.txt",
-      "addWords": true,
-      "scope": "user"
-    }
-  },
-  /** END CSPELL OPTIONS */
 
   /** BEGIN TYPE CHECKING OPTIONS */
   "js/ts.implicitProjectConfig.checkJs": true
