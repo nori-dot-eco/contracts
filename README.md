@@ -11,7 +11,7 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 - BridgedPolygonNORI
   - 0x8cf6E82919f69aE382DEf8f94e581a43Ce1E70C1
 - LockedNORI
-  - 0xCcFfFA6c2a030821331cC113b63babDC60BfF82A
+  - 0xCcFfFA6c2a030821331cC113b63babDC60BfF82A # todo fork repo note
 - Certificate
 - Removal
 - FIFOMarket
@@ -19,7 +19,7 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 ### mumbai (polygon testnet)
 
 - BridgedPolygonNORI
-- LockedNORI
+- LockedNORI # todo fork repo note
 - Certificate
 - Removal
 - FIFOMarket
@@ -36,7 +36,7 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 ### localhost (hardhat standalone)
 
 - BridgedPolygonNORI
-- LockedNORI
+- LockedNORI # todo fork repo note
 - Certificate
 - Removal
 - FIFOMarket

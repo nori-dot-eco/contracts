@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
@@ -9,7 +9,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgrade
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "./ERC1155PresetPausableNonTransferrable.sol";
 
-// todo non-transferable/approveable
 // todo disable other mint functions
 // todo whenNotPasused
 // todo setApprovalForAll should only work when called on accounts with CERTIFICATE_OPERATOR_ROLE
@@ -47,6 +46,13 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
    */
   uint256 private _latestTokenId;
 
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
+  constructor() {
+    _disableInitializers();
+  }
+
   function initialize() external initializer {
     // todo verify all inherited unchained initializers are called
     __Context_init_unchained();
@@ -82,8 +88,8 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     uint256[] memory removalAmounts,
     bytes memory data // todo array?
   ) public override {
-    uint256 certificateAmount = abi.decode(data, (uint256)); // todo verify amount
     uint256 tokenId = _latestTokenId;
+    uint256 certificateAmount = abi.decode(data, (uint256)); // todo verify amount (would we be better of computing amount from the removalIds loop? how does gas compare)
     // todo extract to base contract and overload here
     // todo use modified mintCertificate instead of mintBatch. mintBatch should be used to mint multi certificates.
     // todo only allowed by market contract

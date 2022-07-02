@@ -5,9 +5,19 @@
   /** END ESLINT OPTIONS */
 
   /** BEGIN EDITOR OPTIONS */
+  // BEGIN FILES OPTIONS */
+  "files.associations": {
+    "*.env.defaults": "env" // associates the extension IronGeek.vscode-env with .env.example files
+  },
+  // END FILES OPTIONS */
+
   // BEGIN FORMAT ON SAVE OPTIONS */
+  "editor.defaultFormatter": "esbenp.prettier-vscode", // sets the default formatter to vscode's prettier plugin
   "editor.formatOnSave": false, // disable the default format on-save options, prefer eslint's fixes
   "[json]": {
+    "editor.formatOnSave": true // override default as eslint has now autofixes for this file extension
+  },
+  "[jsonc]": {
     "editor.formatOnSave": true // override default as eslint has now autofixes for this file extension
   },
   "[yaml]": {
@@ -19,9 +29,19 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true // enables eslint to fix files on-save
   },
-  "editor.defaultFormatter": "esbenp.prettier-vscode", // sets the default formatter to vscode's prettier plugin
-  "editor.detectIndentation": false,
+  "[solidity]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true // override default as eslint has now autofixes for this file extension
+  },
+  "[env]": {
+    "editor.defaultFormatter": "IronGeek.vscode-env",
+    "editor.formatOnSave": true
+  },
   // END FORMAT ON SAVE OPTIONS
+
+  // BEGIN MISC OPTIONS
+  "editor.detectIndentation": false,
+  // END MISC OPTIONS
   /** END EDITOR OPTIONS */
 
   /** BEGIN TYPESCRIPT OPTIONS */
@@ -44,6 +64,7 @@
     "**/node_modules": true,
     "**/bower_components": true,
     "**/dist/**": true,
+    "**/lib/**": true,
     "**/log/**": true,
     "**/logs/**": true,
     "**/.fdk/**": true
@@ -51,19 +72,11 @@
   /** END FILE WATCHER OPTIONS */
 
   /** BEGIN SOLIDITY OPTIONS */
-  "solidity.compileUsingRemoteVersion": "v0.8.12+commit.f00d7308",
+  "solidity.linter": "solhint",
+  "solidity.compileUsingRemoteVersion": "0.8.15",
   /** END SOLIDITY OPTIONS */
 
-  /** BEGIN CYPRESS OPTIONS */
-  "json.schemas": [
-    {
-      "fileMatch": ["cypress.json"],
-      "url": "https://on.cypress.io/cypress.schema.json"
-    }
-  ],
-  /** END CYPRESS OPTIONS */
-
-  /** BEGIN CSPELL OPTIONS */
-  "cSpell.words": ["svix"]
-  /** END CSPELL OPTIONS */
+  /** BEGIN TYPE CHECKING OPTIONS */
+  "js/ts.implicitProjectConfig.checkJs": true
+  /** END TYPE CHECKING OPTIONS */
 }

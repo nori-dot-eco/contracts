@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
@@ -13,7 +13,7 @@ import "hardhat/console.sol"; // todo rm
 /**
  * @title ERC1155PresetPausableNonTransferrable
  */
-contract ERC1155PresetPausableNonTransferrable is
+abstract contract ERC1155PresetPausableNonTransferrable is
   ERC1155SupplyUpgradeable,
   ERC1155PresetMinterPauserUpgradeable
 {

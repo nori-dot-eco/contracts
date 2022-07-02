@@ -4,9 +4,13 @@ export const getMochaConfig = (
   environment = process.env
 ): HardhatUserConfig['mocha'] => {
   const { REPORT_GAS, CI } = environment;
-  const mochaConfig: HardhatUserConfig['mocha'] = {
-    parallel: !Boolean(REPORT_GAS) && !Boolean(CI),
-  };
+  const mochaConfig: HardhatUserConfig['mocha'] =
+    REPORT_GAS || CI
+      ? {}
+      : {
+          parallel: !REPORT_GAS && !CI,
+        };
+
   return mochaConfig;
 };
 
