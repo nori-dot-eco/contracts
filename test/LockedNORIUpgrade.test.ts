@@ -21,11 +21,8 @@ describe('LockedNORI V1 to V2 upgrade', () => {
     const TestToken777Factory = await hre.ethers.getContractFactory(
       'TestToken777'
     );
-    const testTokenInstance = (await upgrades.deployProxy(
-      TestToken777Factory,
-      [],
-      { initializer: 'initialize()' }
-    )) as TestToken777;
+    const testTokenInstance = await TestToken777Factory.deploy();
+    await testTokenInstance.deployed();
 
     const LockedNORIFactory = await hre.ethers.getContractFactoryFromArtifact(
       LockedNORIArtifact

@@ -1,14 +1,11 @@
-import "@openzeppelin/contracts-upgradeable/token/ERC777/presets/ERC777PresetFixedSupplyUpgradeable.sol";
+pragma solidity ^0.8.15;
 
-contract TestToken777 is ERC777PresetFixedSupplyUpgradeable {
-  function initialize() public virtual initializer {
-    address[] memory operators;
-    __ERC777PresetFixedSupply_init(
-      "TestToken777",
-      "T77",
-      operators,
-      1_000_000_000_000_000_000_000_000,
-      _msgSender()
-    );
+import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
+
+contract TestToken777 is ERC777 {
+  address[] ops;
+
+  constructor() ERC777("TestToken777", "T77", ops) {
+    _mint(_msgSender(), 1_000_000_000_000_000_000_000_000, "", "");
   }
 }
