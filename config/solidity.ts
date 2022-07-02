@@ -5,7 +5,7 @@ export const solidity: HardhatUserConfig['solidity'] = {
     {
       version: '0.8.15',
       settings: {
-        viaIR: process.env.VIA_IR,
+        viaIR: process.env.VIA_IR && !process.env.CI,
         ...(!process.env.CI && {
           optimizer: {
             enabled: process.env.OPTIMIZER,
