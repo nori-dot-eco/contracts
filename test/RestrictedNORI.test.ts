@@ -1296,7 +1296,7 @@ describe('RestrictedNORI', () => {
           rNori
             .connect(hre.namedSigners.admin)
             .safeTransferFrom(supplier, investor1, projectId, 50, '0x')
-        ).to.be.revertedWith('ERC1155: caller is not token owner nor approved');
+        ).to.be.revertedWith('ERC1155: caller is not owner nor approved');
       });
     });
   });

@@ -2,9 +2,26 @@
   "_format": "hh-sol-artifact-1",
   "contractName": "RemovalQueue",
   "sourceName": "contracts/RemovalQueue.sol",
-  "abi": [],
-  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea2646970667358221220f05e14e304a35d873a604d7d7d0a81d224ba4b14a6e91314614a52e5c6da5e4464736f6c634300080f0033",
-  "deployedBytecode": "0x600080fdfea2646970667358221220f05e14e304a35d873a604d7d7d0a81d224ba4b14a6e91314614a52e5c6da5e4464736f6c634300080f0033",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "removalId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "vintage",
+          "type": "uint256"
+        }
+      ],
+      "name": "FailedToRemoveRemovalFromQueue",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea2646970667358221220dc7dcca94147c659d01d9ad932f78ffea7c27e219a98a49a957c4ce969880b4164736f6c634300080f0033",
+  "deployedBytecode": "0x600080fdfea2646970667358221220dc7dcca94147c659d01d9ad932f78ffea7c27e219a98a49a957c4ce969880b4164736f6c634300080f0033",
   "linkReferences": {},
   "deployedLinkReferences": {}
 }

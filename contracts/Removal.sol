@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820Implement
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
+import {TokenIdExists, ArrayLengthMismatch, MintDisabled} from "./SharedCustomErrors.sol";
 
 // import "hardhat/console.sol"; // todo
 
@@ -26,9 +27,7 @@ contract Removal is
   using SafeMathUpgradeable for uint256;
   using RemovalUtils for uint256;
 
-  error TokenIdExists(uint256 tokenId);
   error TokenIdDoesNotExist(uint256 tokenId);
-  error ArrayLengthMismatch(string array1Name, string array2Name);
   error InvalidProjectId(uint256 projectId);
 
   struct BatchMintRemovalsData {
@@ -260,7 +259,7 @@ contract Removal is
     uint256,
     bytes memory
   ) public pure override {
-    revert("Removal: ERC 1155 mint disabled");
+    revert MintDisabled();
   }
 
   /**

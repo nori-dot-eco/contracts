@@ -156,7 +156,7 @@ describe('FIFOMarket', () => {
               r,
               s
             )
-        ).to.be.revertedWith('Low supply and buyer not on allowlist');
+        ).to.be.revertedWith('LowSupplyAllowlistRequired()');
       });
     });
     // });
@@ -844,7 +844,7 @@ describe('FIFOMarket', () => {
           fifoMarket
             .connect(buyer)
             .swap(buyer.address, totalPrice, constants.MaxUint256, v, r, s)
-        ).to.be.revertedWith('Market: Out of stock');
+        ).to.be.revertedWith('OutOfStock()');
         const [
           buyerFinalNoriBalance,
           supplierFinalNoriBalance,
@@ -887,7 +887,7 @@ describe('FIFOMarket', () => {
           fifoMarket
             .connect(buyer)
             .swap(buyer.address, value, constants.MaxUint256, v, r, s)
-        ).to.be.revertedWith('Market: Not enough supply');
+        ).to.be.revertedWith('InsufficientSupply()');
         const [
           buyerFinalNoriBalance,
           supplierFinalNoriBalance,
@@ -1286,7 +1286,7 @@ describe('FIFOMarket', () => {
             r,
             s
           )
-      ).to.be.revertedWith('Market: Not enough supply');
+      ).to.be.revertedWith('InsufficientSupply()');
     });
     it('should revert when purchasing supply from a specific supplier who does not exist in the market', async () => {
       const { bpNori, fifoMarket, feePercentage } = await setupTest({
@@ -1324,7 +1324,7 @@ describe('FIFOMarket', () => {
             r,
             s
           )
-      ).to.be.revertedWith('Market: Not enough supply');
+      ).to.be.revertedWith('InsufficientSupply()');
     });
   });
 });

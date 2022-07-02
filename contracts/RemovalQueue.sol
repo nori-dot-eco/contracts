@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity =0.8.15;
+
 import {RemovalUtils} from "./RemovalUtils.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./Removal.sol";
@@ -14,6 +14,8 @@ struct RemovalQueueByVintage {
 library RemovalQueue {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+
+  error FailedToRemoveRemovalFromQueue(uint256 removalId, uint256 vintage);
 
   uint256 private constant _DEFAULT_EARLIEST_YEAR = 2**256 - 1;
   uint256 private constant _DEFAULT_LATEST_YEAR = 0;
@@ -53,10 +55,14 @@ library RemovalQueue {
     uint256 removalToRemove
   ) internal returns (bool) {
     uint256 vintageOfRemoval = removalToRemove.vintage();
-    require(
-      removalQueue.queueByVintage[vintageOfRemoval].remove(removalToRemove),
-      "Market: failed to remove correct removal"
-    );
+    if (
+      !removalQueue.queueByVintage[vintageOfRemoval].remove(removalToRemove)
+    ) {
+      revert FailedToRemoveRemovalFromQueue({
+        removalId: removalToRemove,
+        vintage: vintageOfRemoval
+      });
+    }
     // If all removals were removed, check to see if there are any updates to the struct we need to make.
     if (isRemovalQueueEmptyForVintage(removalQueue, vintageOfRemoval)) {
       if (removalQueue.earliestYear == removalQueue.latestYear) {
