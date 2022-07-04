@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 
+// todo remove the supplier address from the removal id and consider encoding project id instead
+// reasoning: hard coded payment address may be problematic, project id more static / less risky
 struct UnpackedRemovalIdV0 {
   uint8 idVersion;
   uint8 methodology;

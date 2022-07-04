@@ -6,12 +6,11 @@ import {
   PROD_NORI_FEE_WALLET_ADDRESS,
 } from '@/constants/addresses';
 import { deployFIFOMarketContract, finalizeDeployments } from '@/utils/deploy';
-import { getCertificate } from '@/utils/contracts';
 
 export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
-  hre.trace(`deployFIFOMarket`);
+  hre.trace(`deploy-fifo-market`);
   const feeWallet = ['hardhat', 'localhost'].includes(hre.network.name)
     ? hre.namedAccounts.noriWallet
     : hre.network.name === 'polygon'
@@ -22,20 +21,6 @@ export const deploy: DeployFunction = async (environment) => {
     feeWallet,
     feePercentage: 15,
   });
-  const [signer] = await hre.getSigners();
-  const certificate = await getCertificate({ hre, signer });
-  if (
-    !(await certificate.hasRole(
-      await certificate.MINTER_ROLE(),
-      contract.address
-    ))
-  ) {
-    await certificate.grantRole(
-      await certificate.MINTER_ROLE(),
-      contract.address
-    ); // todo stop doing this during deployment for cypress tests (use run('nori mint ...') in tests instead)
-  }
-  hre.trace('Added FIFOMarket as a minter of Certificate');
   await finalizeDeployments({ hre, contracts: { FIFOMarket: contract } });
 };
 
@@ -46,6 +31,7 @@ deploy.dependencies = [
   'Removal',
   'Certificate',
   'BridgedPolygonNORI',
+  'RestrictedNORI',
 ];
 deploy.skip = async (hre) =>
   Promise.resolve(

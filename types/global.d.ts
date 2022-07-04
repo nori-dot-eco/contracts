@@ -5,13 +5,8 @@ import type {
   RunSuperFunction,
   TaskArguments,
 } from 'hardhat/types/runtime';
-import type {
-  BaseContract,
-  Contract,
-  ethers as defaultEthers,
-} from 'ethers';
+import type { BaseContract, Contract, ethers as defaultEthers } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
-import { JsonRpcSigner } from '@ethersproject/providers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
   FactoryOptions,
@@ -33,6 +28,8 @@ import {
 import { HardhatUserConfig } from 'hardhat/types';
 import { Address, Deployment } from 'hardhat-deploy/types';
 import { Contracts } from '@/utils/contracts';
+import { Eip2612Signer } from '@/signers/eip-26126';
+import { debug } from '@/utils/debug';
 
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
@@ -145,6 +142,19 @@ interface CustomHardhatUpgrades extends HardhatUpgrades {
 }
 
 declare global {
+  type TupleToObject<
+    T extends readonly any[],
+    M extends Record<Exclude<keyof T, keyof any[]>, PropertyKey>
+  > = { [K in Exclude<keyof T, keyof any[]> as M[K]]: T[K] };
+
+  type ParametersToObject<
+    TFunction extends (...args: any[]) => any,
+    TKeys extends Record<
+      Exclude<keyof Parameters<TFunction>, keyof any[]>,
+      PropertyKey
+    >
+  > = TupleToObject<Parameters<TFunction>, TKeys>;
+
   interface ClassType<T> {
     new (...args: any[]): T;
   }
@@ -160,7 +170,7 @@ declare global {
   type TypeChainBaseContract = BaseContract & { contractName: string };
   type NamedAccountIndices = typeof namedAccountIndices;
   type NamedAccounts = { [Property in keyof NamedAccountIndices]: Address };
-  type NamedSigners = { [Property in keyof NamedAccounts]: JsonRpcSigner };
+  type NamedSigners = { [Property in keyof NamedAccounts]: Eip2612Signer };
   type DeepPartial<T> = {
     [P in keyof T]?: DeepPartial<T[P]>;
   };
@@ -170,7 +180,8 @@ declare global {
     | 'NORI'
     | 'Removal'
     | 'Certificate'
-    | 'LockedNORI'
+    // | 'LockedNORI' // todo import from forked repo
+    | 'RestrictedNORI'
     | 'BridgedPolygonNORI'
     | 'ScheduleTestHarness';
 
@@ -203,6 +214,7 @@ declare global {
     deployNonUpgradeable: DeployNonUpgradeableFunction;
     log: Console['log'];
     trace: Console['log'];
+    debug: typeof debug;
     ethernalSync: boolean; // todo figure out why we need to re-write types like this
     ethernalTrace: boolean;
     ethernalWorkspace: string;
@@ -244,6 +256,10 @@ declare global {
       REPORT_GAS_FILE?: string;
       TENDERLY: boolean;
       FAIL: boolean;
+      VIA_IR: boolean;
+      OPTIMIZER_RUNS: number;
+      OPTIMIZER: boolean;
+      CI: boolean;
     }
   }
 }

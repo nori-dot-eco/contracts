@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity =0.8.13;
+pragma solidity =0.8.15;
 import {RemovalUtils} from "./RemovalUtils.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./Removal.sol";
@@ -150,7 +150,7 @@ library RemovalQueue {
 
   /**
    * @notice Gets the total balance of all removals across all vintages.
-   * @dev Gets the size of the Enumerable Set that corresponds to the given vintage.
+   *
    * @param removalQueue the queue from storage.
    * @param removal the removal contract.
    * @return uint256 the total balance of the queue.
