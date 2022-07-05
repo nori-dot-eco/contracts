@@ -32,9 +32,21 @@ import {
 } from 'hardhat-deploy/dist/types';
 import { HardhatUserConfig } from 'hardhat/types';
 import { Address, Deployment } from 'hardhat-deploy/types';
-import { Contracts } from '@/utils/contracts';
 import { Eip2612Signer } from '@/signers/eip-26126';
 import { debug } from '@/utils/debug';
+import type {
+  BridgedPolygonNORI,
+  Certificate,
+  FIFOMarket,
+  LockedNORIV2,
+  RestrictedNORI,
+  NORI,
+  Removal,
+  ScheduleTestHarness,
+  RemovalTestHarness,
+  MockCertificate,
+  MockERC1155PresetPausableNonTransferrable,
+} from '@/typechain-types';
 
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
@@ -123,7 +135,7 @@ interface DeployOrUpgradeProxyFunction {
     args,
     options,
   }: {
-    contractName: ContractNames;
+    contractName: keyof Contracts;
     args: unknown[];
     options?: DeployProxyOptions;
   }): Promise<InstanceOfContract<TContract>>;
@@ -135,7 +147,7 @@ interface DeployNonUpgradeableFunction {
     args,
     options,
   }: {
-    contractName: ContractNames;
+    contractName: keyof Contracts;
     args: unknown[];
     options?: FactoryOptions;
   }): Promise<InstanceOfContract<TContract>>;
@@ -180,18 +192,20 @@ declare global {
     [P in keyof T]?: DeepPartial<T[P]>;
   };
   var hre: CustomHardHatRuntimeEnvironment; // todo remove from global types to prevent usage
-  type ContractNames =
-    | 'FIFOMarket'
-    | 'NORI'
-    | 'Removal'
-    | 'Certificate'
-    | 'LockedNORIV2'
-    | 'RestrictedNORI'
-    | 'BridgedPolygonNORI'
-    | 'ScheduleTestHarness'
-    | 'RemovalTestHarness'
-    | 'MockCertificate'
-    | 'MockERC1155PresetPausableNonTransferrable';
+
+  export interface Contracts {
+    Removal?: Removal;
+    NORI?: NORI;
+    BridgedPolygonNORI?: BridgedPolygonNORI;
+    FIFOMarket?: FIFOMarket;
+    LockedNORIV2?: LockedNORIV2;
+    RestrictedNORI?: RestrictedNORI;
+    Certificate?: Certificate;
+    ScheduleTestHarness?: ScheduleTestHarness;
+    RemovalTestHarness?: RemovalTestHarness;
+    MockCertificate?: MockCertificate;
+    MockERC1155PresetPausableNonTransferrable?: MockERC1155PresetPausableNonTransferrable;
+  }
 
   var ethers: Omit<
     typeof defaultEthers & HardhatEthersHelpers,

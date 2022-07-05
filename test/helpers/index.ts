@@ -3,13 +3,9 @@ import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import { add } from '@nori-dot-com/math';
 
-import { defaultRemovalTokenIdFixture } from '../fixtures/removal';
+import { defaultRemovalTokenIdFixture } from '@/fixtures/removal';
 
 import { sum } from '@/utils/math';
-import type {
-  MockCertificate,
-  MockERC1155PresetPausableNonTransferrable,
-} from '@/typechain-types/contracts/mocks';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
 import {
   formatRemovalIdData,
@@ -24,10 +20,11 @@ import type {
   NORI,
   BridgedPolygonNORI,
   RemovalTestHarness,
+  MockCertificate,
+  MockERC1155PresetPausableNonTransferrable
 } from '@/typechain-types';
 import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/utils/contracts';
 import { getContractsFromDeployments } from '@/utils/contracts';
 
 export * from './chai';

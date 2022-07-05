@@ -8,25 +8,10 @@ import type {
   RestrictedNORI,
   NORI,
   Removal,
-  ScheduleTestHarness,
   RemovalTestHarness,
   MockCertificate,
   MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types';
-
-export interface Contracts {
-  Removal?: Removal;
-  NORI?: NORI;
-  BridgedPolygonNORI?: BridgedPolygonNORI;
-  FIFOMarket?: FIFOMarket;
-  LockedNORIV2?: LockedNORIV2;
-  RestrictedNORI?: RestrictedNORI;
-  Certificate?: Certificate;
-  ScheduleTestHarness?: ScheduleTestHarness;
-  RemovalTestHarness?: RemovalTestHarness;
-  MockCertificate?: MockCertificate; // todo key remapping
-  MockERC1155PresetPausableNonTransferrable?: MockERC1155PresetPausableNonTransferrable;
-}
 
 export const getContract = async <TContractName extends keyof Contracts>({
   contractName,
