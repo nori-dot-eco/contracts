@@ -9,7 +9,7 @@ import { sum } from '@/utils/math';
 import type {
   MockCertificate,
   MockERC1155PresetPausableNonTransferrable,
-} from '@/typechain-types/contracts/mocks';
+} from '@/typechain-types';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
 import {
   formatRemovalIdData,
@@ -25,7 +25,7 @@ import type {
   BridgedPolygonNORI,
   RemovalTestHarness,
 } from '@/typechain-types';
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
+import type { UnpackedRemovalIdV0Struct } from '../../typechain-types/artifacts/contracts/Removal';
 import { formatTokenAmount } from '@/utils/units';
 import type { Contracts } from '@/utils/contracts';
 import { getContractsFromDeployments } from '@/utils/contracts';

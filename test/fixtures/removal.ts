@@ -1,4 +1,4 @@
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
+import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
 
 export const defaultRemovalTokenIdFixture: UnpackedRemovalIdV0Struct = {
   idVersion: 0,

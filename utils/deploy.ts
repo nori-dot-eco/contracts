@@ -5,14 +5,6 @@ import type { Address } from 'hardhat-deploy/types';
 
 import { generateRandomSubIdentifier } from './removal';
 
-import type {
-  MockCertificate,
-  MockERC1155PresetPausableNonTransferrable,
-} from '@/typechain-types/contracts/mocks';
-import type {
-  MockCertificate__factory,
-  MockERC1155PresetPausableNonTransferrable__factory,
-} from '@/typechain-types/factories/contracts/mocks';
 import type { Contracts } from '@/utils/contracts';
 import type {
   LockedNORIV2,
@@ -23,6 +15,10 @@ import type {
   Certificate__factory,
   FIFOMarket,
   FIFOMarket__factory,
+  MockCertificate,
+  MockCertificate__factory,
+  MockERC1155PresetPausableNonTransferrable,
+  MockERC1155PresetPausableNonTransferrable__factory,
   NORI,
   NORI__factory,
   Removal,
