@@ -12,6 +12,11 @@ export const solidity: HardhatUserConfig['solidity'] = {
             runs: process.env.OPTIMIZER_RUNS,
           },
         }),
+        // outputSelection: {
+        //   '*': {
+        //     '*': ['storageLayout'],
+        //   },
+        // },
       },
     },
   ],

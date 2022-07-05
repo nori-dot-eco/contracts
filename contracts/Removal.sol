@@ -341,16 +341,15 @@ contract Removal is
     internal
     override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
   {
-    if (from == address(0)) {
-      for (uint256 i; i < amounts.length; ++i) {
-        _addressToCumulativeBalance[to] += amounts[i];
-      }
-    } else {
-      for (uint256 i; i < amounts.length; ++i) {
-        _addressToCumulativeBalance[from] -= amounts[i];
-        _addressToCumulativeBalance[to] += amounts[i];
-      }
+    uint256 total = 0;
+    uint256 numberOfTokenTransfers = amounts.length;
+    for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+      total += amounts[i];
     }
+    if (from != address(0)) {
+      _addressToCumulativeBalance[from] -= total;
+    }
+    _addressToCumulativeBalance[to] += total;
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
@@ -359,8 +358,9 @@ contract Removal is
     view
     returns (uint256[] memory)
   {
-    uint256[] memory batchBalances = new uint256[](accounts.length);
-    for (uint256 i = 0; i < accounts.length; ++i) {
+    uint256 numberOfAccounts = accounts.length;
+    uint256[] memory batchBalances = new uint256[](numberOfAccounts);
+    for (uint256 i = 0; i < numberOfAccounts; ++i) {
       batchBalances[i] = cumulativeBalanceOf(accounts[i]);
     }
     return batchBalances;
