@@ -40,6 +40,9 @@ export const getConfig = (
         cache: "./cache_hardhat",
     },
     tracer,
+    typechain: {
+      externalArtifacts: ['legacy-artifacts/contracts/LockedNORI.sol/LockedNORI.json']
+    }
   };
   return config;
 };
