@@ -15,25 +15,21 @@ contract LockedNORIV2Helper is DSTest {
     uint256 vestEndTime,
     uint256 unlockEndTime,
     uint256 cliff1Time,
-    uint256 cliff2Time,
     uint256 vestCliff1Amount,
-    uint256 vestCliff2Amount,
-    uint256 unlockCliff1Amount,
-    uint256 unlockCliff2Amount
+    uint256 unlockCliff1Amount
   ) public {
-    LockedNORIV2 lNori = LockedNORIV2(lnori);
-    lNori.createGrant(
+    LockedNORIV2(lnori).createGrant(
       amount,
       recipient,
       startTime,
       vestEndTime,
       unlockEndTime,
       cliff1Time,
-      cliff2Time,
+      0,
       vestCliff1Amount,
-      vestCliff2Amount,
+      0,
       unlockCliff1Amount,
-      unlockCliff2Amount
+      0
     );
   }
 
@@ -50,9 +46,6 @@ contract LockedNORIV2Helper is DSTest {
       block.timestamp + 1,
       block.timestamp + 1,
       block.timestamp + 1,
-      block.timestamp + 1,
-      0,
-      0,
       0,
       0
     );
