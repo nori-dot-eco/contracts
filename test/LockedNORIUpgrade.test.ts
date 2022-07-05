@@ -65,7 +65,7 @@ describe('LockedNORI V1 to V2 upgrade', () => {
       LockedNORIV2Factory,
       { unsafeAllow: ['constructor'] }
     )) as LockedNORIV2;
-    lNoriV2.updateUnderlying(bpNori.address);
+    await lNoriV2.updateUnderlying(bpNori.address);
     expect(await lNoriV2.balanceOf(recipient)).to.eq(GRANT_AMOUNT);
     await bpNori.transfer(lNoriV2.address, hre.ethers.utils.parseEther('1000'));
 
