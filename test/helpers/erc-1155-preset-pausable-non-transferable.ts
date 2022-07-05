@@ -1,4 +1,4 @@
-import type { ERC1155PresetPausableNonTransferrable } from '@/typechain-types/contracts';
+import type { ERC1155PresetPausableNonTransferrable } from '@/typechain-types';
 
 export const createBatchMintData = ({
   hre,
