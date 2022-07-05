@@ -13,7 +13,6 @@ import type {
   MockCertificate__factory,
   MockERC1155PresetPausableNonTransferrable__factory,
 } from '@/typechain-types/factories/contracts/mocks';
-import type { Contracts } from '@/utils/contracts';
 import type {
   LockedNORIV2,
   LockedNORIV2__factory,
@@ -145,7 +144,7 @@ export const deployRemovalTestHarness = async ({
 }): Promise<InstanceOfContract<RemovalTestHarness>> => {
   const RemovalTestHarness =
     await hre.ethers.getContractFactory<RemovalTestHarness__factory>(
-      'RemovalTestHarness' as ContractNames
+      'RemovalTestHarness'
     );
   const removalTestHarness = await RemovalTestHarness.deploy();
   return removalTestHarness;
@@ -157,7 +156,7 @@ export const deployMockCertificate = async ({
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<InstanceOfContract<MockCertificate>> => {
   return hre.deployOrUpgradeProxy<MockCertificate, MockCertificate__factory>({
-    contractName: 'MockCertificate' as ContractNames,
+    contractName: 'MockCertificate',
     args: [],
     options: { initializer: 'initialize()' },
   });
@@ -172,7 +171,7 @@ export const deployMockERC1155PresetPausableNonTransferrable = async ({
     MockERC1155PresetPausableNonTransferrable,
     MockERC1155PresetPausableNonTransferrable__factory
   >({
-    contractName: 'MockERC1155PresetPausableNonTransferrable' as ContractNames,
+    contractName: 'MockERC1155PresetPausableNonTransferrable',
     args: [],
     options: { initializer: 'initialize()' },
   });
@@ -285,7 +284,7 @@ export const deployTestContracts = async ({
   contractNames: contracts,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-  contractNames: ContractNames[];
+  contractNames: (keyof Contracts)[];
 }): Promise<Contracts> => {
   const isTestnet = ['mumbai', 'goerli'].includes(hre.network.name);
   const scheduleTestHarnessInstance =

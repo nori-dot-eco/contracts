@@ -16,7 +16,7 @@ export const TASK = {
     await hre.upgrades.forceImport(
       taskArguments.proxyAddress,
       await hre.ethers.getContractFactory(
-        taskArguments.contractName as ContractNames,
+        taskArguments.contractName as keyof Contracts,
         signers[0]
       ),
       {
