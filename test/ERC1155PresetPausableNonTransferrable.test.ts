@@ -269,8 +269,8 @@ describe('ERC1155PresetPausableNonTransferrable', () => {
             },
           });
         const [{ removalId, removalAmount, to: tokenOwner }] =
-          userFixtures.buyer.mockERC1155PresetPausableNonTransferrableFixtures
-            .tokens;
+          userFixtures.buyer.mockERC1155PresetPausableNonTransferrableFixtures!
+            .tokens!;
         await expect(
           mockERC1155PresetPausableNonTransferrable
             .connect(hre.namedSigners.buyer)

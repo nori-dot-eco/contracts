@@ -15,8 +15,8 @@ import type {
 } from '@/typechain-types/factories/contracts/mocks';
 import type { Contracts } from '@/utils/contracts';
 import type {
-  LockedNORI,
-  LockedNORI__factory,
+  // LockedNORI, // todo import from forked repo
+  // LockedNORI__factory, // todo import from forked repo
   RestrictedNORI,
   RestrictedNORI__factory,
   Certificate,
@@ -244,7 +244,10 @@ export const deployBridgedPolygonNORIContract = async ({
   >({
     contractName: 'BridgedPolygonNORI',
     args: [childChainManagerProxyAddress],
-    options: { initializer: 'initialize(address)' },
+    options: {
+      initializer: 'initialize(address)',
+      unsafeAllow: ['delegatecall'],
+    },
   });
 };
 
@@ -256,20 +259,23 @@ export const deployNORIContract = async ({
   return hre.deployOrUpgradeProxy<NORI, NORI__factory>({
     contractName: 'NORI',
     args: [],
+    options: {
+      unsafeAllow: ['delegatecall'],
+    },
   });
 };
 
-export const deployLockedNORIContract = async ({
-  hre,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-}): Promise<InstanceOfContract<LockedNORI>> => {
-  return hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
-    contractName: 'LockedNORI',
-    args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
-    options: { initializer: 'initialize(address)' },
-  });
-};
+// export const deployLockedNORIContract = async ({ // todo import from forked repo
+//   hre,
+// }: {
+//   hre: CustomHardHatRuntimeEnvironment;
+// }): Promise<InstanceOfContract<LockedNORI>> => {
+//   return hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
+//     contractName: 'LockedNORI',
+//     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
+//     options: { initializer: 'initialize(address)' },
+//   });
+// };
 
 export const deployTestContracts = async ({
   hre,
@@ -434,11 +440,10 @@ export const seedContracts = async ({
     );
     const tx = await contracts.BridgedPolygonNORI.connect(
       hre.namedSigners.admin
-    ).send(
+    ).transfer(
       // todo stop minting/seeding during deployment
       hre.namedAccounts.buyer,
-      formatTokenAmount(1_000_000),
-      hre.ethers.utils.formatBytes32String('0x0')
+      formatTokenAmount(1_000_000)
     );
     hre.trace(
       'Sent some BridgedPolygonNORI from the admin account to the buyer account',

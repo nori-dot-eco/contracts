@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.13;
+pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import "./FIFOMarket.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
+
+// todo extract some of this contract to a preset (makes contracts more re-usable going forward without needing duplicate audit scope, also  makes it easier to isolate tests (e.g., pausability), w/o having to test it per-contract)
+// todo we should allow passing a timestamp to schedule revocation and summary functions (where 0 will set the timestamp to the current time)
 
 /**
  * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance collateral.
  *
  * @author Nori Inc.
  *
- * @notice Based on the mechanics of a wrapped ERC-777 token, this contract layers schedules over the withdrawal
+ * @notice Based on the mechanics of a wrapped ERC-20 token, this contract layers schedules over the withdrawal
  * functionality to implement _restriction_, a time-based release of tokens that, until released, can be reclaimed
  * by Nori to enforce the permanence guarantee of carbon removals.
  *
@@ -67,9 +69,9 @@ import {RemovalUtils} from "./RemovalUtils.sol";
  *    - SCHEDULE_CREATOR_ROLE
  *      - Can create restriction schedules without sending BridgedPolygonNORI to the contract
  *      - The Market contract has this role and sets up relevant schedules as removal tokens are listed for sale
- *    - TOKEN_DEPOSITOR_ROLE
- *      - Can send bpNori to this contract
- *      - The Market contract has this role and can route sale proceeds to this contract
+ *    - MINTER_ROLE
+ *      - Can call `mint` on this contract, which mints tokens of the correct schedule id (token id) for a given removal
+ *      - The Market contract has this role and can mint RestrictedNORI while routing sale proceeds to this contract
  *    - TOKEN_REVOKER_ROLE
  *      - Can revoke unreleased tokens from a schedule
  *      - Only Nori admin wallet should have this role
@@ -77,8 +79,6 @@ import {RemovalUtils} from "./RemovalUtils.sol";
  *      - Can pause and unpause the contract
  *    - DEFAULT_ADMIN_ROLE
  *      - This is the only role that can add/revoke other accounts to any of the roles
- * - [Can receive BridgedPolygonNORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
- *   - BridgedPolygonNORI is wrapped and schedules are created (if necessary) upon receipt
  *
  * ##### Inherits
  *
@@ -91,7 +91,6 @@ import {RemovalUtils} from "./RemovalUtils.sol";
  *
  * ##### Implements
  *
- * - [IERC777RecipientUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc777#IERC777Recipient)
  * - [IERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155)
  * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
  * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
@@ -104,7 +103,6 @@ import {RemovalUtils} from "./RemovalUtils.sol";
  *
  */
 contract RestrictedNORI is
-  IERC777RecipientUpgradeable,
   ERC1155PausableUpgradeable,
   ERC1155SupplyUpgradeable,
   AccessControlEnumerableUpgradeable
@@ -119,7 +117,7 @@ contract RestrictedNORI is
   error ArrayLengthMismatch(string array1Name, string array2Name);
   error InsufficientUnreleasedTokens(uint256 scheduleId);
   error InsufficientClaimableBalance(address account, uint256 scheduleId);
-  error InvalidBpNoriSender(address account);
+  error InvalidMinter(address account);
   error InvalidZeroDuration();
 
   /** The internal governing parameters and data for a schedule */
@@ -173,8 +171,7 @@ contract RestrictedNORI is
    *
    * @dev the Market contract is granted this role after deployments.
    */
-  bytes32 public constant TOKEN_DEPOSITOR_ROLE =
-    keccak256("TOKEN_DEPOSITOR_ROLE");
+  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
    * @notice Role conferring revocation of restricted tokens.
@@ -182,17 +179,6 @@ contract RestrictedNORI is
    * @dev only Nori admin address should have this role.
    */
   bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
-
-  /**
-   * @notice Used to register the ERC777TokensRecipient recipient interface in the
-   * ERC-1820 registry
-   *
-   * @dev Registering that RestrictedNORI implements the ERC777TokensRecipient interface with the registry is a
-   * requirement to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
-   * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
-   */
-  bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
-    keccak256("ERC777TokensRecipient");
 
   mapping(uint256 => mapping(uint256 => uint256))
     private _methodologyAndVersionToScheduleDuration;
@@ -210,17 +196,6 @@ contract RestrictedNORI is
    * @notice The Removal contract that accounts for carbon removal supply.
    */
   Removal private _removal;
-
-  /**
-   * @notice The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection registry
-   * contract
-   *
-   * @dev Registering that RestrictedNORI implements the ERC777TokensRecipient interface with the registry is a
-   * requirement to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
-   * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
-   */
-  IERC1820RegistryUpgradeable internal constant _ERC1820_REGISTRY =
-    IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
 
   /**
    * @notice Emitted on successful creation of a new schedule.
@@ -251,6 +226,13 @@ contract RestrictedNORI is
     uint256 quantity
   );
 
+  /**
+   * @custom:oz-upgrades-unsafe-allow constructor
+   */
+  constructor() {
+    _disableInitializers();
+  }
+
   // todo document expected initialzation state (this is a holdover from LockedNORI, not totally sure what it means)
   function initialize() external initializer {
     __ERC1155_init_unchained(
@@ -268,11 +250,6 @@ contract RestrictedNORI is
     _setupRole(TOKEN_REVOKER_ROLE, _msgSender());
     // Seconds in 10 years, based on average year duration of 365.2425 days, which accounts for leap years
     setRestrictionDurationForMethodologyAndVersion(1, 0, 315_569_520);
-    _ERC1820_REGISTRY.setInterfaceImplementer(
-      address(this),
-      ERC777_TOKENS_RECIPIENT_HASH,
-      address(this)
-    );
   }
 
   // View functions and getters =========================================
@@ -553,31 +530,24 @@ contract RestrictedNORI is
   }
 
   /**
-   * This function is triggered when BridgedPolygonNORI is sent to this contract
+   * Mints RestrictedNORI to the correct schedule id (1155 token id) for a given removal id
    *
-   * @dev Sending BridgedPolygonNORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard
-   * because this contract is a registered ERC777 tokens recipient.
-   *
-   * [See here for more](
-   * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
    */
-  function tokensReceived(
-    address,
-    address from,
-    address,
-    uint256 amount,
-    bytes calldata userData,
-    bytes calldata operatorData
-  ) external override {
-    if (!(_msgSender() == address(_bridgedPolygonNori))) {
-      revert TokenSenderNotBPNORI();
+  function mint(uint256 amount, uint256 removalId) external {
+    if (!hasRole(MINTER_ROLE, _msgSender())) {
+      revert InvalidMinter({account: _msgSender()});
     }
-    if (!hasRole(TOKEN_DEPOSITOR_ROLE, from)) {
-      revert InvalidBpNoriSender({account: from});
+    uint256 projectId = _removal.getProjectIdForRemoval(removalId);
+    Removal.ScheduleData memory scheduleData = _removal
+      .getScheduleDataForProjectId(projectId);
+    address recipient = scheduleData.supplierAddress;
+    if (!_scheduleIdToScheduleStruct[projectId].exists) {
+      revert NonexistentSchedule({scheduleId: projectId});
     }
-
-    uint256 removalId = abi.decode(userData, (uint256));
-    _depositFor(removalId, amount, userData, operatorData);
+    super._mint(recipient, projectId, amount, "");
+    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
+    // slither-disable-next-line unused-return address may already be in set and that is ok
+    schedule.tokenHolders.add(recipient);
   }
 
   /**
@@ -604,12 +574,7 @@ contract RestrictedNORI is
     schedule.totalClaimedAmount += amount;
     schedule.claimedAmountsByAddress[_msgSender()] += amount;
     emit TokensClaimed(_msgSender(), recipient, scheduleId, amount);
-    _bridgedPolygonNori.send(
-      // solhint-disable-previous-line check-send-result, because this isn't a solidity send
-      recipient,
-      amount,
-      ""
-    );
+    _bridgedPolygonNori.transfer(recipient, amount);
     return true;
   }
 
@@ -716,35 +681,6 @@ contract RestrictedNORI is
   }
 
   // Private implementations ==========================================
-
-  /**
-   * Wraps minting of wrapper token and schedule setup.
-   *
-   * @dev If no schedule is set up for the specified removal id, one is created.
-   *
-   * @param removalId uint256 The removal for which funds are being deposited.
-   * @param amount uint256 Quantity of `_bridgedPolygonNori` to deposit
-   */
-  function _depositFor(
-    uint256 removalId,
-    uint256 amount,
-    bytes memory,
-    bytes memory
-  ) internal returns (bool) {
-    uint256 projectId = _removal.getProjectIdForRemoval(removalId);
-    Removal.ScheduleData memory scheduleData = _removal
-      .getScheduleDataForProjectId(projectId);
-    address recipient = scheduleData.supplierAddress;
-    if (!_scheduleIdToScheduleStruct[projectId].exists) {
-      revert NonexistentSchedule({scheduleId: projectId});
-    }
-    super._mint(recipient, projectId, amount, "");
-    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    // slither-disable-next-line unused-return address may already be in set and that is ok
-    schedule.tokenHolders.add(recipient);
-    return true;
-  }
-
   /**
    * Sets up a schedule for the specified project id (implementation).
    *
@@ -802,15 +738,12 @@ contract RestrictedNORI is
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
-    if (!(amount <= revocableQuantityForSchedule(scheduleId))) {
+    uint256 quantityRevocable = revocableQuantityForSchedule(scheduleId);
+    if (!(amount <= quantityRevocable)) {
       revert InsufficientUnreleasedTokens({scheduleId: scheduleId});
     }
-
     // amount of zero indicates revocation of all remaining tokens.
-    uint256 quantityToRevoke = amount > 0
-      ? amount
-      : revocableQuantityForSchedule(scheduleId);
-
+    uint256 quantityToRevoke = amount > 0 ? amount : quantityRevocable;
     // burn correct proportion from each token holder
     address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
     // todo gas optimization -- is it more expensive to call balanceOf multiple times, or to construct this array?
@@ -823,7 +756,6 @@ contract RestrictedNORI is
     uint256[] memory quantitiesToBurnForHolders = new uint256[](
       tokenHoldersLocal.length
     );
-
     // Calculate the final holder's quantity to revoke by subtracting the sum of other quantities
     // from the desired total to revoke, thus avoiding any precision rounding errors from affecting
     // the total quantity revoked by up to several wei.
@@ -845,7 +777,6 @@ contract RestrictedNORI is
     quantitiesToBurnForHolders[tokenHoldersLocal.length - 1] =
       quantityToRevoke -
       cumulativeQuantityToBurn;
-
     // todo consider writing a batch variant of burn that accommodates multiple addresses for a single token
     for (uint256 i = 0; i < (tokenHoldersLocal.length); i++) {
       super._burn(
@@ -857,7 +788,6 @@ contract RestrictedNORI is
         tokenHoldersLocal[i]
       ] += quantitiesToBurnForHolders[i];
     }
-
     schedule.totalQuantityRevoked += quantityToRevoke;
     emit TokensRevoked(
       block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
@@ -865,12 +795,7 @@ contract RestrictedNORI is
       scheduleId,
       quantityToRevoke
     );
-    _bridgedPolygonNori.send(
-      // solhint-disable-previous-line check-send-result, because this isn't a solidity send
-      to,
-      quantityToRevoke,
-      ""
-    );
+    _bridgedPolygonNori.transfer(to, quantityToRevoke);
   }
 
   /**

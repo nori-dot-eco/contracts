@@ -1,4 +1,4 @@
-import * as path from 'path';
+import path from 'path';
 
 import type { HardhatUserConfig } from 'hardhat/types';
 
@@ -11,9 +11,12 @@ export const docgen: HardhatUserConfig['docgen'] = {
       'NORI',
       'Removal',
       'Certificate',
-      'LockedNORI',
       'BridgedPolygonNORI',
-      'ERC777PresetPausablePermissioned',
+      'ERC20Preset',
+      'ScheduleUtils',
+      'RemovalQueue',
+      'RemovalUtils',
+      'RestrictedNORI',
     ].includes((item as any)?.canonicalName)
       ? (item as any)?.canonicalName?.concat('.md')
       : undefined;

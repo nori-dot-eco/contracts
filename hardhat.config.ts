@@ -17,6 +17,7 @@ import { docgen } from '@/config/docgen';
 import { getMochaConfig } from '@/config/mocha';
 import { fireblocks } from '@/config/fireblocks';
 import { preprocess } from '@/config/preprocess';
+import { tracer } from '@/config/tracer';
 
 export const getConfig = (
   environment: NodeJS.ProcessEnv = process.env
@@ -38,6 +39,7 @@ export const getConfig = (
         sources: "./contracts",
         cache: "./cache_hardhat",
     },
+    tracer,
   };
   return config;
 };
