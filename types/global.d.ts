@@ -203,7 +203,7 @@ declare global {
     Certificate?: Certificate;
     ScheduleTestHarness?: ScheduleTestHarness;
     RemovalTestHarness?: RemovalTestHarness;
-    MockCertificate?: MockCertificate; // todo key remapping
+    MockCertificate?: MockCertificate;
     MockERC1155PresetPausableNonTransferrable?: MockERC1155PresetPausableNonTransferrable;
   }
 

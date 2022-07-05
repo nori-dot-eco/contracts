@@ -12,7 +12,7 @@ const setupTest = hre.deployments.createFixture(
     scheduleTestHarness: ScheduleTestHarness;
   }> => {
     const ScheduleTestHarness = await hre.ethers.getContractFactory(
-      'ScheduleTestHarness' as unknown as keyof Contracts
+      'ScheduleTestHarness'
     );
     const scheduleTestHarness =
       (await ScheduleTestHarness.deploy()) as ScheduleTestHarness;
