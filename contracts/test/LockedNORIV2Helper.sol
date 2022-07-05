@@ -25,7 +25,7 @@ contract LockedNORIV2Helper is DSTest {
       vestEndTime,
       unlockEndTime,
       cliff1Time,
-      0,
+      cliff1Time,
       vestCliff1Amount,
       0,
       unlockCliff1Amount,
