@@ -1,9 +1,9 @@
-pragma solidity 0.8.13;
+pragma solidity 0.8.15;
 
 import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
-import "../contracts/BridgedPolygonNORI.sol";
-import "../contracts/LockedNORI.sol";
+import "../contracts/test/TestToken777.sol";
+import "../contracts/deprecated/LockedNORI.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeable.sol";
@@ -43,9 +43,13 @@ contract Recipient {
   bool shouldAttackToSend;
   bool shouldAttackReceived;
   LockedNORI lNori;
-  BridgedPolygonNORI bpNori;
+  TestToken777 bpNori;
 
-  constructor(address lNoriAddress, bool attackReceived, bool attackToSend) {
+  constructor(
+    address lNoriAddress,
+    bool attackReceived,
+    bool attackToSend
+  ) {
     receiveCounter = 0;
     shouldAttackToSend = attackToSend;
     shouldAttackReceived = attackReceived;
@@ -123,19 +127,14 @@ contract LockedNORITest is Test, ERC777ERC1820 {
   uint256 constant GRANT_AMOUNT = 100_000_000_000_000_000;
   IERC1820RegistryUpgradeable registry;
   LockedNORI lNori;
-  BridgedPolygonNORI bpNori;
+  TestToken777 bpNori;
 
   function issueGrant(address recipientAddress) internal {
-    address[] memory recipients = new address[](1);
-    recipients[0] = address(lNori);
-    uint256[] memory amounts = new uint256[](1);
-    amounts[0] = GRANT_AMOUNT;
-    bytes[] memory operatorData = new bytes[](1);
-    operatorData[0] = bytes("");
-    bool[] memory acks = new bool[](1);
-    acks[0] = true;
+    address recipient = address(lNori);
+    uint256 amount = GRANT_AMOUNT;
+    bytes operatorData = bytes("");
+    bool ack = true;
 
-    bytes[] memory grants = new bytes[](1);
     bytes memory grantData = abi.encode(
       address(recipientAddress),
       block.timestamp,
@@ -148,8 +147,7 @@ contract LockedNORITest is Test, ERC777ERC1820 {
       0,
       0
     );
-    grants[0] = grantData;
-    bpNori.batchSend(recipients, amounts, grants, operatorData, acks);
+    bpNori.send(recipient, amount, grantData, operatorData, ack);
   }
 
   function setUp() public {
@@ -168,7 +166,7 @@ contract LockedNORITest is Test, ERC777ERC1820 {
       address(this)
     );
 
-    bpNori = new BridgedPolygonNORI();
+    bpNori = new TestToken777();
     bpNori.initialize(MUMBAI_CHILD_CHAIN_MANAGER_PROXY);
     bpNori.grantRole(bpNori.DEPOSITOR_ROLE(), address(this));
 
