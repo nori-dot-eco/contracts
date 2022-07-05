@@ -78,7 +78,7 @@ extendEnvironment((hre) => {
     args,
     options,
   }: {
-    contractName: ContractNames;
+    contractName: keyof Contracts;
     args: unknown[];
     options?: FactoryOptions;
   }): Promise<InstanceOfContract<TContract>> => {
@@ -114,7 +114,7 @@ extendEnvironment((hre) => {
     args,
     options,
   }: {
-    contractName: ContractNames;
+    contractName: keyof Contracts;
     args: unknown[];
     options?: DeployProxyOptions;
   }): Promise<InstanceOfContract<TContract>> => {
