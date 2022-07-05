@@ -13,8 +13,6 @@ import type {
   MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types';
 
-
-
 export const getContract = async <TContractName extends keyof Contracts>({
   contractName,
   hre,
