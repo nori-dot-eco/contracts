@@ -1,10 +1,9 @@
-import { BigNumber } from 'ethers';
+import type { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import { add } from '@nori-dot-com/math';
 
-import { defaultRemovalTokenIdFixture } from '../fixtures/removal';
-
+import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import { sum } from '@/utils/math';
 import type {
   MockCertificate,
@@ -29,6 +28,7 @@ import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Remo
 import { formatTokenAmount } from '@/utils/units';
 import type { Contracts } from '@/utils/contracts';
 import { getContractsFromDeployments } from '@/utils/contracts';
+import { Zero } from '@/constants/units';
 
 export * from './chai';
 export * from './interfaces';
@@ -153,14 +153,14 @@ export const createBatchMintData = async ({
   listNow = true,
   projectId = 1_234_567_890,
   scheduleStartTime,
-  holdbackPercentage = 0,
+  holdbackPercentage = Zero,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   fifoMarket: FIFOMarket;
   listNow?: boolean;
   projectId?: number;
   scheduleStartTime?: number;
-  holdbackPercentage?: number;
+  holdbackPercentage?: BigNumber;
 }): Promise<Parameters<Removal['mintBatch']>[3]> => {
   const actualScheduleStartTime =
     scheduleStartTime ?? (await getLatestBlockTime({ hre }));
@@ -186,14 +186,14 @@ interface RemovalDataFromListing {
   removalAmounts: BigNumber[];
   projectId: number;
   scheduleStartTime: number;
-  holdbackPercentage: number;
+  holdbackPercentage: BigNumber;
 }
 
 // todo helpers/removal.ts
 interface RemovalDataForListing {
   projectId?: number;
   scheduleStartTime?: number;
-  holdbackPercentage?: number;
+  holdbackPercentage?: BigNumber;
   removals: (Partial<UnpackedRemovalIdV0Struct> & {
     amount: number; // todo bignumber
     projectId?: number;
@@ -230,7 +230,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
     scheduleStartTime:
       removalDataToList.scheduleStartTime ??
       (await getLatestBlockTime({ hre })),
-    holdbackPercentage: removalDataToList.holdbackPercentage ?? 0,
+    holdbackPercentage: removalDataToList.holdbackPercentage ?? Zero,
   };
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
@@ -312,12 +312,12 @@ export const setupTest = global.hre.deployments.createFixture(
       }
     }
     let listedRemovalIds: BigNumber[] = [];
-    let totalAmountOfSupply = BigNumber.from(0);
+    let totalAmountOfSupply = Zero;
     let totalAmountOfSuppliers = 0;
     let totalAmountOfRemovals = 0;
     let projectId = 0;
     let scheduleStartTime = 0;
-    let holdbackPercentage = 0;
+    let holdbackPercentage = Zero;
     let removalAmounts: BigNumber[] = [];
     for (const [k, v] of Object.entries(userFixtures) as [
       keyof typeof namedAccounts,

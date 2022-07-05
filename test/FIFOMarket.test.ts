@@ -1,4 +1,5 @@
 import type { ContractReceipt } from 'ethers';
+import { BigNumber } from 'ethers';
 
 import { MaxUint256, Zero } from '@/constants/units';
 import {
@@ -1073,8 +1074,8 @@ describe('FIFOMarket', () => {
       it('should correctly route restricted tokens to the RestrictedNORI contract', async () => {
         const projectId1 = 1_111_111_111;
         const projectId2 = 2_222_222_222;
-        const project1HoldbackPercentage = 30;
-        const project2HoldbackPercentage = 40;
+        const project1HoldbackPercentage = BigNumber.from(30);
+        const project2HoldbackPercentage = BigNumber.from(40);
         const project2RemovalData = [{ amount: 100 }];
         const testSetup = await setupTest({
           userFixtures: {
@@ -1126,19 +1127,15 @@ describe('FIFOMarket', () => {
         expect(supplierFinalNoriBalance).to.equal(
           supplierInitialNoriBalance
             .add(purchaseAmount)
-            .sub(
-              formatTokenAmount(project1HoldbackPercentage).add(
-                formatTokenAmount(project2HoldbackPercentage)
-              )
-            )
+            .sub(project1HoldbackPercentage.add(project2HoldbackPercentage))
         );
         expect(noriFinalNoriBalance).to.equal(noriInitialNoriBalance.add(fee));
         compareScheduleSummaryStructs(scheduleSummaries[0], {
-          totalSupply: formatTokenAmount(project1HoldbackPercentage),
+          totalSupply: project1HoldbackPercentage,
           tokenHolders: [supplier.address],
         });
         compareScheduleSummaryStructs(scheduleSummaries[1], {
-          totalSupply: formatTokenAmount(project2HoldbackPercentage),
+          totalSupply: project2HoldbackPercentage,
           tokenHolders: [supplier.address],
         });
       });
