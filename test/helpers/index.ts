@@ -194,7 +194,9 @@ interface RemovalDataForListing {
   projectId?: number;
   scheduleStartTime?: number;
   holdbackPercentage?: BigNumber;
+  listNow?: boolean;
   removals: (Partial<UnpackedRemovalIdV0Struct> & {
+    tokenId?: BigNumber;
     amount: number; // todo bignumber
     projectId?: number;
     scheduleStartTime?: number;
@@ -259,7 +261,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
     await createBatchMintData({
       hre,
       fifoMarket,
-      listNow: true,
+      listNow: removalDataToList.listNow,
       projectId,
       scheduleStartTime,
       holdbackPercentage,
