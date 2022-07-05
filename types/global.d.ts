@@ -188,7 +188,10 @@ declare global {
     | 'LockedNORIV2'
     | 'RestrictedNORI'
     | 'BridgedPolygonNORI'
-    | 'ScheduleTestHarness';
+    | 'ScheduleTestHarness'
+    | 'RemovalTestHarness'
+    | 'MockCertificate'
+    | 'MockERC1155PresetPausableNonTransferrable';
 
   var ethers: Omit<
     typeof defaultEthers & HardhatEthersHelpers,
