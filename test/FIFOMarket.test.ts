@@ -1,6 +1,6 @@
 import type { ContractReceipt } from 'ethers';
-import { constants, BigNumber } from 'ethers';
 
+import { MaxUint256, Zero } from '@/constants/units';
 import {
   setupTest,
   expect,
@@ -34,10 +34,10 @@ describe('FIFOMarket', () => {
       }
     });
     it('correctly initializes totalActiveSupply, totalReservedSupply, totalNumberActiveRemovals, activeSupplierCount, and priorityRestrictedThreshold', async () => {
-      const { fifoMarket } = await setupTest();
+      const { fifoMarket, removal } = await setupTest();
       expect(
         await Promise.all([
-          fifoMarket.totalActiveSupply(),
+          removal.cumulativeBalanceOf(fifoMarket.address),
           fifoMarket.totalReservedSupply(),
           fifoMarket.totalNumberActiveRemovals(),
           fifoMarket.activeSupplierCount(),
@@ -111,14 +111,7 @@ describe('FIFOMarket', () => {
         await expect(
           fifoMarket
             .connect(namedSigners[accountWithRole])
-            .swap(
-              namedAccounts[accountWithRole],
-              value,
-              constants.MaxUint256,
-              v,
-              r,
-              s
-            )
+            .swap(namedAccounts[accountWithRole], value, MaxUint256, v, r, s)
         ).not.to.be.reverted;
       });
       it(`should revert when an account that is not on the allowlist tries purchase supply when inventory is below the threshold`, async () => {
@@ -151,7 +144,7 @@ describe('FIFOMarket', () => {
             .swap(
               accountWithoutRole.address,
               totalAmountOfSupply,
-              constants.MaxUint256,
+              MaxUint256,
               v,
               r,
               s
@@ -166,7 +159,7 @@ describe('FIFOMarket', () => {
       //     it('should return 0', async () => {
       //       const { fifoMarket } = await setupTest();
       //       expect(await fifoMarket.nextRemovalForSale(true)).to.equal(
-      //         constants.Zero
+      //         Zero
       //       );
       //     });
       //     it('should have defined behavior if there are multiple removals and all of them were purchased', async () => {
@@ -185,7 +178,7 @@ describe('FIFOMarket', () => {
       //           hre.ethers.utils.hexZeroPad(buyer, 32)
       //         );
       //       expect(await fifoMarket.nextRemovalForSale(true)).to.equal(
-      //         constants.Zero
+      //         Zero
       //       );
       //     });
       //   });
@@ -245,14 +238,14 @@ describe('FIFOMarket', () => {
       //         ethers.utils.parseUnits(priorityThreshold)
       //       );
       //       expect(await fifoMarket.nextRemovalForSale(false)).to.equal(
-      //         constants.Zero
+      //         Zero
       //       );
       //     });
       //   });
       // });
-      describe('totalSupply and numberOfActiveNrtsInMarketComputed', () => {
+      describe('numberOfActiveNrtsInMarketComputed', () => {
         it('should correctly report the number of NRTs for sale when there are multiple removals in inventory', async () => {
-          const { fifoMarket, totalAmountOfSupply } = await setupTest({
+          const { fifoMarket, removal, totalAmountOfSupply } = await setupTest({
             userFixtures: {
               supplier: {
                 removalDataToList: {
@@ -264,7 +257,7 @@ describe('FIFOMarket', () => {
           const [nrtsInQueueWeiComputed, totalSupplyWeiRetrieved] =
             await Promise.all([
               fifoMarket.numberOfActiveNrtsInMarketComputed(),
-              fifoMarket.totalActiveSupply(),
+              removal.cumulativeBalanceOf(fifoMarket.address),
             ]);
           expect(nrtsInQueueWeiComputed).to.equal(totalAmountOfSupply);
           expect(totalSupplyWeiRetrieved).to.equal(nrtsInQueueWeiComputed);
@@ -277,6 +270,7 @@ describe('FIFOMarket', () => {
             totalAmountOfSupply,
             removalAmounts,
             feePercentage,
+            removal,
           } = await setupTest({
             userFixtures: {
               supplier: {
@@ -297,24 +291,25 @@ describe('FIFOMarket', () => {
           });
           await fifoMarket
             .connect(buyer)
-            .swap(buyer.address, value, constants.MaxUint256, v, r, s);
+            .swap(buyer.address, value, MaxUint256, v, r, s);
           const expectedRemainingSupply =
             totalAmountOfSupply.sub(purchaseAmount);
           const [nrtsInQueueWeiComputed, totalSupplyWeiRetrieved] =
             await Promise.all([
               fifoMarket.numberOfActiveNrtsInMarketComputed(),
-              fifoMarket.totalActiveSupply(),
+              removal.cumulativeBalanceOf(fifoMarket.address),
             ]);
           expect(totalSupplyWeiRetrieved)
             .to.equal(expectedRemainingSupply)
             .and.to.equal(nrtsInQueueWeiComputed);
         });
         it('should correctly report the number of NRTs for sale when there is no inventory', async () => {
-          const { fifoMarket } = await setupTest({});
-          expect(
-            await fifoMarket.numberOfActiveNrtsInMarketComputed()
-          ).to.equal(0);
-          expect(await fifoMarket.totalActiveSupply()).to.equal(0);
+          const { fifoMarket, removal } = await setupTest({});
+          expect(await fifoMarket.numberOfActiveNrtsInMarketComputed())
+            .to.equal(0)
+            .and.to.equal(
+              await removal.cumulativeBalanceOf(fifoMarket.address)
+            );
         });
       });
       describe('totalUnrestrictedSupply', () => {
@@ -329,9 +324,7 @@ describe('FIFOMarket', () => {
           await fifoMarket.setPriorityRestrictedThreshold(
             formatTokenAmount(200)
           );
-          expect(await fifoMarket.totalUnrestrictedSupply()).to.equal(
-            constants.Zero
-          );
+          expect(await fifoMarket.totalUnrestrictedSupply()).to.equal(Zero);
         });
         it('should return the unrestricted portion of supply when inventory is above the priority restricted threshold', async () => {
           const priorityThreshold = formatTokenAmount(200); // todo setPriorityRestrictedThreshold fixture
@@ -358,6 +351,7 @@ describe('FIFOMarket', () => {
           totalAmountOfSupply,
           totalAmountOfSuppliers,
           totalAmountOfRemovals,
+          removal,
         } = await setupTest({
           userFixtures: {
             supplier: {
@@ -370,7 +364,7 @@ describe('FIFOMarket', () => {
           totalNumberActiveRemovals,
           activeSupplierCount,
         ] = await Promise.all([
-          fifoMarket.totalActiveSupply(),
+          removal.cumulativeBalanceOf(fifoMarket.address),
           fifoMarket.totalNumberActiveRemovals(),
           fifoMarket.activeSupplierCount(),
         ]);
@@ -503,7 +497,7 @@ describe('FIFOMarket', () => {
         });
         await fifoMarket
           .connect(buyer)
-          .swap(buyer.address, value, constants.MaxUint256, v, r, s);
+          .swap(buyer.address, value, MaxUint256, v, r, s);
         const buyerFinalNoriBalance = await bpNori.balanceOf(buyer.address);
         const supplierFinalNoriBalance = await bpNori.balanceOf(
           supplier.address
@@ -540,7 +534,7 @@ describe('FIFOMarket', () => {
         const fee = purchaseAmount.mul(feePercentage).div(100);
         const value = purchaseAmount.add(fee);
         const { buyer, investor1 } = hre.namedSigners;
-        const deadline = constants.MaxUint256;
+        const deadline = MaxUint256;
         const { v, r, s } = await buyer.permit({
           verifyingContract: bpNori,
           spender: fifoMarket.address,
@@ -587,7 +581,7 @@ describe('FIFOMarket', () => {
         });
         await fifoMarket
           .connect(buyer)
-          .swap(buyer.address, value, constants.MaxUint256, v, r, s);
+          .swap(buyer.address, value, MaxUint256, v, r, s);
         const buyerFinalNoriBalance = await bpNori.balanceOf(buyer.address);
         const supplierFinalNoriBalance = await bpNori.balanceOf(
           supplier.address
@@ -650,7 +644,7 @@ describe('FIFOMarket', () => {
         });
         await fifoMarket
           .connect(buyer)
-          .swap(buyer.address, value, constants.MaxUint256, v, r, s);
+          .swap(buyer.address, value, MaxUint256, v, r, s);
         const buyerFinalNoriBalance = await bpNori.balanceOf(buyer.address);
         const supplierFinalNoriBalance = await bpNori.balanceOf(
           supplier.address
@@ -716,7 +710,7 @@ describe('FIFOMarket', () => {
           });
           const tx = await fifoMarket
             .connect(buyer)
-            .swap(buyer.address, value, constants.MaxUint256, v, r, s);
+            .swap(buyer.address, value, MaxUint256, v, r, s);
           return tx.wait();
         };
         await purchaseNrts(); // deplete some of the stock (ids 0, 1, 2)
@@ -781,7 +775,7 @@ describe('FIFOMarket', () => {
         });
         await fifoMarket
           .connect(buyer)
-          .swap(buyer.address, value, constants.MaxUint256, v, r, s);
+          .swap(buyer.address, value, MaxUint256, v, r, s);
         const [
           buyerFinalNoriBalance,
           supplierFinalNoriBalance,
@@ -843,7 +837,7 @@ describe('FIFOMarket', () => {
         await expect(
           fifoMarket
             .connect(buyer)
-            .swap(buyer.address, totalPrice, constants.MaxUint256, v, r, s)
+            .swap(buyer.address, totalPrice, MaxUint256, v, r, s)
         ).to.be.revertedWith('Market: Out of stock');
         const [
           buyerFinalNoriBalance,
@@ -886,7 +880,7 @@ describe('FIFOMarket', () => {
         await expect(
           fifoMarket
             .connect(buyer)
-            .swap(buyer.address, value, constants.MaxUint256, v, r, s)
+            .swap(buyer.address, value, MaxUint256, v, r, s)
         ).to.be.revertedWith('Market: Not enough supply');
         const [
           buyerFinalNoriBalance,
@@ -940,7 +934,7 @@ describe('FIFOMarket', () => {
         await expect(
           fifoMarket
             .connect(buyer)
-            .swap(buyer.address, value, constants.MaxUint256, v, r, s)
+            .swap(buyer.address, value, MaxUint256, v, r, s)
         ).to.be.reverted;
         const [
           buyerFinalNoriBalance,
@@ -966,6 +960,7 @@ describe('FIFOMarket', () => {
           totalAmountOfSuppliers,
           totalAmountOfSupply,
           removalAmounts,
+          removal,
         } = await setupTest({
           userFixtures: {
             supplier: {
@@ -979,19 +974,21 @@ describe('FIFOMarket', () => {
         const removalAmountToReserve = removalAmounts[0];
         await fifoMarket.reserveRemoval(removalIdToReserve);
         const [
+          totalListedSupply,
           totalActiveSupply,
           totalReservedSupply,
           totalNumberActiveRemovals,
           activeSupplierCount,
         ] = await Promise.all([
+          removal.cumulativeBalanceOf(fifoMarket.address),
           fifoMarket.totalActiveSupply(),
           fifoMarket.totalReservedSupply(),
           fifoMarket.totalNumberActiveRemovals(),
           fifoMarket.activeSupplierCount(),
         ]);
-        expect(totalActiveSupply).to.equal(
-          totalAmountOfSupply.sub(removalAmountToReserve)
-        );
+        expect(totalListedSupply.sub(removalAmountToReserve))
+          .to.equal(totalAmountOfSupply.sub(removalAmountToReserve))
+          .and.to.equal(totalActiveSupply);
         expect(totalNumberActiveRemovals.toNumber()).to.equal(
           totalAmountOfRemovals - 1 // todo use bn for everything
         );
@@ -1005,6 +1002,7 @@ describe('FIFOMarket', () => {
           totalAmountOfRemovals,
           totalAmountOfSuppliers,
           totalAmountOfSupply,
+          removal,
         } = await setupTest({
           userFixtures: {
             supplier: {
@@ -1023,7 +1021,7 @@ describe('FIFOMarket', () => {
           totalNumberActiveRemovals,
           activeSupplierCount,
         ] = await Promise.all([
-          fifoMarket.totalActiveSupply(),
+          removal.cumulativeBalanceOf(fifoMarket.address), // todo inconsistency in variable `totalActiveSupply` across tests (Sometimes retrieved from fifoMarket.totalActiveSupply, sometimes from removal.cummulativeBalanceOF)
           fifoMarket.totalReservedSupply(),
           fifoMarket.totalNumberActiveRemovals(),
           fifoMarket.activeSupplierCount(),
@@ -1036,7 +1034,7 @@ describe('FIFOMarket', () => {
         expect(totalReservedSupply).to.equal(0);
       });
       it('should update activeSupplierCount when the last removal from a supplier is reserved', async () => {
-        const { fifoMarket, listedRemovalIds, totalAmountOfSupply } =
+        const { fifoMarket, listedRemovalIds, totalAmountOfSupply, removal } =
           await setupTest({
             userFixtures: {
               supplier: {
@@ -1049,20 +1047,26 @@ describe('FIFOMarket', () => {
         const removalIdToReserve = listedRemovalIds[0];
         await fifoMarket.reserveRemoval(removalIdToReserve);
         const [
-          totalActiveSupply,
+          cumulativeBalanceOfMarket,
           totalReservedSupply,
+          totalActiveSupply,
           totalNumberActiveRemovals,
           activeSupplierCount,
         ] = await Promise.all([
-          fifoMarket.totalActiveSupply(),
+          removal.cumulativeBalanceOf(fifoMarket.address), // todo inconsistency in variable `totalActiveSupply` across tests (Sometimes retrieved from fifoMarket.totalActiveSupply, sometimes from removal.cummulativeBalanceOF)
           fifoMarket.totalReservedSupply(),
+          fifoMarket.totalActiveSupply(),
           fifoMarket.totalNumberActiveRemovals(),
           fifoMarket.activeSupplierCount(),
         ]);
-        expect(totalActiveSupply).to.equal(formatTokenAmount(0));
-        expect(totalNumberActiveRemovals.toNumber()).to.equal(0);
-        expect(activeSupplierCount.toNumber()).to.equal(0);
-        expect(totalReservedSupply).to.equal(totalAmountOfSupply);
+        expect(totalActiveSupply)
+          .to.equal(Zero)
+          .and.to.equal(totalNumberActiveRemovals)
+          .and.to.equal(activeSupplierCount);
+        expect(totalReservedSupply)
+          .to.be.gt(Zero)
+          .and.to.be.equal(cumulativeBalanceOfMarket)
+          .and.to.be.equal(totalAmountOfSupply);
       });
     });
     describe('restricted tokens', () => {
@@ -1106,7 +1110,7 @@ describe('FIFOMarket', () => {
         });
         await fifoMarket
           .connect(buyer)
-          .swap(buyer.address, value, constants.MaxUint256, v, r, s);
+          .swap(buyer.address, value, MaxUint256, v, r, s);
         const scheduleSummaries = await rNori.batchGetScheduleSummaries([
           projectId1,
           projectId2,
@@ -1161,7 +1165,7 @@ describe('FIFOMarket', () => {
         const fee = purchaseAmount.mul(feePercentage).div(100);
         const value = purchaseAmount.add(fee);
         const { buyer, investor1 } = hre.namedSigners;
-        const deadline = constants.MaxUint256;
+        const deadline = MaxUint256;
         const { v, r, s } = await buyer.permit({
           verifyingContract: bpNori,
           spender: fifoMarket.address,
@@ -1225,7 +1229,7 @@ describe('FIFOMarket', () => {
           buyer.address,
           value,
           hre.namedAccounts.supplier,
-          hre.ethers.constants.MaxUint256,
+          MaxUint256,
           v,
           r,
           s
@@ -1281,7 +1285,7 @@ describe('FIFOMarket', () => {
             buyer.address,
             value,
             hre.namedAccounts.supplier,
-            hre.ethers.constants.MaxUint256,
+            MaxUint256,
             v,
             r,
             s
@@ -1319,7 +1323,7 @@ describe('FIFOMarket', () => {
             buyer.address,
             value,
             hre.namedAccounts.investor2,
-            hre.ethers.constants.MaxUint256,
+            MaxUint256,
             v,
             r,
             s

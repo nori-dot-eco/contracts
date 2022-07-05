@@ -48,7 +48,6 @@ contract FIFOMarket is
   uint256 private _noriFee;
   uint256 public priorityRestrictedThreshold;
   uint256 public totalNumberActiveRemovals;
-  uint256 public totalActiveSupply;
   uint256 public totalReservedSupply;
   uint256 public activeSupplierCount;
   address private _currentSupplierAddress;
@@ -93,7 +92,6 @@ contract FIFOMarket is
     _noriFeeWallet = noriFeeWalletAddress;
     _noriFee = noriFee;
     priorityRestrictedThreshold = 0;
-    totalActiveSupply = 0;
     totalReservedSupply = 0;
     totalNumberActiveRemovals = 0;
     _currentSupplierAddress = address(0);
@@ -133,33 +131,12 @@ contract FIFOMarket is
    * @notice The amount of supply available for anyone to buy.
    */
   function totalUnrestrictedSupply() public view returns (uint256) {
-    if (totalActiveSupply < priorityRestrictedThreshold) {
-      return 0;
-    }
-    return totalActiveSupply - priorityRestrictedThreshold;
+    uint256 activeSupply = totalActiveSupply();
+    return
+      activeSupply < priorityRestrictedThreshold
+        ? 0
+        : activeSupply - priorityRestrictedThreshold; // todo compare this against trySub?
   }
-
-  // TODO: this function no longer makes sense to exist based on how the market now works (less deterministic)
-  // function nextRemovalForSale(bool includePriorityRestrictedSupply)
-  //   public
-  //   view
-  //   returns (uint256)
-  // {
-  //   uint256 nextRemovalId = 0;
-  //   if (totalActiveSupply > 0) {
-  //     address activeSupplierAddress = _suppliersInRoundRobinOrderOrdered[
-  //       _currentSupplierIndex
-  //     ];
-  //     nextRemovalId = _activeSupply[activeSupplierAddress].at(0);
-  //   }
-  //   if (
-  //     !includePriorityRestrictedSupply &&
-  //     totalActiveSupply <= priorityRestrictedThreshold
-  //   ) {
-  //     nextRemovalId = 0;
-  //   }
-  //   return nextRemovalId;
-  // }
 
   function onERC1155BatchReceived(
     address,
@@ -168,12 +145,10 @@ contract FIFOMarket is
     uint256[] memory,
     bytes memory data
   ) public override returns (bytes4) {
-    uint256[] memory batchedAmounts = _removal.balanceOfIds(address(this), ids);
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = removalToAdd.supplierAddress();
-      uint256 removalAmount = batchedAmounts[i];
       require(
         _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd),
         "Market: Unable to add removal by vintage" // TODO (Gas Optimization): Use custom error
@@ -186,7 +161,7 @@ contract FIFOMarket is
         _addActiveSupplier(supplierAddress);
       }
     }
-    totalNumberActiveRemovals += 1; // todo should Removal.sol expose tokenIds for address instead?
+    totalNumberActiveRemovals += ids.length; // todo should Removal.sol expose tokenIds for address instead?
     uint256 projectId = abi.decode(data, (uint256));
     _restrictedNori.createSchedule(projectId);
     return this.onERC1155BatchReceived.selector;
@@ -255,7 +230,6 @@ contract FIFOMarket is
       uint256[] memory ids,
       uint256[] memory amounts
     ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
-
     address[] memory suppliers = new address[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       suppliers[i] = supplierToBuyFrom;
@@ -279,15 +253,21 @@ contract FIFOMarket is
     );
   }
 
+  function totalActiveSupply() public view returns (uint256) {
+    // todo unchecked? shouldn't be possible for totalReservedSupply to be > cumulativeBalanceOf
+    return _removal.cumulativeBalanceOf(address(this)) - totalReservedSupply;
+  }
+
   /**
-   *Reverts if market is out of stock or if available stock is being reserved for priority buyers
+   * Reverts if market is out of stock or if available stock is being reserved for priority buyers
    * and buyer is not priority.
    */
-  function _checkSupply() private {
-    if (_removal.balanceOf(address(this)) == 0) {
+  function _checkSupply() private view {
+    uint256 activeSupply = totalActiveSupply();
+    if (activeSupply == 0) {
       revert("Market: Out of stock");
     }
-    if (totalActiveSupply <= priorityRestrictedThreshold) {
+    if (activeSupply <= priorityRestrictedThreshold) {
       require(
         hasRole(ALLOWLIST_ROLE, _msgSender()),
         "Low supply and buyer not on allowlist" // TODO (Gas Optimization): Use custom error
@@ -301,6 +281,7 @@ contract FIFOMarket is
    */
   function _certificateAmountFromPurchaseTotal(uint256 purchaseTotal)
     private
+    view
     returns (uint256)
   {
     return (purchaseTotal * 100) / (100 + _noriFee);
@@ -478,7 +459,6 @@ contract FIFOMarket is
       if (batchedAmounts[i] == batchedBalances[i]) {
         totalNumberActiveRemovals -= 1; // removal used up
       }
-      totalActiveSupply -= batchedAmounts[i];
       uint256 noriFee = (batchedAmounts[i] * _noriFee) / 100;
       uint256 restrictedSupplierFee = 0;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
@@ -513,13 +493,13 @@ contract FIFOMarket is
    *
    */
   function reserveRemoval(uint256 removalId) external returns (bool) {
+    // todo this should transfer ownership out of the fifo market, but keep place in queue if it is returned
     address supplierAddress = removalId.supplierAddress();
     require(
       _activeSupply[supplierAddress].removeRemoval(removalId),
       "Market: removal not in active supply"
     ); // TODO (Gas Optimization): Use custom error
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
-    totalActiveSupply -= removalBalance;
     totalReservedSupply += removalBalance;
     totalNumberActiveRemovals -= 1;
     // If this is the last removal for the supplier, remove them from active suppliers
@@ -544,7 +524,6 @@ contract FIFOMarket is
         "Market: removal not in supply"
       ); // todo custom error
     }
-    totalActiveSupply -= removalBalance; // todo should rely on balanceOf?
     totalReservedSupply += removalBalance; // todo should rely on balanceOf?
     totalNumberActiveRemovals -= 1; // todo should rely on tokens of?
     // If this is the last removal for the supplier, remove them from active suppliers
@@ -564,14 +543,12 @@ contract FIFOMarket is
    */
   function unreserveRemoval(uint256 removalId) external returns (bool) {
     address supplierAddress = removalId.supplierAddress();
-
     require(
       _reservedSupply.remove(removalId),
       "Market: removal not in reserved supply"
     ); // TODO (Gas Optimization): Use custom error
     totalNumberActiveRemovals += 1;
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
-    totalActiveSupply += removalBalance;
     totalReservedSupply -= removalBalance;
     // If the supplier has previously been removed from the active suppliers, add them back
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {

@@ -3,11 +3,7 @@ pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+// import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
 import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 import "./FIFOMarket.sol";
@@ -24,7 +20,6 @@ contract Removal is
   ERC1155PresetMinterPauserUpgradeable,
   ERC1155SupplyUpgradeable
 {
-  using SafeMathUpgradeable for uint256;
   using RemovalUtils for uint256;
 
   error TokenIdExists(uint256 tokenId);
@@ -76,6 +71,7 @@ contract Removal is
   mapping(uint256 => bool) private _tokenIdExists;
   mapping(uint256 => RemovalData) private _removalIdToRemovalData;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData;
+  mapping(address => uint256) private _addressToCumulativeBalance;
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -345,7 +341,33 @@ contract Removal is
     internal
     override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
   {
+    if (from == address(0)) {
+      for (uint256 i; i < amounts.length; ++i) {
+        _addressToCumulativeBalance[to] += amounts[i];
+      }
+    } else {
+      for (uint256 i; i < amounts.length; ++i) {
+        _addressToCumulativeBalance[from] -= amounts[i];
+        _addressToCumulativeBalance[to] += amounts[i];
+      }
+    }
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+  }
+
+  function cumulativeBalanceOfBatch(address[] memory accounts)
+    public
+    view
+    returns (uint256[] memory)
+  {
+    uint256[] memory batchBalances = new uint256[](accounts.length);
+    for (uint256 i = 0; i < accounts.length; ++i) {
+      batchBalances[i] = cumulativeBalanceOf(accounts[i]);
+    }
+    return batchBalances;
+  }
+
+  function cumulativeBalanceOf(address account) public view returns (uint256) {
+    return _addressToCumulativeBalance[account];
   }
 
   function balanceOfIds(address account, uint256[] memory ids)
@@ -353,6 +375,7 @@ contract Removal is
     view
     returns (uint256[] memory)
   {
+    // todo consider tracking token ID total supply like _addressToCumulativeBalance
     uint256[] memory batchBalances = new uint256[](ids.length);
     for (uint256 i = 0; i < ids.length; ++i) {
       batchBalances[i] = balanceOf(account, ids[i]);
