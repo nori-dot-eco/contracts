@@ -3,7 +3,7 @@ import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import { add } from '@nori-dot-com/math';
 
-import { defaultRemovalTokenIdFixture } from '@/fixtures/removal';
+import { defaultRemovalTokenIdFixture } from '../fixtures/removal';
 
 import { sum } from '@/utils/math';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
