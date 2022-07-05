@@ -23,6 +23,8 @@ import type { BaseContract, ContractFactory, Signer } from 'ethers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
 import { lazyFunction } from 'hardhat/plugins';
 import type { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
+import type { HardhatNetworkHDAccountsConfig } from 'hardhat/types';
+import { Wallet } from 'ethers';
 
 import { Eip2612Signer } from '@/signers/eip-26126';
 import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
@@ -39,7 +41,13 @@ const getNamedSigners = (
       return [
         accountName,
         new Eip2612Signer(
-          hre.waffle.provider.getWallets()[index].privateKey,
+          hre.network.name === 'hardhat'
+            ? hre.waffle.provider.getWallets()[index].privateKey
+            : Wallet.fromMnemonic(
+                (hre.network.config.accounts as HardhatNetworkHDAccountsConfig)
+                  .mnemonic,
+                `m/44'/60'/0'/0/${index}`
+              ).privateKey,
           hre.waffle.provider
         ),
       ];
