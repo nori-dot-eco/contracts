@@ -1,13 +1,13 @@
 {
   "hardhat": {
     "NORI": {
-      "proxyAddress": "0x2AE26a38Bc11CE4FdfCaf0431D5a708b17E0dD99"
+      "proxyAddress": "0x83207e4a2caC1015bda1A794b57F708C4360924e"
     },
     "BridgedPolygonNORI": {
       "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
     },
     "Removal": {
-      "proxyAddress": "0xe35401Eb5078388D49f47d631a0ce0733a31A425"
+      "proxyAddress": "0xCC26028B4Ad73bcD74769b8a0f5d1EB213BB8387"
     },
     "Certificate": {
       "proxyAddress": "0x2CA5C6C765be11F44519Fc85Bf758723DC3C8cFC"
@@ -22,13 +22,13 @@
       "proxyAddress": "0x83207e4a2caC1015bda1A794b57F708C4360924e"
     },
     "RemovalTestHarness": {
-      "proxyAddress": "0x83207e4a2caC1015bda1A794b57F708C4360924e"
+      "proxyAddress": "0xEdf0bef28943aE9d2ee7d84cF1AEEC85588655b7"
     },
     "MockCertificate": {
-      "proxyAddress": "0xd3561A044a740D07487f07b1236558574a8d0974"
+      "proxyAddress": "0x50562ADF34935aeb8cC86e9bDc66eaBf79097A08"
     },
     "MockERC1155PresetPausableNonTransferrable": {
-      "proxyAddress": "0x3C5d3e20ab495ecee10b4E6eeAd04Dd21d780b98"
+      "proxyAddress": "0x1BE70016d4D5144124f77DDaB7504ea33d173C03"
     },
     "RestrictedNORI": {
       "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"

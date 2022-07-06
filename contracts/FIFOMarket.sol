@@ -523,9 +523,8 @@ contract FIFOMarket is
           _reservedSupply.remove(removalId),
         "Market: removal not in supply"
       ); // todo custom error
+      totalNumberActiveRemovals -= 1; // todo should rely on tokens of?
     }
-    totalReservedSupply += removalBalance; // todo should rely on balanceOf?
-    totalNumberActiveRemovals -= 1; // todo should rely on tokens of?
     // If this is the last removal for the supplier, remove them from active suppliers
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _removeActiveSupplier(supplierAddress);
