@@ -3,10 +3,12 @@ pragma solidity 0.8.15;
 import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
 import "../contracts/test/TestToken777.sol";
-import "../contracts/deprecated/LockedNORI.sol";
+import "../contracts/LockedNORIV2.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeable.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 abstract contract ERC777ERC1820 is
   IERC777RecipientUpgradeable,
@@ -42,7 +44,7 @@ contract Recipient {
   uint256 sendCounter;
   bool shouldAttackToSend;
   bool shouldAttackReceived;
-  LockedNORI lNori;
+  LockedNORIV2 lNori;
   TestToken777 bpNori;
 
   constructor(
@@ -56,7 +58,7 @@ contract Recipient {
     IERC1820RegistryUpgradeable registry = IERC1820RegistryUpgradeable(
       _ERC1820_REGISTRY_ADDRESS
     );
-    lNori = LockedNORI(lNoriAddress);
+    lNori = LockedNORIV2(lNoriAddress);
     registry.setInterfaceImplementer(
       address(this),
       keccak256("ERC777TokensSender"),
@@ -123,20 +125,19 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24;
   address constant MUMBAI_CHILD_CHAIN_MANAGER_PROXY =
     0xb5505a6d998549090530911180f38aC5130101c6;
-  uint256 constant SEED_AMOUNT = 1_000_000_000_000_000_000;
+  uint256 constant SEED_AMOUNT = 1_000_000_000_000_000_000_000_000;
   uint256 constant GRANT_AMOUNT = 100_000_000_000_000_000;
   IERC1820RegistryUpgradeable registry;
-  LockedNORI lNori;
+  address admin = vm.addr(69);
+  LockedNORIV2 lNori;
   TestToken777 bpNori;
 
   function issueGrant(address recipientAddress) internal {
-    address recipient = address(lNori);
     uint256 amount = GRANT_AMOUNT;
-    bytes operatorData = bytes("");
-    bool ack = true;
 
-    bytes memory grantData = abi.encode(
-      address(recipientAddress),
+    lNori.createGrant(
+      amount,
+      recipientAddress,
       block.timestamp,
       block.timestamp,
       block.timestamp + 100,
@@ -147,7 +148,29 @@ contract LockedNORITest is Test, ERC777ERC1820 {
       0,
       0
     );
-    bpNori.send(recipient, amount, grantData, operatorData, ack);
+    bpNori.approve(address(lNori), GRANT_AMOUNT);
+    lNori.depositFor(recipientAddress, GRANT_AMOUNT);
+  }
+
+  function deployProxy(address _impl, bytes memory initializer)
+    public
+    returns (address)
+  {
+    TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+      _impl,
+      admin,
+      initializer
+    );
+    return address(proxy);
+  }
+
+  function deployLockedNORIV2() public returns (LockedNORIV2) {
+    LockedNORIV2 impl = new LockedNORIV2();
+    bytes memory initializer = abi.encodeWithSignature(
+      "initialize(address)",
+      address(bpNori)
+    );
+    return LockedNORIV2(deployProxy(address(impl), initializer));
   }
 
   function setUp() public {
@@ -167,14 +190,16 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     );
 
     bpNori = new TestToken777();
-    bpNori.initialize(MUMBAI_CHILD_CHAIN_MANAGER_PROXY);
-    bpNori.grantRole(bpNori.DEPOSITOR_ROLE(), address(this));
-
-    lNori = new LockedNORI();
-    lNori.initialize(bpNori);
-
-    bpNori.deposit(address(this), abi.encode(SEED_AMOUNT));
     assertEq(bpNori.balanceOf(address(this)), SEED_AMOUNT);
+
+    lNori = deployLockedNORIV2();
+  }
+
+  function testTokensReceivedReverts() public {
+    vm.expectRevert(
+      "ERC777: token recipient contract has no implementer for ERC777TokensRecipient"
+    );
+    bpNori.send(address(lNori), GRANT_AMOUNT, "");
   }
 
   function testReentryTokensReceived() public {
