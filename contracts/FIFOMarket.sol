@@ -35,11 +35,8 @@ contract FIFOMarket is
   error InsufficientSupply();
   error OutOfStock();
   error LowSupplyAllowlistRequired();
-  error RemovalNotInActiveSupply(uint256 removalId);
   error RemovalNotInReservedSupply(uint256 removalId);
   error RemovalAlreadyReserved(uint256 removalId);
-  error FailedToRemoveRemovalFromSupply(uint256 removalId);
-  error FailedToAddRemovalToActiveSupply(uint256 removalId);
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -185,11 +182,7 @@ contract FIFOMarket is
       uint256 removalToAdd = ids[i];
       address supplierAddress = removalToAdd.supplierAddress();
       uint256 removalAmount = batchedAmounts[i];
-      if (
-        !_activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd)
-      ) {
-        revert FailedToAddRemovalToActiveSupply({removalId: removalToAdd});
-      }
+      _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
       // If a new supplier has been added, or if the supplier had previously sold out
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
@@ -362,9 +355,7 @@ contract FIFOMarket is
         amounts[numberOfRemovals] = removalAmount; // this removal is getting used up
         suppliers[numberOfRemovals] = _currentSupplierAddress;
         remainingAmountToFill -= removalAmount;
-        if (!_activeSupply[_currentSupplierAddress].removeRemoval(removalId)) {
-          revert FailedToRemoveRemovalFromSupply({removalId: removalId});
-        }
+        _activeSupply[_currentSupplierAddress].removeRemoval(removalId);
         // If the supplier is out of supply, remove them from the active suppliers
         if (_activeSupply[_currentSupplierAddress].isRemovalQueueEmpty()) {
           _removeActiveSupplier(_currentSupplierAddress);
@@ -412,7 +403,7 @@ contract FIFOMarket is
         .queueByVintage[vintage]
         .length();
     }
-    if (!(totalNumberOfRemovalsForSupplier > 0)) {
+    if (totalNumberOfRemovalsForSupplier == 0) {
       revert InsufficientSupply();
     }
     uint256 remainingAmountToFill = certificateAmount;
@@ -439,9 +430,7 @@ contract FIFOMarket is
         ids[numberOfRemovals] = removalId;
         amounts[numberOfRemovals] = removalAmount; // this removal is getting used up
         remainingAmountToFill -= removalAmount;
-        if (!supplierRemovalQueue.removeRemoval(removalId)) {
-          revert FailedToRemoveRemovalFromSupply({removalId: removalId});
-        }
+        supplierRemovalQueue.removeRemoval(removalId);
         // If the supplier is out of supply, remove them from the active suppliers
         if (supplierRemovalQueue.isRemovalQueueEmpty()) {
           _removeActiveSupplier(supplier);
@@ -528,9 +517,7 @@ contract FIFOMarket is
    */
   function reserveRemoval(uint256 removalId) external returns (bool) {
     address supplierAddress = removalId.supplierAddress();
-    if (!_activeSupply[supplierAddress].removeRemoval(removalId)) {
-      revert RemovalNotInActiveSupply({removalId: removalId});
-    }
+    _activeSupply[supplierAddress].removeRemoval(removalId);
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     totalActiveSupply -= removalBalance;
     totalReservedSupply += removalBalance;
@@ -568,10 +555,7 @@ contract FIFOMarket is
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _addActiveSupplier(supplierAddress);
     }
-    // returns true if the value was added to the set, that is, if it was not already present
-    if (!_activeSupply[supplierAddress].insertRemovalByVintage(removalId)) {
-      revert FailedToAddRemovalToActiveSupply({removalId: removalId});
-    }
+    _activeSupply[supplierAddress].insertRemovalByVintage(removalId);
     return true;
   }
 

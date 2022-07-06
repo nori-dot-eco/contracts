@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "./ERC1155PresetPausableNonTransferrable.sol";
-import {MintDisabled} from "./SharedCustomErrors.sol";
+import {FunctionDisabled} from "./SharedCustomErrors.sol";
 
 // todo disable other mint functions
 // todo whenNotPasused
@@ -20,8 +20,6 @@ import {MintDisabled} from "./SharedCustomErrors.sol";
  * @title Certificate
  */
 contract Certificate is ERC1155PresetPausableNonTransferrable {
-  error RemovalAmount0(uint256 removalId);
-
   struct Source {
     uint256 removalId;
     uint256 amount;
@@ -98,13 +96,9 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     // todo require _sources[_latestTokenId][n] doesnt exist
     // todo is there a better way to verify that no removal amount == 0?
     for (uint256 i = 0; i < removalIds.length; i++) {
-      if (removalAmounts[i] == 0) {
-        revert RemovalAmount0({removalId: removalIds[i]});
-      } else {
-        _sources[tokenId].push(
-          Source({removalId: removalIds[i], amount: removalAmounts[i]})
-        );
-      }
+      _sources[tokenId].push(
+        Source({removalId: removalIds[i], amount: removalAmounts[i]})
+      );
     }
     _latestTokenId = tokenId + 1;
     emit CertificateCreated(to, tokenId, removalIds, removalAmounts);
@@ -120,7 +114,7 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     uint256,
     bytes memory
   ) public pure override {
-    revert MintDisabled();
+    revert FunctionDisabled();
   }
 
   /**

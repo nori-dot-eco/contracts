@@ -15,7 +15,8 @@ library RemovalQueue {
   using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
-  error FailedToRemoveRemovalFromQueue(uint256 removalId, uint256 vintage);
+  error RemovalNotInQueue(uint256 removalId, uint256 queueVintage);
+  error RemovalAlreadyInQueue(uint256 removalId, uint256 queueVintage);
 
   uint256 private constant _DEFAULT_EARLIEST_YEAR = 2**256 - 1;
   uint256 private constant _DEFAULT_LATEST_YEAR = 0;
@@ -40,7 +41,12 @@ library RemovalQueue {
     } else if (vintageOfRemoval > removalQueue.latestYear) {
       removalQueue.latestYear = vintageOfRemoval;
     }
-    return removalQueue.queueByVintage[vintageOfRemoval].add(removalToInsert);
+    if (!removalQueue.queueByVintage[vintageOfRemoval].add(removalToInsert)) {
+      revert RemovalAlreadyInQueue({
+        removalId: removalToInsert,
+        queueVintage: vintageOfRemoval
+      });
+    }
   }
 
   /**
@@ -48,19 +54,18 @@ library RemovalQueue {
    * @dev Removes the removal from the Enumerable Set that corresponds to its vintage.
    * @param removalQueue the queue to search through.
    * @param removalToRemove the removal to remove.
-   * @return bool true if success, false otherwise.
    */
   function removeRemoval(
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToRemove
-  ) internal returns (bool) {
+  ) internal {
     uint256 vintageOfRemoval = removalToRemove.vintage();
     if (
       !removalQueue.queueByVintage[vintageOfRemoval].remove(removalToRemove)
     ) {
-      revert FailedToRemoveRemovalFromQueue({
+      revert RemovalNotInQueue({
         removalId: removalToRemove,
-        vintage: vintageOfRemoval
+        queueVintage: vintageOfRemoval
       });
     }
     // If all removals were removed, check to see if there are any updates to the struct we need to make.
@@ -95,7 +100,6 @@ library RemovalQueue {
         }
       }
     }
-    return true;
   }
 
   /**

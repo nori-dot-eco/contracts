@@ -156,6 +156,11 @@ contract RestrictedNORI is
     uint256 quantityRevoked;
   }
 
+  /**
+   * @notice Role conferring pausing and unpausing of this contract.
+   *
+   * @dev only Nori admin address should have this role.
+   */
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
   /**
