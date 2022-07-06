@@ -5,10 +5,6 @@ import { add } from '@nori-dot-com/math';
 
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import { sum } from '@/utils/math';
-import type {
-  MockCertificate,
-  MockERC1155PresetPausableNonTransferrable,
-} from '@/typechain-types/contracts/mocks';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
 import {
   formatRemovalIdData,
@@ -18,15 +14,16 @@ import type {
   Removal,
   Certificate,
   FIFOMarket,
-  // LockedNORI, // todo import from forked repo
+  LockedNORIV2,
   RestrictedNORI,
   NORI,
   BridgedPolygonNORI,
   RemovalTestHarness,
+  MockCertificate,
+  MockERC1155PresetPausableNonTransferrable
 } from '@/typechain-types';
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
+import type { UnpackedRemovalIdV0Struct } from '../../typechain-types/artifacts/contracts/Removal';
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/utils/contracts';
 import { getContractsFromDeployments } from '@/utils/contracts';
 import { Zero } from '@/constants/units';
 
@@ -40,7 +37,7 @@ interface ContractInstances {
   removal: Removal;
   certificate: Certificate;
   fifoMarket: FIFOMarket;
-  // lNori: LockedNORI; // todo import from forked repo
+  lNori: LockedNORIV2;
   rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
   mockCertificate: MockCertificate; // todo key remapping of Contracts
@@ -412,7 +409,7 @@ export const setupTest = global.hre.deployments.createFixture(
       removal: contracts.Removal,
       certificate: contracts.Certificate,
       fifoMarket: contracts.FIFOMarket,
-      // lNori: contracts.LockedNORI, // todo import from forked repo
+      lNori: contracts.LockedNORIV2,
       rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
       mockCertificate: contracts.MockCertificate,

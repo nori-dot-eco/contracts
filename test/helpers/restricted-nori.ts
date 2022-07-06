@@ -1,7 +1,7 @@
 import type { BigNumber } from 'ethers';
 
 import { sum } from '@/utils/math';
-import type { RestrictedNORI } from '@/typechain-types/contracts/RestrictedNORI';
+import type { RestrictedNORI } from '@/typechain-types';
 import type { setupTest } from '@/test/helpers';
 import { expect } from '@/test/helpers';
 

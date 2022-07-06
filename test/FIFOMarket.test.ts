@@ -44,9 +44,7 @@ describe('FIFOMarket', () => {
         fifoMarket.priorityRestrictedThreshold(),
       ]);
       expect(initialSupply.map((e) => e.toString())).to.deep.equal(
-        Array.from<BigNumber>({ length: 5 })
-          .fill(Zero)
-          .map((e) => e.toString())
+        Array.from({ length: 5 }).fill(Zero.toString())
       );
     });
   });

@@ -175,6 +175,12 @@ hardhat node
 
 ## Tips and tricks
 
+### Foundry
+
+#### Autocomplete
+
+Follow the instructions [here](https://book.getfoundry.sh/config/shell-autocompletion.html)
+
 ### Hardhat
 
 #### Shorthand and autocomplete

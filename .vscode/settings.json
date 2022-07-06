@@ -2,6 +2,15 @@
   /** BEGIN ESLINT OPTIONS */
   "eslint.packageManager": "yarn",
   "eslint.onIgnoredFiles": "warn",
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "html",
+    "markdown",
+    "toml"
+  ],
   /** END ESLINT OPTIONS */
 
   /** BEGIN EDITOR OPTIONS */

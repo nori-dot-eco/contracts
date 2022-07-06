@@ -1,67 +1,27 @@
 import type { Contract } from 'ethers';
 
 import type {
-  MockERC1155PresetPausableNonTransferrable,
-  MockCertificate,
-} from '@/typechain-types/contracts/mocks';
-import type {
   BridgedPolygonNORI,
   Certificate,
   FIFOMarket,
+  LockedNORIV2,
   RestrictedNORI,
   NORI,
   Removal,
-  ScheduleTestHarness,
   RemovalTestHarness,
+  MockCertificate,
+  MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types';
 
-export interface Contracts {
-  Removal?: Removal;
-  NORI?: NORI;
-  BridgedPolygonNORI?: BridgedPolygonNORI;
-  FIFOMarket?: FIFOMarket;
-  // LockedNORI?: LockedNORI; // todo import from forked repo
-  RestrictedNORI?: RestrictedNORI;
-  Certificate?: Certificate;
-  ScheduleTestHarness?: ScheduleTestHarness;
-  RemovalTestHarness?: RemovalTestHarness;
-  MockCertificate?: MockCertificate; // todo key remapping
-  MockERC1155PresetPausableNonTransferrable?: MockERC1155PresetPausableNonTransferrable;
-}
-
-export const getContract = async <
-  TContract extends Contracts[keyof Contracts]
->({
+export const getContract = async <TContractName extends keyof Contracts>({
   contractName,
   hre,
   signer,
 }: {
-  contractName: TContract extends BridgedPolygonNORI
-    ? 'BridgedPolygonNORI'
-    : // : TContract extends LockedNORI
-    // ? 'LockedNORI' // todo import from forked repo
-    TContract extends RestrictedNORI
-    ? 'RestrictedNORI'
-    : TContract extends NORI
-    ? 'NORI'
-    : TContract extends Removal
-    ? 'Removal'
-    : TContract extends Certificate
-    ? 'Certificate'
-    : TContract extends FIFOMarket
-    ? 'FIFOMarket'
-    : TContract extends ScheduleTestHarness
-    ? 'ScheduleTestHarness'
-    : TContract extends RemovalTestHarness
-    ? 'RemovalTestHarness'
-    : TContract extends MockCertificate
-    ? 'MockCertificate'
-    : TContract extends MockERC1155PresetPausableNonTransferrable
-    ? 'MockERC1155PresetPausableNonTransferrable'
-    : never;
+  contractName: TContractName;
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<TContract> => {
+}): Promise<Required<Contracts>[TContractName]> => {
   const deployment = await hre.deployments.get(contractName);
   const contract = await hre.ethers.getContractAt(
     contractName,
@@ -72,7 +32,7 @@ export const getContract = async <
   }
   return (
     signer != undefined ? contract.connect(signer) : contract
-  ) as TContract;
+  ) as Required<Contracts>[TContractName];
 };
 
 export const getBridgedPolygonNori = async ({
@@ -102,18 +62,18 @@ export const getNORI = async ({
     signer,
   });
 
-// export const getLockedNORI = ({ // todo import from forked repo
-//   hre,
-//   signer,
-// }: {
-//   hre: CustomHardHatRuntimeEnvironment;
-//   signer?: ConstructorParameters<typeof Contract>[2];
-// }): Promise<LockedNORI> =>
-//   getContract({
-//     contractName: 'LockedNORI',
-//     hre,
-//     signer,
-//   });
+export const getLockedNORIV2 = ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<LockedNORIV2> =>
+  getContract({
+    contractName: 'LockedNORIV2',
+    hre,
+    signer,
+  });
 
 export const getRestrictedNORI = ({
   hre,
@@ -175,7 +135,7 @@ export const getMockCertificate = async ({
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<MockCertificate> =>
   getContract({
-    contractName: 'MockCertificate' as keyof Contracts[keyof Contracts],
+    contractName: 'MockCertificate',
     hre,
     signer,
   });
@@ -188,8 +148,7 @@ export const getMockERC1155PresetPausableNonTransferrable = async ({
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<MockERC1155PresetPausableNonTransferrable> =>
   getContract({
-    contractName:
-      'MockERC1155PresetPausableNonTransferrable' as keyof Contracts[keyof Contracts],
+    contractName: 'MockERC1155PresetPausableNonTransferrable',
     hre,
     signer,
   });
@@ -216,9 +175,9 @@ export const getContractsFromDeployments = async (
     BridgedPolygonNORI: deployments.BridgedPolygonNORI?.address
       ? await getBridgedPolygonNori({ hre })
       : undefined,
-    // LockedNORI: deployments.LockedNORI?.address
-    //   ? await getLockedNORI({ hre })
-    //   : undefined, // todo import from forked repo
+    LockedNORIV2: deployments.LockedNORIV2?.address
+      ? await getLockedNORIV2({ hre })
+      : undefined,
     RestrictedNORI: deployments.RestrictedNORI?.address
       ? await getRestrictedNORI({ hre })
       : undefined,

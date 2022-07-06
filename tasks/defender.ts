@@ -29,7 +29,7 @@ const addContractsToDefender = async (
   {
     contractNames,
   }: {
-    contractNames: ContractNames[];
+    contractNames: (keyof Contracts)[];
   },
   hre: CustomHardHatRuntimeEnvironment
 ): Promise<void> => {
