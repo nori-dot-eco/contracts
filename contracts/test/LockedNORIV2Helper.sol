@@ -2,9 +2,8 @@
 pragma solidity =0.8.15;
 
 import "../LockedNORIV2.sol";
-import "./DSTest/test.sol";
 
-contract LockedNORIV2Helper is DSTest {
+contract LockedNORIV2Helper {
   uint256 constant SECONDS_PER_YEAR = 31_536_000;
 
   function createFixtureGrant(
@@ -89,10 +88,7 @@ contract LockedNORIV2Helper is DSTest {
       a.unlockCliff2Amount != b.unlockCliff2Amount
       // not adding runtime state checks here, maybe add?
     ) {
-      emit log("Error: a == b not satisfied [TokenGrantDetail]");
-      emit logNamedTokenGrant("  Expected", b);
-      emit logNamedTokenGrant("    Actual", a);
-      fail();
+      revert("Error: a == b not satisfied [TokenGrantDetail]");
     }
   }
 }

@@ -36,14 +36,18 @@ describe('FIFOMarket', () => {
     it('correctly initializes totalActiveSupply, totalReservedSupply, totalNumberActiveRemovals, activeSupplierCount, and priorityRestrictedThreshold', async () => {
       const { fifoMarket } = await setupTest();
       expect(
-        await Promise.all([
-          fifoMarket.totalActiveSupply(),
-          fifoMarket.totalReservedSupply(),
-          fifoMarket.totalNumberActiveRemovals(),
-          fifoMarket.activeSupplierCount(),
-          fifoMarket.priorityRestrictedThreshold(),
-        ])
-      ).to.deep.equal(Array.from({ length: 5 }).fill(formatTokenAmount(0)));
+        (
+          await Promise.all([
+            fifoMarket.totalActiveSupply(),
+            fifoMarket.totalReservedSupply(),
+            fifoMarket.totalNumberActiveRemovals(),
+            fifoMarket.activeSupplierCount(),
+            fifoMarket.priorityRestrictedThreshold(),
+          ])
+        ).map((e) => e.toString())
+      ).to.deep.equal(
+        Array.from({ length: 5 }).fill(formatTokenAmount(0).toString())
+      );
     });
   });
   describe('role access', () => {

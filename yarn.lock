@@ -8408,13 +8408,6 @@ hardhat-gas-reporter@^1.0.8:
     eth-gas-reporter "^0.2.24"
     sha1 "^1.1.1"
 
-hardhat-preprocessor@^0.1.4:
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/hardhat-preprocessor/-/hardhat-preprocessor-0.1.4.tgz#daa3004c3d2cca2ce1b5555c0c9b1940670fd022"
-  integrity sha512-TeIi9y5xXf6oKa2BMqXAFQV0tAJRy9MKDElu0VrHMsEVpiUXRh47AEJqWkFpWr2lVLFweif40n1RGxGIEFOPXw==
-  dependencies:
-    murmur-128 "^0.2.1"
-
 hardhat-tracer@^1.1.0-rc.6:
   version "1.1.0-rc.6"
   resolved "https://registry.yarnpkg.com/hardhat-tracer/-/hardhat-tracer-1.1.0-rc.6.tgz#963f9058a2e1ca7f1dac19d8b00ab2c2e556a1f4"

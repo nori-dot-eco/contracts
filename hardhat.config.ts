@@ -1,5 +1,4 @@
 import 'tsconfig-paths/register';
-import 'hardhat-preprocessor';
 import '@/config/environment';
 import '@/plugins';
 
@@ -16,7 +15,6 @@ import { solidity } from '@/config/solidity';
 import { docgen } from '@/config/docgen';
 import { getMochaConfig } from '@/config/mocha';
 import { fireblocks } from '@/config/fireblocks';
-import { preprocess } from '@/config/preprocess';
 import { tracer } from '@/config/tracer';
 
 export const getConfig = (
@@ -34,7 +32,6 @@ export const getConfig = (
     mocha: getMochaConfig(environment),
     fireblocks,
     ethernal: getEthernalConfig(environment),
-    preprocess,
     paths: {
         sources: "./contracts",
         cache: "./cache_hardhat",
