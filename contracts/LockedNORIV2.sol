@@ -435,11 +435,6 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     __ERC777PresetPausablePermissioned_init_unchained();
     __ERC777_init_unchained("Locked NORI", "lNORI", operators);
     _bridgedPolygonNori = bridgedPolygonNoriAddress;
-    _ERC1820_REGISTRY.setInterfaceImplementer(
-      address(this),
-      ERC777_TOKENS_RECIPIENT_HASH,
-      address(this)
-    );
     _grantRole(TOKEN_GRANTER_ROLE, _msgSender());
   }
 
