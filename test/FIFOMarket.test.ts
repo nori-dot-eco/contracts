@@ -1245,10 +1245,10 @@ describe('FIFOMarket', () => {
         supplierInitialNoriBalance.add(purchaseAmount)
       );
       expect(investor1FinalNoriBalance).to.equal(investor1InitialNoriBalance);
-      const sources = await certificate.sources(0);
-      expect(sources.length).to.equal(2);
+      const certificateSources = await certificate.sources(0);
+      expect(certificateSources.originalSources.length).to.equal(2);
       const decodedRemovalIds = await Promise.all(
-        sources.map((source) => removal.unpackRemovalIdV0(source.removalId))
+        certificateSources.originalSources.map((source) => removal.unpackRemovalIdV0(source.removalId))
       );
       expect(decodedRemovalIds.map((e) => e.supplierAddress)).to.deep.equal(
         Array.from({ length: decodedRemovalIds.length }).fill(

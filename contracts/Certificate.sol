@@ -25,6 +25,12 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     uint256 amount;
   }
 
+  struct CertificateSources {
+    Source[] originalSources;
+    Source[] invalidatedSources;
+    Source[] replacementSources;
+  }
+
   /**
    * @notice Emitted on creation of a certificate of carbon removal.
    */
@@ -36,9 +42,9 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
   );
 
   /**
-   * @dev a mapping of the certificate token ID -> sources
+   * @dev a mapping of the certificate token ID -> removal sources
    */
-  mapping(uint256 => Source[]) private _sources;
+  mapping(uint256 => CertificateSources) private _sources;
 
   /**
    * @dev auto incrementing token ID
@@ -96,7 +102,7 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     // todo require _sources[_latestTokenId][n] doesnt exist
     // todo is there a better way to verify that no removal amount == 0?
     for (uint256 i = 0; i < removalIds.length; i++) {
-      _sources[tokenId].push(
+      _sources[tokenId].originalSources.push(
         Source({removalId: removalIds[i], amount: removalAmounts[i]})
       );
     }
@@ -123,7 +129,7 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
   function sources(uint256 certificateId)
     public
     view
-    returns (Source[] memory)
+    returns (CertificateSources memory)
   {
     return _sources[certificateId];
   }
