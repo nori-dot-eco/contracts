@@ -32,7 +32,14 @@ export const getConfig = (
     mocha: getMochaConfig(environment),
     fireblocks,
     ethernal: getEthernalConfig(environment),
+    paths: {
+        sources: "./contracts",
+        cache: "./cache_hardhat",
+    },
     tracer,
+    typechain: {
+      externalArtifacts: ['legacy-artifacts/contracts/LockedNORI.sol/LockedNORI.json']
+    }
   };
   return config;
 };

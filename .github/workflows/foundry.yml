@@ -1,0 +1,29 @@
+name: Foundry Tests
+on: [push]
+
+jobs:
+  check:
+    name: Foundry project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install Hardhat Dependencies
+        run: yarn install --ignore-scripts
+
+      - name: Run foundry tests
+        env:
+          INFURA_STAGING_KEY: ${{ secrets.INFURA_STAGING_KEY }}
+        run: forge test -vvv --fork-url https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}
+
+      - name: Run forge snapshot
+        env:
+          INFURA_STAGING_KEY: ${{ secrets.INFURA_STAGING_KEY }}
+        run: forge snapshot --fork-url https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY} >> $GITHUB_STEP_SUMMARY
