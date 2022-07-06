@@ -2,10 +2,9 @@
 pragma solidity =0.8.15;
 
 import "../LockedNORIV2.sol";
-import "./DSTest/test.sol";
 
-contract LockedNORIV2Helper is DSTest {
-  uint256 constant SECONDS_PER_YEAR = 31_536_000;
+contract LockedNORIV2Helper {
+  uint256 private constant _SECONDS_PER_YEAR = 31_536_000;
 
   function createFixtureGrant(
     address lnori,
@@ -42,7 +41,7 @@ contract LockedNORIV2Helper is DSTest {
       lnori,
       amount,
       recipient,
-      block.timestamp - SECONDS_PER_YEAR,
+      block.timestamp - _SECONDS_PER_YEAR,
       block.timestamp + 1,
       block.timestamp + 1,
       block.timestamp + 1,
@@ -54,14 +53,12 @@ contract LockedNORIV2Helper is DSTest {
   function assertSimplePastGrant(
     address lnori,
     LockedNORIV2.TokenGrantDetail calldata expectedGrantDetails
-  ) public {
+  ) public view {
     LockedNORIV2.TokenGrantDetail memory actualGrantDetails = LockedNORIV2(
       lnori
     ).getGrant(expectedGrantDetails.recipient);
     assertEq(actualGrantDetails, expectedGrantDetails);
   }
-
-  event logNamedTokenGrant(string, LockedNORIV2.TokenGrantDetail grant);
 
   function get(address lnori, address recipient)
     public
@@ -74,7 +71,7 @@ contract LockedNORIV2Helper is DSTest {
   function assertEq(
     LockedNORIV2.TokenGrantDetail memory a,
     LockedNORIV2.TokenGrantDetail memory b
-  ) internal {
+  ) internal pure {
     if (
       a.grantAmount != b.grantAmount ||
       a.recipient != b.recipient ||
@@ -89,10 +86,7 @@ contract LockedNORIV2Helper is DSTest {
       a.unlockCliff2Amount != b.unlockCliff2Amount
       // not adding runtime state checks here, maybe add?
     ) {
-      emit log("Error: a == b not satisfied [TokenGrantDetail]");
-      emit logNamedTokenGrant("  Expected", b);
-      emit logNamedTokenGrant("    Actual", a);
-      fail();
+      revert("FAIL");
     }
   }
 }

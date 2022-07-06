@@ -2,7 +2,6 @@ import { upgrades } from 'hardhat';
 import { expect, setupTest } from '@/test/helpers';
 import { LockedNORIV2 } from '@/typechain-types';
 import { LockedNORI } from '@/typechain-types/legacy-artifacts/contracts/LockedNORI';
-// import LockedNORIArtifact from '@/legacy-artifacts/LockedNORI.sol/LockedNORI.json';
 
 describe('LockedNORI V1 to V2 upgrade', () => {
   it('works before and after upgrading', async () => {
