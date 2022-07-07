@@ -250,9 +250,6 @@ contract LockedNORITest is Test, ERC777ERC1820 {
       deadline
     );
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(grantAdminKey, digest);
-    // vm.expectEmit(true, true, true, false);
-    // emit Approval(address(grantAdmin), address(lNori), GRANT_AMOUNT);
-    // erc20.permit(grantAdmin, address(lNori), GRANT_AMOUNT, deadline, v, r, s);
 
     uint256[] memory amounts = new uint256[](1);
     amounts[0] = GRANT_AMOUNT;
