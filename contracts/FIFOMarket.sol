@@ -28,7 +28,7 @@ contract FIFOMarket is
   AccessControlEnumerableUpgradeable,
   ERC1155HolderUpgradeable
 {
-  using RemovalUtils for uint256;
+  using RemovalUtils for uint256; // todo is this using RemovalUtils for ALL uint256s?
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
 
@@ -36,6 +36,8 @@ contract FIFOMarket is
   error OutOfStock();
   error LowSupplyAllowlistRequired();
   error RemovalAlreadyReserved(uint256 removalId);
+  error RemovalNotInActiveSupply(uint256 removalId);
+  error RemovalNotInReservedSupply(uint256 removalId);
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -51,7 +53,7 @@ contract FIFOMarket is
   RestrictedNORI private _restrictedNori;
   address private _noriFeeWallet;
   uint256 private _noriFee;
-  uint256 public priorityRestrictedThreshold;
+  uint256 private _priorityRestrictedThreshold;
   address private _currentSupplierAddress;
   mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
   mapping(address => RemovalQueueByVintage) private _activeSupply;
@@ -63,7 +65,7 @@ contract FIFOMarket is
   bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
 
   /**
-   * @notice Emitted on setting of priorityRestrictedThreshold.
+   * @notice Emitted on setting of _priorityRestrictedThreshold.
    */
   event PriorityRestrictedThresholdSet(uint256 threshold);
 
@@ -93,17 +95,21 @@ contract FIFOMarket is
     _restrictedNori = RestrictedNORI(restrictedNoriAddress);
     _noriFeeWallet = noriFeeWalletAddress;
     _noriFee = noriFee;
-    priorityRestrictedThreshold = 0;
+    _priorityRestrictedThreshold = 0;
     _currentSupplierAddress = address(0);
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
+  }
+
+  function priorityRestrictedThreshold(uint256 threshold) external view {
+    return _priorityRestrictedThreshold;
   }
 
   function setPriorityRestrictedThreshold(uint256 threshold)
     external
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
-    priorityRestrictedThreshold = threshold;
+    _priorityRestrictedThreshold = threshold;
     emit PriorityRestrictedThresholdSet(threshold);
   }
 
@@ -113,9 +119,9 @@ contract FIFOMarket is
   function totalUnrestrictedSupply() external view returns (uint256) {
     uint256 activeSupply = this.totalActiveSupply();
     return
-      activeSupply < priorityRestrictedThreshold
+      activeSupply < _priorityRestrictedThreshold
         ? 0
-        : activeSupply - priorityRestrictedThreshold; // todo compare this against trySub?
+        : activeSupply - _priorityRestrictedThreshold; // todo compare this against trySub?
   }
 
   // todo we need to also implement onERC1155Received
@@ -129,7 +135,6 @@ contract FIFOMarket is
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = removalToAdd.supplierAddress();
-      uint256 removalAmount = batchedAmounts[i];
       _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
       // If a new supplier has been added, or if the supplier had previously sold out
       if (
@@ -252,7 +257,7 @@ contract FIFOMarket is
     if (activeSupply == 0) {
       revert OutOfStock();
     }
-    if (activeSupply <= priorityRestrictedThreshold) {
+    if (activeSupply <= _priorityRestrictedThreshold) {
       if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
         revert LowSupplyAllowlistRequired();
       }
@@ -474,21 +479,19 @@ contract FIFOMarket is
    *
    */
   function reserveRemoval(uint256 removalId) external {
-    // todo this should transfer ownership out of the fifo market, but keep place in queue if it is returned
     address supplierAddress = removalId.supplierAddress();
     _removeActiveRemoval(supplierAddress, removalId);
-    // todo any checks on whether this id was already in there?
-    require(_reservedSupply.add(removalId), "Market: Removal already reserved"); // TODO Gas Optimization: custom error
+    if (!_reservedSupply.add(removalId)) {
+      revert RemovalAlreadyReserved({removalId: removalId});
+    }
   }
 
   function _removeActiveRemoval(address supplierAddress, uint256 removalId)
     internal
   {
-    require(
-      _activeSupply[supplierAddress].removeRemoval(removalId),
-      "Market: removal not in active supply"
-    );
-    // If this is the last removal for the supplier, remove them from active suppliers
+    if (!_activeSupply[supplierAddress].removeRemoval(removalId)) {
+      revert RemovalNotInActiveSupply({removalId: removalId});
+    }
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _removeActiveSupplier(supplierAddress);
     }
@@ -508,7 +511,7 @@ contract FIFOMarket is
 
   function _unreserveRemoval(uint256 removalId) internal {
     if (!_reservedSupply.add(removalId)) {
-      revert RemovalAlreadyReserved({removalId: removalId});
+      revert RemovalNotInReservedSupply({removalId: removalId});
     }
   }
 

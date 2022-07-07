@@ -210,7 +210,7 @@ contract Removal is
   }
 
   /**
-   * @notice mints multiple removals at once (for a single supplier).
+   * @notice Mints multiple removals at once (for a single supplier).
    * @dev If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
    * @param to The supplier address
    * @param amounts Each removal's tonnes of CO2 formatted as wei
@@ -248,7 +248,7 @@ contract Removal is
       firstRemoval.methodologyVersion()
     );
     bytes memory encodedData = abi.encode(data);
-    super.mintBatch(to, ids, amounts, encodedData);
+    _mintBatch(to, ids, amounts, encodedData);
     setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
     if (data.list) {
       safeBatchTransferFrom(to, address(_market), ids, amounts, encodedData);
