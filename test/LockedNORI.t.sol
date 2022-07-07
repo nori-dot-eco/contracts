@@ -10,6 +10,7 @@ import "../contracts/LockedNORIV2.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
@@ -137,18 +138,19 @@ contract LockedNORITest is Test, ERC777ERC1820 {
   MockERC777 erc777;
   MockERC20Permit erc20;
   LockedNORIV2Helper helper;
+  PermitSigner signer;
 
-  function issueGrant(address recipientAddress) internal {
+  function issueGrant(address recipientAddress, uint256 fromTime) internal {
     uint256 amount = GRANT_AMOUNT;
 
     lNori.createGrant(
       amount,
       recipientAddress,
-      block.timestamp,
-      block.timestamp,
-      block.timestamp + 100,
-      block.timestamp,
-      block.timestamp,
+      fromTime,
+      fromTime + 365 days,
+      fromTime + 365 days,
+      fromTime,
+      fromTime,
       0,
       0,
       0,
@@ -221,36 +223,58 @@ contract LockedNORITest is Test, ERC777ERC1820 {
 
     lNori = deployLockedNORIV2(address(erc20));
     helper = new LockedNORIV2Helper();
+    signer = new PermitSigner();
   }
 
+  event Approval(address indexed owner, address indexed spender, uint256 value);
+
   function testBatchGrantCreation() public {
-    uint256 aliceKey = 0xa11ce;
-    address alice = vm.addr(aliceKey);
+    address recipient = vm.addr(0xa11ce);
+    uint256 grantAdminKey = 0xabcdef;
+    address grantAdmin = vm.addr(grantAdminKey);
+    erc20.transfer(grantAdmin, GRANT_AMOUNT);
+    assertEq(erc20.balanceOf(address(grantAdmin)), GRANT_AMOUNT);
+    lNori.grantRole(lNori.TOKEN_GRANTER_ROLE(), grantAdmin);
+
     uint256 deadline = 1 days;
 
-    bytes memory params = helper.getSimplePastGrantCreationParamsEncoded(alice);
-    (uint8 v, bytes32 r, bytes32 s) = signPermit(
+    bytes memory params = helper.getSimpleGrantCreationParamsEncoded(
+      recipient,
+      1 days
+    );
+    vm.startPrank(grantAdmin);
+    bytes32 digest = signer.digestPermitCall(
       address(erc20),
       address(lNori),
       GRANT_AMOUNT,
-      deadline,
-      aliceKey
+      deadline
     );
-
-    console2.log("Got back permit sig");
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(grantAdminKey, digest);
+    // vm.expectEmit(true, true, true, false);
+    // emit Approval(address(grantAdmin), address(lNori), GRANT_AMOUNT);
+    // erc20.permit(grantAdmin, address(lNori), GRANT_AMOUNT, deadline, v, r, s);
 
     uint256[] memory amounts = new uint256[](1);
     amounts[0] = GRANT_AMOUNT;
-    console2.log("grr");
     bytes[] memory data = new bytes[](1);
     data[0] = params;
 
-    console2.log("Call batch create");
+    vm.expectEmit(true, true, true, false);
+    emit Approval(address(grantAdmin), address(lNori), GRANT_AMOUNT);
     lNori.batchCreateGrants(amounts, data, deadline, v, r, s);
-    // assert grant created
-    // assert balance moved
-    assertEq(lNori.unlockedBalanceOf(alice), GRANT_AMOUNT);
-    helper.assertSimplePastGrant(address(lNori), lNori.getGrant(alice));
+
+    helper.assertSimplePastGrant(address(lNori), lNori.getGrant(recipient));
+    assertEq(erc20.balanceOf(grantAdmin), 0);
+    assertEq(erc20.balanceOf(address(lNori)), GRANT_AMOUNT);
+
+    assertEq(lNori.balanceOf(recipient), GRANT_AMOUNT);
+    assertEq(lNori.vestedBalanceOf(recipient), 0);
+    assertEq(lNori.unlockedBalanceOf(recipient), 0);
+
+    vm.warp(3656 days);
+    assertEq(lNori.balanceOf(recipient), GRANT_AMOUNT);
+    assertEq(lNori.vestedBalanceOf(recipient), GRANT_AMOUNT);
+    assertEq(lNori.unlockedBalanceOf(recipient), GRANT_AMOUNT);
   }
 
   function testTokensReceivedReverts() public {
@@ -262,7 +286,7 @@ contract LockedNORITest is Test, ERC777ERC1820 {
 
   function testReentryTokensReceived() public {
     Recipient recipient = new Recipient(address(lNori), true, false);
-    issueGrant(address(recipient));
+    issueGrant(address(recipient), 1 days);
     skip(100);
 
     uint256 balance = lNori.unlockedBalanceOf(address(recipient));
@@ -274,7 +298,7 @@ contract LockedNORITest is Test, ERC777ERC1820 {
 
   function testReentryTokensToSend() public {
     Recipient recipient = new Recipient(address(lNori), false, true);
-    issueGrant(address(recipient));
+    issueGrant(address(recipient), 1 days);
     skip(100);
 
     uint256 balance = lNori.unlockedBalanceOf(address(recipient));
@@ -284,10 +308,10 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     lNori.withdrawTo(address(recipient), balance);
   }
 
-  function testNormalWithdrawl() public {
+  function testNormalWithdrawal() public {
     Recipient recipient = new Recipient(address(lNori), false, false);
-    issueGrant(address(recipient));
-    skip(100);
+    issueGrant(address(recipient), 1 days);
+    vm.warp(366 days);
 
     uint256 balance = lNori.unlockedBalanceOf(address(recipient));
     console2.log("Unlocked balance is: ", balance);

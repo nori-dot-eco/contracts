@@ -4,8 +4,6 @@ pragma solidity =0.8.15;
 import "../LockedNORIV2.sol";
 
 contract LockedNORIV2Helper {
-  uint256 constant SECONDS_PER_YEAR = 31_536_000;
-
   function createFixtureGrant(
     address lnori,
     uint256 amount,
@@ -45,7 +43,7 @@ contract LockedNORIV2Helper {
     uint256 unlockCliff2Amount
   ) public pure returns (bytes memory) {
     return
-      abi.encodePacked(
+      abi.encode(
         recipient,
         startTime,
         vestEndTime,
@@ -68,28 +66,28 @@ contract LockedNORIV2Helper {
       lnori,
       amount,
       recipient,
-      block.timestamp - SECONDS_PER_YEAR,
+      block.timestamp - 365 days,
       block.timestamp + 1,
-      block.timestamp + 1,
-      block.timestamp + 1,
+      0,
+      0,
       0,
       0
     );
   }
 
-  function getSimplePastGrantCreationParamsEncoded(address recipient)
-    public
-    view
-    returns (bytes memory)
-  {
+  // Encodes creation data for a grant with no cliff over 365 days from `fromTime`
+  function getSimpleGrantCreationParamsEncoded(
+    address recipient,
+    uint256 fromTime
+  ) public view returns (bytes memory) {
     return
       encodeGrantCreationParams(
         recipient,
-        block.timestamp - SECONDS_PER_YEAR,
-        block.timestamp + 1,
-        block.timestamp + 1,
-        block.timestamp + 1,
-        block.timestamp + 1,
+        fromTime,
+        fromTime + 365 days,
+        fromTime + 365 days,
+        fromTime,
+        fromTime,
         0,
         0,
         0,
