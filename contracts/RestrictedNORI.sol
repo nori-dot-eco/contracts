@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Paus
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
-import "./FIFOMarket.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
 // todo extract some of this contract to a preset (makes contracts more re-usable going forward without needing duplicate audit scope, also  makes it easier to isolate tests (e.g., pausability), w/o having to test it per-contract)

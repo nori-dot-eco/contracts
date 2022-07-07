@@ -16,6 +16,9 @@ remappings = [
   'hardhat-deploy/=node_modules/hardhat-deploy/',
   'hardhat/=node_modules/hardhat/',
   'forge-std/=lib/forge-std/src/',
+  "@/contracts/=contracts/",
+  "@/test/=test/"
+
 ]
 gas_reports = [ "*" ]
 

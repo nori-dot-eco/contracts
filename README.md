@@ -4,6 +4,20 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 
 ---
 
+# Setup
+
+Make sure to initialize submodules
+
+```
+git submodule update --init --recursive
+```
+
+Then install dependencies
+
+```
+yarn install
+```
+
 ## Supported Networks and their Contracts
 
 ### polygon
