@@ -32,6 +32,33 @@ contract LockedNORIV2Helper {
     );
   }
 
+  function encodeGrantCreationParams(
+    address recipient,
+    uint256 startTime,
+    uint256 vestEndTime,
+    uint256 unlockEndTime,
+    uint256 cliff1Time,
+    uint256 cliff2Time,
+    uint256 vestCliff1Amount,
+    uint256 vestCliff2Amount,
+    uint256 unlockCliff1Amount,
+    uint256 unlockCliff2Amount
+  ) public pure returns (bytes memory) {
+    return
+      abi.encodePacked(
+        recipient,
+        startTime,
+        vestEndTime,
+        unlockEndTime,
+        cliff1Time,
+        cliff2Time,
+        vestCliff1Amount,
+        vestCliff2Amount,
+        unlockCliff1Amount,
+        unlockCliff2Amount
+      );
+  }
+
   function createSimplePastGrant(
     address lnori,
     uint256 amount,
@@ -50,10 +77,30 @@ contract LockedNORIV2Helper {
     );
   }
 
+  function getSimplePastGrantCreationParamsEncoded(address recipient)
+    public
+    view
+    returns (bytes memory)
+  {
+    return
+      encodeGrantCreationParams(
+        recipient,
+        block.timestamp - SECONDS_PER_YEAR,
+        block.timestamp + 1,
+        block.timestamp + 1,
+        block.timestamp + 1,
+        block.timestamp + 1,
+        0,
+        0,
+        0,
+        0
+      );
+  }
+
   function assertSimplePastGrant(
     address lnori,
     LockedNORIV2.TokenGrantDetail calldata expectedGrantDetails
-  ) public {
+  ) public view {
     LockedNORIV2.TokenGrantDetail memory actualGrantDetails = LockedNORIV2(
       lnori
     ).getGrant(expectedGrantDetails.recipient);
@@ -73,7 +120,7 @@ contract LockedNORIV2Helper {
   function assertEq(
     LockedNORIV2.TokenGrantDetail memory a,
     LockedNORIV2.TokenGrantDetail memory b
-  ) internal {
+  ) internal pure {
     if (
       a.grantAmount != b.grantAmount ||
       a.recipient != b.recipient ||

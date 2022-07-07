@@ -261,6 +261,39 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
   }
 
   /**
+   * @notice Batch version of `createGrant` with permit support.
+   */
+  function batchCreateGrants(
+    uint256[] calldata amounts,
+    bytes[] calldata grantParams,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
+    require(
+      amounts.length == grantParams.length,
+      "lNori: Requires one amount per grant detail"
+    );
+    uint256 totalAmount = 0;
+    console2.log("")
+    for (uint8 i = 0; i < amounts.length; i++) {
+      totalAmount += amounts[i];
+      _createGrant(amounts[i], grantParams[i]);
+    }
+    _bridgedPolygonNori.permit(
+      _msgSender(),
+      address(this),
+      totalAmount,
+      deadline,
+      v,
+      r,
+      s
+    );
+    _bridgedPolygonNori.transferFrom(_msgSender(), address(this), totalAmount);
+  }
+
+  /**
    * @notice Sets up a vesting + lockup schedule for recipient.
    *
    * @dev This function can be used as an alternative way to set up a grant that doesn't require

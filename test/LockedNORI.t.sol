@@ -2,7 +2,10 @@ pragma solidity 0.8.15;
 
 import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
-import "../contracts/test/TestToken777.sol";
+import "../contracts/test/MockERC777.sol";
+import "../contracts/test/MockERC20Permit.sol";
+import "../contracts/test/PermitSigner.sol";
+import "../contracts/test/LockedNORIV2Helper.sol";
 import "../contracts/LockedNORIV2.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
@@ -12,7 +15,8 @@ import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 abstract contract ERC777ERC1820 is
   IERC777RecipientUpgradeable,
-  IERC777SenderUpgradeable
+  IERC777SenderUpgradeable,
+  PermitSigner
 {
   function tokensReceived(
     address,
@@ -45,7 +49,7 @@ contract Recipient {
   bool shouldAttackToSend;
   bool shouldAttackReceived;
   LockedNORIV2 lNori;
-  TestToken777 bpNori;
+  MockERC777 bpNori;
 
   constructor(
     address lNoriAddress,
@@ -130,7 +134,9 @@ contract LockedNORITest is Test, ERC777ERC1820 {
   IERC1820RegistryUpgradeable registry;
   address admin = vm.addr(69);
   LockedNORIV2 lNori;
-  TestToken777 bpNori;
+  MockERC777 erc777;
+  MockERC20Permit erc20;
+  LockedNORIV2Helper helper;
 
   function issueGrant(address recipientAddress) internal {
     uint256 amount = GRANT_AMOUNT;
@@ -148,7 +154,7 @@ contract LockedNORITest is Test, ERC777ERC1820 {
       0,
       0
     );
-    bpNori.approve(address(lNori), GRANT_AMOUNT);
+    erc20.approve(address(lNori), GRANT_AMOUNT);
     lNori.depositFor(recipientAddress, GRANT_AMOUNT);
   }
 
@@ -164,13 +170,25 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     return address(proxy);
   }
 
-  function deployLockedNORIV2() public returns (LockedNORIV2) {
+  function deployLockedNORIV2(address _erc20) public returns (LockedNORIV2) {
     LockedNORIV2 impl = new LockedNORIV2();
     bytes memory initializer = abi.encodeWithSignature(
       "initialize(address)",
-      address(bpNori)
+      _erc20
     );
     return LockedNORIV2(deployProxy(address(impl), initializer));
+  }
+
+  function deployMockERC20() public returns (MockERC20Permit) {
+    MockERC20Permit impl = new MockERC20Permit();
+    bytes memory initializer = abi.encodeWithSignature("initialize()");
+    return MockERC20Permit(deployProxy(address(impl), initializer));
+  }
+
+  function deployMockERC777() public returns (MockERC777) {
+    MockERC777 impl = new MockERC777();
+    bytes memory initializer = abi.encodeWithSignature("initialize()");
+    return MockERC777(deployProxy(address(impl), initializer));
   }
 
   function setUp() public {
@@ -195,17 +213,51 @@ contract LockedNORITest is Test, ERC777ERC1820 {
       address(this)
     );
 
-    bpNori = new TestToken777();
-    assertEq(bpNori.balanceOf(address(this)), SEED_AMOUNT);
+    erc777 = deployMockERC777();
+    assertEq(erc777.balanceOf(address(this)), SEED_AMOUNT);
 
-    lNori = deployLockedNORIV2();
+    erc20 = deployMockERC20();
+    assertEq(erc20.balanceOf(address(this)), SEED_AMOUNT);
+
+    lNori = deployLockedNORIV2(address(erc20));
+    helper = new LockedNORIV2Helper();
+  }
+
+  function testBatchGrantCreation() public {
+    uint256 aliceKey = 0xa11ce;
+    address alice = vm.addr(aliceKey);
+    uint256 deadline = 1 days;
+
+    bytes memory params = helper.getSimplePastGrantCreationParamsEncoded(alice);
+    (uint8 v, bytes32 r, bytes32 s) = signPermit(
+      address(erc20),
+      address(lNori),
+      GRANT_AMOUNT,
+      deadline,
+      aliceKey
+    );
+
+    console2.log("Got back permit sig");
+
+    uint256[] memory amounts = new uint256[](1);
+    amounts[0] = GRANT_AMOUNT;
+    console2.log("grr");
+    bytes[] memory data = new bytes[](1);
+    data[0] = params;
+
+    console2.log("Call batch create");
+    lNori.batchCreateGrants(amounts, data, deadline, v, r, s);
+    // assert grant created
+    // assert balance moved
+    assertEq(lNori.unlockedBalanceOf(alice), GRANT_AMOUNT);
+    helper.assertSimplePastGrant(address(lNori), lNori.getGrant(alice));
   }
 
   function testTokensReceivedReverts() public {
     vm.expectRevert(
       "ERC777: token recipient contract has no implementer for ERC777TokensRecipient"
     );
-    bpNori.send(address(lNori), GRANT_AMOUNT, "");
+    erc777.send(address(lNori), GRANT_AMOUNT, "");
   }
 
   function testReentryTokensReceived() public {
@@ -242,6 +294,6 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     vm.prank(address(recipient));
     lNori.withdrawTo(address(recipient), balance);
     assertEq(lNori.unlockedBalanceOf(address(recipient)), 0);
-    assertEq(bpNori.balanceOf(address(recipient)), GRANT_AMOUNT);
+    assertEq(erc777.balanceOf(address(recipient)), GRANT_AMOUNT);
   }
 }
