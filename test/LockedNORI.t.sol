@@ -315,6 +315,6 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     vm.prank(address(recipient));
     lNori.withdrawTo(address(recipient), balance);
     assertEq(lNori.unlockedBalanceOf(address(recipient)), 0);
-    assertEq(erc777.balanceOf(address(recipient)), GRANT_AMOUNT);
+    assertEq(erc20.balanceOf(address(recipient)), GRANT_AMOUNT);
   }
 }
