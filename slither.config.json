@@ -1,5 +1,11 @@
 {
-  "filter_paths": ["contracts/test", "contracts/deprecated", "lib", "test"],
+  "filter_paths": [
+    "contracts/test",
+    "contracts/deprecated",
+    "lib",
+    "test",
+    "node_modules/@openzeppelin/contracts-upgradeable"
+  ],
   "solc_remaps": [
     "@ensdomains/=node_modules/@ensdomains/",
     "@openzeppelin/=node_modules/@openzeppelin/",
