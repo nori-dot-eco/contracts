@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
+import {TokenIdExists, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 
 // import "hardhat/console.sol"; // todo
 
@@ -20,15 +19,15 @@ import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
  * @title Removal
  */
 contract Removal is
-  ERC1155PresetMinterPauserUpgradeable,
-  ERC1155SupplyUpgradeable
+  ERC1155PausableUpgradeable,
+  ERC1155BurnableUpgradeable,
+  ERC1155SupplyUpgradeable,
+  AccessControlEnumerableUpgradeable
 {
   using SafeMathUpgradeable for uint256;
   using RemovalUtils for uint256;
 
-  error TokenIdExists(uint256 tokenId);
   error TokenIdDoesNotExist(uint256 tokenId);
-  error ArrayLengthMismatch(string array1Name, string array2Name);
   error InvalidProjectId(uint256 projectId);
 
   struct BatchMintRemovalsData {
@@ -53,6 +52,20 @@ contract Removal is
   }
 
   /**
+   * @notice Role conferring minting.
+   *
+   * @dev only Nori admin address should have this role.
+   */
+  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+
+  /**
+   * @notice Role conferring pausing and unpausing of this contract.
+   *
+   * @dev only Nori admin address should have this role.
+   */
+  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+  /**
    * @notice The RestrictedNORI contract that manages restricted tokens.
    */
   RestrictedNORI private _restrictedNori;
@@ -71,8 +84,15 @@ contract Removal is
   }
 
   function initialize() external initializer {
-    super.initialize("https://nori.com/api/removal/{id}.json");
+    __ERC1155_init_unchained("https://nori.com/api/removal/{id}.json");
+    __Pausable_init_unchained();
+    __ERC1155Burnable_init_unchained();
     __ERC1155Supply_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _setupRole(PAUSER_ROLE, _msgSender());
+    _setupRole(MINTER_ROLE, _msgSender());
     tokenIdCounter = 0;
     name = "Removal";
   }
@@ -205,7 +225,7 @@ contract Removal is
     uint256[] memory amounts,
     uint256[] memory ids,
     bytes memory data
-  ) public override {
+  ) public {
     uint256 idsLength = ids.length;
     if (!(amounts.length == idsLength)) {
       revert ArrayLengthMismatch({array1Name: "amounts", array2Name: "ids"});
@@ -247,20 +267,11 @@ contract Removal is
       firstId.methodology(), // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
       firstId.methodologyVersion() // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
     );
-    super.mintBatch(to, ids, amounts, data);
+    super._mintBatch(to, ids, amounts, data);
     setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
     if (list) {
       safeBatchTransferFrom(to, marketAddress, ids, amounts, data);
     }
-  }
-
-  function mint(
-    address,
-    uint256,
-    uint256,
-    bytes memory
-  ) public pure override {
-    revert("Removal: ERC 1155 mint disabled");
   }
 
   /**
@@ -287,7 +298,7 @@ contract Removal is
   function supportsInterface(bytes4 interfaceId)
     public
     view
-    override(ERC1155Upgradeable, ERC1155PresetMinterPauserUpgradeable)
+    override(ERC1155Upgradeable, AccessControlEnumerableUpgradeable)
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
@@ -302,7 +313,11 @@ contract Removal is
     bytes memory data
   )
     internal
-    override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
+    override(
+      ERC1155SupplyUpgradeable,
+      ERC1155PausableUpgradeable,
+      ERC1155Upgradeable
+    )
   {
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
