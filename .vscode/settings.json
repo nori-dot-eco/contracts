@@ -86,6 +86,9 @@
   /** END SOLIDITY OPTIONS */
 
   /** BEGIN TYPE CHECKING OPTIONS */
-  "js/ts.implicitProjectConfig.checkJs": true
+  "js/ts.implicitProjectConfig.checkJs": true,
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  }
   /** END TYPE CHECKING OPTIONS */
 }

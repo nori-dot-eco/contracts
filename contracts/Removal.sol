@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
 import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
+import {TokenIdExists, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 import "./FIFOMarket.sol";
 // import "hardhat/console.sol"; // todo
 
@@ -22,16 +24,16 @@ struct BatchMintRemovalsData {
  * @title Removal
  */
 contract Removal is
-  ERC1155PresetMinterPauserUpgradeable,
-  ERC1155SupplyUpgradeable
+  ERC1155PausableUpgradeable,
+  ERC1155BurnableUpgradeable,
+  ERC1155SupplyUpgradeable,
+  AccessControlEnumerableUpgradeable
 {
   using RemovalUtils for uint256;
   using EnumerableMapUpgradeable for EnumerableMapUpgradeable.UintToAddressMap;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
-  error TokenIdExists(uint256 tokenId);
   error TokenIdDoesNotExist(uint256 tokenId);
-  error ArrayLengthMismatch(string array1Name, string array2Name);
 
   struct ScheduleData {
     uint256 startTime;
@@ -47,11 +49,26 @@ contract Removal is
 
   /**
    * @notice Role conferring the the ability to mark a removal as released.
+   * @dev only a Nori admin address should have this role.
    */
   bytes32 public constant RELEASER_ROLE = keccak256("RELEASER_ROLE");
 
   /**
-   * @notice The RestrictedNORI contract that manages restricted tokens.
+   * @notice Role conferring the abilit to mint removals.
+   *
+   * @dev only a Nori admin address should have this role.
+   */
+  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+
+  /**
+   * @notice Role conferring pausing and unpausing of this contract.
+   *
+   * @dev only a Nori admin address should have this role.
+   */
+  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+  /**
+   * @notice the RestrictedNORI contract that manages restricted tokens.
    */
   RestrictedNORI private _restrictedNori;
   FIFOMarket private _market;
@@ -69,10 +86,16 @@ contract Removal is
   }
 
   function initialize() external initializer {
-    super.initialize("https://nori.com/api/removal/{id}.json");
+    __ERC1155_init_unchained("https://nori.com/api/removal/{id}.json");
+    __Pausable_init_unchained();
+    __ERC1155Burnable_init_unchained();
     __ERC1155Supply_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _grantRole(PAUSER_ROLE, _msgSender());
+    _grantRole(MINTER_ROLE, _msgSender());
     _grantRole(RELEASER_ROLE, _msgSender());
-    _grantRole(MINTER_ROLE, _msgSender()); // todo remove from test setup
   }
 
   function registerContractAddresses(
@@ -232,15 +255,6 @@ contract Removal is
     }
   }
 
-  function mint(
-    address,
-    uint256,
-    uint256,
-    bytes memory
-  ) public pure override {
-    revert("Removal: ERC 1155 mint disabled");
-  }
-
   /**
    * @dev used to list removals for sale by transferring the removals to the market contract
    *
@@ -291,7 +305,7 @@ contract Removal is
   function supportsInterface(bytes4 interfaceId)
     public
     view
-    override(ERC1155Upgradeable, ERC1155PresetMinterPauserUpgradeable)
+    override(ERC1155Upgradeable, AccessControlEnumerableUpgradeable)
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
@@ -306,7 +320,11 @@ contract Removal is
     bytes memory data
   )
     internal
-    override(ERC1155PresetMinterPauserUpgradeable, ERC1155SupplyUpgradeable)
+    override(
+      ERC1155SupplyUpgradeable,
+      ERC1155PausableUpgradeable,
+      ERC1155Upgradeable
+    )
   {
     uint256 numberOfTokenTransfers = amounts.length;
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {

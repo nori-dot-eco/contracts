@@ -32,6 +32,11 @@ contract FIFOMarket is
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
 
+  error InsufficientSupply();
+  error OutOfStock();
+  error LowSupplyAllowlistRequired();
+  error RemovalAlreadyReserved(uint256 removalId);
+
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
    */
@@ -124,10 +129,8 @@ contract FIFOMarket is
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = removalToAdd.supplierAddress();
-      require(
-        _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd),
-        "Market: Unable to add removal by vintage" // TODO (Gas Optimization): Use custom error
-      );
+      uint256 removalAmount = batchedAmounts[i];
+      _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
       // If a new supplier has been added, or if the supplier had previously sold out
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
@@ -247,13 +250,12 @@ contract FIFOMarket is
   function _checkSupply() private view {
     uint256 activeSupply = this.totalActiveSupply();
     if (activeSupply == 0) {
-      revert("Market: Out of stock");
+      revert OutOfStock();
     }
     if (activeSupply <= priorityRestrictedThreshold) {
-      require(
-        hasRole(ALLOWLIST_ROLE, _msgSender()),
-        "Low supply and buyer not on allowlist" // TODO (Gas Optimization): Use custom error
-      );
+      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+        revert LowSupplyAllowlistRequired();
+      }
     }
   }
 
@@ -306,16 +308,13 @@ contract FIFOMarket is
           i == numberOfActiveRemovalsInMarket - 1 &&
           remainingAmountToFill > removalAmount
         ) {
-          revert("Market: Not enough supply");
+          revert InsufficientSupply();
         }
         ids[numberOfRemovalsForOrder] = removalId;
         amounts[numberOfRemovalsForOrder] = removalAmount; // this removal is getting used up
         suppliers[numberOfRemovalsForOrder] = _currentSupplierAddress;
         remainingAmountToFill -= removalAmount;
-        require(
-          _activeSupply[_currentSupplierAddress].removeRemoval(removalId),
-          "Market: Failed to remove removal from supply"
-        ); // TODO (Gas Optimization): Use custom error
+        _activeSupply[_currentSupplierAddress].removeRemoval(removalId);
         // If the supplier is out of supply, remove them from the active suppliers
         if (_activeSupply[_currentSupplierAddress].isRemovalQueueEmpty()) {
           _removeActiveSupplier(_currentSupplierAddress);
@@ -364,7 +363,9 @@ contract FIFOMarket is
         vintage++;
       }
     }
-    require(totalNumberOfRemovalsForSupplier > 0, "Market: Not enough supply");
+    if (totalNumberOfRemovalsForSupplier == 0) {
+      revert InsufficientSupply();
+    }
     uint256 remainingAmountToFill = certificateAmount;
     uint256[] memory ids = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256[] memory amounts = new uint256[](totalNumberOfRemovalsForSupplier);
@@ -384,15 +385,12 @@ contract FIFOMarket is
           numberOfRemovals == totalNumberOfRemovalsForSupplier - 1 &&
           remainingAmountToFill > removalAmount
         ) {
-          revert("Market: Not enough supply");
+          revert InsufficientSupply();
         }
         ids[numberOfRemovals] = removalId;
         amounts[numberOfRemovals] = removalAmount; // this removal is getting used up
         remainingAmountToFill -= removalAmount;
-        require(
-          supplierRemovalQueue.removeRemoval(removalId),
-          "Market: Failed to remove removal from supply"
-        ); // TODO (Gas Optimization): Use custom error
+        supplierRemovalQueue.removeRemoval(removalId);
         // If the supplier is out of supply, remove them from the active suppliers
         if (supplierRemovalQueue.isRemovalQueueEmpty()) {
           _removeActiveSupplier(supplier);
@@ -509,10 +507,9 @@ contract FIFOMarket is
   }
 
   function _unreserveRemoval(uint256 removalId) internal {
-    require(
-      _reservedSupply.remove(removalId),
-      "Market: removal not in active supply"
-    );
+    if (!_reservedSupply.add(removalId)) {
+      revert RemovalAlreadyReserved({removalId: removalId});
+    }
   }
 
   // TODO batch version of this?
@@ -530,10 +527,7 @@ contract FIFOMarket is
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _addActiveSupplier(supplierAddress);
     }
-    require(
-      _activeSupply[supplierAddress].insertRemovalByVintage(removalId),
-      "Market: Unable to unreserve removal" // TODO (Gas Optimization): Use custom error
-    );
+    _activeSupply[supplierAddress].insertRemovalByVintage(removalId);
   }
 
   function supportsInterface(bytes4 interfaceId)

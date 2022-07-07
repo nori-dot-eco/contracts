@@ -1,6 +1,3 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "lib/ERC1820"]
-	path = lib/ERC1820
-	url = https://github.com/0xjac/ERC1820

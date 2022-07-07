@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
+import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 
 // todo extract some of this contract to a preset (makes contracts more re-usable going forward without needing duplicate audit scope, also  makes it easier to isolate tests (e.g., pausability), w/o having to test it per-contract)
 // todo we should allow passing a timestamp to schedule revocation and summary functions (where 0 will set the timestamp to the current time)
@@ -113,7 +114,6 @@ contract RestrictedNORI is
   error TokenSenderNotBPNORI();
   error RecipientCannotBeZeroAddress();
   error NonexistentSchedule(uint256 scheduleId);
-  error ArrayLengthMismatch(string array1Name, string array2Name);
   error InsufficientUnreleasedTokens(uint256 scheduleId);
   error InsufficientClaimableBalance(address account, uint256 scheduleId);
   error InvalidMinter(address account);
@@ -155,6 +155,11 @@ contract RestrictedNORI is
     uint256 quantityRevoked;
   }
 
+  /**
+   * @notice Role conferring pausing and unpausing of this contract.
+   *
+   * @dev only Nori admin address should have this role.
+   */
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
   /**
