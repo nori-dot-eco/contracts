@@ -268,7 +268,7 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     assertEq(lNori.vestedBalanceOf(recipient), 0);
     assertEq(lNori.unlockedBalanceOf(recipient), 0);
 
-    vm.warp(3656 days);
+    vm.warp(366 days);
     assertEq(lNori.balanceOf(recipient), GRANT_AMOUNT);
     assertEq(lNori.vestedBalanceOf(recipient), GRANT_AMOUNT);
     assertEq(lNori.unlockedBalanceOf(recipient), GRANT_AMOUNT);
@@ -281,22 +281,24 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     erc777.send(address(lNori), GRANT_AMOUNT, "");
   }
 
+  // This test is no longer an issue because the underlying was switched to ERC20
   function testReentryTokensReceived() public {
     Recipient recipient = new Recipient(address(lNori), true, false);
     issueGrant(address(recipient), 1 days);
-    skip(100);
+    vm.warp(366 days);
 
     uint256 balance = lNori.unlockedBalanceOf(address(recipient));
     console2.log("Unlocked balance is: ", balance);
     vm.prank(address(recipient));
-    vm.expectRevert("lNORI: insufficient balance");
     lNori.withdrawTo(address(recipient), balance);
+    assertEq(lNori.unlockedBalanceOf(address(recipient)), 0);
+    assertEq(erc20.balanceOf(address(recipient)), GRANT_AMOUNT);
   }
 
   function testReentryTokensToSend() public {
     Recipient recipient = new Recipient(address(lNori), false, true);
     issueGrant(address(recipient), 1 days);
-    skip(100);
+    vm.warp(366 days);
 
     uint256 balance = lNori.unlockedBalanceOf(address(recipient));
     console2.log("Unlocked balance is: ", balance);
