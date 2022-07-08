@@ -103,8 +103,12 @@ contract Removal_release is RemovalSeeded {
   function test_revert_missingReleaserRole_release() external {
     vm.prank(address(0));
     vm.expectRevert(
-      "AccessControl: account 0x0000000000000000000000000000000000000000 is missing role "
-      "0x88f3509f0e42391f2d94ebfb2a37cbd0782b1b8f73715330017f4663290b8117" // todo figure out to to concat RELEASER_ROLE
+      bytes(
+        string.concat(
+          "AccessControl: account 0x0000000000000000000000000000000000000000 is missing role ",
+          "0x88f3509f0e42391f2d94ebfb2a37cbd0782b1b8f73715330017f4663290b8117"
+        )
+      )
     );
     _removal.release(_namedAccounts.supplier, 1, 1);
   }

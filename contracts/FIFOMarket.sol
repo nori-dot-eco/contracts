@@ -101,7 +101,7 @@ contract FIFOMarket is
     _grantRole(ALLOWLIST_ROLE, _msgSender());
   }
 
-  function priorityRestrictedThreshold(uint256 threshold) external view {
+  function priorityRestrictedThreshold() external view returns (uint256) {
     return _priorityRestrictedThreshold;
   }
 
@@ -489,9 +489,7 @@ contract FIFOMarket is
   function _removeActiveRemoval(address supplierAddress, uint256 removalId)
     internal
   {
-    if (!_activeSupply[supplierAddress].removeRemoval(removalId)) {
-      revert RemovalNotInActiveSupply({removalId: removalId});
-    }
+    _activeSupply[supplierAddress].removeRemoval(removalId);
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _removeActiveSupplier(supplierAddress);
     }
