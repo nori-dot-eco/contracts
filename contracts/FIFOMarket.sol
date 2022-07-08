@@ -425,12 +425,6 @@ contract FIFOMarket is
       batchedIds[i] = ids[i];
       batchedAmounts[i] = amounts[i];
     }
-    // _certificate.mintBatch(
-    //   recipient,
-    //   batchedIds,
-    //   batchedAmounts,
-    //   abi.encode(certificateAmount)
-    // );
     uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
       batchedIds
     );
@@ -464,7 +458,7 @@ contract FIFOMarket is
       address(_certificate),
       batchedIds[0],
       certificateAmount,
-      abi.encode(batchedIds[0])
+      abi.encode(batchedIds[0]) // todo this is the token ID of the certificate which is the token ID that owns the underlying token id (perhaps just use a OZ counter and increment)
     );
   }
 

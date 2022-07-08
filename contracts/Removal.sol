@@ -370,14 +370,6 @@ contract Removal is
       owners[i] = owner;
     }
     uint256[] memory totals = balanceOfBatch(owners, removals.values());
-    console.log(
-      "1totals===",
-      address(_market),
-      owners[0],
-      totals[0]
-      // removals.values()[0]
-    );
-
     uint256 total = 0;
     for (uint256 i = 0; i < numberOfTokensOwned; ++i) {
       total += totals[i];

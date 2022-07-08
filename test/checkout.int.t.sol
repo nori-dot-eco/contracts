@@ -59,6 +59,10 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     _assertRemovalBalance(address(_market), 0, false);
     _assertRemovalBalance(_namedAccounts.supplier, 0, false);
     _assertRemovalBalance(address(_certificate), 1, true);
+    assertEq(
+      _certificate.childBalance(_tokenId, address(_removal), _tokenId),
+      1
+    );
   }
 
   function _assertRemovalBalance(
