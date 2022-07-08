@@ -260,7 +260,6 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     revert("lNori: Transfer to underlying asset failed");
   }
 
-  event DumbLog(string message);
   event BatchCreated(uint256 totalAmount);
 
   /**
