@@ -167,8 +167,8 @@ contract LockedNORITest is Test, ERC777ERC1820 {
 
   function deployLockedNORIV2() public returns (LockedNORIV2) {
     LockedNORIV2 impl = new LockedNORIV2();
-    bytes memory initializer = abi.encodeWithSignature(
-      "initialize(address)",
+    bytes memory initializer = abi.encodeWithSelector(
+      impl.initialize.selector,
       address(bpNori)
     );
     return LockedNORIV2(deployProxy(address(impl), initializer));
@@ -244,7 +244,9 @@ contract LockedNORITest is Test, ERC777ERC1820 {
     );
 
     bpNori = new TestToken777();
-    assertEq(bpNori.balanceOf(address(this)), SEED_AMOUNT);
+    if (bpNori.balanceOf(address(this)) != SEED_AMOUNT) {
+      revert("Seed amount does not equal balance");
+    }
 
     lNori = deployLockedNORIV2();
   }

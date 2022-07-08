@@ -9,7 +9,7 @@ import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 import {TokenIdExists, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 import "./FIFOMarket.sol";
-// import "hardhat/console.sol"; // todo
+import "@/test/helpers/test.sol"; // todo
 
 struct BatchMintRemovalsData {
   uint256 projectId;
@@ -241,12 +241,12 @@ contract Removal is
       _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
     }
     uint256 firstRemoval = ids[0];
-    _projectIdToScheduleData[projectId] = ScheduleData(
-      data.scheduleStartTime,
-      firstRemoval.supplierAddress(),
-      firstRemoval.methodology(),
-      firstRemoval.methodologyVersion()
-    );
+    _projectIdToScheduleData[projectId] = ScheduleData({
+      startTime: data.scheduleStartTime,
+      supplierAddress: firstRemoval.supplierAddress(),
+      methodology: firstRemoval.methodology(),
+      methodologyVersion: firstRemoval.methodologyVersion()
+    });
     bytes memory encodedData = abi.encode(data);
     _mintBatch(to, ids, amounts, encodedData);
     setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
@@ -344,7 +344,7 @@ contract Removal is
     view
     returns (uint256[] memory)
   {
-    uint256 numberOfAccounts = accounts.length;
+    uint256 numberOfAccounts = accounts.length; // todo global rename (accounts -> owners)
     uint256[] memory batchBalances = new uint256[](numberOfAccounts);
     for (uint256 i = 0; i < numberOfAccounts; ++i) {
       batchBalances[i] = cumulativeBalanceOf(accounts[i]);
@@ -352,32 +352,38 @@ contract Removal is
     return batchBalances;
   }
 
-  function cumulativeBalanceOf(address account) public view returns (uint256) {
+  // todo batch?
+  function tokensOfOwner(
+    address owner // todo global rename (tokens -> removals?)
+  ) external view returns (uint256[] memory) {
+    return _addressToOwnedTokenIds[owner].values();
+  }
+
+  function cumulativeBalanceOf(address owner) public view returns (uint256) {
     EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
-      account
+      owner
     ];
     uint256 numberOfTokensOwned = removals.length();
-    address[] memory accounts = new address[](numberOfTokensOwned);
+    console.log("numberOfTokensOwned===", numberOfTokensOwned);
+    address[] memory owners = new address[](numberOfTokensOwned);
     for (uint256 i = 0; i < numberOfTokensOwned; ++i) {
-      accounts[i] = account;
+      owners[i] = owner;
     }
-    uint256[] memory totals = balanceOfBatch(accounts, removals.values());
+    uint256[] memory totals = balanceOfBatch(owners, removals.values());
+    console.log(
+      "1totals===",
+      address(_market),
+      owners[0],
+      totals[0]
+      // removals.values()[0]
+    );
+
     uint256 total = 0;
     for (uint256 i = 0; i < numberOfTokensOwned; ++i) {
       total += totals[i];
     }
     return total;
   }
-
-  // todo batch?
-  // todo keep?
-  // function tokensOwnedByAddress(address account)
-  //   external
-  //   view
-  //   returns (uint256[] memory)
-  // {
-  //   return _addressToOwnedTokenIds[account].values();
-  // }
 
   // todo batch?
   function numberOfTokensOwnedByAddress(address account)

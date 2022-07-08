@@ -1,49 +1,65 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
-import "./ERC1155PresetPausableNonTransferrable.sol";
-import {FunctionDisabled} from "./SharedCustomErrors.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
+import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
+import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
-// todo disable other mint functions
-// todo whenNotPasused
-// todo setApprovalForAll should only work when called on accounts with CERTIFICATE_OPERATOR_ROLE
-// todo consider not inheriting pausable base contract and reverting with custom error for consistency
-// todo use OZ counters for incrementing and decrementing
-
-/**
- * @title Certificate
- */
-contract Certificate is ERC1155PresetPausableNonTransferrable {
-  struct Source {
-    uint256 removalId;
-    uint256 amount;
-  }
-
-  /**
-   * @notice Emitted on creation of a certificate of carbon removal.
-   */
-  event CertificateCreated(
-    address indexed recipient,
-    uint256 indexed certificateId,
-    uint256[] removalIds,
+interface IERC998ERC1155TopDown {
+  event ReceivedChild(
+    address indexed from,
+    uint256 indexed toTokenId,
+    address indexed childContract,
+    uint256 childTokenId,
+    uint256 amount
+  );
+  event TransferSingleChild(
+    uint256 indexed fromTokenId,
+    address indexed to,
+    address indexed childContract,
+    uint256 childTokenId,
+    uint256 amount
+  );
+  event TransferBatchChild(
+    uint256 indexed fromTokenId,
+    address indexed to,
+    address indexed childContract,
+    uint256[] childTokenIds,
     uint256[] amounts
   );
+}
 
-  /**
-   * @dev a mapping of the certificate token ID -> sources
-   */
-  mapping(uint256 => Source[]) private _sources;
+contract Certificate is
+  IERC998ERC1155TopDown,
+  ERC721AUpgradeable,
+  ERC1155HolderUpgradeable,
+  ERC721ABurnableUpgradeable,
+  ERC721AQueryableUpgradeable,
+  PausableUpgradeable,
+  AccessControlEnumerableUpgradeable,
+  OwnableUpgradeable
+{
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
-  /**
-   * @dev auto incrementing token ID
-   */
-  uint256 private _latestTokenId;
+  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+  mapping(uint256 => mapping(address => mapping(uint256 => uint256)))
+    private _balances;
+  mapping(address => mapping(uint256 => EnumerableSetUpgradeable.UintSet))
+    private _holdersOf;
+  mapping(uint256 => EnumerableSetUpgradeable.AddressSet)
+    private _childContract;
+  mapping(uint256 => mapping(address => EnumerableSetUpgradeable.UintSet))
+    private _childsForChildContract;
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -52,79 +68,404 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     _disableInitializers();
   }
 
-  function initialize() external initializer {
-    // todo verify all inherited unchained initializers are called
-    __Context_init_unchained();
-    __ERC165_init_unchained();
-    __AccessControl_init_unchained();
-    __AccessControlEnumerable_init_unchained();
-    __Pausable_init_unchained();
-    __ERC1155Supply_init_unchained();
-    __ERC1155_init_unchained("https://nori.com/api/certificate/{id}.json");
-    __Pausable_init_unchained();
-    __ERC1155PresetMinterPauser_init_unchained(
-      "https://nori.com/api/certificate/{id}.json"
-    );
-    __ERC1155PresetPausableNonTransferrable_init_unchained();
-    _latestTokenId = 0;
-  }
-
   /**
-   * @dev mints the certificate (using a batch of certificate sources)
-   * @param to The supplier address
-   * @param removalAmounts the removal source amount
-   * @param removalIds the removal source ids
-   * @param data Additional data with no specified format, MUST be sent
-   * unaltered in call to `onERC1155Received` on `_to`
+   * @dev Creates a new token for `to`. The token URI autogenerated based on
+   * the base URI passed at construction and the token ID.
    *
-   * @custom:example mint(address, 160, [100, 10, 50], [0, 1, 2])
-   *  - token id 0 URI points to nori.com/api/certificate/0 -> { amount: 100, removalIds: [0, 1, 2], ... }
-   *  - removalIds can be used to look up vintage years, e.g. 0 -> 2018
+   * See {ERC721-_mint}.
+   *
+   * Requirements:
+   *
+   * - the caller must have the `MINTER_ROLE`.
    */
-  function mintBatch(
-    address to, // todo array?
-    uint256[] memory removalIds,
-    uint256[] memory removalAmounts,
-    bytes memory data // todo array?
-  ) public override {
-    uint256 tokenId = _latestTokenId;
-    uint256 certificateAmount = abi.decode(data, (uint256)); // todo verify amount (would we be better of computing amount from the removalIds loop? how does gas compare)
-    // todo extract to base contract and overload here
-    // todo use modified mintCertificate instead of mintBatch. mintBatch should be used to mint multi certificates.
-    // todo only allowed by market contract
-    // todo require _sources[_latestTokenId] doesnt exist
-    // todo require _sources[_latestTokenId][n] doesnt exist
-    // todo is there a better way to verify that no removal amount == 0?
-    for (uint256 i = 0; i < removalIds.length; i++) {
-      _sources[tokenId].push(
-        Source({removalId: removalIds[i], amount: removalAmounts[i]})
-      );
+  function mint(address to, uint256 tokenId) external virtual {
+    require(
+      hasRole(MINTER_ROLE, _msgSender()),
+      "ERC721: must have minter role to mint"
+    );
+    // We cannot just use balanceOf to create the new tokenId because tokens
+    // can be burned (destroyed), so we need a separate counter.
+    _mint(to, tokenId);
+  }
+
+  /**
+   * @dev Pauses all token transfers.
+   *
+   * See {ERC721Pausable} and {Pausable-_pause}.
+   *
+   * Requirements:
+   *
+   * - the caller must have the `PAUSER_ROLE`.
+   */
+  function pause() external virtual {
+    _pause();
+  }
+
+  /**
+   * @dev Unpauses all token transfers.
+   *
+   * See {ERC721Pausable} and {Pausable-_unpause}.
+   *
+   * Requirements:
+   *
+   * - the caller must have the `PAUSER_ROLE`.
+   */
+  function unpause() external virtual {
+    _unpause();
+  }
+
+  // Take note of the initializer modifiers.
+  // - `initializerERC721A` for `ERC721AUpgradeable`.
+  // - `initializer` for OpenZeppelin's `OwnableUpgradeable`.
+  function initialize() external initializerERC721A initializer {
+    __ERC721A_init_unchained("Certificate", "NRT");
+    __ERC721ABurnable_init_unchained();
+    __ERC721AQueryable_init_unchained();
+    __Ownable_init();
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _grantRole(MINTER_ROLE, _msgSender());
+    _grantRole(PAUSER_ROLE, _msgSender());
+  }
+
+  /**
+   * @dev Transfers child token from a token ID.
+   */
+  function safeTransferChildFrom(
+    uint256 fromTokenId,
+    address to,
+    address childContract,
+    uint256 childTokenId,
+    uint256 amount,
+    bytes memory data
+  ) external {
+    require(to != address(0), "ERC998: transfer to the zero address");
+    address operator = _msgSender();
+    require(
+      ownerOf(fromTokenId) == operator ||
+        isApprovedForAll(ownerOf(fromTokenId), operator),
+      "ERC998: caller is not owner nor approved"
+    );
+    _beforeChildTransfer(
+      operator,
+      fromTokenId,
+      to,
+      childContract,
+      _asSingletonArray(childTokenId),
+      _asSingletonArray(amount),
+      data
+    );
+    _removeChild(fromTokenId, childContract, childTokenId, amount);
+    // TODO: maybe check if to == this
+    ERC1155Upgradeable(childContract).safeTransferFrom(
+      address(this),
+      to,
+      childTokenId,
+      amount,
+      data
+    );
+    emit TransferSingleChild(
+      fromTokenId,
+      to,
+      childContract,
+      childTokenId,
+      amount
+    );
+  }
+
+  /**
+   * @dev Transfers batch of child tokens from a token ID.
+   */
+  function safeBatchTransferChildFrom(
+    uint256 fromTokenId,
+    address to,
+    address childContract,
+    uint256[] memory childTokenIds,
+    uint256[] memory amounts,
+    bytes memory data
+  ) external {
+    require(
+      childTokenIds.length == amounts.length,
+      "ERC998: ids and amounts length mismatch"
+    );
+    require(to != address(0), "ERC998: transfer to the zero address");
+    address operator = _msgSender();
+    require(
+      ownerOf(fromTokenId) == operator ||
+        isApprovedForAll(ownerOf(fromTokenId), operator),
+      "ERC998: caller is not owner nor approved"
+    );
+    _beforeChildTransfer(
+      operator,
+      fromTokenId,
+      to,
+      childContract,
+      childTokenIds,
+      amounts,
+      data
+    );
+    for (uint256 i = 0; i < childTokenIds.length; ++i) {
+      uint256 childTokenId = childTokenIds[i];
+      uint256 amount = amounts[i];
+      _removeChild(fromTokenId, childContract, childTokenId, amount);
     }
-    _latestTokenId = tokenId + 1;
-    emit CertificateCreated(to, tokenId, removalIds, removalAmounts);
-    super.mint(to, tokenId, certificateAmount, data);
+    ERC1155Upgradeable(childContract).safeBatchTransferFrom(
+      address(this),
+      to,
+      childTokenIds,
+      amounts,
+      data
+    );
+    emit TransferBatchChild(
+      fromTokenId,
+      to,
+      childContract,
+      childTokenIds,
+      amounts
+    );
   }
 
   /**
-   * @dev Use the `mintBatch` function instead.
+   * @dev Gives child balance for a specific child contract and child id .
    */
-  function mint(
-    address,
-    uint256,
-    uint256,
-    bytes memory
-  ) public pure override {
-    revert FunctionDisabled();
+  function childBalance(
+    uint256 tokenId,
+    address childContract,
+    uint256 childTokenId
+  ) external view returns (uint256) {
+    return _balances[tokenId][childContract][childTokenId];
   }
 
   /**
-   * @dev returns the removal IDs and the amounts of the sources
+   * @dev Gives list of child contract where token ID has childs.
    */
-  function sources(uint256 certificateId)
+  function childContractsFor(uint256 tokenId)
+    external
+    view
+    returns (address[] memory)
+  {
+    address[] memory childContracts = new address[](
+      _childContract[tokenId].length()
+    );
+    for (uint256 i = 0; i < _childContract[tokenId].length(); i++) {
+      childContracts[i] = _childContract[tokenId].at(i);
+    }
+    return childContracts;
+  }
+
+  /**
+   * @dev Gives list of owned child ID on a child contract by token ID.
+   */
+  function childIdsForOn(uint256 tokenId, address childContract)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    uint256[] memory childTokenIds = new uint256[](
+      _childsForChildContract[tokenId][childContract].length()
+    );
+    for (
+      uint256 i = 0;
+      i < _childsForChildContract[tokenId][childContract].length();
+      i++
+    ) {
+      childTokenIds[i] = _childsForChildContract[tokenId][childContract].at(i);
+    }
+    return childTokenIds;
+  }
+
+  /**
+   * @dev Receives a child token, the receiver token ID must be encoded in the
+   * field data.
+   */
+  function onERC1155Received(
+    address operator,
+    address from,
+    uint256 id,
+    uint256 amount,
+    bytes memory data
+  ) public virtual override returns (bytes4) {
+    require(
+      data.length == 32,
+      "ERC998: data must contain the unique uint256 tokenId to transfer the child token to"
+    );
+    _beforeChildTransfer(
+      operator,
+      0,
+      address(this),
+      from,
+      _asSingletonArray(id),
+      _asSingletonArray(amount),
+      data
+    );
+    uint256 _receiverTokenId;
+    uint256 _index = msg.data.length - 32;
+    assembly {
+      _receiverTokenId := calldataload(_index)
+    }
+    _receiveChild(_receiverTokenId, msg.sender, id, amount);
+    emit ReceivedChild(from, _receiverTokenId, msg.sender, id, amount);
+    return this.onERC1155Received.selector;
+  }
+
+  /**
+   * @dev Receives a batch of child tokens, the receiver token ID must be
+   * encoded in the field data.
+   */
+  function onERC1155BatchReceived(
+    address operator,
+    address from,
+    uint256[] memory ids,
+    uint256[] memory values,
+    bytes memory data
+  ) public virtual override returns (bytes4) {
+    require(
+      data.length == 32,
+      "ERC998: data must contain the unique uint256 tokenId to transfer the child token to"
+    );
+    require(
+      ids.length == values.length,
+      "ERC1155: ids and values length mismatch"
+    );
+    _beforeChildTransfer(operator, 0, address(this), from, ids, values, data);
+    uint256 _receiverTokenId;
+    uint256 _index = msg.data.length - 32;
+    assembly {
+      _receiverTokenId := calldataload(_index)
+    }
+    for (uint256 i = 0; i < ids.length; i++) {
+      _receiveChild(_receiverTokenId, msg.sender, ids[i], values[i]);
+      emit ReceivedChild(from, _receiverTokenId, msg.sender, ids[i], values[i]);
+    }
+    return this.onERC1155BatchReceived.selector;
+  }
+
+  /**
+   * @dev See {IERC721-setApprovalForAll}.
+   */
+  function setApprovalForAll(address operator, bool approved)
+    public
+    override(ERC721AUpgradeable, IERC721AUpgradeable)
+  {
+    if (operator == _msgSenderERC721A()) revert ApproveToCaller();
+    ERC721AStorage.layout()._operatorApprovals[_msgSenderERC721A()][
+      operator
+    ] = approved;
+    emit ApprovalForAll(_msgSenderERC721A(), operator, approved);
+  }
+
+  /**
+   * @dev See {IERC165-supportsInterface}.
+   */
+  function supportsInterface(bytes4 interfaceId)
     public
     view
-    returns (Source[] memory)
+    virtual
+    override(
+      AccessControlEnumerableUpgradeable,
+      ERC1155ReceiverUpgradeable,
+      ERC721AUpgradeable,
+      IERC721AUpgradeable
+    )
+    returns (bool)
   {
-    return _sources[certificateId];
+    // The interface IDs are constants representing the first 4 bytes of the XOR of
+    // all function selectors in the interface. See: https://eips.ethereum.org/EIPS/eip-165
+    // e.g. `bytes4(i.functionA.selector ^ i.functionB.selector ^ ...)`
+    return
+      interfaceId == 0x01ffc9a7 || // ERC165 interface ID for ERC165.
+      interfaceId == 0x80ac58cd || // ERC165 interface ID for ERC721.
+      interfaceId == 0x5b5e139f; // ERC165 interface ID for ERC721Metadata.
+  }
+
+  /**
+   * @dev See {IERC721-isApprovedForAll}.
+   */
+  function isApprovedForAll(address owner, address operator)
+    public
+    view
+    override(ERC721AUpgradeable, IERC721AUpgradeable)
+    returns (bool)
+  {
+    return ERC721AStorage.layout()._operatorApprovals[owner][operator];
+  }
+
+  /**
+   * @dev See {ERC721-_beforeTokenTransfer}.
+   *
+   * Requirements:
+   *
+   * - the contract must not be paused.
+   */
+  function _beforeTokenTransfers(
+    address from,
+    address to,
+    uint256 startTokenId,
+    uint256 quantity
+  ) internal virtual override whenNotPaused {
+    super._beforeTokenTransfers(from, to, startTokenId, quantity);
+  }
+
+  function _beforeChildTransfer(
+    address operator,
+    uint256 fromTokenId,
+    address to,
+    address childContract,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    bytes memory data
+  ) internal virtual whenNotPaused {}
+
+  function _receiveChild(
+    uint256 tokenId,
+    address childContract,
+    uint256 childTokenId,
+    uint256 amount
+  ) internal virtual {
+    if (!_childContract[tokenId].contains(childContract)) {
+      _childContract[tokenId].add(childContract);
+    }
+    if (_balances[tokenId][childContract][childTokenId] == 0) {
+      _childsForChildContract[tokenId][childContract].add(childTokenId);
+    }
+    _balances[tokenId][childContract][childTokenId] += amount;
+  }
+
+  function _removeChild(
+    uint256 tokenId,
+    address childContract,
+    uint256 childTokenId,
+    uint256 amount
+  ) internal virtual {
+    require(
+      amount != 0 || _balances[tokenId][childContract][childTokenId] >= amount,
+      "ERC998: insufficient child balance for transfer"
+    );
+    _balances[tokenId][childContract][childTokenId] -= amount;
+    if (_balances[tokenId][childContract][childTokenId] == 0) {
+      _holdersOf[childContract][childTokenId].remove(tokenId);
+      _childsForChildContract[tokenId][childContract].remove(childTokenId);
+      if (_childsForChildContract[tokenId][childContract].length() == 0) {
+        _childContract[tokenId].remove(childContract);
+      }
+    }
+  }
+
+  /**
+   * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each
+   * token will be the concatenation of the `baseURI` and the `tokenId`. Empty
+   * by default, it can be overridden in child contracts.
+   */
+  function _baseURI() internal pure override returns (string memory) {
+    return "https://nori.com/"; // todo
+  }
+
+  function _asSingletonArray(uint256 element)
+    private
+    pure
+    returns (uint256[] memory)
+  {
+    uint256[] memory array = new uint256[](1);
+    array[0] = element;
+    return array;
   }
 }

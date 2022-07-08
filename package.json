@@ -14,6 +14,7 @@
     "@octokit/rest": "^18.12.0",
     "@openzeppelin/contracts": "4.7.0",
     "@openzeppelin/contracts-upgradeable": "4.7.0",
+    "erc721a-upgradeable": "4.1.0",
     "@openzeppelin/hardhat-defender": "^1.7.0",
     "@openzeppelin/hardhat-upgrades": "=1.17.0",
     "@openzeppelin/test-helpers": "^0.5.15",

@@ -8,6 +8,7 @@ import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
+import "@/test/helpers/test.sol"; //todo
 
 // todo extract some of this contract to a preset (makes contracts more re-usable going forward without needing duplicate audit scope, also  makes it easier to isolate tests (e.g., pausability), w/o having to test it per-contract)
 // todo we should allow passing a timestamp to schedule revocation and summary functions (where 0 will set the timestamp to the current time)
@@ -240,7 +241,7 @@ contract RestrictedNORI is
   // todo document expected initialzation state (this is a holdover from LockedNORI, not totally sure what it means)
   function initialize() external initializer {
     __ERC1155_init_unchained(
-      "https://nori.com/api/restrictionschedule/{id}.json"
+      "https://nori.com/api/restrictionschedule/{id}.json" // todo finalize uri
     );
     __Context_init_unchained();
     __ERC165_init_unchained();
@@ -248,10 +249,10 @@ contract RestrictedNORI is
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
-    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _setupRole(PAUSER_ROLE, _msgSender());
-    _setupRole(SCHEDULE_CREATOR_ROLE, _msgSender());
-    _setupRole(TOKEN_REVOKER_ROLE, _msgSender());
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _grantRole(PAUSER_ROLE, _msgSender());
+    _grantRole(SCHEDULE_CREATOR_ROLE, _msgSender());
+    _grantRole(TOKEN_REVOKER_ROLE, _msgSender());
     // Seconds in 10 years, based on average year duration of 365.2425 days, which accounts for leap years
     setRestrictionDurationForMethodologyAndVersion(1, 0, 315_569_520);
   }
@@ -485,12 +486,13 @@ contract RestrictedNORI is
    *
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    */
-  function registerContractAddresses(
-    address bridgedPolygonNoriAddress,
-    address removalAddress
-  ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
-    _removal = Removal(removalAddress);
+  function registerContractAddresses(BridgedPolygonNORI bpNori, Removal removal)
+    external
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    _bridgedPolygonNori = BridgedPolygonNORI(bpNori);
+    _removal = Removal(removal);
+    _grantRole(SCHEDULE_CREATOR_ROLE, _removal.marketAddress()); // todo keep?
   }
 
   /**

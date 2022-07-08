@@ -18,7 +18,6 @@ remappings = [
   'forge-std/=lib/forge-std/src/',
   "@/contracts/=contracts/",
   "@/test/=test/"
-
 ]
 gas_reports = [ "*" ]
 

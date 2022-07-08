@@ -1,54 +1,8 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-import "@/contracts/Removal.sol"; // todo path remapping globally
-import "@/test/helpers/test.sol";
+import "@/test/helpers/removal.sol";
 import {BatchMintRemovalsData} from "@/contracts/Removal.sol";
-
-abstract contract UpgradeableRemoval is Upgradeable {
-  Removal internal _removal;
-
-  constructor() {
-    _removal = _deployRemoval();
-  }
-
-  function _deployRemoval() internal returns (Removal) {
-    Removal impl = new Removal();
-    bytes memory initializer = abi.encodeWithSignature("initialize()");
-    return Removal(_deployProxy(address(impl), initializer));
-  }
-}
-
-abstract contract NonUpgradableRemovalMock is Removal, Global {}
-
-abstract contract UpgradableRemovalMock is UpgradeableRemoval {
-  constructor() {
-    assertEq(_removal.balanceOf(_namedAccounts.supplier, 1), 0);
-  }
-
-  function _seed() internal {
-    BatchMintRemovalsData memory data = BatchMintRemovalsData({
-      projectId: 1,
-      scheduleStartTime: 0,
-      holdbackPercentage: 0,
-      list: false
-    });
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1),
-      _asSingletonUintArray(1),
-      data
-    );
-    assertEq(_removal.balanceOf(_namedAccounts.supplier, 1), 1);
-  }
-}
-
-abstract contract RemovalSeeded is UpgradableRemovalMock {
-  constructor() {
-    assertEq(_removal.balanceOf(_namedAccounts.supplier, 1), 0);
-    _seed();
-  }
-}
 
 contract Removal_mintBatch is UpgradableRemovalMock {
   function test_mintBatch() external {
@@ -87,12 +41,6 @@ contract Removal_release is RemovalSeeded {
       1
     );
     _removal.release(_namedAccounts.supplier, 1, 1);
-
-    // assertEq(entries.length, 3);
-    // assertEq(entries[0].topics.length, 2);
-    // assertEq(entries[0].topics[0], keccak256("LogTopic(uint256,bytes)"));
-    // assertEq(entries[0].topics[1], bytes32(uint256(1)));
-    // assertEq(abi.decode(entries[0].data, (string)), string(testData0));
   }
 
   function test_removalIsNotListed_release() external {

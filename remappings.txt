@@ -7,3 +7,4 @@ hardhat-deploy/=node_modules/hardhat-deploy/
 hardhat/=node_modules/hardhat/
 @/contracts/=contracts/
 @/contracts/test/=contracts/test/
+erc721a-upgradeable/=node_modules/erc721a-upgradeable/

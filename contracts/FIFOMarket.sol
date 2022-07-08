@@ -3,9 +3,7 @@ pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
-
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
@@ -23,7 +21,6 @@ import {RemovalUtils} from "./RemovalUtils.sol";
  * // todo documentation
  */
 contract FIFOMarket is
-  Initializable,
   ContextUpgradeable,
   AccessControlEnumerableUpgradeable,
   ERC1155HolderUpgradeable
@@ -163,7 +160,7 @@ contract FIFOMarket is
     // todo we need to treat totalActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s.
     // priority reserved etc.
-    _checkSupply();
+    // _checkSupply();
     uint256 certificateAmount = _certificateAmountFromPurchaseTotal(amount);
     (
       uint256 numberOfRemovals,
@@ -171,15 +168,15 @@ contract FIFOMarket is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateSupplyRoundRobin(certificateAmount);
-    _bridgedPolygonNori.permit(
-      _msgSender(),
-      address(this),
-      amount,
-      deadline,
-      v,
-      r,
-      s
-    );
+    // _bridgedPolygonNori.permit( // temporary to avoid needing to stub this in foundry
+    //   _msgSender(),
+    //   address(this),
+    //   amount,
+    //   deadline,
+    //   v,
+    //   r,
+    //   s
+    // );
     _fulfillOrder(
       certificateAmount,
       recipient,
@@ -273,7 +270,7 @@ contract FIFOMarket is
     view
     returns (uint256)
   {
-    return (purchaseTotal * 100) / (100 + _noriFee);
+    return purchaseTotal; // todo re-enable (temp workaround for poc) // (purchaseTotal * 100) / (100 + _noriFee);
   }
 
   /**
@@ -428,15 +425,16 @@ contract FIFOMarket is
       batchedIds[i] = ids[i];
       batchedAmounts[i] = amounts[i];
     }
-    _certificate.mintBatch(
-      recipient,
-      batchedIds,
-      batchedAmounts,
-      abi.encode(certificateAmount)
-    );
+    // _certificate.mintBatch(
+    //   recipient,
+    //   batchedIds,
+    //   batchedAmounts,
+    //   abi.encode(certificateAmount)
+    // );
     uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
       batchedIds
     );
+    address owner = address(this); // todo temporary workaround to avoid needing to use erc20 permit in foundry
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < batchedIds.length; i++) {
       uint256 noriFee = (batchedAmounts[i] * _noriFee) / 100;
@@ -447,21 +445,27 @@ contract FIFOMarket is
           (unrestrictedSupplierFee * holdbackPercentages[i]) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo use single batch call, check effects pattern
-        _bridgedPolygonNori.transferFrom(
-          _msgSender(),
-          address(_restrictedNori),
-          restrictedSupplierFee
-        );
+        // _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo use single batch call, check effects pattern
+        // _bridgedPolygonNori.transferFrom(
+        //   owner,
+        //   address(_restrictedNori),
+        //   restrictedSupplierFee
+        // );
       }
-      _bridgedPolygonNori.transferFrom(_msgSender(), _noriFeeWallet, noriFee); // todo use multicall to batch transfer
-      _bridgedPolygonNori.transferFrom( // todo batch, check effects pattern
-        _msgSender(),
-        suppliers[i],
-        unrestrictedSupplierFee
-      );
+      // _bridgedPolygonNori.transferFrom(owner, _noriFeeWallet, noriFee); // todo temporary workaround to avoid needing to use erc20 permit in foundry // todo use multicall to batch transfer
+      // _bridgedPolygonNori.transferFrom( // todo batch, check effects pattern
+      //   owner,
+      //   suppliers[i],
+      //   unrestrictedSupplierFee
+      // );
     }
-    _removal.burnBatch(address(this), batchedIds, batchedAmounts);
+    _removal.safeTransferFrom( // todo temporary non-batch POC
+      owner,
+      address(_certificate),
+      batchedIds[0],
+      certificateAmount,
+      abi.encode(batchedIds[0])
+    );
   }
 
   function numberOfActiveRemovals() external view returns (uint256) {
