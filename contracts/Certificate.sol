@@ -8,14 +8,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
 import "./ERC1155PresetPausableNonTransferrable.sol";
+import {FunctionDisabled} from "./SharedCustomErrors.sol";
 
 // todo disable other mint functions
 // todo whenNotPasused
 // todo setApprovalForAll should only work when called on accounts with CERTIFICATE_OPERATOR_ROLE
 // todo consider not inheriting pausable base contract and reverting with custom error for consistency
 // todo use OZ counters for incrementing and decrementing
-
-error ForbiddenFunctionCall();
 
 /**
  * @title Certificate
@@ -97,13 +96,9 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     // todo require _sources[_latestTokenId][n] doesnt exist
     // todo is there a better way to verify that no removal amount == 0?
     for (uint256 i = 0; i < removalIds.length; i++) {
-      if (removalAmounts[i] == 0) {
-        revert("Certificate: Removal amount 0");
-      } else {
-        _sources[tokenId].push(
-          Source({removalId: removalIds[i], amount: removalAmounts[i]})
-        );
-      }
+      _sources[tokenId].push(
+        Source({removalId: removalIds[i], amount: removalAmounts[i]})
+      );
     }
     _latestTokenId = tokenId + 1;
     emit CertificateCreated(to, tokenId, removalIds, removalAmounts);
@@ -119,7 +114,7 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     uint256,
     bytes memory
   ) public pure override {
-    revert ForbiddenFunctionCall(); // todo is this really what we want?
+    revert FunctionDisabled();
   }
 
   /**

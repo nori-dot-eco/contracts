@@ -33,6 +33,7 @@ jobs:
         with:
           sarif: results.sarif
           ignore-compile: true
+          slither-args: --exclude-dependencies
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v2
         with:
