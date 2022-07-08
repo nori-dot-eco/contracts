@@ -145,28 +145,6 @@ contract FIFOMarket is
     return totalActiveSupply - priorityRestrictedThreshold;
   }
 
-  // TODO: this function no longer makes sense to exist based on how the market now works (less deterministic)
-  // function nextRemovalForSale(bool includePriorityRestrictedSupply)
-  //   public
-  //   view
-  //   returns (uint256)
-  // {
-  //   uint256 nextRemovalId = 0;
-  //   if (totalActiveSupply > 0) {
-  //     address activeSupplierAddress = _suppliersInRoundRobinOrderOrdered[
-  //       _currentSupplierIndex
-  //     ];
-  //     nextRemovalId = _activeSupply[activeSupplierAddress].at(0);
-  //   }
-  //   if (
-  //     !includePriorityRestrictedSupply &&
-  //     totalActiveSupply <= priorityRestrictedThreshold
-  //   ) {
-  //     nextRemovalId = 0;
-  //   }
-  //   return nextRemovalId;
-  // }
-
   function onERC1155BatchReceived(
     address,
     address,
@@ -180,8 +158,9 @@ contract FIFOMarket is
     uint256 localTotalNumberActiveRemovalsIncrease = 0;
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
-      address supplierAddress = removalToAdd.supplierAddress();
       uint256 removalAmount = batchedAmounts[i];
+      require(removalAmount > 0, "Removal amount 0"); // use revert string to properly surface error from this hook
+      address supplierAddress = removalToAdd.supplierAddress();
       _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
       // If a new supplier has been added, or if the supplier had previously sold out
       if (

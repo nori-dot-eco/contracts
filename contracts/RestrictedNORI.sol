@@ -490,7 +490,7 @@ contract RestrictedNORI is
   function registerContractAddresses(
     address bridgedPolygonNoriAddress,
     address removalAddress
-  ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
     _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
     _removal = Removal(removalAddress);
   }
@@ -539,7 +539,7 @@ contract RestrictedNORI is
    * Mints RestrictedNORI to the correct schedule id (1155 token id) for a given removal id
    *
    */
-  function mint(uint256 amount, uint256 removalId) external {
+  function mint(uint256 amount, uint256 removalId) external whenNotPaused {
     if (!hasRole(MINTER_ROLE, _msgSender())) {
       revert InvalidMinter({account: _msgSender()});
     }
@@ -574,7 +574,7 @@ contract RestrictedNORI is
     address recipient,
     uint256 scheduleId,
     uint256 amount
-  ) external returns (bool) {
+  ) external whenNotPaused returns (bool) {
     super._burn(_msgSender(), scheduleId, amount);
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     schedule.totalClaimedAmount += amount;
@@ -596,7 +596,7 @@ contract RestrictedNORI is
     uint256 id,
     uint256 amount,
     bytes memory data
-  ) public override {
+  ) public override whenNotPaused {
     super.safeTransferFrom(from, to, id, amount, data);
     Schedule storage schedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
@@ -621,7 +621,7 @@ contract RestrictedNORI is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) public override {
+  ) public override whenNotPaused {
     super.safeBatchTransferFrom(from, to, ids, amounts, data);
     for (uint256 i = 0; i < ids.length; i++) {
       Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];

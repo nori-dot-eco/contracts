@@ -100,6 +100,7 @@ contract Removal is
   function registerRestrictedNORIAddress(address restrictedNORIAddress)
     external
     onlyRole(DEFAULT_ADMIN_ROLE)
+    whenNotPaused
   {
     _restrictedNori = RestrictedNORI(restrictedNORIAddress);
   }
@@ -195,7 +196,7 @@ contract Removal is
   function batchSetHoldbackPercentage(
     uint256[] calldata removalIds,
     uint256 holdbackPercentage
-  ) external {
+  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     for (uint256 i = 0; i < removalIds.length; i++) {
       uint256 id = removalIds[i];
       if (!_tokenIdExists[id]) {
@@ -225,7 +226,7 @@ contract Removal is
     uint256[] memory amounts,
     uint256[] memory ids,
     bytes memory data
-  ) public {
+  ) public whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     uint256 idsLength = ids.length;
     if (!(amounts.length == idsLength)) {
       revert ArrayLengthMismatch({array1Name: "amounts", array2Name: "ids"});
@@ -286,7 +287,7 @@ contract Removal is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory
-  ) public override {
+  ) public override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     // todo do we add any validation to enforce that all removals in batch belong to the same project id?
     bytes memory projectId = abi.encode(
       _removalIdToRemovalData[ids[0]].projectId

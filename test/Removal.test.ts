@@ -246,6 +246,46 @@ describe('Removal', () => {
           expect(balance).to.equal(removalBalances[tokenId].toString());
         }
       });
+      it('should revert when attempting to list removals for sale with a 0 amount', async () => {
+        const { fifoMarket, removal } = await setupTest();
+        const removalBalances = [100, 200, 300].map((balance) =>
+          formatTokenAmount(balance)
+        );
+        const tokenIds = await Promise.all(
+          [2016, 2017, 2018].map((vintage) =>
+            createRemovalTokenId({
+              removal,
+              hre,
+              removalData: {
+                vintage,
+              },
+            })
+          )
+        );
+        const listNow = false;
+        const packedData = await createBatchMintData({
+          hre,
+          fifoMarket,
+          listNow
+        });
+        await
+          removal.mintBatch(
+            hre.namedAccounts.supplier,
+            removalBalances,
+            tokenIds,
+            packedData
+          );
+        await expect(
+          removal.safeBatchTransferFrom(
+            hre.namedAccounts.supplier,
+            fifoMarket.address,
+            tokenIds,
+            [1, 0, 1],
+            ethers.utils.formatBytes32String('0x0')
+          )
+        )
+          .to.be.revertedWith('Removal amount 0');
+      });
     });
     describe('error', () => {
       describe('TokenIdExists', () => {
