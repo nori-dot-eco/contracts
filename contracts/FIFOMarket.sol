@@ -468,6 +468,10 @@ contract FIFOMarket is
       this.totalReservedSupply(); // todo store reserved amount in removal data instead
   }
 
+  // todo?
+  //  function numberOfActiveSuppliers() external view returns (uint256) {
+  // }
+
   // TODO batch version of this?
   /**
    * @notice Removes removal from active supply and inserts it into the reserved supply, where it cannot be used to

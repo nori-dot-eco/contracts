@@ -3,6 +3,7 @@ import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import { add } from '@nori-dot-com/math';
 
+import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import { sum } from '@/utils/math';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
@@ -20,9 +21,8 @@ import type {
   BridgedPolygonNORI,
   RemovalTestHarness,
   MockCertificate,
-  MockERC1155PresetPausableNonTransferrable
+  MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types';
-import type { UnpackedRemovalIdV0Struct } from '../../typechain-types/artifacts/contracts/Removal';
 import { formatTokenAmount } from '@/utils/units';
 import { getContractsFromDeployments } from '@/utils/contracts';
 import { Zero } from '@/constants/units';
@@ -146,7 +146,7 @@ export const createRemovalTokenId = async ({
 // todo helpers/removal.ts
 export const createBatchMintData = async ({
   hre,
-  fifoMarket,
+  fifoMarket, // todo rm
   listNow = true,
   projectId = 1_234_567_890,
   scheduleStartTime,
@@ -161,17 +161,12 @@ export const createBatchMintData = async ({
 }): Promise<Parameters<Removal['mintBatch']>[3]> => {
   const actualScheduleStartTime =
     scheduleStartTime ?? (await getLatestBlockTime({ hre }));
-  const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-    ['uint256', 'uint256', 'uint256', 'address', 'bool'],
-    [
-      projectId,
-      actualScheduleStartTime,
-      holdbackPercentage,
-      fifoMarket.address,
-      listNow,
-    ]
-  );
-  return packedData;
+  return {
+    projectId,
+    scheduleStartTime: actualScheduleStartTime,
+    holdbackPercentage,
+    list: listNow,
+  };
 };
 
 // todo helpers/removal.ts

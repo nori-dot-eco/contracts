@@ -5,7 +5,7 @@ import "@/test/helpers/removal.sol";
 import {BatchMintRemovalsData} from "@/contracts/Removal.sol";
 
 contract Removal_mintBatch is UpgradableRemovalMock {
-  function test_mintBatch() external {
+  function test() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 1,
       scheduleStartTime: 0,
@@ -23,32 +23,8 @@ contract Removal_mintBatch is UpgradableRemovalMock {
 }
 
 contract Removal_release is RemovalSeeded {
-  event TransferSingle(
-    address indexed operator,
-    address indexed from,
-    address indexed to,
-    uint256 id,
-    uint256 value
-  ); // todo can we get this from the contract itself?
-
-  function test_release() external {
-    vm.expectEmit(false, true, true, false);
-    emit TransferSingle(
-      _namedAccounts.supplier,
-      _namedAccounts.supplier,
-      address(0),
-      1,
-      1
-    );
-    _removal.release(_namedAccounts.supplier, 1, 1);
-  }
-
-  function test_removalIsNotListed_release() external {
-    _removal.release(_namedAccounts.supplier, 1, 1);
-    assertEq(_removal.balanceOf(_namedAccounts.supplier, 1), 0);
-  }
-
-  function test_revert_missingReleaserRole_release() external {
+  // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
+  function test_revert_missingReleaserRole() external {
     vm.prank(address(0));
     vm.expectRevert(
       bytes(
@@ -60,10 +36,69 @@ contract Removal_release is RemovalSeeded {
     );
     _removal.release(_namedAccounts.supplier, 1, 1);
   }
+
+  function test_unlisted() external {
+    // todo build mint data helper function
+    UnpackedRemovalIdV0 memory removalId = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: hex"5553",
+      subdivision: hex"4941",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: 99_039_930
+    });
+    BatchMintRemovalsData memory data = BatchMintRemovalsData({
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50,
+      list: false
+    });
+    uint256 _tokenId = RemovalUtils.createRemovalIdFromStruct(removalId);
+    vm.expectEmit(false, false, false, false);
+    emit TransferBatch(
+      address(0),
+      address(0),
+      address(_namedAccounts.supplier),
+      _asSingletonUintArray(_tokenId),
+      _asSingletonUintArray(1)
+    );
+    _removal.mintBatch(
+      _namedAccounts.supplier,
+      _asSingletonUintArray(1),
+      _asSingletonUintArray(_tokenId), // todo encode ID or test won't work
+      data
+    );
+    assertEq(_removal.balanceOf(_namedAccounts.supplier, _tokenId), 1);
+  }
 }
 
 contract Removal_cummulativeBalanceOfBatch is RemovalSeeded {
-  function test_cumulativeBalanceOfBatch() external {
+  function test() external {
+    UnpackedRemovalIdV0 memory removalId = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: hex"5553",
+      subdivision: hex"4941",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: 99_039_930
+    });
+    uint256 _tokenId = RemovalUtils.createRemovalIdFromStruct(removalId);
+    BatchMintRemovalsData memory data = BatchMintRemovalsData({
+      projectId: 5_555_555_555,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50,
+      list: false
+    });
+    _removal.mintBatch(
+      _namedAccounts.supplier,
+      _asSingletonUintArray(1),
+      _asSingletonUintArray(_tokenId), // todo encode ID or test won't work
+      data
+    );
     assertEq(
       _removal.cumulativeBalanceOfBatch(
         _asSingletonAddressArray(_namedAccounts.supplier)
@@ -71,11 +106,12 @@ contract Removal_cummulativeBalanceOfBatch is RemovalSeeded {
       _asSingletonUintArray(1)
     );
   }
+  // todo test_listed
 }
 
 contract Removal__beforeTokenTransfer is NonUpgradableRemovalMock {
   // todo test the rest of the cases
-  function test_beforeTokenTransfer() external {
+  function test() external {
     super._beforeTokenTransfer(
       _namedAccounts.admin,
       _namedAccounts.admin,
@@ -84,9 +120,10 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemovalMock {
       _asSingletonUintArray(1),
       ""
     );
+    // todo assert?
   }
 
-  function test_revert_paused_beforeTokenTransfer() external {
+  function test_revert_paused() external {
     super._pause();
     vm.expectRevert("ERC1155Pausable: token transfer while paused");
     super._beforeTokenTransfer(

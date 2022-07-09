@@ -124,8 +124,7 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        const marketTotalSupply =
-          await fifoMarket.numberOfActiveNrtsInMarketComputed();
+        const marketTotalSupply = await fifoMarket.totalActiveSupply();
         expect(marketTotalSupply).to.equal(Zero);
       });
       it('should mint and list a batch of removals in the same transaction and create restriction schedules', async () => {
@@ -167,7 +166,7 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        expect(await fifoMarket.numberOfActiveNrtsInMarketComputed()).to.equal(
+        expect(await fifoMarket.totalActiveSupply()).to.equal(
           expectedMarketSupply
         );
       });

@@ -14,7 +14,7 @@ import 'hardhat-gas-reporter';
 import 'solidity-docgen';
 import '@nomiclabs/hardhat-solhint';
 import 'solidity-coverage';
-import 'hardhat-tracer'; // todo add to release notes
+import 'hardhat-tracer';
 import '@/config/environment';
 import '@/tasks/index';
 

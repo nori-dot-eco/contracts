@@ -9,7 +9,6 @@ import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 import {TokenIdExists, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 import "./FIFOMarket.sol";
-import "@/test/helpers/test.sol"; // todo
 
 struct BatchMintRemovalsData {
   uint256 projectId;
@@ -118,10 +117,11 @@ contract Removal is
    * @dev See {IERC1155-setApprovalForAll}.
    */
   function setApprovalForAll(
+    // todo override internal version instead
     address owner,
     address operator,
     bool approved
-  ) public virtual onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+  ) public virtual {
     _setApprovalForAll(owner, operator, approved);
   }
 
@@ -364,7 +364,6 @@ contract Removal is
       owner
     ];
     uint256 numberOfTokensOwned = removals.length();
-    console.log("numberOfTokensOwned===", numberOfTokensOwned);
     address[] memory owners = new address[](numberOfTokensOwned);
     for (uint256 i = 0; i < numberOfTokensOwned; ++i) {
       owners[i] = owner;

@@ -1,5 +1,19 @@
 import type { HardhatUserConfig } from 'hardhat/types';
 
+export const solidity2: HardhatUserConfig['solidity'] = {
+  compilers: [
+    {
+      version: '0.8.15',
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 1000,
+        },
+      },
+    },
+  ],
+};
+
 export const solidity: HardhatUserConfig['solidity'] = {
   compilers: [
     {
@@ -9,14 +23,9 @@ export const solidity: HardhatUserConfig['solidity'] = {
         ...(!process.env.CI && {
           optimizer: {
             enabled: process.env.OPTIMIZER,
-            runs: process.env.OPTIMIZER_RUNS,
+            runs: 1,
           },
         }),
-        outputSelection: {
-          '*': {
-            '*': ['storageLayout'],
-          },
-        },
       },
     },
   ],

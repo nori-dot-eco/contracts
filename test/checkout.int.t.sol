@@ -41,7 +41,7 @@ abstract contract Checkout is
 }
 
 contract Checkout_buyingFromOneRemoval is Checkout {
-  function test_buyingFromOneRemoval() external {
+  function test() external {
     _assertRemovalBalance(address(_market), 1, true);
     _assertRemovalBalance(_namedAccounts.supplier, 0, false);
     _assertRemovalBalance(address(_certificate), 0, false);

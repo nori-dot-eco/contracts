@@ -4,7 +4,7 @@ pragma solidity =0.8.15;
 import "@/test/helpers/certificate.sol";
 
 contract Certificate_name is UpgradableCertificateMock {
-  function test_name() external {
+  function test() external {
     assertEq(_certificate.name(), "Certificate");
   }
 }
