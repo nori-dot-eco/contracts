@@ -87,7 +87,7 @@ describe('Removal', () => {
         expect(listedTokensHoldbackPercentage).to.equal(holdbackPercentage);
       });
       it('should mint a batch of removals without listing any', async () => {
-        const { fifoMarket, removal, hre } = await setupTest();
+        const { market, removal, hre } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -108,7 +108,7 @@ describe('Removal', () => {
         const listNow = false;
         const packedData = await createBatchMintData({
           hre,
-          fifoMarket,
+          market,
           listNow,
         });
         await expect(
@@ -124,11 +124,11 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        const marketTotalSupply = await fifoMarket.totalActiveSupply();
+        const marketTotalSupply = await market.totalActiveSupply();
         expect(marketTotalSupply).to.equal(Zero);
       });
       it('should mint and list a batch of removals in the same transaction and create restriction schedules', async () => {
-        const { fifoMarket, removal } = await setupTest();
+        const { market, removal } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -150,7 +150,7 @@ describe('Removal', () => {
         const listNow = true;
         const packedData = await createBatchMintData({
           hre,
-          fifoMarket,
+          market,
           listNow,
         });
         await expect(
@@ -166,12 +166,12 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        expect(await fifoMarket.totalActiveSupply()).to.equal(
+        expect(await market.totalActiveSupply()).to.equal(
           expectedMarketSupply
         );
       });
       it('should list pre-minted removals for sale in the atomic marketplace and create restriction schedules', async () => {
-        const { fifoMarket, removal, rNori } = await setupTest();
+        const { market, removal, rNori } = await setupTest();
         const removalBalances = [100, 200, 300].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -191,7 +191,7 @@ describe('Removal', () => {
         const listNow = false;
         const packedData = await createBatchMintData({
           hre,
-          fifoMarket,
+          market,
           listNow,
           projectId,
           scheduleStartTime,
@@ -215,7 +215,7 @@ describe('Removal', () => {
         await expect(
           removal.safeBatchTransferFrom(
             hre.namedAccounts.supplier,
-            fifoMarket.address,
+            market.address,
             tokenIds,
             removalBalances,
             ethers.utils.formatBytes32String('0x0')
@@ -225,7 +225,7 @@ describe('Removal', () => {
           .withArgs(
             hre.namedAccounts.admin,
             hre.namedAccounts.supplier,
-            fifoMarket.address,
+            market.address,
             tokenIds,
             removalBalances
           )
@@ -237,7 +237,7 @@ describe('Removal', () => {
           );
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {
-            return removal.balanceOf(fifoMarket.address, tokenId);
+            return removal.balanceOf(market.address, tokenId);
           })
         );
         for (const [tokenId, balance] of balances.entries()) {
@@ -248,7 +248,7 @@ describe('Removal', () => {
     describe('error', () => {
       describe('TokenIdExists', () => {
         it('should not mint a removal with a duplicate token id', async () => {
-          const { fifoMarket, removal, hre } = await setupTest();
+          const { market, removal, hre } = await setupTest();
           const removalBalances = [100, 200, 300].map((balance) =>
             formatTokenAmount(balance)
           );
@@ -266,7 +266,7 @@ describe('Removal', () => {
           const listNow = false;
           const packedData = await createBatchMintData({
             hre,
-            fifoMarket,
+            market,
             listNow,
           });
           await expect(

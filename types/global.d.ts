@@ -37,7 +37,7 @@ import { debug } from '@/utils/debug';
 import type {
   BridgedPolygonNORI,
   Certificate,
-  FIFOMarket,
+  Market,
   LockedNORIV2,
   RestrictedNORI,
   NORI,
@@ -197,7 +197,7 @@ declare global {
     Removal?: Removal;
     NORI?: NORI;
     BridgedPolygonNORI?: BridgedPolygonNORI;
-    FIFOMarket?: FIFOMarket;
+    Market?: Market;
     LockedNORIV2?: LockedNORIV2;
     RestrictedNORI?: RestrictedNORI;
     Certificate?: Certificate;

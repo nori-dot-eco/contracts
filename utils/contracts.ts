@@ -3,7 +3,7 @@ import type { Contract } from 'ethers';
 import type {
   BridgedPolygonNORI,
   Certificate,
-  FIFOMarket,
+  Market,
   LockedNORIV2,
   RestrictedNORI,
   NORI,
@@ -159,9 +159,9 @@ export const getFIFOMarket = async ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<FIFOMarket> =>
+}): Promise<Market> =>
   getContract({
-    contractName: 'FIFOMarket',
+    contractName: 'Market',
     hre,
     signer,
   });
@@ -181,7 +181,7 @@ export const getContractsFromDeployments = async (
     RestrictedNORI: deployments.RestrictedNORI?.address
       ? await getRestrictedNORI({ hre })
       : undefined,
-    FIFOMarket: deployments.FIFOMarket?.address
+    Market: deployments.Market?.address
       ? await getFIFOMarket({ hre })
       : undefined,
     Removal: deployments.Removal?.address

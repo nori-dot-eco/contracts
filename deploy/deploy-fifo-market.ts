@@ -21,11 +21,11 @@ export const deploy: DeployFunction = async (environment) => {
     feeWallet,
     feePercentage: 15,
   });
-  await finalizeDeployments({ hre, contracts: { FIFOMarket: contract } });
+  await finalizeDeployments({ hre, contracts: { Market: contract } });
 };
 
 export default deploy;
-deploy.tags = ['FIFOMarket', 'market'];
+deploy.tags = ['Market', 'market'];
 deploy.dependencies = [
   'preconditions',
   'Removal',
