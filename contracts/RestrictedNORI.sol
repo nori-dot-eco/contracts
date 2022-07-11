@@ -215,10 +215,9 @@ contract RestrictedNORI is
    */
   event TokensRevoked(
     uint256 indexed atTime,
+    uint256 indexed removalId,
     uint256 indexed scheduleId,
-    uint256 quantity,
-    address[] scheduleOwners,
-    uint256[] quantitiesBurned
+    uint256 quantity
   );
 
   /**
@@ -637,100 +636,53 @@ contract RestrictedNORI is
   }
 
   /**
-   * Revokes amount of tokens from the specified project (schedule) id and transfers to toAccount.
+   * For each index-matched account, removal id, and amount, revokes amount of tokens from schedule corresponding
+   * to the specified removal and transfers to the corresponding account.
+   *
+   * @dev Transfers any unreleased tokens in the removal id's corresponding schedule and reduces the total supply
+   * of that token. No change is made to balances that have released but not yet been claimed.
+   * If a token has multiple owners, balances are burned proportionally to ownership percentage, summing to the total
+   * amount being revoked.
    *
    * The behavior of this function can be used in two specific ways:
-   * - To revoke a specific number of tokens as specified by the `amount` parameter.
-   * - To revoke all remaining revokable tokens in a schedule by specifying 0 as the `amount`.
-   *
-   * @dev Transfers any unreleased tokens in the specified schedule and reduces the total supply
-   * of that token. Only unreleased tokens can be revoked from a schedule and no change is made to
-   * balances that have released but not yet been claimed.
-   * If a token has multiple owners, balances are burned proportionally to ownership percentage,
-   * summing to the total amount being revoked.
-   * Once the tokens have been revoked, the current released amount can never fall below
-   * its current level, even if the linear release schedule of the new amount would cause
-   * the released amount to be lowered at the current timestamp (a floor is established).
-   *
-   * Unlike in the `withdrawFromSchedule` function, here we burn `RestrictedNORI`
-   * from the schedule owner but send that `BridgedPolygonNORI` back to Nori's
-   * treasury or an address of Nori's choosing (the *toAccount* address).
-   * The *claimedAmount* is not changed because this is not a claim operation.
+   * - To revoke a specific number of tokens as specified by the `amounts` array.
+   * - To revoke all remaining revokable tokens in a schedule set amount to 0 in the `amounts` array.
    *
    * ##### Requirements:
    *
    * - Can only be used when the caller has the `TOKEN_REVOKER_ROLE`
    * - The requirements of _beforeTokenTransfer apply to this function
+   * - toAccounts.length == removalIds.length == amounts.length
    */
-  function revokeUnreleasedTokens(
-    uint256 projectId,
-    uint256 amount,
-    address toAccount
+  function batchRevokeUnreleasedTokenAmounts(
+    address[] calldata toAccounts,
+    uint256[] calldata removalIds,
+    uint256[] calldata amounts
   ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
-    // slither-disable-next-line calls-loop choose to get the project id from the removal contract
-    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    if (!schedule.exists) {
-      revert NonexistentSchedule({scheduleId: projectId});
+    /* todo consider simplifying this function to either require that all removal ids belong to the same project id,
+     * or, if we can do away with the specific removal ids entirely, simply specify the projectId/scheduleId from which
+     * we are revoking, which eliminates the need to call _revokeUnreleasedTokens inside a loop and will allow for a
+     * single and not batch send.  Consider whether we still want to know which removal specifically and want to combine
+     * any other administrative action such as marking as invalidated in the removal contract (though invalidated numbers
+     * won't necessarily be the same as the amounts that are able to actually be revoked).
+     * https://github.com/nori-dot-eco/contracts/pull/249#discussion_r907703042
+     *
+     */
+    if (!(toAccounts.length == removalIds.length)) {
+      revert ArrayLengthMismatch({
+        array1Name: "fromAccounts",
+        array2Name: "removalIds"
+      });
     }
-    uint256 quantityRevocable = revocableQuantityForSchedule(projectId);
-    if (!(amount <= quantityRevocable)) {
-      revert InsufficientUnreleasedTokens({scheduleId: projectId});
+    if (!(toAccounts.length == amounts.length)) {
+      revert ArrayLengthMismatch({
+        array1Name: "fromAccounts",
+        array2Name: "amounts"
+      });
     }
-    // amount of zero indicates revocation of all remaining tokens.
-    uint256 quantityToRevoke = amount > 0 ? amount : quantityRevocable;
-    // burn correct proportion from each token holder
-    address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
-    // todo gas optimization -- is it more expensive to call balanceOf multiple times, or to construct this array?
-    uint256[] memory scheduleIdsForBalanceOfBatch = new uint256[](
-      tokenHoldersLocal.length
-    );
-    for (uint256 i = 0; i < tokenHoldersLocal.length; i++) {
-      scheduleIdsForBalanceOfBatch[i] = projectId;
+    for (uint256 i = 0; i < toAccounts.length; i++) {
+      _revokeUnreleasedTokens(toAccounts[i], removalIds[i], amounts[i]);
     }
-    uint256[] memory quantitiesToBurnForHolders = new uint256[](
-      tokenHoldersLocal.length
-    );
-    // Calculate the final holder's quantity to revoke by subtracting the sum of other quantities
-    // from the desired total to revoke, thus avoiding any precision rounding errors from affecting
-    // the total quantity revoked by up to several wei.
-    uint256[] memory accountBalances = balanceOfBatch(
-      tokenHoldersLocal,
-      scheduleIdsForBalanceOfBatch
-    );
-    uint256 cumulativeQuantityToBurn = 0;
-    for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); i++) {
-      uint256 quantityToBurnForHolder = _quantityToRevokePerTokenHolder(
-        quantityToRevoke,
-        projectId,
-        tokenHoldersLocal[i],
-        accountBalances[i]
-      );
-      quantitiesToBurnForHolders[i] = quantityToBurnForHolder;
-      cumulativeQuantityToBurn += quantityToBurnForHolder;
-    }
-    quantitiesToBurnForHolders[tokenHoldersLocal.length - 1] =
-      quantityToRevoke -
-      cumulativeQuantityToBurn;
-    // todo consider writing a batch variant of burn that accommodates multiple addresses for a single token
-    for (uint256 i = 0; i < (tokenHoldersLocal.length); i++) {
-      super._burn(
-        tokenHoldersLocal[i],
-        projectId,
-        quantitiesToBurnForHolders[i]
-      );
-      schedule.quantitiesRevokedByAddress[
-        tokenHoldersLocal[i]
-      ] += quantitiesToBurnForHolders[i];
-    }
-    schedule.totalQuantityRevoked += quantityToRevoke;
-    emit TokensRevoked(
-      block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
-      projectId,
-      quantityToRevoke,
-      tokenHoldersLocal,
-      quantitiesToBurnForHolders
-    );
-    _bridgedPolygonNori.transfer(toAccount, quantityToRevoke);
   }
 
   // Private implementations ==========================================
@@ -763,6 +715,92 @@ contract RestrictedNORI is
     schedule.startTime = scheduleData.startTime;
     schedule.endTime = scheduleData.startTime + restrictionDuration;
     emit ScheduleCreated(projectId, schedule.startTime, schedule.endTime);
+  }
+
+  /**
+   * @notice Revokes unreleased tokens from a schedule.
+   * This is an *admin* operation callable only by addresses having TOKEN_REVOKER_ROLE
+   * (enforced in `batchRevokeUnreleasedTokenAmounts`)
+   *
+   * @dev Only unreleased tokens can be revoked from a schedule.
+   * Once the tokens have been revoked, the current released amount can never fall below
+   * its current level, even if the linear release schedule of the new amount would cause
+   * the released amount to be lowered at the current timestamp (a floor is established).
+   *
+   * Unlike in the `withdrawFromSchedule` function, here we burn `RestrictedNORI`
+   * from the schedule owner but send that `BridgedPolygonNORI` back to Nori's
+   * treasury or an address of Nori's choosing (the *to* address).
+   * The *claimedAmount* is not changed because this is not a claim operation.
+   */
+  function _revokeUnreleasedTokens(
+    address to,
+    uint256 removalId,
+    uint256 amount
+  ) internal {
+    // slither-disable-next-line calls-loop choose to get the project id from the removal contract
+    uint256 scheduleId = _removal.getProjectIdForRemoval(removalId);
+    Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
+    if (!schedule.exists) {
+      revert NonexistentSchedule({scheduleId: scheduleId});
+    }
+    uint256 quantityRevocable = revocableQuantityForSchedule(scheduleId);
+    if (!(amount <= quantityRevocable)) {
+      revert InsufficientUnreleasedTokens({scheduleId: scheduleId});
+    }
+    // amount of zero indicates revocation of all remaining tokens.
+    uint256 quantityToRevoke = amount > 0 ? amount : quantityRevocable;
+    // burn correct proportion from each token holder
+    address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
+    // todo gas optimization -- is it more expensive to call balanceOf multiple times, or to construct this array?
+    uint256[] memory scheduleIdsForBalanceOfBatch = new uint256[](
+      tokenHoldersLocal.length
+    );
+    for (uint256 i = 0; i < tokenHoldersLocal.length; i++) {
+      scheduleIdsForBalanceOfBatch[i] = scheduleId;
+    }
+    uint256[] memory quantitiesToBurnForHolders = new uint256[](
+      tokenHoldersLocal.length
+    );
+    // Calculate the final holder's quantity to revoke by subtracting the sum of other quantities
+    // from the desired total to revoke, thus avoiding any precision rounding errors from affecting
+    // the total quantity revoked by up to several wei.
+    uint256[] memory accountBalances = balanceOfBatch(
+      tokenHoldersLocal,
+      scheduleIdsForBalanceOfBatch
+    );
+    uint256 cumulativeQuantityToBurn = 0;
+    for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); i++) {
+      uint256 quantityToBurnForHolder = _quantityToRevokePerTokenHolder(
+        quantityToRevoke,
+        scheduleId,
+        tokenHoldersLocal[i],
+        accountBalances[i]
+      );
+      quantitiesToBurnForHolders[i] = quantityToBurnForHolder;
+      cumulativeQuantityToBurn += quantityToBurnForHolder;
+    }
+    quantitiesToBurnForHolders[tokenHoldersLocal.length - 1] =
+      quantityToRevoke -
+      cumulativeQuantityToBurn;
+    // todo consider writing a batch variant of burn that accommodates multiple addresses for a single token
+    for (uint256 i = 0; i < (tokenHoldersLocal.length); i++) {
+      super._burn(
+        tokenHoldersLocal[i],
+        scheduleId,
+        quantitiesToBurnForHolders[i]
+      );
+      schedule.quantitiesRevokedByAddress[
+        tokenHoldersLocal[i]
+      ] += quantitiesToBurnForHolders[i];
+    }
+    schedule.totalQuantityRevoked += quantityToRevoke;
+    emit TokensRevoked(
+      block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
+      removalId,
+      scheduleId,
+      quantityToRevoke
+    );
+    _bridgedPolygonNori.transfer(to, quantityToRevoke);
   }
 
   /**

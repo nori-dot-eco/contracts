@@ -279,6 +279,48 @@ describe('Removal', () => {
           ).revertedWith('TokenIdExists');
         });
       });
+      describe('RemovalAmountZero', () => {
+        it('should revert when attempting to list removals for sale with a 0 amount', async () => {
+          const { market, removal } = await setupTest();
+          const removalBalances = [100, 200, 300].map((balance) =>
+            formatTokenAmount(balance)
+          );
+          const tokenIds = await Promise.all(
+            [2016, 2017, 2018].map((vintage) =>
+              createRemovalTokenId({
+                removal,
+                hre,
+                removalData: {
+                  vintage,
+                },
+              })
+            )
+          );
+          const listNow = false;
+          const packedData = await createBatchMintData({
+            hre,
+            market,
+            listNow
+          });
+          await
+            removal.mintBatch(
+              hre.namedAccounts.supplier,
+              removalBalances,
+              tokenIds,
+              packedData
+            );
+          await expect(
+            removal.safeBatchTransferFrom(
+              hre.namedAccounts.supplier,
+              market.address,
+              tokenIds,
+              [1, 0, 1],
+              ethers.utils.formatBytes32String('0x0')
+            )
+          )
+            .to.be.revertedWith(`RemovalAmountZero(${tokenIds[0]})`);
+        });
+      });
     });
   });
   describe('getScheduleDataForProjectId', () => {

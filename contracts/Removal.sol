@@ -33,6 +33,7 @@ contract Removal is
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   error TokenIdDoesNotExist(uint256 tokenId);
+  error RemovalAmountZero(uint256 removalId);
 
   struct ScheduleData {
     uint256 startTime;
@@ -270,6 +271,11 @@ contract Removal is
   ) public override {
     // todo perhaps call this listRemovals instead
     // todo do we add any validation to enforce that all removals in batch belong to the same project id?
+    for (uint256 i = 0; i < amounts.length; i++) {
+      if (amounts[i] == 0) {
+        revert RemovalAmountZero({removalId: ids[i]});
+      }
+    }
     bytes memory projectId = abi.encode(
       _removalIdToRemovalData[ids[0]].projectId
     );
