@@ -14,7 +14,7 @@ import {
 import type {
   Removal,
   Certificate,
-  FIFOMarket,
+  Market,
   LockedNORIV2,
   RestrictedNORI,
   NORI,
@@ -36,7 +36,7 @@ interface ContractInstances {
   bpNori: BridgedPolygonNORI;
   removal: Removal;
   certificate: Certificate;
-  fifoMarket: FIFOMarket;
+  market: Market;
   lNori: LockedNORIV2;
   rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
@@ -146,14 +146,14 @@ export const createRemovalTokenId = async ({
 // todo helpers/removal.ts
 export const createBatchMintData = async ({
   hre,
-  fifoMarket, // todo rm
+  market, // todo rm
   listNow = true,
   projectId = 1_234_567_890,
   scheduleStartTime,
   holdbackPercentage = Zero,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-  fifoMarket: FIFOMarket;
+  market: Market;
   listNow?: boolean;
   projectId?: number;
   scheduleStartTime?: number;
@@ -215,10 +215,10 @@ const getTotalAmountOfRemovals = ({
 export const batchMintAndListRemovalsForSale = async (options: {
   hre: CustomHardHatRuntimeEnvironment;
   removal: Removal;
-  fifoMarket: FIFOMarket;
+  market: Market;
   removalDataToList: RemovalDataForListing;
 }): Promise<RemovalDataFromListing> => {
-  const { removal, hre, fifoMarket, removalDataToList } = options;
+  const { removal, hre, market, removalDataToList } = options;
   const { projectId, scheduleStartTime, holdbackPercentage } = {
     projectId: removalDataToList.projectId ?? 1_234_567_890,
     scheduleStartTime:
@@ -252,7 +252,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
     listedRemovalIds,
     await createBatchMintData({
       hre,
-      fifoMarket,
+      market,
       listNow: removalDataToList.listNow,
       projectId,
       scheduleStartTime,
@@ -339,7 +339,7 @@ export const setupTest = global.hre.deployments.createFixture(
         const mintResultData = await batchMintAndListRemovalsForSale({
           removalDataToList: v.removalDataToList,
           removal: contracts.Removal,
-          fifoMarket: contracts.FIFOMarket,
+          market: contracts.Market,
           hre,
         });
         removalAmounts = [...removalAmounts, ...mintResultData.removalAmounts];
@@ -403,7 +403,7 @@ export const setupTest = global.hre.deployments.createFixture(
       bpNori: contracts.BridgedPolygonNORI,
       removal: contracts.Removal,
       certificate: contracts.Certificate,
-      fifoMarket: contracts.FIFOMarket,
+      market: contracts.Market,
       lNori: contracts.LockedNORIV2,
       rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,

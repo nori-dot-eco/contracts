@@ -17,10 +17,10 @@ import {RemovalUtils} from "./RemovalUtils.sol";
 
 // todo pausable
 /**
- * @title FIFOMarket
+ * @title Market
  * // todo documentation
  */
-contract FIFOMarket is
+contract Market is
   ContextUpgradeable,
   AccessControlEnumerableUpgradeable,
   ERC1155HolderUpgradeable

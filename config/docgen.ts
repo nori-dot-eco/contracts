@@ -7,7 +7,7 @@ export const docgen: HardhatUserConfig['docgen'] = {
   templates: path.join(__dirname, '../docs/templates'),
   pages: (item, _file) => {
     return [
-      'FIFOMarket',
+      'Market',
       'NORI',
       'Removal',
       'Certificate',
