@@ -8,7 +8,7 @@ import "@/test/helpers/removal.sol";
 import "@/test/helpers/certificate.sol";
 import "@/test/helpers/restricted-nori.sol";
 
-abstract contract UpgradeableFIFOMarket is
+abstract contract UpgradeableMarket is
   UpgradeableRestrictedNORI,
   UpgradeableRemoval,
   UpgradeableCertificate,
@@ -42,7 +42,7 @@ abstract contract UpgradeableFIFOMarket is
 
 abstract contract NonUpgradableFIFOMarketMock is Market, Global {}
 
-abstract contract UpgradableFIFOMarketMock is UpgradeableFIFOMarket {}
+abstract contract UpgradableFIFOMarketMock is UpgradeableMarket {}
 
 abstract contract FIFOMarketSeeded is UpgradableFIFOMarketMock, SeedableMock {
   constructor() {
