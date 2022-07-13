@@ -114,18 +114,6 @@ contract Removal is
   }
 
   /**
-   * @dev See {IERC1155-setApprovalForAll}.
-   */
-  function setApprovalForAll(
-    // todo override internal version instead
-    address owner,
-    address operator,
-    bool approved
-  ) public virtual {
-    _setApprovalForAll(owner, operator, approved);
-  }
-
-  /**
    * @notice Packs data about a removal into a 256-bit token id for the removal.
    * @dev Performs some possible validations on the data before attempting to create the id.
    * @param removalData removal data encoded as bytes, with the first byte storing the version.
@@ -249,7 +237,7 @@ contract Removal is
     });
     bytes memory encodedData = abi.encode(data);
     _mintBatch(to, ids, amounts, encodedData);
-    setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
+    setApprovalForAll(_msgSender(), true); // todo look at vesting contract for potentially better approach
     if (data.list) {
       safeBatchTransferFrom(to, address(_market), ids, amounts, encodedData);
     }
@@ -309,6 +297,19 @@ contract Removal is
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
+  }
+
+  /**
+   * @dev Approve `operator` to operate on all of `owner` tokens
+   *
+   * Emits an {ApprovalForAll} event.
+   */
+  function _setApprovalForAll(
+    address owner,
+    address operator,
+    bool approved
+  ) internal virtual override onlyRole(DEFAULT_ADMIN_ROLE) {
+    super._setApprovalForAll(owner, operator, approved);
   }
 
   function _beforeTokenTransfer(

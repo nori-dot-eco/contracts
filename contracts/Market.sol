@@ -4,6 +4,7 @@ pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
@@ -23,7 +24,8 @@ import {RemovalUtils} from "./RemovalUtils.sol";
 contract Market is
   ContextUpgradeable,
   AccessControlEnumerableUpgradeable,
-  ERC1155HolderUpgradeable
+  ERC1155HolderUpgradeable,
+  PausableUpgradeable
 {
   using RemovalUtils for uint256; // todo is this using RemovalUtils for ALL uint256s?
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
