@@ -104,6 +104,7 @@ contract Market is
 
   function setPriorityRestrictedThreshold(uint256 threshold)
     external
+    whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     _priorityRestrictedThreshold = threshold;
@@ -156,7 +157,7 @@ contract Market is
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external {
+  ) external whenNotPaused {
     // todo we need to treat totalActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s.
     // priority reserved etc.
@@ -200,7 +201,7 @@ contract Market is
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external {
+  ) external whenNotPaused {
     _checkSupply();
     uint256 certificateAmount = _certificateAmountFromPurchaseTotal(amount);
     (
@@ -240,9 +241,13 @@ contract Market is
     return totalReserved;
   }
 
-  function totalActiveSupply() external view returns (uint256) {
+  function totalUnreservedSupply() external view returns (uint256) {
     return
       _removal.cumulativeBalanceOf(address(this)) - this.totalReservedSupply();
+  }
+
+  function totalActiveSupply() external view returns (uint256) {
+    return _removal.cumulativeBalanceOf(address(this));
   }
 
   /**
@@ -462,10 +467,11 @@ contract Market is
     );
   }
 
+  /** The distinct number of removal token ids owned by the Market. */
   function numberOfActiveRemovals() external view returns (uint256) {
     return
       _removal.numberOfTokensOwnedByAddress(address(this)) -
-      this.totalReservedSupply(); // todo store reserved amount in removal data instead
+      _reservedSupply.length(); // todo store reserved amount in removal data instead
   }
 
   // todo?
@@ -480,7 +486,7 @@ contract Market is
    * @dev If the removal is the last for the supplier, removes the supplier from the active supplier queue.
    *
    */
-  function reserveRemoval(uint256 removalId) external {
+  function reserveRemoval(uint256 removalId) external whenNotPaused {
     address supplierAddress = removalId.supplierAddress();
     _removeActiveRemoval(supplierAddress, removalId);
     if (!_reservedSupply.add(removalId)) {
@@ -500,7 +506,7 @@ contract Market is
   // todo consider making this a generalized `withdrawRemoval`?
   // todo RESERVER_ROLE? or require sender is Removal address
   // todo whenNotPaused
-  function release(uint256 removalId, uint256 amount) external {
+  function release(uint256 removalId, uint256 amount) external whenNotPaused {
     address supplierAddress = removalId.supplierAddress();
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     if (amount == removalBalance) {
@@ -523,7 +529,7 @@ contract Market is
    * fill orders again. If the supplier's other removals have all been sold, adds the supplier back to the
    * list of active suppliers
    */
-  function unreserveRemoval(uint256 removalId) external {
+  function unreserveRemoval(uint256 removalId) external whenNotPaused {
     // todo RESERVER_ROLE?
     address supplierAddress = removalId.supplierAddress();
     _unreserveRemoval(removalId);

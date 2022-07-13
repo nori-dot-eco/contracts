@@ -100,7 +100,7 @@ contract Removal is
   function registerContractAddresses(
     RestrictedNORI restrictedNoriAddress_,
     Market marketAddress_
-  ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     _restrictedNori = RestrictedNORI(restrictedNoriAddress_);
     _market = marketAddress_;
   }
@@ -202,7 +202,7 @@ contract Removal is
   function batchSetHoldbackPercentage(
     uint256[] calldata removalIds,
     uint256 holdbackPercentage
-  ) external {
+  ) external whenNotPaused {
     for (uint256 i = 0; i < removalIds.length; ++i) {
       uint256 id = removalIds[i];
       _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
@@ -325,6 +325,7 @@ contract Removal is
       ERC1155PausableUpgradeable,
       ERC1155Upgradeable
     )
+    whenNotPaused
   {
     uint256 numberOfTokenTransfers = amounts.length;
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {

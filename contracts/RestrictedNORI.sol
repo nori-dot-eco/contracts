@@ -488,6 +488,7 @@ contract RestrictedNORI is
    */
   function registerContractAddresses(BridgedPolygonNORI bpNori, Removal removal)
     external
+    whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     _bridgedPolygonNori = BridgedPolygonNORI(bpNori);
@@ -792,7 +793,11 @@ contract RestrictedNORI is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) internal override(ERC1155SupplyUpgradeable, ERC1155PausableUpgradeable) {
+  )
+    internal
+    override(ERC1155SupplyUpgradeable, ERC1155PausableUpgradeable)
+    whenNotPaused
+  {
     bool isBurning = to == address(0);
     bool isWithdrawing = isBurning && from == operator;
 
