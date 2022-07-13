@@ -3,6 +3,7 @@ import type { namedAccounts } from 'hardhat';
 import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import { add } from '@nori-dot-com/math';
 
+import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import { sum } from '@/utils/math';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
@@ -13,16 +14,15 @@ import {
 import type {
   Removal,
   Certificate,
-  FIFOMarket,
+  Market,
   LockedNORIV2,
   RestrictedNORI,
   NORI,
   BridgedPolygonNORI,
   RemovalTestHarness,
   MockCertificate,
-  MockERC1155PresetPausableNonTransferrable
+  MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types';
-import type { UnpackedRemovalIdV0Struct } from '../../typechain-types/artifacts/contracts/Removal';
 import { formatTokenAmount } from '@/utils/units';
 import { getContractsFromDeployments } from '@/utils/contracts';
 import { Zero } from '@/constants/units';
@@ -36,7 +36,7 @@ interface ContractInstances {
   bpNori: BridgedPolygonNORI;
   removal: Removal;
   certificate: Certificate;
-  fifoMarket: FIFOMarket;
+  market: Market;
   lNori: LockedNORIV2;
   rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
@@ -146,14 +146,14 @@ export const createRemovalTokenId = async ({
 // todo helpers/removal.ts
 export const createBatchMintData = async ({
   hre,
-  fifoMarket,
+  market, // todo rm
   listNow = true,
   projectId = 1_234_567_890,
   scheduleStartTime,
   holdbackPercentage = Zero,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-  fifoMarket: FIFOMarket;
+  market: Market;
   listNow?: boolean;
   projectId?: number;
   scheduleStartTime?: number;
@@ -161,17 +161,12 @@ export const createBatchMintData = async ({
 }): Promise<Parameters<Removal['mintBatch']>[3]> => {
   const actualScheduleStartTime =
     scheduleStartTime ?? (await getLatestBlockTime({ hre }));
-  const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-    ['uint256', 'uint256', 'uint256', 'address', 'bool'],
-    [
-      projectId,
-      actualScheduleStartTime,
-      holdbackPercentage,
-      fifoMarket.address,
-      listNow,
-    ]
-  );
-  return packedData;
+  return {
+    projectId,
+    scheduleStartTime: actualScheduleStartTime,
+    holdbackPercentage,
+    list: listNow,
+  };
 };
 
 // todo helpers/removal.ts
@@ -220,10 +215,10 @@ const getTotalAmountOfRemovals = ({
 export const batchMintAndListRemovalsForSale = async (options: {
   hre: CustomHardHatRuntimeEnvironment;
   removal: Removal;
-  fifoMarket: FIFOMarket;
+  market: Market;
   removalDataToList: RemovalDataForListing;
 }): Promise<RemovalDataFromListing> => {
-  const { removal, hre, fifoMarket, removalDataToList } = options;
+  const { removal, hre, market, removalDataToList } = options;
   const { projectId, scheduleStartTime, holdbackPercentage } = {
     projectId: removalDataToList.projectId ?? 1_234_567_890,
     scheduleStartTime:
@@ -257,7 +252,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
     listedRemovalIds,
     await createBatchMintData({
       hre,
-      fifoMarket,
+      market,
       listNow: removalDataToList.listNow,
       projectId,
       scheduleStartTime,
@@ -344,7 +339,7 @@ export const setupTest = global.hre.deployments.createFixture(
         const mintResultData = await batchMintAndListRemovalsForSale({
           removalDataToList: v.removalDataToList,
           removal: contracts.Removal,
-          fifoMarket: contracts.FIFOMarket,
+          market: contracts.Market,
           hre,
         });
         removalAmounts = [...removalAmounts, ...mintResultData.removalAmounts];
@@ -408,7 +403,7 @@ export const setupTest = global.hre.deployments.createFixture(
       bpNori: contracts.BridgedPolygonNORI,
       removal: contracts.Removal,
       certificate: contracts.Certificate,
-      fifoMarket: contracts.FIFOMarket,
+      market: contracts.Market,
       lNori: contracts.LockedNORIV2,
       rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,

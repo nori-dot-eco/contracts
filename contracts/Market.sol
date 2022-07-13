@@ -17,10 +17,10 @@ import {RemovalUtils} from "./RemovalUtils.sol";
 
 // todo pausable
 /**
- * @title FIFOMarket
+ * @title Market
  * // todo documentation
  */
-contract FIFOMarket is
+contract Market is
   ContextUpgradeable,
   AccessControlEnumerableUpgradeable,
   ERC1155HolderUpgradeable
@@ -467,6 +467,10 @@ contract FIFOMarket is
       _removal.numberOfTokensOwnedByAddress(address(this)) -
       this.totalReservedSupply(); // todo store reserved amount in removal data instead
   }
+
+  // todo?
+  //  function numberOfActiveSuppliers() external view returns (uint256) {
+  // }
 
   // TODO batch version of this?
   /**

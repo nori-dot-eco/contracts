@@ -7,12 +7,12 @@
       "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
     },
     "Removal": {
-      "proxyAddress": "0xCC26028B4Ad73bcD74769b8a0f5d1EB213BB8387"
+      "proxyAddress": "0xe35401Eb5078388D49f47d631a0ce0733a31A425"
     },
     "Certificate": {
       "proxyAddress": "0x2CA5C6C765be11F44519Fc85Bf758723DC3C8cFC"
     },
-    "FIFOMarket": {
+    "Market": {
       "proxyAddress": "0xA85991C70a743ffcE508b2E520C685C9d8ea6F4d"
     },
     "LockedNORI": {
@@ -50,7 +50,7 @@
     "Certificate": {
       "proxyAddress": "0x2CA5C6C765be11F44519Fc85Bf758723DC3C8cFC"
     },
-    "FIFOMarket": {
+    "Market": {
       "proxyAddress": "0xA85991C70a743ffcE508b2E520C685C9d8ea6F4d"
     },
     "LockedNORI": {
@@ -79,7 +79,7 @@
     "BridgedPolygonNORI": {
       "proxyAddress": "0x8cf6E82919f69aE382DEf8f94e581a43Ce1E70C1"
     },
-    "FIFOMarket": {
+    "Market": {
       "proxyAddress": "0x0000000000000000000000000000000000000000"
     },
     "LockedNORI": {
@@ -107,7 +107,7 @@
     "Certificate": {
       "proxyAddress": "0xF5bafc8B26Fb38ea788Bc6eAf3d84ba3bc4Ca91C"
     },
-    "FIFOMarket": {
+    "Market": {
       "proxyAddress": "0x61819E8238A3493547Ae1131dc657D87F62833FD"
     },
     "LockedNORI": {

@@ -10,7 +10,7 @@ import { deployFIFOMarketContract, finalizeDeployments } from '@/utils/deploy';
 export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
-  hre.trace(`deploy-fifo-market`);
+  hre.trace(`deploy-market`);
   const feeWallet = ['hardhat', 'localhost'].includes(hre.network.name)
     ? hre.namedAccounts.noriWallet
     : hre.network.name === 'polygon'
@@ -21,11 +21,11 @@ export const deploy: DeployFunction = async (environment) => {
     feeWallet,
     feePercentage: 15,
   });
-  await finalizeDeployments({ hre, contracts: { FIFOMarket: contract } });
+  await finalizeDeployments({ hre, contracts: { Market: contract } });
 };
 
 export default deploy;
-deploy.tags = ['FIFOMarket', 'market'];
+deploy.tags = ['Market', 'market'];
 deploy.dependencies = [
   'preconditions',
   'Removal',

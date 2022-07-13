@@ -47,8 +47,8 @@ describe('RestrictedNORI', () => {
         { role: 'MINTER_ROLE' },
       ] as const) {
         it(`will assign the role ${role} to the market contract`, async () => {
-          const { rNori, fifoMarket } = await setupTest();
-          expect(await rNori.hasRole(await rNori[role](), fifoMarket.address))
+          const { rNori, market } = await setupTest();
+          expect(await rNori.hasRole(await rNori[role](), market.address))
             .to.be.true;
           expect(await rNori.getRoleAdmin(await rNori[role]())).to.eq(
             await rNori.DEFAULT_ADMIN_ROLE()
@@ -141,7 +141,7 @@ describe('RestrictedNORI', () => {
       ).to.be.reverted;
     });
     it('should revert if a restriction schedule is being created for a methodology/version that does not have a duration set', async () => {
-      const { removal, fifoMarket, hre } = await setupTest();
+      const { removal, market, hre } = await setupTest();
       const removalIdWithMethodology2 = await createRemovalTokenId({
         removal,
         removalData: { methodology: 2 },
@@ -152,7 +152,7 @@ describe('RestrictedNORI', () => {
       const amount = 20_000_000;
       const packedData = await createBatchMintData({
         hre,
-        fifoMarket,
+        market,
         listNow: true,
         projectId,
         scheduleStartTime,
@@ -177,7 +177,7 @@ describe('RestrictedNORI', () => {
         },
       ];
       const testSetup = await setupTest();
-      const { removal, fifoMarket, rNori, hre } = testSetup;
+      const { removal, market, rNori, hre } = testSetup;
       const { projectId, scheduleStartTime } = {
         projectId: 1_234_567_890,
         scheduleStartTime: await getLatestBlockTime({ hre }),
@@ -202,7 +202,7 @@ describe('RestrictedNORI', () => {
         [removalTokenId],
         await createBatchMintData({
           hre,
-          fifoMarket,
+          market,
           listNow: false,
           projectId,
           scheduleStartTime,

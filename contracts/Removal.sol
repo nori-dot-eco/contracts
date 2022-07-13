@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeab
 import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 import {TokenIdExists, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
-import "./FIFOMarket.sol";
+import "./Market.sol";
 
 struct BatchMintRemovalsData {
   uint256 projectId;
@@ -70,7 +70,7 @@ contract Removal is
    * @notice the RestrictedNORI contract that manages restricted tokens.
    */
   RestrictedNORI private _restrictedNori;
-  FIFOMarket private _market;
+  Market private _market;
   mapping(uint256 => RemovalData) private _removalIdToRemovalData;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData;
   mapping(address => EnumerableSetUpgradeable.UintSet)
@@ -99,7 +99,7 @@ contract Removal is
 
   function registerContractAddresses(
     RestrictedNORI restrictedNoriAddress_,
-    FIFOMarket marketAddress_
+    Market marketAddress_
   ) external onlyRole(DEFAULT_ADMIN_ROLE) {
     _restrictedNori = RestrictedNORI(restrictedNoriAddress_);
     _market = marketAddress_;
@@ -117,10 +117,11 @@ contract Removal is
    * @dev See {IERC1155-setApprovalForAll}.
    */
   function setApprovalForAll(
+    // todo override internal version instead
     address owner,
     address operator,
     bool approved
-  ) public virtual onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+  ) public virtual {
     _setApprovalForAll(owner, operator, approved);
   }
 
@@ -297,7 +298,7 @@ contract Removal is
     // If this Removal has not been completely sold, we will not sell the invalidated amount of that Removal
     burn(owner, removalId, amount); // todo remove public burn interface and use internal one
     if (owner == address(_market)) {
-      FIFOMarket(owner).release(removalId, amount);
+      Market(owner).release(removalId, amount);
     }
   }
 

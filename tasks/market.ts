@@ -8,8 +8,8 @@ import {
 import * as contractsConfig from '@/contracts.json';
 
 export const TASK = {
-  name: 'FIFOMarket',
-  description: 'Interact with the FIFOMarket contract',
+  name: 'Market',
+  description: 'Interact with the Market contract',
   run: async (
     {
       func,
@@ -38,8 +38,8 @@ export const TASK = {
       throw new Error(`Unsupported network: ${network}`);
     }
     return CONTRACT_FUNCTION_TASK_RUN({
-      contractAddress: contractsConfig[network].FIFOMarket.proxyAddress,
-      contractAbi: (await require('@/artifacts/FIFOMarket.sol/FIFOMarket.json'))
+      contractAddress: contractsConfig[network].Market.proxyAddress,
+      contractAbi: (await require('@/artifacts/Market.sol/Market.json'))
         .abi,
       from,
       func,

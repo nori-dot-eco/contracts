@@ -8,6 +8,8 @@ import { expect, setupTest } from '@/test/helpers';
 import { formatRemovalIdData } from '@/utils/removal';
 
 describe('RemovalUtils', () => {
+  // todo add struct encoding version
+  // todo remove bytes encoding version
   it('can create a token id from the component fields and decode the token id', async () => {
     const { removalTestHarness: harness } = await setupTest();
 

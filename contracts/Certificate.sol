@@ -12,6 +12,10 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
+/**
+ * todo consider removing all batch functions from all contracts (seems gratuitous to include it when you can usually achieve the same effect by inheriting multicall, OR using an external multicall contract)
+ */
+
 interface IERC998ERC1155TopDown {
   event ReceivedChild(
     address indexed from,

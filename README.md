@@ -28,7 +28,7 @@ yarn install
   - 0xCcFfFA6c2a030821331cC113b63babDC60BfF82A # todo fork repo note
 - Certificate
 - Removal
-- FIFOMarket
+- Market
 
 ### mumbai (polygon testnet)
 
@@ -36,7 +36,7 @@ yarn install
 - LockedNORI # todo fork repo note
 - Certificate
 - Removal
-- FIFOMarket
+- Market
 
 ### mainnet (ethereum L1)
 
@@ -53,7 +53,7 @@ yarn install
 - LockedNORI # todo fork repo note
 - Certificate
 - Removal
-- FIFOMarket
+- Market
 - NORI
 
 NB: hardhat running locally in a separate process (see `Running and deploying to a local testnet`)

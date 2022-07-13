@@ -1,14 +1,10 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, not-rely-on-time */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-import "@/test/helpers/fifo-market.sol";
+import "@/test/helpers/market.sol";
 import {UnpackedRemovalIdV0} from "@/contracts/RemovalUtils.sol";
 
-abstract contract Checkout is
-  UpgradeableFIFOMarket,
-  SeedableMock,
-  RemovalSeeded
-{
+abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
   uint256 internal _tokenId;
 
   function _seed() internal override(UpgradableRemovalMock, SeedableMock) {
@@ -41,7 +37,7 @@ abstract contract Checkout is
 }
 
 contract Checkout_buyingFromOneRemoval is Checkout {
-  function test_buyingFromOneRemoval() external {
+  function test() external {
     _assertRemovalBalance(address(_market), 1, true);
     _assertRemovalBalance(_namedAccounts.supplier, 0, false);
     _assertRemovalBalance(address(_certificate), 0, false);

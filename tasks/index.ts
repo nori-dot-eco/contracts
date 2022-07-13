@@ -16,7 +16,7 @@ import { TASK as ACCOUNTS_TASK } from './accounts';
 import { TASK as NCCR_V0_TASK } from './nccr-v0';
 import { TASK as REMOVAL_TASK } from './removal';
 import { TASK as CERTIFICATE_TASK } from './certificate';
-import { TASK as FIFO_MARKET_TASK } from './fifo-market';
+import { TASK as FIFO_MARKET_TASK } from './market';
 import { TASK as NORI_TASK } from './nori';
 // import { TASK as LOCKED_NORI_TASK } from './locked-nori'; // todo make work with forked repo
 import { TASK as BRIDGED_POLYGON_NORI_TASK } from './bridged-polygon-nori';

@@ -1,35 +1,32 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-import "@/contracts/FIFOMarket.sol";
+import "@/contracts/Market.sol";
 import "@/test/helpers/test.sol";
 import "@/test/helpers/bridged-polygon-nori.sol";
 import "@/test/helpers/removal.sol";
 import "@/test/helpers/certificate.sol";
 import "@/test/helpers/restricted-nori.sol";
 
-abstract contract UpgradeableFIFOMarket is
+abstract contract UpgradeableMarket is
   UpgradeableRestrictedNORI,
   UpgradeableRemoval,
   UpgradeableCertificate,
   UpgradeableBridgedPolygonNORI
 {
-  FIFOMarket internal _market;
+  Market internal _market;
 
   constructor() {
     _market = _deployFIFOMarket();
-    _removal.registerContractAddresses(
-      RestrictedNORI(_rNori),
-      FIFOMarket(_market)
-    );
+    _removal.registerContractAddresses(RestrictedNORI(_rNori), Market(_market));
     _rNori.registerContractAddresses(
       BridgedPolygonNORI(_bpNori),
       Removal(_removal)
     );
   }
 
-  function _deployFIFOMarket() internal returns (FIFOMarket) {
-    FIFOMarket impl = new FIFOMarket();
+  function _deployFIFOMarket() internal returns (Market) {
+    Market impl = new Market();
     bytes memory initializer = abi.encodeWithSelector(
       impl.initialize.selector,
       address(_removal),
@@ -39,13 +36,13 @@ abstract contract UpgradeableFIFOMarket is
       address(_namedAccounts.admin),
       15
     );
-    return FIFOMarket(_deployProxy(address(impl), initializer));
+    return Market(_deployProxy(address(impl), initializer));
   }
 }
 
-abstract contract NonUpgradableFIFOMarketMock is FIFOMarket, Global {}
+abstract contract NonUpgradableFIFOMarketMock is Market, Global {}
 
-abstract contract UpgradableFIFOMarketMock is UpgradeableFIFOMarket {}
+abstract contract UpgradableFIFOMarketMock is UpgradeableMarket {}
 
 abstract contract FIFOMarketSeeded is UpgradableFIFOMarketMock, SeedableMock {
   constructor() {
