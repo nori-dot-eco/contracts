@@ -228,7 +228,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
       super._mint(recipient, amount, "", "");
       return true;
     }
-    revert("lNori: transferFrom underlying asset failed");
+    revert("lNORI: transferFrom underlying asset failed");
   }
 
   /**
@@ -257,7 +257,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
       emit TokensClaimed(_msgSender(), recipient, amount);
       return true;
     }
-    revert("lNori: Transfer to underlying asset failed");
+    revert("lNORI: Transfer to underlying asset failed");
   }
 
   event BatchCreated(uint256 totalAmount);
@@ -275,7 +275,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
   ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
     require(
       amounts.length == grantParams.length,
-      "lNori: Requires one amount per grant detail"
+      "lNORI: Requires one amount per grant detail"
     );
     uint256 totalAmount = 0;
     for (uint8 i = 0; i < amounts.length; i++) {
@@ -487,7 +487,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     address old = address(_bridgedPolygonNori);
     require(
       old != address(newUnderlying),
-      "lNori: updating underlying address to existing address"
+      "lNORI: updating underlying address to existing address"
     );
     _bridgedPolygonNori = newUnderlying;
     emit UnderlyingTokenAddressUpdated(old, address(newUnderlying));
@@ -653,7 +653,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     grant.lastQuantityRevoked = quantityRevoked;
     super._burn(from, quantityRevoked, "", "");
     if (!_bridgedPolygonNori.transfer(to, quantityRevoked)) {
-      revert("lNori: transfer of underlying asset failed.");
+      revert("lNORI: transfer of underlying asset failed.");
     }
     emit UnvestedTokensRevoked(revocationTime, from, quantityRevoked);
   }

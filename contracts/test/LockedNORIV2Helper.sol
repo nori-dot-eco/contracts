@@ -57,22 +57,31 @@ contract LockedNORIV2Helper {
       );
   }
 
-  function createSimplePastGrant(
+  function createSimpleGrant(
     address lnori,
     uint256 amount,
-    address recipient
+    address recipient,
+    uint256 fromTime
   ) public {
     createFixtureGrant(
       lnori,
       amount,
       recipient,
-      block.timestamp - 365 days,
-      block.timestamp + 1,
-      0,
-      0,
+      fromTime,
+      fromTime + 365 days,
+      fromTime + 365 days,
+      fromTime,
       0,
       0
     );
+  }
+
+  function createSimpleGrantFromNow(
+    address lnori,
+    uint256 amount,
+    address recipient
+  ) public {
+    createSimpleGrant(lnori, amount, recipient, block.timestamp + 1 hours);
   }
 
   // Encodes creation data for a grant with no cliff over 365 days from `fromTime`
