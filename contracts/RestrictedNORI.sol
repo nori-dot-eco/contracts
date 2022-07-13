@@ -8,13 +8,13 @@ import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
-import "@/test/helpers/test.sol"; //todo
 
-// todo extract some of this contract to a preset (makes contracts more re-usable going forward without needing duplicate audit scope, also  makes it easier to isolate tests (e.g., pausability), w/o having to test it per-contract)
-// todo we should allow passing a timestamp to schedule revocation and summary functions (where 0 will set the timestamp to the current time)
+// todo extract some of this contract to a preset
+// todo https://github.com/nori-dot-eco/contracts/pull/249/files/fb97bb8a727a24cdc034f908b27899c6a7b61e26..303b99415db21bc73cd2304d30a8d364a8097f49#r907710195
 
 /**
- * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance collateral.
+ * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance
+ * collateral.
  *
  * @author Nori Inc.
  *
@@ -589,7 +589,8 @@ contract RestrictedNORI is
    * Transfers `amount` tokens of token type `id` from `from` to `to`.
    *
    * [See the OZ ERC1155 documentation for more] (
-   * https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155-safeTransferFrom-address-address-uint256-uint256-bytes-)
+   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
+   * #ERC1155-safeTransferFrom-address-address-uint256-uint256-bytes-)
    */
   function safeTransferFrom(
     address from,
@@ -614,7 +615,8 @@ contract RestrictedNORI is
    * Batched version of `safeTransferFrom`.
    *
    * [See the OZ ERC1155 documentation for more] (
-   * https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155-safeBatchTransferFrom-address-address-uint256---uint256---bytes-)
+   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
+   * #IERC1155-safeBatchTransferFrom-address-address-uint256---uint256---bytes-)
    */
   function safeBatchTransferFrom(
     address from,
@@ -770,9 +772,10 @@ contract RestrictedNORI is
    * Hook that is called before any token transfer. This includes minting and burning, as well as batched variants.
    *
    * @dev Follows the rules of hooks defined [here](
-   *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+   * https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
    * @dev See the ERC1155 specific version [here](
-   *  https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#ERC1155-_beforeTokenTransfer-address-address-address-uint256---uint256---bytes-)
+   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
+   * #ERC1155-_beforeTokenTransfer-address-address-address-uint256---uint256---bytes-)
    *
    * ##### Requirements:
    *
@@ -802,7 +805,6 @@ contract RestrictedNORI is
         uint256 id = ids[i];
         if (isWithdrawing) {
           if (amounts[i] > claimableBalanceForScheduleForAccount(id, from)) {
-            // todo https://github.com/nori-dot-eco/contracts/pull/249/files/fb97bb8a727a24cdc034f908b27899c6a7b61e26..303b99415db21bc73cd2304d30a8d364a8097f49#r907710195
             revert InsufficientClaimableBalance({
               account: from,
               scheduleId: id
