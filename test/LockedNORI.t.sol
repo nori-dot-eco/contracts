@@ -3,17 +3,22 @@ pragma solidity =0.8.15;
 
 import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
-import "../contracts/test/TestToken777.sol";
+import "../contracts/test/MockERC777.sol";
+import "../contracts/test/MockERC20Permit.sol";
+import "../contracts/test/PermitSigner.sol";
+import "../contracts/test/LockedNORIV2Helper.sol";
 import "../contracts/LockedNORIV2.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 abstract contract ERC777ERC1820 is
   IERC777RecipientUpgradeable,
-  IERC777SenderUpgradeable
+  IERC777SenderUpgradeable,
+  PermitSigner
 {
   function tokensReceived(
     address,
@@ -39,33 +44,33 @@ abstract contract ERC777ERC1820 is
 }
 
 contract Recipient {
-  address constant _ERC1820_REGISTRY_ADDRESS =
+  address internal constant _ERC1820_REGISTRY_ADDRESS =
     0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24;
-  uint256 receiveCounter;
-  uint256 sendCounter;
-  bool shouldAttackToSend;
-  bool shouldAttackReceived;
-  LockedNORIV2 lNori;
-  TestToken777 bpNori;
+  uint256 internal _receiveCounter;
+  uint256 internal _sendCounter;
+  bool internal _shouldAttackToSend;
+  bool internal _shouldAttackReceived;
+  LockedNORIV2 internal _lNori;
+  MockERC777 internal _bpNori;
 
   constructor(
     address lNoriAddress,
     bool attackReceived,
     bool attackToSend
   ) {
-    receiveCounter = 0;
-    shouldAttackToSend = attackToSend;
-    shouldAttackReceived = attackReceived;
-    IERC1820RegistryUpgradeable registry = IERC1820RegistryUpgradeable(
+    _receiveCounter = 0;
+    _shouldAttackToSend = attackToSend;
+    _shouldAttackReceived = attackReceived;
+    IERC1820RegistryUpgradeable _registry = IERC1820RegistryUpgradeable(
       _ERC1820_REGISTRY_ADDRESS
     );
-    lNori = LockedNORIV2(lNoriAddress);
-    registry.setInterfaceImplementer(
+    _lNori = LockedNORIV2(lNoriAddress);
+    _registry.setInterfaceImplementer(
       address(this),
       keccak256("ERC777TokensSender"),
       address(this)
     );
-    registry.setInterfaceImplementer(
+    _registry.setInterfaceImplementer(
       address(this),
       keccak256("ERC777TokensRecipient"),
       address(this)
@@ -80,17 +85,17 @@ contract Recipient {
     bytes calldata,
     bytes calldata
   ) external {
-    receiveCounter = receiveCounter + 1;
+    _receiveCounter = _receiveCounter + 1;
     console2.log(
       "tokensReceived - recipient contract, call count: %s, operator: %s, amount: %s",
-      sendCounter,
+      _sendCounter,
       operator,
       amount
     );
-    if (shouldAttackReceived) {
-      if (receiveCounter == 2) {
+    if (_shouldAttackReceived) {
+      if (_receiveCounter == 2) {
         console2.log("Re-entry attempt from tokensReceived");
-        lNori.withdrawTo(address(this), amount - 1);
+        _lNori.withdrawTo(address(this), amount - 1);
       }
     }
   }
@@ -103,80 +108,44 @@ contract Recipient {
     bytes calldata,
     bytes calldata
   ) external {
-    sendCounter = sendCounter + 1;
+    _sendCounter = _sendCounter + 1;
     console2.log(
       "tokensToSend - recipient contract, call count: %s, operator: %s, amount: %s",
-      sendCounter,
+      _sendCounter,
       operator,
       amount
     );
-    if (shouldAttackToSend) {
-      if (msg.sender == address(lNori) && sendCounter < 2) {
+    if (_shouldAttackToSend) {
+      if (msg.sender == address(_lNori) && _sendCounter < 2) {
         console2.log("Re-entry attempt from tokensToSend");
-        lNori.withdrawTo(address(this), amount - 1);
+        _lNori.withdrawTo(address(this), amount - 1);
       }
     }
   }
 }
 
 // https://tagmerge.com/issue/gakonst/foundry/693
-contract LockedNORITest is Test, ERC777ERC1820 {
-  address constant DEPOSITOR = address(0x10);
-  address constant _ERC1820_REGISTRY_ADDRESS =
+contract LockedNORITest is
+  Test,
+  ERC777ERC1820 // todo use pattern established in Removal/certificate/etc tests
+{
+  address internal constant _ERC1820_REGISTRY_ADDRESS =
     0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24;
-  address constant MUMBAI_CHILD_CHAIN_MANAGER_PROXY =
-    0xb5505a6d998549090530911180f38aC5130101c6;
-  uint256 constant SEED_AMOUNT = 1_000_000_000_000_000_000_000_000;
-  uint256 constant GRANT_AMOUNT = 100_000_000_000_000_000;
-  IERC1820RegistryUpgradeable registry;
-  address admin = vm.addr(69);
-  LockedNORIV2 lNori;
-  TestToken777 bpNori;
+  uint256 internal constant _SEED_AMOUNT = 1_000_000_000_000_000_000_000_000;
+  uint256 internal constant _GRANT_AMOUNT = 100_000_000_000_000_000;
+  IERC1820RegistryUpgradeable internal _registry;
+  address internal _admin = vm.addr(69); // todo use named accounts
+  LockedNORIV2 internal _lNori;
+  MockERC777 internal _erc777;
+  MockERC20Permit internal _erc20;
+  LockedNORIV2Helper internal _helper;
+  PermitSigner internal _signer;
 
-  function issueGrant(address recipientAddress) internal {
-    uint256 amount = GRANT_AMOUNT;
+  event Approval(address indexed owner, address indexed spender, uint256 value); // todo
 
-    lNori.createGrant(
-      amount,
-      recipientAddress,
-      block.timestamp,
-      block.timestamp,
-      block.timestamp + 100,
-      block.timestamp,
-      block.timestamp,
-      0,
-      0,
-      0,
-      0
-    );
-    bpNori.approve(address(lNori), GRANT_AMOUNT);
-    lNori.depositFor(recipientAddress, GRANT_AMOUNT);
-  }
-
-  function deployProxy(address _impl, bytes memory initializer)
-    public
-    returns (address)
-  {
-    TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-      _impl,
-      admin,
-      initializer
-    );
-    return address(proxy);
-  }
-
-  function deployLockedNORIV2() public returns (LockedNORIV2) {
-    LockedNORIV2 impl = new LockedNORIV2();
-    bytes memory initializer = abi.encodeWithSelector(
-      impl.initialize.selector,
-      address(bpNori)
-    );
-    return LockedNORIV2(deployProxy(address(impl), initializer));
-  }
-
-  function setUp() public {
+  function setUp() external {
     vm.etch(
-      address(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24),
+      address(_ERC1820_REGISTRY_ADDRESS),
       bytes(
         hex"608060405234801561001057600080fd5b50600436106100a5576000357c0100000000000000000000000000000000000000000000"
         hex"00000000000090048063a41e7d5111610078578063a41e7d51146101d4578063aabbb8ca1461020a578063b7056765146102365780"
@@ -228,70 +197,161 @@ contract LockedNORITest is Test, ERC777ERC1820 {
         hex"c4734c126b524e6c0029"
       )
     );
-    // vm.etch(address(_ERC1820_REGISTRY_ADDRESS), newCode)
-    // TODO:sw this should work too but it's getting the wrong bytecode
-    // address regAddr = deployCode("ERC1820Registry.sol");
-    registry = IERC1820RegistryUpgradeable(_ERC1820_REGISTRY_ADDRESS);
-    registry.setInterfaceImplementer(
+    _registry = IERC1820RegistryUpgradeable(_ERC1820_REGISTRY_ADDRESS);
+    _registry.setInterfaceImplementer(
       address(this),
       keccak256("ERC777TokensSender"),
       address(this)
     );
-    registry.setInterfaceImplementer(
+    _registry.setInterfaceImplementer(
       address(this),
       keccak256("ERC777TokensRecipient"),
       address(this)
     );
-
-    bpNori = new TestToken777();
-    if (bpNori.balanceOf(address(this)) != SEED_AMOUNT) {
-      revert("Seed amount does not equal balance");
-    }
-
-    lNori = deployLockedNORIV2();
+    _erc777 = _deployMockERC777(); // todo
+    _erc20 = _deployMockERC20(); // todo
+    _lNori = _deployLockedNORIV2(address(_erc20)); // todo
+    _helper = new LockedNORIV2Helper(); // todo
+    _signer = new PermitSigner(); // todo
+    // if (bpNori.balanceOf(address(this)) != _SEED_AMOUNT) { // todo
+    //   revert("Seed amount does not equal balance");
+    // }
   }
 
-  function testTokensReceivedReverts() public {
+  function testBatchGrantCreation() external {
+    // todo
+    address recipient = vm.addr(0xa11ce);
+    uint256 grantAdminKey = 0xabcdef;
+    address grantAdmin = vm.addr(grantAdminKey);
+    _erc20.transfer(grantAdmin, _GRANT_AMOUNT);
+    assertEq(_erc20.balanceOf(address(grantAdmin)), _GRANT_AMOUNT);
+    _lNori.grantRole(_lNori.TOKEN_GRANTER_ROLE(), grantAdmin);
+    uint256 deadline = 1 days;
+    bytes memory params = _helper.getSimpleGrantCreationParamsEncoded(
+      recipient,
+      1 days
+    );
+    vm.startPrank(grantAdmin);
+    bytes32 digest = _signer.digestPermitCall(
+      address(_erc20),
+      address(_lNori),
+      _GRANT_AMOUNT,
+      deadline
+    );
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(grantAdminKey, digest);
+    uint256[] memory amounts = new uint256[](1);
+    amounts[0] = _GRANT_AMOUNT;
+    bytes[] memory data = new bytes[](1);
+    data[0] = params;
+    vm.expectEmit(true, true, true, false);
+    emit Approval(address(grantAdmin), address(_lNori), _GRANT_AMOUNT);
+    _lNori.batchCreateGrants(amounts, data, deadline, v, r, s);
+    _helper.assertSimplePastGrant(address(_lNori), _lNori.getGrant(recipient));
+    assertEq(_erc20.balanceOf(grantAdmin), 0);
+    assertEq(_erc20.balanceOf(address(_lNori)), _GRANT_AMOUNT);
+    assertEq(_lNori.balanceOf(recipient), _GRANT_AMOUNT);
+    assertEq(_lNori.vestedBalanceOf(recipient), 0);
+    assertEq(_lNori.unlockedBalanceOf(recipient), 0);
+    vm.warp(366 days);
+    assertEq(_lNori.balanceOf(recipient), _GRANT_AMOUNT);
+    assertEq(_lNori.vestedBalanceOf(recipient), _GRANT_AMOUNT);
+    assertEq(_lNori.unlockedBalanceOf(recipient), _GRANT_AMOUNT);
+  }
+
+  function testTokensReceivedReverts() external {
     vm.expectRevert(
       "ERC777: token recipient contract has no implementer for ERC777TokensRecipient"
     );
-    bpNori.send(address(lNori), GRANT_AMOUNT, "");
+    _erc777.send(address(_lNori), _GRANT_AMOUNT, "");
   }
 
-  function testReentryTokensReceived() public {
-    Recipient recipient = new Recipient(address(lNori), true, false);
-    issueGrant(address(recipient));
-    skip(100);
+  // This test is no longer an issue because the underlying was switched to ERC20
+  function testReentryTokensReceived() external {
+    Recipient recipient = new Recipient(address(_lNori), true, false);
+    _issueGrant(address(recipient), 1 days);
+    vm.warp(366 days);
+    uint256 balance = _lNori.unlockedBalanceOf(address(recipient));
+    console2.log("Unlocked balance is: ", balance);
+    vm.prank(address(recipient));
+    _lNori.withdrawTo(address(recipient), balance);
+    assertEq(_lNori.unlockedBalanceOf(address(recipient)), 0);
+    assertEq(_erc20.balanceOf(address(recipient)), _GRANT_AMOUNT);
+  }
 
-    uint256 balance = lNori.unlockedBalanceOf(address(recipient));
+  function testReentryTokensToSend() external {
+    Recipient recipient = new Recipient(address(_lNori), false, true);
+    _issueGrant(address(recipient), 1 days);
+    vm.warp(366 days);
+    uint256 balance = _lNori.unlockedBalanceOf(address(recipient));
     console2.log("Unlocked balance is: ", balance);
     vm.prank(address(recipient));
     vm.expectRevert("lNORI: insufficient balance");
-    lNori.withdrawTo(address(recipient), balance);
+    _lNori.withdrawTo(address(recipient), balance);
   }
 
-  function testReentryTokensToSend() public {
-    Recipient recipient = new Recipient(address(lNori), false, true);
-    issueGrant(address(recipient));
-    skip(100);
-
-    uint256 balance = lNori.unlockedBalanceOf(address(recipient));
+  function testNormalWithdrawal() external {
+    Recipient recipient = new Recipient(address(_lNori), false, false);
+    _issueGrant(address(recipient), 1 days);
+    vm.warp(366 days);
+    uint256 balance = _lNori.unlockedBalanceOf(address(recipient));
     console2.log("Unlocked balance is: ", balance);
     vm.prank(address(recipient));
-    vm.expectRevert("lNORI: insufficient balance");
-    lNori.withdrawTo(address(recipient), balance);
+    _lNori.withdrawTo(address(recipient), balance);
+    assertEq(_lNori.unlockedBalanceOf(address(recipient)), 0);
+    assertEq(_erc20.balanceOf(address(recipient)), _GRANT_AMOUNT);
   }
 
-  function testNormalWithdrawl() public {
-    Recipient recipient = new Recipient(address(lNori), false, false);
-    issueGrant(address(recipient));
-    skip(100);
+  function _issueGrant(address recipientAddress, uint256 fromTime) internal {
+    uint256 amount = _GRANT_AMOUNT;
+    _lNori.createGrant(
+      amount,
+      recipientAddress,
+      fromTime,
+      fromTime + 365 days,
+      fromTime + 365 days,
+      fromTime,
+      fromTime,
+      0,
+      0,
+      0,
+      0
+    );
+    _erc20.approve(address(_lNori), _GRANT_AMOUNT);
+    _lNori.depositFor(recipientAddress, _GRANT_AMOUNT);
+  }
 
-    uint256 balance = lNori.unlockedBalanceOf(address(recipient));
-    console2.log("Unlocked balance is: ", balance);
-    vm.prank(address(recipient));
-    lNori.withdrawTo(address(recipient), balance);
-    assertEq(lNori.unlockedBalanceOf(address(recipient)), 0);
-    assertEq(bpNori.balanceOf(address(recipient)), GRANT_AMOUNT);
+  function _deployProxy(address _impl, bytes memory initializer)
+    internal
+    returns (address)
+  {
+    TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+      _impl,
+      _admin,
+      initializer
+    );
+    return address(proxy);
+  }
+
+  function _deployLockedNORIV2(address erc20_) internal returns (LockedNORIV2) {
+    LockedNORIV2 impl = new LockedNORIV2();
+    bytes memory initializer = abi.encodeWithSelector(
+      impl.initialize.selector,
+      erc20_
+    );
+    return LockedNORIV2(_deployProxy(address(impl), initializer));
+  }
+
+  function _deployMockERC20() internal returns (MockERC20Permit) {
+    // todo
+    MockERC20Permit impl = new MockERC20Permit();
+    bytes memory initializer = abi.encodeWithSignature("initialize()");
+    return MockERC20Permit(_deployProxy(address(impl), initializer));
+  }
+
+  function _deployMockERC777() internal returns (MockERC777) {
+    // todo
+    MockERC777 impl = new MockERC777();
+    bytes memory initializer = abi.encodeWithSignature("initialize()");
+    return MockERC777(_deployProxy(address(impl), initializer));
   }
 }

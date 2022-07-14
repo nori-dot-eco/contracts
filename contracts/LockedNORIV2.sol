@@ -228,7 +228,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
       super._mint(recipient, amount, "", "");
       return true;
     }
-    revert("lNori: transferFrom underlying asset failed");
+    revert("lNORI: transferFrom underlying asset failed");
   }
 
   /**
@@ -257,7 +257,43 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
       emit TokensClaimed(_msgSender(), recipient, amount);
       return true;
     }
-    revert("lNori: Transfer to underlying asset failed");
+    revert("lNORI: Transfer to underlying asset failed");
+  }
+
+  event BatchCreated(uint256 totalAmount);
+
+  /**
+   * @notice Batch version of `createGrant` with permit support.
+   */
+  function batchCreateGrants(
+    uint256[] calldata amounts,
+    bytes[] calldata grantParams,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
+    require(
+      amounts.length == grantParams.length,
+      "lNORI: Requires one amount per grant detail"
+    );
+    uint256 totalAmount = 0;
+    for (uint8 i = 0; i < amounts.length; i++) {
+      totalAmount = totalAmount + amounts[i];
+      address recipient = _createGrant(amounts[i], grantParams[i]);
+      super._mint(recipient, amounts[i], "", "");
+    }
+    emit BatchCreated(totalAmount);
+    _bridgedPolygonNori.permit(
+      _msgSender(),
+      address(this),
+      totalAmount,
+      deadline,
+      v,
+      r,
+      s
+    );
+    _bridgedPolygonNori.transferFrom(_msgSender(), address(this), totalAmount);
   }
 
   /**
@@ -450,7 +486,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     address old = address(_bridgedPolygonNori);
     require(
       old != address(newUnderlying),
-      "lNori: updating underlying address to existing address"
+      "lNORI: updating underlying address to existing address"
     );
     _bridgedPolygonNori = newUnderlying;
     emit UnderlyingTokenAddressUpdated(old, address(newUnderlying));
@@ -496,7 +532,10 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
    * It is also callable externally (see `grantTo`) to handle cases
    * where tokens are incrementally deposited after the grant is established.
    */
-  function _createGrant(uint256 amount, bytes memory userData) internal {
+  function _createGrant(uint256 amount, bytes memory userData)
+    internal
+    returns (address recipient)
+  {
     CreateTokenGrantParams memory params = abi.decode(
       userData,
       (CreateTokenGrantParams)
@@ -552,6 +591,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
       params.vestEndTime,
       params.unlockEndTime
     );
+    return params.recipient;
   }
 
   /**
@@ -612,7 +652,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     grant.lastQuantityRevoked = quantityRevoked;
     super._burn(from, quantityRevoked, "", "");
     if (!_bridgedPolygonNori.transfer(to, quantityRevoked)) {
-      revert("lNori: transfer of underlying asset failed.");
+      revert("lNORI: transfer of underlying asset failed.");
     }
     emit UnvestedTokensRevoked(revocationTime, from, quantityRevoked);
   }

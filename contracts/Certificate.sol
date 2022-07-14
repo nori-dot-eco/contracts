@@ -12,7 +12,7 @@ import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol"
 import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
 import "./IERC998ERC1155TopDown.sol";
 import {FunctionDisabled, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
-import "forge-std/console2.sol"; // todo
+// import "forge-std/console2.sol"; // todo
 
 error ForbiddenTransferAfterMinting(); // todo error declaration consistency (inside-contract vs outside-of-contract)
 
@@ -190,8 +190,6 @@ contract Certificate is
       data,
       (address, address) // todo is it possible to use a struct when decoding and in market when encoding?
     );
-    console2.log("removalContract==", removalContract);
-    console2.log("recipient2==", recipient);
     uint256 certificateTokenId = ERC721AStorage.layout()._currentIndex;
     for (uint256 i = 0; i < removalTokenIds.length; ++i) {
       _receiveChild(
