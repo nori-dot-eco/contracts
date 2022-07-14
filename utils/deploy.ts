@@ -16,8 +16,6 @@ import type {
   Market__factory,
   MockCertificate,
   MockCertificate__factory,
-  MockERC1155PresetPausableNonTransferrable,
-  MockERC1155PresetPausableNonTransferrable__factory,
   NORI,
   NORI__factory,
   Removal,
@@ -153,21 +151,6 @@ export const deployMockCertificate = async ({
 }): Promise<InstanceOfContract<MockCertificate>> => {
   return hre.deployOrUpgradeProxy<MockCertificate, MockCertificate__factory>({
     contractName: 'MockCertificate',
-    args: [],
-    options: { initializer: 'initialize()' },
-  });
-};
-
-export const deployMockERC1155PresetPausableNonTransferrable = async ({
-  hre,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-}): Promise<InstanceOfContract<MockERC1155PresetPausableNonTransferrable>> => {
-  return hre.deployOrUpgradeProxy<
-    MockERC1155PresetPausableNonTransferrable,
-    MockERC1155PresetPausableNonTransferrable__factory
-  >({
-    contractName: 'MockERC1155PresetPausableNonTransferrable',
     args: [],
     options: { initializer: 'initialize()' },
   });

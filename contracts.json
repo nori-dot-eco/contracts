@@ -27,9 +27,6 @@
     "MockCertificate": {
       "proxyAddress": "0x3C5d3e20ab495ecee10b4E6eeAd04Dd21d780b98"
     },
-    "MockERC1155PresetPausableNonTransferrable": {
-      "proxyAddress": "0x2AE26a38Bc11CE4FdfCaf0431D5a708b17E0dD99"
-    },
     "RestrictedNORI": {
       "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
     },
@@ -64,9 +61,6 @@
     },
     "MockCertificate": {
       "proxyAddress": "0x3C5d3e20ab495ecee10b4E6eeAd04Dd21d780b98"
-    },
-    "MockERC1155PresetPausableNonTransferrable": {
-      "proxyAddress": "0x2AE26a38Bc11CE4FdfCaf0431D5a708b17E0dD99"
     }
   },
   "polygon": {

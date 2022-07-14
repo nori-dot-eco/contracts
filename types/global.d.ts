@@ -45,7 +45,6 @@ import type {
   ScheduleTestHarness,
   RemovalTestHarness,
   MockCertificate,
-  MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types';
 
 declare module 'hardhat/config' {
@@ -204,7 +203,6 @@ declare global {
     ScheduleTestHarness?: ScheduleTestHarness;
     RemovalTestHarness?: RemovalTestHarness;
     MockCertificate?: MockCertificate;
-    MockERC1155PresetPausableNonTransferrable?: MockERC1155PresetPausableNonTransferrable;
   }
 
   var ethers: Omit<

@@ -412,9 +412,8 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
   }
 
   /**
-   * @dev Ensure implementation contract is minimally initialized
-   *
-   * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract
+   * @dev Ensure implementation contract is minimally initialized. See more [here](
+   * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract).
    */
   constructor() {
     _disableInitializers();
@@ -619,7 +618,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
   }
 
   /**
-   * @notice Hook that is called before send, transfer, mint, and burn. Used used to disable transferring locked nori.
+   * @notice Hook that is called before send, transfer, mint, and burn. Used to disable transferring locked nori.
    *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
