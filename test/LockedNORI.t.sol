@@ -256,6 +256,7 @@ contract LockedNORITest is
     assertEq(_lNori.balanceOf(recipient), _GRANT_AMOUNT);
     assertEq(_lNori.vestedBalanceOf(recipient), _GRANT_AMOUNT);
     assertEq(_lNori.unlockedBalanceOf(recipient), _GRANT_AMOUNT);
+    vm.stopPrank();
   }
 
   function testTokensReceivedReverts() external {

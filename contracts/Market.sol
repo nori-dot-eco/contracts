@@ -100,6 +100,11 @@ contract Market is
     return _priorityRestrictedThreshold;
   }
 
+  function getNoriFee() external view returns (uint256) {
+    // todo getX vs X naming convention + consistency
+    return _noriFee; // todo getter that returns amount * fee / 100 ?
+  }
+
   function setPriorityRestrictedThreshold(uint256 threshold)
     external
     onlyRole(DEFAULT_ADMIN_ROLE)
@@ -158,23 +163,23 @@ contract Market is
     // todo we need to treat totalActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s.
     // priority reserved etc.
-    // _checkSupply();
-    uint256 certificateAmount = _certificateAmountFromPurchaseTotal(amount);
+    _checkSupply();
+    uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateSupplyRoundRobin(certificateAmount);
-    // _bridgedPolygonNori.permit( // temporary to avoid needing to stub this in foundry
-    //   _msgSender(),
-    //   address(this),
-    //   amount,
-    //   deadline,
-    //   v,
-    //   r,
-    //   s
-    // );
+    _bridgedPolygonNori.permit(
+      _msgSender(),
+      address(this),
+      amount,
+      deadline,
+      v,
+      r,
+      s
+    );
     _fulfillOrder(
       certificateAmount,
       recipient,
@@ -200,7 +205,7 @@ contract Market is
     bytes32 s
   ) external {
     _checkSupply();
-    uint256 certificateAmount = _certificateAmountFromPurchaseTotal(amount);
+    uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount); // todo any way to de-dupe this (also called to gen amount)
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -244,7 +249,7 @@ contract Market is
   }
 
   /**
-   * Reverts if market is out of stock or if available stock is being reserved for priority buyers
+   * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
    * and buyer is not priority.
    */
   function _checkSupply() private view {
@@ -260,19 +265,19 @@ contract Market is
   }
 
   /**
-   * Calculates the quantity of carbon removals being purchased given the purchase total and the
+   * @dev Calculates the quantity of carbon removals being purchased given the purchase total and the
    * percentage of that purchase total that is due to Nori as a transaction fee.
    */
-  function _certificateAmountFromPurchaseTotal(uint256 purchaseTotal)
-    private
+  function certificateAmountFromPurchaseTotal(uint256 purchaseTotal)
+    external
     view
     returns (uint256)
   {
-    return purchaseTotal; // todo re-enable (temp workaround for poc) // (purchaseTotal * 100) / (100 + _noriFee);
+    return (purchaseTotal * 100) / (100 + _noriFee); // todo mulDiv from OZ?
   }
 
   /**
-   * Determines the removal ids, amounts, and suppliers to fill the given purchase quantity in
+   * @dev Determines the removal ids, amounts, and suppliers to fill the given purchase quantity in
    * a round-robin order.
    */
   function _allocateSupplyRoundRobin(uint256 certificateAmount)
@@ -426,10 +431,9 @@ contract Market is
     uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
       batchedIds
     );
-    address owner = address(this); // todo temporary workaround to avoid needing to use erc20 permit in foundry
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < batchedIds.length; i++) {
-      uint256 noriFee = (batchedAmounts[i] * _noriFee) / 100;
+      uint256 noriFee = (batchedAmounts[i] * _noriFee) / 100; // todo muldiv from OZ?
       uint256 restrictedSupplierFee = 0;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
       if (holdbackPercentages[i] > 0) {
@@ -437,23 +441,23 @@ contract Market is
           (unrestrictedSupplierFee * holdbackPercentages[i]) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        // _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo use single batch call, check effects pattern
-        // _bridgedPolygonNori.transferFrom(
-        //   owner,
-        //   address(_restrictedNori),
-        //   restrictedSupplierFee
-        // );
+        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo use single batch call, check effects
+        _bridgedPolygonNori.transferFrom(
+          _msgSender(),
+          address(_restrictedNori),
+          restrictedSupplierFee
+        );
       }
-      // _bridgedPolygonNori.transferFrom(owner, _noriFeeWallet, noriFee); // todo temporary workaround to avoid needing to use erc20 permit in foundry // todo use multicall to batch transfer
-      // _bridgedPolygonNori.transferFrom( // todo batch, check effects pattern
-      //   owner,
-      //   suppliers[i],
-      //   unrestrictedSupplierFee
-      // );
+      _bridgedPolygonNori.transferFrom(_msgSender(), _noriFeeWallet, noriFee); // todo use multicall to batch transfer
+      _bridgedPolygonNori.transferFrom( // todo batch, check effects pattern
+        _msgSender(),
+        suppliers[i],
+        unrestrictedSupplierFee
+      );
     }
     bytes memory data = abi.encode(recipient, address(_removal));
     _removal.safeBatchTransferFrom( // todo is this actually assigning the buyer as the owner of the NFT?
-      owner,
+      address(this),
       address(_certificate),
       batchedIds,
       batchedAmounts,

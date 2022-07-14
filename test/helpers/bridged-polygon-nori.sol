@@ -3,13 +3,16 @@
 pragma solidity =0.8.15;
 import "@/contracts/BridgedPolygonNORI.sol";
 import "@/test/helpers/test.sol";
+import "@/test/helpers/signature-utils.sol";
 
 abstract contract UpgradeableBridgedPolygonNORI is Upgradeable {
   BridgedPolygonNORI internal _bpNori;
+  SignatureUtils internal _signatureUtils;
 
   constructor() {
     _bpNori = _deployBridgedPolygonNORI();
     _bpNori.grantRole(_bpNori.DEPOSITOR_ROLE(), _namedAccounts.admin);
+    _signatureUtils = new SignatureUtils(_bpNori.DOMAIN_SEPARATOR());
   }
 
   function _deployBridgedPolygonNORI() internal returns (BridgedPolygonNORI) {

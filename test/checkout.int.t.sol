@@ -28,18 +28,26 @@ abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
     _removalTokenId = RemovalUtils.createRemovalIdFromStruct(removalId);
     _removal.mintBatch(
       _namedAccounts.supplier,
-      _asSingletonUintArray(1),
+      _asSingletonUintArray(1e18),
       _asSingletonUintArray(_removalTokenId), // todo encode ID or test won't work
       data
     );
-    vm.prank(_namedAccounts.admin);
-    _bpNori.deposit(_namedAccounts.buyer, abi.encode(100 ether));
   }
 }
 
 contract Checkout_buyingFromOneRemoval is Checkout {
   function test() external {
-    _assertRemovalBalance(address(_market), 1, true);
+    uint256 ownerPrivateKey = 0xA11CE;
+    address owner = vm.addr(ownerPrivateKey);
+    uint256 fee = (1 ether * _market.getNoriFee()) / 100;
+    uint256 amount = 1 ether + fee;
+    uint256 certificateAmount = _market.certificateAmountFromPurchaseTotal(
+      amount
+    );
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(amount));
+    // todo refactor so pre-assertions and setup to live in this contracts setUp function (improves gas reporting)
+    _assertRemovalBalance(address(_market), certificateAmount, true);
     _assertRemovalBalance(_namedAccounts.supplier, 0, false);
     _assertRemovalBalance(address(_certificate), 0, false);
     assertEq(
@@ -52,29 +60,34 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     );
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
-    vm.prank(_namedAccounts.buyer);
-    _bpNori.transfer(address(_market), 1); // todo temporary work around to avoid erc20 permit
-    vm.prank(_namedAccounts.buyer);
+    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      amount,
+      1 days,
+      _bpNori
+    );
+    vm.prank(owner);
     _market.swap(
-      _namedAccounts.buyer,
-      1,
-      block.timestamp + 1 weeks,
-      uint8(0),
-      bytes32(""),
-      bytes32("")
+      owner,
+      amount,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
     );
     _assertRemovalBalance(address(_market), 0, false);
     _assertRemovalBalance(_namedAccounts.supplier, 0, false);
-    _assertRemovalBalance(address(_certificate), 1, true);
+    _assertRemovalBalance(address(_certificate), certificateAmount, true);
     assertEq(
       _certificate.childBalance(
         _certificateTokenId,
         address(_removal),
         _removalTokenId
       ),
-      1
+      certificateAmount
     );
-    assertEq(_certificate.ownerOf(_certificateTokenId), _namedAccounts.buyer);
+    assertEq(_certificate.ownerOf(_certificateTokenId), owner);
   }
 
   function _assertRemovalBalance(
@@ -89,6 +102,9 @@ contract Checkout_buyingFromOneRemoval is Checkout {
         : new uint256[](amount)
     );
     assertEq(_removal.cumulativeBalanceOf(owner), amount);
-    assertEq(_removal.numberOfTokensOwnedByAddress(owner), amount);
+    assertEq(
+      _removal.numberOfTokensOwnedByAddress(owner),
+      ownsRemovalTokenId ? 1 : 0
+    );
   }
 }

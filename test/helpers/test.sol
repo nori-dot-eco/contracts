@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 
 abstract contract Global is Test {
   struct NamedAccounts {
+    // todo generate from env variables + use vm.addr(privatekey)
     address admin;
     address supplier;
     address buyer;
