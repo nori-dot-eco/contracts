@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.15;
+pragma solidity =0.8.15; // todo bump solidity version globally to latest
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
-import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
-import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
-import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
+import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
+import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
 import "./IERC998ERC1155TopDown.sol";
 import {FunctionDisabled, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
+import "forge-std/console2.sol"; // todo
 
 error ForbiddenTransferAfterMinting(); // todo error declaration consistency (inside-contract vs outside-of-contract)
 
+// todo what is _msgSenderERC721A
+// todo any risk in allowing approve to be called? These are not defined as virtual in 721a...
 // todo remove all "see {}" syntax as this only works in the context of OZ contracts (their docgen parses it)
 // todo check that whenNotPaused on all mutating functions
 // todo check that all transfer functions call _beforeTokenTransfers
@@ -31,7 +33,7 @@ contract Certificate is
   ERC721AQueryableUpgradeable,
   PausableUpgradeable,
   AccessControlEnumerableUpgradeable,
-  OwnableUpgradeable
+  OwnableUpgradeable // todo why was this added?
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
@@ -57,54 +59,23 @@ contract Certificate is
 
   mapping(uint256 => mapping(address => mapping(uint256 => uint256)))
     private _balances;
+
   mapping(address => mapping(uint256 => EnumerableSetUpgradeable.UintSet))
-    private _holdersOf;
+    private _holdersOf; // todo xToY (e.g., ownerToTokenIds) mapping naming convention globally
+
   mapping(uint256 => EnumerableSetUpgradeable.AddressSet)
     private _childContract; // todo rename
+
   mapping(uint256 => mapping(address => EnumerableSetUpgradeable.UintSet))
     private _childsForChildContract; // todo rename
+
+  // todo consider renaming tokenId -> certificateId / removalId
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
     _disableInitializers();
-  }
-
-  /**
-   * @dev Creates a new token for `to`.
-   *
-   * See {ERC721-_mint}.
-   *
-   * Requirements:
-   *
-   * - Meets the requirements of `_mint`.
-   */
-  function mint(address to, uint256 tokenId) external {
-    // We cannot just use balanceOf to create the new tokenId because tokens
-    // can be burned (destroyed), so we need a separate counter.
-    _mint(to, tokenId); // todo whennotpaused
-  }
-
-  /**
-   * @dev Creates a new token for `to`.
-   *
-   * See {ERC721-_mint}.
-   *
-   * Requirements:
-   *
-   * - the caller must have the `MINTER_ROLE`.
-   * - the contract must not be paused.
-   */
-  function _mint(address to, uint256 tokenId)
-    internal
-    override
-    onlyRole(MINTER_ROLE)
-    whenNotPaused
-  {
-    // We cannot just use balanceOf to create the new tokenId because tokens
-    // can be burned (destroyed), so we need a separate counter.
-    _mint(to, tokenId); // todo whennotpaused
   }
 
   /**
@@ -148,28 +119,30 @@ contract Certificate is
    * @dev Gives child balance for a specific child contract and child id .
    */
   function childBalance(
-    uint256 tokenId,
-    address childContract,
-    uint256 childTokenId
+    uint256 certificateTokenId,
+    address removalContract,
+    uint256 removalTokenId
   ) external view returns (uint256) {
-    return _balances[tokenId][childContract][childTokenId];
+    return _balances[certificateTokenId][removalContract][removalTokenId];
   }
+
+  // todo @dev vs @notice consistency
 
   /**
    * @dev Gives list of child contract where token ID has childs.
    */
-  function childContractsFor(uint256 tokenId)
+  function childContractsFor(uint256 certificateTokenId)
     external
     view
     returns (address[] memory)
   {
-    address[] memory childContracts = new address[](
-      _childContract[tokenId].length()
+    address[] memory removalContracts = new address[](
+      _childContract[certificateTokenId].length()
     );
-    for (uint256 i = 0; i < _childContract[tokenId].length(); i++) {
-      childContracts[i] = _childContract[tokenId].at(i);
+    for (uint256 i = 0; i < _childContract[certificateTokenId].length(); i++) {
+      removalContracts[i] = _childContract[certificateTokenId].at(i);
     }
-    return childContracts;
+    return removalContracts;
   }
 
   /**
@@ -194,51 +167,55 @@ contract Certificate is
   }
 
   /**
-   * @dev Receives a batch of child tokens, the receiver token ID must be
-   * encoded in the field data.
+   * @dev Receives a batch of child tokens, the receiver token ID must be encoded in the field data.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the contract is not paused (enforced by `_beforeTokenTransfers`). // todo consistency in
+   * how this requirement is worded
+   * - // TODO other reqs
    */
   function onERC1155BatchReceived(
     address,
-    address from,
-    uint256[] memory ids,
+    address,
+    uint256[] memory removalTokenIds,
     uint256[] memory values,
     bytes memory data
-  ) public virtual override returns (bytes4) {
-    require(
-      data.length == 32,
-      "ERC998: data must contain the unique uint256 tokenId to transfer the child token to" // todo custom error
+  ) public override returns (bytes4) {
+    // todo onlyMarket
+    if (removalTokenIds.length != values.length) {
+      revert ArrayLengthMismatch("removalTokenIds", "values");
+    }
+    (address recipient, address removalContract) = abi.decode(
+      data,
+      (address, address) // todo is it possible to use a struct when decoding and in market when encoding?
     );
-    if (ids.length != values.length) {
-      revert ArrayLengthMismatch("ids", "values");
-    }
-    uint256 receiverTokenId;
-    uint256 index = msg.data.length - 32;
-    assembly {
-      receiverTokenId := calldataload(index)
-    }
-    for (uint256 i = 0; i < ids.length; i++) {
-      _receiveChild(receiverTokenId, _msgSender(), ids[i], values[i]);
-      emit ReceivedChild(
-        from,
-        receiverTokenId,
-        _msgSender(),
-        ids[i],
+    console2.log("removalContract==", removalContract);
+    console2.log("recipient2==", recipient);
+    uint256 certificateTokenId = ERC721AStorage.layout()._currentIndex;
+    for (uint256 i = 0; i < removalTokenIds.length; ++i) {
+      _receiveChild(
+        certificateTokenId,
+        removalContract,
+        removalTokenIds[i],
         values[i]
       );
     }
+    emit ReceiveChildBatch(
+      _msgSender(),
+      recipient,
+      certificateTokenId,
+      removalContract,
+      removalTokenIds,
+      values
+    );
+    _mint(recipient, 1);
     return this.onERC1155BatchReceived.selector;
   }
 
   function setApprovalForAll(address, bool)
     public
-    override(ERC721AUpgradeable, IERC721AUpgradeable)
-    whenNotPaused
-  {
-    revert FunctionDisabled();
-  }
-
-  function approve(address, uint256)
-    public
+    view
     override(ERC721AUpgradeable, IERC721AUpgradeable)
     whenNotPaused
   {
@@ -260,10 +237,7 @@ contract Certificate is
     )
     returns (bool)
   {
-    return
-      AccessControlEnumerableUpgradeable.supportsInterface(interfaceId) ||
-      ERC1155ReceiverUpgradeable.supportsInterface(interfaceId) ||
-      ERC721AUpgradeable.supportsInterface(interfaceId);
+    return super.supportsInterface(interfaceId);
   }
 
   /**
@@ -282,7 +256,7 @@ contract Certificate is
     address to,
     uint256 startTokenId,
     uint256 quantity
-  ) internal override {
+  ) internal override whenNotPaused {
     bool isNotMinting = !(from == address(0));
     bool isNotBurning = !(to == address(0));
     bool missingOperatorRole = !hasRole(
@@ -302,9 +276,11 @@ contract Certificate is
     uint256 amount
   ) internal {
     if (!_childContract[tokenId].contains(childContract)) {
+      // todo can this just be done w/o the if statement since sets only add if it doesnt exist
       _childContract[tokenId].add(childContract);
     }
     if (_balances[tokenId][childContract][childTokenId] == 0) {
+      // todo can this just be done w/o the if statement since sets only add if it doesnt exist
       _childsForChildContract[tokenId][childContract].add(childTokenId);
     }
     _balances[tokenId][childContract][childTokenId] += amount;
@@ -343,6 +319,7 @@ contract Certificate is
     return "https://nori.com/"; // todo
   }
 
+  // todo extract to inheritable base contract (share logic between market, certificate, others?)
   function _asSingletonArray(uint256 element)
     internal
     pure

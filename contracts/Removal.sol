@@ -247,34 +247,39 @@ contract Removal is
       methodology: firstRemoval.methodology(),
       methodologyVersion: firstRemoval.methodologyVersion()
     });
-    bytes memory encodedData = abi.encode(data);
-    _mintBatch(to, ids, amounts, encodedData);
+    _mintBatch(to, ids, amounts, "");
     setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
     if (data.list) {
-      safeBatchTransferFrom(to, address(_market), ids, amounts, encodedData);
+      bytes memory listingData = abi.encode(
+        _removalIdToRemovalData[ids[0]].projectId
+      );
+      safeBatchTransferFrom(to, address(_market), ids, amounts, listingData);
     }
   }
 
-  /**
-   * @dev used to list removals for sale by transferring the removals to the market contract
-   *
-   * ### Requirements:
-   *  - all removals being listed must belong to the same project id.
-   */
-  function safeBatchTransferFrom(
-    address from,
-    address to,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    bytes memory
-  ) public override {
-    // todo perhaps call this listRemovals instead
-    // todo do we add any validation to enforce that all removals in batch belong to the same project id?
-    bytes memory projectId = abi.encode(
-      _removalIdToRemovalData[ids[0]].projectId
-    );
-    super.safeBatchTransferFrom(from, to, ids, amounts, projectId);
-  }
+  // /**
+  //  * @dev used to list removals for sale by transferring the removals to the market contract
+  //  *
+  //  * ### Requirements:
+  //  *  - all removals being listed must belong to the same project id.
+  //  */
+  // function listRemovals(
+  //   address from,
+  //   uint256[] memory ids,
+  //   uint256[] memory amounts
+  // ) public {
+  //   // todo do we add any validation to enforce that all removals in batch belong to the same project id?
+  //   bytes memory projectId = abi.encode(
+  //     _removalIdToRemovalData[ids[0]].projectId
+  //   );
+  //   super.safeBatchTransferFrom(
+  //     from,
+  //     address(_market),
+  //     ids,
+  //     amounts,
+  //     projectId
+  //   );
+  // }
 
   /**
    * @notice Marks an amount of a removal as released given a removal ID and a quantity.

@@ -259,6 +259,10 @@ contract RestrictedNORI is
   }
 
   // View functions and getters =========================================
+  /**
+   * @dev See [IERC165.supportsInterface](
+   * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
+   */
   function supportsInterface(bytes4 interfaceId)
     public
     view
@@ -497,9 +501,9 @@ contract RestrictedNORI is
   }
 
   /**
-   * Sets the duration in seconds that should be applied to schedules created on behalf of removals
+   * @dev Sets the duration in seconds that should be applied to schedules created on behalf of removals
    * originating from the given methodology and methodology version.
-
+   *
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.

@@ -2,25 +2,12 @@
 pragma solidity =0.8.15;
 
 interface IERC998ERC1155TopDown {
-  event ReceivedChild(
+  event ReceiveChildBatch(
     address indexed from,
-    uint256 indexed toTokenId,
-    address indexed childContract,
-    uint256 childTokenId,
-    uint256 amount
-  );
-  event TransferSingleChild(
-    uint256 indexed fromTokenId,
-    address indexed to,
-    address indexed childContract,
-    uint256 childTokenId,
-    uint256 amount
-  );
-  event TransferBatchChild(
-    uint256 indexed fromTokenId,
-    address indexed to,
+    address recipient,
+    uint256 indexed parentTokenId,
     address indexed childContract,
     uint256[] childTokenIds,
-    uint256[] amounts
+    uint256[] childTokenAmounts
   );
 }

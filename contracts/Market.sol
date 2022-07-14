@@ -11,8 +11,6 @@ import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
-// import "hardhat/console.sol"; // todo
-
 // todo emit events
 
 // todo pausable
@@ -453,12 +451,13 @@ contract Market is
       //   unrestrictedSupplierFee
       // );
     }
-    _removal.safeTransferFrom( // todo temporary non-batch POC
+    bytes memory data = abi.encode(recipient, address(_removal));
+    _removal.safeBatchTransferFrom( // todo is this actually assigning the buyer as the owner of the NFT?
       owner,
       address(_certificate),
-      batchedIds[0],
-      certificateAmount,
-      abi.encode(batchedIds[0]) // todo this is the token ID of the certificate which is the token ID that owns the underlying token id (perhaps just use a OZ counter and increment)
+      batchedIds,
+      batchedAmounts,
+      data
     );
   }
 
@@ -533,6 +532,10 @@ contract Market is
     _activeSupply[supplierAddress].insertRemovalByVintage(removalId);
   }
 
+  /**
+   * @dev See [IERC165.supportsInterface](
+   * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
+   */
   function supportsInterface(bytes4 interfaceId)
     public
     view
@@ -540,9 +543,7 @@ contract Market is
     override(AccessControlEnumerableUpgradeable, ERC1155ReceiverUpgradeable)
     returns (bool)
   {
-    return
-      AccessControlEnumerableUpgradeable.supportsInterface(interfaceId) || // todo why is this using || ?
-      ERC1155ReceiverUpgradeable.supportsInterface(interfaceId);
+    return super.supportsInterface(interfaceId);
   }
 
   /**
@@ -632,5 +633,16 @@ contract Market is
       nextSupplierAddress: address(0),
       previousSupplierAddress: address(0)
     });
+  }
+
+  // todo extract to inheritable base contract (share logic between market, certificate, others?)
+  function _asSingletonArray(uint256 element)
+    internal
+    pure
+    returns (uint256[] memory)
+  {
+    uint256[] memory array = new uint256[](1);
+    array[0] = element;
+    return array;
   }
 }

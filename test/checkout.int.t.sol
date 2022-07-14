@@ -5,7 +5,8 @@ import "@/test/helpers/market.sol";
 import {UnpackedRemovalIdV0} from "@/contracts/RemovalUtils.sol";
 
 abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
-  uint256 internal _tokenId;
+  uint256 internal _removalTokenId;
+  uint256 internal _certificateTokenId;
 
   function _seed() internal override(UpgradableRemovalMock, SeedableMock) {
     UnpackedRemovalIdV0 memory removalId = UnpackedRemovalIdV0({
@@ -24,11 +25,11 @@ abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
       holdbackPercentage: 50,
       list: true
     });
-    _tokenId = RemovalUtils.createRemovalIdFromStruct(removalId);
+    _removalTokenId = RemovalUtils.createRemovalIdFromStruct(removalId);
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonUintArray(_tokenId), // todo encode ID or test won't work
+      _asSingletonUintArray(_removalTokenId), // todo encode ID or test won't work
       data
     );
     vm.prank(_namedAccounts.admin);
@@ -41,6 +42,16 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     _assertRemovalBalance(address(_market), 1, true);
     _assertRemovalBalance(_namedAccounts.supplier, 0, false);
     _assertRemovalBalance(address(_certificate), 0, false);
+    assertEq(
+      _certificate.childBalance(
+        _certificateTokenId,
+        address(_removal),
+        _removalTokenId
+      ),
+      0
+    );
+    vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
+    _certificate.ownerOf(_certificateTokenId);
     vm.prank(_namedAccounts.buyer);
     _bpNori.transfer(address(_market), 1); // todo temporary work around to avoid erc20 permit
     vm.prank(_namedAccounts.buyer);
@@ -56,19 +67,26 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     _assertRemovalBalance(_namedAccounts.supplier, 0, false);
     _assertRemovalBalance(address(_certificate), 1, true);
     assertEq(
-      _certificate.childBalance(_tokenId, address(_removal), _tokenId),
+      _certificate.childBalance(
+        _certificateTokenId,
+        address(_removal),
+        _removalTokenId
+      ),
       1
     );
+    assertEq(_certificate.ownerOf(_certificateTokenId), _namedAccounts.buyer);
   }
 
   function _assertRemovalBalance(
     address owner,
     uint256 amount,
-    bool ownsTokenId
+    bool ownsRemovalTokenId
   ) private {
     assertEq(
       _removal.tokensOfOwner(owner),
-      ownsTokenId ? _asSingletonUintArray(_tokenId) : new uint256[](amount)
+      ownsRemovalTokenId
+        ? _asSingletonUintArray(_removalTokenId)
+        : new uint256[](amount)
     );
     assertEq(_removal.cumulativeBalanceOf(owner), amount);
     assertEq(_removal.numberOfTokensOwnedByAddress(owner), amount);
