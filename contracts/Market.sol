@@ -10,6 +10,7 @@ import "./BridgedPolygonNORI.sol";
 import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
+import "hardhat/console.sol";
 
 // todo emit events
 
@@ -437,12 +438,16 @@ contract Market is
       uint256 noriFee = (batchedAmounts[i] * _noriFee) / 100; // todo muldiv from OZ?
       uint256 restrictedSupplierFee = 0;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
+      console.log("holdback i===", holdbackPercentages[i]);
+      console.log("unrestrictedSupplierFee i===", unrestrictedSupplierFee);
       if (holdbackPercentages[i] > 0) {
         restrictedSupplierFee =
           (unrestrictedSupplierFee * holdbackPercentages[i]) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
         _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo use single batch call, check effects
+        console.log("holdback fee===", restrictedSupplierFee);
+
         _bridgedPolygonNori.transferFrom(
           _msgSender(),
           address(_restrictedNori),
