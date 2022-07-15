@@ -236,7 +236,7 @@ contract Removal is
       methodologyVersion: firstRemoval.methodologyVersion()
     });
     _mintBatch(to, ids, amounts, "");
-    setApprovalForAll(_msgSender(), true); // todo look at vesting contract for potentially better approach
+    _setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
     if (data.list) {
       bytes memory listingData = abi.encode(
         _removalIdToRemovalData[ids[0]].projectId
