@@ -205,7 +205,7 @@ contract Market is
     bytes32 s
   ) external {
     _checkSupply();
-    uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount); // todo any way to de-dupe this (also called to gen amount)
+    uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -273,6 +273,7 @@ contract Market is
     view
     returns (uint256)
   {
+    // todo any way to de-dupe this (also called to gen amount)
     return (purchaseTotal * 100) / (100 + _noriFee); // todo mulDiv from OZ?
   }
 
