@@ -19,11 +19,7 @@ jobs:
         run: yarn install --ignore-scripts
 
       - name: Run foundry tests
-        env:
-          INFURA_STAGING_KEY: ${{ secrets.INFURA_STAGING_KEY }}
-        run: forge test -vvv --fork-url https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}
+        run: forge test -vvv
 
       - name: Run forge snapshot
-        env:
-          INFURA_STAGING_KEY: ${{ secrets.INFURA_STAGING_KEY }}
-        run: forge snapshot --fork-url https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY} >> $GITHUB_STEP_SUMMARY
+        run: forge snapshot

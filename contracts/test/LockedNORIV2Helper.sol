@@ -4,8 +4,6 @@ pragma solidity =0.8.15;
 import "../LockedNORIV2.sol";
 
 contract LockedNORIV2Helper {
-  uint256 constant SECONDS_PER_YEAR = 31_536_000;
-
   function createFixtureGrant(
     address lnori,
     uint256 amount,
@@ -32,28 +30,84 @@ contract LockedNORIV2Helper {
     );
   }
 
-  function createSimplePastGrant(
+  function encodeGrantCreationParams(
+    address recipient,
+    uint256 startTime,
+    uint256 vestEndTime,
+    uint256 unlockEndTime,
+    uint256 cliff1Time,
+    uint256 cliff2Time,
+    uint256 vestCliff1Amount,
+    uint256 vestCliff2Amount,
+    uint256 unlockCliff1Amount,
+    uint256 unlockCliff2Amount
+  ) public pure returns (bytes memory) {
+    return
+      abi.encode(
+        recipient,
+        startTime,
+        vestEndTime,
+        unlockEndTime,
+        cliff1Time,
+        cliff2Time,
+        vestCliff1Amount,
+        vestCliff2Amount,
+        unlockCliff1Amount,
+        unlockCliff2Amount
+      );
+  }
+
+  function createSimpleGrant(
     address lnori,
     uint256 amount,
-    address recipient
+    address recipient,
+    uint256 fromTime
   ) public {
     createFixtureGrant(
       lnori,
       amount,
       recipient,
-      block.timestamp - SECONDS_PER_YEAR,
-      block.timestamp + 1,
-      block.timestamp + 1,
-      block.timestamp + 1,
+      fromTime,
+      fromTime + 365 days,
+      fromTime + 365 days,
+      fromTime,
       0,
       0
     );
   }
 
+  function createSimpleGrantFromNow(
+    address lnori,
+    uint256 amount,
+    address recipient
+  ) public {
+    createSimpleGrant(lnori, amount, recipient, block.timestamp + 1 hours);
+  }
+
+  // Encodes creation data for a grant with no cliff over 365 days from `fromTime`
+  function getSimpleGrantCreationParamsEncoded(
+    address recipient,
+    uint256 fromTime
+  ) public view returns (bytes memory) {
+    return
+      encodeGrantCreationParams(
+        recipient,
+        fromTime,
+        fromTime + 365 days,
+        fromTime + 365 days,
+        fromTime,
+        fromTime,
+        0,
+        0,
+        0,
+        0
+      );
+  }
+
   function assertSimplePastGrant(
     address lnori,
     LockedNORIV2.TokenGrantDetail calldata expectedGrantDetails
-  ) public {
+  ) public view {
     LockedNORIV2.TokenGrantDetail memory actualGrantDetails = LockedNORIV2(
       lnori
     ).getGrant(expectedGrantDetails.recipient);
@@ -73,7 +127,7 @@ contract LockedNORIV2Helper {
   function assertEq(
     LockedNORIV2.TokenGrantDetail memory a,
     LockedNORIV2.TokenGrantDetail memory b
-  ) internal {
+  ) internal pure {
     if (
       a.grantAmount != b.grantAmount ||
       a.recipient != b.recipient ||

@@ -18,7 +18,6 @@ contract Removal_mintBatch is UpgradableRemovalMock {
       _asSingletonUintArray(1),
       data
     );
-    assertEq(_removal.balanceOf(_namedAccounts.supplier, 1), 1);
   }
 }
 

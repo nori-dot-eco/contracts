@@ -10,7 +10,6 @@ import type {
   Removal,
   RemovalTestHarness,
   MockCertificate,
-  MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types';
 
 export const getContract = async <TContractName extends keyof Contracts>({
@@ -140,19 +139,6 @@ export const getMockCertificate = async ({
     signer,
   });
 
-export const getMockERC1155PresetPausableNonTransferrable = async ({
-  hre,
-  signer,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-  signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<MockERC1155PresetPausableNonTransferrable> =>
-  getContract({
-    contractName: 'MockERC1155PresetPausableNonTransferrable',
-    hre,
-    signer,
-  });
-
 export const getFIFOMarket = async ({
   hre,
   signer,
@@ -195,10 +181,6 @@ export const getContractsFromDeployments = async (
       : undefined,
     MockCertificate: deployments.MockCertificate?.address
       ? await getMockCertificate({ hre })
-      : undefined,
-    MockERC1155PresetPausableNonTransferrable: deployments
-      .MockERC1155PresetPausableNonTransferrable?.address
-      ? await getMockERC1155PresetPausableNonTransferrable({ hre })
       : undefined,
   } as Required<Contracts>;
   return contracts;

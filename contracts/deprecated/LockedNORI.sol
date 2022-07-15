@@ -647,7 +647,7 @@ contract LockedNORI is
   }
 
   /**
-   * @notice Hook that is called before send, transfer, mint, and burn. Used used to disable transferring locked nori.
+   * @notice Hook that is called before send, transfer, mint, and burn. Used to disable transferring locked nori.
    *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)

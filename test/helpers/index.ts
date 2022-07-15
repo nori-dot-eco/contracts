@@ -21,7 +21,6 @@ import type {
   BridgedPolygonNORI,
   RemovalTestHarness,
   MockCertificate,
-  MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
 import { getContractsFromDeployments } from '@/utils/contracts';
@@ -41,7 +40,6 @@ interface ContractInstances {
   rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
   mockCertificate: MockCertificate; // todo key remapping of Contracts
-  mockERC1155PresetPausableNonTransferrable: MockERC1155PresetPausableNonTransferrable; // todo consider TestHarness vs Mock naming convention
 }
 
 export const NOW = Math.floor(Date.now() / 1000);
@@ -66,23 +64,8 @@ export const advanceTime = async ({
   await hre.network.provider.send('hardhat_mine');
 };
 
-export interface MockERC1155PresetPausableNonTransferrableFixture {
-  to: Parameters<MockERC1155PresetPausableNonTransferrable['mintBatch']>[0];
-  removalId: Parameters<
-    MockERC1155PresetPausableNonTransferrable['mintBatch']
-  >[1][number];
-  removalAmount: Parameters<
-    MockERC1155PresetPausableNonTransferrable['mintBatch']
-  >[2][number];
-  data: Parameters<MockERC1155PresetPausableNonTransferrable['mintBatch']>[3];
-}
-
 interface UserFixture {
   bpBalance?: BigNumber;
-  mockERC1155PresetPausableNonTransferrableFixtures?: {
-    tokens: MockERC1155PresetPausableNonTransferrableFixture[];
-    approvalsForAll?: string[];
-  };
   removalDataToList?: RemovalDataForListing;
   roles?: RoleFixtures;
 }
@@ -375,25 +358,6 @@ export const setupTest = global.hre.deployments.createFixture(
           throw new Error(`Invalid bpBalance for ${k}.`);
         }
       }
-      if (v.mockERC1155PresetPausableNonTransferrableFixtures !== undefined) {
-        const { tokens, approvalsForAll } =
-          v.mockERC1155PresetPausableNonTransferrableFixtures;
-        // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-        await contracts.MockERC1155PresetPausableNonTransferrable.mintBatch(
-          tokens[0].to,
-          tokens?.map((f) => f.removalId),
-          tokens?.map((f) => f.removalAmount),
-          tokens[0].data
-        );
-        if (approvalsForAll !== undefined) {
-          for (const approval of approvalsForAll) {
-            // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-            await contracts.MockERC1155PresetPausableNonTransferrable.connect(
-              hre.namedSigners[k]
-            ).setApprovalForAll(approval, true);
-          }
-        }
-      }
     }
     return {
       hre,
@@ -408,8 +372,6 @@ export const setupTest = global.hre.deployments.createFixture(
       rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
       mockCertificate: contracts.MockCertificate,
-      mockERC1155PresetPausableNonTransferrable:
-        contracts.MockERC1155PresetPausableNonTransferrable,
       userFixtures,
       contractFixtures,
       listedRemovalIds,
