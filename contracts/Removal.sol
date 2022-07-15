@@ -100,7 +100,7 @@ contract Removal is
   function registerContractAddresses(
     RestrictedNORI restrictedNoriAddress_,
     Market marketAddress_
-  ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     _restrictedNori = RestrictedNORI(restrictedNoriAddress_);
     _market = marketAddress_;
   }
@@ -111,18 +111,6 @@ contract Removal is
 
   function restrictedNoriAddress() external view returns (address) {
     return address(_restrictedNori);
-  }
-
-  /**
-   * @dev See {IERC1155-setApprovalForAll}.
-   */
-  function setApprovalForAll(
-    // todo override internal version instead
-    address owner,
-    address operator,
-    bool approved
-  ) public virtual {
-    _setApprovalForAll(owner, operator, approved);
   }
 
   /**
@@ -202,7 +190,7 @@ contract Removal is
   function batchSetHoldbackPercentage(
     uint256[] calldata removalIds,
     uint256 holdbackPercentage
-  ) external {
+  ) external whenNotPaused {
     for (uint256 i = 0; i < removalIds.length; ++i) {
       uint256 id = removalIds[i];
       _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
@@ -248,7 +236,7 @@ contract Removal is
       methodologyVersion: firstRemoval.methodologyVersion()
     });
     _mintBatch(to, ids, amounts, "");
-    setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
+    setApprovalForAll(_msgSender(), true); // todo look at vesting contract for potentially better approach
     if (data.list) {
       bytes memory listingData = abi.encode(
         _removalIdToRemovalData[ids[0]].projectId
@@ -316,6 +304,19 @@ contract Removal is
     return super.supportsInterface(interfaceId);
   }
 
+  /**
+   * @dev Approve `operator` to operate on all of `owner` tokens
+   *
+   * Emits an {ApprovalForAll} event.
+   */
+  function _setApprovalForAll(
+    address owner,
+    address operator,
+    bool approved
+  ) internal virtual override onlyRole(DEFAULT_ADMIN_ROLE) {
+    super._setApprovalForAll(owner, operator, approved);
+  }
+
   function _beforeTokenTransfer(
     address operator,
     address from,
@@ -330,6 +331,7 @@ contract Removal is
       ERC1155PausableUpgradeable,
       ERC1155Upgradeable
     )
+    whenNotPaused
   {
     uint256 numberOfTokenTransfers = amounts.length;
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
