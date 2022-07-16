@@ -52,6 +52,7 @@ uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
  *
  */
 library RemovalUtils {
+  // todo does all the internal validation still apply when using a struct?
   function createRemovalIdFromStruct(UnpackedRemovalIdV0 memory removalData)
     internal
     pure
@@ -105,7 +106,7 @@ library RemovalUtils {
    * @param removalData removal data encoded as bytes, with the first byte storing the version.
    */
   function createRemovalId(
-    bytes calldata removalData //  todo struct?
+    bytes calldata removalData //  todo remove non-struct version?
   ) internal pure returns (uint256) {
     uint256 idVersion = abi.decode(removalData, (uint8));
     require(idVersion == 0, "Unsupported removal token id version");
