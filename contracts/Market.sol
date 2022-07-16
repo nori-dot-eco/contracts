@@ -3,9 +3,8 @@ pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
-
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./Removal.sol";
 import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
@@ -13,20 +12,20 @@ import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
-// import "hardhat/console.sol"; // todo
-
 // todo emit events
+
+// todo MARKET_ADMIN_ROLE (reserving, setting thresholds etc so they can be done from admin ui without super admin)
 
 // todo pausable
 /**
- * @title FIFOMarket
+ * @title Market
  * // todo documentation
  */
-contract FIFOMarket is
-  Initializable,
+contract Market is
   ContextUpgradeable,
   AccessControlEnumerableUpgradeable,
-  ERC1155HolderUpgradeable
+  ERC1155HolderUpgradeable,
+  PausableUpgradeable
 {
   using RemovalUtils for uint256; // todo is this using RemovalUtils for ALL uint256s?
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
@@ -105,8 +104,14 @@ contract FIFOMarket is
     return _priorityRestrictedThreshold;
   }
 
+  function getNoriFee() external view returns (uint256) {
+    // todo getX vs X naming convention + consistency
+    return _noriFee; // todo getter that returns amount * fee / 100 ?
+  }
+
   function setPriorityRestrictedThreshold(uint256 threshold)
     external
+    whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     _priorityRestrictedThreshold = threshold;
@@ -117,7 +122,7 @@ contract FIFOMarket is
    * @notice The amount of supply available for anyone to buy.
    */
   function totalUnrestrictedSupply() external view returns (uint256) {
-    uint256 activeSupply = this.totalActiveSupply();
+    uint256 activeSupply = this.cumulativeActiveSupply();
     return
       activeSupply < _priorityRestrictedThreshold
         ? 0
@@ -130,22 +135,25 @@ contract FIFOMarket is
     address,
     uint256[] memory ids,
     uint256[] memory,
-    bytes memory data
+    bytes memory
   ) public override returns (bytes4) {
+    // todo revert if not removal.sol
+    // todo whennotpaused
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = removalToAdd.supplierAddress();
       _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
-      // If a new supplier has been added, or if the supplier had previously sold out
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
-        address(0)
+        address(0) // If a new supplier has been added, or if the supplier had previously sold out
       ) {
         _addActiveSupplier(supplierAddress);
       }
     }
-    uint256 projectId = abi.decode(data, (uint256));
-    _restrictedNori.createSchedule(projectId); // todo move to removal minting logic if possible
+    _restrictedNori.createSchedule(
+      _removal.getProjectIdForRemoval(ids[0]) // todo move to removal minting logic if possible
+      // todo revert is ids don't all belong to the same project?
+    );
     return this.onERC1155BatchReceived.selector;
   }
 
@@ -159,12 +167,12 @@ contract FIFOMarket is
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external {
-    // todo we need to treat totalActiveSupply in a more nuanced way when reservation of removals is implemented
+  ) external whenNotPaused {
+    // todo we need to treat cumulativeActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s.
     // priority reserved etc.
     _checkSupply();
-    uint256 certificateAmount = _certificateAmountFromPurchaseTotal(amount);
+    uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -180,14 +188,7 @@ contract FIFOMarket is
       r,
       s
     );
-    _fulfillOrder(
-      certificateAmount,
-      recipient,
-      numberOfRemovals,
-      ids,
-      amounts,
-      suppliers
-    );
+    _fulfillOrder(recipient, numberOfRemovals, ids, amounts, suppliers);
   }
 
   /**
@@ -203,9 +204,9 @@ contract FIFOMarket is
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external {
+  ) external whenNotPaused {
     _checkSupply();
-    uint256 certificateAmount = _certificateAmountFromPurchaseTotal(amount);
+    uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -224,36 +225,58 @@ contract FIFOMarket is
       r,
       s
     );
-    _fulfillOrder(
-      certificateAmount,
-      recipient,
-      numberOfRemovals,
-      ids,
-      amounts,
-      suppliers
-    );
+    _fulfillOrder(recipient, numberOfRemovals, ids, amounts, suppliers);
   }
 
-  function totalReservedSupply() external view returns (uint256) {
-    uint256 totalReserved = 0;
-    uint256 numberOfRemovalsReserved = _reservedSupply.length();
-    for (uint256 i = 0; i < numberOfRemovalsReserved; ++i) {
-      totalReserved += _reservedSupply.at(i);
-    }
-    return totalReserved;
+  // todo is this redundant? should we just rely on _removal.cumulativeBalanceOf and not have a helper getter here?
+  function cumulativeActiveSupply() external view returns (uint256) {
+    return _removal.cumulativeBalanceOf(address(this));
   }
 
-  function totalActiveSupply() external view returns (uint256) {
+  function cumulativeUnreservedSupply() external view returns (uint256) {
+    // todo this calls cummulativeBalanceOf multiple times, might be possible to call once + slice the array at an index
+    return this.cumulativeActiveSupply() - this.cumulativeReservedSupply();
+  }
+
+  // todo is this redundant? should we just rely on _removal.cumulativeBalanceOfOwnerSubset?
+  function cumulativeReservedSupply() external view returns (uint256) {
     return
-      _removal.cumulativeBalanceOf(address(this)) - this.totalReservedSupply();
+      _removal.cumulativeBalanceOfOwnerSubset(
+        address(this),
+        _reservedSupply.values() // todo expose _reservedSupply.values()
+      );
+  }
+
+  // todo is this redundant? should we just rely on _removal.numberOfTokensOwnedByAddress?
+  function numberOfActiveRemovals() external view returns (uint256) {
+    return _removal.numberOfTokensOwnedByAddress(address(this));
   }
 
   /**
-   * Reverts if market is out of stock or if available stock is being reserved for priority buyers
+   * @dev The distinct number of removal token ids owned by the Market. // todo
+   */
+  function numberOfUnreservedRemovals() external view returns (uint256) {
+    // todo getters for number of active/reserved/unreserved suppliers?
+    // todo consider global rename of active to name that better describes "available + reserved
+    // todo consistency in naming of cummulative vs total (perhaps use count vs total)
+    // todo consistency in naming of supply vs removals
+    // todo consider withrawing when reserving instead of adding it to the _reservedSupply set
+    return this.numberOfActiveRemovals() - this.numberOfReservedRemovals(); // todo gas vs _reservedSupply.length() ?
+  }
+
+  /**
+   * @dev The distinct number of removal token ids owned by the Market. // todo
+   */
+  function numberOfReservedRemovals() external view returns (uint256) {
+    return _reservedSupply.length();
+  }
+
+  /**
+   * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
    * and buyer is not priority.
    */
   function _checkSupply() private view {
-    uint256 activeSupply = this.totalActiveSupply();
+    uint256 activeSupply = this.cumulativeActiveSupply();
     if (activeSupply == 0) {
       revert OutOfStock();
     }
@@ -265,19 +288,20 @@ contract FIFOMarket is
   }
 
   /**
-   * Calculates the quantity of carbon removals being purchased given the purchase total and the
+   * @dev Calculates the quantity of carbon removals being purchased given the purchase total and the
    * percentage of that purchase total that is due to Nori as a transaction fee.
    */
-  function _certificateAmountFromPurchaseTotal(uint256 purchaseTotal)
-    private
+  function certificateAmountFromPurchaseTotal(uint256 purchaseTotal)
+    external
     view
     returns (uint256)
   {
-    return (purchaseTotal * 100) / (100 + _noriFee);
+    // todo any way to de-dupe this (also called to gen amount)
+    return (purchaseTotal * 100) / (100 + _noriFee); // todo mulDiv from OZ?
   }
 
   /**
-   * Determines the removal ids, amounts, and suppliers to fill the given purchase quantity in
+   * @dev Determines the removal ids, amounts, and suppliers to fill the given purchase quantity in
    * a round-robin order.
    */
   function _allocateSupplyRoundRobin(uint256 certificateAmount)
@@ -415,7 +439,6 @@ contract FIFOMarket is
    *
    */
   function _fulfillOrder(
-    uint256 certificateAmount,
     address recipient,
     uint256 numberOfRemovals,
     uint256[] memory ids,
@@ -428,18 +451,12 @@ contract FIFOMarket is
       batchedIds[i] = ids[i];
       batchedAmounts[i] = amounts[i];
     }
-    _certificate.mintBatch(
-      recipient,
-      batchedIds,
-      batchedAmounts,
-      abi.encode(certificateAmount)
-    );
     uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
       batchedIds
     );
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < batchedIds.length; i++) {
-      uint256 noriFee = (batchedAmounts[i] * _noriFee) / 100;
+      uint256 noriFee = (batchedAmounts[i] * _noriFee) / 100; // todo muldiv from OZ?
       uint256 restrictedSupplierFee = 0;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
       if (holdbackPercentages[i] > 0) {
@@ -447,7 +464,7 @@ contract FIFOMarket is
           (unrestrictedSupplierFee * holdbackPercentages[i]) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo use single batch call, check effects pattern
+        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo use single batch call, check effects
         _bridgedPolygonNori.transferFrom(
           _msgSender(),
           address(_restrictedNori),
@@ -461,14 +478,19 @@ contract FIFOMarket is
         unrestrictedSupplierFee
       );
     }
-    _removal.burnBatch(address(this), batchedIds, batchedAmounts);
+    bytes memory data = abi.encode(recipient, address(_removal));
+    _removal.safeBatchTransferFrom( // todo is this actually assigning the buyer as the owner of the NFT?
+      address(this),
+      address(_certificate),
+      batchedIds,
+      batchedAmounts,
+      data
+    );
   }
 
-  function numberOfActiveRemovals() external view returns (uint256) {
-    return
-      _removal.numberOfTokensOwnedByAddress(address(this)) -
-      this.totalReservedSupply(); // todo store reserved amount in removal data instead
-  }
+  // todo?
+  //  function numberOfActiveSuppliers() external view returns (uint256) {
+  // }
 
   // TODO batch version of this?
   /**
@@ -478,7 +500,7 @@ contract FIFOMarket is
    * @dev If the removal is the last for the supplier, removes the supplier from the active supplier queue.
    *
    */
-  function reserveRemoval(uint256 removalId) external {
+  function reserveRemoval(uint256 removalId) external whenNotPaused {
     address supplierAddress = removalId.supplierAddress();
     _removeActiveRemoval(supplierAddress, removalId);
     if (!_reservedSupply.add(removalId)) {
@@ -491,14 +513,14 @@ contract FIFOMarket is
   {
     _activeSupply[supplierAddress].removeRemoval(removalId);
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
-      _removeActiveSupplier(supplierAddress);
+      _removeActiveSupplier(supplierAddress); // todo can this be combined inside .removeRemoval?
     }
   }
 
   // todo consider making this a generalized `withdrawRemoval`?
   // todo RESERVER_ROLE? or require sender is Removal address
   // todo whenNotPaused
-  function release(uint256 removalId, uint256 amount) external {
+  function release(uint256 removalId, uint256 amount) external whenNotPaused {
     address supplierAddress = removalId.supplierAddress();
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     if (amount == removalBalance) {
@@ -507,8 +529,12 @@ contract FIFOMarket is
     }
   }
 
+  /**
+   * @notice Removes a removal from the reserved supply
+   * // TODO onlyRole(MARKET_ADMIN_ROLE)
+   */
   function _unreserveRemoval(uint256 removalId) internal {
-    if (!_reservedSupply.add(removalId)) {
+    if (!_reservedSupply.remove(removalId)) {
       revert RemovalNotInReservedSupply({removalId: removalId});
     }
   }
@@ -521,7 +547,7 @@ contract FIFOMarket is
    * fill orders again. If the supplier's other removals have all been sold, adds the supplier back to the
    * list of active suppliers
    */
-  function unreserveRemoval(uint256 removalId) external {
+  function unreserveRemoval(uint256 removalId) external whenNotPaused {
     // todo RESERVER_ROLE?
     address supplierAddress = removalId.supplierAddress();
     _unreserveRemoval(removalId);
@@ -531,6 +557,10 @@ contract FIFOMarket is
     _activeSupply[supplierAddress].insertRemovalByVintage(removalId);
   }
 
+  /**
+   * @dev See [IERC165.supportsInterface](
+   * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
+   */
   function supportsInterface(bytes4 interfaceId)
     public
     view
@@ -538,9 +568,7 @@ contract FIFOMarket is
     override(AccessControlEnumerableUpgradeable, ERC1155ReceiverUpgradeable)
     returns (bool)
   {
-    return
-      AccessControlEnumerableUpgradeable.supportsInterface(interfaceId) || // todo why is this using || ?
-      ERC1155ReceiverUpgradeable.supportsInterface(interfaceId);
+    return super.supportsInterface(interfaceId);
   }
 
   /**
@@ -630,5 +658,16 @@ contract FIFOMarket is
       nextSupplierAddress: address(0),
       previousSupplierAddress: address(0)
     });
+  }
+
+  // todo extract to inheritable base contract (share logic between market, certificate, others?)
+  function _asSingletonArray(uint256 element)
+    internal
+    pure
+    returns (uint256[] memory)
+  {
+    uint256[] memory array = new uint256[](1);
+    array[0] = element;
+    return array;
   }
 }

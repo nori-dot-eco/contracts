@@ -1,12 +1,16 @@
 import { upgrades } from 'hardhat';
-import { expect, setupTest } from '@/test/helpers';
-import { LockedNORIV2 } from '@/typechain-types';
-import { LockedNORI } from '@/typechain-types/legacy-artifacts/contracts/LockedNORI';
-// import LockedNORIArtifact from '@/legacy-artifacts/LockedNORI.sol/LockedNORI.json';
+
+import { expect, setupTest, advanceTime } from '@/test/helpers';
+import type {
+  LockedNORI,
+  LockedNORIV2,
+  MockERC777,
+  LockedNORIV2Helper,
+} from '@/typechain-types';
 
 describe('LockedNORI V1 to V2 upgrade', () => {
   it('works before and after upgrading', async () => {
-    const { bpNori, hre, ...rest } = await setupTest();
+    const { bpNori, hre } = await setupTest();
 
     const recipient = hre.namedAccounts.investor1;
     const GRANT_AMOUNT = ethers.utils.parseEther('100');
@@ -14,38 +18,39 @@ describe('LockedNORI V1 to V2 upgrade', () => {
     const helperFactory = await hre.ethers.getContractFactory(
       'LockedNORIV2Helper'
     );
-    const helper = await helperFactory.deploy();
+    const helper = (await helperFactory.deploy()) as LockedNORIV2Helper;
     await helper.deployed();
 
-    const TestToken777Factory = await hre.ethers.getContractFactory(
-      'TestToken777'
-    );
-    const testTokenInstance = await TestToken777Factory.deploy();
-    await testTokenInstance.deployed();
+    const MockERC777Factory = await hre.ethers.getContractFactory('MockERC777');
+    const erc777 = (await upgrades.deployProxy(
+      MockERC777Factory as any, // todo
+      [],
+      {
+        initializer: 'initialize()',
+      }
+    )) as any as MockERC777;
 
-    const LockedNORIFactory = await hre.ethers.getContractFactory(
-      'LockedNORI'
-    );
-    const lnori = (await upgrades.deployProxy(
-      LockedNORIFactory,
-      [testTokenInstance.address],
+    const LockedNORIFactory = await hre.ethers.getContractFactory('LockedNORI');
+    const lNori = (await upgrades.deployProxy(
+      LockedNORIFactory as any, // todo
+      [erc777.address],
       { initializer: 'initialize(address)' }
-    )) as LockedNORI;
-    await lnori.grantRole(await lnori.TOKEN_GRANTER_ROLE(), helper.address);
+    )) as any as LockedNORI;
+    await lNori.grantRole(await lNori.TOKEN_GRANTER_ROLE(), helper.address);
 
-    // Create state is LockedNORI v1
-
-    await helper.createSimplePastGrant(
-      lnori.address,
+    // Create state in LockedNORI v1
+    await helper.createSimpleGrantFromNow(
+      lNori.address,
       ethers.utils.parseEther('100'),
       recipient
     );
-    const createdGrantDetail = await helper.get(lnori.address, recipient);
-    await helper.assertSimplePastGrant(lnori.address, createdGrantDetail);
-    expect(await lnori.balanceOf(recipient)).to.eq(0);
+    const createdGrantDetail: LockedNORIV2.TokenGrantDetailStruct =
+      await helper.get(lNori.address, recipient);
+    await helper.assertSimplePastGrant(lNori.address, createdGrantDetail);
+    expect(await lNori.balanceOf(recipient)).to.eq(0);
     await expect(
-      testTokenInstance.send(
-        lnori.address,
+      erc777.send(
+        lNori.address,
         GRANT_AMOUNT,
         ethers.utils.defaultAbiCoder.encode(
           ['address', 'uint256'],
@@ -53,25 +58,32 @@ describe('LockedNORI V1 to V2 upgrade', () => {
         )
       )
     )
-      .to.emit(lnori, 'Transfer')
+      .to.emit(lNori, 'Transfer')
       .withArgs(hre.ethers.constants.AddressZero, recipient, GRANT_AMOUNT);
-    expect(await lnori.balanceOf(recipient)).to.eq(GRANT_AMOUNT);
+    expect(await lNori.balanceOf(recipient)).to.eq(GRANT_AMOUNT);
 
     // Now we upgrade
 
     const LockedNORIV2Factory = await ethers.getContractFactory('LockedNORIV2');
     const lNoriV2 = (await upgrades.upgradeProxy(
-      lnori.address,
-      LockedNORIV2Factory,
+      lNori.address,
+      LockedNORIV2Factory as any,
       { unsafeAllow: ['constructor'] }
-    )) as LockedNORIV2;
+    )) as any as LockedNORIV2;
     await lNoriV2.updateUnderlying(bpNori.address);
     expect(await lNoriV2.balanceOf(recipient)).to.eq(GRANT_AMOUNT);
-    await bpNori.transfer(lNoriV2.address, hre.ethers.utils.parseEther('1000'));
+    await bpNori.transfer(lNoriV2.address, GRANT_AMOUNT);
 
     // And assert that state is still intact
 
-    await helper.assertSimplePastGrant(lnori.address, createdGrantDetail);
+    await helper.assertSimplePastGrant(lNori.address, createdGrantDetail);
+
+    await advanceTime({
+      hre,
+      timestamp: hre.ethers.BigNumber.from(
+        createdGrantDetail.unlockEndTime
+      ).toNumber(),
+    });
     await lNoriV2
       .connect(hre.namedSigners.investor1)
       .withdrawTo(recipient, GRANT_AMOUNT);

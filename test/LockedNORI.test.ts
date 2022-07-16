@@ -157,7 +157,7 @@ const linearParameters = ({
 
 const setupWithGrant = async (
   _options: DeepPartial<TokenGrantOptions> | BuildTokenGrantOptionFunction = {},
-  fund: boolean = true
+  fund = true
 ): Promise<Awaited<ReturnType<typeof setupTest>> & TokenGrantOptions> => {
   const { bpNori, lNori, hre, ...rest } = await setupTest();
   const options: DeepPartial<TokenGrantOptions> =
@@ -169,7 +169,7 @@ const setupWithGrant = async (
     startTime: await getLatestBlockTime({ hre }),
   });
   const { namedAccounts, ethers } = hre;
-  const { admin } = hre.namedAccounts;
+  const { admin } = namedAccounts;
   const { grantAmount, grant } = {
     grantAmount: options?.grantAmount ?? defaults.grantAmount,
     grant: {
@@ -212,7 +212,7 @@ const setupWithGrant = async (
       .to.emit(lNori, 'Mint')
       .withArgs(ethers.constants.AddressZero, grant.recipient, grantAmount)
       .to.emit(bpNori, 'Transfer')
-      .withArgs(namedAccounts.admin, lNori.address, grantAmount);
+      .withArgs(admin, lNori.address, grantAmount);
   }
   return { bpNori, lNori, grant, grantAmount, hre, ...rest };
 };
@@ -299,8 +299,8 @@ describe('LockedNORIV2', () => {
     }
 
     it(`will not allow tokens to be deposited when the contract is paused`, async () => {
-      const { lNori, bpNori, grant, hre } = await setupWithGrant();
-      const { namedAccounts, namedSigners, ethers } = hre;
+      const { lNori, hre } = await setupWithGrant();
+      const { namedAccounts, namedSigners } = hre;
 
       await expect(lNori.connect(namedSigners.admin).pause()).to.emit(
         lNori,
@@ -314,8 +314,8 @@ describe('LockedNORIV2', () => {
   });
 
   it(`will not allow tokens to be withdrawn when the contract is paused`, async () => {
-    const { lNori, bpNori, grant, hre } = await setupWithGrant();
-    const { namedAccounts, namedSigners, ethers } = hre;
+    const { lNori, grant, hre } = await setupWithGrant();
+    const { namedAccounts, namedSigners } = hre;
 
     await advanceTime({ hre, timestamp: grant.unlockEndTime });
 
@@ -697,7 +697,7 @@ describe('Unlocking', () => {
   });
 
   it('Should revert if N wrapped tokens < N requested (even if unlocked)', async () => {
-    const { lNori, hre, grant, grantAmount } = await setupWithGrant({}, false);
+    const { lNori, hre, grant } = await setupWithGrant({}, false);
     const { investor1 } = hre.namedAccounts;
     const addr1Signer = hre.namedSigners.investor1;
     await advanceTime({ hre, timestamp: grant.cliff1Time });
@@ -740,9 +740,7 @@ describe('Unlocking', () => {
     expect(await lNori.unlockedBalanceOf(investor1)).to.equal(grantAmount);
     const withdrawlAmount = hre.ethers.utils.parseUnits((100).toString());
     await expect(
-      lNori
-        .connect(investor1Signer)
-        .withdrawTo(investor1, withdrawlAmount)
+      lNori.connect(investor1Signer).withdrawTo(investor1, withdrawlAmount)
     )
       .to.emit(lNori, 'TokensClaimed')
       .withArgs(investor1, investor1, withdrawlAmount)
@@ -824,7 +822,7 @@ describe('Unlocking', () => {
     expect(await lNori.vestedBalanceOf(grant.recipient)).to.be.gt(0);
     expect(await lNori.unlockedBalanceOf(grant.recipient)).to.be.gt(0);
 
-    expect(await lNori.depositFor(grant.recipient, GRANT_AMOUNT.div(2)));
+    expect(await lNori.depositFor(grant.recipient, GRANT_AMOUNT.div(2))); // todo expect used without assertion
     expect(await lNori.balanceOf(grant.recipient)).to.equal(grantAmount.div(2));
     expect(await lNori.vestedBalanceOf(grant.recipient)).to.be.gt(0);
     expect(await lNori.unlockedBalanceOf(grant.recipient)).to.be.gt(0);

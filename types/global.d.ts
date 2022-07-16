@@ -37,7 +37,7 @@ import { debug } from '@/utils/debug';
 import type {
   BridgedPolygonNORI,
   Certificate,
-  FIFOMarket,
+  Market,
   LockedNORIV2,
   RestrictedNORI,
   NORI,
@@ -45,7 +45,6 @@ import type {
   ScheduleTestHarness,
   RemovalTestHarness,
   MockCertificate,
-  MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types';
 
 declare module 'hardhat/config' {
@@ -197,14 +196,13 @@ declare global {
     Removal?: Removal;
     NORI?: NORI;
     BridgedPolygonNORI?: BridgedPolygonNORI;
-    FIFOMarket?: FIFOMarket;
+    Market?: Market;
     LockedNORIV2?: LockedNORIV2;
     RestrictedNORI?: RestrictedNORI;
     Certificate?: Certificate;
     ScheduleTestHarness?: ScheduleTestHarness;
     RemovalTestHarness?: RemovalTestHarness;
     MockCertificate?: MockCertificate;
-    MockERC1155PresetPausableNonTransferrable?: MockERC1155PresetPausableNonTransferrable;
   }
 
   var ethers: Omit<

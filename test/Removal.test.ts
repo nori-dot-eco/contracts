@@ -3,12 +3,10 @@ import { BigNumber } from 'ethers';
 import { sum } from '@/utils/math';
 import { SECONDS_IN_10_YEARS } from '@/test/helpers/restricted-nori';
 import { Zero, AddressZero } from '@/constants/units';
-import { defaultPackedRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import {
   createBatchMintData,
   createRemovalTokenId,
   expect,
-  getLatestBlockTime,
   setupTest,
 } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
@@ -38,7 +36,6 @@ describe('Removal', () => {
     it('should update the holdback percentage for a removal after it has been minted', async () => {
       const holdbackPercentage = BigNumber.from(40);
       const { removal, listedRemovalIds } = await setupTest({
-        // todo how would this look using mocks only? Probably just mock balance, then list it?
         userFixtures: {
           supplier: {
             removalDataToList: {
@@ -48,24 +45,9 @@ describe('Removal', () => {
           },
         },
       });
-      const updatedHoldback = BigNumber.from(20);
-      await removal.batchSetHoldbackPercentage(
-        [listedRemovalIds[0]],
-        updatedHoldback
-      );
       const [retrievedHoldbackPercentages] =
         await removal.batchGetHoldbackPercentages([listedRemovalIds[0]]);
-      expect(retrievedHoldbackPercentages).equal(updatedHoldback);
-    });
-    it('should revert if trying to set a holdback percentage for a removal that does not exist', async () => {
-      const { removal } = await setupTest();
-      const holdbackPercentage = BigNumber.from(40);
-      await expect(
-        removal.batchSetHoldbackPercentage(
-          [defaultPackedRemovalTokenIdFixture],
-          holdbackPercentage
-        )
-      ).to.be.revertedWith('TokenIdDoesNotExist');
+      expect(retrievedHoldbackPercentages).to.equal(holdbackPercentage);
     });
   });
   describe('mintBatch', () => {
@@ -84,10 +66,10 @@ describe('Removal', () => {
         });
         const [listedTokensHoldbackPercentage] =
           await removal.batchGetHoldbackPercentages(listedRemovalIds);
-        expect(listedTokensHoldbackPercentage).to.equal(holdbackPercentage);
+        expect(listedTokensHoldbackPercentage).equal(holdbackPercentage);
       });
       it('should mint a batch of removals without listing any', async () => {
-        const { fifoMarket, removal, hre } = await setupTest();
+        const { market, removal, hre } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -108,7 +90,6 @@ describe('Removal', () => {
         const listNow = false;
         const packedData = await createBatchMintData({
           hre,
-          fifoMarket,
           listNow,
         });
         await expect(
@@ -124,12 +105,11 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        const marketTotalSupply =
-          await fifoMarket.numberOfActiveNrtsInMarketComputed();
+        const marketTotalSupply = await market.cumulativeActiveSupply();
         expect(marketTotalSupply).to.equal(Zero);
       });
       it('should mint and list a batch of removals in the same transaction and create restriction schedules', async () => {
-        const { fifoMarket, removal } = await setupTest();
+        const { market, removal } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -151,7 +131,6 @@ describe('Removal', () => {
         const listNow = true;
         const packedData = await createBatchMintData({
           hre,
-          fifoMarket,
           listNow,
         });
         await expect(
@@ -167,12 +146,13 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        expect(await fifoMarket.numberOfActiveNrtsInMarketComputed()).to.equal(
+        expect(await market.cumulativeActiveSupply()).to.equal(
           expectedMarketSupply
         );
       });
       it('should list pre-minted removals for sale in the atomic marketplace and create restriction schedules', async () => {
-        const { fifoMarket, removal, rNori } = await setupTest();
+        const { market, removal, rNori } = await setupTest();
+        const { namedAccounts, ethers } = hre;
         const removalBalances = [100, 200, 300].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -187,19 +167,14 @@ describe('Removal', () => {
             })
           )
         );
-        const scheduleStartTime = await getLatestBlockTime({ hre });
-        const projectId = 1_234_567_890;
         const listNow = false;
         const packedData = await createBatchMintData({
           hre,
-          fifoMarket,
           listNow,
-          projectId,
-          scheduleStartTime,
         });
         await expect(
           removal.mintBatch(
-            hre.namedAccounts.supplier,
+            namedAccounts.supplier,
             removalBalances,
             tokenIds,
             packedData
@@ -207,16 +182,16 @@ describe('Removal', () => {
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
-            hre.namedAccounts.admin,
+            namedAccounts.admin,
             AddressZero,
-            hre.namedAccounts.supplier,
+            namedAccounts.supplier,
             tokenIds,
             removalBalances
           );
         await expect(
           removal.safeBatchTransferFrom(
-            hre.namedAccounts.supplier,
-            fifoMarket.address,
+            namedAccounts.supplier,
+            market.address,
             tokenIds,
             removalBalances,
             ethers.utils.formatBytes32String('0x0')
@@ -224,21 +199,21 @@ describe('Removal', () => {
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
-            hre.namedAccounts.admin,
-            hre.namedAccounts.supplier,
-            fifoMarket.address,
+            namedAccounts.admin,
+            namedAccounts.supplier,
+            market.address,
             tokenIds,
             removalBalances
           )
           .to.emit(rNori, 'ScheduleCreated')
           .withArgs(
-            projectId,
-            scheduleStartTime,
-            scheduleStartTime + SECONDS_IN_10_YEARS
+            packedData.projectId,
+            packedData.scheduleStartTime,
+            packedData.scheduleStartTime.add(SECONDS_IN_10_YEARS)
           );
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {
-            return removal.balanceOf(fifoMarket.address, tokenId);
+            return removal.balanceOf(market.address, tokenId);
           })
         );
         for (const [tokenId, balance] of balances.entries()) {
@@ -249,7 +224,7 @@ describe('Removal', () => {
     describe('error', () => {
       describe('TokenIdExists', () => {
         it('should not mint a removal with a duplicate token id', async () => {
-          const { fifoMarket, removal, hre } = await setupTest();
+          const { removal, hre } = await setupTest();
           const removalBalances = [100, 200, 300].map((balance) =>
             formatTokenAmount(balance)
           );
@@ -264,11 +239,9 @@ describe('Removal', () => {
               })
             )
           );
-          const listNow = false;
           const packedData = await createBatchMintData({
             hre,
-            fifoMarket,
-            listNow,
+            listNow: false,
           });
           await expect(
             removal.mintBatch(

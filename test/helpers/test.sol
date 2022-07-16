@@ -8,12 +8,14 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 
 abstract contract Global is Test {
   struct NamedAccounts {
+    // todo generate from env variables + use vm.addr(privatekey)
     address admin;
     address supplier;
+    address buyer;
   }
 
   NamedAccounts internal _namedAccounts =
-    NamedAccounts({admin: vm.addr(1), supplier: vm.addr(2)});
+    NamedAccounts({admin: vm.addr(1), supplier: vm.addr(2), buyer: vm.addr(3)});
 
   function _asSingletonUintArray(uint256 element)
     internal
@@ -48,4 +50,8 @@ abstract contract Upgradeable is Global {
     );
     return address(proxy);
   }
+}
+
+abstract contract SeedableMock is Global {
+  function _seed() internal virtual;
 }

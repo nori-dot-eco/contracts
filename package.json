@@ -14,6 +14,7 @@
     "@octokit/rest": "^18.12.0",
     "@openzeppelin/contracts": "4.7.0",
     "@openzeppelin/contracts-upgradeable": "4.7.0",
+    "erc721a-upgradeable": "4.1.0",
     "@openzeppelin/hardhat-defender": "^1.7.0",
     "@openzeppelin/hardhat-upgrades": "=1.17.0",
     "@openzeppelin/test-helpers": "^0.5.15",
@@ -82,7 +83,7 @@
   "scripts": {
     "test": "yarn run test:hardhat && yarn run test:forge",
     "test:hardhat": "hardhat test",
-    "test:forge": "eval $(grep '^INFURA_STAGING_KEY' .env) && forge test --fork-url https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}",
+    "test:forge": "forge test",
     "test:gas": "REPORT_GAS=true hardhat test --deploy-fixture",
     "test:coverage": "CI=true hardhat coverage --solcoverjs ./.solcover.js",
     "test:unsafe": "OPTIMIZER=false VIA_IR=false TS_NODE_TRANSPILE_ONLY=1 yarn test --no-compile",

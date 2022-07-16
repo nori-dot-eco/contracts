@@ -12,12 +12,10 @@ import type {
   RestrictedNORI__factory,
   Certificate,
   Certificate__factory,
-  FIFOMarket,
-  FIFOMarket__factory,
+  Market,
+  Market__factory,
   MockCertificate,
   MockCertificate__factory,
-  MockERC1155PresetPausableNonTransferrable,
-  MockERC1155PresetPausableNonTransferrable__factory,
   NORI,
   NORI__factory,
   Removal,
@@ -158,21 +156,6 @@ export const deployMockCertificate = async ({
   });
 };
 
-export const deployMockERC1155PresetPausableNonTransferrable = async ({
-  hre,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-}): Promise<InstanceOfContract<MockERC1155PresetPausableNonTransferrable>> => {
-  return hre.deployOrUpgradeProxy<
-    MockERC1155PresetPausableNonTransferrable,
-    MockERC1155PresetPausableNonTransferrable__factory
-  >({
-    contractName: 'MockERC1155PresetPausableNonTransferrable',
-    args: [],
-    options: { initializer: 'initialize()' },
-  });
-};
-
 export const deployCertificateContract = async ({
   hre,
 }: {
@@ -193,10 +176,10 @@ export const deployFIFOMarketContract = async ({
   hre: CustomHardHatRuntimeEnvironment;
   feeWallet: Address;
   feePercentage: number;
-}): Promise<InstanceOfContract<FIFOMarket>> => {
+}): Promise<InstanceOfContract<Market>> => {
   const deployments = await hre.deployments.all<Required<Contracts>>();
-  return hre.deployOrUpgradeProxy<FIFOMarket, FIFOMarket__factory>({
-    contractName: 'FIFOMarket',
+  return hre.deployOrUpgradeProxy<Market, Market__factory>({
+    contractName: 'Market',
     args: [
       deployments.Removal.address,
       deployments.BridgedPolygonNORI.address,
@@ -381,6 +364,7 @@ export const saveDeployments = async ({
  * Seeds contracts with some initial removals and market listings
  *
  * @deprecated
+ *
  * @todo don't do this during deployment
  */
 export const seedContracts = async ({
@@ -392,7 +376,7 @@ export const seedContracts = async ({
 }): Promise<void> => {
   if (
     contracts.Certificate !== undefined &&
-    contracts.FIFOMarket !== undefined &&
+    contracts.Market !== undefined &&
     contracts.Removal !== undefined
   ) {
     const tokenId = await createRemovalTokenId({
@@ -406,7 +390,6 @@ export const seedContracts = async ({
     const listNow = true;
     const packedData = await createBatchMintData({
       hre,
-      fifoMarket: contracts.FIFOMarket,
       listNow,
       scheduleStartTime: await getLatestBlockTime({ hre }),
     });
@@ -416,7 +399,7 @@ export const seedContracts = async ({
       [tokenId],
       packedData
     );
-    hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });
+    hre.trace('Listed 100 NRTs for sale in Market', { tx: tx.hash });
   }
   if (
     contracts.BridgedPolygonNORI !== undefined &&

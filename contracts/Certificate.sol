@@ -1,49 +1,75 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.15;
+pragma solidity =0.8.15; // todo bump solidity version globally to latest
 
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
-import "./ERC1155PresetPausableNonTransferrable.sol";
-import {FunctionDisabled} from "./SharedCustomErrors.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
+import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
+import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
+import "./IERC998ERC1155TopDown.sol";
+import {FunctionDisabled, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
+// import "forge-std/console2.sol"; // todo
 
-// todo disable other mint functions
-// todo whenNotPasused
-// todo setApprovalForAll should only work when called on accounts with CERTIFICATE_OPERATOR_ROLE
-// todo consider not inheriting pausable base contract and reverting with custom error for consistency
-// todo use OZ counters for incrementing and decrementing
+error ForbiddenTransferAfterMinting(); // todo error declaration consistency (inside-contract vs outside-of-contract)
 
+// todo what is _msgSenderERC721A
+// todo any risk in allowing approve to be called? These are not defined as virtual in 721a...
+// todo remove all "see {}" syntax as this only works in the context of OZ contracts (their docgen parses it)
+// todo check that whenNotPaused on all mutating functions
+// todo check that all transfer functions call _beforeTokenTransfers
 /**
- * @title Certificate
+ * todo consider removing all batch functions from all contracts (seems gratuitous to include it when you can
+ * usually achieve the same effect by inheriting multicall, OR using an external multicall contract)
  */
-contract Certificate is ERC1155PresetPausableNonTransferrable {
-  struct Source {
-    uint256 removalId;
-    uint256 amount;
-  }
+contract Certificate is
+  IERC998ERC1155TopDown,
+  ERC721AUpgradeable,
+  ERC1155HolderUpgradeable,
+  ERC721ABurnableUpgradeable,
+  ERC721AQueryableUpgradeable,
+  PausableUpgradeable,
+  AccessControlEnumerableUpgradeable,
+  OwnableUpgradeable // todo why was this added?
+{
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   /**
-   * @notice Emitted on creation of a certificate of carbon removal.
+   * @notice Role conferring operator permissions
+   *
+   * @dev This role is assigned to operators which can transfer certificates from an address to another by bypassing
+   * the `_beforeTokenTransfer` hook.
    */
-  event CertificateCreated(
-    address indexed recipient,
-    uint256 indexed certificateId,
-    uint256[] removalIds,
-    uint256[] amounts
-  );
+  bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
+    keccak256("CERTIFICATE_OPERATOR_ROLE");
 
   /**
-   * @dev a mapping of the certificate token ID -> sources
+   * @notice Role conferring the ability to mint certificates
    */
-  mapping(uint256 => Source[]) private _sources;
+  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
-   * @dev auto incrementing token ID
+   * @notice Role conferring the ability to pause and unpause mutable functions of the contract
    */
-  uint256 private _latestTokenId;
+  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE"); // todo PausablePreset?
+
+  mapping(uint256 => mapping(address => mapping(uint256 => uint256)))
+    private _balances;
+
+  mapping(address => mapping(uint256 => EnumerableSetUpgradeable.UintSet))
+    private _holdersOf; // todo xToY (e.g., ownerToTokenIds) mapping naming convention globally
+
+  mapping(uint256 => EnumerableSetUpgradeable.AddressSet)
+    private _childContract; // todo rename
+
+  mapping(uint256 => mapping(address => EnumerableSetUpgradeable.UintSet))
+    private _childsForChildContract; // todo rename
+
+  // todo consider renaming tokenId -> certificateId / removalId
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -52,79 +78,253 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     _disableInitializers();
   }
 
-  function initialize() external initializer {
-    // todo verify all inherited unchained initializers are called
-    __Context_init_unchained();
-    __ERC165_init_unchained();
-    __AccessControl_init_unchained();
-    __AccessControlEnumerable_init_unchained();
-    __Pausable_init_unchained();
-    __ERC1155Supply_init_unchained();
-    __ERC1155_init_unchained("https://nori.com/api/certificate/{id}.json");
-    __Pausable_init_unchained();
-    __ERC1155PresetMinterPauser_init_unchained(
-      "https://nori.com/api/certificate/{id}.json"
-    );
-    __ERC1155PresetPausableNonTransferrable_init_unchained();
-    _latestTokenId = 0;
+  /**
+   * @notice Pauses all functions that can mutate state
+   *
+   * @dev Used to effectively freeze a contract so that no state updates can occur
+   *
+   * ##### Requirements:
+   *
+   * - The caller must have the `PAUSER_ROLE`.
+   */
+  function pause() external onlyRole(PAUSER_ROLE) {
+    _pause();
   }
 
   /**
-   * @dev mints the certificate (using a batch of certificate sources)
-   * @param to The supplier address
-   * @param removalAmounts the removal source amount
-   * @param removalIds the removal source ids
-   * @param data Additional data with no specified format, MUST be sent
-   * unaltered in call to `onERC1155Received` on `_to`
+   * @notice Unpauses all token transfers.
    *
-   * @custom:example mint(address, 160, [100, 10, 50], [0, 1, 2])
-   *  - token id 0 URI points to nori.com/api/certificate/0 -> { amount: 100, removalIds: [0, 1, 2], ... }
-   *  - removalIds can be used to look up vintage years, e.g. 0 -> 2018
+   * @dev
+   *
+   * ##### Requirements:
+   *
+   * - The caller must have the `PAUSER_ROLE`.
    */
-  function mintBatch(
-    address to, // todo array?
-    uint256[] memory removalIds,
-    uint256[] memory removalAmounts,
-    bytes memory data // todo array?
-  ) public override {
-    uint256 tokenId = _latestTokenId;
-    uint256 certificateAmount = abi.decode(data, (uint256)); // todo verify amount (would we be better of computing amount from the removalIds loop? how does gas compare)
-    // todo extract to base contract and overload here
-    // todo use modified mintCertificate instead of mintBatch. mintBatch should be used to mint multi certificates.
-    // todo only allowed by market contract
-    // todo require _sources[_latestTokenId] doesnt exist
-    // todo require _sources[_latestTokenId][n] doesnt exist
-    // todo is there a better way to verify that no removal amount == 0?
-    for (uint256 i = 0; i < removalIds.length; i++) {
-      _sources[tokenId].push(
-        Source({removalId: removalIds[i], amount: removalAmounts[i]})
+  function unpause() external onlyRole(PAUSER_ROLE) {
+    _unpause();
+  }
+
+  function initialize() external initializerERC721A initializer {
+    // todo validate initializers
+    __ERC721A_init_unchained("Certificate", "NRT");
+    __ERC721ABurnable_init_unchained();
+    __ERC721AQueryable_init_unchained();
+    __Ownable_init();
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _grantRole(MINTER_ROLE, _msgSender());
+    _grantRole(PAUSER_ROLE, _msgSender());
+  }
+
+  /**
+   * @dev Gives child balance for a specific child contract and child id .
+   */
+  function childBalance(
+    uint256 certificateTokenId,
+    address removalContract,
+    uint256 removalTokenId
+  ) external view returns (uint256) {
+    return _balances[certificateTokenId][removalContract][removalTokenId];
+  }
+
+  // todo @dev vs @notice consistency
+
+  /**
+   * @dev Gives list of child contract where token ID has childs.
+   */
+  function childContractsFor(uint256 certificateTokenId)
+    external
+    view
+    returns (address[] memory)
+  {
+    address[] memory removalContracts = new address[](
+      _childContract[certificateTokenId].length()
+    );
+    for (uint256 i = 0; i < _childContract[certificateTokenId].length(); i++) {
+      removalContracts[i] = _childContract[certificateTokenId].at(i);
+    }
+    return removalContracts;
+  }
+
+  /**
+   * @dev Returns the list of removal token IDs for the given child contract.
+   */
+  function childIdsForOn(uint256 tokenId, address childContract)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    uint256[] memory childTokenIds = new uint256[](
+      _childsForChildContract[tokenId][childContract].length()
+    );
+    for (
+      uint256 i = 0;
+      i < _childsForChildContract[tokenId][childContract].length();
+      i++
+    ) {
+      childTokenIds[i] = _childsForChildContract[tokenId][childContract].at(i);
+    }
+    return childTokenIds;
+  }
+
+  /**
+   * @dev Receives a batch of child tokens, the receiver token ID must be encoded in the field data.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the contract is not paused (enforced by `_beforeTokenTransfers`). // todo consistency in
+   * how this requirement is worded
+   * - // TODO other reqs
+   */
+  function onERC1155BatchReceived(
+    address,
+    address,
+    uint256[] memory removalTokenIds,
+    uint256[] memory values,
+    bytes memory data
+  ) public override returns (bytes4) {
+    // todo onlyMarket
+    if (removalTokenIds.length != values.length) {
+      revert ArrayLengthMismatch("removalTokenIds", "values");
+    }
+    (address recipient, address removalContract) = abi.decode(
+      data,
+      (address, address) // todo is it possible to use a struct when decoding and in market when encoding?
+    );
+    uint256 certificateTokenId = ERC721AStorage.layout()._currentIndex;
+    for (uint256 i = 0; i < removalTokenIds.length; ++i) {
+      _receiveChild(
+        certificateTokenId,
+        removalContract,
+        removalTokenIds[i],
+        values[i]
       );
     }
-    _latestTokenId = tokenId + 1;
-    emit CertificateCreated(to, tokenId, removalIds, removalAmounts);
-    super.mint(to, tokenId, certificateAmount, data);
+    emit ReceiveChildBatch(
+      _msgSender(),
+      recipient,
+      certificateTokenId,
+      removalContract,
+      removalTokenIds,
+      values
+    );
+    _mint(recipient, 1);
+    return this.onERC1155BatchReceived.selector;
   }
 
-  /**
-   * @dev Use the `mintBatch` function instead.
-   */
-  function mint(
-    address,
-    uint256,
-    uint256,
-    bytes memory
-  ) public pure override {
+  function setApprovalForAll(address, bool)
+    public
+    view
+    override(ERC721AUpgradeable, IERC721AUpgradeable)
+    whenNotPaused
+  {
     revert FunctionDisabled();
   }
 
   /**
-   * @dev returns the removal IDs and the amounts of the sources
+   * @dev See [IERC165.supportsInterface](
+   * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
    */
-  function sources(uint256 certificateId)
+  function supportsInterface(bytes4 interfaceId)
     public
     view
-    returns (Source[] memory)
+    override(
+      AccessControlEnumerableUpgradeable,
+      ERC1155ReceiverUpgradeable,
+      ERC721AUpgradeable,
+      IERC721AUpgradeable
+    )
+    returns (bool)
   {
-    return _sources[certificateId];
+    return super.supportsInterface(interfaceId);
+  }
+
+  /**
+   * @notice A hook that is called before all transfers and is used to disallow non-minting, non-burning, and non-
+   * certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfers
+   *
+   * @dev Follows the rules of hooks defined [here](
+   *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks).
+   *
+   * ##### Requirements:
+   *
+   * // TODO
+   */
+  function _beforeTokenTransfers(
+    address from,
+    address to,
+    uint256 startTokenId,
+    uint256 quantity
+  ) internal override whenNotPaused {
+    bool isNotMinting = !(from == address(0));
+    bool isNotBurning = !(to == address(0));
+    bool missingOperatorRole = !hasRole(
+      CERTIFICATE_OPERATOR_ROLE,
+      _msgSender()
+    );
+    if (isNotMinting && isNotBurning && missingOperatorRole) {
+      revert ForbiddenTransferAfterMinting();
+    }
+    super._beforeTokenTransfers(from, to, startTokenId, quantity);
+  }
+
+  function _receiveChild(
+    uint256 tokenId,
+    address childContract,
+    uint256 childTokenId,
+    uint256 amount
+  ) internal {
+    if (!_childContract[tokenId].contains(childContract)) {
+      // todo can this just be done w/o the if statement since sets only add if it doesnt exist
+      _childContract[tokenId].add(childContract);
+    }
+    if (_balances[tokenId][childContract][childTokenId] == 0) {
+      // todo can this just be done w/o the if statement since sets only add if it doesnt exist
+      _childsForChildContract[tokenId][childContract].add(childTokenId);
+    }
+    _balances[tokenId][childContract][childTokenId] += amount;
+  }
+
+  // function release() {
+  //   // todo
+  // }
+
+  // function _removeChild(
+  //   uint256 tokenId,
+  //   address childContract,
+  //   uint256 childTokenId,
+  //   uint256 amount
+  // ) internal {
+  //   require(
+  //     amount != 0 || _balances[tokenId][childContract][childTokenId] >= amount,
+  //     "ERC998: insufficient child balance for transfer"
+  //   );
+  //   _balances[tokenId][childContract][childTokenId] -= amount;
+  //   if (_balances[tokenId][childContract][childTokenId] == 0) {
+  //     _holdersOf[childContract][childTokenId].remove(tokenId);
+  //     _childsForChildContract[tokenId][childContract].remove(childTokenId);
+  //     if (_childsForChildContract[tokenId][childContract].length() == 0) {
+  //       _childContract[tokenId].remove(childContract);
+  //     }
+  //   }
+  // }
+
+  /**
+   * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each
+   * token will be the concatenation of the `baseURI` and the `tokenId`. Empty
+   * by default, it can be overridden in child contracts.
+   */
+  function _baseURI() internal pure override returns (string memory) {
+    return "https://nori.com/"; // todo
+  }
+
+  // todo extract to inheritable base contract (share logic between market, certificate, others?)
+  function _asSingletonArray(uint256 element)
+    internal
+    pure
+    returns (uint256[] memory)
+  {
+    uint256[] memory array = new uint256[](1);
+    array[0] = element;
+    return array;
   }
 }
