@@ -11,7 +11,6 @@ import "./BridgedPolygonNORI.sol";
 import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
-import "hardhat/console.sol";
 
 // todo emit events
 
