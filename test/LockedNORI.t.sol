@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "forge-std/Test.sol";
-import "forge-std/Vm.sol";
-import "../contracts/test/MockERC777.sol";
-import "../contracts/test/MockERC20Permit.sol";
-import "../contracts/test/PermitSigner.sol";
-import "../contracts/test/LockedNORIV2Helper.sol";
-import "../contracts/LockedNORIV2.sol";
+import "@/test/helpers/test.sol";
+import "@/contracts/test/MockERC777.sol";
+import "@/contracts/test/MockERC20Permit.sol";
+import "@/contracts/test/PermitSigner.sol";
+import "@/contracts/test/LockedNORIV2Helper.sol";
+import "@/contracts/LockedNORIV2.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeable.sol";
