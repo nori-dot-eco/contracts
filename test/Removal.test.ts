@@ -8,7 +8,6 @@ import {
   createBatchMintData,
   createRemovalTokenId,
   expect,
-  getLatestBlockTime,
   setupTest,
 } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
@@ -55,7 +54,7 @@ describe('Removal', () => {
       );
       const [retrievedHoldbackPercentages] =
         await removal.batchGetHoldbackPercentages([listedRemovalIds[0]]);
-      expect(retrievedHoldbackPercentages).equal(updatedHoldback);
+      expect(retrievedHoldbackPercentages).to.equal(updatedHoldback);
     });
     it('should revert if trying to set a holdback percentage for a removal that does not exist', async () => {
       const { removal } = await setupTest();
@@ -84,7 +83,7 @@ describe('Removal', () => {
         });
         const [listedTokensHoldbackPercentage] =
           await removal.batchGetHoldbackPercentages(listedRemovalIds);
-        expect(listedTokensHoldbackPercentage).to.equal(holdbackPercentage);
+        expect(listedTokensHoldbackPercentage).equal(holdbackPercentage);
       });
       it('should mint a batch of removals without listing any', async () => {
         const { market, removal, hre } = await setupTest();
@@ -108,7 +107,6 @@ describe('Removal', () => {
         const listNow = false;
         const packedData = await createBatchMintData({
           hre,
-          market,
           listNow,
         });
         await expect(
@@ -124,7 +122,7 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        const marketTotalSupply = await market.totalActiveSupply();
+        const marketTotalSupply = await market.cumulativeActiveSupply();
         expect(marketTotalSupply).to.equal(Zero);
       });
       it('should mint and list a batch of removals in the same transaction and create restriction schedules', async () => {
@@ -150,7 +148,6 @@ describe('Removal', () => {
         const listNow = true;
         const packedData = await createBatchMintData({
           hre,
-          market,
           listNow,
         });
         await expect(
@@ -166,12 +163,13 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        expect(await market.totalActiveSupply()).to.equal(
+        expect(await market.cumulativeActiveSupply()).to.equal(
           expectedMarketSupply
         );
       });
       it('should list pre-minted removals for sale in the atomic marketplace and create restriction schedules', async () => {
         const { market, removal, rNori } = await setupTest();
+        const { namedAccounts, ethers } = hre;
         const removalBalances = [100, 200, 300].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -186,19 +184,14 @@ describe('Removal', () => {
             })
           )
         );
-        const scheduleStartTime = await getLatestBlockTime({ hre });
-        const projectId = 1_234_567_890;
         const listNow = false;
         const packedData = await createBatchMintData({
           hre,
-          market,
           listNow,
-          projectId,
-          scheduleStartTime,
         });
         await expect(
           removal.mintBatch(
-            hre.namedAccounts.supplier,
+            namedAccounts.supplier,
             removalBalances,
             tokenIds,
             packedData
@@ -206,15 +199,15 @@ describe('Removal', () => {
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
-            hre.namedAccounts.admin,
+            namedAccounts.admin,
             AddressZero,
-            hre.namedAccounts.supplier,
+            namedAccounts.supplier,
             tokenIds,
             removalBalances
           );
         await expect(
           removal.safeBatchTransferFrom(
-            hre.namedAccounts.supplier,
+            namedAccounts.supplier,
             market.address,
             tokenIds,
             removalBalances,
@@ -223,17 +216,17 @@ describe('Removal', () => {
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
-            hre.namedAccounts.admin,
-            hre.namedAccounts.supplier,
+            namedAccounts.admin,
+            namedAccounts.supplier,
             market.address,
             tokenIds,
             removalBalances
           )
           .to.emit(rNori, 'ScheduleCreated')
           .withArgs(
-            projectId,
-            scheduleStartTime,
-            scheduleStartTime + SECONDS_IN_10_YEARS
+            packedData.projectId,
+            packedData.scheduleStartTime,
+            packedData.scheduleStartTime.add(SECONDS_IN_10_YEARS)
           );
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {
@@ -248,7 +241,7 @@ describe('Removal', () => {
     describe('error', () => {
       describe('TokenIdExists', () => {
         it('should not mint a removal with a duplicate token id', async () => {
-          const { market, removal, hre } = await setupTest();
+          const { removal, hre } = await setupTest();
           const removalBalances = [100, 200, 300].map((balance) =>
             formatTokenAmount(balance)
           );
@@ -263,11 +256,9 @@ describe('Removal', () => {
               })
             )
           );
-          const listNow = false;
           const packedData = await createBatchMintData({
             hre,
-            market,
-            listNow,
+            listNow: false,
           });
           await expect(
             removal.mintBatch(

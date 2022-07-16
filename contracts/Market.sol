@@ -15,6 +15,8 @@ import "hardhat/console.sol";
 
 // todo emit events
 
+// todo MARKET_ADMIN_ROLE (reserving, setting thresholds etc so they can be done from admin ui without super admin)
+
 // todo pausable
 /**
  * @title Market
@@ -121,7 +123,7 @@ contract Market is
    * @notice The amount of supply available for anyone to buy.
    */
   function totalUnrestrictedSupply() external view returns (uint256) {
-    uint256 activeSupply = this.totalActiveSupply();
+    uint256 activeSupply = this.cumulativeActiveSupply();
     return
       activeSupply < _priorityRestrictedThreshold
         ? 0
@@ -134,22 +136,25 @@ contract Market is
     address,
     uint256[] memory ids,
     uint256[] memory,
-    bytes memory data
+    bytes memory
   ) public override returns (bytes4) {
+    // todo revert if not removal.sol
+    // todo whennotpaused
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = removalToAdd.supplierAddress();
       _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
-      // If a new supplier has been added, or if the supplier had previously sold out
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
-        address(0)
+        address(0) // If a new supplier has been added, or if the supplier had previously sold out
       ) {
         _addActiveSupplier(supplierAddress);
       }
     }
-    uint256 projectId = abi.decode(data, (uint256));
-    _restrictedNori.createSchedule(projectId); // todo move to removal minting logic if possible
+    _restrictedNori.createSchedule(
+      _removal.getProjectIdForRemoval(ids[0]) // todo move to removal minting logic if possible
+      // todo revert is ids don't all belong to the same project?
+    );
     return this.onERC1155BatchReceived.selector;
   }
 
@@ -164,7 +169,7 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    // todo we need to treat totalActiveSupply in a more nuanced way when reservation of removals is implemented
+    // todo we need to treat cumulativeActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s.
     // priority reserved etc.
     _checkSupply();
@@ -184,14 +189,7 @@ contract Market is
       r,
       s
     );
-    _fulfillOrder(
-      certificateAmount,
-      recipient,
-      numberOfRemovals,
-      ids,
-      amounts,
-      suppliers
-    );
+    _fulfillOrder(recipient, numberOfRemovals, ids, amounts, suppliers);
   }
 
   /**
@@ -228,32 +226,50 @@ contract Market is
       r,
       s
     );
-    _fulfillOrder(
-      certificateAmount,
-      recipient,
-      numberOfRemovals,
-      ids,
-      amounts,
-      suppliers
-    );
+    _fulfillOrder(recipient, numberOfRemovals, ids, amounts, suppliers);
   }
 
-  function totalReservedSupply() external view returns (uint256) {
-    uint256 totalReserved = 0;
-    uint256 numberOfRemovalsReserved = _reservedSupply.length();
-    for (uint256 i = 0; i < numberOfRemovalsReserved; ++i) {
-      totalReserved += _reservedSupply.at(i);
-    }
-    return totalReserved;
-  }
-
-  function totalUnreservedSupply() external view returns (uint256) {
-    return
-      _removal.cumulativeBalanceOf(address(this)) - this.totalReservedSupply();
-  }
-
-  function totalActiveSupply() external view returns (uint256) {
+  // todo is this redundant? should we just rely on _removal.cumulativeBalanceOf and not have a helper getter here?
+  function cumulativeActiveSupply() external view returns (uint256) {
     return _removal.cumulativeBalanceOf(address(this));
+  }
+
+  function cumulativeUnreservedSupply() external view returns (uint256) {
+    // todo this calls cummulativeBalanceOf multiple times, might be possible to call once + slice the array at an index
+    return this.cumulativeActiveSupply() - this.cumulativeReservedSupply();
+  }
+
+  // todo is this redundant? should we just rely on _removal.cumulativeBalanceOfOwnerSubset?
+  function cumulativeReservedSupply() external view returns (uint256) {
+    return
+      _removal.cumulativeBalanceOfOwnerSubset(
+        address(this),
+        _reservedSupply.values() // todo expose _reservedSupply.values()
+      );
+  }
+
+  // todo is this redundant? should we just rely on _removal.numberOfTokensOwnedByAddress?
+  function numberOfActiveRemovals() external view returns (uint256) {
+    return _removal.numberOfTokensOwnedByAddress(address(this));
+  }
+
+  /**
+   * @dev The distinct number of removal token ids owned by the Market. // todo
+   */
+  function numberOfUnreservedRemovals() external view returns (uint256) {
+    // todo getters for number of active/reserved/unreserved suppliers?
+    // todo consider global rename of active to name that better describes "available + reserved
+    // todo consistency in naming of cummulative vs total (perhaps use count vs total)
+    // todo consistency in naming of supply vs removals
+    // todo consider withrawing when reserving instead of adding it to the _reservedSupply set
+    return this.numberOfActiveRemovals() - this.numberOfReservedRemovals(); // todo gas vs _reservedSupply.length() ?
+  }
+
+  /**
+   * @dev The distinct number of removal token ids owned by the Market. // todo
+   */
+  function numberOfReservedRemovals() external view returns (uint256) {
+    return _reservedSupply.length();
   }
 
   /**
@@ -261,7 +277,7 @@ contract Market is
    * and buyer is not priority.
    */
   function _checkSupply() private view {
-    uint256 activeSupply = this.totalActiveSupply();
+    uint256 activeSupply = this.cumulativeActiveSupply();
     if (activeSupply == 0) {
       revert OutOfStock();
     }
@@ -424,7 +440,6 @@ contract Market is
    *
    */
   function _fulfillOrder(
-    uint256 certificateAmount,
     address recipient,
     uint256 numberOfRemovals,
     uint256[] memory ids,
@@ -445,16 +460,12 @@ contract Market is
       uint256 noriFee = (batchedAmounts[i] * _noriFee) / 100; // todo muldiv from OZ?
       uint256 restrictedSupplierFee = 0;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
-      console.log("holdback i===", holdbackPercentages[i]);
-      console.log("unrestrictedSupplierFee i===", unrestrictedSupplierFee);
       if (holdbackPercentages[i] > 0) {
         restrictedSupplierFee =
           (unrestrictedSupplierFee * holdbackPercentages[i]) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
         _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo use single batch call, check effects
-        console.log("holdback fee===", restrictedSupplierFee);
-
         _bridgedPolygonNori.transferFrom(
           _msgSender(),
           address(_restrictedNori),
@@ -476,13 +487,6 @@ contract Market is
       batchedAmounts,
       data
     );
-  }
-
-  /** The distinct number of removal token ids owned by the Market. */
-  function numberOfActiveRemovals() external view returns (uint256) {
-    return
-      _removal.numberOfTokensOwnedByAddress(address(this)) -
-      _reservedSupply.length(); // todo store reserved amount in removal data instead
   }
 
   // todo?
@@ -510,7 +514,7 @@ contract Market is
   {
     _activeSupply[supplierAddress].removeRemoval(removalId);
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
-      _removeActiveSupplier(supplierAddress);
+      _removeActiveSupplier(supplierAddress); // todo can this be combined inside .removeRemoval?
     }
   }
 
@@ -526,8 +530,12 @@ contract Market is
     }
   }
 
+  /**
+   * @notice Removes a removal from the reserved supply
+   * // TODO onlyRole(MARKET_ADMIN_ROLE)
+   */
   function _unreserveRemoval(uint256 removalId) internal {
-    if (!_reservedSupply.add(removalId)) {
+    if (!_reservedSupply.remove(removalId)) {
       revert RemovalNotInReservedSupply({removalId: removalId});
     }
   }

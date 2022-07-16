@@ -9,7 +9,7 @@ import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 import {TokenIdExists, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 import "./Market.sol";
-
+import "hardhat/console.sol";
 struct BatchMintRemovalsData {
   uint256 projectId;
   uint256 scheduleStartTime;
@@ -18,9 +18,10 @@ struct BatchMintRemovalsData {
 }
 
 // todo disable other mint functions
+// todo investigate ERC1155SupplyUpgradeable.totalSupply
 
 /**
- * @title Removal
+ * @title Removal // todo
  */
 contract Removal is
   ERC1155PausableUpgradeable,
@@ -70,12 +71,16 @@ contract Removal is
    * @notice the RestrictedNORI contract that manages restricted tokens.
    */
   RestrictedNORI private _restrictedNori;
+
+  /**
+   * @notice the Market contract that removals can be bought and sold from
+   */
   Market private _market;
+
   mapping(uint256 => RemovalData) private _removalIdToRemovalData;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData;
   mapping(address => EnumerableSetUpgradeable.UintSet)
     private _addressToOwnedTokenIds;
-  EnumerableSetUpgradeable.UintSet private _tokenIdSet;
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -97,10 +102,14 @@ contract Removal is
     _grantRole(RELEASER_ROLE, _msgSender());
   }
 
+  /**
+   * @dev Registers the market and restricted Nori contracts so that they can be referenced in this contract.
+   */
   function registerContractAddresses(
     RestrictedNORI restrictedNoriAddress_,
     Market marketAddress_
   ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+    // todo configureContract() that does this + grantRole
     _restrictedNori = RestrictedNORI(restrictedNoriAddress_);
     _market = marketAddress_;
   }
@@ -145,7 +154,7 @@ contract Removal is
     view
     returns (uint256)
   {
-    return _removalIdToRemovalData[removalId].projectId;
+    return _removalIdToRemovalData[removalId].projectId; // todo should this just return the whole struct?
   }
 
   /**
@@ -211,7 +220,7 @@ contract Removal is
   function mintBatch(
     address to,
     uint256[] memory amounts,
-    uint256[] memory ids,
+    uint256[] memory ids, // todo structs[] instead of encoding beforehand
     BatchMintRemovalsData memory data
   ) external {
     uint256 numberOfRemovals = ids.length;
@@ -222,10 +231,10 @@ contract Removal is
     uint256 holdbackPercentage = data.holdbackPercentage;
     for (uint256 i = 0; i < numberOfRemovals; ++i) {
       uint256 id = ids[i];
-      if (_tokenIdSet.contains(id)) {
+      if (exists(id) || _removalIdToRemovalData[id].projectId != 0) {
         revert TokenIdExists({tokenId: id});
       }
-      _removalIdToRemovalData[id].projectId = projectId;
+      _removalIdToRemovalData[id].projectId = projectId; // todo access _removalIdToRemovalData[removalId] once per loop
       _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
     }
     uint256 firstRemoval = ids[0];
@@ -238,42 +247,17 @@ contract Removal is
     _mintBatch(to, ids, amounts, "");
     _setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
     if (data.list) {
-      bytes memory listingData = abi.encode(
-        _removalIdToRemovalData[ids[0]].projectId
-      );
-      safeBatchTransferFrom(to, address(_market), ids, amounts, listingData);
+      safeBatchTransferFrom(to, address(_market), ids, amounts, "");
     }
   }
-
-  // /**
-  //  * @dev used to list removals for sale by transferring the removals to the market contract
-  //  *
-  //  * ### Requirements:
-  //  *  - all removals being listed must belong to the same project id.
-  //  */
-  // function listRemovals(
-  //   address from,
-  //   uint256[] memory ids,
-  //   uint256[] memory amounts
-  // ) public {
-  //   // todo do we add any validation to enforce that all removals in batch belong to the same project id?
-  //   bytes memory projectId = abi.encode(
-  //     _removalIdToRemovalData[ids[0]].projectId
-  //   );
-  //   super.safeBatchTransferFrom(
-  //     from,
-  //     address(_market),
-  //     ids,
-  //     amounts,
-  //     projectId
-  //   );
-  // }
 
   /**
    * @notice Marks an amount of a removal as released given a removal ID and a quantity.
    * @param owner The owner of the removal to release
    * @param removalId The ID of the removal to mark as released.
    * @param amount The amount of the removal to release.
+   *
+   * @dev
    *
    * ##### Requirements:
    *
@@ -305,9 +289,7 @@ contract Removal is
   }
 
   /**
-   * @dev Approve `operator` to operate on all of `owner` tokens
-   *
-   * Emits an {ApprovalForAll} event.
+   * @dev Approve `operator` to operate on all of `owner`'s tokens
    */
   function _setApprovalForAll(
     address owner,
@@ -366,7 +348,10 @@ contract Removal is
     return _addressToOwnedTokenIds[owner].values();
   }
 
+  // todo rename cumulativeBalanceOfOwner
+  // todo batch?
   function cumulativeBalanceOf(address owner) public view returns (uint256) {
+    // todo are the bodies of these functions re-usable across the contract? Seems like an abstraction might be possible
     EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
       owner
     ];
@@ -383,12 +368,32 @@ contract Removal is
     return total;
   }
 
+  // todo do we need to also add a version of these functions compatible with childTokens in certificate?
+  // todo batch?
+  function cumulativeBalanceOfOwnerSubset(address owner, uint256[] memory ids)
+    public
+    view
+    returns (uint256)
+  {
+    address[] memory owners = new address[](ids.length);
+    for (uint256 i = 0; i < ids.length; ++i) {
+      owners[i] = owner;
+    }
+    uint256[] memory totals = balanceOfBatch(owners, ids);
+    uint256 total = 0;
+    for (uint256 i = 0; i < totals.length; ++i) {
+      total += totals[i];
+    }
+    return total;
+  }
+
   // todo batch?
   function numberOfTokensOwnedByAddress(address account)
     external
     view
     returns (uint256)
   {
+    // todo global rename tokens -> removals?
     return _addressToOwnedTokenIds[account].length();
   }
 

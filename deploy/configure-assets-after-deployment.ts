@@ -32,10 +32,7 @@ export const deploy: DeployFunction = async (environment) => {
   }
   hre.trace('Added Market as a minter of Certificate');
   if (
-    !(await rNori.hasRole(
-      await rNori.SCHEDULE_CREATOR_ROLE(),
-      market.address
-    ))
+    !(await rNori.hasRole(await rNori.SCHEDULE_CREATOR_ROLE(), market.address))
   ) {
     await rNori.grantRole(
       hre.ethers.utils.id('SCHEDULE_CREATOR_ROLE'),
@@ -46,10 +43,7 @@ export const deploy: DeployFunction = async (environment) => {
     "Granted Market the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI"
   );
   if (!(await rNori.hasRole(await rNori.MINTER_ROLE(), market.address))) {
-    await rNori.grantRole(
-      hre.ethers.utils.id('MINTER_ROLE'),
-      market.address
-    );
+    await rNori.grantRole(hre.ethers.utils.id('MINTER_ROLE'), market.address);
   }
   hre.trace("Granted Market the role 'MINTER_ROLE' for RestrictedNORI");
   await rNori.registerContractAddresses(bpNori.address, removal.address);

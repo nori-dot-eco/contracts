@@ -159,14 +159,14 @@ contract RestrictedNORI is
   /**
    * @notice Role conferring pausing and unpausing of this contract.
    *
-   * @dev only Nori admin address should have this role.
+   * @dev Only Nori admin addresses should have this role.
    */
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
   /**
    * @notice Role conferring creation of schedules.
    *
-   * @dev the Market contract is granted this role after deployments.
+   * @dev The Market contract is granted this role after deployments.
    */
   bytes32 public constant SCHEDULE_CREATOR_ROLE =
     keccak256("SCHEDULE_CREATOR_ROLE");
@@ -174,14 +174,14 @@ contract RestrictedNORI is
   /**
    * @notice Role conferring sending of bpNori to this contract.
    *
-   * @dev the Market contract is granted this role after deployments.
+   * @dev The Market contract is granted this role after deployments.
    */
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
    * @notice Role conferring revocation of restricted tokens.
    *
-   * @dev only Nori admin address should have this role.
+   * @dev Only Nori admin addresses should have this role.
    */
   bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
 
@@ -273,8 +273,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * Returns the schedule duration in seconds that has been set for a given methodology and
-   * methodology version.
+   * @notice Returns the schedule duration in seconds that has been set for a given methodology and methodology version.
    */
   function getRestrictionDurationForMethodologyAndVersion(
     uint256 methodology,
@@ -284,7 +283,9 @@ contract RestrictedNORI is
       _methodologyAndVersionToScheduleDuration[methodology][methodologyVersion];
   }
 
-  /** Returns an array of all existing schedule ids, regardless of the status of the schedule. */
+  /**
+   * @notice Returns an array of all existing schedule ids, regardless of the status of the schedule.
+   */
   function getAllScheduleIds() external view returns (uint256[] memory) {
     uint256[] memory allScheduleIdsArray = new uint256[](
       _allScheduleIds.length()
@@ -295,14 +296,15 @@ contract RestrictedNORI is
     return allScheduleIdsArray;
   }
 
-  /** Returns an account-specific view of the details of a specific schedule. */
+  /** @notice
+   * Returns an account-specific view of the details of a specific schedule.
+   */
   function getScheduleDetailForAccount(address account, uint256 scheduleId)
     public
     view
     returns (ScheduleDetailForAddress memory)
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-
     return
       ScheduleDetailForAddress(
         account,
@@ -314,7 +316,9 @@ contract RestrictedNORI is
       );
   }
 
-  /** Returns an account-specific view of the details of specified schedules. */
+  /**
+   * @notice Returns an account-specific view of the details of specified schedules.
+   */
   function batchGetScheduleDetailsForAccount(
     address account,
     uint256[] memory scheduleIds
@@ -335,7 +339,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * Returns summary struct for a schedule.
+   * @notice Returns summary struct for a schedule. // todo
    */
   function getScheduleSummary(uint256 scheduleId)
     public
@@ -350,7 +354,6 @@ contract RestrictedNORI is
       tokenHoldersArray[i] = schedule.tokenHolders.at(i);
       scheduleIdArray[i] = scheduleId;
     }
-
     return
       ScheduleSummary(
         scheduleId,
@@ -366,7 +369,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * Returns an array of summary structs for the specified schedules.
+   * @notice Returns an array of summary structs for the specified schedules.
    */
   function batchGetScheduleSummaries(uint256[] calldata scheduleIds)
     external
@@ -382,7 +385,9 @@ contract RestrictedNORI is
     return scheduleSummaries;
   }
 
-  /** Returns the current number of revocable tokens for a given schedule at the current block timestamp. */
+  /**
+   * @notice Returns the current number of revocable tokens for a given schedule at the current block timestamp.
+   */
   function revocableQuantityForSchedule(uint256 scheduleId)
     public
     view
@@ -400,7 +405,9 @@ contract RestrictedNORI is
       );
   }
 
-  /** Released balance less the total claimed amount at current block timestamp for a schedule. */
+  /**
+   * @notice Released balance less the total claimed amount at current block timestamp for a schedule.
+   */
   function claimableBalanceForSchedule(uint256 scheduleId)
     public
     view
@@ -418,7 +425,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * A single account's claimable balance at current block timestamp for a schedule
+   * @notice A single account's claimable balance at current block timestamp for a schedule
    *
    * @dev calculations have to consider an account's total proportional claim to the schedule's released tokens,
    * using totals constructed from current balances and claimed amounts, and then subtract anything that
@@ -485,10 +492,11 @@ contract RestrictedNORI is
   }
 
   /**
-   * Registers the addresses of the market, bpNori, and removal contracts in this contract.
+   * @notice Registers the addresses of the market, bpNori, and removal contracts in this contract.
    *
    * ##### Requirements:
    *
+   * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    */
   function registerContractAddresses(BridgedPolygonNORI bpNori, Removal removal)
@@ -496,9 +504,8 @@ contract RestrictedNORI is
     whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
-    _bridgedPolygonNori = BridgedPolygonNORI(bpNori);
+    _bridgedPolygonNori = BridgedPolygonNORI(bpNori); // todo configureContract() that does this + grantRole
     _removal = Removal(removal);
-    _grantRole(SCHEDULE_CREATOR_ROLE, _removal.marketAddress()); // todo keep?
   }
 
   /**
@@ -524,8 +531,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * Sets up a restriction schedule with parameters determined from the project id.
-   *
+   * @notice Sets up a restriction schedule with parameters determined from the project ID.
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
@@ -542,8 +548,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * Mints RestrictedNORI to the correct schedule id (1155 token id) for a given removal id
-   *
+   * @dev Mints RestrictedNORI to the correct schedule token ID for a given removal token ID. // todo
    */
   function mint(uint256 amount, uint256 removalId) external {
     if (!hasRole(MINTER_ROLE, _msgSender())) {
@@ -558,12 +563,13 @@ contract RestrictedNORI is
     }
     super._mint(recipient, projectId, amount, "");
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
+    // todo disable slither using slither triage file instead
     // slither-disable-next-line unused-return address may already be in set and that is ok
     schedule.tokenHolders.add(recipient);
   }
 
   /**
-   * Claim released tokens and withdraw them to `recipient` address.
+   * @notice Claim released tokens and withdraw them to `recipient` address.
    *
    * @dev This function burns `amount` of `RestrictedNORI` for the given schedule id
    * and transfers `amount` of `BridgedPolygonNORI` from the `RestrictedNORI` contract's
@@ -574,7 +580,7 @@ contract RestrictedNORI is
    *
    * ##### Requirements:
    *
-   * - Can only be used when the contract is not paused.
+   * - Can only be used when the contract is not paused. // todo consistency
    */
   function withdrawFromSchedule(
     address recipient,
@@ -591,9 +597,9 @@ contract RestrictedNORI is
   }
 
   /**
-   * Transfers `amount` tokens of token type `id` from `from` to `to`.
+   * @notice Transfers `amount` tokens of token type `id` from `from` to `to`.
    *
-   * [See the OZ ERC1155 documentation for more] (
+   * @dev [See the OZ ERC1155 documentation for more] (
    * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
    * #ERC1155-safeTransferFrom-address-address-uint256-uint256-bytes-)
    */
@@ -617,9 +623,9 @@ contract RestrictedNORI is
   }
 
   /**
-   * Batched version of `safeTransferFrom`.
+   * @notice Batched version of `safeTransferFrom`.
    *
-   * [See the OZ ERC1155 documentation for more] (
+   * @dev [See the OZ ERC1155 documentation for more] (
    * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
    * #IERC1155-safeBatchTransferFrom-address-address-uint256---uint256---bytes-)
    */
@@ -645,13 +651,13 @@ contract RestrictedNORI is
   }
 
   /**
-   * Revokes amount of tokens from the specified project (schedule) id and transfers to toAccount.
+   * @notice Revokes amount of tokens from the specified project (schedule) id and transfers to toAccount.
    *
-   * The behavior of this function can be used in two specific ways:
+   * @dev The behavior of this function can be used in two specific ways:
    * - To revoke a specific number of tokens as specified by the `amount` parameter.
    * - To revoke all remaining revokable tokens in a schedule by specifying 0 as the `amount`.
    *
-   * @dev Transfers any unreleased tokens in the specified schedule and reduces the total supply
+   * Transfers any unreleased tokens in the specified schedule and reduces the total supply
    * of that token. Only unreleased tokens can be revoked from a schedule and no change is made to
    * balances that have released but not yet been claimed.
    * If a token has multiple owners, balances are burned proportionally to ownership percentage,
@@ -743,13 +749,13 @@ contract RestrictedNORI is
 
   // Private implementations ==========================================
   /**
-   * Sets up a schedule for the specified project id (implementation).
+   * @notice Sets up a schedule for the specified project id (implementation).
    *
    * @dev schedules are created when removal tokens are listed for sale in the market contract,
    * so this should only be invoked during `tokensReceived` in the exceptional case that
    * tokens were sent to this contract without a schedule set up.
    *
-   * Note that revert strings are used instead of custom errors here for proper surfacing
+   * Revert strings are used instead of custom errors here for proper surfacing
    * from within the market contract `onERC1155BatchReceived` hook.
    */
   function _createSchedule(uint256 projectId) internal {
@@ -774,11 +780,13 @@ contract RestrictedNORI is
   }
 
   /**
-   * Hook that is called before any token transfer. This includes minting and burning, as well as batched variants.
+   * @notice Hook that is called before any token transfer. This includes minting and burning, as well as batched
+   * variants.
    *
    * @dev Follows the rules of hooks defined [here](
    * https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
-   * @dev See the ERC1155 specific version [here](
+   *
+   * See the ERC1155 specific version [here](
    * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
    * #ERC1155-_beforeTokenTransfer-address-address-address-uint256---uint256---bytes-)
    *
@@ -831,7 +839,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * Linearly released balance for a single schedule at the current block timestamp, ignoring any
+   * @notice Linearly released balance for a single schedule at the current block timestamp, ignoring any
    * released amount floor that has been set for the schedule.
    */
   // todo move calculation functions into a library for this contract
@@ -840,22 +848,20 @@ contract RestrictedNORI is
     view
     returns (uint256)
   {
-    /* solhint-disable not-rely-on-time, this is time-dependent */
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 linearAmountAvailable;
-    // slither-disable-next-line timestamp this contract is block time dependent
+    /* solhint-disable not-rely-on-time, this is time-dependent */
     if (block.timestamp >= schedule.endTime) {
       linearAmountAvailable = totalSupply(scheduleId);
     } else {
       uint256 rampTotalTime = schedule.endTime - schedule.startTime;
-      // slither-disable-next-line timestamp this contract is block time dependent
       linearAmountAvailable = block.timestamp < schedule.startTime
         ? 0
         : (_scheduleTrueTotal(schedule.totalClaimedAmount, scheduleId) *
           (block.timestamp - schedule.startTime)) / rampTotalTime;
     }
-    return linearAmountAvailable;
     /* solhint-enable not-rely-on-time */
+    return linearAmountAvailable;
   }
 
   /**
@@ -908,7 +914,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * Reconstructs a schedule's true total based on claimed and unclaimed tokens.
+   * @notice Reconstructs a schedule's true total based on claimed and unclaimed tokens.
    *
    * @dev claiming burns the 1155, so the true total of a schedule has to be reconstructed
    * from the totalSupply of the token and any claimed amount.

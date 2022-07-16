@@ -1,7 +1,12 @@
 import { upgrades } from 'hardhat';
 
 import { expect, setupTest, advanceTime } from '@/test/helpers';
-import type { LockedNORI, LockedNORIV2, MockERC777 } from '@/typechain-types';
+import type {
+  LockedNORI,
+  LockedNORIV2,
+  MockERC777,
+  LockedNORIV2Helper,
+} from '@/typechain-types';
 
 describe('LockedNORI V1 to V2 upgrade', () => {
   it('works before and after upgrading', async () => {
@@ -13,7 +18,7 @@ describe('LockedNORI V1 to V2 upgrade', () => {
     const helperFactory = await hre.ethers.getContractFactory(
       'LockedNORIV2Helper'
     );
-    const helper = await helperFactory.deploy();
+    const helper = (await helperFactory.deploy()) as LockedNORIV2Helper;
     await helper.deployed();
 
     const MockERC777Factory = await hre.ethers.getContractFactory('MockERC777');
@@ -33,9 +38,8 @@ describe('LockedNORI V1 to V2 upgrade', () => {
     )) as any as LockedNORI;
     await lNori.grantRole(await lNori.TOKEN_GRANTER_ROLE(), helper.address);
 
-    // Create state is LockedNORI v1
-
-    await helper.createSimplePastGrant(
+    // Create state in LockedNORI v1
+    await helper.createSimpleGrantFromNow(
       lNori.address,
       ethers.utils.parseEther('100'),
       recipient

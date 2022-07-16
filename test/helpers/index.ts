@@ -1,6 +1,6 @@
-import type { BigNumber } from 'ethers';
+import type { BigNumberish } from 'ethers';
+import { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
-import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import { add } from '@nori-dot-com/math';
 
 import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
@@ -126,26 +126,33 @@ export const createRemovalTokenId = async ({
   return removalId;
 };
 
+type BatchMintData = {
+  [Property in keyof Parameters<Removal['mintBatch']>[3]]: Parameters<
+    Removal['mintBatch']
+  >[3][Property] extends BigNumberish
+    ? BigNumber
+    : Parameters<Removal['mintBatch']>[3][Property];
+};
+
 // todo helpers/removal.ts
 export const createBatchMintData = async ({
   hre,
-  market, // todo rm
   listNow = true,
   projectId = 1_234_567_890,
   scheduleStartTime,
   holdbackPercentage = Zero,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-  market: Market;
   listNow?: boolean;
   projectId?: number;
   scheduleStartTime?: number;
   holdbackPercentage?: BigNumber;
-}): Promise<Parameters<Removal['mintBatch']>[3]> => {
-  const actualScheduleStartTime =
-    scheduleStartTime ?? (await getLatestBlockTime({ hre }));
+}): Promise<BatchMintData> => {
+  const actualScheduleStartTime = BigNumber.from(
+    scheduleStartTime ?? (await getLatestBlockTime({ hre }))
+  );
   return {
-    projectId,
+    projectId: BigNumber.from(projectId),
     scheduleStartTime: actualScheduleStartTime,
     holdbackPercentage,
     list: listNow,
@@ -201,7 +208,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
   market: Market;
   removalDataToList: RemovalDataForListing;
 }): Promise<RemovalDataFromListing> => {
-  const { removal, hre, market, removalDataToList } = options;
+  const { removal, hre, removalDataToList } = options;
   const { projectId, scheduleStartTime, holdbackPercentage } = {
     projectId: removalDataToList.projectId ?? 1_234_567_890,
     scheduleStartTime:
@@ -235,7 +242,6 @@ export const batchMintAndListRemovalsForSale = async (options: {
     listedRemovalIds,
     await createBatchMintData({
       hre,
-      market,
       listNow: removalDataToList.listNow,
       projectId,
       scheduleStartTime,
@@ -344,19 +350,16 @@ export const setupTest = global.hre.deployments.createFixture(
         scheduleStartTime = mintResultData.scheduleStartTime; // todo allow multiple schedules/projects/percentages per fixture
         holdbackPercentage = mintResultData.holdbackPercentage; // todo allow multiple schedules/projects/percentages per fixture
       }
-      if (Boolean(v.bpBalance)) {
-        if (isBigNumberish(v.bpBalance)) {
-          // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-          await mockDepositNoriToPolygon({
-            hre,
-            contracts,
-            amount: v.bpBalance,
-            to: hre.namedAccounts[k],
-            signer: hre.namedSigners[k],
-          });
-        } else {
-          throw new Error(`Invalid bpBalance for ${k}.`);
-        }
+      const amount = v.bpBalance;
+      if (amount !== undefined) {
+        // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+        await mockDepositNoriToPolygon({
+          hre,
+          contracts,
+          amount,
+          to: hre.namedAccounts[k],
+          signer: hre.namedSigners[k],
+        });
       }
     }
     return {

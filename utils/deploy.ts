@@ -364,6 +364,7 @@ export const saveDeployments = async ({
  * Seeds contracts with some initial removals and market listings
  *
  * @deprecated
+ *
  * @todo don't do this during deployment
  */
 export const seedContracts = async ({
@@ -389,7 +390,6 @@ export const seedContracts = async ({
     const listNow = true;
     const packedData = await createBatchMintData({
       hre,
-      market: contracts.Market,
       listNow,
       scheduleStartTime: await getLatestBlockTime({ hre }),
     });

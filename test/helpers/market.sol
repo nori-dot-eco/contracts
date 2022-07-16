@@ -24,6 +24,7 @@ abstract contract UpgradeableMarket is
       Removal(_removal)
     );
     _rNori.grantRole(_rNori.MINTER_ROLE(), address(_market));
+    _rNori.grantRole(_rNori.SCHEDULE_CREATOR_ROLE(), address(_market));
   }
 
   function _deployFIFOMarket() internal returns (Market) {
