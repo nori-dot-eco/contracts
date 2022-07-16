@@ -9,7 +9,7 @@ import "./RestrictedNORI.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 import {TokenIdExists, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 import "./Market.sol";
-import "hardhat/console.sol";
+
 struct BatchMintRemovalsData {
   uint256 projectId;
   uint256 scheduleStartTime;
@@ -32,8 +32,6 @@ contract Removal is
   using RemovalUtils for uint256;
   using EnumerableMapUpgradeable for EnumerableMapUpgradeable.UintToAddressMap;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-
-  error TokenIdDoesNotExist(uint256 tokenId);
 
   struct ScheduleData {
     uint256 startTime;
@@ -128,7 +126,7 @@ contract Removal is
    * @param removalData removal data encoded as bytes, with the first byte storing the version.
    */
   function createRemovalId(bytes calldata removalData)
-    public
+    external
     pure
     returns (uint256)
   {
@@ -139,7 +137,7 @@ contract Removal is
    * @notice Unpacks a V0 removal id into its component data.
    */
   function unpackRemovalIdV0(uint256 removalId)
-    public
+    external
     pure
     returns (UnpackedRemovalIdV0 memory)
   {
@@ -193,17 +191,6 @@ contract Removal is
       holdbackPercentages[i] = _removalIdToRemovalData[id].holdbackPercentage;
     }
     return holdbackPercentages;
-  }
-
-  /** Set the holdback percentages for a batch of removal ids. */
-  function batchSetHoldbackPercentage(
-    uint256[] calldata removalIds,
-    uint256 holdbackPercentage
-  ) external whenNotPaused {
-    for (uint256 i = 0; i < removalIds.length; ++i) {
-      uint256 id = removalIds[i];
-      _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
-    }
   }
 
   /**
@@ -273,7 +260,7 @@ contract Removal is
     // todo initialBalanceOf? should be amount + released?
     // Querying the details of a removal returns a flag showing the quantity that was invalidated.
     // If this Removal has not been completely sold, we will not sell the invalidated amount of that Removal
-    burn(owner, removalId, amount); // todo remove public burn interface and use internal one
+    burn(owner, removalId, amount); // todo remove external burn interface and use internal one
     if (owner == address(_market)) {
       Market(owner).release(removalId, amount);
     }
@@ -336,7 +323,7 @@ contract Removal is
     uint256 numberOfAccounts = accounts.length; // todo global rename (accounts -> owners)
     uint256[] memory batchBalances = new uint256[](numberOfAccounts);
     for (uint256 i = 0; i < numberOfAccounts; ++i) {
-      batchBalances[i] = cumulativeBalanceOf(accounts[i]);
+      batchBalances[i] = this.cumulativeBalanceOf(accounts[i]);
     }
     return batchBalances;
   }
@@ -350,7 +337,7 @@ contract Removal is
 
   // todo rename cumulativeBalanceOfOwner
   // todo batch?
-  function cumulativeBalanceOf(address owner) public view returns (uint256) {
+  function cumulativeBalanceOf(address owner) external view returns (uint256) {
     // todo are the bodies of these functions re-usable across the contract? Seems like an abstraction might be possible
     EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
       owner
@@ -371,7 +358,7 @@ contract Removal is
   // todo do we need to also add a version of these functions compatible with childTokens in certificate?
   // todo batch?
   function cumulativeBalanceOfOwnerSubset(address owner, uint256[] memory ids)
-    public
+    external
     view
     returns (uint256)
   {

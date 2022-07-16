@@ -3,7 +3,6 @@ import { BigNumber } from 'ethers';
 import { sum } from '@/utils/math';
 import { SECONDS_IN_10_YEARS } from '@/test/helpers/restricted-nori';
 import { Zero, AddressZero } from '@/constants/units';
-import { defaultPackedRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import {
   createBatchMintData,
   createRemovalTokenId,
@@ -37,7 +36,6 @@ describe('Removal', () => {
     it('should update the holdback percentage for a removal after it has been minted', async () => {
       const holdbackPercentage = BigNumber.from(40);
       const { removal, listedRemovalIds } = await setupTest({
-        // todo how would this look using mocks only? Probably just mock balance, then list it?
         userFixtures: {
           supplier: {
             removalDataToList: {
@@ -47,24 +45,9 @@ describe('Removal', () => {
           },
         },
       });
-      const updatedHoldback = BigNumber.from(20);
-      await removal.batchSetHoldbackPercentage(
-        [listedRemovalIds[0]],
-        updatedHoldback
-      );
       const [retrievedHoldbackPercentages] =
         await removal.batchGetHoldbackPercentages([listedRemovalIds[0]]);
-      expect(retrievedHoldbackPercentages).to.equal(updatedHoldback);
-    });
-    it('should revert if trying to set a holdback percentage for a removal that does not exist', async () => {
-      const { removal } = await setupTest();
-      const holdbackPercentage = BigNumber.from(40);
-      await expect(
-        removal.batchSetHoldbackPercentage(
-          [defaultPackedRemovalTokenIdFixture],
-          holdbackPercentage
-        )
-      ).to.be.revertedWith('TokenIdDoesNotExist');
+      expect(retrievedHoldbackPercentages).to.equal(holdbackPercentage);
     });
   });
   describe('mintBatch', () => {
