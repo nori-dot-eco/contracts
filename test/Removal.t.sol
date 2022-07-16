@@ -124,7 +124,7 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemovalMock {
 
   function test_revert_paused() external {
     super._pause();
-    vm.expectRevert("ERC1155Pausable: token transfer while paused");
+    vm.expectRevert("Pausable: paused");
     super._beforeTokenTransfer(
       _namedAccounts.admin,
       _namedAccounts.admin,
