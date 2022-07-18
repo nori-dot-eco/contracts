@@ -41,7 +41,6 @@ export const getConfig = (
       externalArtifacts: [
         'legacy-artifacts/contracts/LockedNORI.sol/LockedNORI.json',
       ],
-      dontOverrideCompile: true,
     },
   };
   return config;
