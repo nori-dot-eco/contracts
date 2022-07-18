@@ -41,6 +41,11 @@ contract Certificate is
     keccak256("CERTIFICATE_OPERATOR_ROLE");
 
   /**
+   * @notice Role conferring the ability to release a certificates underlying removals
+   */
+  bytes32 public constant RELEASER_ROLE = keccak256("RELEASER_ROLE");
+
+  /**
    * @notice Role conferring the ability to mint certificates
    */
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -110,7 +115,6 @@ contract Certificate is
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     _removal = Removal(removal);
-    // todo register market
   }
 
   function initialize() external initializerERC721A initializer {
@@ -126,6 +130,28 @@ contract Certificate is
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(MINTER_ROLE, _msgSender());
     _grantRole(PAUSER_ROLE, _msgSender());
+    // todo initialize with _removal and call _grantRole(_removal) here?
+  }
+
+  function releaseRemoval(
+    uint256 certificateId,
+    RemovalId removalId,
+    uint256 amount
+  ) external whenNotPaused onlyRole(RELEASER_ROLE) {
+    // todo any way to guarantee this is only called when burning removals?
+    // todo batch?
+    // todo how are we tracking total released? Do the correct events get emitted in Removal.sol?
+    // todo emit event
+    _removalBalancesOfCertificate[certificateId][
+      RemovalId.unwrap(removalId)
+    ] -= amount;
+    if (
+      _removalBalancesOfCertificate[certificateId][ // todo access storage once (currently 2x)
+        RemovalId.unwrap(removalId)
+      ] == 0
+    ) {
+      _removalsOfCertificate[certificateId].remove(RemovalId.unwrap(removalId));
+    }
   }
 
   /**
@@ -192,6 +218,50 @@ contract Certificate is
     returns (uint256[] memory)
   {
     return _removalsOfCertificate[certificateId].values();
+  }
+
+  /**
+   * @dev Returns a list of certificate IDs that hold a balnce for a given removal ID.
+   */
+  function certificatesOfRemoval(RemovalId removalId)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    // todo consider using tokensOfOwnerIn to prevent out of gas possibilities that may prevent releasing removals
+    uint256 totalSupply = this.totalSupply();
+    uint256 totalNumberOfCertificates = 0;
+    uint256[] memory certificates = new uint256[](totalSupply);
+    for (uint256 i = 0; i < totalSupply; i++) {
+      uint256 certificateId = certificates[i];
+      if (
+        _removalsOfCertificate[certificateId].contains(
+          RemovalId.unwrap(removalId)
+        )
+      ) {
+        certificates[i] = certificateId;
+        totalNumberOfCertificates++;
+      }
+    }
+    return _shrinkArray(certificates, totalNumberOfCertificates);
+  }
+
+  function _shrinkArray(uint256[] memory array, uint256 newLength)
+    internal
+    pure
+    returns (uint256[] memory)
+  {
+    // todo verify that this is working as expected
+    require(
+      newLength <= array.length,
+      "Array: length after shrinking larger than before"
+    );
+    // todo use new memory safe asembly syntax instead of the following
+    /// @solidity memory-safe-assembly
+    assembly {
+      mstore(array, newLength)
+    }
+    return array;
   }
 
   /**

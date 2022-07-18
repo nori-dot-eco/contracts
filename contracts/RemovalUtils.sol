@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "forge-std/console2.sol"; // todo
+// import "forge-std/console2.sol"; // todo
 
 type RemovalId is uint256;
 

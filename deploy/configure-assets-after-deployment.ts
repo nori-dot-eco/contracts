@@ -34,14 +34,12 @@ export const deploy: DeployFunction = async (environment) => {
   if (
     !(await rNori.hasRole(await rNori.SCHEDULE_CREATOR_ROLE(), market.address))
   ) {
-    await rNori.grantRole(
-      hre.ethers.utils.id('SCHEDULE_CREATOR_ROLE'),
-      market.address
+    await rNori.grantRole(await rNori.SCHEDULE_CREATOR_ROLE(), market.address);
+    hre.trace(
+      "Granted Market the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI"
     );
   }
-  hre.trace(
-    "Granted Market the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI"
-  );
+
   if (!(await rNori.hasRole(await rNori.MINTER_ROLE(), market.address))) {
     await rNori.grantRole(hre.ethers.utils.id('MINTER_ROLE'), market.address);
   }
@@ -50,6 +48,21 @@ export const deploy: DeployFunction = async (environment) => {
   hre.trace('Set market, removal and bpNori addresses in rNori');
   await removal.registerContractAddresses(rNori.address, market.address);
   hre.trace('Set rNori address in Removal');
+  // todo rest of .registerContractAddresses
+  if (
+    !(await certificate.hasRole(
+      await certificate.RELEASER_ROLE(),
+      removal.address
+    ))
+  ) {
+    await certificate.grantRole(
+      await certificate.RELEASER_ROLE(),
+      removal.address
+    );
+    hre.trace(
+      'Granted the removal contract the `RELEASER_ROLE` role in the Certificate contract'
+    );
+  }
 };
 
 export default deploy;
