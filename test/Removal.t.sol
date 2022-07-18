@@ -31,7 +31,7 @@ contract Removal_mintBatch is UpgradableRemovalMock {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
-      _asSingletonRemovalIdArray(
+      _asSingletonUintArray(
         RemovalUtils.createRemovalIdFromStruct(_removalData)
       ),
       _mintData
@@ -51,7 +51,7 @@ contract Removal_release is RemovalSeeded, UpgradeableMarket {
       supplierAddress: _namedAccounts.supplier,
       subIdentifier: 99_039_930
     });
-  RemovalId internal _removalId =
+  uint256 internal _removalId =
     RemovalUtils.createRemovalIdFromStruct(_removalData);
 
   // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
@@ -81,7 +81,7 @@ contract Removal_release_unlisted is RemovalSeeded, UpgradeableMarket {
       supplierAddress: _namedAccounts.supplier,
       subIdentifier: 99_039_930
     });
-  RemovalId internal _removalId =
+  uint256 internal _removalId =
     RemovalUtils.createRemovalIdFromStruct(_removalData);
 
   function test() external {
@@ -96,25 +96,19 @@ contract Removal_release_unlisted is RemovalSeeded, UpgradeableMarket {
       address(0),
       address(0),
       address(_namedAccounts.supplier),
-      _asSingletonUintArray(RemovalId.unwrap(_removalId)),
+      _asSingletonUintArray(_removalId),
       _asSingletonUintArray(1)
     );
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonRemovalIdArray(_removalId),
+      _asSingletonUintArray(_removalId),
       data
     );
-    assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, RemovalId.unwrap(_removalId)),
-      1
-    );
+    assertEq(_removal.balanceOf(_namedAccounts.supplier, _removalId), 1);
     _removal.release(_namedAccounts.supplier, _removalId, 1);
     // todo events
-    assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, RemovalId.unwrap(_removalId)),
-      0
-    );
+    assertEq(_removal.balanceOf(_namedAccounts.supplier, _removalId), 0);
   }
 }
 
@@ -135,7 +129,7 @@ contract Removal_release_retired is RemovalSeeded, UpgradeableMarket {
       supplierAddress: _namedAccounts.supplier,
       subIdentifier: 99_039_930
     });
-  RemovalId internal _removalId =
+  uint256 internal _removalId =
     RemovalUtils.createRemovalIdFromStruct(_removalData);
 
   function setUp() external {
@@ -148,7 +142,7 @@ contract Removal_release_retired is RemovalSeeded, UpgradeableMarket {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
-      _asSingletonRemovalIdArray(_removalId),
+      _asSingletonUintArray(_removalId),
       data
     );
     uint256 ownerPrivateKey = 0xA11CE;
@@ -172,22 +166,16 @@ contract Removal_release_retired is RemovalSeeded, UpgradeableMarket {
       signedPermit.r,
       signedPermit.s
     );
-    assertEq(
-      _certificate.balanceOfRemoval(0, RemovalId.unwrap(_removalId)),
-      1 ether
-    );
+    assertEq(_certificate.balanceOfRemoval(0, _removalId), 1 ether);
     assertEq(_certificate.balanceOf(0), 1 ether);
   }
 
   function test() external {
     _removal.release(address(_certificate), _removalId, 1 ether);
-    assertEq(
-      _removal.balanceOf(address(_certificate), RemovalId.unwrap(_removalId)),
-      0
-    );
-    assertEq(_certificate.balanceOfRemoval(0, RemovalId.unwrap(_removalId)), 0);
-    assertEq(_removal.totalSupply(RemovalId.unwrap(_removalId)), 0);
-    assertEq(_removal.exists(RemovalId.unwrap(_removalId)), false);
+    assertEq(_removal.balanceOf(address(_certificate), _removalId), 0);
+    assertEq(_certificate.balanceOfRemoval(0, _removalId), 0);
+    assertEq(_removal.totalSupply(_removalId), 0);
+    assertEq(_removal.exists(_removalId), false);
   }
 }
 
@@ -203,7 +191,7 @@ contract Removal_release_listed is RemovalSeeded, UpgradeableMarket {
       supplierAddress: _namedAccounts.supplier,
       subIdentifier: 99_039_930
     });
-  RemovalId internal _removalId =
+  uint256 internal _removalId =
     RemovalUtils.createRemovalIdFromStruct(_removalData);
 
   function test() external {
@@ -218,32 +206,20 @@ contract Removal_release_listed is RemovalSeeded, UpgradeableMarket {
       address(0),
       address(0),
       address(_namedAccounts.supplier),
-      _asSingletonUintArray(RemovalId.unwrap(_removalId)),
+      _asSingletonUintArray(_removalId),
       _asSingletonUintArray(1)
     );
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonRemovalIdArray(_removalId),
+      _asSingletonUintArray(_removalId),
       data
     );
-    assertEq( // todo reuse checkout.int assertions
-      _removal.balanceOf(_namedAccounts.supplier, RemovalId.unwrap(_removalId)),
-      0
-    );
-    assertEq(
-      _removal.balanceOf(address(_market), RemovalId.unwrap(_removalId)),
-      1
-    );
+    assertEq(_removal.balanceOf(_namedAccounts.supplier, _removalId), 0); // todo reuse checkout.int assertions
+    assertEq(_removal.balanceOf(address(_market), _removalId), 1);
     _removal.release(address(_market), _removalId, 1);
-    assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, RemovalId.unwrap(_removalId)),
-      0
-    );
-    assertEq(
-      _removal.balanceOf(address(_market), RemovalId.unwrap(_removalId)),
-      0
-    );
+    assertEq(_removal.balanceOf(_namedAccounts.supplier, _removalId), 0);
+    assertEq(_removal.balanceOf(address(_market), _removalId), 0);
     // todo events
   }
 }
@@ -260,7 +236,7 @@ contract Removal_cummulativeBalanceOfBatch is RemovalSeeded {
       supplierAddress: _namedAccounts.supplier,
       subIdentifier: 99_039_930
     });
-    RemovalId _removalId = RemovalUtils.createRemovalIdFromStruct(removalId);
+    uint256 _removalId = RemovalUtils.createRemovalIdFromStruct(removalId);
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 5_555_555_555,
       scheduleStartTime: block.timestamp,
@@ -270,7 +246,7 @@ contract Removal_cummulativeBalanceOfBatch is RemovalSeeded {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonRemovalIdArray(_removalId),
+      _asSingletonUintArray(_removalId),
       data
     );
     assertEq(

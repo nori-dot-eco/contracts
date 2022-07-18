@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Paus
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
-import {RemovalUtils, RemovalId} from "./RemovalUtils.sol";
+import {RemovalUtils} from "./RemovalUtils.sol";
 import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 
 // todo extract some of this contract to a preset
@@ -108,7 +108,6 @@ contract RestrictedNORI is
   ERC1155SupplyUpgradeable,
   AccessControlEnumerableUpgradeable
 {
-  using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
@@ -555,7 +554,7 @@ contract RestrictedNORI is
   /**
    * @dev Mints RestrictedNORI to the correct schedule token ID for a given removal token ID. // todo
    */
-  function mint(uint256 amount, RemovalId removalId) external {
+  function mint(uint256 amount, uint256 removalId) external {
     if (!hasRole(MINTER_ROLE, _msgSender())) {
       // todo consistency in custom errors for hasRole vs onlyRole
       revert InvalidMinter({account: _msgSender()});

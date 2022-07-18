@@ -135,22 +135,18 @@ contract Certificate is
 
   function releaseRemoval(
     uint256 certificateId,
-    RemovalId removalId,
+    uint256 removalId,
     uint256 amount
   ) external whenNotPaused onlyRole(RELEASER_ROLE) {
     // todo any way to guarantee this is only called when burning removals?
     // todo batch?
     // todo how are we tracking total released? Do the correct events get emitted in Removal.sol?
     // todo emit event
-    _removalBalancesOfCertificate[certificateId][
-      RemovalId.unwrap(removalId)
-    ] -= amount;
+    _removalBalancesOfCertificate[certificateId][removalId] -= amount;
     if (
-      _removalBalancesOfCertificate[certificateId][ // todo access storage once (currently 2x)
-        RemovalId.unwrap(removalId)
-      ] == 0
+      _removalBalancesOfCertificate[certificateId][removalId] == 0 // todo access storage once (currently 2x)
     ) {
-      _removalsOfCertificate[certificateId].remove(RemovalId.unwrap(removalId));
+      _removalsOfCertificate[certificateId].remove(removalId);
     }
   }
 
@@ -182,10 +178,11 @@ contract Certificate is
   /**
    * @dev Gives child balance for a specific child contract and child ID.
    */
-  function balanceOfRemoval(
-    uint256 certificateTokenId,
-    uint256 removalTokenId // todo globally change type to RemovalId user defined type
-  ) external view returns (uint256) {
+  function balanceOfRemoval(uint256 certificateTokenId, uint256 removalTokenId)
+    external
+    view
+    returns (uint256)
+  {
     // todo cummulative balance for all child contracts version (use ERC721AQueryable balance funcs)
     return _removalBalancesOfCertificate[certificateTokenId][removalTokenId];
   }
@@ -223,7 +220,7 @@ contract Certificate is
   /**
    * @dev Returns a list of certificate IDs that hold a balnce for a given removal ID.
    */
-  function certificatesOfRemoval(RemovalId removalId)
+  function certificatesOfRemoval(uint256 removalId)
     external
     view
     returns (uint256[] memory)
@@ -234,34 +231,12 @@ contract Certificate is
     uint256[] memory certificates = new uint256[](totalSupply);
     for (uint256 i = 0; i < totalSupply; i++) {
       uint256 certificateId = certificates[i];
-      if (
-        _removalsOfCertificate[certificateId].contains(
-          RemovalId.unwrap(removalId)
-        )
-      ) {
+      if (_removalsOfCertificate[certificateId].contains(removalId)) {
         certificates[i] = certificateId;
         totalNumberOfCertificates++;
       }
     }
     return _shrinkArray(certificates, totalNumberOfCertificates);
-  }
-
-  function _shrinkArray(uint256[] memory array, uint256 newLength)
-    internal
-    pure
-    returns (uint256[] memory)
-  {
-    // todo verify that this is working as expected
-    require(
-      newLength <= array.length,
-      "Array: length after shrinking larger than before"
-    );
-    // todo use new memory safe asembly syntax instead of the following
-    /// @solidity memory-safe-assembly
-    assembly {
-      mstore(array, newLength)
-    }
-    return array;
   }
 
   /**
@@ -347,6 +322,23 @@ contract Certificate is
       removalIds,
       removalAmounts
     );
+  }
+
+  function _shrinkArray(
+    uint256[] memory array,
+    uint256 newLength // todo shared lib
+  ) internal pure returns (uint256[] memory) {
+    // todo verify that this is working as expected
+    require(
+      newLength <= array.length,
+      "Array: length after shrinking larger than before" // todo custom error
+    );
+    // todo use new memory safe asembly syntax instead of the following
+    /// @solidity memory-safe-assembly
+    assembly {
+      mstore(array, newLength)
+    }
+    return array;
   }
 
   function _validateReceivedRemovalBatch(
