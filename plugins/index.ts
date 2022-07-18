@@ -17,8 +17,11 @@ import 'solidity-coverage';
 import 'hardhat-tracer';
 import '@/config/environment';
 import '@/tasks/index';
-
-import { extendEnvironment } from 'hardhat/config';
+import { subtask, extendEnvironment } from 'hardhat/config';
+import {
+  TASK_COMPILE_SOLIDITY_COMPILE,
+  TASK_COMPILE_SOLIDITY_COMPILE_SOLC,
+} from 'hardhat/builtin-tasks/task-names';
 import type { BaseContract, ContractFactory, Signer } from 'ethers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
 import { lazyFunction, lazyObject } from 'hardhat/plugins';
@@ -32,6 +35,15 @@ import { namedAccountIndices, namedAccounts } from '@/config/accounts';
 import { trace, log } from '@/utils/log';
 import { getContract } from '@/utils/contracts';
 import { debug } from '@/utils/debug';
+
+subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args, hre, runSuper) => {
+  // todo this is dangerous and should be removed-- this is a temporary workaround to unblock hardhat issues
+  const { output, solcBuild } = await hre.run(
+    TASK_COMPILE_SOLIDITY_COMPILE_SOLC,
+    args
+  );
+  return { output, solcBuild };
+});
 
 const getNamedSigners = (
   hre: CustomHardHatRuntimeEnvironment
