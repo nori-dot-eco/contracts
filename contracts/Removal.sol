@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol"; /
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
 import "./RestrictedNORI.sol";
 import "./Market.sol";
+import "./Certificate.sol"; // todo Certificate vs ICertificate pattern
 import {RemovalUtils, UnpackedRemovalIdV0, RemovalId} from "./RemovalUtils.sol";
 import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 // import "forge-std/console2.sol"; // todo
@@ -76,9 +77,14 @@ contract Removal is
   RestrictedNORI private _restrictedNori;
 
   /**
-   * @notice the Market contract that removals can be bought and sold from
+   * @notice The Market contract that removals can be bought and sold from.
    */
   Market private _market;
+
+  /**
+   * @notice The Certificate contract that removals are retired into.
+   */
+  Certificate private _certificate;
 
   mapping(RemovalId => RemovalData) private _removalIdToRemovalData;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData; // todo why does this live here and not in rNORI?
@@ -107,21 +113,26 @@ contract Removal is
   }
 
   /**
-   * @dev Registers the market and restricted Nori contracts so that they can be referenced in this contract.
+   * @dev Registers the market, rNORI, and certificate contracts so that they can be referenced in this contract.
    */
   function registerContractAddresses(
-    RestrictedNORI restrictedNoriAddress_,
-    Market marketAddress_
+    RestrictedNORI restrictedNori,
+    Market market,
+    Certificate certificate
   ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     // todo configureContract() that does this + grantRole
-    _restrictedNori = restrictedNoriAddress_;
-    _market = marketAddress_;
+    // todo can any of these be included in the initializer instead?
+    // todo need a better contract registry system
+    // todo do we want to break apart these registerContractAddresses() functions for each separate contract?
+    _restrictedNori = restrictedNori;
+    _market = market;
+    _certificate = certificate;
   }
 
   /**
    * @notice Mints multiple removals at once (for a single supplier).
-   * @param to The supplier address
-   * @param amounts Each removal's tonnes of CO2 formatted as wei
+   * @param to The supplier address.
+   * @param amounts Each removal's tonnes of CO2 formatted as wei.
    * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address,
    * a parcel identifier, the vintage, country code, state code, methodology identifer, methodology version, and id
    * format.
@@ -179,7 +190,7 @@ contract Removal is
 
   /**
    * @notice Marks an amount of a removal as released given a removal ID and a quantity.
-   * @param owner The owner of the removal to release
+   * @param owner The owner of the removal to release.
    * @param removalId The ID of the removal to mark as released.
    * @param amount The amount of the removal to release.
    *
@@ -187,15 +198,15 @@ contract Removal is
    *
    * ##### Requirements:
    *
-   * - The contract must not be paused.
+   * - The rules of `_beforeTokenTransfer` are enforced.
    * - The caller must have the `RELEASER_ROLE`.
-   * - The rules of `ERC1155Upgradeable._burn` are enforced.
+   * - The rules of `_burn` are enforced.
    */
   function release(
     address owner,
     RemovalId removalId,
     uint256 amount
-  ) external onlyRole(RELEASER_ROLE) whenNotPaused {
+  ) external onlyRole(RELEASER_ROLE) {
     // todo what does this need to change about rNORI?
     // todo how should we handle the case where certificate == 0 after relasing? Should it still exist with value of 0?
     // todo decrement child removal balances of certificate if contained in one
@@ -210,8 +221,12 @@ contract Removal is
     return address(_restrictedNori);
   }
 
+  function certificateAddress() external view returns (address) {
+    return address(_certificate);
+  }
+
   /**
-   * @notice Get the restriction schedule id (which is the removal's project id) for a given removal id.
+   * @notice Gets the restriction schedule id (which is the removal's project id) for a given removal id.
    */
   function getProjectIdForRemoval(RemovalId removalId)
     external
@@ -222,7 +237,7 @@ contract Removal is
   }
 
   /**
-   * @notice Get the restriction schedule data for a given removal id.
+   * @notice Gets the restriction schedule data for a given removal id.
    */
   function getScheduleDataForRemovalId(RemovalId removalId)
     external
@@ -234,7 +249,7 @@ contract Removal is
   }
 
   /**
-   * @notice Get the restriction schedule data for a given project id.
+   * @notice Gets the restriction schedule data for a given project id.
    */
   function getScheduleDataForProjectId(uint256 projectId)
     external
@@ -244,7 +259,7 @@ contract Removal is
     return _projectIdToScheduleData[projectId];
   }
 
-  /** @notice Get the holdback percentages for a batch of removal ids. */
+  /** @notice Gets the holdback percentages for a batch of removal ids. */
   function batchGetHoldbackPercentages(RemovalId[] memory removalIds)
     external
     view
@@ -395,6 +410,32 @@ contract Removal is
   }
 
   /**
+   * @notice Burns an amount of tokens from an account.
+   * @dev Destroys `amount` tokens of token type `id` from `from`. If the tokens are included as part of any
+   * certificates, the certificate balances are decremented by `amount` as well.
+   *
+   * ##### Requirements:
+   *
+   * - Enforces the rules of `ERC1155Upgradeable._burn`.
+   */
+  function _burn(
+    address from,
+    uint256 id, // todo is it possible to use RemovalId user defined type in override?
+    uint256 amount
+  ) internal override {
+    uint256[] memory certificatesForRemoval = _certificate
+      .certificatesOfRemoval(RemovalId.wrap(id));
+    for (uint256 i = 0; i < certificatesForRemoval.length; ++i) {
+      _certificate.releaseRemoval(
+        certificatesForRemoval[i],
+        RemovalId.wrap(id),
+        amount
+      ); // todo batch call
+    }
+    super._burn(from, id, amount);
+  }
+
+  /**
    * @notice Hook that is called before before any token transfer. This includes minting and burning, as well as
    * batched variants.
    *
@@ -403,7 +444,7 @@ contract Removal is
    *
    * ##### Requirements:
    *
-   * - The contract must not be paused
+   * - The contract must not be paused.
    * - Enforces the rules of `ERC1155Upgradeable._beforeTokenTransfer`.
    * - Enforces the rules of `ERC1155SupplyUpgradeable._beforeTokenTransfer`.
    * TODO rest

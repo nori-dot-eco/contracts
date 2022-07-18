@@ -1,4 +1,4 @@
-/* solhint-disable contract-name-camelcase, func-name-mixedcase */
+/* solhint-disable contract-name-camelcase, func-name-mixedcase, reason-string */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
@@ -172,11 +172,11 @@ contract Removal_release_retired is RemovalSeeded, UpgradeableMarket {
       signedPermit.r,
       signedPermit.s
     );
-    // todo revert if  certificate doesnt exist
-    // todo revert if removals for certificate dont exists/add up to total
-    if (_certificate.balanceOf(0) != 1 ether) {
-      revert("certificate has invalid balance");
-    }
+    assertEq(
+      _certificate.balanceOfRemoval(0, RemovalId.unwrap(_removalId)),
+      1 ether
+    );
+    assertEq(_certificate.balanceOf(0), 1 ether);
   }
 
   function test() external {
@@ -185,8 +185,7 @@ contract Removal_release_retired is RemovalSeeded, UpgradeableMarket {
       _removal.balanceOf(address(_certificate), RemovalId.unwrap(_removalId)),
       0
     );
-    // assertEq(_certificate.balanceOfRemoval(0, RemovalId.unwrap(_removalId)), 0); // todo missing implementation
-    // assertEq(_certificate.balanceOf(0), 0); // todo missing implementation
+    assertEq(_certificate.balanceOfRemoval(0, RemovalId.unwrap(_removalId)), 0);
     assertEq(_removal.totalSupply(RemovalId.unwrap(_removalId)), 0);
     assertEq(_removal.exists(RemovalId.unwrap(_removalId)), false);
   }

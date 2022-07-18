@@ -18,7 +18,11 @@ abstract contract UpgradeableMarket is
 
   constructor() {
     _market = _deployFIFOMarket();
-    _removal.registerContractAddresses(RestrictedNORI(_rNori), Market(_market));
+    _removal.registerContractAddresses(
+      RestrictedNORI(_rNori),
+      Market(_market),
+      Certificate(_certificate)
+    );
     _rNori.registerContractAddresses(
       BridgedPolygonNORI(_bpNori),
       Removal(_removal)
@@ -26,6 +30,7 @@ abstract contract UpgradeableMarket is
     _certificate.registerContractAddresses(Removal(_removal));
     _rNori.grantRole(_rNori.MINTER_ROLE(), address(_market));
     _rNori.grantRole(_rNori.SCHEDULE_CREATOR_ROLE(), address(_market));
+    _certificate.grantRole(_removal.RELEASER_ROLE(), address(_removal));
   }
 
   function _deployFIFOMarket() internal returns (Market) {
