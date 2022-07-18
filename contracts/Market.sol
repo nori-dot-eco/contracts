@@ -10,7 +10,8 @@ import "./BridgedPolygonNORI.sol";
 import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils, RemovalId} from "./RemovalUtils.sol";
-import "forge-std/console2.sol"; // todo
+
+// import "forge-std/console2.sol"; // todo
 
 // todo emit events
 
@@ -347,9 +348,8 @@ contract Market is
     for (
       uint256 i = 0;
       i < numberOfActiveRemovalsInMarket;
-      i++
-    ) // todo ++i consistency
-    {
+      i++ // todo ++i consistency
+    ) {
       RemovalId removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(

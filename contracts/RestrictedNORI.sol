@@ -401,12 +401,10 @@ contract RestrictedNORI is
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
+    uint256 totalSupply = totalSupply(scheduleId);
     return
-      _scheduleTrueTotal(schedule.totalClaimedAmount, scheduleId) -
-      _releasedBalanceOfSingleSchedule(
-        scheduleId,
-        schedule.releasedAmountFloor
-      );
+      _scheduleTrueTotal(schedule, totalSupply) -
+      _releasedBalanceOfSingleSchedule(schedule, totalSupply);
   }
 
   /**
@@ -422,10 +420,8 @@ contract RestrictedNORI is
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
     return
-      _releasedBalanceOfSingleSchedule(
-        scheduleId,
-        schedule.releasedAmountFloor
-      ) - schedule.totalClaimedAmount;
+      _releasedBalanceOfSingleSchedule(schedule, totalSupply(scheduleId)) -
+      schedule.totalClaimedAmount;
   }
 
   /**
@@ -441,8 +437,8 @@ contract RestrictedNORI is
   ) public view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 scheduleTrueTotal = _scheduleTrueTotal(
-      schedule.totalClaimedAmount,
-      scheduleId
+      schedule,
+      totalSupply(scheduleId)
     );
     uint256 balanceOfAccount = balanceOf(account, scheduleId);
 
@@ -836,38 +832,12 @@ contract RestrictedNORI is
         }
         Schedule storage schedule = _scheduleIdToScheduleStruct[id];
         schedule.releasedAmountFloor = _releasedBalanceOfSingleSchedule(
-          id,
-          _scheduleIdToScheduleStruct[id].releasedAmountFloor
+          schedule,
+          totalSupply(id)
         );
       }
     }
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
-  }
-
-  /**
-   * @notice Linearly released balance for a single schedule at the current block timestamp, ignoring any
-   * released amount floor that has been set for the schedule.
-   */
-  // todo move calculation functions into a library for this contract
-  function _linearReleaseAmountAvailable(uint256 scheduleId)
-    internal
-    view
-    returns (uint256)
-  {
-    Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    uint256 linearAmountAvailable;
-    /* solhint-disable not-rely-on-time, this is time-dependent */
-    if (block.timestamp >= schedule.endTime) {
-      linearAmountAvailable = totalSupply(scheduleId);
-    } else {
-      uint256 rampTotalTime = schedule.endTime - schedule.startTime;
-      linearAmountAvailable = block.timestamp < schedule.startTime
-        ? 0
-        : (_scheduleTrueTotal(schedule.totalClaimedAmount, scheduleId) *
-          (block.timestamp - schedule.startTime)) / rampTotalTime;
-    }
-    /* solhint-enable not-rely-on-time */
-    return linearAmountAvailable;
   }
 
   /**
@@ -882,8 +852,8 @@ contract RestrictedNORI is
   ) private view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 scheduleTrueTotal = _scheduleTrueTotal(
-      schedule.totalClaimedAmount,
-      scheduleId
+      schedule,
+      totalSupply(scheduleId)
     );
     uint256 revocableForAccount;
     // avoid division by or of 0
@@ -909,14 +879,36 @@ contract RestrictedNORI is
    * schedule is decreased through revocation or withdrawal.
    */
   function _releasedBalanceOfSingleSchedule(
-    uint256 scheduleId,
-    uint256 releasedAmountFloor
+    Schedule storage schedule,
+    uint256 totalSupply
   ) internal view returns (uint256) {
     return
       MathUpgradeable.max(
-        _linearReleaseAmountAvailable(scheduleId),
-        releasedAmountFloor
+        _linearReleaseAmountAvailable(schedule, totalSupply),
+        schedule.releasedAmountFloor
       );
+  }
+
+  /**
+   * @notice Linearly released balance for a single schedule at the current block timestamp, ignoring any
+   * released amount floor that has been set for the schedule.
+   */
+  // todo move calculation functions into a library for this contract
+  function _linearReleaseAmountAvailable(
+    Schedule storage schedule,
+    uint256 totalSupply
+  ) internal view returns (uint256) {
+    uint256 linearAmountAvailable = totalSupply;
+    /* solhint-disable not-rely-on-time, this is time-dependent */
+    if (block.timestamp < schedule.endTime) {
+      uint256 rampTotalTime = schedule.endTime - schedule.startTime;
+      linearAmountAvailable = block.timestamp < schedule.startTime
+        ? 0
+        : (_scheduleTrueTotal(schedule, totalSupply) *
+          (block.timestamp - schedule.startTime)) / rampTotalTime;
+    }
+    /* solhint-enable not-rely-on-time */
+    return linearAmountAvailable;
   }
 
   /**
@@ -925,10 +917,11 @@ contract RestrictedNORI is
    * @dev claiming burns the 1155, so the true total of a schedule has to be reconstructed
    * from the totalSupply of the token and any claimed amount.
    */
-  function _scheduleTrueTotal(
-    uint256 scheduleTotalClaimedAmount,
-    uint256 scheduleId
-  ) internal view returns (uint256) {
-    return scheduleTotalClaimedAmount + totalSupply(scheduleId);
+  function _scheduleTrueTotal(Schedule storage schedule, uint256 totalSupply)
+    internal
+    view
+    returns (uint256)
+  {
+    return schedule.totalClaimedAmount + totalSupply;
   }
 }
