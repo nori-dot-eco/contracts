@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-// import "forge-std/console2.sol"; // todo
-
-type RemovalId is uint256;
-
 // todo remove the supplier address from the removal id and consider encoding project id instead
 // reasoning: hard coded payment address may be problematic, project id more static / less risky
 struct UnpackedRemovalIdV0 {
@@ -41,6 +37,7 @@ uint256 constant _ASCII_CAP_LETTER_MIN_VAL = 65;
 uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
 
 // todo rename RemovalIdLib
+
 /**
  * @dev Library encapsulating the logic around encoding and decoding removal token ids.
  *
@@ -56,10 +53,9 @@ uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
  */
 library RemovalUtils {
   function isCapitalized(bytes2 characters) internal pure returns (bool valid) {
-    //inline assembly to modify the string
     assembly {
-      let firstCharacter := byte(0, characters) // get the first byte
-      let secondCharacter := byte(1, characters) // get the second byte
+      let firstCharacter := byte(0, characters)
+      let secondCharacter := byte(1, characters)
       valid := and(
         and(lt(firstCharacter, 0x5B), gt(firstCharacter, 0x40)),
         and(lt(secondCharacter, 0x5B), gt(secondCharacter, 0x40))
@@ -67,31 +63,11 @@ library RemovalUtils {
     }
   }
 
-  function unwrapRemovalIds(RemovalId[] memory removalIds)
-    internal
-    pure
-    returns (uint256[] memory unwrappedRemovalIds)
-  {
-    assembly {
-      unwrappedRemovalIds := removalIds
-    }
-  }
-
-  function wrapRemovalIds(uint256[] memory removalIds)
-    internal
-    pure
-    returns (RemovalId[] memory wrappedRemovalIds)
-  {
-    assembly {
-      wrappedRemovalIds := removalIds
-    }
-  }
-
   // todo does all the internal validation still apply when using a struct?
   function createRemovalIdFromStruct(UnpackedRemovalIdV0 memory removalData)
     internal
     pure
-    returns (RemovalId)
+    returns (uint256)
   {
     require(removalData.idVersion == 0, "Unsupported removal token id version"); // todo custom errors
     require(removalData.methodology <= 15, "Metholodogy too large");
@@ -99,11 +75,6 @@ library RemovalUtils {
       removalData.methodologyVersion <= 15,
       "Metholodogy version too large"
     );
-    // if (!isCapitalized(removalData.country)) {
-    //   revert("Invalid Uncapitalized ASCII");
-    // } else if (!isCapitalized(removalData.subdivision)) {
-    //   revert("Invalid Uncapitalized ASCII");
-    // }
     require(
       isCapitalized(removalData.country) &&
         isCapitalized(removalData.subdivision),
@@ -112,21 +83,18 @@ library RemovalUtils {
     uint256 methodologyData = (removalData.methodology << 4) |
       removalData.methodologyVersion;
     return
-      RemovalId.wrap(
-        (uint256(removalData.idVersion) <<
-          (_ID_VERSION_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(methodologyData) <<
-            (_METHODOLOGY_DATA_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(removalData.vintage) << (_VINTAGE_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(uint16(removalData.country)) <<
-            (_COUNTRY_CODE_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(uint16(removalData.subdivision)) <<
-            (_ADMIN1_CODE_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(uint160(removalData.supplierAddress)) <<
-            (_ADDRESS_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(removalData.subIdentifier) <<
-            (_SUBID_OFFSET * _BITS_PER_BYTE))
-      );
+      (uint256(removalData.idVersion) <<
+        (_ID_VERSION_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(methodologyData) <<
+        (_METHODOLOGY_DATA_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(removalData.vintage) << (_VINTAGE_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(uint16(removalData.country)) <<
+        (_COUNTRY_CODE_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(uint16(removalData.subdivision)) <<
+        (_ADMIN1_CODE_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(uint160(removalData.supplierAddress)) <<
+        (_ADDRESS_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(removalData.subIdentifier) << (_SUBID_OFFSET * _BITS_PER_BYTE));
   }
 
   /**
@@ -136,7 +104,7 @@ library RemovalUtils {
    */
   function createRemovalId(
     bytes calldata removalData //  todo remove non-struct version?
-  ) internal pure returns (RemovalId) {
+  ) internal pure returns (uint256) {
     uint256 idVersion = abi.decode(removalData, (uint8));
     require(idVersion == 0, "Unsupported removal token id version");
     require(
@@ -180,25 +148,23 @@ library RemovalUtils {
       params.methodologyVersion;
 
     return
-      RemovalId.wrap(
-        (uint256(params.idVersion) << (_ID_VERSION_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(methodologyData) <<
-            (_METHODOLOGY_DATA_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(params.vintage) << (_VINTAGE_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(uint16(params.country)) <<
-            (_COUNTRY_CODE_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(uint16(params.subdivision)) <<
-            (_ADMIN1_CODE_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(uint160(params.supplierAddress)) <<
-            (_ADDRESS_OFFSET * _BITS_PER_BYTE)) |
-          (uint256(params.subIdentifier) << (_SUBID_OFFSET * _BITS_PER_BYTE))
-      );
+      (uint256(params.idVersion) << (_ID_VERSION_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(methodologyData) <<
+        (_METHODOLOGY_DATA_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(params.vintage) << (_VINTAGE_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(uint16(params.country)) <<
+        (_COUNTRY_CODE_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(uint16(params.subdivision)) <<
+        (_ADMIN1_CODE_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(uint160(params.supplierAddress)) <<
+        (_ADDRESS_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(params.subIdentifier) << (_SUBID_OFFSET * _BITS_PER_BYTE));
   }
 
   /**
    * @notice Unpacks a V0 removal id into its component data.
    */
-  function unpackRemovalIdV0(RemovalId removalId)
+  function unpackRemovalIdV0(uint256 removalId)
     internal
     pure
     returns (UnpackedRemovalIdV0 memory)
@@ -219,7 +185,7 @@ library RemovalUtils {
   /**
    * @notice Extracts and returns the version field of a removal token id.
    */
-  function version(RemovalId removalId) internal pure returns (uint8) {
+  function version(uint256 removalId) internal pure returns (uint8) {
     return
       uint8(
         _extractValue(removalId, _ID_VERSION_FIELD_LENGTH, _ID_VERSION_OFFSET)
@@ -229,7 +195,7 @@ library RemovalUtils {
   /**
    * @notice Extracts and returns the methodology field of a removal token id.
    */
-  function methodology(RemovalId removalId) internal pure returns (uint8) {
+  function methodology(uint256 removalId) internal pure returns (uint8) {
     return
       uint8(
         _extractValue(
@@ -243,11 +209,7 @@ library RemovalUtils {
   /**
    * @notice Extracts and returns the methodology version field of a removal token id.
    */
-  function methodologyVersion(RemovalId removalId)
-    internal
-    pure
-    returns (uint8)
-  {
+  function methodologyVersion(uint256 removalId) internal pure returns (uint8) {
     return
       uint8(
         _extractValue(
@@ -261,7 +223,7 @@ library RemovalUtils {
   /**
    * @notice Extracts and returns the vintage field of a removal token id.
    */
-  function vintage(RemovalId removalId) internal pure returns (uint16) {
+  function vintage(uint256 removalId) internal pure returns (uint16) {
     return
       uint16(_extractValue(removalId, _VINTAGE_FIELD_LENGTH, _VINTAGE_OFFSET));
   }
@@ -269,7 +231,7 @@ library RemovalUtils {
   /**
    * @notice Extracts and returns the country code field of a removal token id.
    */
-  function countryCode(RemovalId removalId) internal pure returns (bytes2) {
+  function countryCode(uint256 removalId) internal pure returns (bytes2) {
     return
       bytes2(
         uint16(
@@ -285,7 +247,7 @@ library RemovalUtils {
   /**
    * @notice Extracts and returns the subdivision field of a removal token id.
    */
-  function subdivisionCode(RemovalId removalId) internal pure returns (bytes2) {
+  function subdivisionCode(uint256 removalId) internal pure returns (bytes2) {
     return
       bytes2(
         uint16(
@@ -301,11 +263,7 @@ library RemovalUtils {
   /**
    * @notice Extracts and returns the supplier address field of a removal token id.
    */
-  function supplierAddress(RemovalId removalId)
-    internal
-    pure
-    returns (address)
-  {
+  function supplierAddress(uint256 removalId) internal pure returns (address) {
     return
       address(
         uint160(
@@ -317,7 +275,7 @@ library RemovalUtils {
   /**
    * @notice Extracts and returns the subIdentifier field of a removal token id.
    */
-  function subIdentifier(RemovalId removalId) internal pure returns (uint32) {
+  function subIdentifier(uint256 removalId) internal pure returns (uint32) {
     return uint32(_extractValue(removalId, _SUBID_FIELD_LENGTH, _SUBID_OFFSET));
   }
 
@@ -325,13 +283,13 @@ library RemovalUtils {
    * @dev Extracts a field of the specified length in bytes, at the specified location, from a removal id.
    */
   function _extractValue(
-    RemovalId removalId,
+    uint256 removalId,
     uint256 numBytesFieldLength,
     uint256 numBytesOffsetFromRight
   ) private pure returns (uint256) {
     bytes32 mask = bytes32(2**(numBytesFieldLength * _BITS_PER_BYTE) - 1) <<
       (numBytesOffsetFromRight * _BITS_PER_BYTE);
-    bytes32 maskedValue = bytes32(RemovalId.unwrap(removalId)) & mask;
+    bytes32 maskedValue = bytes32(removalId) & mask;
     return uint256(maskedValue >> (numBytesOffsetFromRight * _BITS_PER_BYTE));
   }
 }

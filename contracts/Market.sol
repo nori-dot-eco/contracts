@@ -9,7 +9,7 @@ import "./Certificate.sol";
 import "./BridgedPolygonNORI.sol";
 import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
-import {RemovalUtils, RemovalId} from "./RemovalUtils.sol";
+import {RemovalUtils} from "./RemovalUtils.sol";
 
 // import "forge-std/console2.sol"; // todo
 
@@ -28,16 +28,15 @@ contract Market is
   PausableUpgradeable
 {
   // todo pause + unpause base contract (only internal funcs are inherited in pausableupgradeable?)
-  using RemovalUtils for RemovalId; // todo is this using RemovalUtils for ALL uint256s?
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
 
   error InsufficientSupply();
   error OutOfStock();
   error LowSupplyAllowlistRequired();
-  error RemovalAlreadyReserved(RemovalId removalId);
-  error RemovalNotInActiveSupply(RemovalId removalId);
-  error RemovalNotInReservedSupply(RemovalId removalId);
+  error RemovalAlreadyReserved(uint256 removalId);
+  error RemovalNotInActiveSupply(uint256 removalId);
+  error RemovalNotInReservedSupply(uint256 removalId);
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -164,8 +163,8 @@ contract Market is
     // todo revert if not removal.sol
     // todo whennotpaused
     for (uint256 i = 0; i < ids.length; i++) {
-      RemovalId removalToAdd = RemovalId.wrap(ids[i]);
-      address supplierAddress = removalToAdd.supplierAddress();
+      uint256 removalToAdd = ids[i];
+      address supplierAddress = RemovalUtils.supplierAddress(removalToAdd);
       _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
@@ -175,7 +174,7 @@ contract Market is
       }
     }
     _restrictedNori.createSchedule(
-      _removal.getProjectIdForRemoval(RemovalId.wrap(ids[0])) // todo move to removal minting logic if possible
+      _removal.getProjectIdForRemoval(ids[0]) // todo move to removal minting logic if possible
       // todo revert is ids don't all belong to the same project?
     );
     return this.onERC1155BatchReceived.selector;
@@ -199,7 +198,7 @@ contract Market is
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     (
       uint256 numberOfRemovals,
-      RemovalId[] memory ids,
+      uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateSupplyRoundRobin(certificateAmount);
@@ -240,7 +239,7 @@ contract Market is
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     (
       uint256 numberOfRemovals,
-      RemovalId[] memory ids,
+      uint256[] memory ids,
       uint256[] memory amounts
     ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
     address[] memory suppliers = new address[](numberOfRemovals);
@@ -272,7 +271,7 @@ contract Market is
   }
 
   // function cumulativeUnreservedSupply() external view returns (uint256) {
-  //   // todo this calls cummulativeBalanceOf multiple times, might be possible to call once + slice the array at an index
+  // todo this calls cummulativeBalanceOf multiple times, might be possible to call once + slice the array at an index
   //   return this.cumulativeActiveSupply() - this.cumulativeReservedSupply();
   // }
 
@@ -333,14 +332,14 @@ contract Market is
     private
     returns (
       uint256,
-      RemovalId[] memory,
+      uint256[] memory,
       uint256[] memory,
       address[] memory
     )
   {
     uint256 remainingAmountToFill = certificateAmount;
     uint256 numberOfActiveRemovalsInMarket = this.numberOfActiveRemovals();
-    RemovalId[] memory ids = new RemovalId[](numberOfActiveRemovalsInMarket);
+    uint256[] memory ids = new uint256[](numberOfActiveRemovalsInMarket);
     uint256[] memory amounts = new uint256[](numberOfActiveRemovalsInMarket);
     address[] memory suppliers = new address[](numberOfActiveRemovalsInMarket);
     uint256 numberOfRemovalsForOrder = 0;
@@ -350,12 +349,9 @@ contract Market is
       i < numberOfActiveRemovalsInMarket;
       i++ // todo ++i consistency
     ) {
-      RemovalId removalId = _activeSupply[_currentSupplierAddress]
+      uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
-      uint256 removalAmount = _removal.balanceOf(
-        address(this),
-        RemovalId.unwrap(removalId)
-      ); // todo batch
+      uint256 removalAmount = _removal.balanceOf(address(this), removalId); // todo batch
       // order complete, not fully using up this removal, don't increment currentSupplierAddress,
       // don't check about removing active supplier
       if (remainingAmountToFill < removalAmount) {
@@ -406,7 +402,7 @@ contract Market is
     private
     returns (
       uint256,
-      RemovalId[] memory,
+      uint256[] memory,
       uint256[] memory
     )
   {
@@ -428,16 +424,13 @@ contract Market is
       revert InsufficientSupply();
     }
     uint256 remainingAmountToFill = certificateAmount;
-    RemovalId[] memory ids = new RemovalId[](totalNumberOfRemovalsForSupplier);
+    uint256[] memory ids = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256[] memory amounts = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256 numberOfRemovals = 0;
     // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < totalNumberOfRemovalsForSupplier; i++) {
-      RemovalId removalId = supplierRemovalQueue.getNextRemovalForSale();
-      uint256 removalAmount = _removal.balanceOf(
-        address(this),
-        RemovalId.unwrap(removalId)
-      );
+      uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
+      uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       // order complete, not fully using up this removal
       if (remainingAmountToFill < removalAmount) {
         ids[numberOfRemovals] = removalId;
@@ -493,11 +486,11 @@ contract Market is
     address operator,
     address recipient,
     uint256 numberOfRemovals,
-    RemovalId[] calldata ids,
+    uint256[] calldata ids,
     uint256[] calldata amounts,
     address[] memory suppliers
   ) external {
-    RemovalId[] memory batchedIds = ids[:numberOfRemovals];
+    uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
     uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
       batchedIds
@@ -533,7 +526,7 @@ contract Market is
     _removal.safeBatchTransferFrom( // todo is this actually assigning the buyer as the owner of the NFT?
       address(this),
       address(_certificate),
-      RemovalUtils.unwrapRemovalIds(batchedIds),
+      batchedIds,
       batchedAmounts,
       data
     );
@@ -551,17 +544,17 @@ contract Market is
    * @dev If the removal is the last for the supplier, removes the supplier from the active supplier queue.
    *
    */
-  function reserveRemoval(RemovalId removalId) external whenNotPaused {
-    address supplierAddress = removalId.supplierAddress();
+  function reserveRemoval(uint256 removalId) external whenNotPaused {
+    address supplierAddress = RemovalUtils.supplierAddress(removalId);
     _removeActiveRemoval(supplierAddress, removalId);
-    if (!_reservedSupply.add(RemovalId.unwrap(removalId))) {
+    if (!_reservedSupply.add(removalId)) {
       revert RemovalAlreadyReserved({removalId: removalId});
     }
   }
 
   function _removeActiveRemoval(
     address supplierAddress,
-    RemovalId removalId // todo flip param order
+    uint256 removalId // todo flip param order
   ) internal {
     _activeSupply[supplierAddress].removeRemoval(removalId);
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
@@ -578,11 +571,11 @@ contract Market is
   //  *
   //  * - The contract must not be paused. This is enforce by `Removal._beforeTokenTransfer`
   //  */
-  // function release(RemovalId removalId, uint256 amount) external whenNotPaused {
-  //   address supplierAddress = removalId.supplierAddress();
+  // function release(uint256 removalId, uint256 amount) external whenNotPaused {
+  //   address supplierAddress = RemovalUtils.supplierAddress(removalId);
   //   uint256 removalBalance = _removal.balanceOf(
   //     address(this),
-  //     RemovalId.unwrap(removalId)
+  //     removalId
   //   );
   //   if (amount == removalBalance) {
   //     _unreserveRemoval(removalId);
@@ -594,8 +587,8 @@ contract Market is
    * @notice Removes a removal from the reserved supply
    * // TODO onlyRole(MARKET_ADMIN_ROLE)
    */
-  function _unreserveRemoval(RemovalId removalId) internal {
-    if (!_reservedSupply.remove(RemovalId.unwrap(removalId))) {
+  function _unreserveRemoval(uint256 removalId) internal {
+    if (!_reservedSupply.remove(removalId)) {
       revert RemovalNotInReservedSupply({removalId: removalId});
     }
   }
@@ -608,9 +601,9 @@ contract Market is
    * fill orders again. If the supplier's other removals have all been sold, adds the supplier back to the
    * list of active suppliers
    */
-  function unreserveRemoval(RemovalId removalId) external whenNotPaused {
+  function unreserveRemoval(uint256 removalId) external whenNotPaused {
     // todo RESERVER_ROLE?
-    address supplierAddress = removalId.supplierAddress();
+    address supplierAddress = RemovalUtils.supplierAddress(removalId);
     _unreserveRemoval(removalId);
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _addActiveSupplier(supplierAddress);

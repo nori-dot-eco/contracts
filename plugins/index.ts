@@ -17,7 +17,6 @@ import 'solidity-coverage';
 import 'hardhat-tracer';
 import '@/config/environment';
 import '@/tasks/index';
-
 import { extendEnvironment } from 'hardhat/config';
 import type { BaseContract, ContractFactory, Signer } from 'ethers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';

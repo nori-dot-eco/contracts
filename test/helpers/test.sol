@@ -6,7 +6,6 @@ import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
 import "forge-std/console2.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {RemovalId} from "@/contracts/RemovalUtils.sol";
 
 abstract contract Global is Test {
   struct NamedAccounts {
@@ -25,16 +24,6 @@ abstract contract Global is Test {
     returns (uint256[] memory)
   {
     uint256[] memory array = new uint256[](1);
-    array[0] = element;
-    return array;
-  }
-
-  function _asSingletonRemovalIdArray(RemovalId element)
-    internal
-    pure
-    returns (RemovalId[] memory)
-  {
-    RemovalId[] memory array = new RemovalId[](1);
     array[0] = element;
     return array;
   }

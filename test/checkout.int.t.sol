@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
-import {UnpackedRemovalIdV0, RemovalId} from "@/contracts/RemovalUtils.sol";
+import {UnpackedRemovalIdV0} from "@/contracts/RemovalUtils.sol";
 
 abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
-  RemovalId internal _removalId;
+  uint256 internal _removalId;
   uint256 internal _certificateTokenId;
 
   function _seed() internal override(UpgradableRemovalMock, SeedableMock) {} // todo maybe making this required is bad
 
-  function _seed(uint32 subIdentifier) internal returns (RemovalId) {
+  function _seed(uint32 subIdentifier) internal returns (uint256) {
     // todo paramaterize better
     UnpackedRemovalIdV0 memory removalData = UnpackedRemovalIdV0({
       idVersion: 0,
@@ -32,10 +32,26 @@ abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
-      _asSingletonRemovalIdArray(_removalId), // todo encode ID or test won't work
+      _asSingletonUintArray(_removalId), // todo encode ID or test won't work
       batchMintData
     );
     return _removalId;
+  }
+
+  function _assertExpectedBalances(
+    address owner,
+    uint256 amount,
+    bool ownsRemovalTokenId,
+    uint256 count
+  ) internal {
+    assertEq(
+      _removal.tokensOfOwner(owner),
+      ownsRemovalTokenId
+        ? _certificate.removalsOfCertificate(0)
+        : new uint256[](amount)
+    );
+    assertEq(_removal.cumulativeBalanceOf(owner), amount);
+    assertEq(_removal.numberOfTokensOwnedByAddress(owner), count);
   }
 }
 
@@ -47,24 +63,18 @@ contract Checkout_buyingFromOneRemoval is Checkout {
   function test() external {
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
-    uint256 fee = (1 ether * _market.getNoriFeePercentage()) / 100;
-    uint256 amount = 1 ether + fee;
+    uint256 amount = _market.getCheckoutTotal(1 ether);
     uint256 certificateAmount = _market.certificateAmountFromPurchaseTotal(
       amount
     );
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(amount));
     // todo refactor so pre-assertions and setup to live in this contracts setUp function (improves gas reporting)
-    _assertRemovalBalance(address(_market), certificateAmount, true);
-    _assertRemovalBalance(_namedAccounts.supplier, 0, false);
-    _assertRemovalBalance(address(_certificate), 0, false);
-    assertEq(
-      _certificate.balanceOfRemoval(
-        _certificateTokenId,
-        RemovalId.unwrap(_removalId)
-      ),
-      0
-    );
+    assertEq(_removal.cumulativeBalanceOf(address(_market)), 1 ether);
+    assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);
+    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    _assertExpectedBalances(address(_certificate), 0, false, 0);
+    assertEq(_certificate.balanceOfRemoval(_certificateTokenId, _removalId), 0);
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -83,40 +93,23 @@ contract Checkout_buyingFromOneRemoval is Checkout {
       signedPermit.r,
       signedPermit.s
     );
-    _assertRemovalBalance(address(_market), 0, false);
-    _assertRemovalBalance(_namedAccounts.supplier, 0, false);
-    _assertRemovalBalance(address(_certificate), certificateAmount, true);
+    _assertExpectedBalances(address(_market), 0, false, 0);
+    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
     assertEq(
-      _certificate.balanceOfRemoval(
-        _certificateTokenId,
-        RemovalId.unwrap(_removalId)
-      ),
+      _certificate.balanceOfRemoval(_certificateTokenId, _removalId),
       certificateAmount
     );
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
   }
-
-  function _assertRemovalBalance(
-    address owner,
-    uint256 amount,
-    bool ownsRemovalTokenId
-  ) private {
-    assertEq(
-      _removal.tokensOfOwner(owner),
-      ownsRemovalTokenId
-        ? _asSingletonUintArray(RemovalId.unwrap(_removalId))
-        : new uint256[](amount)
-    );
-    assertEq(_removal.cumulativeBalanceOf(owner), amount);
-    assertEq(
-      _removal.numberOfTokensOwnedByAddress(owner),
-      ownsRemovalTokenId ? 1 : 0
-    );
-  }
 }
 
 contract Checkout_buyingFromTenRemovals is Checkout {
-  RemovalId[] private _removalIds;
+  uint256[] private _removalIds;
+  uint256 private _expectedCertificateAmount;
+  uint256 private _purchaseAmount;
+  address private _owner;
+  SignedPermit private _signedPermit;
 
   function setUp() external {
     _removalIds.push(_seed(1_234_567_890));
@@ -129,75 +122,58 @@ contract Checkout_buyingFromTenRemovals is Checkout {
     _removalIds.push(_seed(1_234_567_897));
     _removalIds.push(_seed(1_234_567_898));
     _removalIds.push(_seed(1_234_567_899));
-  }
-
-  function test() external {
-    uint256 ownerPrivateKey = 0xA11CE;
-    address owner = vm.addr(ownerPrivateKey);
-    uint256 fee = (1 ether * _market.getNoriFeePercentage()) / 100; // todo is this the right fee?
-    uint256 amount = 10 ether + fee;
-    uint256 certificateAmount = _market.certificateAmountFromPurchaseTotal(
-      amount
+    _purchaseAmount = _market.getCheckoutTotal(10 ether);
+    _expectedCertificateAmount = _market.certificateAmountFromPurchaseTotal(
+      _purchaseAmount
     );
+    assertEq(_removal.tokensOfOwner(address(_market)), _removalIds);
+    assertEq(_removal.cumulativeBalanceOf(address(_market)), 10 ether);
+    assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 10);
+    assertEq(_expectedCertificateAmount, 10 ether);
+    uint256 ownerPrivateKey = 0xA11CE;
+    _owner = vm.addr(ownerPrivateKey);
     vm.prank(_namedAccounts.admin);
-    _bpNori.deposit(owner, abi.encode(amount));
-    // todo refactor so pre-assertions and setup to live in this contracts setUp function (improves gas reporting)
-    _assertRemovalBalance(address(_market), certificateAmount, true);
-    _assertRemovalBalance(_namedAccounts.supplier, 0, false);
-    _assertRemovalBalance(address(_certificate), 0, false);
-    // assertEq(
-    //   _certificate.balanceOfRemoval(
-    //     _certificateTokenId,
-    //     RemovalId.unwrap(_removalIds[0])
-    //   ),
-    //   0
-    // );
+    _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    vm.prank(_owner);
+    _signedPermit = _signatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
-      amount,
+      _purchaseAmount,
       1 days,
       _bpNori
     );
-    vm.prank(owner);
-    _market.swap(
-      owner,
-      amount,
-      signedPermit.permit.deadline,
-      signedPermit.v,
-      signedPermit.r,
-      signedPermit.s
+    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    _assertExpectedBalances(address(_certificate), 0, false, 0);
+    assertEq(
+      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
+      0
     );
-    _assertRemovalBalance(address(_market), 0, false);
-    _assertRemovalBalance(_namedAccounts.supplier, 0, false);
-    _assertRemovalBalance(address(_certificate), certificateAmount, true);
-    // assertEq(
-    //   _certificate.balanceOfRemoval(
-    //     _certificateTokenId,
-    //     RemovalId.unwrap(_removalIds[0])
-    //   ), // 0
-    //   certificateAmount // 1000000000000000000
-    // );
-    // assertEq(_certificate.ownerOf(_certificateTokenId), owner);
   }
 
-  function _assertRemovalBalance(
-    address owner,
-    uint256 amount,
-    bool ownsRemovalTokenId
-  ) private {
-    // assertEq(
-    //   _removal.tokensOfOwner(owner),
-    //   ownsRemovalTokenId
-    //     ? _asSingletonUintArray(RemovalId.unwrap(_removalIds[0]))
-    //     : new uint256[](amount)
-    // );
-    // assertEq(_removal.cumulativeBalanceOf(owner), amount);
-    // assertEq(
-    //   _removal.numberOfTokensOwnedByAddress(owner),
-    //   ownsRemovalTokenId ? 1 : 0
-    // );
+  function test() external {
+    vm.prank(_owner);
+    _market.swap(
+      _owner,
+      _purchaseAmount,
+      _signedPermit.permit.deadline,
+      _signedPermit.v,
+      _signedPermit.r,
+      _signedPermit.s
+    );
+    _assertExpectedBalances(address(_market), 0, false, 0);
+    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    _assertExpectedBalances(
+      address(_certificate),
+      _expectedCertificateAmount,
+      true,
+      10
+    );
+    assertEq(
+      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
+      _expectedCertificateAmount / _removalIds.length
+    );
+    assertEq(_certificate.ownerOf(_certificateTokenId), _owner);
   }
 }
