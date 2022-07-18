@@ -178,6 +178,11 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
   IERC1820RegistryUpgradeable private _erc1820;
 
   /**
+   * @notice Emitted on successful batch creation of new grants.
+   */
+  event TokenGrantCreatedBatch(uint256 totalAmount);
+
+  /**
    * @notice Emitted on successful creation of a new grant.
    */
   event TokenGrantCreated(
@@ -210,6 +215,14 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
    * @notice Emitted when the underlying token contract address is updated due to migration.
    */
   event UnderlyingTokenAddressUpdated(address from, address to);
+
+  /**
+   * @dev Ensure implementation contract is minimally initialized. See more [here](
+   * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract).
+   */
+  constructor() {
+    _disableInitializers();
+  }
 
   /**
    * @notice Mints wrapper token to *recipient* if a grant exists.
@@ -260,8 +273,6 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     revert("lNORI: Transfer to underlying asset failed");
   }
 
-  event BatchCreated(uint256 totalAmount);
-
   /**
    * @notice Batch version of `createGrant` with permit support.
    */
@@ -283,7 +294,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
       address recipient = _createGrant(amounts[i], grantParams[i]);
       super._mint(recipient, amounts[i], "", "");
     }
-    emit BatchCreated(totalAmount);
+    emit TokenGrantCreatedBatch(totalAmount);
     _bridgedPolygonNori.permit(
       _msgSender(),
       address(this),
@@ -445,14 +456,6 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
         grant.lastQuantityRevoked,
         grant.exists
       );
-  }
-
-  /**
-   * @dev Ensure implementation contract is minimally initialized. See more [here](
-   * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract).
-   */
-  constructor() {
-    _disableInitializers();
   }
 
   // todo document expected initialzation state

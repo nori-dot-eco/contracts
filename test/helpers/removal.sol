@@ -4,6 +4,8 @@ pragma solidity =0.8.15;
 import "@/contracts/Removal.sol"; // todo path remapping globally
 import "@/test/helpers/test.sol";
 
+// uint256 immutable REMOVAL_ID_FIXTURE = 1;
+
 abstract contract UpgradeableRemoval is Upgradeable {
   Removal internal _removal;
   Removal internal _removalImplementation;

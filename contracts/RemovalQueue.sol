@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import {RemovalUtils} from "./RemovalUtils.sol";
+import {RemovalUtils, RemovalId} from "./RemovalUtils.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./Removal.sol";
 
@@ -11,8 +11,9 @@ struct RemovalQueueByVintage {
   uint256 latestYear;
 }
 
+// todo rename RemovalQueueLib
 library RemovalQueue {
-  using RemovalUtils for uint256;
+  using RemovalUtils for RemovalId;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   error RemovalNotInQueue(uint256 removalId, uint256 queueVintage);
@@ -26,12 +27,11 @@ library RemovalQueue {
    * @dev The removal is added to the Enumberable Set that maps to the year of its vintage.
    * @param removalQueue the queue from storage.
    * @param removalToInsert a new removal to insert.
-   * @return bool true if success, false otherwise.
    */
   function insertRemovalByVintage(
     RemovalQueueByVintage storage removalQueue,
-    uint256 removalToInsert
-  ) internal returns (bool) {
+    RemovalId removalToInsert
+  ) internal {
     uint256 vintageOfRemoval = removalToInsert.vintage();
     if (isRemovalQueueEmpty(removalQueue)) {
       removalQueue.earliestYear = vintageOfRemoval;
@@ -41,9 +41,13 @@ library RemovalQueue {
     } else if (vintageOfRemoval > removalQueue.latestYear) {
       removalQueue.latestYear = vintageOfRemoval;
     }
-    if (!removalQueue.queueByVintage[vintageOfRemoval].add(removalToInsert)) {
+    if (
+      !removalQueue.queueByVintage[vintageOfRemoval].add(
+        RemovalId.unwrap(removalToInsert)
+      )
+    ) {
       revert RemovalAlreadyInQueue({
-        removalId: removalToInsert,
+        removalId: RemovalId.unwrap(removalToInsert),
         queueVintage: vintageOfRemoval
       });
     }
@@ -58,14 +62,16 @@ library RemovalQueue {
   function removeRemoval(
     // todo rename as `.remove`
     RemovalQueueByVintage storage removalQueue,
-    uint256 removalToRemove
+    RemovalId removalToRemove
   ) internal {
     uint256 vintageOfRemoval = removalToRemove.vintage();
     if (
-      !removalQueue.queueByVintage[vintageOfRemoval].remove(removalToRemove)
+      !removalQueue.queueByVintage[vintageOfRemoval].remove(
+        RemovalId.unwrap(removalToRemove)
+      )
     ) {
       revert RemovalNotInQueue({
-        removalId: removalToRemove,
+        removalId: RemovalId.unwrap(removalToRemove),
         queueVintage: vintageOfRemoval
       });
     }
@@ -134,14 +140,17 @@ library RemovalQueue {
    * @notice Gets the next removal in the queue for sale.
    * @dev Gets the first item from the Enumerable Set that corresponds to the earliest vintage.
    * @param removalQueue the queue from storage.
-   * @return uint256 the removal for sale.
+   * @return RemovalId the removal for sale.
    */
   function getNextRemovalForSale(RemovalQueueByVintage storage removalQueue)
     internal
     view
-    returns (uint256)
+    returns (RemovalId)
   {
-    return removalQueue.queueByVintage[removalQueue.earliestYear].at(0);
+    return
+      RemovalId.wrap(
+        removalQueue.queueByVintage[removalQueue.earliestYear].at(0)
+      );
   }
 
   /**
@@ -178,9 +187,9 @@ library RemovalQueue {
       currentYear++
     ) {
       size = removalQueue.queueByVintage[currentYear].length();
-      uint256[] memory ids = new uint256[](size);
+      RemovalId[] memory ids = new RemovalId[](size);
       for (i = 0; i < size; i++) {
-        ids[i] = removalQueue.queueByVintage[currentYear].at(i);
+        ids[i] = RemovalId.wrap(removalQueue.queueByVintage[currentYear].at(i));
       }
       uint256[] memory batchedBalances = removal.balanceOfIds(
         address(this),

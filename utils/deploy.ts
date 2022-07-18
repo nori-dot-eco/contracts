@@ -14,8 +14,6 @@ import type {
   Certificate__factory,
   Market,
   Market__factory,
-  MockCertificate,
-  MockCertificate__factory,
   NORI,
   NORI__factory,
   Removal,
@@ -142,18 +140,6 @@ export const deployRemovalTestHarness = async ({
     );
   const removalTestHarness = await RemovalTestHarness.deploy();
   return removalTestHarness;
-};
-
-export const deployMockCertificate = async ({
-  hre,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-}): Promise<InstanceOfContract<MockCertificate>> => {
-  return hre.deployOrUpgradeProxy<MockCertificate, MockCertificate__factory>({
-    contractName: 'MockCertificate',
-    args: [],
-    options: { initializer: 'initialize()' },
-  });
 };
 
 export const deployCertificateContract = async ({

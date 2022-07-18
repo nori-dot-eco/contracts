@@ -1,19 +1,19 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "IERC998ERC1155TopDown",
-  "sourceName": "contracts/IERC998ERC1155TopDown.sol",
+  "contractName": "ICertificate",
+  "sourceName": "contracts/ICertificate.sol",
   "abi": [
     {
       "anonymous": false,
       "inputs": [
         {
-          "indexed": true,
+          "indexed": false,
           "internalType": "address",
           "name": "from",
           "type": "address"
         },
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "recipient",
           "type": "address"
@@ -21,29 +21,23 @@
         {
           "indexed": true,
           "internalType": "uint256",
-          "name": "parentTokenId",
+          "name": "certificateId",
           "type": "uint256"
         },
         {
-          "indexed": true,
-          "internalType": "address",
-          "name": "childContract",
-          "type": "address"
-        },
-        {
           "indexed": false,
           "internalType": "uint256[]",
-          "name": "childTokenIds",
+          "name": "removalIds",
           "type": "uint256[]"
         },
         {
           "indexed": false,
           "internalType": "uint256[]",
-          "name": "childTokenAmounts",
+          "name": "removalAmounts",
           "type": "uint256[]"
         }
       ],
-      "name": "ReceiveChildBatch",
+      "name": "ReceiveRemovalBatch",
       "type": "event"
     }
   ],

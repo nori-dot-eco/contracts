@@ -6,11 +6,11 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Paus
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
-import {RemovalUtils} from "./RemovalUtils.sol";
+import {RemovalUtils, RemovalId} from "./RemovalUtils.sol";
 import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 
 // todo extract some of this contract to a preset
-// todo https://github.com/nori-dot-eco/contracts/pull/249/files/fb97bb8a727a24cdc034f908b27899c6a7b61e26..303b99415db21bc73cd2304d30a8d364a8097f49#r907710195
+// todo https://github.com/nori-dot-eco/contracts/pull/249/files#r906867575
 
 /**
  * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance
@@ -241,6 +241,7 @@ contract RestrictedNORI is
 
   // todo document expected initialzation state (this is a holdover from LockedNORI, not totally sure what it means)
   function initialize() external initializer {
+    // todo verify all initializers are called
     __ERC1155_init_unchained(
       "https://nori.com/api/restrictionschedule/{id}.json" // todo finalize uri
     );
@@ -254,8 +255,11 @@ contract RestrictedNORI is
     _grantRole(PAUSER_ROLE, _msgSender());
     _grantRole(SCHEDULE_CREATOR_ROLE, _msgSender());
     _grantRole(TOKEN_REVOKER_ROLE, _msgSender());
-    // Seconds in 10 years, based on average year duration of 365.2425 days, which accounts for leap years
-    setRestrictionDurationForMethodologyAndVersion(1, 0, 315_569_520);
+    setRestrictionDurationForMethodologyAndVersion(
+      1,
+      0,
+      315_569_520 // Seconds in 10 years, based on average year duration of 365.2425 days, which accounts for leap years
+    );
   }
 
   // View functions and getters =========================================
@@ -522,6 +526,7 @@ contract RestrictedNORI is
     uint256 methodologyVersion,
     uint256 durationInSeconds
   ) public whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+    // todo test gas of external versions of all public fns
     if (durationInSeconds == 0) {
       revert InvalidZeroDuration();
     }
@@ -550,8 +555,9 @@ contract RestrictedNORI is
   /**
    * @dev Mints RestrictedNORI to the correct schedule token ID for a given removal token ID. // todo
    */
-  function mint(uint256 amount, uint256 removalId) external {
+  function mint(uint256 amount, RemovalId removalId) external {
     if (!hasRole(MINTER_ROLE, _msgSender())) {
+      // todo consistency in custom errors for hasRole vs onlyRole
       revert InvalidMinter({account: _msgSender()});
     }
     uint256 projectId = _removal.getProjectIdForRemoval(removalId);

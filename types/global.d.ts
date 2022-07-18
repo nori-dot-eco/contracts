@@ -44,7 +44,6 @@ import type {
   Removal,
   ScheduleTestHarness,
   RemovalTestHarness,
-  MockCertificate,
 } from '@/typechain-types';
 
 declare module 'hardhat/config' {
@@ -202,7 +201,6 @@ declare global {
     Certificate?: Certificate;
     ScheduleTestHarness?: ScheduleTestHarness;
     RemovalTestHarness?: RemovalTestHarness;
-    MockCertificate?: MockCertificate;
   }
 
   var ethers: Omit<

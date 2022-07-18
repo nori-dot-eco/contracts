@@ -23,6 +23,7 @@ abstract contract UpgradeableMarket is
       BridgedPolygonNORI(_bpNori),
       Removal(_removal)
     );
+    _certificate.registerContractAddresses(Removal(_removal));
     _rNori.grantRole(_rNori.MINTER_ROLE(), address(_market));
     _rNori.grantRole(_rNori.SCHEDULE_CREATOR_ROLE(), address(_market));
   }

@@ -1159,7 +1159,7 @@ describe('Market', () => {
         });
       const purchaseAmount = formatTokenAmount(1);
       const fee = purchaseAmount.mul(feePercentage).div(100);
-      const value = purchaseAmount.add(fee);
+      const value = purchaseAmount.add(fee); // todo use getCheckoutTotal globally
       const { buyer, investor1 } = hre.namedSigners;
       const deadline = MaxUint256;
       const { v, r, s } = await buyer.permit({

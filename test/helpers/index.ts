@@ -20,7 +20,6 @@ import type {
   NORI,
   BridgedPolygonNORI,
   RemovalTestHarness,
-  MockCertificate,
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
 import { getContractsFromDeployments } from '@/utils/contracts';
@@ -39,7 +38,6 @@ interface ContractInstances {
   lNori: LockedNORIV2;
   rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
-  mockCertificate: MockCertificate; // todo key remapping of Contracts
 }
 
 export const NOW = Math.floor(Date.now() / 1000);
@@ -374,7 +372,6 @@ export const setupTest = global.hre.deployments.createFixture(
       lNori: contracts.LockedNORIV2,
       rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
-      mockCertificate: contracts.MockCertificate,
       userFixtures,
       contractFixtures,
       listedRemovalIds,

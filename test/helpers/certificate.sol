@@ -1,4 +1,5 @@
-/* solhint-disable contract-name-camelcase, func-name-mixedcase */
+/* solhint-disable contract-name-camelcase, func-name-mixedcase, no-empty-blocks */
+// todo add to solhint config file ^
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/contracts/Certificate.sol";

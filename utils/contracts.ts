@@ -9,7 +9,6 @@ import type {
   NORI,
   Removal,
   RemovalTestHarness,
-  MockCertificate,
 } from '@/typechain-types';
 
 export const getContract = async <TContractName extends keyof Contracts>({
@@ -126,19 +125,6 @@ export const getRemovalTestHarness = async ({
     signer,
   });
 
-export const getMockCertificate = async ({
-  hre,
-  signer,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-  signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<MockCertificate> =>
-  getContract({
-    contractName: 'MockCertificate',
-    hre,
-    signer,
-  });
-
 export const getFIFOMarket = async ({
   hre,
   signer,
@@ -178,9 +164,6 @@ export const getContractsFromDeployments = async (
       : undefined,
     RemovalTestHarness: deployments.RemovalTestHarness?.address
       ? await getRemovalTestHarness({ hre })
-      : undefined,
-    MockCertificate: deployments.MockCertificate?.address
-      ? await getMockCertificate({ hre })
       : undefined,
   } as Required<Contracts>;
   return contracts;

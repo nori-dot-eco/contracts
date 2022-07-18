@@ -17,6 +17,7 @@ struct Schedule {
   uint256 totalCliffAmount;
 }
 
+// todo rename ScheduleLib
 /**
  * @dev Library encapsulating the logic around timed release schedules with cliffs.
  *
@@ -74,7 +75,7 @@ library ScheduleUtils {
     }
     require(
       time <= schedule.endTime,
-      "ScheduleUtils: Cliffs cannot end after schedule"
+      "ScheduleUtils: Cliffs cannot end after schedule" // todo custom errors?
     );
     require(
       schedule.totalCliffAmount + amount <= schedule.totalAmount,
