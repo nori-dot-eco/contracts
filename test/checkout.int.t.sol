@@ -93,13 +93,13 @@ contract Checkout_buyingFromOneRemoval is Checkout {
       signedPermit.r,
       signedPermit.s
     );
-    // _assertExpectedBalances(address(_market), 0, false, 0);
-    // _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    // _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
-    // assertEq(
-    //   _certificate.balanceOfRemoval(_certificateTokenId, _removalId),
-    //   certificateAmount
-    // );
+    _assertExpectedBalances(address(_market), 0, false, 0);
+    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
+    assertEq(
+      _certificate.balanceOfRemoval(_certificateTokenId, _removalId),
+      certificateAmount
+    );
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
   }
 }
