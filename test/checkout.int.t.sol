@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
-import {UnpackedRemovalIdV0, RemovalId} from "@/contracts/RemovalUtils.sol";
+import {UnpackedRemovalIdV0} from "@/contracts/RemovalUtils.sol";
 
 abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
-  RemovalId internal _removalId;
+  uint256 internal _removalId;
   uint256 internal _certificateTokenId;
 
   function _seed() internal override(UpgradableRemovalMock, SeedableMock) {} // todo maybe making this required is bad
 
-  function _seed(uint32 subIdentifier) internal returns (RemovalId) {
+  function _seed(uint32 subIdentifier) internal returns (uint256) {
     // todo paramaterize better
     UnpackedRemovalIdV0 memory removalData = UnpackedRemovalIdV0({
       idVersion: 0,
@@ -32,7 +32,7 @@ abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
-      _asSingletonRemovalIdArray(_removalId), // todo encode ID or test won't work
+      _asSingletonUintArray(_removalId), // todo encode ID or test won't work
       batchMintData
     );
     return _removalId;
@@ -58,13 +58,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     _assertRemovalBalance(address(_market), certificateAmount, true);
     _assertRemovalBalance(_namedAccounts.supplier, 0, false);
     _assertRemovalBalance(address(_certificate), 0, false);
-    assertEq(
-      _certificate.balanceOfRemoval(
-        _certificateTokenId,
-        RemovalId.unwrap(_removalId)
-      ),
-      0
-    );
+    assertEq(_certificate.balanceOfRemoval(_certificateTokenId, _removalId), 0);
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -87,10 +81,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     _assertRemovalBalance(_namedAccounts.supplier, 0, false);
     _assertRemovalBalance(address(_certificate), certificateAmount, true);
     assertEq(
-      _certificate.balanceOfRemoval(
-        _certificateTokenId,
-        RemovalId.unwrap(_removalId)
-      ),
+      _certificate.balanceOfRemoval(_certificateTokenId, _removalId),
       certificateAmount
     );
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
@@ -104,7 +95,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     assertEq(
       _removal.tokensOfOwner(owner),
       ownsRemovalTokenId
-        ? _asSingletonUintArray(RemovalId.unwrap(_removalId))
+        ? _asSingletonUintArray(_removalId)
         : new uint256[](amount)
     );
     assertEq(_removal.cumulativeBalanceOf(owner), amount);
@@ -116,7 +107,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
 }
 
 contract Checkout_buyingFromTenRemovals is Checkout {
-  RemovalId[] private _removalIds;
+  uint256[] private _removalIds;
 
   function setUp() external {
     _removalIds.push(_seed(1_234_567_890));
@@ -148,7 +139,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
     // assertEq(
     //   _certificate.balanceOfRemoval(
     //     _certificateTokenId,
-    //     RemovalId.unwrap(_removalIds[0])
+    //     _removalIds[0]
     //   ),
     //   0
     // );
@@ -176,7 +167,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
     // assertEq(
     //   _certificate.balanceOfRemoval(
     //     _certificateTokenId,
-    //     RemovalId.unwrap(_removalIds[0])
+    //     _removalIds[0]
     //   ), // 0
     //   certificateAmount // 1000000000000000000
     // );
@@ -191,7 +182,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
     // assertEq(
     //   _removal.tokensOfOwner(owner),
     //   ownsRemovalTokenId
-    //     ? _asSingletonUintArray(RemovalId.unwrap(_removalIds[0]))
+    //     ? _asSingletonUintArray(_removalIds[0])
     //     : new uint256[](amount)
     // );
     // assertEq(_removal.cumulativeBalanceOf(owner), amount);

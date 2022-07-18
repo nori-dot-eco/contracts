@@ -7,11 +7,11 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol
 import "./RestrictedNORI.sol";
 import "./Market.sol";
 import "./Certificate.sol"; // todo Certificate vs ICertificate pattern
-import {RemovalUtils, UnpackedRemovalIdV0, RemovalId} from "./RemovalUtils.sol";
+import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 // import "forge-std/console2.sol"; // todo
 
-error TokenIdExists(RemovalId tokenId);
+error TokenIdExists(uint256 tokenId);
 
 struct BatchMintRemovalsData {
   // todo can we de-dupe this with RemovalData? perhaps by nesting the struct?
@@ -34,7 +34,6 @@ contract Removal is
   PausableUpgradeable,
   AccessControlEnumerableUpgradeable
 {
-  using RemovalUtils for RemovalId;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   struct ScheduleData {
@@ -86,7 +85,7 @@ contract Removal is
    */
   Certificate private _certificate;
 
-  mapping(RemovalId => RemovalData) private _removalIdToRemovalData;
+  mapping(uint256 => RemovalData) private _removalIdToRemovalData;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData; // todo why does this live here and not in rNORI?
   mapping(address => EnumerableSetUpgradeable.UintSet)
     private _addressToOwnedTokenIds;
@@ -149,7 +148,7 @@ contract Removal is
   function mintBatch(
     address to,
     uint256[] memory amounts,
-    RemovalId[] memory ids, // todo structs[] instead of encoding beforehand
+    uint256[] memory ids, // todo structs[] instead of encoding beforehand
     BatchMintRemovalsData memory data
   ) external onlyRole(MINTER_AND_LISTER_ROLE) {
     uint256 numberOfRemovals = ids.length;
@@ -159,32 +158,23 @@ contract Removal is
     uint256 projectId = data.projectId;
     uint256 holdbackPercentage = data.holdbackPercentage;
     for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      RemovalId id = ids[i];
-      if (
-        exists(RemovalId.unwrap(id)) ||
-        _removalIdToRemovalData[id].projectId != 0
-      ) {
+      uint256 id = ids[i];
+      if (exists(id) || _removalIdToRemovalData[id].projectId != 0) {
         revert TokenIdExists({tokenId: id});
       }
       _removalIdToRemovalData[id].projectId = projectId; // todo access _removalIdToRemovalData[removalId] once per loop
       _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
     }
-    RemovalId firstRemoval = ids[0];
+    uint256 firstRemoval = ids[0];
     _projectIdToScheduleData[projectId] = ScheduleData({
       startTime: data.scheduleStartTime,
-      supplierAddress: firstRemoval.supplierAddress(),
-      methodology: firstRemoval.methodology(),
-      methodologyVersion: firstRemoval.methodologyVersion()
+      supplierAddress: RemovalUtils.supplierAddress(firstRemoval),
+      methodology: RemovalUtils.methodology(firstRemoval),
+      methodologyVersion: RemovalUtils.methodologyVersion(firstRemoval)
     });
-    _mintBatch(to, RemovalUtils.unwrapRemovalIds(ids), amounts, "");
+    _mintBatch(to, ids, amounts, "");
     if (data.list) {
-      safeBatchTransferFrom(
-        to,
-        address(_market),
-        RemovalUtils.unwrapRemovalIds(ids),
-        amounts,
-        ""
-      );
+      safeBatchTransferFrom(to, address(_market), ids, amounts, "");
     }
   }
 
@@ -204,13 +194,13 @@ contract Removal is
    */
   function release(
     address owner,
-    RemovalId removalId,
+    uint256 removalId,
     uint256 amount
   ) external onlyRole(RELEASER_ROLE) {
     // todo what does this need to change about rNORI?
     // todo how should we handle the case where certificate == 0 after relasing? Should it still exist with value of 0?
     // todo decrement child removal balances of certificate if contained in one
-    _burn(owner, RemovalId.unwrap(removalId), amount); // todo batch?
+    _burn(owner, removalId, amount); // todo batch?
   }
 
   function marketAddress() external view returns (address) {
@@ -228,7 +218,7 @@ contract Removal is
   /**
    * @notice Gets the restriction schedule id (which is the removal's project id) for a given removal id.
    */
-  function getProjectIdForRemoval(RemovalId removalId)
+  function getProjectIdForRemoval(uint256 removalId)
     external
     view
     returns (uint256)
@@ -239,7 +229,7 @@ contract Removal is
   /**
    * @notice Gets the restriction schedule data for a given removal id.
    */
-  function getScheduleDataForRemovalId(RemovalId removalId)
+  function getScheduleDataForRemovalId(uint256 removalId)
     external
     view
     returns (ScheduleData memory)
@@ -260,7 +250,7 @@ contract Removal is
   }
 
   /** @notice Gets the holdback percentages for a batch of removal ids. */
-  function batchGetHoldbackPercentages(RemovalId[] memory removalIds)
+  function batchGetHoldbackPercentages(uint256[] memory removalIds)
     external
     view
     returns (uint256[] memory)
@@ -268,7 +258,7 @@ contract Removal is
     uint256 numberOfRemovals = removalIds.length;
     uint256[] memory holdbackPercentages = new uint256[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      RemovalId id = removalIds[i];
+      uint256 id = removalIds[i];
       holdbackPercentages[i] = _removalIdToRemovalData[id].holdbackPercentage;
     }
     return holdbackPercentages;
@@ -316,7 +306,7 @@ contract Removal is
 
   // todo do we need to also add a version of these functions compatible with childTokens in certificate?
   // todo batch?
-  function cumulativeBalanceOfOwnerSubset(address owner, RemovalId[] memory ids)
+  function cumulativeBalanceOfOwnerSubset(address owner, uint256[] memory ids)
     external
     view
     returns (uint256)
@@ -325,10 +315,7 @@ contract Removal is
     for (uint256 i = 0; i < ids.length; ++i) {
       owners[i] = owner;
     }
-    uint256[] memory totals = balanceOfBatch(
-      owners,
-      RemovalUtils.unwrapRemovalIds(ids)
-    );
+    uint256[] memory totals = balanceOfBatch(owners, ids);
     uint256 total = 0;
     for (uint256 i = 0; i < totals.length; ++i) {
       total += totals[i];
@@ -347,14 +334,14 @@ contract Removal is
   }
 
   // todo better naming for all balance functions (e.g., balanceOfIds -> blanaceOfRemovalsForAccount)
-  function balanceOfIds(address account, RemovalId[] memory ids)
+  function balanceOfIds(address account, uint256[] memory ids)
     external
     view
     returns (uint256[] memory)
   {
     uint256[] memory batchBalances = new uint256[](ids.length);
     for (uint256 i = 0; i < ids.length; ++i) {
-      batchBalances[i] = balanceOf(account, RemovalId.unwrap(ids[i])); // todo batch;
+      batchBalances[i] = balanceOf(account, ids[i]); // todo batch;
     }
     return batchBalances;
   }
@@ -366,7 +353,7 @@ contract Removal is
    */
   function createRemovalId(
     bytes calldata removalData // todo look into using calldata elsewhere
-  ) external pure returns (RemovalId) {
+  ) external pure returns (uint256) {
     // todo add struct version and remove non-struct version
     return RemovalUtils.createRemovalId(removalData);
   }
@@ -374,12 +361,12 @@ contract Removal is
   /**
    * @notice Unpacks a V0 removal id into its component data.
    */
-  function unpackRemovalIdV0(RemovalId removalId)
+  function unpackRemovalIdV0(uint256 removalId)
     external
     pure
     returns (UnpackedRemovalIdV0 memory)
   {
-    return removalId.unpackRemovalIdV0();
+    return RemovalUtils.unpackRemovalIdV0(removalId);
   }
 
   /**
@@ -420,17 +407,13 @@ contract Removal is
    */
   function _burn(
     address from,
-    uint256 id, // todo is it possible to use RemovalId user defined type in override?
+    uint256 id,
     uint256 amount
   ) internal override {
     uint256[] memory certificatesForRemoval = _certificate
-      .certificatesOfRemoval(RemovalId.wrap(id));
+      .certificatesOfRemoval(id);
     for (uint256 i = 0; i < certificatesForRemoval.length; ++i) {
-      _certificate.releaseRemoval(
-        certificatesForRemoval[i],
-        RemovalId.wrap(id),
-        amount
-      ); // todo batch call
+      _certificate.releaseRemoval(certificatesForRemoval[i], id, amount); // todo batch call
     }
     super._burn(from, id, amount);
   }
