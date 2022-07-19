@@ -17,7 +17,7 @@ abstract contract UpgradeableMarket is
   Market internal _market;
 
   constructor() {
-    _market = _deployFIFOMarket();
+    _market = _deployMarket();
     _removal.registerContractAddresses(
       RestrictedNORI(_rNori),
       Market(_market),
@@ -33,7 +33,7 @@ abstract contract UpgradeableMarket is
     _certificate.grantRole(_removal.RELEASER_ROLE(), address(_removal));
   }
 
-  function _deployFIFOMarket() internal returns (Market) {
+  function _deployMarket() internal returns (Market) {
     Market impl = new Market();
     bytes memory initializer = abi.encodeWithSelector(
       impl.initialize.selector,
@@ -48,11 +48,11 @@ abstract contract UpgradeableMarket is
   }
 }
 
-abstract contract NonUpgradableFIFOMarketMock is Market, Global {}
+abstract contract NonUpgradableMarketMock is Market, Global {}
 
-abstract contract UpgradableFIFOMarketMock is UpgradeableMarket {}
+abstract contract UpgradableMarketMock is UpgradeableMarket {}
 
-abstract contract FIFOMarketSeeded is UpgradableFIFOMarketMock, SeedableMock {
+abstract contract MarketSeeded is UpgradableMarketMock, SeedableMock {
   constructor() {
     _seed();
   }

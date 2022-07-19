@@ -478,7 +478,7 @@ describe('Market', () => {
   //     const fee = purchaseAmount.mul(feePercentage).div(100);
   //     const supplierInitialNoriBalance = formatTokenAmount(0);
   //     const noriInitialNoriBalance = formatTokenAmount(0);
-  //     const initialFifoSupply = await market.cumulativeActiveSupply();
+  //     const initialSupply = await market.cumulativeActiveSupply();
   //     const value = purchaseAmount.add(fee);
   //     const { v, r, s } = await buyer.permit({
   //       verifyingContract: bpNori,
@@ -493,7 +493,7 @@ describe('Market', () => {
   //       supplier.address
   //     );
   //     const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet.address);
-  //     const finalFifoSupply = await market.cumulativeActiveSupply();
+  //     const finalSupply = await market.cumulativeActiveSupply();
   //     expect(buyerFinalNoriBalance).to.equal(
   //       userFixtures.buyer.bpBalance.sub(value)
   //     );
@@ -504,7 +504,7 @@ describe('Market', () => {
   //     expect(await certificate.balanceOf(buyer.address, 0)).to.equal(
   //       purchaseAmount
   //     );
-  //     expect(finalFifoSupply).to.equal(initialFifoSupply.sub(purchaseAmount));
+  //     expect(finalSupply).to.equal(initialSupply.sub(purchaseAmount));
   //   });
   //   it('should sell removals in order of vintage regardless of minting order', async () => {
   //     const testSetup = await setupTest({
@@ -560,8 +560,8 @@ describe('Market', () => {
   //     const value = purchaseAmount.add(fee);
   //     const supplierInitialNoriBalance = formatTokenAmount(0); // todo get from user fixtures
   //     const noriInitialNoriBalance = formatTokenAmount(0); // todo get from user fixtures
-  //     const initialFifoSupply = await market.cumulativeActiveSupply();
-  //     expect(initialFifoSupply).to.equal(purchaseAmount);
+  //     const initialSupply = await market.cumulativeActiveSupply();
+  //     expect(initialSupply).to.equal(purchaseAmount);
   //     const { v, r, s } = await buyer.permit({
   //       verifyingContract: bpNori,
   //       spender: market.address,
@@ -575,7 +575,7 @@ describe('Market', () => {
   //       supplier.address
   //     );
   //     const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet.address);
-  //     const finalFifoSupply = await market.cumulativeActiveSupply();
+  //     const finalSupply = await market.cumulativeActiveSupply();
   //     expect(buyerFinalNoriBalance).to.equal(
   //       userFixtures.buyer.bpBalance.sub(value)
   //     );
@@ -586,7 +586,7 @@ describe('Market', () => {
   //     expect(await certificate.balanceOf(buyer.address, 0)).to.equal(
   //       purchaseAmount
   //     );
-  //     expect(finalFifoSupply).to.equal(initialFifoSupply.sub(purchaseAmount));
+  //     expect(finalSupply).to.equal(initialSupply.sub(purchaseAmount));
   //   });
   //   it('should mint a certificate with multiple removals per supplier in round robin order and update state variables', async () => {
   //     const amountPerRemoval = 50;
@@ -622,7 +622,7 @@ describe('Market', () => {
   //     const value = purchaseAmount.add(fee);
   //     const supplierInitialNoriBalance = formatTokenAmount(0);
   //     const noriInitialNoriBalance = formatTokenAmount(0);
-  //     const initialFifoSupply = await market.cumulativeActiveSupply();
+  //     const initialSupply = await market.cumulativeActiveSupply();
   //     const { v, r, s } = await buyer.permit({
   //       verifyingContract: bpNori,
   //       spender: market.address,
@@ -636,7 +636,7 @@ describe('Market', () => {
   //       supplier.address
   //     );
   //     const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet.address);
-  //     const finalFifoSupply = await market.cumulativeActiveSupply();
+  //     const finalSupply = await market.cumulativeActiveSupply();
   //     expect(buyerFinalNoriBalance).to.equal(
   //       userFixtures.buyer.bpBalance.sub(value)
   //     );
@@ -647,7 +647,7 @@ describe('Market', () => {
   //     expect(await certificate.balanceOf(buyer.address, 0)).to.equal(
   //       purchaseAmount
   //     );
-  //     expect(finalFifoSupply).to.equal(initialFifoSupply.sub(purchaseAmount));
+  //     expect(finalSupply).to.equal(initialSupply.sub(purchaseAmount));
   //   });
   //   it('should mint a certificate with multiple removals after another purchase has already been made and update state variables', async () => {
   //     const {
@@ -684,8 +684,8 @@ describe('Market', () => {
   //     const doubleTotalPrice = value.mul(2);
   //     const supplierInitialNoriBalance = formatTokenAmount(0);
   //     const noriInitialNoriBalance = formatTokenAmount(0);
-  //     const initialFifoSupply = await market.cumulativeActiveSupply();
-  //     expect(initialFifoSupply).to.equal(totalAmountOfSupply);
+  //     const initialSupply = await market.cumulativeActiveSupply();
+  //     expect(initialSupply).to.equal(totalAmountOfSupply);
   //     const purchaseNrts = async (): Promise<ContractReceipt> => {
   //       const { v, r, s } = await buyer.permit({
   //         verifyingContract: bpNori,
@@ -702,7 +702,7 @@ describe('Market', () => {
   //     const buyerFinalNoriBalance = await bpNori.balanceOf(buyer.address);
   //     const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
   //     const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-  //     const finalFifoSupply = await market.cumulativeActiveSupply();
+  //     const finalSupply = await market.cumulativeActiveSupply();
   //     expect(buyerFinalNoriBalance).to.equal(
   //       userFixtures.buyer.bpBalance.sub(doubleTotalPrice)
   //     );
@@ -715,8 +715,8 @@ describe('Market', () => {
   //     expect(await certificate.balanceOf(buyer.address, 1)).to.equal(
   //       purchaseAmount
   //     );
-  //     expect(finalFifoSupply).to.equal(
-  //       initialFifoSupply.sub(doublePurchaseAmount)
+  //     expect(finalSupply).to.equal(
+  //       initialSupply.sub(doublePurchaseAmount)
   //     );
   //   });
   //   it('should correctly pay suppliers when multiple different suppliers removals are used to fulfill an order', async () => {
@@ -748,7 +748,7 @@ describe('Market', () => {
   //     const investor1InitialNoriBalance = formatTokenAmount(0);
   //     const investor2InitialNoriBalance = formatTokenAmount(0);
   //     const noriInitialNoriBalance = formatTokenAmount(0);
-  //     const initialFifoSupply = await market.cumulativeActiveSupply();
+  //     const initialSupply = await market.cumulativeActiveSupply();
   //     const { buyer } = hre.namedSigners;
   //     const { v, r, s } = await buyer.permit({
   //       verifyingContract: bpNori,
@@ -764,7 +764,7 @@ describe('Market', () => {
   //       investor1FinalNoriBalance,
   //       investor2FinalNoriBalance,
   //       noriFinalNoriBalance,
-  //       finalFifoSupply,
+  //       finalSupply,
   //     ] = await Promise.all([
   //       bpNori.balanceOf(buyer.address),
   //       bpNori.balanceOf(hre.namedAccounts.supplier),
@@ -789,7 +789,7 @@ describe('Market', () => {
   //     expect(await certificate.balanceOf(buyer.address, 0)).to.equal(
   //       purchaseAmount
   //     );
-  //     expect(finalFifoSupply).to.equal(initialFifoSupply.sub(purchaseAmount));
+  //     expect(finalSupply).to.equal(initialSupply.sub(purchaseAmount));
   //   });
   //   //     // TODO: should not use reserved supply to fulfill an order;
   //   //     // TODO: should use previously reserved supply to fulfill an order after it has been unreserved

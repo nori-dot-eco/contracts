@@ -154,7 +154,7 @@ export const deployCertificateContract = async ({
   });
 };
 
-export const deployFIFOMarketContract = async ({
+export const deployMarketContract = async ({
   hre,
   feeWallet,
   feePercentage,

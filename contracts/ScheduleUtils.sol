@@ -60,7 +60,7 @@ library ScheduleUtils {
     Schedule storage schedule,
     uint256 time,
     uint256 amount
-  ) internal {
+  ) public {
     uint256 cliffCount = schedule.cliffCount;
     if (schedule.cliffCount == 0) {
       require(

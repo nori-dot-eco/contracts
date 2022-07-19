@@ -125,7 +125,7 @@ export const getRemovalTestHarness = async ({
     signer,
   });
 
-export const getFIFOMarket = async ({
+export const getMarket = async ({
   hre,
   signer,
 }: {
@@ -153,9 +153,7 @@ export const getContractsFromDeployments = async (
     RestrictedNORI: deployments.RestrictedNORI?.address
       ? await getRestrictedNORI({ hre })
       : undefined,
-    Market: deployments.Market?.address
-      ? await getFIFOMarket({ hre })
-      : undefined,
+    Market: deployments.Market?.address ? await getMarket({ hre }) : undefined,
     Removal: deployments.Removal?.address
       ? await getRemoval({ hre })
       : undefined,
