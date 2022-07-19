@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
@@ -302,7 +301,12 @@ contract RestrictedNORI is
         account,
         scheduleId,
         balanceOf(account, scheduleId),
-        claimableBalanceForScheduleForAccount(scheduleId, account),
+        schedule._claimableBalanceForScheduleForAccount(
+          scheduleId,
+          account,
+          totalSupply(scheduleId),
+          balanceOf(account, scheduleId)
+        ),
         schedule.claimedAmountsByAddress[account],
         schedule.quantitiesRevokedByAddress[account]
       );
@@ -352,7 +356,10 @@ contract RestrictedNORI is
         schedule.startTime,
         schedule.endTime,
         totalSupply(scheduleId),
-        claimableBalanceForSchedule(scheduleId),
+        schedule._claimableBalanceForSchedule(
+          scheduleId,
+          totalSupply(scheduleId)
+        ),
         schedule.totalClaimedAmount,
         schedule.totalQuantityRevoked,
         tokenHoldersArray,
@@ -378,38 +385,19 @@ contract RestrictedNORI is
   }
 
   /**
-   * @notice Returns the current number of revocable tokens for a given schedule at the current block timestamp.
-   */
-  function revocableQuantityForSchedule(uint256 scheduleId)
-    public
-    view
-    returns (uint256)
-  {
-    Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    if (!schedule.exists) {
-      revert NonexistentSchedule({scheduleId: scheduleId});
-    }
-    uint256 totalSupply = totalSupply(scheduleId);
-    return
-      schedule._scheduleTrueTotal(totalSupply) -
-      schedule._releasedBalanceOfSingleSchedule(totalSupply);
-  }
-
-  /**
    * @notice Released balance less the total claimed amount at current block timestamp for a schedule.
    */
   function claimableBalanceForSchedule(uint256 scheduleId)
-    public
+    external
     view
     returns (uint256)
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    if (!schedule.exists) {
-      revert NonexistentSchedule({scheduleId: scheduleId});
-    }
     return
-      schedule._releasedBalanceOfSingleSchedule(totalSupply(scheduleId)) -
-      schedule.totalClaimedAmount;
+      schedule._claimableBalanceForSchedule(
+        scheduleId,
+        totalSupply(scheduleId)
+      );
   }
 
   /**
@@ -422,32 +410,28 @@ contract RestrictedNORI is
   function claimableBalanceForScheduleForAccount(
     uint256 scheduleId,
     address account
-  ) public view returns (uint256) {
+  ) external view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    uint256 scheduleTrueTotal = schedule._scheduleTrueTotal(
-      totalSupply(scheduleId)
-    );
-    uint256 balanceOfAccount = balanceOf(account, scheduleId);
-
-    uint256 claimableForAccount;
-    // avoid division by or of 0
-    if (scheduleTrueTotal == 0 || balanceOfAccount == 0) {
-      claimableForAccount = 0;
-    } else {
-      uint256 claimedAmountForAccount = schedule.claimedAmountsByAddress[
-        account
-      ];
-      uint256 claimableBalanceForFullSchedule = claimableBalanceForSchedule(
-        scheduleId
+    return
+      schedule._claimableBalanceForScheduleForAccount(
+        scheduleId,
+        account,
+        totalSupply(scheduleId),
+        balanceOf(account, scheduleId)
       );
-      claimableForAccount =
-        ((claimedAmountForAccount + balanceOfAccount) *
-          (claimableBalanceForFullSchedule + schedule.totalClaimedAmount)) /
-        scheduleTrueTotal -
-        claimedAmountForAccount;
-    }
+  }
 
-    return claimableForAccount;
+  /**
+   * @notice Returns the current number of revocable tokens for a given schedule at the current block timestamp.
+   */
+  function revocableQuantityForSchedule(uint256 scheduleId)
+    public
+    view
+    returns (uint256)
+  {
+    Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
+    uint256 totalSupply = totalSupply(scheduleId);
+    return schedule._revocableQuantityForSchedule(scheduleId, totalSupply);
   }
 
   // External functions ===================================================
@@ -544,14 +528,15 @@ contract RestrictedNORI is
       revert InvalidMinter({account: _msgSender()});
     }
     uint256 projectId = _removal.getProjectIdForRemoval(removalId);
+    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
+    if (!schedule.exists) {
+      revert NonexistentSchedule({scheduleId: projectId});
+    }
     Removal.ScheduleData memory scheduleData = _removal
       .getScheduleDataForProjectId(projectId);
     address recipient = scheduleData.supplierAddress;
-    if (!_scheduleIdToScheduleStruct[projectId].exists) {
-      revert NonexistentSchedule({scheduleId: projectId});
-    }
+
     super._mint(recipient, projectId, amount, "");
-    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     // todo disable slither using slither triage file instead
     // slither-disable-next-line unused-return address may already be in set and that is ok
     schedule.tokenHolders.add(recipient);
@@ -675,7 +660,10 @@ contract RestrictedNORI is
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: projectId});
     }
-    uint256 quantityRevocable = revocableQuantityForSchedule(projectId);
+    uint256 quantityRevocable = schedule._revocableQuantityForSchedule(
+      projectId,
+      totalSupply(projectId)
+    );
     if (!(amount <= quantityRevocable)) {
       revert InsufficientUnreleasedTokens({scheduleId: projectId});
     }
@@ -705,6 +693,7 @@ contract RestrictedNORI is
       uint256 quantityToBurnForHolder = _quantityToRevokePerTokenHolder(
         quantityToRevoke,
         projectId,
+        schedule,
         tokenHoldersLocal[i],
         accountBalances[i]
       );
@@ -809,15 +798,23 @@ contract RestrictedNORI is
     if (isBurning) {
       for (uint256 i = 0; i < ids.length; i++) {
         uint256 id = ids[i];
+        Schedule storage schedule = _scheduleIdToScheduleStruct[id];
         if (isWithdrawing) {
-          if (amounts[i] > claimableBalanceForScheduleForAccount(id, from)) {
+          if (
+            amounts[i] >
+            schedule._claimableBalanceForScheduleForAccount(
+              id,
+              from,
+              totalSupply(id),
+              balanceOf(from, id)
+            )
+          ) {
             revert InsufficientClaimableBalance({
               account: from,
               scheduleId: id
             });
           }
         }
-        Schedule storage schedule = _scheduleIdToScheduleStruct[id];
         schedule.releasedAmountFloor = schedule
           ._releasedBalanceOfSingleSchedule(totalSupply(id));
       }
@@ -832,10 +829,10 @@ contract RestrictedNORI is
   function _quantityToRevokePerTokenHolder(
     uint256 totalQuantityToRevoke,
     uint256 scheduleId,
+    Schedule storage schedule,
     address account,
     uint256 balanceOfAccount
   ) private view returns (uint256) {
-    Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 scheduleTrueTotal = schedule._scheduleTrueTotal(
       totalSupply(scheduleId)
     );
