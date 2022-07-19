@@ -3,7 +3,7 @@
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 
-contract FIFOMarket_numberOfActiveRemovals is UpgradableFIFOMarketMock {
+contract Market_numberOfActiveRemovals is UpgradableMarketMock {
   function test() external {
     assertEq(_market.numberOfActiveRemovals(), 0);
   }

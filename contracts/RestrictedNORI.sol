@@ -12,6 +12,19 @@ import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 // todo extract some of this contract to a preset
 // todo https://github.com/nori-dot-eco/contracts/pull/249/files#r906867575
 
+/** The internal governing parameters and data for a schedule */
+struct Schedule {
+  uint256 startTime;
+  uint256 endTime;
+  uint256 totalClaimedAmount;
+  bool exists;
+  uint256 totalQuantityRevoked;
+  uint256 releasedAmountFloor;
+  EnumerableSetUpgradeable.AddressSet tokenHolders;
+  mapping(address => uint256) claimedAmountsByAddress;
+  mapping(address => uint256) quantitiesRevokedByAddress;
+}
+
 /**
  * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance
  * collateral.
@@ -112,7 +125,6 @@ contract RestrictedNORI is
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-  error TokenSenderNotBPNORI();
   error RecipientCannotBeZeroAddress();
   error NonexistentSchedule(uint256 scheduleId);
   error InsufficientUnreleasedTokens(uint256 scheduleId);

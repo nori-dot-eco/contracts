@@ -11,8 +11,6 @@ import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 // import "forge-std/console2.sol"; // todo
 
-error TokenIdExists(uint256 tokenId);
-
 struct BatchMintRemovalsData {
   // todo can we de-dupe this with RemovalData? perhaps by nesting the struct?
   uint256 projectId; // todo what is the max project ID size?
@@ -35,6 +33,9 @@ contract Removal is
   AccessControlEnumerableUpgradeable
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+
+  error TokenIdExists(uint256 tokenId);
+  error RemovalAmountZero(uint256 tokenId);
 
   struct ScheduleData {
     uint256 startTime;
@@ -442,6 +443,9 @@ contract Removal is
   ) internal override whenNotPaused {
     uint256 numberOfTokenTransfers = amounts.length;
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+      if (amounts[i] == 0) {
+        revert RemovalAmountZero({tokenId: ids[i]});
+      }
       uint256 id = ids[i];
       if (from != address(0)) {
         _addressToOwnedTokenIds[from].remove(id);

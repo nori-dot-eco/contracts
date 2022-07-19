@@ -4,3 +4,7 @@
 [submodule "lib/ds-test"]
 	path = lib/ds-test
 	url = git@github.com:dapphub/ds-test.git
+[submodule "lib/prb-test"]
+	path = lib/prb-test
+	url = https://github.com/paulrberg/prb-test
+	branch = 0.1.2

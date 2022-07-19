@@ -5,6 +5,8 @@ import "@/test/helpers/restricted-nori.sol";
 import "@/test/checkout.int.t.sol";
 
 contract RestrictedNORI_initialize is UpgradableRestrictedNORIMock {
+  mapping(uint256 => Schedule) private _schedules;
+
   function test() external {
     assertEq(
       _rNori.uri(0),

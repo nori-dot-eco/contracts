@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
+import "@/contracts/Removal.sol";
 import {BatchMintRemovalsData} from "@/contracts/Removal.sol";
 
 // todo fuzz RemovalIdLib
@@ -281,6 +282,20 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemovalMock {
       _namedAccounts.admin,
       _asSingletonUintArray(1),
       _asSingletonUintArray(1),
+      ""
+    );
+  }
+
+  function test_removal_transfer_with_zero_amount_reverts() external {
+    vm.expectRevert(
+      abi.encodeWithSelector(Removal.RemovalAmountZero.selector, 1)
+    );
+    super._beforeTokenTransfer(
+      _namedAccounts.admin,
+      _namedAccounts.admin,
+      vm.addr(1),
+      _asSingletonUintArray(1),
+      _asSingletonUintArray(0),
       ""
     );
   }

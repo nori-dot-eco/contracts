@@ -61,6 +61,9 @@ contract Checkout_buyingFromOneRemoval is Checkout {
   }
 
   function test() external {
+    // todo refactor so assertions
+    // todo refactor so setup lives in this contracts setUp function (improves gas reporting)
+
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
     uint256 amount = _market.getCheckoutTotal(1 ether);
@@ -69,7 +72,6 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     );
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(amount));
-    // todo refactor so pre-assertions and setup to live in this contracts setUp function (improves gas reporting)
     assertEq(_removal.cumulativeBalanceOf(address(_market)), 1 ether);
     assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);

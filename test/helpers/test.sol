@@ -5,9 +5,10 @@ pragma solidity =0.8.15;
 import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
 import "forge-std/console2.sol";
+import {PRBTest} from "@prb/test/PRBTest.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-abstract contract Global is Test {
+abstract contract Global is PRBTest {
   struct NamedAccounts {
     // todo generate from env variables + use vm.addr(privatekey)
     address admin;

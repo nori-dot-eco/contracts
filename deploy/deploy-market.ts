@@ -5,7 +5,7 @@ import {
   STAGING_NORI_FEE_WALLET_ADDRESS,
   PROD_NORI_FEE_WALLET_ADDRESS,
 } from '@/constants/addresses';
-import { deployFIFOMarketContract, finalizeDeployments } from '@/utils/deploy';
+import { deployMarketContract, finalizeDeployments } from '@/utils/deploy';
 
 export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
@@ -16,7 +16,7 @@ export const deploy: DeployFunction = async (environment) => {
     : hre.network.name === 'polygon'
     ? PROD_NORI_FEE_WALLET_ADDRESS
     : STAGING_NORI_FEE_WALLET_ADDRESS;
-  const contract = await deployFIFOMarketContract({
+  const contract = await deployMarketContract({
     hre,
     feeWallet,
     feePercentage: 15,
