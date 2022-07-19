@@ -20,7 +20,7 @@ import type {
   Removal__factory,
   BridgedPolygonNORI,
   BridgedPolygonNORI__factory,
-  ScheduleTestHarness,
+  LockedNORILibTestHarness,
   ScheduleTestHarness__factory,
   RemovalTestHarness,
   RemovalTestHarness__factory,
@@ -253,18 +253,18 @@ export const deployTestContracts = async ({
 }): Promise<Contracts> => {
   const isTestnet = ['mumbai', 'goerli'].includes(hre.network.name);
   const scheduleTestHarnessInstance =
-    isTestnet !== null && contracts.includes('ScheduleTestHarness')
+    isTestnet !== null && contracts.includes('LockedNORILibTestHarness')
       ? await hre.deployNonUpgradeable<
-          ScheduleTestHarness,
+          LockedNORILibTestHarness,
           ScheduleTestHarness__factory
         >({
-          contractName: 'ScheduleTestHarness',
+          contractName: 'LockedNORILibTestHarness',
           args: [],
         })
       : undefined;
   return {
     ...(scheduleTestHarnessInstance !== null && {
-      ScheduleTestHarness: scheduleTestHarnessInstance,
+      LockedNORILibTestHarness: scheduleTestHarnessInstance,
     }),
   };
 };

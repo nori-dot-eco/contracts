@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./deprecated/ERC777PresetPausablePermissioned.sol";
-import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
+import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
 
 /**
  * @title A wrapped BridgedPolygonNORI token contract for vesting and lockup
@@ -90,12 +90,12 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
  *
  * ##### Uses
  *
- * - [ScheduleUtils](./ScheduleUtils.md) for Schedule
+ * - [LockedNORILib](./LockedNORILib.md) for Schedule
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  */
 contract LockedNORIV2 is ERC777PresetPausablePermissioned {
-  using ScheduleUtils for Schedule;
+  using LockedNORILib for Schedule;
 
   struct TokenGrant {
     Schedule vestingSchedule;

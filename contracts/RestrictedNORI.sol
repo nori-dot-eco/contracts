@@ -5,8 +5,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Paus
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
-import {RestrictedNORIUtils, Schedule} from "./RestrictedNORIUtils.sol";
-import {RemovalUtils} from "./RemovalUtils.sol";
+import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
+import {RemovalIdLib} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
 
 // todo extract some of this contract to a preset
@@ -98,7 +98,7 @@ import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
  *
  * ##### Uses
  *
- * - [RemovalUtils](./RemovalUtils.md) for uint256
+ * - [RemovalIdLib](./RemovalIdLib.md) for uint256
  * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
@@ -108,7 +108,7 @@ contract RestrictedNORI is
   ERC1155SupplyUpgradeable,
   AccessControlEnumerableUpgradeable
 {
-  using RestrictedNORIUtils for Schedule;
+  using RestrictedNORILib for Schedule;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 

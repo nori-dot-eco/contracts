@@ -28,8 +28,8 @@ struct Schedule {
  * contract and does not need to be deployed separately.
  *
  */
-library RestrictedNORIUtils {
-  using RestrictedNORIUtils for Schedule;
+library RestrictedNORILib {
+  using RestrictedNORILib for Schedule;
 
   error NonexistentSchedule(uint256 scheduleId);
 

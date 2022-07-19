@@ -7,7 +7,7 @@ import { asciiStringToHexString, hexStringToAsciiString } from '@/utils/bytes';
 import { expect, setupTest } from '@/test/helpers';
 import { formatRemovalIdData } from '@/utils/removal';
 
-describe('RemovalUtils', () => {
+describe('RemovalIdLib', () => {
   // todo add struct encoding version
   // todo remove bytes encoding version
   it('can create a token id from the component fields and decode the token id', async () => {

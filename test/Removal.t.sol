@@ -4,7 +4,7 @@ pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import {BatchMintRemovalsData} from "@/contracts/Removal.sol";
 
-// todo fuzz RemovalUtils
+// todo fuzz RemovalIdLib
 
 contract Removal_mintBatch is UpgradableRemovalMock {
   UnpackedRemovalIdV0 internal _removalData =
@@ -27,12 +27,12 @@ contract Removal_mintBatch is UpgradableRemovalMock {
     });
 
   function test() external {
-    // console.log("ID===", RemovalUtils.createRemovalIdFromStruct(_removalData));
+    // console.log("ID===", RemovalIdLib.createRemovalIdFromStruct(_removalData));
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
       _asSingletonUintArray(
-        RemovalUtils.createRemovalIdFromStruct(_removalData)
+        RemovalIdLib.createRemovalIdFromStruct(_removalData)
       ),
       _mintData
     );
@@ -52,7 +52,7 @@ contract Removal_release is RemovalSeeded, UpgradeableMarket {
       subIdentifier: 99_039_930
     });
   uint256 internal _removalId =
-    RemovalUtils.createRemovalIdFromStruct(_removalData);
+    RemovalIdLib.createRemovalIdFromStruct(_removalData);
 
   // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
   function test_revert_missingReleaserRole() external {
@@ -82,7 +82,7 @@ contract Removal_release_unlisted is RemovalSeeded, UpgradeableMarket {
       subIdentifier: 99_039_930
     });
   uint256 internal _removalId =
-    RemovalUtils.createRemovalIdFromStruct(_removalData);
+    RemovalIdLib.createRemovalIdFromStruct(_removalData);
 
   function test() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
@@ -130,7 +130,7 @@ contract Removal_release_retired is RemovalSeeded, UpgradeableMarket {
       subIdentifier: 99_039_930
     });
   uint256 internal _removalId =
-    RemovalUtils.createRemovalIdFromStruct(_removalData);
+    RemovalIdLib.createRemovalIdFromStruct(_removalData);
 
   function setUp() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
@@ -192,7 +192,7 @@ contract Removal_release_listed is RemovalSeeded, UpgradeableMarket {
       subIdentifier: 99_039_930
     });
   uint256 internal _removalId =
-    RemovalUtils.createRemovalIdFromStruct(_removalData);
+    RemovalIdLib.createRemovalIdFromStruct(_removalData);
 
   function test() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
@@ -236,7 +236,7 @@ contract Removal_cummulativeBalanceOfBatch is RemovalSeeded {
       supplierAddress: _namedAccounts.supplier,
       subIdentifier: 99_039_930
     });
-    uint256 _removalId = RemovalUtils.createRemovalIdFromStruct(removalId);
+    uint256 _removalId = RemovalIdLib.createRemovalIdFromStruct(removalId);
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 5_555_555_555,
       scheduleStartTime: block.timestamp,

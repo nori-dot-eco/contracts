@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import {RemovalUtils} from "./RemovalUtils.sol";
+import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./Removal.sol";
 
@@ -31,7 +31,7 @@ library RemovalQueue {
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToInsert
   ) internal {
-    uint256 vintageOfRemoval = RemovalUtils.vintage(removalToInsert);
+    uint256 vintageOfRemoval = RemovalIdLib.vintage(removalToInsert);
     if (isRemovalQueueEmpty(removalQueue)) {
       removalQueue.earliestYear = vintageOfRemoval;
       removalQueue.latestYear = vintageOfRemoval;
@@ -59,7 +59,7 @@ library RemovalQueue {
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToRemove
   ) internal {
-    uint256 vintageOfRemoval = RemovalUtils.vintage(removalToRemove);
+    uint256 vintageOfRemoval = RemovalIdLib.vintage(removalToRemove);
     if (
       !removalQueue.queueByVintage[vintageOfRemoval].remove(removalToRemove)
     ) {
