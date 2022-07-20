@@ -42,7 +42,7 @@ import type {
   RestrictedNORI,
   NORI,
   Removal,
-  ScheduleTestHarness,
+  LockedNORILibTestHarness,
   RemovalTestHarness,
 } from '@/typechain-types';
 
@@ -199,7 +199,7 @@ declare global {
     LockedNORIV2?: LockedNORIV2;
     RestrictedNORI?: RestrictedNORI;
     Certificate?: Certificate;
-    ScheduleTestHarness?: ScheduleTestHarness;
+    LockedNORILibTestHarness?: LockedNORILibTestHarness;
     RemovalTestHarness?: RemovalTestHarness;
   }
 

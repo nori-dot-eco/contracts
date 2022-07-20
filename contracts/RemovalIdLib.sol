@@ -51,7 +51,7 @@ uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
  * For methodology 1 (regenerative ag), the subidentifier serves as a parcel identifier.
  *
  */
-library RemovalUtils {
+library RemovalIdLib {
   function isCapitalized(bytes2 characters) internal pure returns (bool valid) {
     assembly {
       let firstCharacter := byte(0, characters)

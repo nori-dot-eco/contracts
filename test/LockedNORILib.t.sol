@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/test.sol";
-import {ScheduleUtils, Schedule, Cliff} from "@/contracts/ScheduleUtils.sol";
+import {LockedNORILib, Schedule, Cliff} from "@/contracts/LockedNORILib.sol";
 
-contract ScheduleUtils_availableAmount is Test {
-  using ScheduleUtils for Schedule;
+contract LockedNORILib_availableAmount is Test {
+  using LockedNORILib for Schedule;
 
   Schedule private _schedule;
 
