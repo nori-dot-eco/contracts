@@ -429,7 +429,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
         revert RemovalAmountZero({tokenId: ids[i]});
       }
     }
-    return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+    super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
   // todo (and fix _beforeTokenTransfer docs)
@@ -454,6 +454,6 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
         _addressToOwnedTokenIds[to].add(id);
       }
     }
-    return super._afterTokenTransfer(operator, from, to, ids, amounts, data);
+    super._afterTokenTransfer(operator, from, to, ids, amounts, data);
   }
 }
