@@ -5,7 +5,6 @@ import type {
 } from '@/typechain-types/artifacts/contracts/Removal';
 import { asciiStringToHexString, hexStringToAsciiString } from '@/utils/bytes';
 import { expect, setupTest } from '@/test/helpers';
-import { formatRemovalIdData } from '@/utils/removal';
 
 describe('RemovalIdLib', () => {
   // todo add struct encoding version
@@ -97,13 +96,8 @@ describe('RemovalIdLib', () => {
       subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: hre.namedAccounts.supplier,
     };
-    const encodedRemovalDataTooShort = hre.ethers.utils.defaultAbiCoder.encode(
-      ['uint8', 'uint8', 'uint8', 'uint16', 'bytes2', 'bytes2', 'address'],
-      Object.values(removalDataMissingParcelId)
-    );
-
     await expect(
-      harness.createRemovalId(encodedRemovalDataTooShort)
+      harness.createRemovalId(removalDataMissingParcelId)
     ).revertedWith('removalData contains wrong number of bytes');
   });
   it('will revert if the methodology does not fit in one nibble', async () => {
@@ -122,9 +116,9 @@ describe('RemovalIdLib', () => {
       subIdentifier: 99_039_930,
     };
 
-    expect(
-      harness.createRemovalId(formatRemovalIdData({ removalData, hre }))
-    ).revertedWith('Methodology too large');
+    await expect(harness.createRemovalId(removalData)).revertedWith(
+      'removalData contains wrong number of bytes'
+    );
   });
   it('will revert if the location data includes characters that are not capital letters', async () => {
     const { removalTestHarness: harness, hre } = await setupTest();

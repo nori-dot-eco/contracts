@@ -7,10 +7,7 @@ import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/artifacts/cont
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import { sum } from '@/utils/math';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
-import {
-  formatRemovalIdData,
-  generateRandomSubIdentifier,
-} from '@/utils/removal';
+import { generateRandomSubIdentifier } from '@/utils/removal';
 import type {
   Removal,
   Certificate,
