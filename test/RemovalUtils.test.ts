@@ -97,7 +97,7 @@ describe('RemovalIdLib', () => {
       supplierAddress: hre.namedAccounts.supplier,
     };
     await expect(
-      harness.createRemovalId(removalDataMissingParcelId)
+      harness.createRemovalId(removalDataMissingParcelId as any)
     ).revertedWith('removalData contains wrong number of bytes');
   });
   it('will revert if the methodology does not fit in one nibble', async () => {
@@ -136,8 +136,8 @@ describe('RemovalIdLib', () => {
       subIdentifier: 99_039_930,
     };
 
-    await expect(
-      harness.createRemovalId(formatRemovalIdData({ removalData, hre }))
-    ).revertedWith('Invalid ASCII');
+    await expect(harness.createRemovalId(removalData)).revertedWith(
+      'Invalid ASCII'
+    );
   });
 });
