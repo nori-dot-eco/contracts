@@ -19,7 +19,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
    * })
    *
    */
-  uint256 internal immutable REMOVAL_ID_FIXTURE =
+  uint256 public constant REMOVAL_ID_FIXTURE =
     28323967194635186208115198611987694236062136249434403320464507420610607802;
 
   Removal internal _removal;

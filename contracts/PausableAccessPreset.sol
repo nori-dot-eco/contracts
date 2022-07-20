@@ -12,7 +12,7 @@ contract PausableAccessPreset is
   /**
    * @notice Role conferring pausing and unpausing of this contract.
    */
-  bytes32 public immutable PAUSER_ROLE = keccak256("PAUSER_ROLE"); // solhint-disable-line var-name-mixedcase
+  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
   /**
    * @notice Pauses all functions that can mutate state.

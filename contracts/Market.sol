@@ -55,12 +55,12 @@ contract Market is PausableAccessPreset {
   /**
    * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
    */
-  bytes32 public immutable ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE"); // solhint-disable-line var-name-mixedcase
+  bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
 
   /**
    * @notice Role allowing the purchase to reserve listed supply.
    */
-  bytes32 public immutable RESERVER_ROLE = keccak256("RESERVER_ROLE"); // solhint-disable-line var-name-mixedcase
+  bytes32 public constant RESERVER_ROLE = keccak256("RESERVER_ROLE");
 
   /**
    * @notice Emitted on setting of `_priorityRestrictedThreshold`.

@@ -147,23 +147,22 @@ contract RestrictedNORI is
    *
    * @dev The Market contract is granted this role after deployments.
    */
-  bytes32 public immutable SCHEDULE_CREATOR_ROLE =
-    keccak256("SCHEDULE_CREATOR_ROLE"); // solhint-disable-previous-line var-name-mixedcase
+  bytes32 public constant SCHEDULE_CREATOR_ROLE =
+    keccak256("SCHEDULE_CREATOR_ROLE");
 
   /**
    * @notice Role conferring sending of bpNori to this contract.
    *
    * @dev The Market contract is granted this role after deployments.
    */
-  bytes32 public immutable MINTER_ROLE = keccak256("MINTER_ROLE"); // solhint-disable-line var-name-mixedcase
+  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
    * @notice Role conferring revocation of restricted tokens.
    *
    * @dev Only Nori admin addresses should have this role.
    */
-  bytes32 public immutable TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
-  // solhint-disable-previous-line var-name-mixedcase
+  bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
 
   mapping(uint256 => mapping(uint256 => uint256))
     private _methodologyAndVersionToScheduleDuration;

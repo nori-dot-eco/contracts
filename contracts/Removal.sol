@@ -46,13 +46,13 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
   /**
    * @notice Role conferring the the ability to mark a removal as released.
    */
-  bytes32 public immutable RELEASER_ROLE = keccak256("RELEASER_ROLE"); // solhint-disable-line var-name-mixedcase
+  bytes32 public constant RELEASER_ROLE = keccak256("RELEASER_ROLE");
 
   /**
    * @notice Role conferring the ability to mint removals as well as the ability to list minted removals that have yet
    * to be listed for sale.
    */
-  bytes32 public immutable MINTER_ROLE = keccak256("MINTER_ROLE"); // solhint-disable-line var-name-mixedcase
+  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
    * @notice the `RestrictedNORI` contract that manages restricted tokens.
