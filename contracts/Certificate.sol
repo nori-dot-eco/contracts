@@ -79,7 +79,6 @@ contract Certificate is
    *
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
-   * todo document that this also grants Removal the minter role (Assuming we can't move this to initializer)
    */
   function registerContractAddresses(Removal removal)
     external

@@ -36,8 +36,8 @@ describe('Market', () => {
       const { market, removal } = await setupTest();
       const initialSupply = await Promise.all([
         removal.cumulativeBalanceOf(market.address),
-        market.cumulativeReservedSupply(),
-        market.numberOfActiveRemovals(),
+        removal.cumulativeBalanceOf(market.address),
+        removal.numberOfTokensOwnedByAddress(market.address),
         // market.activeSupplierCount(),// todo
         market.priorityRestrictedThreshold(),
       ]);
@@ -255,7 +255,7 @@ describe('Market', () => {
         });
         const [nrtsInQueueWeiComputed, totalSupplyWeiRetrieved] =
           await Promise.all([
-            market.cumulativeActiveSupply(),
+            removal.cumulativeBalanceOf(market.address),
             removal.cumulativeBalanceOf(market.address),
           ]);
         expect(nrtsInQueueWeiComputed).to.equal(totalAmountOfSupply);
@@ -294,7 +294,7 @@ describe('Market', () => {
         const expectedRemainingSupply = totalAmountOfSupply.sub(purchaseAmount);
         const [nrtsInQueueWeiComputed, totalSupplyWeiRetrieved] =
           await Promise.all([
-            market.cumulativeActiveSupply(),
+            removal.cumulativeBalanceOf(market.address),
             removal.cumulativeBalanceOf(market.address),
           ]);
         expect(totalSupplyWeiRetrieved)
@@ -303,7 +303,7 @@ describe('Market', () => {
       });
       it('should correctly report the number of NRTs for sale when there is no inventory', async () => {
         const { market, removal } = await setupTest({});
-        expect(await market.cumulativeActiveSupply())
+        expect(await removal.cumulativeBalanceOf(market.address))
           .to.equal(0)
           .and.to.equal(await removal.cumulativeBalanceOf(market.address));
       });
@@ -356,7 +356,7 @@ describe('Market', () => {
       const [cumulativeActiveSupply, numberOfActiveRemovals] =
         await Promise.all([
           removal.cumulativeBalanceOf(market.address),
-          market.numberOfActiveRemovals(),
+          removal.numberOfTokensOwnedByAddress(market.address),
           // market.activeSupplierCount(), // todo
         ]);
       expect(totalAmountOfSupply).to.be.gt(Zero).and.eq(cumulativeActiveSupply);
@@ -392,8 +392,8 @@ describe('Market', () => {
     //     numberOfActiveRemovals,
     //     activeSupplierCount,
     //   ] = await Promise.all([
-    //     market.cumulativeActiveSupply(),
-    //     market.numberOfActiveRemovals(),
+    //     removal.cumulativeBalanceOf(market.address),
+    //     removal.numberOfTokensOwnedByAddress(market.address),
     //     market.activeSupplierCount(),
     //   ]);
     //   expect(cumulativeActiveSupply).to.equal(
@@ -442,8 +442,8 @@ describe('Market', () => {
     //     numberOfActiveRemovals,
     //     activeSupplierCount,
     //   ] = await Promise.all([
-    //     market.cumulativeActiveSupply(),
-    //     market.numberOfActiveRemovals(),
+    //     removal.cumulativeBalanceOf(market.address),
+    //     removal.numberOfTokensOwnedByAddress(market.address),
     //     market.activeSupplierCount(),
     //   ]);
     //   expect(cumulativeActiveSupply).to.equal(
@@ -478,7 +478,7 @@ describe('Market', () => {
   //     const fee = purchaseAmount.mul(feePercentage).div(100);
   //     const supplierInitialNoriBalance = formatTokenAmount(0);
   //     const noriInitialNoriBalance = formatTokenAmount(0);
-  //     const initialSupply = await market.cumulativeActiveSupply();
+  //     const initialSupply = await removal.cumulativeBalanceOf(market.address);
   //     const value = purchaseAmount.add(fee);
   //     const { v, r, s } = await buyer.permit({
   //       verifyingContract: bpNori,
@@ -493,7 +493,7 @@ describe('Market', () => {
   //       supplier.address
   //     );
   //     const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet.address);
-  //     const finalSupply = await market.cumulativeActiveSupply();
+  //     const finalSupply = await removal.cumulativeBalanceOf(market.address);
   //     expect(buyerFinalNoriBalance).to.equal(
   //       userFixtures.buyer.bpBalance.sub(value)
   //     );
@@ -533,7 +533,7 @@ describe('Market', () => {
   //       .connect(buyer)
   //       .swap(investor1.address, value, deadline, v, r, s);
   //     const numberOfActiveRemovals =
-  //       await market.numberOfActiveRemovals();
+  //       await removal.numberOfTokensOwnedByAddress(market.address);
   //     // Roundabout way of showing that the removal used to fill the order was the removal with amount 5, not 1.
   //     expect(numberOfActiveRemovals).to.equal(2);
   //   });
@@ -560,7 +560,7 @@ describe('Market', () => {
   //     const value = purchaseAmount.add(fee);
   //     const supplierInitialNoriBalance = formatTokenAmount(0); // todo get from user fixtures
   //     const noriInitialNoriBalance = formatTokenAmount(0); // todo get from user fixtures
-  //     const initialSupply = await market.cumulativeActiveSupply();
+  //     const initialSupply = await removal.cumulativeBalanceOf(market.address);
   //     expect(initialSupply).to.equal(purchaseAmount);
   //     const { v, r, s } = await buyer.permit({
   //       verifyingContract: bpNori,
@@ -575,7 +575,7 @@ describe('Market', () => {
   //       supplier.address
   //     );
   //     const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet.address);
-  //     const finalSupply = await market.cumulativeActiveSupply();
+  //     const finalSupply = await removal.cumulativeBalanceOf(market.address);
   //     expect(buyerFinalNoriBalance).to.equal(
   //       userFixtures.buyer.bpBalance.sub(value)
   //     );
@@ -622,7 +622,7 @@ describe('Market', () => {
   //     const value = purchaseAmount.add(fee);
   //     const supplierInitialNoriBalance = formatTokenAmount(0);
   //     const noriInitialNoriBalance = formatTokenAmount(0);
-  //     const initialSupply = await market.cumulativeActiveSupply();
+  //     const initialSupply = await removal.cumulativeBalanceOf(market.address);
   //     const { v, r, s } = await buyer.permit({
   //       verifyingContract: bpNori,
   //       spender: market.address,
@@ -636,7 +636,7 @@ describe('Market', () => {
   //       supplier.address
   //     );
   //     const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet.address);
-  //     const finalSupply = await market.cumulativeActiveSupply();
+  //     const finalSupply = await removal.cumulativeBalanceOf(market.address);
   //     expect(buyerFinalNoriBalance).to.equal(
   //       userFixtures.buyer.bpBalance.sub(value)
   //     );
@@ -684,7 +684,7 @@ describe('Market', () => {
   //     const doubleTotalPrice = value.mul(2);
   //     const supplierInitialNoriBalance = formatTokenAmount(0);
   //     const noriInitialNoriBalance = formatTokenAmount(0);
-  //     const initialSupply = await market.cumulativeActiveSupply();
+  //     const initialSupply = await removal.cumulativeBalanceOf(market.address);
   //     expect(initialSupply).to.equal(totalAmountOfSupply);
   //     const purchaseNrts = async (): Promise<ContractReceipt> => {
   //       const { v, r, s } = await buyer.permit({
@@ -702,7 +702,7 @@ describe('Market', () => {
   //     const buyerFinalNoriBalance = await bpNori.balanceOf(buyer.address);
   //     const supplierFinalNoriBalance = await bpNori.balanceOf(supplier);
   //     const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet);
-  //     const finalSupply = await market.cumulativeActiveSupply();
+  //     const finalSupply = await removal.cumulativeBalanceOf(market.address);
   //     expect(buyerFinalNoriBalance).to.equal(
   //       userFixtures.buyer.bpBalance.sub(doubleTotalPrice)
   //     );
@@ -748,7 +748,7 @@ describe('Market', () => {
   //     const investor1InitialNoriBalance = formatTokenAmount(0);
   //     const investor2InitialNoriBalance = formatTokenAmount(0);
   //     const noriInitialNoriBalance = formatTokenAmount(0);
-  //     const initialSupply = await market.cumulativeActiveSupply();
+  //     const initialSupply = await removal.cumulativeBalanceOf(market.address);
   //     const { buyer } = hre.namedSigners;
   //     const { v, r, s } = await buyer.permit({
   //       verifyingContract: bpNori,
@@ -771,7 +771,7 @@ describe('Market', () => {
   //       bpNori.balanceOf(hre.namedAccounts.investor1),
   //       bpNori.balanceOf(hre.namedAccounts.investor2),
   //       bpNori.balanceOf(hre.namedAccounts.noriWallet),
-  //       market.cumulativeActiveSupply(),
+  //       removal.cumulativeBalanceOf(market.address),
   //     ]);
   //     expect(buyerFinalNoriBalance).to.equal(
   //       userFixtures.buyer.bpBalance.sub(value)
@@ -966,9 +966,9 @@ describe('Market', () => {
         numberOfReservedRemovals,
       ] = await Promise.all([
         removal.cumulativeBalanceOf(market.address),
-        market.cumulativeActiveSupply(),
-        market.cumulativeReservedSupply(),
-        market.numberOfActiveRemovals(),
+        removal.cumulativeBalanceOf(market.address),
+        removal.cumulativeBalanceOf(market.address),
+        removal.numberOfTokensOwnedByAddress(market.address),
         // market.activeSupplierCount(), // todo
         market.numberOfReservedRemovals(),
       ]);
@@ -1010,8 +1010,8 @@ describe('Market', () => {
         // activeSupplierCount,// todo
       ] = await Promise.all([
         removal.cumulativeBalanceOf(market.address), // todo inconsistency in variable `cumulativeActiveSupply` across tests (Sometimes retrieved from market.cumulativeActiveSupply, sometimes from removal.cummulativeBalanceOF)
-        market.cumulativeReservedSupply(),
-        market.numberOfActiveRemovals(),
+        removal.cumulativeBalanceOf(market.address),
+        removal.numberOfTokensOwnedByAddress(market.address),
         // market.activeSupplierCount(),// todo
       ]);
       expect(cumulativeActiveSupply).to.equal(totalAmountOfSupply);
@@ -1046,9 +1046,9 @@ describe('Market', () => {
         numberOfUnreservedRemovals,
       ] = await Promise.all([
         removal.cumulativeBalanceOf(market.address), // todo inconsistency in variable `cumulativeActiveSupply` across tests (Sometimes retrieved from market.cumulativeActiveSupply, sometimes from removal.cummulativeBalanceOF)
-        market.cumulativeReservedSupply(),
-        market.cumulativeActiveSupply(),
-        market.numberOfActiveRemovals(),
+        removal.cumulativeBalanceOf(market.address),
+        removal.cumulativeBalanceOf(market.address),
+        removal.numberOfTokensOwnedByAddress(market.address),
         // market.activeSupplierCount(),// todo
         market.numberOfUnreservedRemovals(),
         // todo everywhere: cumulativeActiveSupply, cumulativeUnreservedSupply, cumulativeReservedSupply, numberOfActiveRemovals, numberOfUnreservedRemovals, numberOfReservedRemovals
