@@ -150,7 +150,7 @@ export const deployCertificateContract = async ({
   return hre.deployOrUpgradeProxy<Certificate, Certificate__factory>({
     contractName: 'Certificate',
     args: [],
-    options: { initializer: 'initialize()' },
+    options: { initializer: 'initialize()', unsafeAllow: ['delegatecall'] },
   });
 };
 
