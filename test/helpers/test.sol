@@ -53,7 +53,3 @@ abstract contract Upgradeable is Global {
     return address(proxy);
   }
 }
-
-abstract contract SeedableMock is Global {
-  function _seed() internal virtual;
-}

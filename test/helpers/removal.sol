@@ -1,12 +1,27 @@
-/* solhint-disable contract-name-camelcase, func-name-mixedcase */
+/* solhint-disable contract-name-camelcase, func-name-mixedcase, var-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/contracts/Removal.sol"; // todo path remapping globally
 import "@/test/helpers/test.sol";
 
-// uint256 immutable REMOVAL_ID_FIXTURE = 1;
-
 abstract contract UpgradeableRemoval is Upgradeable {
+  /**
+   * @dev
+   * UnpackedRemovalIdV0({
+   *   idVersion: 0,
+   *   methodology: 1,
+   *   methodologyVersion: 0,
+   *   vintage: 2018,
+   *   country: "US",
+   *   subdivision: "IA",
+   *   supplierAddress: _namedAccounts.supplier,
+   *   subIdentifier: 99_039_930
+   * })
+   *
+   */
+  uint256 internal immutable _REMOVAL_ID_FIXTURE =
+    28323967194635186208115198611987694236062136249434403320464507420610607802;
+
   Removal internal _removal;
   Removal internal _removalImplementation;
 
@@ -29,16 +44,21 @@ abstract contract UpgradeableRemoval is Upgradeable {
     );
     return Removal(_deployProxy(address(_removalImplementation), initializer));
   }
-}
 
-abstract contract NonUpgradableRemovalMock is Removal, Global {}
-
-abstract contract UpgradableRemovalMock is UpgradeableRemoval {
-  function _seed() internal virtual {}
-}
-
-abstract contract RemovalSeeded is UpgradableRemovalMock {
-  constructor() {
-    _seed();
+  function _createMintData(
+    uint256 projectId,
+    uint256 scheduleStartTime,
+    uint8 holdbackPercentage,
+    bool list
+  ) internal pure returns (BatchMintRemovalsData memory) {
+    return
+      BatchMintRemovalsData({
+        projectId: projectId,
+        scheduleStartTime: scheduleStartTime,
+        holdbackPercentage: holdbackPercentage,
+        list: list
+      });
   }
 }
+
+abstract contract NonUpgradableRemoval is Removal, Global {}

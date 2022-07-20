@@ -2,15 +2,21 @@
 pragma solidity =0.8.15; // todo bump solidity version globally to latest
 
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 import {FunctionDisabled, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
-import "./ICertificate.sol";
+import "./ICertificate.sol"; // todo benefit of using Interface vs contract?
 import "./Removal.sol";
 // import "forge-std/console2.sol"; // todo
 
+// todo document burning behavior
 error ForbiddenTransferAfterMinting(); // todo error declaration consistency (inside-contract vs outside-of-contract)
+error SenderNotRemovalContract();
 
+// todo globally consider renaming tokenId -> certificateId / removalId
+// todo how hard would it be to use ERC721AStorage layout for child removals?
 /**
  * todo consider removing all batch functions from all contracts (seems gratuitous to include it when you can
  * usually achieve the same effect by inheriting multicall, OR using an external multicall contract)
@@ -24,34 +30,43 @@ error ForbiddenTransferAfterMinting(); // todo error declaration consistency (in
  */
 contract Certificate is
   ICertificate,
-  ERC721ABurnableUpgradeable, // todo is this accounting ok considering the certificate now has child tokens?
+  ERC721ABurnableUpgradeable,
   ERC721AQueryableUpgradeable,
   PausableUpgradeable,
-  AccessControlEnumerableUpgradeable
+  AccessControlEnumerableUpgradeable,
+  MulticallUpgradeable
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
+  struct Balance {
+    uint256 id;
+    uint256 amount;
+  }
+  type RemovalId is uint256;
+  type RemovalAmount is uint256;
+  type CertificateId is uint256;
+  type CertificateAmount is uint256;
+  struct CertificateBalances {
+    mapping(RemovalId => RemovalAmount) removalBalances;
+    uint256[] RemovalId;
+  }
+   struct RemovalBalances {
+    mapping(CertificateId => CertificateAmount) certificateBalances;
+    uint256[] CertificateId;
+  }
+  mapping(RemovalId => CertificateBalances) private removalBalances; // todo rename
+  mapping(CertificateId => RemovalBalances) private certificateBalances; // todo rename
   /**
-   * @notice Role conferring operator permissions
+   * @notice Role conferring operator permissions.
    *
-   * @dev This role is assigned to operators which can transfer certificates from an address to another by bypassing
-   * the `_beforeTokenTransfer` hook.
+   * @dev This role is assigned to operators which are the only addresses which can transfer certificates outside of
+   * minting and burning.
    */
   bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
     keccak256("CERTIFICATE_OPERATOR_ROLE");
 
   /**
-   * @notice Role conferring the ability to release a certificates underlying removals
-   */
-  bytes32 public constant RELEASER_ROLE = keccak256("RELEASER_ROLE");
-
-  /**
-   * @notice Role conferring the ability to mint certificates
-   */
-  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-
-  /**
-   * @notice Role conferring the ability to pause and unpause mutable functions of the contract
+   * @notice Role conferring the ability to pause and unpause mutable functions of the contract.
    */
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE"); // todo PausablePreset?
 
@@ -61,12 +76,13 @@ contract Certificate is
   mapping(uint256 => EnumerableSetUpgradeable.UintSet)
     private _removalsOfCertificate; // todo rename
 
+  mapping(uint256 => EnumerableSetUpgradeable.UintSet)
+    private _certificatesOfRemoval; // todo rename
+
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
    */
-  Removal private _removal; // todo I dont think I'm using this anymore
-
-  // todo globally consider renaming tokenId -> certificateId / removalId
+  Removal private _removal;
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -108,6 +124,7 @@ contract Certificate is
    *
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   * todo document that this also grants Removal the minter role (Assuming we can't move this to initializer)
    */
   function registerContractAddresses(Removal removal)
     external
@@ -127,26 +144,27 @@ contract Certificate is
     __Pausable_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
-    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _grantRole(MINTER_ROLE, _msgSender());
+    __Multicall_init_unchained();
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo global: doesnt this happen automatically?
     _grantRole(PAUSER_ROLE, _msgSender());
-    // todo initialize with _removal and call _grantRole(_removal) here?
+    _grantRole(CERTIFICATE_OPERATOR_ROLE, _msgSender());
   }
 
   function releaseRemoval(
     uint256 certificateId,
     uint256 removalId,
     uint256 amount
-  ) external whenNotPaused onlyRole(RELEASER_ROLE) {
-    // todo any way to guarantee this is only called when burning removals?
-    // todo batch?
-    // todo how are we tracking total released? Do the correct events get emitted in Removal.sol?
-    // todo emit event
+  ) external whenNotPaused {
+    if (_msgSender() != address(_removal)) {
+      revert SenderNotRemovalContract();
+    }
+    // todo emit event?
     _removalBalancesOfCertificate[certificateId][removalId] -= amount;
     if (
       _removalBalancesOfCertificate[certificateId][removalId] == 0 // todo access storage once (currently 2x)
     ) {
       _removalsOfCertificate[certificateId].remove(removalId);
+      _certificatesOfRemoval[removalId].remove(certificateId);
     }
   }
 
@@ -166,44 +184,34 @@ contract Certificate is
     uint256[] memory removalAmounts,
     bytes memory data
   ) external returns (bytes4) {
-    // todo onlyRole(minter_role)
+    if (_msgSender() != address(_removal)) {
+      revert SenderNotRemovalContract();
+    }
     address recipient;
     assembly {
-      recipient := mload(add(add(data, 32), 0))
+      recipient := mload(add(add(data, 32), 0)) // more efficient abi decode // todo keep?
     }
     _receiveRemovalBatch(recipient, removalIds, removalAmounts);
     return this.onERC1155BatchReceived.selector;
   }
 
   /**
-   * @dev Gives child balance for a specific child contract and child ID.
+   * @dev Returns the balance of a removal underlying a certificate
    */
   function balanceOfRemoval(uint256 certificateTokenId, uint256 removalTokenId)
     external
     view
     returns (uint256)
   {
-    // todo cummulative balance for all child contracts version (use ERC721AQueryable balance funcs)
+    // todo batch
     return _removalBalancesOfCertificate[certificateTokenId][removalTokenId];
   }
 
   /**
-   * @dev Returns the cumulative balance for all underlying removals of a certificate.
+   * @dev Returns the total number of certificates that have been minted (including burned ones)
    */
-  function balanceOf(
-    uint256 certificateTokenId // todo rename? (e.g., blanceOfRemovals?)
-  ) external view returns (uint256) {
-    // todo cummulative balance for all child contracts version (use ERC721AQueryable balance funcs)
-    uint256[] memory removals = this.removalsOfCertificate(certificateTokenId);
-    uint256 total = 0;
-    mapping(uint256 => uint256)
-      storage removalBalancesOfCertificate = _removalBalancesOfCertificate[
-        certificateTokenId
-      ];
-    for (uint256 i = 0; i < removals.length; ++i) {
-      total += removalBalancesOfCertificate[removals[i]];
-    }
-    return total;
+  function totalMinted() external view returns (uint256) {
+    return _totalMinted();
   }
 
   /**
@@ -212,31 +220,42 @@ contract Certificate is
   function removalsOfCertificate(uint256 certificateId)
     external
     view
-    returns (uint256[] memory)
+    returns (Balance[] memory)
   {
-    return _removalsOfCertificate[certificateId].values();
+    EnumerableSetUpgradeable.UintSet
+      storage removalIds = _removalsOfCertificate[certificateId];
+    // todo only if it exists continue
+    Balance[] memory removals = new Balance[](removalIds.length());
+    for (uint256 i = 0; i < removalIds.length(); i++) {
+      uint256 removalId = removalIds.at(i);
+      removals[i] = Balance({
+        id: removalId,
+        amount: _removalBalancesOfCertificate[certificateId][removalId]
+      });
+    }
+    return removals;
   }
 
   /**
-   * @dev Returns a list of certificate IDs that hold a balnce for a given removal ID.
+   * @dev Returns the list of certificate IDs and balances for a given removal ID.
    */
   function certificatesOfRemoval(uint256 removalId)
     external
     view
-    returns (uint256[] memory)
+    returns (Balance[] memory)
   {
-    // todo consider using tokensOfOwnerIn to prevent out of gas possibilities that may prevent releasing removals
-    uint256 totalSupply = this.totalSupply();
-    uint256 totalNumberOfCertificates = 0;
-    uint256[] memory certificates = new uint256[](totalSupply);
-    for (uint256 i = 0; i < totalSupply; i++) {
-      uint256 certificateId = certificates[i];
-      if (_removalsOfCertificate[certificateId].contains(removalId)) {
-        certificates[i] = certificateId;
-        totalNumberOfCertificates++;
-      }
+    EnumerableSetUpgradeable.UintSet
+      storage certifificateIds = _certificatesOfRemoval[removalId];
+    // todo only if it exists continue
+    Balance[] memory certificates = new Balance[](certifificateIds.length());
+    for (uint256 i = 0; i < certifificateIds.length(); i++) {
+      uint256 certificateId = certifificateIds.at(i);
+      certificates[i] = Balance({
+        id: certificateId,
+        amount: _removalBalancesOfCertificate[certificateId][removalId]
+      });
     }
-    return _shrinkArray(certificates, totalNumberOfCertificates);
+    return certificates;
   }
 
   /**
@@ -274,7 +293,7 @@ contract Certificate is
 
   /**
    * @notice A hook that is called before all transfers and is used to disallow non-minting, non-burning, and non-
-   * certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfers
+   * certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfers.
    *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks).
@@ -314,6 +333,7 @@ contract Certificate is
         removalIds[i]
       ] += removalAmounts[i];
       _removalsOfCertificate[certificateId].add(removalIds[i]);
+      _certificatesOfRemoval[removalIds[i]].add(certificateId);
     }
     emit ReceiveRemovalBatch(
       _msgSender(),
@@ -322,23 +342,6 @@ contract Certificate is
       removalIds,
       removalAmounts
     );
-  }
-
-  function _shrinkArray(
-    uint256[] memory array,
-    uint256 newLength // todo shared lib
-  ) internal pure returns (uint256[] memory) {
-    // todo verify that this is working as expected
-    require(
-      newLength <= array.length,
-      "Array: length after shrinking larger than before" // todo custom error
-    );
-    // todo use new memory safe asembly syntax instead of the following
-    /// @solidity memory-safe-assembly
-    assembly {
-      mstore(array, newLength)
-    }
-    return array;
   }
 
   function _validateReceivedRemovalBatch(
@@ -350,11 +353,6 @@ contract Certificate is
       revert ArrayLengthMismatch("removalIds", "removalAmounts");
     }
   }
-
-  // todo write a test that checks that we can release burned certificate's removals
-  // function burn() external {
-  //    // needs to burn a whole certificate, which should also burn the internal removals
-  // }
 
   /**
    * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each token will be the concatenation of the

@@ -18,17 +18,6 @@ abstract contract UpgradeableRestrictedNORI is Upgradeable {
   }
 }
 
-abstract contract NonUpgradableRestrictedNORIMock is RestrictedNORI, Global {}
+abstract contract NonUpgradableRestrictedNORI is RestrictedNORI, Global {}
 
-abstract contract UpgradableRestrictedNORIMock is UpgradeableRestrictedNORI {}
-
-abstract contract RestrictedNORISeeded is
-  UpgradableRestrictedNORIMock,
-  SeedableMock
-{
-  constructor() {
-    _seed();
-  }
-
-  function _seed() internal override {}
-}
+abstract contract UpgradableRestrictedNORI is UpgradeableRestrictedNORI {}

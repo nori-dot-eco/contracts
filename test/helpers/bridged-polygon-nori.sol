@@ -35,14 +35,3 @@ abstract contract NonUpgradableBridgedPolygonNORIMock is
 abstract contract UpgradableBridgedPolygonNORIMock is
   UpgradeableBridgedPolygonNORI
 {}
-
-abstract contract BridgedPolygonNORISeeded is
-  UpgradableBridgedPolygonNORIMock,
-  SeedableMock
-{
-  constructor() {
-    _seed();
-  }
-
-  function _seed() internal override {}
-}

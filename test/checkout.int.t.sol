@@ -4,11 +4,9 @@ pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import {UnpackedRemovalIdV0} from "@/contracts/RemovalUtils.sol";
 
-abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
+abstract contract Checkout is UpgradeableMarket {
   uint256 internal _removalId;
   uint256 internal _certificateTokenId;
-
-  function _seed() internal override(UpgradableRemovalMock, SeedableMock) {} // todo maybe making this required is bad
 
   function _seed(uint32 subIdentifier) internal returns (uint256) {
     // todo paramaterize better
@@ -28,7 +26,7 @@ abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
       holdbackPercentage: 50,
       list: true
     });
-    _removalId = RemovalUtils.createRemovalIdFromStruct(removalData);
+    _removalId = RemovalUtils.createRemovalId(removalData);
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
@@ -47,7 +45,7 @@ abstract contract Checkout is UpgradeableMarket, SeedableMock, RemovalSeeded {
     assertEq(
       _removal.tokensOfOwner(owner),
       ownsRemovalTokenId
-        ? _certificate.removalsOfCertificate(0)
+        ? _asSingletonUintArray(_certificate.removalsOfCertificate(0)[0].id)
         : new uint256[](amount)
     );
     assertEq(_removal.cumulativeBalanceOf(owner), amount);
@@ -63,7 +61,6 @@ contract Checkout_buyingFromOneRemoval is Checkout {
   function test() external {
     // todo refactor so assertions
     // todo refactor so setup lives in this contracts setUp function (improves gas reporting)
-
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
     uint256 amount = _market.getCheckoutTotal(1 ether);
@@ -128,7 +125,11 @@ contract Checkout_buyingFromTenRemovals is Checkout {
     _expectedCertificateAmount = _market.certificateAmountFromPurchaseTotal(
       _purchaseAmount
     );
-    assertEq(_removal.tokensOfOwner(address(_market)), _removalIds);
+    assertEq(
+      _removal.tokensOfOwner(address(_market)),
+      _removalIds,
+      "Expected the market to own the removals"
+    );
     assertEq(_removal.cumulativeBalanceOf(address(_market)), 10 ether);
     assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 10);
     assertEq(_expectedCertificateAmount, 10 ether);
@@ -166,16 +167,37 @@ contract Checkout_buyingFromTenRemovals is Checkout {
     );
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    _assertExpectedBalances(
-      address(_certificate),
-      _expectedCertificateAmount,
-      true,
-      10
+    assertEq(
+      _removal.tokensOfOwner(address(_certificate)).length,
+      _removalIds.length,
+      "Expected the number removals owned by the certificate to be equal to the number of removal IDs"
     );
     assertEq(
-      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
-      _expectedCertificateAmount / _removalIds.length
+      _certificate.removalsOfCertificate(0).length,
+      _removalIds.length,
+      "Expected the number removals held by the certificate to be equal to the number of removal IDs"
     );
-    assertEq(_certificate.ownerOf(_certificateTokenId), _owner);
+    for (uint256 i = 0; i < 10; i++) {
+      assertContains(
+        _removalIds,
+        _certificate.removalsOfCertificate(0)[i].id,
+        "Expected the certificate to hold the removal"
+      );
+      assertContains(
+        _removalIds,
+        _removal.tokensOfOwner(address(_certificate))[i],
+        "Expected the certificate to own the removals"
+      );
+    }
+    assertEq(
+      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
+      _expectedCertificateAmount / _removalIds.length,
+      "Removal balance is wrong"
+    );
+    assertEq(
+      _certificate.ownerOf(_certificateTokenId),
+      _owner,
+      "The wrong owner has the certificate"
+    );
   }
 }

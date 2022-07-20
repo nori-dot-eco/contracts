@@ -349,10 +349,10 @@ contract Removal is
   /**
    * @notice Packs data about a removal into a 256-bit token id for the removal.
    * @dev Performs some possible validations on the data before attempting to create the id.
-   * @param removalData removal data encoded as bytes, with the first byte storing the version.
+   * @param removalData removal data struct to be packed into a uint256 ID
    */
   function createRemovalId(
-    bytes calldata removalData // todo look into using calldata elsewhere
+    UnpackedRemovalIdV0 memory removalData // todo look into using calldata elsewhere
   ) external pure returns (uint256) {
     // todo add struct version and remove non-struct version
     return RemovalUtils.createRemovalId(removalData);
@@ -380,7 +380,10 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) public override {
-    if (hasRole(MINTER_AND_LISTER_ROLE, _msgSender())) {
+    if (
+      hasRole(MINTER_AND_LISTER_ROLE, _msgSender())
+    ) // todo this should probably just be a different function name
+    {
       _safeBatchTransferFrom(from, to, ids, amounts, data);
     } else {
       super.safeBatchTransferFrom(from, to, ids, amounts, data);
@@ -410,10 +413,26 @@ contract Removal is
     uint256 id,
     uint256 amount
   ) internal override {
-    uint256[] memory certificatesForRemoval = _certificate
-      .certificatesOfRemoval(id);
-    for (uint256 i = 0; i < certificatesForRemoval.length; ++i) {
-      _certificate.releaseRemoval(certificatesForRemoval[i], id, amount); // todo batch call
+    if (from == address(_market)) {
+      // todo
+    } else if (from == address(_certificate)) {
+      Certificate.Balance[] memory certificatesOfRemoval = _certificate
+        .certificatesOfRemoval(id);
+      uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
+      bytes[] memory releaseCalls = new bytes[](numberOfCertificatesForRemoval);
+      for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
+        // todo releaseFromCertificate vs releaseUnlisted
+        Certificate.Balance memory certificateBalance = certificatesOfRemoval[
+          i
+        ];
+        releaseCalls[i] = abi.encodeWithSelector(
+          _certificate.releaseRemoval.selector,
+          certificateBalance.id,
+          id,
+          certificateBalance.amount
+        );
+      }
+      _certificate.multicall(releaseCalls);
     }
     super._burn(from, id, amount);
   }
@@ -440,16 +459,30 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal override whenNotPaused {
+    return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+  }
+
+  // todo (and fix _beforeTokenTransfer docs)
+  function _afterTokenTransfer(
+    address operator,
+    address from,
+    address to,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    bytes memory data
+  ) internal override {
     uint256 numberOfTokenTransfers = amounts.length;
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
       uint256 id = ids[i];
       if (from != address(0)) {
-        _addressToOwnedTokenIds[from].remove(id);
+        if (balanceOf(from, id) == 0) {
+          _addressToOwnedTokenIds[from].remove(id);
+        }
       }
       if (to != address(0)) {
         _addressToOwnedTokenIds[to].add(id);
       }
     }
-    return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+    return super._afterTokenTransfer(operator, from, to, ids, amounts, data);
   }
 }

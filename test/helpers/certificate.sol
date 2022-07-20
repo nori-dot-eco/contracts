@@ -4,8 +4,9 @@
 pragma solidity =0.8.15;
 import "@/contracts/Certificate.sol";
 import "@/test/helpers/test.sol";
+import "@/test/helpers/removal.sol";
 
-abstract contract UpgradeableCertificate is Upgradeable {
+abstract contract UpgradeableCertificate is Upgradeable, UpgradeableRemoval {
   Certificate internal _certificate;
 
   constructor() {
@@ -15,18 +16,12 @@ abstract contract UpgradeableCertificate is Upgradeable {
   function _deployCertificate() internal returns (Certificate) {
     Certificate impl = new Certificate();
     bytes memory initializer = abi.encodeWithSelector(impl.initialize.selector);
-    return Certificate(_deployProxy(address(impl), initializer));
+    Certificate certificate = Certificate(
+      _deployProxy(address(impl), initializer)
+    );
+    certificate.registerContractAddresses(Removal(_removal)); // todo consider simple registry pattern
+    return certificate;
   }
 }
 
-abstract contract NonUpgradableCertificateMock is Certificate, Global {}
-
-abstract contract UpgradableCertificateMock is UpgradeableCertificate {}
-
-abstract contract CertificateSeeded is UpgradableCertificateMock, SeedableMock {
-  constructor() {
-    _seed();
-  }
-
-  function _seed() internal override {}
-}
+abstract contract NonUpgradableCertificate is Certificate, Global {}

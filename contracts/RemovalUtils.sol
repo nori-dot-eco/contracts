@@ -64,7 +64,12 @@ library RemovalUtils {
   }
 
   // todo does all the internal validation still apply when using a struct?
-  function createRemovalIdFromStruct(UnpackedRemovalIdV0 memory removalData)
+  /**
+   * @notice Packs data about a removal into a 256-bit token id for the removal.
+   * @dev Performs some possible validations on the data before attempting to create the id.
+   * @param removalData removal data struct to be packed into a uint256 ID
+   */
+  function createRemovalId(UnpackedRemovalIdV0 memory removalData)
     internal
     pure
     returns (uint256)
@@ -95,70 +100,6 @@ library RemovalUtils {
       (uint256(uint160(removalData.supplierAddress)) <<
         (_ADDRESS_OFFSET * _BITS_PER_BYTE)) |
       (uint256(removalData.subIdentifier) << (_SUBID_OFFSET * _BITS_PER_BYTE));
-  }
-
-  /**
-   * @notice Packs data about a removal into a 256-bit token id for the removal.
-   * @dev Performs some possible validations on the data before attempting to create the id.
-   * @param removalData removal data encoded as bytes, with the first byte storing the version.
-   */
-  function createRemovalId(
-    bytes calldata removalData //  todo remove non-struct version?
-  ) internal pure returns (uint256) {
-    uint256 idVersion = abi.decode(removalData, (uint8));
-    require(idVersion == 0, "Unsupported removal token id version");
-    require(
-      removalData.length == _ENCODED_LENGTH_BYTES_UNPACKED_ID_V0,
-      "removalData contains wrong number of bytes"
-    );
-
-    UnpackedRemovalIdV0 memory params = abi.decode(
-      removalData,
-      (UnpackedRemovalIdV0)
-    );
-
-    require(params.methodology <= 2**4 - 1, "Metholodogy too large");
-    require(
-      params.methodologyVersion <= 2**4 - 1,
-      "Metholodogy version too large"
-    );
-
-    uint256 countryFirstLetter = uint256(uint16(params.country)) >>
-      _BITS_PER_BYTE;
-    uint256 countrySecondLetter = uint256(uint16(params.country)) &
-      uint256(2**8 - 1);
-    uint256 subdivisionFirstLetter = uint256(uint16(params.subdivision)) >>
-      _BITS_PER_BYTE;
-    uint256 subdivisionSecondLetter = uint256(uint16(params.subdivision)) &
-      uint256(2**8 - 1);
-
-    require(
-      countryFirstLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
-        countryFirstLetter <= _ASCII_CAP_LETTER_MAX_VAL &&
-        countrySecondLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
-        countrySecondLetter <= _ASCII_CAP_LETTER_MAX_VAL &&
-        subdivisionFirstLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
-        subdivisionFirstLetter <= _ASCII_CAP_LETTER_MAX_VAL &&
-        subdivisionSecondLetter >= _ASCII_CAP_LETTER_MIN_VAL &&
-        subdivisionSecondLetter <= _ASCII_CAP_LETTER_MAX_VAL,
-      "Invalid ASCII"
-    );
-
-    uint256 methodologyData = (params.methodology << 4) |
-      params.methodologyVersion;
-
-    return
-      (uint256(params.idVersion) << (_ID_VERSION_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(methodologyData) <<
-        (_METHODOLOGY_DATA_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(params.vintage) << (_VINTAGE_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(uint16(params.country)) <<
-        (_COUNTRY_CODE_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(uint16(params.subdivision)) <<
-        (_ADMIN1_CODE_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(uint160(params.supplierAddress)) <<
-        (_ADDRESS_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(params.subIdentifier) << (_SUBID_OFFSET * _BITS_PER_BYTE));
   }
 
   /**

@@ -11,7 +11,7 @@ import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 
-// import "forge-std/console2.sol"; // todo
+import "forge-std/console2.sol"; // todo
 
 // todo emit events
 
@@ -191,6 +191,7 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
+    // todo multicall enabled swap?
     // todo we need to treat cumulativeActiveSupply in a more nuanced way when reservation of removals is implemented
     // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s.
     // priority reserved etc.
@@ -359,8 +360,8 @@ contract Market is
         amounts[numberOfRemovalsForOrder] = remainingAmountToFill;
         suppliers[numberOfRemovalsForOrder] = _currentSupplierAddress;
         remainingAmountToFill = 0;
-        // we will use up this removal while completing the order, move on to next one
       } else {
+        // we will use up this removal while completing the order, move on to next one
         if (
           i == numberOfActiveRemovalsInMarket - 1 &&
           remainingAmountToFill > removalAmount
@@ -490,8 +491,8 @@ contract Market is
     uint256[] calldata amounts,
     address[] memory suppliers
   ) external {
-    uint256[] memory batchedIds = ids[:numberOfRemovals];
-    uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
+    uint256[] memory batchedIds = ids[:numberOfRemovals]; // todo might need to revert this (not sure if slice includes correct values)
+    uint256[] memory batchedAmounts = amounts[:numberOfRemovals]; // todo might need to revert this (not sure if slice includes correct values)
     uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
       batchedIds
     );
@@ -523,7 +524,7 @@ contract Market is
       );
     }
     bytes memory data = abi.encode(recipient);
-    _removal.safeBatchTransferFrom( // todo is this actually assigning the buyer as the owner of the NFT?
+    _removal.safeBatchTransferFrom(
       address(this),
       address(_certificate),
       batchedIds,
@@ -556,32 +557,30 @@ contract Market is
     address supplierAddress,
     uint256 removalId // todo flip param order
   ) internal {
+    console2.log("Remove active removal====");
     _activeSupply[supplierAddress].removeRemoval(removalId);
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _removeActiveSupplier(supplierAddress); // todo can this be combined inside .removeRemoval?
     }
   }
 
-  // todo consider making this a generalized `withdrawRemoval`?
-  // todo RESERVER_ROLE? or require sender is Removal address
-  // /**
-  //  * @dev
-  //  *
-  //  *   ##### Requirements:
-  //  *
-  //  * - The contract must not be paused. This is enforce by `Removal._beforeTokenTransfer`
-  //  */
-  // function release(uint256 removalId, uint256 amount) external whenNotPaused {
-  //   address supplierAddress = RemovalUtils.supplierAddress(removalId);
-  //   uint256 removalBalance = _removal.balanceOf(
-  //     address(this),
-  //     removalId
-  //   );
-  //   if (amount == removalBalance) {
-  //     _unreserveRemoval(removalId);
-  //     _removeActiveRemoval(supplierAddress, removalId);
-  //   }
-  // }
+  /**
+   * @dev
+   *
+   * ##### Requirements:
+   *
+   * - The contract must not be paused. This is enforce by `Removal._beforeTokenTransfer`
+   */
+  function release(uint256 removalId, uint256 amount) external whenNotPaused {
+    // todo consider making this a generalized `withdrawRemoval`?
+    // todo RESERVER_ROLE? or require sender is Removal address
+    address supplierAddress = RemovalUtils.supplierAddress(removalId);
+    uint256 removalBalance = _removal.balanceOf(address(this), removalId);
+    if (amount == removalBalance) {
+      _unreserveRemoval(removalId);
+      _removeActiveRemoval(supplierAddress, removalId);
+    }
+  }
 
   /**
    * @notice Removes a removal from the reserved supply

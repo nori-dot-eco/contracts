@@ -46,23 +46,13 @@ export const deploy: DeployFunction = async (environment) => {
   hre.trace("Granted Market the role 'MINTER_ROLE' for RestrictedNORI");
   await rNori.registerContractAddresses(bpNori.address, removal.address);
   hre.trace('Set market, removal and bpNori addresses in rNori');
-  await removal.registerContractAddresses(rNori.address, market.address);
+  await removal.registerContractAddresses(
+    rNori.address,
+    market.address,
+    certificate.address
+  );
   hre.trace('Set rNori address in Removal');
   // todo rest of .registerContractAddresses
-  if (
-    !(await certificate.hasRole(
-      await certificate.RELEASER_ROLE(),
-      removal.address
-    ))
-  ) {
-    await certificate.grantRole(
-      await certificate.RELEASER_ROLE(),
-      removal.address
-    );
-    hre.trace(
-      'Granted the removal contract the `RELEASER_ROLE` role in the Certificate contract'
-    );
-  }
 };
 
 export default deploy;
