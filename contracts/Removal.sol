@@ -6,6 +6,7 @@ import "./Market.sol";
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
 
+// todo shared MinterAccessPreset base contract
 // todo global rename (accounts -> owners)
 // todo disable other mint functions
 // todo investigate ERC1155SupplyUpgradeable.totalSupply
@@ -33,41 +34,38 @@ struct RemovalData {
   uint256 holdbackPercentage;
 }
 
+error TokenIdExists(uint256 tokenId);
+error RemovalAmountZero(uint256 tokenId);
+
 /**
  * @title Removal // todo
  */
 contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
-  error TokenIdExists(uint256 tokenId);
-
   /**
    * @notice Role conferring the the ability to mark a removal as released.
-   * @dev Only a Nori admin address should have this role.
    */
-  bytes32 public constant RELEASER_ROLE = keccak256("RELEASER_ROLE");
+  bytes32 public immutable RELEASER_ROLE = keccak256("RELEASER_ROLE"); // solhint-disable-line var-name-mixedcase
 
   /**
    * @notice Role conferring the ability to mint removals as well as the ability to list minted removals that have yet
    * to be listed for sale.
-   *
-   * @dev Only a Nori admin address should have this role.
    */
-  bytes32 public constant MINTER_AND_LISTER_ROLE =
-    keccak256("MINTER_AND_LISTER_ROLE");
+  bytes32 public immutable MINTER_ROLE = keccak256("MINTER_ROLE"); // solhint-disable-line var-name-mixedcase
 
   /**
-   * @notice the RestrictedNORI contract that manages restricted tokens.
+   * @notice the `RestrictedNORI` contract that manages restricted tokens.
    */
   RestrictedNORI private _restrictedNori;
 
   /**
-   * @notice The Market contract that removals can be bought and sold from.
+   * @notice The `Market` contract that removals can be bought and sold from.
    */
   Market private _market;
 
   /**
-   * @notice The Certificate contract that removals are retired into.
+   * @notice The `Certificate` contract that removals are retired into.
    */
   Certificate private _certificate;
 
@@ -93,7 +91,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     __AccessControlEnumerable_init_unchained();
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(PAUSER_ROLE, _msgSender());
-    _grantRole(MINTER_AND_LISTER_ROLE, _msgSender());
+    _grantRole(MINTER_ROLE, _msgSender());
     _grantRole(RELEASER_ROLE, _msgSender());
   }
 
@@ -136,7 +134,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     uint256[] memory amounts,
     uint256[] memory ids, // todo structs[] instead of encoding beforehand
     BatchMintRemovalsData memory data
-  ) external onlyRole(MINTER_AND_LISTER_ROLE) {
+  ) external onlyRole(MINTER_ROLE) {
     uint256 numberOfRemovals = ids.length;
     if (!(amounts.length == numberOfRemovals)) {
       revert ArrayLengthMismatch({array1Name: "amounts", array2Name: "ids"});
@@ -250,6 +248,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     return holdbackPercentages;
   }
 
+  // todo this function will not scale well- consider dropping it somehow
   function cumulativeBalanceOfBatch(address[] memory accounts)
     external
     view
@@ -264,6 +263,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     return batchBalances;
   }
 
+  // todo this function will not scale well- consider dropping it somehow
   function tokensOfOwner(
     address owner // todo global rename (tokens -> removals?)
   ) external view returns (uint256[] memory) {
@@ -271,6 +271,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
   }
 
   // todo rename cumulativeBalanceOfOwner
+  // todo this function will not scale well- consider dropping it somehow
   function cumulativeBalanceOf(address owner) external view returns (uint256) {
     // todo are the bodies of these functions re-usable across the contract? Seems like an abstraction might be possible
     EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
@@ -289,32 +290,11 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     return total;
   }
 
-  // todo do we need to also add a version of these functions compatible with childTokens in certificate?
-  // todo batch?
-  function cumulativeBalanceOfOwnerSubset(address owner, uint256[] memory ids)
-    external
-    view
-    returns (uint256)
-  {
-    address[] memory owners = new address[](ids.length);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      owners[i] = owner;
-    }
-    uint256[] memory totals = balanceOfBatch(owners, ids);
-    uint256 total = 0;
-    for (uint256 i = 0; i < totals.length; ++i) {
-      total += totals[i];
-    }
-    return total;
-  }
-
-  // todo batch?
   function numberOfTokensOwnedByAddress(address account)
     external
     view
     returns (uint256)
   {
-    // todo global rename tokens -> removals?
     return _addressToOwnedTokenIds[account].length();
   }
 
@@ -339,7 +319,6 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
   function createRemovalId(
     UnpackedRemovalIdV0 memory removalData // todo look into using calldata elsewhere
   ) external pure returns (uint256) {
-    // todo add struct version and remove non-struct version
     return RemovalUtils.createRemovalId(removalData);
   }
 
@@ -366,7 +345,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     bytes memory data
   ) public override {
     if (
-      hasRole(MINTER_AND_LISTER_ROLE, _msgSender())
+      hasRole(MINTER_ROLE, _msgSender())
     ) // todo this should probably just be a different function name
     {
       _safeBatchTransferFrom(from, to, ids, amounts, data);
@@ -444,6 +423,12 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     uint256[] memory amounts,
     bytes memory data
   ) internal override whenNotPaused {
+    uint256 numberOfTokenTransfers = amounts.length;
+    for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+      if (amounts[i] == 0) {
+        revert RemovalAmountZero({tokenId: ids[i]});
+      }
+    }
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
@@ -456,7 +441,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     uint256[] memory amounts,
     bytes memory data
   ) internal override {
-    // todo any good reason not to merge before + after hooks?
+    // find a way to merge this and _beforeTokenTransfer, otherwise we loop through all IDs 2x
     uint256 numberOfTokenTransfers = amounts.length;
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
       uint256 id = ids[i];

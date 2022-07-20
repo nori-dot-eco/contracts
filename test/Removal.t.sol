@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
+import {BatchMintRemovalsData, RemovalAmountZero} from "@/contracts/Removal.sol";
 
 // todo fuzz RemovalUtils
 
@@ -113,7 +114,7 @@ contract Removal_release_retired_burned is UpgradeableMarket {
     );
     assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 1 ether);
     //todo
-    //         vm.prank(owner);
+    // vm.prank(owner);
     // _certificate.burn()
   }
 
@@ -129,7 +130,6 @@ contract Removal_release_retired_burned is UpgradeableMarket {
 /**
  * @dev Tests for when a removal is released when it has already been sold, retired, and used as part of the balance
  * of a certificate
- * // todo consider moving these to release.int.t.sol since they rely on several contracts
  */
 contract Removal_release_retired is UpgradeableMarket {
   function setUp() external {
@@ -180,7 +180,7 @@ contract Removal_release_retired is UpgradeableMarket {
 
 /**
  * @dev Tests for when a removal is released when it has already been sold, retired, and used as part of the balance
- * of multiple certificates.
+ * of 100 certificates.
  */
 contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
   function setUp() external {
@@ -306,7 +306,7 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
     // todo assert?
   }
 
-  function test_paused_reverts() external {
+  function test_paused_reverts_Paused() external {
     super._pause();
     vm.expectRevert("Pausable: paused");
     super._beforeTokenTransfer(
@@ -315,6 +315,18 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
       _namedAccounts.admin,
       _asSingletonUintArray(1),
       _asSingletonUintArray(1),
+      ""
+    );
+  }
+
+  function test_zeroValueTransfer_reverts_RemovalAmountZero() external {
+    vm.expectRevert(abi.encodeWithSelector(RemovalAmountZero.selector, 1));
+    super._beforeTokenTransfer(
+      _namedAccounts.admin,
+      _namedAccounts.admin,
+      vm.addr(1),
+      _asSingletonUintArray(1),
+      _asSingletonUintArray(0),
       ""
     );
   }

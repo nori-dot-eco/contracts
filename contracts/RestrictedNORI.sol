@@ -2,14 +2,13 @@
 pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
 
-// todo extract some of this contract to a preset
+// todo extract some of this contract to a preset?
 // todo https://github.com/nori-dot-eco/contracts/pull/249/files#r906867575
 
 /** The internal governing parameters and data for a schedule */
@@ -23,6 +22,29 @@ struct Schedule {
   EnumerableSetUpgradeable.AddressSet tokenHolders;
   mapping(address => uint256) claimedAmountsByAddress;
   mapping(address => uint256) quantitiesRevokedByAddress;
+}
+
+/** View information for the current state of one schedule */
+struct ScheduleSummary {
+  uint256 scheduleTokenId;
+  uint256 startTime;
+  uint256 endTime;
+  uint256 totalSupply;
+  uint256 totalClaimableAmount;
+  uint256 totalClaimedAmount;
+  uint256 totalQuantityRevoked;
+  address[] tokenHolders;
+  bool exists; // todo can we remove the need for this?
+}
+
+/** View information for one account's ownership of a schedule */
+struct ScheduleDetailForAddress {
+  address tokenHolder;
+  uint256 scheduleTokenId;
+  uint256 balance;
+  uint256 claimableAmount;
+  uint256 claimedAmount;
+  uint256 quantityRevoked;
 }
 
 /**
@@ -117,9 +139,8 @@ struct Schedule {
  *
  */
 contract RestrictedNORI is
-  ERC1155PausableUpgradeable,
   ERC1155SupplyUpgradeable,
-  AccessControlEnumerableUpgradeable
+  PausableAccessPreset // todo naming consistency at parity with OZ (is preset the suffix or prefix?)
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
@@ -131,57 +152,28 @@ contract RestrictedNORI is
   error InvalidMinter(address account);
   error InvalidZeroDuration();
 
-  /** View information for the current state of one schedule */
-  struct ScheduleSummary {
-    uint256 scheduleTokenId;
-    uint256 startTime;
-    uint256 endTime;
-    uint256 totalSupply;
-    uint256 totalClaimableAmount;
-    uint256 totalClaimedAmount;
-    uint256 totalQuantityRevoked;
-    address[] tokenHolders;
-    bool exists; // todo can we remove the need for this?
-  }
-
-  /** View information for one account's ownership of a schedule */
-  struct ScheduleDetailForAddress {
-    address tokenHolder;
-    uint256 scheduleTokenId;
-    uint256 balance;
-    uint256 claimableAmount;
-    uint256 claimedAmount;
-    uint256 quantityRevoked;
-  }
-
-  /**
-   * @notice Role conferring pausing and unpausing of this contract.
-   *
-   * @dev Only Nori admin addresses should have this role.
-   */
-  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-
   /**
    * @notice Role conferring creation of schedules.
    *
    * @dev The Market contract is granted this role after deployments.
    */
-  bytes32 public constant SCHEDULE_CREATOR_ROLE =
-    keccak256("SCHEDULE_CREATOR_ROLE");
+  bytes32 public immutable SCHEDULE_CREATOR_ROLE =
+    keccak256("SCHEDULE_CREATOR_ROLE"); // solhint-disable-previous-line var-name-mixedcase
 
   /**
    * @notice Role conferring sending of bpNori to this contract.
    *
    * @dev The Market contract is granted this role after deployments.
    */
-  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+  bytes32 public immutable MINTER_ROLE = keccak256("MINTER_ROLE"); // solhint-disable-line var-name-mixedcase
 
   /**
    * @notice Role conferring revocation of restricted tokens.
    *
    * @dev Only Nori admin addresses should have this role.
    */
-  bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
+  bytes32 public immutable TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
+  // solhint-disable-previous-line var-name-mixedcase
 
   mapping(uint256 => mapping(uint256 => uint256))
     private _methodologyAndVersionToScheduleDuration;
@@ -468,32 +460,6 @@ contract RestrictedNORI is
   // External functions ===================================================
 
   /**
-   * @dev Pauses all token transfers.
-   *
-   * See {ERC1155Pausable} and {Pausable-_pause}.
-   *
-   * Requirements:
-   *
-   * - the caller must have the `PAUSER_ROLE`.
-   */
-  function pause() external onlyRole(PAUSER_ROLE) {
-    _pause();
-  }
-
-  /**
-   * @dev Unpauses all token transfers.
-   *
-   * See {ERC1155Pausable} and {Pausable-_unpause}.
-   *
-   * Requirements:
-   *
-   * - the caller must have the `PAUSER_ROLE`.
-   */
-  function unpause() external onlyRole(PAUSER_ROLE) {
-    _unpause();
-  }
-
-  /**
    * @notice Registers the addresses of the market, bpNori, and removal contracts in this contract.
    *
    * ##### Requirements:
@@ -517,7 +483,7 @@ contract RestrictedNORI is
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
    */
   function setRestrictionDurationForMethodologyAndVersion(
     uint256 methodology,
@@ -538,7 +504,7 @@ contract RestrictedNORI is
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role
+   * - Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role.
    */
   function createSchedule(uint256 projectId)
     external
@@ -815,14 +781,9 @@ contract RestrictedNORI is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  )
-    internal
-    override(ERC1155SupplyUpgradeable, ERC1155PausableUpgradeable)
-    whenNotPaused
-  {
+  ) internal override(ERC1155SupplyUpgradeable) whenNotPaused {
     bool isBurning = to == address(0);
     bool isWithdrawing = isBurning && from == operator;
-
     if (isBurning) {
       for (uint256 i = 0; i < ids.length; i++) {
         uint256 id = ids[i];
