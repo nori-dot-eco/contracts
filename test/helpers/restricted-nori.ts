@@ -1,9 +1,13 @@
 import type { BigNumber } from 'ethers';
 
 import { sum } from '@/utils/math';
-import type { RestrictedNORI } from '@/typechain-types';
 import type { setupTest } from '@/test/helpers';
 import { expect } from '@/test/helpers';
+import type {
+  ScheduleSummaryStruct,
+  ScheduleDetailForAddressStructOutput,
+  ScheduleDetailForAddressStruct,
+} from '@/typechain-types/artifacts/contracts/RestrictedNORI';
 
 export const SECONDS_IN_1_YEAR_AVG = 31_556_952;
 export const SECONDS_IN_10_YEARS = 315_569_520;
@@ -32,8 +36,8 @@ export const restrictRemovalProceeds = async ({
 };
 
 export const compareScheduleDetailForAddressStructs = (
-  receivedScheduleDetail: RestrictedNORI.ScheduleDetailForAddressStructOutput,
-  expectedScheduleDetail: Partial<RestrictedNORI.ScheduleDetailForAddressStruct>
+  receivedScheduleDetail: ScheduleDetailForAddressStructOutput,
+  expectedScheduleDetail: Partial<ScheduleDetailForAddressStruct>
 ): void => {
   const keys = [
     'tokenHolder',
@@ -51,8 +55,8 @@ export const compareScheduleDetailForAddressStructs = (
 };
 
 export const compareScheduleSummaryStructs = (
-  receivedScheduleSummary: RestrictedNORI.ScheduleSummaryStruct,
-  expectedScheduleSummary: Partial<RestrictedNORI.ScheduleSummaryStruct>
+  receivedScheduleSummary: ScheduleSummaryStruct,
+  expectedScheduleSummary: Partial<ScheduleSummaryStruct>
 ): void => {
   const keys = [
     'scheduleTokenId',
