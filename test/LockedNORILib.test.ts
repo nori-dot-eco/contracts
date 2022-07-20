@@ -1,7 +1,7 @@
 import type { BigNumberish } from 'ethers';
 
 import { expect } from '@/test/helpers';
-import type { ScheduleTestHarness } from '@/typechain-types';
+import type { LockedNORILibTestHarness } from '@/typechain-types';
 
 const NOW = Math.floor(Date.now() / 1000);
 
@@ -9,20 +9,20 @@ const setupTest = hre.deployments.createFixture(
   async (
     hre
   ): Promise<{
-    scheduleTestHarness: ScheduleTestHarness;
+    scheduleTestHarness: LockedNORILibTestHarness;
   }> => {
-    const ScheduleTestHarness = await hre.ethers.getContractFactory(
-      'ScheduleTestHarness'
+    const LockedNORILibTestHarness = await hre.ethers.getContractFactory(
+      'LockedNORILibTestHarness'
     );
     const scheduleTestHarness =
-      (await ScheduleTestHarness.deploy()) as ScheduleTestHarness;
+      (await LockedNORILibTestHarness.deploy()) as LockedNORILibTestHarness;
     return {
       scheduleTestHarness,
     };
   }
 );
 
-describe('ScheduleUtils', () => {
+describe('LockedNORILib', () => {
   it('Should create a simple Schedule', async () => {
     const { scheduleTestHarness: harness } = await setupTest();
     await expect(harness.create(NOW, NOW + 86_400, 1_000_000))

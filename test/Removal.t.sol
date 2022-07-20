@@ -4,7 +4,7 @@ pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import {BatchMintRemovalsData, RemovalAmountZero} from "@/contracts/Removal.sol";
 
-// todo fuzz RemovalUtils
+// todo fuzz RemovalIdLib
 
 contract Removal_mintBatch is UpgradeableRemoval {
   function test() external {

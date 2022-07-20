@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
-import {UnpackedRemovalIdV0} from "@/contracts/RemovalUtils.sol";
+import {UnpackedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
 
 abstract contract Checkout is UpgradeableMarket {
   uint256 internal _removalId;
@@ -26,7 +26,7 @@ abstract contract Checkout is UpgradeableMarket {
       holdbackPercentage: 50,
       list: true
     });
-    _removalId = RemovalUtils.createRemovalId(removalData);
+    _removalId = RemovalIdLib.createRemovalId(removalData);
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),

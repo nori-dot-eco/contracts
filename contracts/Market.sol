@@ -4,7 +4,7 @@ pragma solidity =0.8.15;
 import "./Certificate.sol";
 import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
-import {RemovalUtils} from "./RemovalUtils.sol";
+import {RemovalIdLib} from "./RemovalIdLib.sol";
 import {SenderNotRemovalContract} from "./Errors.sol";
 
 /**
@@ -163,7 +163,7 @@ contract Market is PausableAccessPreset {
     // todo whennotpaused
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
-      address supplierAddress = RemovalUtils.supplierAddress(removalToAdd);
+      address supplierAddress = RemovalIdLib.supplierAddress(removalToAdd);
       _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
       if (
         _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
@@ -522,7 +522,7 @@ contract Market is PausableAccessPreset {
     whenNotPaused
     onlyRole(RESERVER_ROLE)
   {
-    address supplierAddress = RemovalUtils.supplierAddress(removalId);
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     _removeActiveRemoval(supplierAddress, removalId);
     if (!_reservedSupply.add(removalId)) {
       revert RemovalAlreadyReserved({removalId: removalId});
@@ -555,7 +555,7 @@ contract Market is PausableAccessPreset {
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    address supplierAddress = RemovalUtils.supplierAddress(removalId);
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     if (amount == removalBalance) {
       _unreserveRemoval(removalId, false);
@@ -585,7 +585,7 @@ contract Market is PausableAccessPreset {
     whenNotPaused
     onlyRole(RESERVER_ROLE)
   {
-    address supplierAddress = RemovalUtils.supplierAddress(removalId);
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     _unreserveRemoval(removalId, true);
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _addActiveSupplier(supplierAddress);

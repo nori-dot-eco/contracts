@@ -25,10 +25,10 @@ struct Schedule {
  * amount is released linearly from the time of the final cliff to the end date.
  *
  * All time parameters are in unixtime for ease of comparison with block.timestamp
- * although all methods on ScheduleUtils take *atTime* as a parameter and do not
+ * although all methods on LockedNORILib take *atTime* as a parameter and do not
  * directly reason about the current block timestamp.
  *
- * See also {ScheduleTestHarness.sol} for a simple use of this library
+ * See also {LockedNORILibTestHarness.sol} for a simple use of this library
  * for unit testing purposes.
  *
  * NOTE: All methods are internal so this library gets inlined into the consuming
@@ -37,7 +37,7 @@ struct Schedule {
  * Designed to be used i.e.:
  *
  * ```
- *  using ScheduleUtils for Schedule;
+ *  using LockedNORILib for Schedule;
  *
  *  mapping(address => Schedule) schedules = Schedules;
  *  Schedule s = schedules[account];
@@ -49,7 +49,7 @@ struct Schedule {
  * ```
  *
  */
-library ScheduleUtils {
+library LockedNORILib {
   /**
    * @dev Adds a cliff defined by *time* and *amount* to *schedule*
    *
@@ -65,21 +65,21 @@ library ScheduleUtils {
     if (schedule.cliffCount == 0) {
       require(
         time >= schedule.startTime,
-        "ScheduleUtils: Cliff before schedule start"
+        "LockedNORILib: Cliff before schedule start"
       );
     } else {
       require(
         time >= schedule.cliffs[cliffCount - 1].time,
-        "ScheduleUtils: Cliffs not chronological"
+        "LockedNORILib: Cliffs not chronological"
       );
     }
     require(
       time <= schedule.endTime,
-      "ScheduleUtils: Cliffs cannot end after schedule" // todo custom errors?
+      "LockedNORILib: Cliffs cannot end after schedule" // todo custom errors?
     );
     require(
       schedule.totalCliffAmount + amount <= schedule.totalAmount,
-      "ScheduleUtils: Cliff amounts exceed total"
+      "LockedNORILib: Cliff amounts exceed total"
     );
     Cliff storage cliff = schedule.cliffs[cliffCount];
     cliff.time = time;

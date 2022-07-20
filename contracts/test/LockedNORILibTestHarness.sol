@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import {ScheduleUtils, Schedule} from "../ScheduleUtils.sol";
+import {LockedNORILib, Schedule} from "../LockedNORILib.sol";
 
 /**
- * @dev Testbed contract for testing ScheduleUtils library.
+ * @dev Testbed contract for testing LockedNORILib library.
  *
  * Not intended for deployment in productionish environments.
  */
-contract ScheduleTestHarness {
+contract LockedNORILibTestHarness {
   // todo consider TestHarness vs Mock naming convention
   // todo consider moving to mocks folder
-  using ScheduleUtils for Schedule;
+  using LockedNORILib for Schedule;
 
   mapping(uint256 => Schedule) private _schedules;
   uint256 private _scheduleCount;

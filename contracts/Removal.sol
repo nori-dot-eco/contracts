@@ -3,7 +3,7 @@ pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./Market.sol";
-import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
+import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
 
 // todo shared MinterAccessPreset base contract
@@ -152,9 +152,9 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     uint256 firstRemoval = ids[0];
     _projectIdToScheduleData[projectId] = ScheduleData({
       startTime: data.scheduleStartTime,
-      supplierAddress: RemovalUtils.supplierAddress(firstRemoval),
-      methodology: RemovalUtils.methodology(firstRemoval),
-      methodologyVersion: RemovalUtils.methodologyVersion(firstRemoval)
+      supplierAddress: RemovalIdLib.supplierAddress(firstRemoval),
+      methodology: RemovalIdLib.methodology(firstRemoval),
+      methodologyVersion: RemovalIdLib.methodologyVersion(firstRemoval)
     });
     _mintBatch(to, ids, amounts, "");
     if (data.list) {
@@ -319,7 +319,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
   function createRemovalId(
     UnpackedRemovalIdV0 memory removalData // todo look into using calldata elsewhere
   ) external pure returns (uint256) {
-    return RemovalUtils.createRemovalId(removalData);
+    return RemovalIdLib.createRemovalId(removalData);
   }
 
   /**
@@ -330,7 +330,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     pure
     returns (UnpackedRemovalIdV0 memory)
   {
-    return RemovalUtils.unpackRemovalIdV0(removalId);
+    return RemovalIdLib.unpackRemovalIdV0(removalId);
   }
 
   /**

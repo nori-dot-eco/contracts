@@ -17,7 +17,7 @@ export const deploy: DeployFunction = async (environment) => {
 };
 
 export default deploy;
-deploy.tags = ['RemovalUtilsTestHarness', 'test'];
+deploy.tags = ['RemovalIdLibTestHarness', 'test'];
 deploy.dependencies = ['preconditions'];
 deploy.skip = async (hre) =>
   Promise.resolve(!['localhost', 'hardhat'].includes(hre.network.name));
