@@ -21,7 +21,7 @@ import type {
   BridgedPolygonNORI,
   BridgedPolygonNORI__factory,
   LockedNORILibTestHarness,
-  ScheduleTestHarness__factory,
+  LockedNORILibTestHarness__factory,
   RemovalTestHarness,
   RemovalTestHarness__factory,
 } from '@/typechain-types';
@@ -256,7 +256,7 @@ export const deployTestContracts = async ({
     isTestnet !== null && contracts.includes('LockedNORILibTestHarness')
       ? await hre.deployNonUpgradeable<
           LockedNORILibTestHarness,
-          ScheduleTestHarness__factory
+          LockedNORILibTestHarness__factory
         >({
           contractName: 'LockedNORILibTestHarness',
           args: [],
