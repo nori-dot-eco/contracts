@@ -23,7 +23,6 @@ import { getContractsFromDeployments } from '@/utils/contracts';
 import { Zero } from '@/constants/units';
 
 export * from './chai';
-export * from './interfaces';
 export * from './polygon';
 
 interface ContractInstances {

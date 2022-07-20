@@ -14,7 +14,6 @@ contract RemovalTestHarness {
     pure
     returns (uint256)
   {
-    // todo add struct version and remove non-struct version
     return RemovalIdLib.createRemovalId(removalData);
   }
 
