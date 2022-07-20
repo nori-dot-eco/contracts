@@ -113,14 +113,10 @@ export const createRemovalTokenId = async ({
   removalData?: Partial<UnpackedRemovalIdV0Struct>;
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<BigNumber> => {
-  const formattedRemovalData = formatRemovalIdData({
-    hre,
-    removalData: {
-      ...defaultRemovalTokenIdFixture,
-      ...removalData,
-    },
+  const removalId = await removal.createRemovalId({
+    ...defaultRemovalTokenIdFixture,
+    ...removalData,
   });
-  const removalId = await removal.createRemovalId(formattedRemovalData);
   return removalId;
 };
 

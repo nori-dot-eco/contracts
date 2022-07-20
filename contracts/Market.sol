@@ -1,33 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "./Removal.sol";
 import "./Certificate.sol";
-import "./BridgedPolygonNORI.sol";
 import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
+import {SenderNotRemovalContract} from "./Errors.sol";
 
-// import "forge-std/console2.sol"; // todo
-
-// todo emit events
-
-// todo MARKET_ADMIN_ROLE (reserving, setting thresholds etc so they can be done from admin ui without super admin)
-
-// todo pausable
 /**
  * @title Market
- * // todo documentation
+ * todo documentation
+ * todo emit events
+ * todo MARKET_ADMIN_ROLE (reserving, setting thresholds etc so they can be done from admin ui without super admin)
+ * todo pausable
+ * todo getters for number of active/reserved/unreserved suppliers?
+ * todo consider global rename of active to name that better describes "available + reserved
+ * todo consistency in naming of cummulative vs total (perhaps use count vs total)
+ * todo consistency in naming of supply vs removals
+ * todo consider withrawing when reserving instead of adding it to the _reservedSupply set
+ * todo multicall?
+ * todo consider using named args for functions globlaly (e.g., fn({argName: 1})). Not sure what tradeoffs are
  */
-contract Market is
-  ContextUpgradeable,
-  AccessControlEnumerableUpgradeable,
-  PausableUpgradeable
-{
-  // todo pause + unpause base contract (only internal funcs are inherited in pausableupgradeable?)
+contract Market is PausableAccessPreset {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
 
@@ -61,10 +55,15 @@ contract Market is
   /**
    * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
    */
-  bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
+  bytes32 public immutable ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE"); // solhint-disable-line var-name-mixedcase
 
   /**
-   * @notice Emitted on setting of _priorityRestrictedThreshold.
+   * @notice Role allowing the purchase to reserve listed supply.
+   */
+  bytes32 public immutable RESERVER_ROLE = keccak256("RESERVER_ROLE"); // solhint-disable-line var-name-mixedcase
+
+  /**
+   * @notice Emitted on setting of `_priorityRestrictedThreshold`.
    */
   event PriorityRestrictedThresholdSet(uint256 threshold);
 
@@ -76,10 +75,10 @@ contract Market is
   }
 
   function initialize(
-    address removalAddress,
-    address bridgedPolygonNoriAddress,
-    address certificateAddress,
-    address restrictedNoriAddress,
+    Removal removal,
+    BridgedPolygonNORI bridgedPolygonNori,
+    Certificate certificate,
+    RestrictedNORI restrictedNori,
     address noriFeeWalletAddress,
     uint256 noriFeePercentage
   ) public initializer {
@@ -88,10 +87,10 @@ contract Market is
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
-    _removal = Removal(removalAddress);
-    _bridgedPolygonNori = BridgedPolygonNORI(bridgedPolygonNoriAddress);
-    _certificate = Certificate(certificateAddress);
-    _restrictedNori = RestrictedNORI(restrictedNoriAddress);
+    _removal = removal;
+    _bridgedPolygonNori = bridgedPolygonNori;
+    _certificate = certificate;
+    _restrictedNori = restrictedNori;
     _noriFeePercentage = noriFeePercentage;
     _noriFeeWallet = noriFeeWalletAddress;
     _priorityRestrictedThreshold = 0;
@@ -146,7 +145,7 @@ contract Market is
    * @notice The amount of supply available for anyone to buy.
    */
   function totalUnrestrictedSupply() external view returns (uint256) {
-    uint256 activeSupply = this.cumulativeActiveSupply();
+    uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
     return
       activeSupply < _priorityRestrictedThreshold
         ? 0
@@ -191,11 +190,8 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    // todo we need to treat cumulativeActiveSupply in a more nuanced way when reservation of removals is implemented
-    // potentialy creating more endpoints to understand how many are reserved v.s. actually available v.s.
-    // priority reserved etc.
-    _checkSupply();
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
+    _checkSupply({purchaseAmount: certificateAmount});
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -235,13 +231,13 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    _checkSupply();
-    uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
+    uint256 purchaseAmount = this.certificateAmountFromPurchaseTotal(amount);
+    _checkSupply({purchaseAmount: purchaseAmount});
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
       uint256[] memory amounts
-    ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
+    ) = _allocateSupplySingleSupplier(purchaseAmount, supplierToBuyFrom);
     address[] memory suppliers = new address[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       suppliers[i] = supplierToBuyFrom;
@@ -265,44 +261,17 @@ contract Market is
     );
   }
 
-  // todo is this redundant? should we just rely on _removal.cumulativeBalanceOf and not have a helper getter here?
-  function cumulativeActiveSupply() external view returns (uint256) {
-    return _removal.cumulativeBalanceOf(address(this));
-  }
-
-  // function cumulativeUnreservedSupply() external view returns (uint256) {
-  // todo this calls cummulativeBalanceOf multiple times, might be possible to call once + slice the array at an index
-  //   return this.cumulativeActiveSupply() - this.cumulativeReservedSupply();
-  // }
-
-  // // todo is this redundant? should we just rely on _removal.cumulativeBalanceOfOwnerSubset?
-  // function cumulativeReservedSupply() external view returns (uint256) {
-  //   return
-  //     _removal.cumulativeBalanceOfOwnerSubset(
-  //       address(this),
-  //       _reservedSupply.values() // todo expose _reservedSupply.values()
-  //     );
-  // }
-
-  // todo is this redundant? should we just rely on _removal.numberOfTokensOwnedByAddress?
-  function numberOfActiveRemovals() external view returns (uint256) {
-    return _removal.numberOfTokensOwnedByAddress(address(this));
-  }
-
   /**
-   * @dev The distinct number of removal token ids owned by the Market. // todo
+   * @dev The distinct number of unreserved removals listed in the market.
    */
   function numberOfUnreservedRemovals() external view returns (uint256) {
-    // todo getters for number of active/reserved/unreserved suppliers?
-    // todo consider global rename of active to name that better describes "available + reserved
-    // todo consistency in naming of cummulative vs total (perhaps use count vs total)
-    // todo consistency in naming of supply vs removals
-    // todo consider withrawing when reserving instead of adding it to the _reservedSupply set
-    return this.numberOfActiveRemovals() - this.numberOfReservedRemovals(); // todo gas vs _reservedSupply.length() ?
+    return
+      _removal.numberOfTokensOwnedByAddress(address(this)) -
+      this.numberOfReservedRemovals(); // todo gas vs _reservedSupply.length() ?
   }
 
   /**
-   * @dev The distinct number of removal token ids owned by the Market. // todo
+   * @dev The distinct number of reserved removals listed in the market.
    */
   function numberOfReservedRemovals() external view returns (uint256) {
     return _reservedSupply.length();
@@ -312,8 +281,8 @@ contract Market is
    * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
    * and buyer is not priority.
    */
-  function _checkSupply() private view {
-    uint256 activeSupply = this.cumulativeActiveSupply();
+  function _checkSupply(uint256 purchaseAmount) private view {
+    uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
     if (activeSupply == 0) {
       revert OutOfStock();
     }
@@ -321,6 +290,9 @@ contract Market is
       if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
         revert LowSupplyAllowlistRequired();
       }
+    }
+    if (purchaseAmount > activeSupply) {
+      revert InsufficientSupply(); // todo test the logic for these checks is correct for all states
     }
   }
 
@@ -338,7 +310,10 @@ contract Market is
     )
   {
     uint256 remainingAmountToFill = certificateAmount;
-    uint256 numberOfActiveRemovalsInMarket = this.numberOfActiveRemovals();
+    uint256 numberOfActiveRemovalsInMarket = _removal
+      .numberOfTokensOwnedByAddress(
+        address(this) // todo are we making calls like this throughout the contract flow? if so can we pass values down?
+      );
     uint256[] memory ids = new uint256[](numberOfActiveRemovalsInMarket);
     uint256[] memory amounts = new uint256[](numberOfActiveRemovalsInMarket);
     address[] memory suppliers = new address[](numberOfActiveRemovalsInMarket);
@@ -352,31 +327,33 @@ contract Market is
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId); // todo batch
-      // order complete, not fully using up this removal, don't increment currentSupplierAddress,
-      // don't check about removing active supplier
       if (remainingAmountToFill < removalAmount) {
+        /**
+         * The order is complete, not fully using up this removal, don't increment currentSupplierAddress,
+         * don't check about removing active supplier.
+         */
         ids[numberOfRemovalsForOrder] = removalId;
         amounts[numberOfRemovalsForOrder] = remainingAmountToFill;
         suppliers[numberOfRemovalsForOrder] = _currentSupplierAddress;
         remainingAmountToFill = 0;
-        // we will use up this removal while completing the order, move on to next one
       } else {
-        if (
-          i == numberOfActiveRemovalsInMarket - 1 &&
-          remainingAmountToFill > removalAmount
-        ) {
-          revert InsufficientSupply();
-        }
+        /**
+         * We will use up this removal while completing the order, move on to next one.
+         */
         ids[numberOfRemovalsForOrder] = removalId;
         amounts[numberOfRemovalsForOrder] = removalAmount; // this removal is getting used up
         suppliers[numberOfRemovalsForOrder] = _currentSupplierAddress;
         remainingAmountToFill -= removalAmount;
         _activeSupply[_currentSupplierAddress].removeRemoval(removalId);
-        // If the supplier is out of supply, remove them from the active suppliers
         if (_activeSupply[_currentSupplierAddress].isRemovalQueueEmpty()) {
+          /**
+           * If the supplier is out of supply, remove them from the active suppliers.
+           */
           _removeActiveSupplier(_currentSupplierAddress);
-          // else if the supplier is the only supplier remaining with supply, don't bother incrementing.
         } else if (
+          /**
+           *  If the supplier is the only supplier remaining with supply, don't bother incrementing.
+           */
           _suppliersInRoundRobinOrder[_currentSupplierAddress]
             .nextSupplierAddress != _currentSupplierAddress
         ) {
@@ -392,7 +369,7 @@ contract Market is
   }
 
   /**
-   * Determines the removal ids and amounts to fill the given purchase quantity, sourcing only
+   * @dev Determines the removal ids and amounts to fill the given purchase quantity, sourcing only
    * from a single supplier.
    */
   function _allocateSupplySingleSupplier(
@@ -431,24 +408,24 @@ contract Market is
     for (uint256 i = 0; i < totalNumberOfRemovalsForSupplier; i++) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
-      // order complete, not fully using up this removal
+      /**
+       * Order complete, not fully using up this removal.
+       */
       if (remainingAmountToFill < removalAmount) {
         ids[numberOfRemovals] = removalId;
         amounts[numberOfRemovals] = remainingAmountToFill;
         remainingAmountToFill = 0;
-        // we will use up this removal while completing the order, move on to next one
+        /**
+         * We will use up this removal while completing the order, move on to next one.
+         */
       } else {
-        if (
-          numberOfRemovals == totalNumberOfRemovalsForSupplier - 1 &&
-          remainingAmountToFill > removalAmount
-        ) {
-          revert InsufficientSupply(); // todo de-duplicate
-        }
         ids[numberOfRemovals] = removalId;
-        amounts[numberOfRemovals] = removalAmount; // this removal is getting used up
+        amounts[numberOfRemovals] = removalAmount; // This removal is getting used up.
         remainingAmountToFill -= removalAmount;
         supplierRemovalQueue.removeRemoval(removalId);
-        // If the supplier is out of supply, remove them from the active suppliers
+        /**
+         * If the supplier is out of supply, remove them from the active suppliers.
+         */
         if (supplierRemovalQueue.isRemovalQueueEmpty()) {
           _removeActiveSupplier(supplier);
         }
@@ -479,7 +456,8 @@ contract Market is
 
   /**
    * @notice Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
-   * RestrictedNORI contract, pays Nori the order fee, updates accounting, and mints the certificate.
+   * `RestrictedNORI` contract, pays Nori the order fee, updates accounting, and mints the certificate.
+   *
    * todo need to permission this now that it's external (or figure out how to use calldata with internal funcs)
    */
   function fulfillOrder(
@@ -490,6 +468,7 @@ contract Market is
     uint256[] calldata amounts,
     address[] memory suppliers
   ) external {
+    // todo might need to undo this `[:numberOfRemovals]` change (not sure if slice includes correct values)
     uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
     uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
@@ -523,7 +502,7 @@ contract Market is
       );
     }
     bytes memory data = abi.encode(recipient);
-    _removal.safeBatchTransferFrom( // todo is this actually assigning the buyer as the owner of the NFT?
+    _removal.safeBatchTransferFrom(
       address(this),
       address(_certificate),
       batchedIds,
@@ -532,19 +511,17 @@ contract Market is
     );
   }
 
-  // todo?
-  //  function numberOfActiveSuppliers() external view returns (uint256) {
-  // }
-
-  // TODO batch version of this?
   /**
    * @notice Removes removal from active supply and inserts it into the reserved supply, where it cannot be used to
    * fill orders.
    *
    * @dev If the removal is the last for the supplier, removes the supplier from the active supplier queue.
-   *
    */
-  function reserveRemoval(uint256 removalId) external whenNotPaused {
+  function reserveRemoval(uint256 removalId)
+    external
+    whenNotPaused
+    onlyRole(RESERVER_ROLE)
+  {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     _removeActiveRemoval(supplierAddress, removalId);
     if (!_reservedSupply.add(removalId)) {
@@ -562,38 +539,40 @@ contract Market is
     }
   }
 
-  // todo consider making this a generalized `withdrawRemoval`?
-  // todo RESERVER_ROLE? or require sender is Removal address
-  // /**
-  //  * @dev
-  //  *
-  //  *   ##### Requirements:
-  //  *
-  //  * - The contract must not be paused. This is enforce by `Removal._beforeTokenTransfer`
-  //  */
-  // function release(uint256 removalId, uint256 amount) external whenNotPaused {
-  //   address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-  //   uint256 removalBalance = _removal.balanceOf(
-  //     address(this),
-  //     removalId
-  //   );
-  //   if (amount == removalBalance) {
-  //     _unreserveRemoval(removalId);
-  //     _removeActiveRemoval(supplierAddress, removalId);
-  //   }
-  // }
+  /**
+   * @dev
+   *
+   * ##### Requirements:
+   *
+   * - The contract must not be paused. This is enforced by `Removal._beforeTokenTransfer`.
+   *
+   * todo rest of requirements
+   */
+  function release(uint256 removalId, uint256 amount) external {
+    // todo consider making this a generalized `withdrawRemoval`?
+    // todo emit event?
+    // todo is whenNotPaused redundant (called from removal contract)?
+    if (_msgSender() != address(_removal)) {
+      revert SenderNotRemovalContract();
+    }
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
+    uint256 removalBalance = _removal.balanceOf(address(this), removalId);
+    if (amount == removalBalance) {
+      _unreserveRemoval(removalId, false);
+      _removeActiveRemoval(supplierAddress, removalId);
+    }
+    // todo what do we do when amount != removalBalance?
+  }
 
   /**
-   * @notice Removes a removal from the reserved supply
-   * // TODO onlyRole(MARKET_ADMIN_ROLE)
+   * @notice Removes a removal from the reserved supply.
    */
-  function _unreserveRemoval(uint256 removalId) internal {
-    if (!_reservedSupply.remove(removalId)) {
+  function _unreserveRemoval(uint256 removalId, bool throwIfMissing) internal {
+    if (!_reservedSupply.remove(removalId) && throwIfMissing) {
       revert RemovalNotInReservedSupply({removalId: removalId});
     }
   }
 
-  // TODO batch version of this?
   /**
    * @notice Adds the removal back to active supply to be sold.
    *
@@ -601,10 +580,13 @@ contract Market is
    * fill orders again. If the supplier's other removals have all been sold, adds the supplier back to the
    * list of active suppliers
    */
-  function unreserveRemoval(uint256 removalId) external whenNotPaused {
-    // todo RESERVER_ROLE?
+  function unreserveRemoval(uint256 removalId)
+    external
+    whenNotPaused
+    onlyRole(RESERVER_ROLE)
+  {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    _unreserveRemoval(removalId);
+    _unreserveRemoval(removalId, true);
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _addActiveSupplier(supplierAddress);
     }
@@ -628,18 +610,19 @@ contract Market is
   /**
    * @notice Increments the address of the current supplier.
    *
-   * @dev Called the current supplier's removal is sold, or their last removal is reserved.
-   * Updates _currentSupplierAddress to the next of whatever is the current supplier.
+   * @dev Updates `_currentSupplierAddress` to the next of whatever is the current supplier.
    */
   function _incrementCurrentSupplierAddress() private {
-    // Update the current supplier to be the next of the current supplier
+    /**
+     * Update the current supplier to be the next of the current supplier.
+     */
     _currentSupplierAddress = _suppliersInRoundRobinOrder[
       _currentSupplierAddress
     ].nextSupplierAddress;
   }
 
   /**
-   * @notice Adds a supplier to the active supplier queue
+   * @notice Adds a supplier to the active supplier queue.
    *
    * @dev Called when a new supplier is added to the marketplace, or after they have sold out and a reserved removal is
    * unreserved. If the first supplier, initializes a cicularly doubly-linked list, where initially the first supplier
@@ -656,58 +639,74 @@ contract Market is
         nextSupplierAddress: supplierAddress
       });
     } else {
-      // Add the new supplier to the round robin order,
-      // with the current supplier as next and the current supplier's previous supplier as previous
+      /**
+       * Add the new supplier to the round robin order, with the current supplier as next and the current supplier's
+       * previous supplier as previous.
+       */
       _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
         previousSupplierAddress: _suppliersInRoundRobinOrder[
           _currentSupplierAddress
         ].previousSupplierAddress,
         nextSupplierAddress: _currentSupplierAddress
       });
-      // Update the previous supplier to point to the new supplier as next
+      /**
+       * Update the previous supplier to point to the new supplier as next.
+       */
       _suppliersInRoundRobinOrder[
         _suppliersInRoundRobinOrder[_currentSupplierAddress]
           .previousSupplierAddress
       ].nextSupplierAddress = supplierAddress;
-      // Update the current supplier to point to the new supplier as previous
+      /**
+       * Update the current supplier to point to the new supplier as previous.
+       */
       _suppliersInRoundRobinOrder[_currentSupplierAddress]
         .previousSupplierAddress = supplierAddress;
     }
   }
 
   /**
-   * @notice Removes a supplier to the active supplier queue
+   * @notice Removes a supplier to the active supplier queue.
    *
    * @dev Called when a supplier's last removal is used for an order or reserved. If the last supplier,
-   * resets the pointer for \_currentSupplierAddress. Otherwise, from the position of the supplier to be
+   * resets the pointer for the currentSupplierAddress. Otherwise, from the position of the supplier to be
    * removed, update the previous supplier to point to the next of the removed supplier, and the next of
    * the removed supplier to point to the previous of the remove supplier. Then, set the next and previous
    * pointers of the removed supplier to the 0x address.
    */
   function _removeActiveSupplier(address addressToRemove) private {
-    // If this is the last supplier, clear all current tracked addresses.
+    /**
+     * If this is the last supplier, clear all current tracked addresses.
+     */
     if (
       addressToRemove ==
       _suppliersInRoundRobinOrder[addressToRemove].nextSupplierAddress
     ) {
       _currentSupplierAddress = address(0);
     } else {
-      // Set the next of the previous supplier to point to the removed supplier's next.
+      /**
+       * Set the next of the previous supplier to point to the removed supplier's next.
+       */
       _suppliersInRoundRobinOrder[
         _suppliersInRoundRobinOrder[addressToRemove].previousSupplierAddress
       ].nextSupplierAddress = _suppliersInRoundRobinOrder[addressToRemove]
         .nextSupplierAddress;
-      // Set the previous of the next supplier to point to the removed supplier's previous.
+      /**
+       * Set the previous of the next supplier to point to the removed supplier's previous.
+       */
       _suppliersInRoundRobinOrder[
         _suppliersInRoundRobinOrder[addressToRemove].nextSupplierAddress
       ].previousSupplierAddress = _suppliersInRoundRobinOrder[addressToRemove]
         .previousSupplierAddress;
-      // If the supplier is the current supplier, update that address to the next supplier.
+      /**
+       * If the supplier is the current supplier, update that address to the next supplier.
+       */
       if (addressToRemove == _currentSupplierAddress) {
         _incrementCurrentSupplierAddress();
       }
     }
-    // Remove RoundRobinOrder Data from supplier
+    /**
+     * Remove `RoundRobinOrder` data from supplier.
+     */
     _suppliersInRoundRobinOrder[addressToRemove] = RoundRobinOrder({
       nextSupplierAddress: address(0),
       previousSupplierAddress: address(0)

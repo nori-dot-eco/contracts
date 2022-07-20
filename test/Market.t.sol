@@ -3,8 +3,8 @@
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 
-contract Market_numberOfActiveRemovals is UpgradableMarketMock {
+contract Market_ALLOWLIST_ROLE is UpgradeableMarket {
   function test() external {
-    assertEq(_market.numberOfActiveRemovals(), 0);
+    assertEq(_market.ALLOWLIST_ROLE(), keccak256("ALLOWLIST_ROLE"));
   }
 }

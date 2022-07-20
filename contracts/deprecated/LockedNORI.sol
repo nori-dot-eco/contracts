@@ -217,14 +217,14 @@ contract LockedNORI is
   );
 
   /**
-   * @notice This function is triggered when BridgedPolygonNORI is sent to this contract
+   * @notice This function is triggered when BridgedPolygonNORI is sent to this contract.
    *
    * @dev Sending BridgedPolygonNORI to this contract triggers the tokensReceived hook defined by the ERC-777 standard
    * because this contract is a registered ERC777 tokens recipient.
    *
    * [See here for more](
    * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
-   */
+   */              
   function tokensReceived(
     address sender,
     address,

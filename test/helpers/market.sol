@@ -18,19 +18,17 @@ abstract contract UpgradeableMarket is
 
   constructor() {
     _market = _deployMarket();
-    _removal.registerContractAddresses(
+    _removal.registerContractAddresses( // todo move to removal helper
       RestrictedNORI(_rNori),
       Market(_market),
       Certificate(_certificate)
     );
-    _rNori.registerContractAddresses(
+    _rNori.registerContractAddresses( // todo move to rnori helper
       BridgedPolygonNORI(_bpNori),
       Removal(_removal)
     );
-    _certificate.registerContractAddresses(Removal(_removal));
-    _rNori.grantRole(_rNori.MINTER_ROLE(), address(_market));
-    _rNori.grantRole(_rNori.SCHEDULE_CREATOR_ROLE(), address(_market));
-    _certificate.grantRole(_removal.RELEASER_ROLE(), address(_removal));
+    _rNori.grantRole(_rNori.MINTER_ROLE(), address(_market)); // todo move to rnori helper
+    _rNori.grantRole(_rNori.SCHEDULE_CREATOR_ROLE(), address(_market)); // todo move to rnori helper
   }
 
   function _deployMarket() internal returns (Market) {
@@ -48,14 +46,4 @@ abstract contract UpgradeableMarket is
   }
 }
 
-abstract contract NonUpgradableMarketMock is Market, Global {}
-
-abstract contract UpgradableMarketMock is UpgradeableMarket {}
-
-abstract contract MarketSeeded is UpgradableMarketMock, SeedableMock {
-  constructor() {
-    _seed();
-  }
-
-  function _seed() internal override {}
-}
+abstract contract NonUpgradableMarket is Market, Global {}

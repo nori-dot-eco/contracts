@@ -2,59 +2,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
-import "@/contracts/Removal.sol";
-import {BatchMintRemovalsData} from "@/contracts/Removal.sol";
+import {BatchMintRemovalsData, RemovalAmountZero} from "@/contracts/Removal.sol";
 
 // todo fuzz RemovalIdLib
 
-contract Removal_mintBatch is UpgradableRemovalMock {
-  UnpackedRemovalIdV0 internal _removalData =
-    UnpackedRemovalIdV0({
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "AZ",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: 99_039_930
-    });
-  BatchMintRemovalsData internal _mintData =
-    BatchMintRemovalsData({
-      projectId: 1,
-      scheduleStartTime: 0,
-      holdbackPercentage: 0,
-      list: false
-    });
-
+contract Removal_mintBatch is UpgradeableRemoval {
   function test() external {
-    // console.log("ID===", RemovalIdLib.createRemovalIdFromStruct(_removalData));
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1 ether),
-      _asSingletonUintArray(
-        RemovalIdLib.createRemovalIdFromStruct(_removalData)
-      ),
-      _mintData
-    );
+    _removal.mintBatch({
+      to: _namedAccounts.supplier,
+      amounts: _asSingletonUintArray(1 ether),
+      ids: _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      data: BatchMintRemovalsData({
+        projectId: 1,
+        scheduleStartTime: 0,
+        holdbackPercentage: 0,
+        list: false
+      })
+    });
   }
 }
 
-contract Removal_release is RemovalSeeded, UpgradeableMarket {
-  UnpackedRemovalIdV0 internal _removalData =
-    UnpackedRemovalIdV0({
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "AZ",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: 99_039_930
-    });
-  uint256 internal _removalId =
-    RemovalIdLib.createRemovalIdFromStruct(_removalData);
-
+contract Removal_release is UpgradeableRemoval {
   // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
   function test_revert_missingReleaserRole() external {
     vm.prank(address(0));
@@ -66,25 +34,11 @@ contract Removal_release is RemovalSeeded, UpgradeableMarket {
         )
       )
     );
-    _removal.release(_namedAccounts.supplier, _removalId, 1);
+    _removal.release(_namedAccounts.supplier, REMOVAL_ID_FIXTURE, 1);
   }
 }
 
-contract Removal_release_unlisted is RemovalSeeded, UpgradeableMarket {
-  UnpackedRemovalIdV0 internal _removalData =
-    UnpackedRemovalIdV0({ // todo de-dupe
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "AZ",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: 99_039_930
-    });
-  uint256 internal _removalId =
-    RemovalIdLib.createRemovalIdFromStruct(_removalData);
-
+contract Removal_release_unlisted is UpgradeableRemoval {
   function test() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 1_234_567_890,
@@ -97,42 +51,33 @@ contract Removal_release_unlisted is RemovalSeeded, UpgradeableMarket {
       address(0),
       address(0),
       address(_namedAccounts.supplier),
-      _asSingletonUintArray(_removalId),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       _asSingletonUintArray(1)
     );
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonUintArray(_removalId),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data
     );
-    assertEq(_removal.balanceOf(_namedAccounts.supplier, _removalId), 1);
-    _removal.release(_namedAccounts.supplier, _removalId, 1);
+    assertEq(
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      1
+    );
+    _removal.release(_namedAccounts.supplier, REMOVAL_ID_FIXTURE, 1);
     // todo events
-    assertEq(_removal.balanceOf(_namedAccounts.supplier, _removalId), 0);
+    assertEq(
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      0
+    );
   }
 }
 
 /**
  * @dev Tests for when a removal is released when it has already been sold, retired, and used as part of the balance
- * of a certificate
- * // todo consider moving these to release.int.t.sol since they rely on several contracts
+ * of a certificate and then subsequently burned by the owner of the certificate.
  */
-contract Removal_release_retired is RemovalSeeded, UpgradeableMarket {
-  UnpackedRemovalIdV0 internal _removalData =
-    UnpackedRemovalIdV0({ // todo de-dupe
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "AZ",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: 99_039_930
-    });
-  uint256 internal _removalId =
-    RemovalIdLib.createRemovalIdFromStruct(_removalData);
-
+contract Removal_release_retired_burned is UpgradeableMarket {
   function setUp() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 1_234_567_890,
@@ -143,7 +88,7 @@ contract Removal_release_retired is RemovalSeeded, UpgradeableMarket {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
-      _asSingletonUintArray(_removalId),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data
     );
     uint256 ownerPrivateKey = 0xA11CE;
@@ -167,34 +112,127 @@ contract Removal_release_retired is RemovalSeeded, UpgradeableMarket {
       signedPermit.r,
       signedPermit.s
     );
-    assertEq(_certificate.balanceOfRemoval(0, _removalId), 1 ether);
-    assertEq(_certificate.balanceOf(0), 1 ether);
+    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 1 ether);
+    //todo
+    // vm.prank(owner);
+    // _certificate.burn()
   }
 
   function test() external {
-    _removal.release(address(_certificate), _removalId, 1 ether);
-    assertEq(_removal.balanceOf(address(_certificate), _removalId), 0);
-    assertEq(_certificate.balanceOfRemoval(0, _removalId), 0);
-    assertEq(_removal.totalSupply(_removalId), 0);
-    assertEq(_removal.exists(_removalId), false);
+    _removal.release(address(_certificate), REMOVAL_ID_FIXTURE, 1 ether);
+    assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
+    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.exists(REMOVAL_ID_FIXTURE), false);
   }
 }
 
-contract Removal_release_listed is RemovalSeeded, UpgradeableMarket {
-  UnpackedRemovalIdV0 internal _removalData =
-    UnpackedRemovalIdV0({
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "AZ",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: 99_039_930
+/**
+ * @dev Tests for when a removal is released when it has already been sold, retired, and used as part of the balance
+ * of a certificate
+ */
+contract Removal_release_retired is UpgradeableMarket {
+  function setUp() external {
+    BatchMintRemovalsData memory data = BatchMintRemovalsData({
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50,
+      list: true
     });
-  uint256 internal _removalId =
-    RemovalIdLib.createRemovalIdFromStruct(_removalData);
+    _removal.mintBatch(
+      _namedAccounts.supplier,
+      _asSingletonUintArray(1 ether),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      data
+    );
+    uint256 ownerPrivateKey = 0xA11CE;
+    address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
+    uint256 checkoutTotal = _market.getCheckoutTotal(1 ether); // todo replace other test usage of _market.getNoriFee
+    vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
+    _bpNori.deposit(owner, abi.encode(checkoutTotal));
+    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _bpNori
+    );
+    vm.prank(owner);
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 1 ether);
+  }
 
+  function test() external {
+    _removal.release(address(_certificate), REMOVAL_ID_FIXTURE, 1 ether);
+    assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
+    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.exists(REMOVAL_ID_FIXTURE), false);
+  }
+}
+
+/**
+ * @dev Tests for when a removal is released when it has already been sold, retired, and used as part of the balance
+ * of 100 certificates.
+ */
+contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
+  function setUp() external {
+    BatchMintRemovalsData memory data = BatchMintRemovalsData({
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50,
+      list: true
+    });
+    _removal.mintBatch(
+      _namedAccounts.supplier,
+      _asSingletonUintArray(100 ether),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      data
+    );
+    uint256 ownerPrivateKey = 0xA11CE;
+    address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
+    uint256 cumulativeCheckoutTotal = _market.getCheckoutTotal(100 ether);
+    vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
+    _bpNori.deposit(owner, abi.encode(cumulativeCheckoutTotal));
+    for (uint256 i = 0; i < 100; i++) {
+      uint256 checkoutTotal = _market.getCheckoutTotal(1 ether); // todo replace other test usage of _market.getNoriFee
+      SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+        ownerPrivateKey,
+        address(_market),
+        checkoutTotal,
+        1 days,
+        _bpNori
+      );
+      vm.prank(owner);
+      _market.swap(
+        owner,
+        checkoutTotal,
+        signedPermit.permit.deadline,
+        signedPermit.v,
+        signedPermit.r,
+        signedPermit.s
+      );
+      assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 1 ether);
+    }
+  }
+
+  function test() external {
+    _removal.release(address(_certificate), REMOVAL_ID_FIXTURE, 100 ether);
+    assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
+    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.exists(REMOVAL_ID_FIXTURE), false);
+  }
+}
+
+contract Removal_release_listed is UpgradeableMarket {
   function test() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 1_234_567_890,
@@ -207,26 +245,33 @@ contract Removal_release_listed is RemovalSeeded, UpgradeableMarket {
       address(0),
       address(0),
       address(_namedAccounts.supplier),
-      _asSingletonUintArray(_removalId),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       _asSingletonUintArray(1)
     );
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonUintArray(_removalId),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data
     );
-    assertEq(_removal.balanceOf(_namedAccounts.supplier, _removalId), 0); // todo reuse checkout.int assertions
-    assertEq(_removal.balanceOf(address(_market), _removalId), 1);
-    _removal.release(address(_market), _removalId, 1);
-    assertEq(_removal.balanceOf(_namedAccounts.supplier, _removalId), 0);
-    assertEq(_removal.balanceOf(address(_market), _removalId), 0);
-    // todo events
+    assertEq(
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      0
+    );
+    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 1);
+    _removal.release(address(_market), REMOVAL_ID_FIXTURE, 1);
+    assertEq(
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      0
+    );
+    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 0);
+    // todo test events
   }
 }
 
-contract Removal_cummulativeBalanceOfBatch is RemovalSeeded {
+contract Removal_cummulativeBalanceOfBatch is UpgradeableRemoval {
   function test() external {
+<<<<<<< HEAD
     UnpackedRemovalIdV0 memory removalId = UnpackedRemovalIdV0({ // todo declare outside test?
       idVersion: 0,
       methodology: 1,
@@ -238,6 +283,8 @@ contract Removal_cummulativeBalanceOfBatch is RemovalSeeded {
       subIdentifier: 99_039_930
     });
     uint256 _removalId = RemovalIdLib.createRemovalIdFromStruct(removalId);
+=======
+>>>>>>> jaycen-mark-removals-as-released
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 5_555_555_555,
       scheduleStartTime: block.timestamp,
@@ -247,7 +294,7 @@ contract Removal_cummulativeBalanceOfBatch is RemovalSeeded {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonUintArray(_removalId),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data
     );
     assertEq(
@@ -259,7 +306,7 @@ contract Removal_cummulativeBalanceOfBatch is RemovalSeeded {
   }
 }
 
-contract Removal__beforeTokenTransfer is NonUpgradableRemovalMock {
+contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
   // todo test the rest of the cases
   function test() external {
     super._beforeTokenTransfer(
@@ -273,7 +320,7 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemovalMock {
     // todo assert?
   }
 
-  function test_paused_reverts() external {
+  function test_paused_reverts_Paused() external {
     super._pause();
     vm.expectRevert("Pausable: paused");
     super._beforeTokenTransfer(
@@ -286,10 +333,8 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemovalMock {
     );
   }
 
-  function test_removal_transfer_with_zero_amount_reverts() external {
-    vm.expectRevert(
-      abi.encodeWithSelector(Removal.RemovalAmountZero.selector, 1)
-    );
+  function test_zeroValueTransfer_reverts_RemovalAmountZero() external {
+    vm.expectRevert(abi.encodeWithSelector(RemovalAmountZero.selector, 1));
     super._beforeTokenTransfer(
       _namedAccounts.admin,
       _namedAccounts.admin,

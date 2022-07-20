@@ -6,7 +6,7 @@ import "./ERC20Preset.sol";
 // todo documentation
 // todo Security aduit item: https://github.com/nori-dot-eco/contracts/security/code-scanning/499
 contract BridgedPolygonNORI is ERC20Preset {
-  bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
+  bytes32 public immutable DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE"); // solhint-disable-line var-name-mixedcase
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor

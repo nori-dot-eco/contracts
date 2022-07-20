@@ -4,15 +4,12 @@ pragma solidity =0.8.15;
 import "@/test/helpers/restricted-nori.sol";
 import "@/test/checkout.int.t.sol";
 
-contract RestrictedNORI_initialize is UpgradableRestrictedNORIMock {
-  mapping(uint256 => Schedule) private _schedules;
-
+contract RestrictedNORI_initialize is UpgradableRestrictedNORI {
   function test() external {
     assertEq(
       _rNori.uri(0),
       "https://nori.com/api/restrictionschedule/{id}.json"
     );
-    // todo rest
   }
 }
 
