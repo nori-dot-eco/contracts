@@ -14,7 +14,7 @@ contract RestrictedNORI_initialize is UpgradableRestrictedNORI {
 }
 
 contract RestrictedNORI__linearReleaseAmountAvailable is
-  NonUpgradableRestrictedNORIMock
+  NonUpgradableRestrictedNORI
 {
   using RestrictedNORILib for Schedule;
   uint256 scheduleKey = 0;

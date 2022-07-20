@@ -271,20 +271,6 @@ contract Removal_release_listed is UpgradeableMarket {
 
 contract Removal_cummulativeBalanceOfBatch is UpgradeableRemoval {
   function test() external {
-<<<<<<< HEAD
-    UnpackedRemovalIdV0 memory removalId = UnpackedRemovalIdV0({ // todo declare outside test?
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "IA",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: 99_039_930
-    });
-    uint256 _removalId = RemovalIdLib.createRemovalIdFromStruct(removalId);
-=======
->>>>>>> jaycen-mark-removals-as-released
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 5_555_555_555,
       scheduleStartTime: block.timestamp,
