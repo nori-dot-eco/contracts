@@ -8,8 +8,20 @@ import {RemovalIdLib} from "./RemovalIdLib.sol";
 import {SenderNotRemovalContract} from "./Errors.sol";
 
 /**
- * @title Market
- * todo documentation
+ * @title Nori Inc.'s carbon removal marketplace.
+ *
+ * @author Nori Inc.
+ *
+ * @notice Facilitates the exchange of NORI tokens for a non-transferrable certificate of carbon removal.
+ *
+ * @dev Carbon removals are represented by ERC1155 tokens in the Removal.sol contract, where the balance of a
+ * given token represents the number of tonnes of carbon that were removed from the atmosphere for that specific
+ * removal (different token ids are used to represent different slices of carbon removal projects and years).
+ * This contract facilitates the exchange of NORI tokens for ERC721 tokens managed by the Certificate.sol contract.
+ * Each of these certificates is a non-transferrable, non-fungible token that owns the specific removal tokens
+ * and token balances that comprise the specific certificate for the amount purchased.
+ *
+ * todo more documentation
  * todo emit events
  * todo MARKET_ADMIN_ROLE (reserving, setting thresholds etc so they can be done from admin ui without super admin)
  * todo pausable
@@ -99,29 +111,46 @@ contract Market is PausableAccessPreset {
     _grantRole(ALLOWLIST_ROLE, _msgSender());
   }
 
+  /**
+   * @notice Returns the current value of the priority restricted threshold, which is the amount of inventory
+   * that will always be reserved to sell only to buyers with the ALLOWLIST_ROLE.
+   */
   function priorityRestrictedThreshold() external view returns (uint256) {
     return _priorityRestrictedThreshold;
   }
 
+  /**
+   * @notice Returns the current value of the Nori fee percentage, as an integer, which is the percentage of
+   * each purchase that will be paid to Nori as the marketplace operator.
+   */
   function getNoriFeePercentage() external view returns (uint256) {
     // todo getX vs X naming convention + consistency
     return _noriFeePercentage;
   }
 
+  /**
+   * @notice Calculates the Nori fee required for a purchase of `amount` tonnes of carbon removals.
+   */
   function getNoriFee(uint256 amount) external view returns (uint256) {
     return (amount * _noriFeePercentage) / 100; // todo muldiv from OZ?;
   }
 
+  /**
+   * @notice Calculates the total quantity of NORI required to make a purchase of `amount` tonnes of carbon removals.
+   */
   function getCheckoutTotal(uint256 amount) external view returns (uint256) {
     return amount + this.getNoriFee(amount);
   }
 
+  /**
+   * @notice Returns the address to which the marketplace operator fee will be routed during each purchase.
+   */
   function getNoriFeeWallet() external view returns (address) {
     return _noriFeeWallet;
   }
 
   /**
-   * @dev Calculates the quantity of carbon removals being purchased given the purchase total and the
+   * @notice Calculates the quantity of carbon removals being purchased given the purchase total and the
    * percentage of that purchase total that is due to Nori as a transaction fee.
    */
   function certificateAmountFromPurchaseTotal(uint256 purchaseTotal)
@@ -132,6 +161,10 @@ contract Market is PausableAccessPreset {
     return (purchaseTotal * 100) / (100 + _noriFeePercentage);
   }
 
+  /**
+   * Sets the current value of the priority restricted threshold, which is the amount of inventory
+   * that will always be reserved to sell only to buyers with the ALLOWLIST_ROLE.
+   */
   function setPriorityRestrictedThreshold(uint256 threshold)
     external
     whenNotPaused
@@ -142,7 +175,7 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @notice The amount of supply available for anyone to buy.
+   * The amount of supply available for anyone to buy.
    */
   function totalUnrestrictedSupply() external view returns (uint256) {
     uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
@@ -152,6 +185,18 @@ contract Market is PausableAccessPreset {
         : activeSupply - _priorityRestrictedThreshold; // todo compare this against trySub?
   }
 
+  /**
+   * @notice Handles the receipt of a multiple ERC1155 token types. This function is called at the end of a
+   * `safeBatchTransferFrom` after the balances have been updated. To accept the transfer(s), this must return
+   * `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`
+   * (i.e. 0xbc197c81, or its own function selector).
+   *
+   * @dev See {https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver}
+   *
+   * @param ids An array containing ids of each token being transferred (order and length must match values array)
+   * @return bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
+   * if transfer is allowed
+   */
   function onERC1155BatchReceived(
     address,
     address,
@@ -180,7 +225,22 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev // todo
+   * @notice Exchanges NORI for carbon removals and issues a certificate to `recipient`.
+   *
+   * @dev See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
+   * The message sender must present a valid permit to this contract to temporarily authorize this market
+   * to transfer the sender's NORI to complete the purchase. A certificate is issued by Certificate.sol
+   * to the specified recipient and NORI is distributed to the supplier of the carbon removal,
+   * to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
+   * to Nori Inc. as a market operator fee.
+   *
+   * @param recipient The address to which the certificate will be issued.
+   * @param amount The total purchase amount in NORI. This is the combined total of the number of removals being
+   * purchased and the fee paid to Nori.
+   * @param deadline The EIP2612 permit deadline in unixtime.
+   * @param v The recovery identifier for the permit's secp256k1 signature
+   * @param r The r value for the permit's secp256k1 signature
+   * @param s The s value for the permit's secp256k1 signature
    */
   function swap(
     address recipient,
@@ -218,9 +278,26 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @notice Overloaded version of swap that additionally accepts a supplier address and will fulfill an order using
-   * only supply from this supplier.
-   * @dev // todo
+   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange NORI for
+   * carbon removals supplied only from the specified supplier and issue a certificate to `recipient`.
+   * If the specified supplier does not have enough carbon removals for sale to fulfill the order the transaction
+   * will revert.
+   *
+   * @dev See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
+   * The message sender must present a valid permit to this contract to temporarily authorize this market
+   * to transfer the sender's NORI to complete the purchase. A certificate is issued by Certificate.sol
+   * to the specified recipient and NORI is distributed to the supplier of the carbon removal,
+   * to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
+   * to Nori Inc. as a market operator fee.
+   *
+   * @param recipient The address to which the certificate will be issued.
+   * @param amount The total purchase amount in NORI. This is the combined total of the number of removals being
+   * purchased and the fee paid to Nori.
+   * @param supplierToBuyFrom The only supplier address from which to purchase carbon removals in this transaction.
+   * @param deadline The EIP2612 permit deadline in unixtime.
+   * @param v The recovery identifier for the permit's secp256k1 signature
+   * @param r The r value for the permit's secp256k1 signature
+   * @param s The s value for the permit's secp256k1 signature
    */
   function swapFromSpecificSupplier(
     address recipient,
@@ -262,7 +339,7 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev The distinct number of unreserved removals listed in the market.
+   * @dev The number of distinct removal token ids listed in the market that are not reserved.
    */
   function numberOfUnreservedRemovals() external view returns (uint256) {
     return
@@ -271,7 +348,7 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev The distinct number of reserved removals listed in the market.
+   * @dev The number of distinct removal token ids listed in the market that are reserved.
    */
   function numberOfReservedRemovals() external view returns (uint256) {
     return _reservedSupply.length();
@@ -280,6 +357,8 @@ contract Market is PausableAccessPreset {
   /**
    * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
    * and buyer is not priority.
+   *
+   * @param purchaseAmount The number of carbon removals being purchased.
    */
   function _checkSupply(uint256 purchaseAmount) private view {
     uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
@@ -299,6 +378,12 @@ contract Market is PausableAccessPreset {
   /**
    * @dev Determines the removal ids, amounts, and suppliers to fill the given purchase quantity in
    * a round-robin order.
+   *
+   * @param certificateAmount The number of carbon removals to purchase.
+   * @return numberOfRemovalForOrder The number of distinct removal token ids used to fulfill this order.
+   * @return ids An array of the removal token ids being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
   function _allocateSupplyRoundRobin(uint256 certificateAmount)
     private
@@ -371,6 +456,12 @@ contract Market is PausableAccessPreset {
   /**
    * @dev Determines the removal ids and amounts to fill the given purchase quantity, sourcing only
    * from a single supplier.
+   *
+   * @param certificateAmount The number of carbon removals to purchase.
+   * @param supplier The supplier from which to purchase carbon removals.
+   * @return numberOfRemovalForOrder The number of distinct removal token ids used to fulfill this order.
+   * @return ids An array of the removal token ids being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
    */
   function _allocateSupplySingleSupplier(
     uint256 certificateAmount,
@@ -438,6 +529,16 @@ contract Market is PausableAccessPreset {
     return (numberOfRemovals, ids, amounts);
   }
 
+  /**
+   * @notice Sets the Nori fee percentage (as an integer) which is the percentage of
+   * each purchase that will be paid to Nori as the marketplace operator.
+   *
+   * ##### Requirements:
+   * - Can only be used when the caller has the DEFAULT_ADMIN_ROLE
+   * - Can only be used when this contract is not paused
+   *
+   * @param noriFeePercentage The new fee percentage as an integer.
+   */
   function setNoriFeePercentage(uint256 noriFeePercentage)
     external
     onlyRole(DEFAULT_ADMIN_ROLE)
@@ -446,6 +547,16 @@ contract Market is PausableAccessPreset {
     _noriFeePercentage = noriFeePercentage;
   }
 
+  /**
+   * @notice Sets the Nori fee wallet address (as an integer) which is the address to which the
+   * marketplace operator fee will be routed during each purchase.
+   *
+   * ##### Requirements:
+   * - Can only be used when the caller has the DEFAULT_ADMIN_ROLE
+   * - Can only be used when this contract is not paused
+   *
+   * @param noriFeeWalletAddress The wallet address where Nori collects market fees.
+   */
   function setNoriFeeWallet(address noriFeeWalletAddress)
     external
     onlyRole(DEFAULT_ADMIN_ROLE)
@@ -458,6 +569,13 @@ contract Market is PausableAccessPreset {
    * @notice Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
    * `RestrictedNORI` contract, pays Nori the order fee, updates accounting, and mints the certificate.
    *
+   * @param operator The message sender.
+   * @param recipient The recipient of the certificate.
+   * @param numberOfRemovals The number of distinct removal token ids that are involved in fulfilling this order.
+   * @param ids An array of removal token ids involved in fulfilling this order.
+   * @param amounts An array of amounts being allocated from each corresponding removal token.
+   * @param suppliers An array of suppliers
+
    * todo need to permission this now that it's external (or figure out how to use calldata with internal funcs)
    */
   function fulfillOrder(
@@ -512,8 +630,8 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @notice Removes removal from active supply and inserts it into the reserved supply, where it cannot be used to
-   * fill orders.
+   * @notice Removes the removal from active supply and inserts it into the reserved supply,
+   * where it cannot be used to fill orders.
    *
    * @dev If the removal is the last for the supplier, removes the supplier from the active supplier queue.
    */
@@ -529,6 +647,10 @@ contract Market is PausableAccessPreset {
     }
   }
 
+  /**
+   * @notice Removes the specified removal id from the active supply data structure.
+   * If this is the supplier's last active removal, the supplier is also removed from the active supplier queue.
+   */
   function _removeActiveRemoval(
     address supplierAddress,
     uint256 removalId // todo flip param order
@@ -540,13 +662,14 @@ contract Market is PausableAccessPreset {
   }
 
   /**
+   *
    * @dev
    *
    * ##### Requirements:
    *
    * - The contract must not be paused. This is enforced by `Removal._beforeTokenTransfer`.
    *
-   * todo rest of requirements
+   * todo rest of requirements (waiting on docs)
    */
   function release(uint256 removalId, uint256 amount) external {
     // todo consider making this a generalized `withdrawRemoval`?
@@ -608,14 +731,10 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @notice Increments the address of the current supplier.
-   *
    * @dev Updates `_currentSupplierAddress` to the next of whatever is the current supplier.
+   * Used to iterate in a round-robin way through the linked list of active suppliers.
    */
   function _incrementCurrentSupplierAddress() private {
-    /**
-     * Update the current supplier to be the next of the current supplier.
-     */
     _currentSupplierAddress = _suppliersInRoundRobinOrder[
       _currentSupplierAddress
     ].nextSupplierAddress;
@@ -665,7 +784,7 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @notice Removes a supplier to the active supplier queue.
+   * @notice Removes a supplier from the active supplier queue.
    *
    * @dev Called when a supplier's last removal is used for an order or reserved. If the last supplier,
    * resets the pointer for the currentSupplierAddress. Otherwise, from the position of the supplier to be
