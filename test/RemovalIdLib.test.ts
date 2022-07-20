@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prevent-abbreviations -- this file will eventually be replaced by foundry tests */
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import type {
   UnpackedRemovalIdV0Struct,
