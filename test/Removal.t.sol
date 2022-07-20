@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
-import {BatchMintRemovalsData} from "@/contracts/Removal.sol";
 
 // todo fuzz RemovalUtils
 
@@ -11,7 +10,7 @@ contract Removal_mintBatch is UpgradeableRemoval {
     _removal.mintBatch({
       to: _namedAccounts.supplier,
       amounts: _asSingletonUintArray(1 ether),
-      ids: _asSingletonUintArray(_REMOVAL_ID_FIXTURE),
+      ids: _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data: BatchMintRemovalsData({
         projectId: 1,
         scheduleStartTime: 0,
@@ -34,7 +33,7 @@ contract Removal_release is UpgradeableRemoval {
         )
       )
     );
-    _removal.release(_namedAccounts.supplier, _REMOVAL_ID_FIXTURE, 1);
+    _removal.release(_namedAccounts.supplier, REMOVAL_ID_FIXTURE, 1);
   }
 }
 
@@ -51,23 +50,23 @@ contract Removal_release_unlisted is UpgradeableRemoval {
       address(0),
       address(0),
       address(_namedAccounts.supplier),
-      _asSingletonUintArray(_REMOVAL_ID_FIXTURE),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       _asSingletonUintArray(1)
     );
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonUintArray(_REMOVAL_ID_FIXTURE),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data
     );
     assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, _REMOVAL_ID_FIXTURE),
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       1
     );
-    _removal.release(_namedAccounts.supplier, _REMOVAL_ID_FIXTURE, 1);
+    _removal.release(_namedAccounts.supplier, REMOVAL_ID_FIXTURE, 1);
     // todo events
     assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, _REMOVAL_ID_FIXTURE),
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       0
     );
   }
@@ -88,7 +87,7 @@ contract Removal_release_retired_burned is UpgradeableMarket {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
-      _asSingletonUintArray(_REMOVAL_ID_FIXTURE),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data
     );
     uint256 ownerPrivateKey = 0xA11CE;
@@ -112,18 +111,18 @@ contract Removal_release_retired_burned is UpgradeableMarket {
       signedPermit.r,
       signedPermit.s
     );
-    assertEq(_certificate.balanceOfRemoval(0, _REMOVAL_ID_FIXTURE), 1 ether);
+    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 1 ether);
     //todo
     //         vm.prank(owner);
     // _certificate.burn()
   }
 
   function test() external {
-    _removal.release(address(_certificate), _REMOVAL_ID_FIXTURE, 1 ether);
-    assertEq(_removal.balanceOf(address(_certificate), _REMOVAL_ID_FIXTURE), 0);
-    assertEq(_certificate.balanceOfRemoval(0, _REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.totalSupply(_REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.exists(_REMOVAL_ID_FIXTURE), false);
+    _removal.release(address(_certificate), REMOVAL_ID_FIXTURE, 1 ether);
+    assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
+    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.exists(REMOVAL_ID_FIXTURE), false);
   }
 }
 
@@ -143,7 +142,7 @@ contract Removal_release_retired is UpgradeableMarket {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
-      _asSingletonUintArray(_REMOVAL_ID_FIXTURE),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data
     );
     uint256 ownerPrivateKey = 0xA11CE;
@@ -167,31 +166,23 @@ contract Removal_release_retired is UpgradeableMarket {
       signedPermit.r,
       signedPermit.s
     );
-    assertEq(_certificate.balanceOfRemoval(0, _REMOVAL_ID_FIXTURE), 1 ether);
+    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 1 ether);
   }
 
   function test() external {
-    _removal.release(address(_certificate), _REMOVAL_ID_FIXTURE, 1 ether);
-    assertEq(_removal.balanceOf(address(_certificate), _REMOVAL_ID_FIXTURE), 0);
-    assertEq(_certificate.balanceOfRemoval(0, _REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.totalSupply(_REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.exists(_REMOVAL_ID_FIXTURE), false);
-  }
-
-  function test_tenCertificatesForRemoval() external {
-    _removal.release(address(_certificate), _REMOVAL_ID_FIXTURE, 1 ether);
-    assertEq(_removal.balanceOf(address(_certificate), _REMOVAL_ID_FIXTURE), 0);
-    assertEq(_certificate.balanceOfRemoval(0, _REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.totalSupply(_REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.exists(_REMOVAL_ID_FIXTURE), false);
+    _removal.release(address(_certificate), REMOVAL_ID_FIXTURE, 1 ether);
+    assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
+    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.exists(REMOVAL_ID_FIXTURE), false);
   }
 }
 
 /**
  * @dev Tests for when a removal is released when it has already been sold, retired, and used as part of the balance
- * of a certificate
+ * of multiple certificates.
  */
-contract Removal_release_retired_multipleCertificates is UpgradeableMarket {
+contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
   function setUp() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 1_234_567_890,
@@ -201,16 +192,16 @@ contract Removal_release_retired_multipleCertificates is UpgradeableMarket {
     });
     _removal.mintBatch(
       _namedAccounts.supplier,
-      _asSingletonUintArray(10 ether),
-      _asSingletonUintArray(_REMOVAL_ID_FIXTURE),
+      _asSingletonUintArray(100 ether),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data
     );
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
-    uint256 cumulativeCheckoutTotal = _market.getCheckoutTotal(10 ether);
+    uint256 cumulativeCheckoutTotal = _market.getCheckoutTotal(100 ether);
     vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
     _bpNori.deposit(owner, abi.encode(cumulativeCheckoutTotal));
-    for (uint256 i = 0; i < 10; i++) {
+    for (uint256 i = 0; i < 100; i++) {
       uint256 checkoutTotal = _market.getCheckoutTotal(1 ether); // todo replace other test usage of _market.getNoriFee
       SignedPermit memory signedPermit = _signatureUtils.generatePermit(
         ownerPrivateKey,
@@ -228,16 +219,16 @@ contract Removal_release_retired_multipleCertificates is UpgradeableMarket {
         signedPermit.r,
         signedPermit.s
       );
-      assertEq(_certificate.balanceOfRemoval(0, _REMOVAL_ID_FIXTURE), 1 ether);
+      assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 1 ether);
     }
   }
 
   function test() external {
-    _removal.release(address(_certificate), _REMOVAL_ID_FIXTURE, 10 ether);
-    assertEq(_removal.balanceOf(address(_certificate), _REMOVAL_ID_FIXTURE), 0);
-    assertEq(_certificate.balanceOfRemoval(0, _REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.totalSupply(_REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.exists(_REMOVAL_ID_FIXTURE), false);
+    _removal.release(address(_certificate), REMOVAL_ID_FIXTURE, 100 ether);
+    assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
+    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.exists(REMOVAL_ID_FIXTURE), false);
   }
 }
 
@@ -254,27 +245,27 @@ contract Removal_release_listed is UpgradeableMarket {
       address(0),
       address(0),
       address(_namedAccounts.supplier),
-      _asSingletonUintArray(_REMOVAL_ID_FIXTURE),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       _asSingletonUintArray(1)
     );
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonUintArray(_REMOVAL_ID_FIXTURE),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data
     );
     assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, _REMOVAL_ID_FIXTURE),
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       0
     );
-    assertEq(_removal.balanceOf(address(_market), _REMOVAL_ID_FIXTURE), 1);
-    _removal.release(address(_market), _REMOVAL_ID_FIXTURE, 1);
+    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 1);
+    _removal.release(address(_market), REMOVAL_ID_FIXTURE, 1);
     assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, _REMOVAL_ID_FIXTURE),
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       0
     );
-    assertEq(_removal.balanceOf(address(_market), _REMOVAL_ID_FIXTURE), 0);
-    // todo events
+    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 0);
+    // todo test events
   }
 }
 
@@ -289,7 +280,7 @@ contract Removal_cummulativeBalanceOfBatch is UpgradeableRemoval {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonUintArray(_REMOVAL_ID_FIXTURE),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data
     );
     assertEq(

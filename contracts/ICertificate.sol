@@ -2,7 +2,7 @@
 pragma solidity =0.8.15;
 
 interface ICertificate {
-  // todo extract interfaces for other contracts?
+  // todo extract interfaces for other contracts? foundry has `cast interface` to generate interfaces
   event ReceiveRemovalBatch(
     address from,
     address indexed recipient,

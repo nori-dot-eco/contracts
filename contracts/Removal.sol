@@ -2,16 +2,16 @@
 pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol"; // todo preset + custom errors
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
-import "./RestrictedNORI.sol";
 import "./Market.sol";
-import "./Certificate.sol"; // todo Certificate vs ICertificate pattern
 import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
-import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
-// import "forge-std/console2.sol"; // todo
+import {ArrayLengthMismatch} from "./Errors.sol";
 
-error TokenIdExists(uint256 tokenId);
+// todo global rename (accounts -> owners)
+// todo disable other mint functions
+// todo investigate ERC1155SupplyUpgradeable.totalSupply
+// todo look into this and use unchecked more https://github.com/OpenZeppelin/openzeppelin-contracts/issues/3512
+// todo globally pack structs
+// todo define all structs at the file level as it makes it easier to import
 
 struct BatchMintRemovalsData {
   // todo can we de-dupe this with RemovalData? perhaps by nesting the struct?
@@ -21,32 +21,25 @@ struct BatchMintRemovalsData {
   bool list;
 }
 
-// todo disable other mint functions
-// todo investigate ERC1155SupplyUpgradeable.totalSupply
-// todo look into this and use unchecked more https://github.com/OpenZeppelin/openzeppelin-contracts/issues/3512
-// todo globally pack structs
+struct ScheduleData {
+  uint256 startTime;
+  address supplierAddress;
+  uint256 methodology;
+  uint256 methodologyVersion;
+}
+
+struct RemovalData {
+  uint256 projectId;
+  uint256 holdbackPercentage;
+}
 
 /**
  * @title Removal // todo
  */
-contract Removal is
-  ERC1155SupplyUpgradeable,
-  PausableUpgradeable,
-  AccessControlEnumerableUpgradeable
-{
+contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
-  struct ScheduleData {
-    uint256 startTime;
-    address supplierAddress;
-    uint256 methodology;
-    uint256 methodologyVersion;
-  }
-
-  struct RemovalData {
-    uint256 projectId;
-    uint256 holdbackPercentage;
-  }
+  error TokenIdExists(uint256 tokenId);
 
   /**
    * @notice Role conferring the the ability to mark a removal as released.
@@ -62,13 +55,6 @@ contract Removal is
    */
   bytes32 public constant MINTER_AND_LISTER_ROLE =
     keccak256("MINTER_AND_LISTER_ROLE");
-
-  /**
-   * @notice Role conferring pausing and unpausing of this contract.
-   *
-   * @dev Only a Nori admin address should have this role.
-   */
-  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
   /**
    * @notice the RestrictedNORI contract that manages restricted tokens.
@@ -88,7 +74,7 @@ contract Removal is
   mapping(uint256 => RemovalData) private _removalIdToRemovalData;
   mapping(uint256 => ScheduleData) private _projectIdToScheduleData; // todo why does this live here and not in rNORI?
   mapping(address => EnumerableSetUpgradeable.UintSet)
-    private _addressToOwnedTokenIds;
+    private _addressToOwnedTokenIds; // todo tests that ensure this is maintained correctly
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -269,7 +255,8 @@ contract Removal is
     view
     returns (uint256[] memory)
   {
-    uint256 numberOfAccounts = accounts.length; // todo global rename (accounts -> owners)
+    // todo use multicall instead
+    uint256 numberOfAccounts = accounts.length;
     uint256[] memory batchBalances = new uint256[](numberOfAccounts);
     for (uint256 i = 0; i < numberOfAccounts; ++i) {
       batchBalances[i] = this.cumulativeBalanceOf(accounts[i]);
@@ -277,7 +264,6 @@ contract Removal is
     return batchBalances;
   }
 
-  // todo batch?
   function tokensOfOwner(
     address owner // todo global rename (tokens -> removals?)
   ) external view returns (uint256[] memory) {
@@ -285,7 +271,6 @@ contract Removal is
   }
 
   // todo rename cumulativeBalanceOfOwner
-  // todo batch?
   function cumulativeBalanceOf(address owner) external view returns (uint256) {
     // todo are the bodies of these functions re-usable across the contract? Seems like an abstraction might be possible
     EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
@@ -414,7 +399,7 @@ contract Removal is
     uint256 amount
   ) internal override {
     if (from == address(_market)) {
-      // todo
+      _market.release(id, amount);
     } else if (from == address(_certificate)) {
       Certificate.Balance[] memory certificatesOfRemoval = _certificate
         .certificatesOfRemoval(id);
@@ -471,6 +456,7 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal override {
+    // todo any good reason not to merge before + after hooks?
     uint256 numberOfTokenTransfers = amounts.length;
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
       uint256 id = ids[i];

@@ -2,19 +2,17 @@
 pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./deprecated/ERC777PresetPausablePermissioned.sol";
 import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
 
 /**
- * @title A wrapped BridgedPolygonNORI token contract for vesting and lockup
+ * @title A wrapped BridgedPolygonNORI token contract for vesting and lockup.
  *
  * @author Nori Inc.
  *
  * @notice Based on the mechanics of a wrapped ERC-20 token, this contract layers schedules over the withdrawal
- * functionality to implement _vesting_ (a revocable grant)
- * and _lockup_ (an irrevocable timelock on utility).
+ * functionality to implement _vesting_ (a revocable grant) and _lockup_ (an irrevocable timelock on utility).
  *
  * ##### Behaviors and features
  *

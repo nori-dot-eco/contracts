@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import {RemovalUtils} from "./RemovalUtils.sol";
-import {ArrayLengthMismatch} from "./SharedCustomErrors.sol";
+import {ArrayLengthMismatch} from "./Errors.sol";
 
 // todo extract some of this contract to a preset
 // todo https://github.com/nori-dot-eco/contracts/pull/249/files#r906867575
@@ -559,8 +559,9 @@ contract RestrictedNORI is
       revert InvalidMinter({account: _msgSender()});
     }
     uint256 projectId = _removal.getProjectIdForRemoval(removalId);
-    Removal.ScheduleData memory scheduleData = _removal
-      .getScheduleDataForProjectId(projectId);
+    ScheduleData memory scheduleData = _removal.getScheduleDataForProjectId(
+      projectId
+    );
     address recipient = scheduleData.supplierAddress;
     if (!_scheduleIdToScheduleStruct[projectId].exists) {
       revert NonexistentSchedule({scheduleId: projectId});
@@ -763,8 +764,9 @@ contract RestrictedNORI is
    * from within the market contract `onERC1155BatchReceived` hook.
    */
   function _createSchedule(uint256 projectId) internal {
-    Removal.ScheduleData memory scheduleData = _removal
-      .getScheduleDataForProjectId(projectId);
+    ScheduleData memory scheduleData = _removal.getScheduleDataForProjectId(
+      projectId
+    );
     require(scheduleData.startTime != 0, "InvalidScheduleStartTime");
     address recipient = scheduleData.supplierAddress;
     if (recipient == address(0)) {

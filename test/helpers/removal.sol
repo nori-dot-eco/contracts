@@ -1,7 +1,7 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, var-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-import "@/contracts/Removal.sol"; // todo path remapping globally
+import "@/contracts/Removal.sol";
 import "@/test/helpers/test.sol";
 
 abstract contract UpgradeableRemoval is Upgradeable {
@@ -19,7 +19,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
    * })
    *
    */
-  uint256 internal immutable _REMOVAL_ID_FIXTURE =
+  uint256 internal immutable REMOVAL_ID_FIXTURE =
     28323967194635186208115198611987694236062136249434403320464507420610607802;
 
   Removal internal _removal;
@@ -43,21 +43,6 @@ abstract contract UpgradeableRemoval is Upgradeable {
       _removalImplementation.initialize.selector
     );
     return Removal(_deployProxy(address(_removalImplementation), initializer));
-  }
-
-  function _createMintData(
-    uint256 projectId,
-    uint256 scheduleStartTime,
-    uint8 holdbackPercentage,
-    bool list
-  ) internal pure returns (BatchMintRemovalsData memory) {
-    return
-      BatchMintRemovalsData({
-        projectId: projectId,
-        scheduleStartTime: scheduleStartTime,
-        holdbackPercentage: holdbackPercentage,
-        list: list
-      });
   }
 }
 

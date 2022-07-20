@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.15; // todo bump solidity version globally to latest
+pragma solidity =0.8.15;
 
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
-import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
-import {FunctionDisabled, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
-import "./ICertificate.sol"; // todo benefit of using Interface vs contract?
+import {FunctionDisabled, ArrayLengthMismatch, SenderNotRemovalContract} from "./Errors.sol";
+import "./ICertificate.sol";
 import "./Removal.sol";
-// import "forge-std/console2.sol"; // todo
+import "./PausableAccessPreset.sol";
 
-// todo document burning behavior
-error ForbiddenTransferAfterMinting(); // todo error declaration consistency (inside-contract vs outside-of-contract)
-error SenderNotRemovalContract();
+error ForbiddenTransferAfterMinting();
 
-// todo globally consider renaming tokenId -> certificateId / removalId
-// todo how hard would it be to use ERC721AStorage layout for child removals?
 /**
+ * todo bump solidity version globally to latest
+ * todo benefit of using Interface vs contract?
+ * todo error declaration consistency (inside-contract vs outside-of-contract)
+ * todo document burning behavior
+ * todo globally consider renaming tokenId -> certificateId / removalId
+ * todo how hard would it be to use ERC721AStorage layout for child removals?
  * todo consider removing all batch functions from all contracts (seems gratuitous to include it when you can
  * usually achieve the same effect by inheriting multicall, OR using an external multicall contract)
  * todo what is _msgSenderERC721A
@@ -32,9 +32,8 @@ contract Certificate is
   ICertificate,
   ERC721ABurnableUpgradeable,
   ERC721AQueryableUpgradeable,
-  PausableUpgradeable,
-  AccessControlEnumerableUpgradeable,
-  MulticallUpgradeable
+  MulticallUpgradeable,
+  PausableAccessPreset
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
@@ -42,20 +41,7 @@ contract Certificate is
     uint256 id;
     uint256 amount;
   }
-  type RemovalId is uint256;
-  type RemovalAmount is uint256;
-  type CertificateId is uint256;
-  type CertificateAmount is uint256;
-  struct CertificateBalances {
-    mapping(RemovalId => RemovalAmount) removalBalances;
-    uint256[] RemovalId;
-  }
-   struct RemovalBalances {
-    mapping(CertificateId => CertificateAmount) certificateBalances;
-    uint256[] CertificateId;
-  }
-  mapping(RemovalId => CertificateBalances) private removalBalances; // todo rename
-  mapping(CertificateId => RemovalBalances) private certificateBalances; // todo rename
+
   /**
    * @notice Role conferring operator permissions.
    *
@@ -65,19 +51,14 @@ contract Certificate is
   bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
     keccak256("CERTIFICATE_OPERATOR_ROLE");
 
-  /**
-   * @notice Role conferring the ability to pause and unpause mutable functions of the contract.
-   */
-  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE"); // todo PausablePreset?
-
   mapping(uint256 => mapping(uint256 => uint256))
     private _removalBalancesOfCertificate;
 
   mapping(uint256 => EnumerableSetUpgradeable.UintSet)
-    private _removalsOfCertificate; // todo rename
+    private _removalsOfCertificate; // todo tests that ensure this is maintained correctly
 
   mapping(uint256 => EnumerableSetUpgradeable.UintSet)
-    private _certificatesOfRemoval; // todo rename
+    private _certificatesOfRemoval; // todo tests that ensure this is maintained correctly
 
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
@@ -89,32 +70,6 @@ contract Certificate is
    */
   constructor() {
     _disableInitializers();
-  }
-
-  /**
-   * @notice Pauses all functions that can mutate state.
-   *
-   * @dev Used to effectively freeze a contract so that no state updates can occur.
-   *
-   * ##### Requirements:
-   *
-   * - The caller must have the `PAUSER_ROLE`.
-   */
-  function pause() external onlyRole(PAUSER_ROLE) {
-    _pause();
-  }
-
-  /**
-   * @notice Unpauses all token transfers.
-   *
-   * @dev
-   *
-   * ##### Requirements:
-   *
-   * - The caller must have the `PAUSER_ROLE`.
-   */
-  function unpause() external onlyRole(PAUSER_ROLE) {
-    _unpause();
   }
 
   /**
