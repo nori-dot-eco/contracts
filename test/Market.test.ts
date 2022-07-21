@@ -1048,14 +1048,14 @@ describe('Market', () => {
         market.numberOfReservedRemovals(),
         // todo everywhere: cumulativeActiveSupply, cumulativeUnreservedSupply, cumulativeReservedSupply, numberOfActiveRemovals, numberOfUnreservedRemovals, numberOfReservedRemovals
       ]);
-      expect(numberOfReservedRemovals)
-        .to.eq(1)
-        .and.to.equal(numberOfUnreservedRemovals);
+      expect(numberOfReservedRemovals).to.eq(1);
+      expect(numberOfUnreservedRemovals).and.to.equal(Zero);
       expect(numberOfActiveRemovals)
         .to.equal(1)
-        .and.to.equal(totalAmountOfRemovals)
+        .and.to.equal(totalAmountOfRemovals);
+      expect(cumulativeBalanceOfMarket)
+        .to.equal(formatTokenAmount(3))
         .and.to.equal(totalAmountOfSupply);
-      expect(cumulativeBalanceOfMarket).to.equal(3);
     });
   });
   describe('restricted tokens', () => {
