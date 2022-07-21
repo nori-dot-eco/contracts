@@ -1147,7 +1147,7 @@ describe('Market', () => {
   });
   describe('swap', () => {
     it('should be able to purchase removals', async () => {
-      const { bpNori, certificate, market, hre, feePercentage, userFixtures } =
+      const { bpNori, certificate, market, hre, userFixtures } =
         await setupTest({
           userFixtures: {
             supplier: {
@@ -1158,8 +1158,7 @@ describe('Market', () => {
           },
         });
       const purchaseAmount = formatTokenAmount(1);
-      const fee = purchaseAmount.mul(feePercentage).div(100);
-      const value = purchaseAmount.add(fee); // todo use getCheckoutTotal globally
+      const value = await market.getCheckoutTotal(purchaseAmount); // todo use getCheckoutTotal globally
       const { buyer, investor1 } = hre.namedSigners;
       const deadline = MaxUint256;
       const { v, r, s } = await buyer.permit({

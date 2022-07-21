@@ -34,6 +34,8 @@ export const deploy: DeployFunction = async (environment) => {
   hre.trace("Granted Market the role 'MINTER_ROLE' for RestrictedNORI");
   await rNori.registerContractAddresses(bpNori.address, removal.address);
   hre.trace('Set removal and bpNori addresses in rNori');
+  await certificate.registerContractAddresses(removal.address);
+  hre.trace('Set removal addresses in rNori');
   await removal.registerContractAddresses(
     rNori.address,
     market.address,
