@@ -163,8 +163,8 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * Sets the current value of the priority restricted threshold, which is the amount of inventory
-   * that will always be reserved to sell only to buyers with the ALLOWLIST_ROLE.
+   * @notice Sets the current value of the priority restricted threshold, which is the amount of inventory
+   * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
    */
   function setPriorityRestrictedThreshold(uint256 threshold)
     external
@@ -341,6 +341,7 @@ contract Market is PausableAccessPreset {
 
   /**
    * @dev The number of distinct removal token ids listed in the market that are not reserved.
+   * todo rm and calc off-chain if needed from this.numberOfReservedRemovals() - this.reservedSupply().length
    */
   function numberOfUnreservedRemovals() external view returns (uint256) {
     return
@@ -350,9 +351,17 @@ contract Market is PausableAccessPreset {
 
   /**
    * @dev The number of distinct removal token ids listed in the market that are reserved.
+   * todo rm and calc off-chain if needed from this.reservedSupply().length
    */
   function numberOfReservedRemovals() external view returns (uint256) {
     return _reservedSupply.length();
+  }
+
+  /**
+   * @dev The distinct removal token ids listed in the market that are reserved.
+   */
+  function reservedSupply() external view returns (uint256[] memory) {
+    return _reservedSupply.values();
   }
 
   /**
@@ -364,6 +373,7 @@ contract Market is PausableAccessPreset {
   function _checkSupply(uint256 purchaseAmount) private view {
     // TODO: BUG: when using swap from single supplier, this function should check against the suppliers active balance,
     //not the markets total active balance!
+    // TODO: BUG: this function doesn't consider reserved removals!
     uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
     if (activeSupply == 0) {
       revert OutOfStock();
@@ -453,6 +463,7 @@ contract Market is PausableAccessPreset {
         break;
       }
     }
+    // todo revert if total from suppliers != certificate amount
     return (numberOfRemovalsForOrder, ids, amounts, suppliers);
   }
 
@@ -535,6 +546,7 @@ contract Market is PausableAccessPreset {
         break;
       }
     }
+    // todo revert if total from suppliers != certificate amount
     return (numberOfRemovals, ids, amounts);
   }
 
@@ -643,6 +655,8 @@ contract Market is PausableAccessPreset {
    * where it cannot be used to fill orders.
    *
    * @dev If the removal is the last for the supplier, removes the supplier from the active supplier queue.
+   *
+   * todo reserveRemoval can be generalized as into withdrawRemoval so we don't have to track reserved supply
    */
   function reserveRemoval(uint256 removalId)
     external
