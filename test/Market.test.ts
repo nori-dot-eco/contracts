@@ -252,7 +252,9 @@ describe('Market', () => {
             },
           },
         });
-        const totalListedSupply = removal.cumulativeBalanceOf(market.address);
+        const totalListedSupply = await removal.cumulativeBalanceOf(
+          market.address
+        );
         expect(totalListedSupply).to.equal(totalAmountOfSupply);
       });
       it('should correctly report the number of NRTs for sale when there are multiple removals in inventory and some were purchased', async () => {
@@ -286,7 +288,9 @@ describe('Market', () => {
           .connect(buyer)
           .swap(buyer.address, value, MaxUint256, v, r, s);
         const expectedRemainingSupply = totalAmountOfSupply.sub(purchaseAmount);
-        const totalListedSupply = removal.cumulativeBalanceOf(market.address);
+        const totalListedSupply = await removal.cumulativeBalanceOf(
+          market.address
+        );
         expect(totalListedSupply).to.equal(expectedRemainingSupply);
       });
       it('should correctly report the number of NRTs for sale when there is no inventory', async () => {
@@ -1044,9 +1048,8 @@ describe('Market', () => {
       ]);
       expect(numberOfActiveRemovals)
         .to.be.gt(Zero)
-        .and.to.equal(totalAmountOfRemovals);
-      expect(numberOfUnreservedRemovals).to.equal(Zero);
-      expect(Zero)
+        .and.to.equal(totalAmountOfRemovals)
+        .and.to.equal(numberOfUnreservedRemovals)
         .and.to.equal(cumulativeBalanceOfMarket)
         .and.to.equal(totalAmountOfSupply);
     });
