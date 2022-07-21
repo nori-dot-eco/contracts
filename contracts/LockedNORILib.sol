@@ -60,7 +60,7 @@ library LockedNORILib {
     Schedule storage schedule,
     uint256 time,
     uint256 amount
-  ) public {
+  ) internal {
     uint256 cliffCount = schedule.cliffCount;
     if (schedule.cliffCount == 0) {
       require(
