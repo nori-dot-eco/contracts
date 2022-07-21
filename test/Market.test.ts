@@ -1048,11 +1048,12 @@ describe('Market', () => {
         market.numberOfReservedRemovals(),
         // todo everywhere: cumulativeActiveSupply, cumulativeUnreservedSupply, cumulativeReservedSupply, numberOfActiveRemovals, numberOfUnreservedRemovals, numberOfReservedRemovals
       ]);
-      expect(numberOfReservedRemovals).to.eq(1);
+      expect(numberOfReservedRemovals)
+        .to.eq(1)
+        .and.to.equal(numberOfUnreservedRemovals);
       expect(numberOfActiveRemovals)
         .to.equal(1)
         .and.to.equal(totalAmountOfRemovals)
-        .and.to.equal(numberOfUnreservedRemovals)
         .and.to.equal(totalAmountOfSupply);
       expect(cumulativeBalanceOfMarket).to.equal(3);
     });
