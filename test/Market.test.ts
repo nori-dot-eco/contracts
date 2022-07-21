@@ -1265,8 +1265,7 @@ describe('purchasing from a specified supplier', () => {
       },
     });
     const purchaseAmount = formatTokenAmount(30); // enough total supply, not enough from specific supplier
-    const fee = purchaseAmount.mul(feePercentage).div(100);
-    const value = purchaseAmount.add(fee);
+    const value = await market.getCheckoutTotal(purchaseAmount);
     const { buyer } = hre.namedSigners;
     const { v, r, s } = await buyer.permit({
       verifyingContract: bpNori,

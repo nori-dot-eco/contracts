@@ -362,6 +362,8 @@ contract Market is PausableAccessPreset {
    * @param purchaseAmount The number of carbon removals being purchased.
    */
   function _checkSupply(uint256 purchaseAmount) private view {
+    // TODO: BUG: when using swap from single supplier, this function should check against the suppliers active balance,
+    //not the markets total active balance!
     uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
     if (activeSupply == 0) {
       revert OutOfStock();
@@ -479,15 +481,15 @@ contract Market is PausableAccessPreset {
       supplier
     ];
     uint256 totalNumberOfRemovalsForSupplier = 0;
-    uint256 vintage = supplierRemovalQueue.earliestYear;
     uint256 latestYear = supplierRemovalQueue.latestYear;
-    while (vintage <= latestYear) {
+    for (
+      uint256 vintage = supplierRemovalQueue.earliestYear;
+      vintage <= latestYear;
+      vintage++
+    ) {
       totalNumberOfRemovalsForSupplier += supplierRemovalQueue
         .queueByVintage[vintage]
         .length();
-      unchecked {
-        vintage++;
-      }
     }
     if (totalNumberOfRemovalsForSupplier == 0) {
       revert InsufficientSupply();
@@ -511,6 +513,12 @@ contract Market is PausableAccessPreset {
          * We will use up this removal while completing the order, move on to next one.
          */
       } else {
+        if (
+          numberOfRemovals == totalNumberOfRemovalsForSupplier - 1 &&
+          remainingAmountToFill > removalAmount
+        ) {
+          revert InsufficientSupply();
+        }
         ids[numberOfRemovals] = removalId;
         amounts[numberOfRemovals] = removalAmount; // This removal is getting used up.
         remainingAmountToFill -= removalAmount;

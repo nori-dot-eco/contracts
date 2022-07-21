@@ -102,15 +102,14 @@ describe('RemovalIdLib', () => {
     const subdivisionCodeString = 'IA';
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0,
-      methodology: 15, // too large
-      methodologyVersion: 0,
+      methodology: 1,
+      methodologyVersion: 16, // too large
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
       subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: hre.namedAccounts.supplier,
       subIdentifier: 99_039_930,
     };
-
     await expect(harness.createRemovalId(removalData)).to.be.reverted;
   });
   it('will revert if the location data includes characters that are not capital letters', async () => {
@@ -128,7 +127,7 @@ describe('RemovalIdLib', () => {
       subIdentifier: 99_039_930,
     };
     await expect(harness.createRemovalId(removalData)).revertedWith(
-      `UncapitalizedString(${removalData.country},${removalData.subdivision})`
+      `UncapitalizedString`
     );
   });
 });
