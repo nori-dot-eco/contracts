@@ -33,13 +33,13 @@ export const deploy: DeployFunction = async (environment) => {
   }
   hre.trace("Granted Market the role 'MINTER_ROLE' for RestrictedNORI");
   await rNori.registerContractAddresses(bpNori.address, removal.address);
-  hre.trace('Set market, removal and bpNori addresses in rNori');
+  hre.trace('Set removal and bpNori addresses in rNori');
   await removal.registerContractAddresses(
     rNori.address,
     market.address,
     certificate.address
   );
-  hre.trace('Set rNori address in Removal');
+  hre.trace('Set rNori, market, and certificate addresses in Market');
   // todo rest of .registerContractAddresses
 };
 

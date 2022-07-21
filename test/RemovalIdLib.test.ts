@@ -12,16 +12,12 @@ describe('RemovalIdLib', () => {
   // todo remove bytes encoding version
   it('can create a token id from the component fields and decode the token id', async () => {
     const { removalTestHarness: harness } = await setupTest();
-
     const countryCodeString = 'US';
     const subdivisionCodeString = 'IA';
     const removalData: UnpackedRemovalIdV0Struct = defaultRemovalTokenIdFixture;
-
     const removalId = await harness.createRemovalId(removalData);
-
     const unpackedRemovalId: UnpackedRemovalIdV0StructOutput =
       await harness.unpackRemovalIdV0(removalId);
-
     expect(unpackedRemovalId.idVersion).equal(removalData.idVersion);
     expect(unpackedRemovalId.methodology).equal(removalData.methodology);
     expect(unpackedRemovalId.methodologyVersion).equal(
@@ -97,18 +93,16 @@ describe('RemovalIdLib', () => {
       subdivision: asciiStringToHexString(subdivisionCodeString),
       supplierAddress: hre.namedAccounts.supplier,
     };
-    await expect(
-      harness.createRemovalId(removalDataMissingParcelId as any)
-    ).revertedWith('removalData contains wrong number of bytes');
+    await expect(harness.createRemovalId(removalDataMissingParcelId as any)).to
+      .be.reverted;
   });
   it('will revert if the methodology does not fit in one nibble', async () => {
     const { removalTestHarness: harness } = await setupTest();
-
     const countryCodeString = 'US';
     const subdivisionCodeString = 'IA';
     const removalData: UnpackedRemovalIdV0Struct = {
       idVersion: 0,
-      methodology: 16, // too large
+      methodology: 15, // too large
       methodologyVersion: 0,
       vintage: 2018,
       country: asciiStringToHexString(countryCodeString),
@@ -117,13 +111,10 @@ describe('RemovalIdLib', () => {
       subIdentifier: 99_039_930,
     };
 
-    await expect(harness.createRemovalId(removalData)).revertedWith(
-      'removalData contains wrong number of bytes'
-    );
+    await expect(harness.createRemovalId(removalData)).to.be.reverted;
   });
   it('will revert if the location data includes characters that are not capital letters', async () => {
     const { removalTestHarness: harness, hre } = await setupTest();
-
     const countryCodeString = 'uS'; // lowercase letter
     const subdivisionCodeString = 'IA';
     const removalData: UnpackedRemovalIdV0Struct = {
@@ -136,9 +127,8 @@ describe('RemovalIdLib', () => {
       supplierAddress: hre.namedAccounts.supplier,
       subIdentifier: 99_039_930,
     };
-
     await expect(harness.createRemovalId(removalData)).revertedWith(
-      'Invalid ASCII'
+      `UncapitalizedString(${removalData.country},${removalData.subdivision})`
     );
   });
 });

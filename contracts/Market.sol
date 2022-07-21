@@ -109,6 +109,7 @@ contract Market is PausableAccessPreset {
     _currentSupplierAddress = address(0);
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
+    _grantRole(RESERVER_ROLE, _msgSender());
   }
 
   /**
@@ -567,7 +568,7 @@ contract Market is PausableAccessPreset {
 
   /**
    * @notice Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
-   * `RestrictedNORI` contract, pays Nori the order fee, updates accounting, and mints the certificate.
+   * `RestrictedNORI` contract, pays Nori the order fee, updates accounting, and mints the `Certificate`.
    *
    * @param operator The message sender.
    * @param recipient The recipient of the certificate.
@@ -705,7 +706,7 @@ contract Market is PausableAccessPreset {
    */
   function unreserveRemoval(uint256 removalId)
     external
-    whenNotPaused
+    whenNotPaused // todo whenNotPaused best practice? Public funcs vs internal
     onlyRole(RESERVER_ROLE)
   {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);

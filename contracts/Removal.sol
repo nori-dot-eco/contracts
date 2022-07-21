@@ -13,6 +13,7 @@ import {ArrayLengthMismatch} from "./Errors.sol";
 // todo look into this and use unchecked more https://github.com/OpenZeppelin/openzeppelin-contracts/issues/3512
 // todo globally pack structs
 // todo define all structs at the file level as it makes it easier to import
+// todo rm all non-inherited/overridden batch fns (from all contracts, not just removal). Inherit from Multicall instead
 
 struct BatchMintRemovalsData {
   // todo can we de-dupe this with RemovalData? perhaps by nesting the struct?
@@ -184,7 +185,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     // todo what does this need to change about rNORI?
     // todo how should we handle the case where certificate == 0 after relasing? Should it still exist with value of 0?
     // todo decrement child removal balances of certificate if contained in one
-    _burn(owner, removalId, amount); // todo batch?
+    _burn(owner, removalId, amount);
   }
 
   function marketAddress() external view returns (address) {
@@ -441,7 +442,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     uint256[] memory amounts,
     bytes memory data
   ) internal override {
-    // find a way to merge this and _beforeTokenTransfer, otherwise we loop through all IDs 2x
+    // todo find a way to merge this and _beforeTokenTransfer, otherwise we loop through all IDs 2x
     uint256 numberOfTokenTransfers = amounts.length;
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
       uint256 id = ids[i];

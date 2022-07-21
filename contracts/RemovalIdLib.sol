@@ -36,8 +36,6 @@ uint256 constant _SUBID_OFFSET = 0;
 uint256 constant _ASCII_CAP_LETTER_MIN_VAL = 65;
 uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
 
-// todo rename RemovalIdLib
-
 /**
  * @dev Library encapsulating the logic around encoding and decoding removal token ids.
  *
@@ -49,9 +47,15 @@ uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
  * tokIdV--meth&v---vintage------country------subdivision------------ supplier address --------------subidentifier--
  *
  * For methodology 1 (regenerative ag), the subidentifier serves as a parcel identifier.
- *
  */
 library RemovalIdLib {
+  // todo CONTRACTNAME__ERRORNAME convention (and put any declaration in interface)
+  error UncapitalizedString(bytes2 country, bytes2 subdivision);
+  error MethodologyVersionTooLarge(uint8 methodologyVersion);
+  error UnsupportedIdVersion(uint8 idVersion);
+
+  using RemovalIdLib for UnpackedRemovalIdV0;
+
   function isCapitalized(bytes2 characters) internal pure returns (bool valid) {
     assembly {
       let firstCharacter := byte(0, characters)
@@ -63,7 +67,26 @@ library RemovalIdLib {
     }
   }
 
-  // todo does all the internal validation still apply when using a struct?
+  function validate(UnpackedRemovalIdV0 memory removalData) internal pure {
+    if (removalData.idVersion != 0) {
+      revert UnsupportedIdVersion({idVersion: removalData.idVersion});
+    }
+    if (removalData.methodologyVersion > 15) {
+      revert MethodologyVersionTooLarge({
+        methodologyVersion: removalData.methodologyVersion
+      });
+    }
+    if (
+      !(isCapitalized(removalData.country) &&
+        isCapitalized(removalData.subdivision))
+    ) {
+      revert UncapitalizedString({
+        country: removalData.country,
+        subdivision: removalData.subdivision
+      });
+    }
+  }
+
   /**
    * @notice Packs data about a removal into a 256-bit token id for the removal.
    * @dev Performs some possible validations on the data before attempting to create the id.
@@ -74,17 +97,7 @@ library RemovalIdLib {
     pure
     returns (uint256)
   {
-    require(removalData.idVersion == 0, "Unsupported removal token id version"); // todo custom errors
-    require(removalData.methodology <= 15, "Metholodogy too large");
-    require(
-      removalData.methodologyVersion <= 15,
-      "Metholodogy version too large"
-    );
-    require(
-      isCapitalized(removalData.country) &&
-        isCapitalized(removalData.subdivision),
-      "Invalid Uncapitalized ASCII"
-    );
+    removalData.validate();
     uint256 methodologyData = (removalData.methodology << 4) |
       removalData.methodologyVersion;
     return

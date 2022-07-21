@@ -234,11 +234,11 @@ contract RestrictedNORI is
     _grantRole(PAUSER_ROLE, _msgSender());
     _grantRole(SCHEDULE_CREATOR_ROLE, _msgSender());
     _grantRole(TOKEN_REVOKER_ROLE, _msgSender());
-    setRestrictionDurationForMethodologyAndVersion(
-      1,
-      0,
-      315_569_520 // Seconds in 10 years, based on average year duration of 365.2425 days, which accounts for leap years
-    );
+    setRestrictionDurationForMethodologyAndVersion({
+      methodology: 1,
+      methodologyVersion: 0,
+      durationInSeconds: 315_569_520 // Seconds in 10 years (accounts for leap years)
+    });
   }
 
   // View functions and getters =========================================
@@ -459,7 +459,7 @@ contract RestrictedNORI is
     uint256 methodologyVersion,
     uint256 durationInSeconds
   ) public whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
-    // todo test gas of external versions of all public fns
+    // todo test gas of external vs public variant of same function, switch to external or public accordingly
     if (durationInSeconds == 0) {
       revert InvalidZeroDuration();
     }
@@ -690,9 +690,9 @@ contract RestrictedNORI is
 
   // Private implementations ==========================================
   /**
-   * @notice Sets up a schedule for the specified project id (implementation).
+   * @notice Sets up a schedule for the specified project.
    *
-   * @dev schedules are created when removal tokens are listed for sale in the market contract,
+   * @dev Schedules are created when removal tokens are listed for sale in the market contract,
    * so this should only be invoked during `tokensReceived` in the exceptional case that
    * tokens were sent to this contract without a schedule set up.
    *
@@ -703,18 +703,18 @@ contract RestrictedNORI is
     ScheduleData memory scheduleData = _removal.getScheduleDataForProjectId(
       projectId
     );
-    require(scheduleData.startTime != 0, "InvalidScheduleStartTime");
+    require(scheduleData.startTime != 0, "rNORI: Invalid start time");
     address recipient = scheduleData.supplierAddress;
     if (recipient == address(0)) {
       revert RecipientCannotBeZeroAddress();
     }
-    require(_allScheduleIds.add(projectId), "Schedule exists");
+    require(_allScheduleIds.add(projectId), "rNORI: Schedule exists");
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
         scheduleData.methodology,
         scheduleData.methodologyVersion
       );
-    require(restrictionDuration != 0, "Restriction duration not set");
+    require(restrictionDuration != 0, "rNORI: duration not set");
     schedule.exists = true;
     schedule.startTime = scheduleData.startTime;
     schedule.endTime = scheduleData.startTime + restrictionDuration;

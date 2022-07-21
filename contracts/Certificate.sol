@@ -5,9 +5,9 @@ import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
 import {FunctionDisabled, ArrayLengthMismatch, SenderNotRemovalContract} from "./Errors.sol";
-import "./ICertificate.sol";
 import "./Removal.sol";
 import "./PausableAccessPreset.sol";
+import "./ICertificate.sol";
 
 error ForbiddenTransferAfterMinting();
 
@@ -62,6 +62,7 @@ contract Certificate is
 
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
+   * todo getter/setter
    */
   Removal private _removal;
 
@@ -70,22 +71,6 @@ contract Certificate is
    */
   constructor() {
     _disableInitializers();
-  }
-
-  /**
-   * @notice Registers the address of the removal contract.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
-   */
-  function registerContractAddresses(Removal removal)
-    external
-    whenNotPaused
-    onlyRole(DEFAULT_ADMIN_ROLE)
-  {
-    _removal = Removal(removal);
   }
 
   function initialize() external initializerERC721A initializer {
@@ -102,6 +87,24 @@ contract Certificate is
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo global: doesnt this happen automatically?
     _grantRole(PAUSER_ROLE, _msgSender());
     _grantRole(CERTIFICATE_OPERATOR_ROLE, _msgSender());
+  }
+
+  /**
+   * @notice Registers the address of the removal contract ontract
+   *
+   * @dev
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the contract is not paused.
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   */
+  function registerContractAddresses(Removal removal)
+    external
+    whenNotPaused
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    _removal = removal;
   }
 
   function releaseRemoval(
@@ -129,6 +132,7 @@ contract Certificate is
    *
    * - Can only be used when the contract is not paused (enforced by `_beforeTokenTransfers`). // todo consistency in
    * how this requirement is worded
+   * - `_msgSender` must be the removal contract.
    * - // TODO other reqs
    */
   function onERC1155BatchReceived(
@@ -143,7 +147,7 @@ contract Certificate is
     }
     address recipient;
     assembly {
-      recipient := mload(add(add(data, 32), 0)) // more efficient abi decode // todo keep?
+      recipient := mload(add(add(data, 32), 0)) // more efficient abi decode // todo keep? If so, ABILib.sol?
     }
     _receiveRemovalBatch(recipient, removalIds, removalAmounts);
     return this.onERC1155BatchReceived.selector;

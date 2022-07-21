@@ -164,7 +164,7 @@ describe('RestrictedNORI', () => {
           [removalIdWithMethodology2],
           packedData
         )
-      ).to.be.revertedWith('Restriction duration not set');
+      ).to.be.revertedWith('rNORI: duration not set');
     });
   });
   describe(`create schedule`, () => {
