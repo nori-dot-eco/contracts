@@ -2,22 +2,34 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
 import "forge-std/console2.sol";
 import {PRBTest} from "@prb/test/PRBTest.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 abstract contract Global is PRBTest {
   struct NamedAccounts {
-    // todo generate from env variables + use vm.addr(privatekey)
+    // todo generate from mnemonic env variables
     address admin;
     address supplier;
     address buyer;
   }
 
   NamedAccounts internal _namedAccounts =
-    NamedAccounts({admin: vm.addr(1), supplier: vm.addr(2), buyer: vm.addr(3)});
+    NamedAccounts({
+      admin: account("admin"),
+      supplier: account("supplier"),
+      buyer: account("buyer")
+    });
+
+  function account(string memory name) internal returns (address) {
+    address addr = address(
+      uint160(uint256((keccak256(abi.encodePacked(name)))))
+    );
+    vm.label(addr, name);
+    return addr;
+  }
 
   function _asSingletonUintArray(uint256 element)
     internal

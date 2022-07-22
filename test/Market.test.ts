@@ -1032,6 +1032,7 @@ describe('Market', () => {
           },
         },
       });
+
       const removalIdToReserve = listedRemovalIds[0];
       await market.reserveRemoval(removalIdToReserve);
       const [

@@ -25,11 +25,10 @@ import {SenderNotRemovalContract} from "./Errors.sol";
  * todo emit events
  * todo MARKET_ADMIN_ROLE (reserving, setting thresholds etc so they can be done from admin ui without super admin)
  * todo pausable
- * todo getters for number of active/reserved/unreserved suppliers?
- * todo consider global rename of active to name that better describes "available + reserved
+ * todo getters for number of active suppliers?
+ * todo consider global rename of active to name that better describes "available
  * todo consistency in naming of cummulative vs total (perhaps use count vs total)
  * todo consistency in naming of supply vs removals
- * todo consider withrawing when reserving instead of adding it to the _reservedSupply set
  * todo multicall?
  * todo consider using named args for functions globlaly (e.g., fn({argName: 1})). Not sure what tradeoffs are
  */
@@ -40,9 +39,7 @@ contract Market is PausableAccessPreset {
   error InsufficientSupply();
   error OutOfStock();
   error LowSupplyAllowlistRequired();
-  error RemovalAlreadyReserved(uint256 removalId);
   error RemovalNotInActiveSupply(uint256 removalId);
-  error RemovalNotInReservedSupply(uint256 removalId);
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -60,19 +57,15 @@ contract Market is PausableAccessPreset {
   uint256 private _noriFeePercentage;
   uint256 private _priorityRestrictedThreshold;
   address private _currentSupplierAddress;
-  mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
-  mapping(address => RemovalQueueByVintage) private _activeSupply;
-  EnumerableSetUpgradeable.UintSet private _reservedSupply;
+  // todo if we order removals in round robin order when listing, why care about tracking the order of addresses?
+  // todo why can't the encoded vintages be used to order removals instead of storing their set here
+  mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder; // todo can this be optimized? redundant?
+  mapping(address => RemovalQueueByVintage) private _activeSupply; // todo can this be optimized?  redundant?
 
   /**
    * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
    */
   bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
-
-  /**
-   * @notice Role allowing the purchase to reserve listed supply.
-   */
-  bytes32 public constant RESERVER_ROLE = keccak256("RESERVER_ROLE");
 
   /**
    * @notice Emitted on setting of `_priorityRestrictedThreshold`.
@@ -109,7 +102,6 @@ contract Market is PausableAccessPreset {
     _currentSupplierAddress = address(0);
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
-    _grantRole(RESERVER_ROLE, _msgSender());
   }
 
   /**
@@ -177,6 +169,7 @@ contract Market is PausableAccessPreset {
 
   /**
    * The amount of supply available for anyone to buy.
+   * todo is it important to keep this function? could just be calculated off chain using multicall
    */
   function totalUnrestrictedSupply() external view returns (uint256) {
     uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
@@ -340,31 +333,6 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev The number of distinct removal token ids listed in the market that are not reserved.
-   * todo rm and calc off-chain if needed from this.numberOfReservedRemovals() - this.reservedSupply().length
-   */
-  function numberOfUnreservedRemovals() external view returns (uint256) {
-    return
-      _removal.numberOfTokensOwnedByAddress(address(this)) -
-      this.numberOfReservedRemovals(); // todo gas vs _reservedSupply.length() ?
-  }
-
-  /**
-   * @dev The number of distinct removal token ids listed in the market that are reserved.
-   * todo rm and calc off-chain if needed from this.reservedSupply().length
-   */
-  function numberOfReservedRemovals() external view returns (uint256) {
-    return _reservedSupply.length();
-  }
-
-  /**
-   * @dev The distinct removal token ids listed in the market that are reserved.
-   */
-  function reservedSupply() external view returns (uint256[] memory) {
-    return _reservedSupply.values();
-  }
-
-  /**
    * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
    * and buyer is not priority.
    *
@@ -372,8 +340,7 @@ contract Market is PausableAccessPreset {
    */
   function _checkSupply(uint256 purchaseAmount) private view {
     // TODO: BUG: when using swap from single supplier, this function should check against the suppliers active balance,
-    //not the markets total active balance!
-    // TODO: BUG: this function doesn't consider reserved removals!
+    // not the markets total active balance!
     uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
     if (activeSupply == 0) {
       revert OutOfStock();
@@ -554,6 +521,8 @@ contract Market is PausableAccessPreset {
    * @notice Sets the Nori fee percentage (as an integer) which is the percentage of
    * each purchase that will be paid to Nori as the marketplace operator.
    *
+   * @dev
+   *
    * ##### Requirements:
    * - Can only be used when the caller has the DEFAULT_ADMIN_ROLE
    * - Can only be used when this contract is not paused
@@ -571,6 +540,8 @@ contract Market is PausableAccessPreset {
   /**
    * @notice Sets the Nori fee wallet address (as an integer) which is the address to which the
    * marketplace operator fee will be routed during each purchase.
+   *
+   * @dev
    *
    * ##### Requirements:
    * - Can only be used when the caller has the DEFAULT_ADMIN_ROLE
@@ -651,28 +622,24 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @notice Removes the removal from active supply and inserts it into the reserved supply,
-   * where it cannot be used to fill orders.
-   *
-   * @dev If the removal is the last for the supplier, removes the supplier from the active supplier queue.
-   *
-   * todo reserveRemoval can be generalized as into withdrawRemoval so we don't have to track reserved supply
+   * todo
    */
-  function reserveRemoval(uint256 removalId)
-    external
-    whenNotPaused
-    onlyRole(RESERVER_ROLE)
-  {
+  function withdraw(uint256 removalId) external whenNotPaused {
+    // todo require(msgSender == RemovalIdLib.supplierAddress(removalId))
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     _removeActiveRemoval(supplierAddress, removalId);
-    if (!_reservedSupply.add(removalId)) {
-      revert RemovalAlreadyReserved({removalId: removalId});
-    }
+    _removal.safeTransferFrom(
+      address(this),
+      supplierAddress,
+      removalId,
+      _removal.balanceOf(address(this), removalId),
+      ""
+    );
   }
 
   /**
    * @notice Removes the specified removal id from the active supply data structure.
-   * If this is the supplier's last active removal, the supplier is also removed from the active supplier queue.
+   * @dev If this is the supplier's last active removal, the supplier is also removed from the active supplier queue.
    */
   function _removeActiveRemoval(
     address supplierAddress,
@@ -693,50 +660,19 @@ contract Market is PausableAccessPreset {
    * - The contract must not be paused. This is enforced by `Removal._beforeTokenTransfer`.
    *
    * todo rest of requirements (waiting on docs)
+   * todo emit event?
+   * todo is whenNotPaused redundant (called from removal contract)?
    */
-  function release(uint256 removalId, uint256 amount) external {
-    // todo consider making this a generalized `withdrawRemoval`?
-    // todo emit event?
-    // todo is whenNotPaused redundant (called from removal contract)?
+  function release(uint256 removalId, uint256 amount) external whenNotPaused {
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     if (amount == removalBalance) {
-      _unreserveRemoval(removalId, false);
       _removeActiveRemoval(supplierAddress, removalId);
     }
     // todo what do we do when amount != removalBalance?
-  }
-
-  /**
-   * @notice Removes a removal from the reserved supply.
-   */
-  function _unreserveRemoval(uint256 removalId, bool throwIfMissing) internal {
-    if (!_reservedSupply.remove(removalId) && throwIfMissing) {
-      revert RemovalNotInReservedSupply({removalId: removalId});
-    }
-  }
-
-  /**
-   * @notice Adds the removal back to active supply to be sold.
-   *
-   * @dev Removes removal from reserved supply and re-inserts it into the active supply, where it can be used to
-   * fill orders again. If the supplier's other removals have all been sold, adds the supplier back to the
-   * list of active suppliers
-   */
-  function unreserveRemoval(uint256 removalId)
-    external
-    whenNotPaused // todo whenNotPaused best practice? Public funcs vs internal
-    onlyRole(RESERVER_ROLE)
-  {
-    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    _unreserveRemoval(removalId, true);
-    if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
-      _addActiveSupplier(supplierAddress);
-    }
-    _activeSupply[supplierAddress].insertRemovalByVintage(removalId);
   }
 
   /**
@@ -766,11 +702,10 @@ contract Market is PausableAccessPreset {
   /**
    * @notice Adds a supplier to the active supplier queue.
    *
-   * @dev Called when a new supplier is added to the marketplace, or after they have sold out and a reserved removal is
-   * unreserved. If the first supplier, initializes a cicularly doubly-linked list, where initially the first supplier
-   * points to itself as next and previous. When a new supplier is added, at the position of the current supplier,
-   * update the previous pointer of the current supplier to point to the new supplier, and update the next pointer of
-   * the previous supplier to the new supplier.
+   * @dev Called when a new supplier is added to the marketplace. If the first supplier, initializes a cicularly
+   * doubly-linked list, where initially the first supplier points to itself as next and previous. When a new supplier
+   * is added, at the position of the current supplier, update the previous pointer of the current supplier to point to
+   * the new supplier, and update the next pointer of the previous supplier to the new supplier.
    */
   function _addActiveSupplier(address supplierAddress) private {
     // If this is the first supplier to be added, update the intialized addresses.

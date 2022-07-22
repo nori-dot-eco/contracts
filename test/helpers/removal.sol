@@ -1,8 +1,8 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, var-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-import "@/contracts/Removal.sol";
 import "@/test/helpers/test.sol";
+import "@/contracts/Removal.sol";
 
 abstract contract UpgradeableRemoval is Upgradeable {
   /**
@@ -43,6 +43,36 @@ abstract contract UpgradeableRemoval is Upgradeable {
       _removalImplementation.initialize.selector
     );
     return Removal(_deployProxy(address(_removalImplementation), initializer));
+  }
+
+  function _seedRemovalWithSubIdentifier(uint32 subIdentifier)
+    internal
+    returns (uint256)
+  {
+    UnpackedRemovalIdV0 memory removalData = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "AA",
+      subdivision: "ZZ",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: subIdentifier
+    });
+    BatchMintRemovalsData memory batchMintData = BatchMintRemovalsData({
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50,
+      list: true
+    });
+    uint256 _removalId = _removal.createRemovalId(removalData);
+    _removal.mintBatch(
+      _namedAccounts.supplier,
+      _asSingletonUintArray(1 ether),
+      _asSingletonUintArray(_removalId),
+      batchMintData
+    );
+    return _removalId;
   }
 }
 
