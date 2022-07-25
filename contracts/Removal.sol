@@ -134,7 +134,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     address to,
     uint256[] memory amounts,
     uint256[] memory ids, // todo structs[] instead of encoding beforehand
-    BatchMintRemovalsData memory data
+    BatchMintRemovalsData memory data // todo is a struct necessary here? Can we just add args instead?
   ) external onlyRole(MINTER_ROLE) {
     uint256 numberOfRemovals = ids.length;
     if (!(amounts.length == numberOfRemovals)) {
@@ -467,7 +467,8 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
       uint256 id = ids[i];
       if (from != address(0)) {
         if (balanceOf(from, id) == 0) {
-          _addressToOwnedTokenIds[from].remove(id);
+          // todo batch
+          require(_addressToOwnedTokenIds[from].remove(id));
         }
       }
       if (to != address(0)) {

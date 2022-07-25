@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-// todo rename Unit256ArrayLib
+// todo rename Uint256ArrayLib
 library ArrayLib {
   function range(uint256 from, uint256 to)
     internal
@@ -58,6 +58,17 @@ library ArrayLib {
       for (uint256 i = 0; i < n; ++i) to[i] = from[i];
     }
     return to;
+  }
+
+  function toMemory(uint256[3] memory arr)
+    internal
+    pure
+    returns (uint256[] memory out)
+  {
+    unchecked {
+      out = new uint256[](3);
+      for (uint256 i; i < 3; ++i) out[i] = arr[i];
+    }
   }
 }
 

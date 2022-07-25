@@ -13,6 +13,7 @@ abstract contract Global is PRBTest {
     // todo generate from mnemonic env variables
     address admin;
     address supplier;
+    address supplier2;
     address buyer;
   }
 
@@ -20,6 +21,7 @@ abstract contract Global is PRBTest {
     NamedAccounts({
       admin: account("admin"),
       supplier: account("supplier"),
+      supplier2: account("supplier2"),
       buyer: account("buyer")
     });
 

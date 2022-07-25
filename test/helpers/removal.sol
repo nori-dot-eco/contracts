@@ -3,8 +3,12 @@
 pragma solidity =0.8.15;
 import "@/test/helpers/test.sol";
 import "@/contracts/Removal.sol";
+import "@/contracts/ArrayLib.sol";
 
 abstract contract UpgradeableRemoval is Upgradeable {
+  using ArrayLib for uint256[];
+  using AddressArrayLib for address[];
+
   /**
    * @dev
    * UnpackedRemovalIdV0({
@@ -45,34 +49,37 @@ abstract contract UpgradeableRemoval is Upgradeable {
     return Removal(_deployProxy(address(_removalImplementation), initializer));
   }
 
-  function _seedRemovalWithSubIdentifier(uint32 subIdentifier)
+  function _seedRemoval(address to, uint32 count)
     internal
-    returns (uint256)
+    returns (uint256[] memory)
   {
-    UnpackedRemovalIdV0 memory removalData = UnpackedRemovalIdV0({
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "AA",
-      subdivision: "ZZ",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: subIdentifier
-    });
+    uint256[] memory _removalIds = new uint256[](count);
+    for (uint32 i = 0; i < count; i++) {
+      UnpackedRemovalIdV0 memory removalData = UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: 2018,
+        country: "AA",
+        subdivision: "ZZ",
+        supplierAddress: to,
+        subIdentifier: count + i
+      });
+      _removalIds[i] = _removal.createRemovalId(removalData);
+    }
     BatchMintRemovalsData memory batchMintData = BatchMintRemovalsData({
       projectId: 1_234_567_890,
       scheduleStartTime: block.timestamp,
       holdbackPercentage: 50,
       list: true
     });
-    uint256 _removalId = _removal.createRemovalId(removalData);
     _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1 ether),
-      _asSingletonUintArray(_removalId),
+      to,
+      new uint256[](count).fill(1 ether),
+      _removalIds,
       batchMintData
     );
-    return _removalId;
+    return _removalIds;
   }
 }
 

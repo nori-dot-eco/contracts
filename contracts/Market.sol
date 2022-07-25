@@ -23,7 +23,7 @@ import {SenderNotRemovalContract} from "./Errors.sol";
  *
  * todo more documentation
  * todo emit events
- * todo MARKET_ADMIN_ROLE (reserving, setting thresholds etc so they can be done from admin ui without super admin)
+ * todo MARKET_ADMIN_ROLE (setting thresholds etc so they can be done from admin ui without super admin)
  * todo pausable
  * todo getters for number of active suppliers?
  * todo consider global rename of active to name that better describes "available
@@ -37,6 +37,7 @@ contract Market is PausableAccessPreset {
   using RemovalQueue for RemovalQueueByVintage;
 
   error InsufficientSupply();
+  error OnlyAdminOrSupplierCanWithdraw(); // todo consider allowing operators
   error OutOfStock();
   error LowSupplyAllowlistRequired();
   error RemovalNotInActiveSupply(uint256 removalId);
@@ -625,16 +626,22 @@ contract Market is PausableAccessPreset {
    * todo
    */
   function withdraw(uint256 removalId) external whenNotPaused {
-    // todo require(msgSender == RemovalIdLib.supplierAddress(removalId))
-    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    _removeActiveRemoval(supplierAddress, removalId);
-    _removal.safeTransferFrom(
-      address(this),
-      supplierAddress,
-      removalId,
-      _removal.balanceOf(address(this), removalId),
-      ""
-    );
+    if (
+      _msgSender() == RemovalIdLib.supplierAddress(removalId) ||
+      hasRole(DEFAULT_ADMIN_ROLE, _msgSender())
+    ) {
+      address supplierAddress = RemovalIdLib.supplierAddress(removalId);
+      _removeActiveRemoval(supplierAddress, removalId);
+      _removal.safeTransferFrom(
+        address(this),
+        supplierAddress,
+        removalId,
+        _removal.balanceOf(address(this), removalId),
+        ""
+      );
+    } else {
+      revert OnlyAdminOrSupplierCanWithdraw();
+    }
   }
 
   /**
@@ -744,7 +751,7 @@ contract Market is PausableAccessPreset {
   /**
    * @notice Removes a supplier from the active supplier queue.
    *
-   * @dev Called when a supplier's last removal is used for an order or reserved. If the last supplier,
+   * @dev Called when a supplier's last removal is used for an order. If the last supplier,
    * resets the pointer for the currentSupplierAddress. Otherwise, from the position of the supplier to be
    * removed, update the previous supplier to point to the next of the removed supplier, and the next of
    * the removed supplier to point to the previous of the remove supplier. Then, set the next and previous

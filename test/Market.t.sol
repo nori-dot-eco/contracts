@@ -7,40 +7,126 @@ import "@/contracts/ArrayLib.sol";
 using ArrayLib for uint256[];
 using AddressArrayLib for address[];
 
-contract Market_ALLOWLIST_ROLE is UpgradeableMarket {
-  function test() external {
-    assertEq(_market.ALLOWLIST_ROLE(), keccak256("ALLOWLIST_ROLE"));
+abstract contract MarketWithdrawTestHelper is UpgradeableMarket {
+  uint256[] internal _removalIds;
+  address[] internal _suppliers;
+  uint256[] internal _expectedRemovalBalances;
+  uint256 internal _expectedMarketSupply;
+  uint256 internal _amountPerRemoval = 1 ether;
+
+  function _assertCorrectStates() internal {
+    assertEq(
+      _removal.balanceOfBatch(_suppliers, _removalIds),
+      _expectedRemovalBalances
+    );
+    assertEq(_market.totalUnrestrictedSupply(), _expectedMarketSupply);
+    // todo assert  rest of queue state
   }
 }
 
-// todo test with 3 suppliers, 3 removals each, withdraw from center
-// todo test with 2 suppliers 1 removal each, withdraw from end
-// todo test with 2 suppliers, 1 removal each, withdraw from start
-contract Market_withdraw is UpgradeableMarket {
-  uint256[] private _removalIds;
-  address[] private _suppliers;
-  uint32 private _count = uint32(1);
-
+contract Market_withdraw is MarketWithdrawTestHelper {
   function setUp() external {
-    _removalIds = new uint256[](_count).fill(
-      _seedRemovalWithSubIdentifier(_count)
-    );
-    _suppliers = new address[](_count).fill(_namedAccounts.supplier);
-    assertEq(
-      _removal.balanceOfBatch(_suppliers, _removalIds),
-      new uint256[](_count).fill(0)
-    );
-    assertEq(_market.totalUnrestrictedSupply(), 1 ether * _count);
+    _removalIds = _seedRemoval({to: _namedAccounts.supplier, count: 1});
+    _suppliers = new address[](1).fill(_namedAccounts.supplier);
+    _expectedRemovalBalances = [0];
+    _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
+    _assertCorrectStates();
   }
 
   function test() external {
     vm.prank(_namedAccounts.supplier);
     _market.withdraw(_removalIds[0]);
-    assertEq(
-      _removal.balanceOfBatch(_suppliers, _removalIds),
-      new uint256[](_count).fill(1 ether * _count)
-    );
-    assertEq(_market.totalUnrestrictedSupply(), 0);
-    // todo assert  rest of queue state
+    _expectedRemovalBalances = [_amountPerRemoval];
+    _expectedMarketSupply = 0;
+    _assertCorrectStates();
+  }
+}
+
+contract Market_withdraw_reverts_OnlyAdminOrSupplierCanWithdraw is
+  MarketWithdrawTestHelper
+{
+  function setUp() external {
+    _removalIds = _seedRemoval({to: _namedAccounts.supplier, count: 1});
+    _suppliers = new address[](1).fill(_namedAccounts.supplier);
+    _expectedRemovalBalances = [0];
+    _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
+    _assertCorrectStates();
+  }
+
+  function test() external {
+    vm.prank(_namedAccounts.supplier2);
+    vm.expectRevert(Market.OnlyAdminOrSupplierCanWithdraw.selector);
+    _market.withdraw(_removalIds[0]);
+    _expectedRemovalBalances = [_amountPerRemoval];
+    _expectedMarketSupply = 0;
+    _assertCorrectStates();
+  }
+}
+
+contract Market_withdraw_1x3_center is MarketWithdrawTestHelper {
+  function setUp() external {
+    _suppliers = new address[](3).fill(_namedAccounts.supplier);
+    _expectedRemovalBalances = [0, 0, 0];
+    _removalIds = _seedRemoval({to: _namedAccounts.supplier, count: 3});
+    _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
+    _assertCorrectStates();
+  }
+
+  function test() external {
+    vm.prank(_namedAccounts.supplier);
+    _market.withdraw(_removalIds[1]);
+    _expectedRemovalBalances = [0, _amountPerRemoval, 0];
+    _expectedMarketSupply = _amountPerRemoval * (_removalIds.length - 1);
+    _assertCorrectStates();
+  }
+}
+
+/** @dev Test withdraw from the front of the market when the market has 1 removal across two suppliers */
+contract Market_withdraw_2x1_front is MarketWithdrawTestHelper {
+  function setUp() external {
+    _suppliers = [_namedAccounts.supplier, _namedAccounts.supplier2];
+    _removalIds = [
+      _seedRemoval({to: _namedAccounts.supplier, count: 1})[0],
+      _seedRemoval({to: _namedAccounts.supplier2, count: 1})[0]
+    ];
+    _expectedRemovalBalances = [0, 0];
+    _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
+    _assertCorrectStates();
+  }
+
+  function test() external {
+    vm.prank(_namedAccounts.supplier);
+    _market.withdraw(_removalIds[0]);
+    _expectedRemovalBalances = [_amountPerRemoval, 0];
+    _expectedMarketSupply = _amountPerRemoval * (_removalIds.length - 1);
+    _assertCorrectStates();
+  }
+}
+
+/** @dev Test withdraw from the back of the market when the market has 1 removal across two suppliers */
+contract Market_withdraw_2x1_back is MarketWithdrawTestHelper {
+  function setUp() external {
+    _suppliers = [_namedAccounts.supplier, _namedAccounts.supplier2];
+    _removalIds = [
+      _seedRemoval({to: _namedAccounts.supplier, count: 1})[0],
+      _seedRemoval({to: _namedAccounts.supplier2, count: 1})[0]
+    ];
+    _expectedRemovalBalances = [0, 0];
+    _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
+    _assertCorrectStates();
+  }
+
+  function test() external {
+    vm.prank(_namedAccounts.supplier2);
+    _market.withdraw(_removalIds[1]);
+    _expectedRemovalBalances = [0, _amountPerRemoval];
+    _expectedMarketSupply = _amountPerRemoval * (_removalIds.length - 1);
+    _assertCorrectStates();
+  }
+}
+
+contract Market_ALLOWLIST_ROLE is UpgradeableMarket {
+  function test() external {
+    assertEq(_market.ALLOWLIST_ROLE(), keccak256("ALLOWLIST_ROLE"));
   }
 }
