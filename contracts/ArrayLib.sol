@@ -59,32 +59,9 @@ library ArrayLib {
     }
     return to;
   }
-
-  function toMemory(uint256[3] memory arr)
-    internal
-    pure
-    returns (uint256[] memory out)
-  {
-    unchecked {
-      out = new uint256[](3);
-      for (uint256 i; i < 3; ++i) out[i] = arr[i];
-    }
-  }
 }
 
 library AddressArrayLib {
-  // function fill(address[] memory arr, address val)
-  //   internal
-  //   pure
-  //   returns (address[] memory ret)
-  // {
-  //   uint256 n = arr.length;
-  //   unchecked {
-  //     for (uint256 i; i < n; ++i) ret[i] = val;
-  //   }
-  //   return ret;
-  // }
-
   function fill(address[] memory arr, address val)
     internal
     pure
