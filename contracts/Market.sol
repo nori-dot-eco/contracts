@@ -21,23 +21,19 @@ import {SenderNotRemovalContract} from "./Errors.sol";
  * Each of these certificates is a non-transferrable, non-fungible token that owns the specific removal tokens
  * and token balances that comprise the specific certificate for the amount purchased.
  *
- * todo more documentation
- * todo emit events
- * todo MARKET_ADMIN_ROLE (setting thresholds etc so they can be done from admin ui without super admin)
- * todo pausable
- * todo getters for number of active suppliers?
- * todo consider global rename of active to name that better describes "available
- * todo consistency in naming of cummulative vs total (perhaps use count vs total)
- * todo consistency in naming of supply vs removals
- * todo multicall?
- * todo consider using named args for functions globlaly (e.g., fn({argName: 1})). Not sure what tradeoffs are
+ * todo Emit events when state mutates and other existing events aren't capturing that change
+ * todo Consider adding MARKET_ADMIN_ROLE (sets thresholds, etc, so they can be done from admin ui without super admin)
+ * todo Consider adding getters for number of active suppliers
+ * todo consider globally renaming "active"/"reserved" to names that better describe "(un)available" (e.g., "listed"?)
+ * todo consistency in variables/fns that use "cumulative" vs "total" nomenclature (perhaps use count vs total)
+ * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
  */
 contract Market is PausableAccessPreset {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
 
   error InsufficientSupply();
-  error OnlyAdminOrSupplierCanWithdraw(); // todo consider allowing operators
+  error OnlyAdminOrSupplierCanWithdraw();
   error OutOfStock();
   error LowSupplyAllowlistRequired();
   error RemovalNotInActiveSupply(uint256 removalId);
@@ -58,10 +54,9 @@ contract Market is PausableAccessPreset {
   uint256 private _noriFeePercentage;
   uint256 private _priorityRestrictedThreshold;
   address private _currentSupplierAddress;
-  // todo if we order removals in round robin order when listing, why care about tracking the order of addresses?
-  // todo why can't the encoded vintages be used to order removals instead of storing their set here
-  mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder; // todo can this be optimized? redundant?
-  mapping(address => RemovalQueueByVintage) private _activeSupply; // todo can this be optimized?  redundant?
+
+  mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
+  mapping(address => RemovalQueueByVintage) private _activeSupply;
 
   /**
    * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
@@ -86,9 +81,8 @@ contract Market is PausableAccessPreset {
     Certificate certificate,
     RestrictedNORI restrictedNori,
     address noriFeeWalletAddress,
-    uint256 noriFeePercentage
+    uint256 noriFeePercentage_
   ) public initializer {
-    // todo verify all initializers are called
     __Context_init_unchained();
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
@@ -97,7 +91,7 @@ contract Market is PausableAccessPreset {
     _bridgedPolygonNori = bridgedPolygonNori;
     _certificate = certificate;
     _restrictedNori = restrictedNori;
-    _noriFeePercentage = noriFeePercentage;
+    _noriFeePercentage = noriFeePercentage_;
     _noriFeeWallet = noriFeeWalletAddress;
     _priorityRestrictedThreshold = 0;
     _currentSupplierAddress = address(0);
@@ -117,16 +111,16 @@ contract Market is PausableAccessPreset {
    * @notice Returns the current value of the Nori fee percentage, as an integer, which is the percentage of
    * each purchase that will be paid to Nori as the marketplace operator.
    */
-  function getNoriFeePercentage() external view returns (uint256) {
-    // todo getX vs X naming convention + consistency
+  function noriFeePercentage() external view returns (uint256) {
     return _noriFeePercentage;
   }
 
   /**
    * @notice Calculates the Nori fee required for a purchase of `amount` tonnes of carbon removals.
+   * todo consider renaming getNoriFee to something like `calculateNoriFee`
    */
   function getNoriFee(uint256 amount) external view returns (uint256) {
-    return (amount * _noriFeePercentage) / 100; // todo muldiv from OZ?;
+    return (amount * _noriFeePercentage) / 100;
   }
 
   /**
@@ -139,7 +133,7 @@ contract Market is PausableAccessPreset {
   /**
    * @notice Returns the address to which the marketplace operator fee will be routed during each purchase.
    */
-  function getNoriFeeWallet() external view returns (address) {
+  function noriFeeWallet() external view returns (address) {
     return _noriFeeWallet;
   }
 
@@ -169,8 +163,8 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * The amount of supply available for anyone to buy.
-   * todo is it important to keep this function? could just be calculated off chain using multicall
+   * @notice The amount of supply available for anyone to buy.
+   * todo consider removing `totalUnrestrictedSupply` as it can be calculated off chain using MultiCall
    */
   function totalUnrestrictedSupply() external view returns (uint256) {
     uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
@@ -186,7 +180,8 @@ contract Market is PausableAccessPreset {
    * `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`
    * (i.e. 0xbc197c81, or its own function selector).
    *
-   * @dev See {https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver}
+   * @dev
+   * See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver] for more.
    *
    * @param ids An array containing ids of each token being transferred (order and length must match values array)
    * @return bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
@@ -199,8 +194,7 @@ contract Market is PausableAccessPreset {
     uint256[] memory,
     bytes memory
   ) external returns (bytes4) {
-    // todo revert if not removal.sol
-    // todo whennotpaused
+    // todo revert if Market.onERC1155BatchReceived sender is not the removal contract
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = RemovalIdLib.supplierAddress(removalToAdd);
@@ -212,9 +206,10 @@ contract Market is PausableAccessPreset {
         _addActiveSupplier(supplierAddress);
       }
     }
+    // todo consider moving rNori schedule creating logic to the Removal or rNori contracts if possible
     _restrictedNori.createSchedule(
-      _removal.getProjectIdForRemoval(ids[0]) // todo move to removal minting logic if possible
-      // todo revert is ids don't all belong to the same project?
+      _removal.getProjectIdForRemoval(ids[0])
+      // todo consider reverting when creating an rNori schedule if all removal IDs don't all belong to the same project
     );
     return this.onERC1155BatchReceived.selector;
   }
@@ -222,7 +217,7 @@ contract Market is PausableAccessPreset {
   /**
    * @notice Exchanges NORI for carbon removals and issues a certificate to `recipient`.
    *
-   * @dev See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
+   * @dev See [https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit](ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
    * to transfer the sender's NORI to complete the purchase. A certificate is issued by Certificate.sol
    * to the specified recipient and NORI is distributed to the supplier of the carbon removal,
@@ -232,7 +227,7 @@ contract Market is PausableAccessPreset {
    * @param recipient The address to which the certificate will be issued.
    * @param amount The total purchase amount in NORI. This is the combined total of the number of removals being
    * purchased and the fee paid to Nori.
-   * @param deadline The EIP2612 permit deadline in unixtime.
+   * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature
    * @param r The r value for the permit's secp256k1 signature
    * @param s The s value for the permit's secp256k1 signature
@@ -261,7 +256,7 @@ contract Market is PausableAccessPreset {
       v,
       r,
       s
-    ); // todo check-effects
+    );
     this.fulfillOrder(
       _msgSender(),
       recipient,
@@ -289,10 +284,12 @@ contract Market is PausableAccessPreset {
    * @param amount The total purchase amount in NORI. This is the combined total of the number of removals being
    * purchased and the fee paid to Nori.
    * @param supplierToBuyFrom The only supplier address from which to purchase carbon removals in this transaction.
-   * @param deadline The EIP2612 permit deadline in unixtime.
+   * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature
    * @param r The r value for the permit's secp256k1 signature
    * @param s The s value for the permit's secp256k1 signature
+   *
+   * todo make `swapFromSpecificSupplier` and `swap` re-use more of the same logic to de-dupe code
    */
   function swapFromSpecificSupplier(
     address recipient,
@@ -314,7 +311,7 @@ contract Market is PausableAccessPreset {
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       suppliers[i] = supplierToBuyFrom;
     }
-    _bridgedPolygonNori.permit( // todo de-dupe if possible
+    _bridgedPolygonNori.permit(
       _msgSender(),
       address(this),
       amount,
@@ -324,7 +321,7 @@ contract Market is PausableAccessPreset {
       s
     );
     this.fulfillOrder(
-      _msgSender(), // todo not sure why this was needed when making fulfillorder external
+      _msgSender(),
       recipient,
       numberOfRemovals,
       ids,
@@ -340,8 +337,7 @@ contract Market is PausableAccessPreset {
    * @param purchaseAmount The number of carbon removals being purchased.
    */
   function _checkSupply(uint256 purchaseAmount) private view {
-    // TODO: BUG: when using swap from single supplier, this function should check against the suppliers active balance,
-    // not the markets total active balance!
+    // TODO: BUG: `swapFromSpecificSupplier` -> `_checkSupply` should check the suppliers balance, not the markets
     uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
     if (activeSupply == 0) {
       revert OutOfStock();
@@ -352,7 +348,7 @@ contract Market is PausableAccessPreset {
       }
     }
     if (purchaseAmount > activeSupply) {
-      revert InsufficientSupply(); // todo test the logic for these checks is correct for all states
+      revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
     }
   }
 
@@ -378,21 +374,17 @@ contract Market is PausableAccessPreset {
     uint256 remainingAmountToFill = certificateAmount;
     uint256 numberOfActiveRemovalsInMarket = _removal
       .numberOfTokensOwnedByAddress(
-        address(this) // todo are we making calls like this throughout the contract flow? if so can we pass values down?
+        address(this) // todo are we making external calls throughout the contract? if so can we pass values down?
       );
     uint256[] memory ids = new uint256[](numberOfActiveRemovalsInMarket);
     uint256[] memory amounts = new uint256[](numberOfActiveRemovalsInMarket);
     address[] memory suppliers = new address[](numberOfActiveRemovalsInMarket);
     uint256 numberOfRemovalsForOrder = 0;
-    // TODO (Gas Optimization): Declare variables outside of loop
-    for (
-      uint256 i = 0;
-      i < numberOfActiveRemovalsInMarket;
-      i++ // todo ++i consistency
-    ) {
+    for (uint256 i = 0; i < numberOfActiveRemovalsInMarket; i++) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
-      uint256 removalAmount = _removal.balanceOf(address(this), removalId); // todo batch
+      // todo retrieve balances in a single batch call
+      uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       if (remainingAmountToFill < removalAmount) {
         /**
          * The order is complete, not fully using up this removal, don't increment currentSupplierAddress,
@@ -431,7 +423,7 @@ contract Market is PausableAccessPreset {
         break;
       }
     }
-    // todo revert if total from suppliers != certificate amount
+    // todo revert single-supplier supply allocation if the total from suppliers != certificate amount
     return (numberOfRemovalsForOrder, ids, amounts, suppliers);
   }
 
@@ -446,6 +438,7 @@ contract Market is PausableAccessPreset {
    * @return amounts An array of amounts being allocated from each corresponding removal token.
    */
   function _allocateSupplySingleSupplier(
+    // todo address code-complexity solhint issue
     uint256 certificateAmount,
     address supplier
   )
@@ -477,7 +470,6 @@ contract Market is PausableAccessPreset {
     uint256[] memory ids = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256[] memory amounts = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256 numberOfRemovals = 0;
-    // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < totalNumberOfRemovalsForSupplier; i++) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
@@ -514,7 +506,7 @@ contract Market is PausableAccessPreset {
         break;
       }
     }
-    // todo revert if total from suppliers != certificate amount
+    // todo revert multi-supplier supply allocation if the total from suppliers != certificate amount
     return (numberOfRemovals, ids, amounts);
   }
 
@@ -528,14 +520,14 @@ contract Market is PausableAccessPreset {
    * - Can only be used when the caller has the DEFAULT_ADMIN_ROLE
    * - Can only be used when this contract is not paused
    *
-   * @param noriFeePercentage The new fee percentage as an integer.
+   * @param noriFeePercentage_ The new fee percentage as an integer.
    */
-  function setNoriFeePercentage(uint256 noriFeePercentage)
+  function setNoriFeePercentage(uint256 noriFeePercentage_)
     external
     onlyRole(DEFAULT_ADMIN_ROLE)
     whenNotPaused
   {
-    _noriFeePercentage = noriFeePercentage;
+    _noriFeePercentage = noriFeePercentage_;
   }
 
   /**
@@ -568,8 +560,9 @@ contract Market is PausableAccessPreset {
    * @param ids An array of removal token ids involved in fulfilling this order.
    * @param amounts An array of amounts being allocated from each corresponding removal token.
    * @param suppliers An array of suppliers
-
-   * todo need to permission this now that it's external (or figure out how to use calldata with internal funcs)
+   *
+   * todo permission `fulfillOrder` now that it is external (or figure out how to use calldata with internal fns)
+   * todo use correct check-effects pattern in `fulfillOrder`
    */
   function fulfillOrder(
     address operator,
@@ -579,13 +572,12 @@ contract Market is PausableAccessPreset {
     uint256[] calldata amounts,
     address[] memory suppliers
   ) external {
-    // todo might need to undo this `[:numberOfRemovals]` change (not sure if slice includes correct values)
+    // todo verify changes to `fulfillOrder` (memory->calldata arr args) that enabled [:index] arr slicing syntax is ok
     uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
     uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
       batchedIds
     );
-    // TODO (Gas Optimization): Declare variables outside of loop
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       uint256 restrictedSupplierFee = 0;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
@@ -594,7 +586,8 @@ contract Market is PausableAccessPreset {
           (unrestrictedSupplierFee * holdbackPercentages[i]) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo use single batch call, check effects
+
+        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo mint rNori in a single batch call
         _bridgedPolygonNori.transferFrom(
           operator,
           address(_restrictedNori),
@@ -605,8 +598,8 @@ contract Market is PausableAccessPreset {
         operator,
         _noriFeeWallet,
         this.getNoriFee(batchedAmounts[i])
-      ); // todo use multicall to batch transfer
-      _bridgedPolygonNori.transferFrom( // todo batch, check effects pattern
+      ); // todo use MultiCall to batch transfer bpNori in `fulfillOrder`
+      _bridgedPolygonNori.transferFrom(
         operator,
         suppliers[i],
         unrestrictedSupplierFee
@@ -623,7 +616,8 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * todo
+   * todo consider allowing operators of a removal to withdraw from the market
+   * todo consider allowing calls to withdraw to specify the recipient address for the withdrawn removal
    */
   function withdraw(uint256 removalId) external whenNotPaused {
     if (
@@ -666,9 +660,9 @@ contract Market is PausableAccessPreset {
    *
    * - The contract must not be paused. This is enforced by `Removal._beforeTokenTransfer`.
    *
-   * todo rest of requirements (waiting on docs)
-   * todo emit event?
-   * todo is whenNotPaused redundant (called from removal contract)?
+   * todo Add the rest of the requirements
+   * todo Emit event when removal is released if TransferSingle events can be emitted with to: addr(0) in other cases
+   * todo is `whenNotPaused` modifier redundant since it's only invoked from `Removal.release` calls?
    */
   function release(uint256 removalId, uint256 amount) external whenNotPaused {
     if (_msgSender() != address(_removal)) {

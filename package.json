@@ -14,7 +14,7 @@
     "@octokit/rest": "^18.12.0",
     "@openzeppelin/contracts": "4.7.1",
     "@openzeppelin/contracts-upgradeable": "4.7.1",
-    "erc721a-upgradeable": "github:chiru-labs/ERC721A-Upgradeable#7fa742e7df58500e67677eee826a2c398ee5a75d",
+    "erc721a-upgradeable": "4.2.1",
     "@openzeppelin/hardhat-defender": "^1.7.0",
     "@openzeppelin/hardhat-upgrades": "=1.17.0",
     "@openzeppelin/test-helpers": "^0.5.15",

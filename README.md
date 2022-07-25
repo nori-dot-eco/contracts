@@ -25,7 +25,7 @@ yarn install
 - BridgedPolygonNORI
   - 0x8cf6E82919f69aE382DEf8f94e581a43Ce1E70C1
 - LockedNORI
-  - 0xCcFfFA6c2a030821331cC113b63babDC60BfF82A # todo fork repo note
+  - 0xCcFfFA6c2a030821331cC113b63babDC60BfF82A
 - Certificate
 - Removal
 - Market
@@ -33,7 +33,7 @@ yarn install
 ### mumbai (polygon testnet)
 
 - BridgedPolygonNORI
-- LockedNORI # todo fork repo note
+- LockedNORI
 - Certificate
 - Removal
 - Market
@@ -50,7 +50,7 @@ yarn install
 ### localhost (hardhat standalone)
 
 - BridgedPolygonNORI
-- LockedNORI # todo fork repo note
+- LockedNORI
 - Certificate
 - Removal
 - Market
