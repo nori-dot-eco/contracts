@@ -64,7 +64,7 @@ contract Market is PausableAccessPreset {
   mapping(address => RemovalQueueByVintage) private _activeSupply; // todo can this be optimized?  redundant?
 
   /**
-   * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
+   * @notice Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
    */
   bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
 
