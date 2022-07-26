@@ -19,7 +19,6 @@ abstract contract UpgradeableMarket is
   constructor() {
     _market = _deployMarket();
     _removal.registerContractAddresses( // todo move to removal helper
-      RestrictedNORI(_rNori),
       Market(_market),
       Certificate(_certificate)
     );

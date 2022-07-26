@@ -56,11 +56,6 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
-   * @notice the `RestrictedNORI` contract that manages restricted tokens.
-   */
-  RestrictedNORI private _restrictedNori;
-
-  /**
    * @notice The `Market` contract that removals can be bought and sold from.
    */
   Market private _market;
@@ -99,16 +94,15 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
   /**
    * @dev Registers the market, rNORI, and certificate contracts so that they can be referenced in this contract.
    */
-  function registerContractAddresses(
-    RestrictedNORI restrictedNori,
-    Market market,
-    Certificate certificate
-  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+  function registerContractAddresses(Market market, Certificate certificate)
+    external
+    whenNotPaused
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
     // todo configureContract() that does this + grantRole
     // todo can any of these be included in the initializer instead?
     // todo need a better contract registry system
     // todo do we want to break apart these registerContractAddresses() functions for each separate contract?
-    _restrictedNori = restrictedNori;
     _market = market;
     _certificate = certificate;
   }
@@ -190,10 +184,6 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
 
   function marketAddress() external view returns (address) {
     return address(_market);
-  }
-
-  function restrictedNoriAddress() external view returns (address) {
-    return address(_restrictedNori);
   }
 
   function certificateAddress() external view returns (address) {
