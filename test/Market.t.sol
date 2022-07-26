@@ -57,8 +57,6 @@ contract Market_withdraw_reverts_OnlyAdminOrSupplierCanWithdraw is
     vm.prank(_namedAccounts.supplier2);
     vm.expectRevert(Market.OnlyAdminOrSupplierCanWithdraw.selector);
     _market.withdraw(_removalIds[0]);
-    _expectedRemovalBalances = [_amountPerRemoval];
-    _expectedMarketSupply = 0;
     _assertCorrectStates();
   }
 }
