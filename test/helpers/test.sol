@@ -38,6 +38,7 @@ abstract contract Global is PRBTest {
     pure
     returns (uint256[] memory)
   {
+    // todo deprecate in favor of ArrayLib.fill
     uint256[] memory array = new uint256[](1);
     array[0] = element;
     return array;
@@ -48,6 +49,7 @@ abstract contract Global is PRBTest {
     pure
     returns (address[] memory)
   {
+    // todo deprecate in favor of ArrayLib.fill
     address[] memory array = new address[](1);
     array[0] = element;
     return array;

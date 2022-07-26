@@ -52,7 +52,11 @@ abstract contract MarketBalanceTestHelper is UpgradeableMarket {
 
 contract Market_setPriorityRestrictedThreshold is MarketBalanceTestHelper {
   function setUp() external {
-    _removalIds = _seedRemovals({to: _namedAccounts.supplier, count: 1});
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
     _suppliers = new address[](1).fill(_namedAccounts.supplier);
     _expectedRemovalBalances = [0];
     _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
@@ -86,7 +90,11 @@ contract Market_setPriorityRestrictedThreshold is MarketBalanceTestHelper {
 
 contract Market_withdraw is MarketBalanceTestHelper {
   function setUp() external {
-    _removalIds = _seedRemovals({to: _namedAccounts.supplier, count: 1});
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
     _suppliers = new address[](1).fill(_namedAccounts.supplier);
     _expectedRemovalBalances = [0];
     _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
@@ -110,7 +118,11 @@ contract Market_withdraw_reverts_OnlyAdminOrSupplierCanWithdraw is
   MarketBalanceTestHelper
 {
   function setUp() external {
-    _removalIds = _seedRemovals({to: _namedAccounts.supplier, count: 1});
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
     _suppliers = new address[](1).fill(_namedAccounts.supplier);
     _expectedRemovalBalances = [0];
     _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
@@ -131,7 +143,11 @@ contract Market_withdraw_1x3_center is MarketBalanceTestHelper {
   function setUp() external {
     _suppliers = new address[](3).fill(_namedAccounts.supplier);
     _expectedRemovalBalances = [0, 0, 0];
-    _removalIds = _seedRemovals({to: _namedAccounts.supplier, count: 3});
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 3,
+      list: true
+    });
     _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
     _expectedTokenCount.set(_namedAccounts.supplier, 0);
     _expectedTokenCount.set(address(_market), _removalIds.length);
@@ -154,8 +170,8 @@ contract Market_withdraw_2x1_front is MarketBalanceTestHelper {
   function setUp() external {
     _suppliers = [_namedAccounts.supplier, _namedAccounts.supplier2];
     _removalIds = [
-      _seedRemovals({to: _namedAccounts.supplier, count: 1})[0],
-      _seedRemovals({to: _namedAccounts.supplier2, count: 1})[0]
+      _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true})[0],
+      _seedRemovals({to: _namedAccounts.supplier2, count: 1, list: true})[0]
     ];
     _expectedRemovalBalances = [0, 0];
     _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
@@ -188,8 +204,8 @@ contract Market_withdraw_2x1_front_relist is MarketBalanceTestHelper {
   function setUp() external {
     _suppliers = [_namedAccounts.supplier, _namedAccounts.supplier2];
     _removalIds = [
-      _seedRemovals({to: _namedAccounts.supplier, count: 1})[0],
-      _seedRemovals({to: _namedAccounts.supplier2, count: 1})[0]
+      _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true})[0],
+      _seedRemovals({to: _namedAccounts.supplier2, count: 1, list: true})[0]
     ];
     _assertListedState();
     vm.prank(_namedAccounts.supplier);
@@ -219,8 +235,8 @@ contract Market_withdraw_2x1_back is MarketBalanceTestHelper {
   function setUp() external {
     _suppliers = [_namedAccounts.supplier, _namedAccounts.supplier2];
     _removalIds = [
-      _seedRemovals({to: _namedAccounts.supplier, count: 1})[0],
-      _seedRemovals({to: _namedAccounts.supplier2, count: 1})[0]
+      _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true})[0],
+      _seedRemovals({to: _namedAccounts.supplier2, count: 1, list: true})[0]
     ];
     _expectedRemovalBalances = [0, 0];
     _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
