@@ -7,6 +7,7 @@ import "@/test/helpers/bridged-polygon-nori.sol";
 import "@/test/helpers/removal.sol";
 import "@/test/helpers/certificate.sol";
 import "@/test/helpers/restricted-nori.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 abstract contract UpgradeableMarket is
   UpgradeableRestrictedNORI,
@@ -18,6 +19,7 @@ abstract contract UpgradeableMarket is
 
   constructor() {
     _market = _deployMarket();
+    vm.label(address(_market), "Market");
     _removal.registerContractAddresses( // todo move to removal helper
       RestrictedNORI(_rNori),
       Market(_market),
@@ -33,6 +35,7 @@ abstract contract UpgradeableMarket is
 
   function _deployMarket() internal returns (Market) {
     Market impl = new Market();
+    vm.label(address(impl), "Market Implementation");
     bytes memory initializer = abi.encodeWithSelector(
       impl.initialize.selector,
       address(_removal),
@@ -42,7 +45,21 @@ abstract contract UpgradeableMarket is
       address(_namedAccounts.admin),
       15
     );
-    return Market(_deployProxy(address(impl), initializer));
+    Market marketProxy = Market(_deployProxy(address(impl), initializer));
+    vm.label(address(marketProxy), "Market Proxy");
+    return marketProxy;
+  }
+
+  function _availableMarketSupply(uint256[] memory removalIds)
+    internal
+    view
+    returns (uint256)
+  {
+    (, uint256 availableSupply) = SafeMathUpgradeable.trySub(
+      _cumulativeBalanceOfRemovalsForOwner(address(_market), removalIds),
+      _market.priorityRestrictedThreshold()
+    );
+    return availableSupply;
   }
 }
 

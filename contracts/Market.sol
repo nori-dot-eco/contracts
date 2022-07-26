@@ -163,18 +163,8 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @notice The amount of supply available for anyone to buy.
-   * todo consider removing `totalUnrestrictedSupply` as it can be calculated off chain using MultiCall
-   */
-  function totalUnrestrictedSupply() external view returns (uint256) {
-    uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
-    return
-      activeSupply < _priorityRestrictedThreshold
-        ? 0
-        : activeSupply - _priorityRestrictedThreshold; // todo compare this against trySub?
-  }
-
-  /**
+=======
+>>>>>>> origin/jaycen-withdraw-removal
    * @notice Handles the receipt of a multiple ERC1155 token types. This function is called at the end of a
    * `safeBatchTransferFrom` after the balances have been updated. To accept the transfer(s), this must return
    * `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`
@@ -586,7 +576,6 @@ contract Market is PausableAccessPreset {
           (unrestrictedSupplierFee * holdbackPercentages[i]) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-
         _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo mint rNori in a single batch call
         _bridgedPolygonNori.transferFrom(
           operator,

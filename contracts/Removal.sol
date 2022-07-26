@@ -38,7 +38,11 @@ error RemovalAmountZero(uint256 tokenId);
 /**
  * @title Removal
  */
-contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
+contract Removal is
+  ERC1155SupplyUpgradeable,
+  PausableAccessPreset,
+  MulticallUpgradeable
+{
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   /**
@@ -91,6 +95,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     __ERC1155Supply_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
+    __Multicall_init_unchained();
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(PAUSER_ROLE, _msgSender());
     _grantRole(MINTER_ROLE, _msgSender());
@@ -156,7 +161,13 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     });
     _mintBatch(to, ids, amounts, "");
     if (data.list) {
-      safeBatchTransferFrom(to, address(_market), ids, amounts, "");
+      safeBatchTransferFrom({
+        from: to,
+        to: address(_market),
+        ids: ids,
+        amounts: amounts,
+        data: ""
+      });
     }
   }
 
@@ -247,38 +258,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     return holdbackPercentages;
   }
 
-  // todo `cumulativeBalanceOfBatch` will not scale well- consider dropping it (and any other fns relying on set.values)
-  function cumulativeBalanceOfBatch(address[] memory accounts)
-    external
-    view
-    returns (uint256[] memory)
-  {
-    uint256 numberOfAccounts = accounts.length;
-    uint256[] memory batchBalances = new uint256[](numberOfAccounts);
-    for (uint256 i = 0; i < numberOfAccounts; ++i) {
-      batchBalances[i] = this.cumulativeBalanceOf(accounts[i]);
-    }
-    return batchBalances;
-  }
-
-  function cumulativeBalanceOfOwnersSubset(address owner, uint256[] memory ids)
-    external
-    view
-    returns (uint256)
-  {
-    address[] memory owners = new address[](ids.length);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      owners[i] = owner;
-    }
-    uint256[] memory totals = balanceOfBatch(owners, ids);
-    uint256 total = 0;
-    for (uint256 i = 0; i < totals.length; ++i) {
-      total += totals[i];
-    }
-    return total;
-  }
-
-  // todo tokensOfOwner will not scale well as it relies on set.values- consider dropping it
+  // todo this function will not scale well- consider dropping it somehow
   function tokensOfOwner(
     address owner // todo global rename (tokens -> removals?)
   ) external view returns (uint256[] memory) {
@@ -292,7 +272,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
       owner
     ];
-    uint256 numberOfTokensOwned = removals.length();
+    uint256 numberOfTokensOwned = this.numberOfTokensOwnedByAddress(owner);
     address[] memory owners = new address[](numberOfTokensOwned);
     for (uint256 i = 0; i < numberOfTokensOwned; ++i) {
       owners[i] = owner;
@@ -362,9 +342,21 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
       hasRole(MINTER_ROLE, _msgSender())
     ) // todo consider adding `listForSale` as a function instead of overriding `safeBatchTransferFrom`
     {
-      _safeBatchTransferFrom(from, to, ids, amounts, data);
+      _safeBatchTransferFrom({
+        from: from,
+        to: to,
+        ids: ids,
+        amounts: amounts,
+        data: data
+      });
     } else {
-      super.safeBatchTransferFrom(from, to, ids, amounts, data);
+      super.safeBatchTransferFrom({
+        from: from,
+        to: to,
+        ids: ids,
+        amounts: amounts,
+        data: data
+      });
     }
   }
 
@@ -459,9 +451,10 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
       uint256 id = ids[i];
       if (from != address(0)) {
-        if (balanceOf(from, id) == 0) {
-          // todo batch calls to remove using multicall instead of calling in a loop
-          require(_addressToOwnedTokenIds[from].remove(id)); // todo handle failed calls to remove with a custom error
+        if (
+          balanceOf(from, id) == 0 // todo batch calls to remove using multicall instead of calling in a loop
+        ) {
+          _addressToOwnedTokenIds[from].remove(id);
         }
       }
       if (to != address(0)) {

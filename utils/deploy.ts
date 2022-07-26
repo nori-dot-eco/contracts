@@ -125,7 +125,7 @@ export const deployRemovalContract = async ({
   return hre.deployOrUpgradeProxy<Removal, Removal__factory>({
     contractName: 'Removal',
     args: [],
-    options: { initializer: 'initialize()' },
+    options: { initializer: 'initialize()', unsafeAllow: ['delegatecall'] },
   });
 };
 

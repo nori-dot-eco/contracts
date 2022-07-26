@@ -22,6 +22,13 @@ library UInt256ArrayLib {
     return _fill(arr, new uint256[](arr.length), val);
   }
 
+  function sum(uint256[] memory arr) internal pure returns (uint256) {
+    uint256 n = arr.length;
+    uint256 total = 0;
+    for (uint256 i = 0; i < n; ++i) total += arr[i];
+    return total;
+  }
+
   function _fill(
     uint256[] memory from,
     uint256[] memory to,

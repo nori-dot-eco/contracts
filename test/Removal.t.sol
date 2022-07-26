@@ -4,6 +4,9 @@ pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import {BatchMintRemovalsData, RemovalAmountZero} from "@/contracts/Removal.sol";
 
+using ArrayLib for uint256[];
+using AddressArrayLib for address[];
+
 // todo fuzz RemovalIdLib
 
 contract Removal_mintBatch is UpgradeableRemoval {
@@ -269,26 +272,28 @@ contract Removal_release_listed is UpgradeableMarket {
   }
 }
 
-contract Removal_cummulativeBalanceOfBatch is UpgradeableRemoval {
-  function test() external {
-    BatchMintRemovalsData memory data = BatchMintRemovalsData({
-      projectId: 5_555_555_555,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
+contract Removal_multicall is UpgradeableRemoval {
+  /** @dev Asserts that we can get a cumulative balance for a list of removals owned by an account using multicall */
+  function test_balanceOfBatch() external {
+    uint256[] memory ids = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 2,
       list: false
     });
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      data
-    );
-    assertEq(
-      _removal.cumulativeBalanceOfBatch(
-        _asSingletonAddressArray(_namedAccounts.supplier)
-      ),
-      _asSingletonUintArray(1)
-    );
+    bytes[] memory balanceOfBatchCalls = new bytes[](ids.length);
+    for (uint256 i = 0; i < ids.length; ++i) {
+      balanceOfBatchCalls[i] = abi.encodeWithSelector(
+        _removal.balanceOfBatch.selector,
+        new address[](1).fill(_namedAccounts.supplier),
+        new uint256[](1).fill(ids[i])
+      );
+    }
+    bytes[] memory results = _removal.multicall(balanceOfBatchCalls);
+    uint256 total = 0;
+    for (uint256 i = 0; i < results.length; ++i) {
+      total += abi.decode(results[i], (uint256[])).sum();
+    }
+    assertEq(total, 2 ether);
   }
 }
 
