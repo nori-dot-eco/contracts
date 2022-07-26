@@ -49,7 +49,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
     return Removal(_deployProxy(address(_removalImplementation), initializer));
   }
 
-  function _seedRemoval(address to, uint32 count)
+  function _seedRemovals(address to, uint32 count)
     internal
     returns (uint256[] memory)
   {
