@@ -10,12 +10,13 @@ using ArrayLib for uint256[];
 using AddressArrayLib for address[];
 using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
 
-abstract contract MarketWithdrawTestHelper is UpgradeableMarket {
+abstract contract MarketBalanceTestHelper is UpgradeableMarket {
   uint256[] internal _removalIds;
   address[] internal _suppliers;
   uint256[] internal _expectedRemovalBalances;
   uint256 internal _expectedMarketSupply;
   uint256 internal _amountPerRemoval = 1 ether;
+  uint256 internal _expectedPriorityRestrictedThreshold;
   EnumerableMapUpgradeable.AddressToUintMap internal _expectedTokenCount;
 
   function _assertCorrectStates() internal {
@@ -27,6 +28,11 @@ abstract contract MarketWithdrawTestHelper is UpgradeableMarket {
     assertEq(
       _availableMarketSupply(_removalIds),
       _expectedMarketSupply,
+      "Expected availableSupply to equal _expectedMarketSupply"
+    );
+    assertEq(
+      _market.priorityRestrictedThreshold(),
+      _expectedPriorityRestrictedThreshold,
       "Expected availableSupply to equal _expectedMarketSupply"
     );
     for (uint256 i; i < _expectedTokenCount.length(); ++i) {
@@ -44,7 +50,41 @@ abstract contract MarketWithdrawTestHelper is UpgradeableMarket {
   }
 }
 
-contract Market_withdraw is MarketWithdrawTestHelper {
+contract Market_setPriorityRestrictedThreshold is MarketBalanceTestHelper {
+  function setUp() external {
+    _removalIds = _seedRemovals({to: _namedAccounts.supplier, count: 1});
+    _suppliers = new address[](1).fill(_namedAccounts.supplier);
+    _expectedRemovalBalances = [0];
+    _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
+    _expectedTokenCount.set(_namedAccounts.supplier, 0);
+    _expectedTokenCount.set(address(_market), 1);
+    _assertCorrectStates();
+  }
+
+  function test() external {
+    _expectedPriorityRestrictedThreshold = 0.5 ether;
+    _market.setPriorityRestrictedThreshold(
+      _expectedPriorityRestrictedThreshold
+    );
+    _expectedMarketSupply =
+      (_amountPerRemoval * _removalIds.length) -
+      _expectedPriorityRestrictedThreshold;
+    _assertCorrectStates();
+  }
+
+  function test_zeroAvailable() external {
+    _expectedPriorityRestrictedThreshold =
+      _amountPerRemoval *
+      _removalIds.length;
+    _market.setPriorityRestrictedThreshold(
+      _expectedPriorityRestrictedThreshold
+    );
+    _expectedMarketSupply = 0;
+    _assertCorrectStates();
+  }
+}
+
+contract Market_withdraw is MarketBalanceTestHelper {
   function setUp() external {
     _removalIds = _seedRemovals({to: _namedAccounts.supplier, count: 1});
     _suppliers = new address[](1).fill(_namedAccounts.supplier);
@@ -67,7 +107,7 @@ contract Market_withdraw is MarketWithdrawTestHelper {
 }
 
 contract Market_withdraw_reverts_OnlyAdminOrSupplierCanWithdraw is
-  MarketWithdrawTestHelper
+  MarketBalanceTestHelper
 {
   function setUp() external {
     _removalIds = _seedRemovals({to: _namedAccounts.supplier, count: 1});
@@ -87,7 +127,7 @@ contract Market_withdraw_reverts_OnlyAdminOrSupplierCanWithdraw is
   }
 }
 
-contract Market_withdraw_1x3_center is MarketWithdrawTestHelper {
+contract Market_withdraw_1x3_center is MarketBalanceTestHelper {
   function setUp() external {
     _suppliers = new address[](3).fill(_namedAccounts.supplier);
     _expectedRemovalBalances = [0, 0, 0];
@@ -110,7 +150,7 @@ contract Market_withdraw_1x3_center is MarketWithdrawTestHelper {
 }
 
 /** @dev Test withdraw from the front of the market when the market has 1 removal across two suppliers */
-contract Market_withdraw_2x1_front is MarketWithdrawTestHelper {
+contract Market_withdraw_2x1_front is MarketBalanceTestHelper {
   function setUp() external {
     _suppliers = [_namedAccounts.supplier, _namedAccounts.supplier2];
     _removalIds = [
@@ -136,7 +176,7 @@ contract Market_withdraw_2x1_front is MarketWithdrawTestHelper {
 }
 
 /** @dev Test withdraw from the front of the market when the market has 1 removal across two suppliers, then relists */
-contract Market_withdraw_2x1_front_relist is MarketWithdrawTestHelper {
+contract Market_withdraw_2x1_front_relist is MarketBalanceTestHelper {
   function _assertListedState() internal {
     _expectedRemovalBalances = [0, 0];
     _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
@@ -175,7 +215,7 @@ contract Market_withdraw_2x1_front_relist is MarketWithdrawTestHelper {
 }
 
 /** @dev Test withdraw from the back of the market when the market has 1 removal across two suppliers */
-contract Market_withdraw_2x1_back is MarketWithdrawTestHelper {
+contract Market_withdraw_2x1_back is MarketBalanceTestHelper {
   function setUp() external {
     _suppliers = [_namedAccounts.supplier, _namedAccounts.supplier2];
     _removalIds = [

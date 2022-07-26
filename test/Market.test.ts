@@ -299,35 +299,6 @@ describe('Market', () => {
           .and.to.equal(await removal.cumulativeBalanceOf(market.address));
       });
     });
-    describe('totalUnrestrictedSupply', () => {
-      it('should return 0 when there is inventory but it is below the priority restricted threshold', async () => {
-        const { market } = await setupTest({
-          userFixtures: {
-            supplier: {
-              removalDataToList: { removals: [{ amount: 100 }] },
-            },
-          },
-        });
-        await market.setPriorityRestrictedThreshold(formatTokenAmount(200));
-        expect(await market.totalUnrestrictedSupply()).to.equal(Zero);
-      });
-      it('should return the unrestricted portion of supply when inventory is above the priority restricted threshold', async () => {
-        const priorityThreshold = formatTokenAmount(200); // todo setPriorityRestrictedThreshold fixture
-        const { market, totalAmountOfSupply } = await setupTest({
-          userFixtures: {
-            supplier: {
-              removalDataToList: { removals: [{ amount: 300 }] },
-            },
-          },
-        });
-        await market.setPriorityRestrictedThreshold(priorityThreshold);
-        const expectedTotalUnrestrictedSupply =
-          totalAmountOfSupply.sub(priorityThreshold);
-        expect(await market.totalUnrestrictedSupply()).to.equal(
-          expectedTotalUnrestrictedSupply
-        );
-      });
-    });
   });
   describe('when listing supply in the market', () => {
     it('should update cumulativeActiveSupply, numberOfActiveRemovals, and activeSupplierCount when a new supplier is added', async () => {
