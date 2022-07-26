@@ -6,7 +6,7 @@ import "@/contracts/ArrayLib.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
 
-using ArrayLib for uint256[];
+using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
 using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
 
