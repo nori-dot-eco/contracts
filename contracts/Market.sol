@@ -65,7 +65,7 @@ contract Market is PausableAccessPreset {
   EnumerableSetUpgradeable.UintSet private _reservedSupply;
 
   /**
-   * @notice Role allowing the purchase of supply when inventory is below the priority restricted threshold.
+   * @notice Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
    */
   bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
 
