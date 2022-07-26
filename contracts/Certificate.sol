@@ -20,7 +20,6 @@ error ForbiddenTransferAfterMinting();
  * todo how hard would it be to use ERC721AStorage layout for child removals?
  * todo consider removing all batch functions from all contracts (seems gratuitous to include it when you can
  * usually achieve the same effect by inheriting multicall, OR using an external multicall contract)
- * todo what is _msgSenderERC721A
  * todo multicall (globally?)
  * todo we are using a git commit for the erc721a dep. bc v4.1 doesn't have a virtual approve function, but master does
  * todo remove all "see {}" syntax from natspec (this only works in the context of OZ contracts repos)
@@ -247,6 +246,11 @@ contract Certificate is
     override(ERC721AUpgradeable, IERC721AUpgradeable)
   {
     revert FunctionDisabled();
+  }
+
+  /** @dev For more, see [here](https://github.com/chiru-labs/ERC721A/pull/281) */
+  function _msgSenderERC721A() internal view override returns (address) {
+    return _msgSender();
   }
 
   /**
