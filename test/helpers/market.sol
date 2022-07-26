@@ -7,6 +7,7 @@ import "@/test/helpers/bridged-polygon-nori.sol";
 import "@/test/helpers/removal.sol";
 import "@/test/helpers/certificate.sol";
 import "@/test/helpers/restricted-nori.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 abstract contract UpgradeableMarket is
   UpgradeableRestrictedNORI,
@@ -43,6 +44,18 @@ abstract contract UpgradeableMarket is
       15
     );
     return Market(_deployProxy(address(impl), initializer));
+  }
+
+  function _availableSupply(uint256[] memory removalIds)
+    internal
+    view
+    returns (uint256)
+  {
+    (, uint256 availableSupply) = SafeMathUpgradeable.trySub(
+      _cumulativeBalanceOfRemovalsForOwner(address(_market), removalIds),
+      _market.priorityRestrictedThreshold()
+    );
+    return availableSupply;
   }
 }
 

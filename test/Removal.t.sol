@@ -269,29 +269,6 @@ contract Removal_release_listed is UpgradeableMarket {
   }
 }
 
-contract Removal_cummulativeBalanceOfBatch is UpgradeableRemoval {
-  function test() external {
-    BatchMintRemovalsData memory data = BatchMintRemovalsData({
-      projectId: 5_555_555_555,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
-      list: false
-    });
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      data
-    );
-    assertEq(
-      _removal.cumulativeBalanceOfBatch(
-        _asSingletonAddressArray(_namedAccounts.supplier)
-      ),
-      _asSingletonUintArray(1)
-    );
-  }
-}
-
 contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
   // todo test the rest of the cases
   function test() external {

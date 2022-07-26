@@ -250,40 +250,6 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
   }
 
   // todo this function will not scale well- consider dropping it somehow
-  function cumulativeBalanceOfBatch(address[] memory accounts)
-    external
-    view
-    returns (uint256[] memory)
-  {
-    // todo use multicall instead
-    uint256 numberOfAccounts = accounts.length;
-    uint256[] memory batchBalances = new uint256[](numberOfAccounts);
-    for (uint256 i = 0; i < numberOfAccounts; ++i) {
-      batchBalances[i] = this.cumulativeBalanceOf(accounts[i]);
-    }
-    return batchBalances;
-  }
-
-  // todo do we need to also add a version of these functions compatible with childTokens in certificate?
-  // todo batch?
-  function cumulativeBalanceOfOwnersSubset(address owner, uint256[] memory ids)
-    external
-    view
-    returns (uint256)
-  {
-    address[] memory owners = new address[](ids.length);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      owners[i] = owner;
-    }
-    uint256[] memory totals = balanceOfBatch(owners, ids);
-    uint256 total = 0;
-    for (uint256 i = 0; i < totals.length; ++i) {
-      total += totals[i];
-    }
-    return total;
-  }
-
-  // todo this function will not scale well- consider dropping it somehow
   function tokensOfOwner(
     address owner // todo global rename (tokens -> removals?)
   ) external view returns (uint256[] memory) {

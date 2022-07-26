@@ -169,18 +169,6 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * The amount of supply available for anyone to buy.
-   * todo is it important to keep this function? could just be calculated off chain using multicall
-   */
-  function totalUnrestrictedSupply() external view returns (uint256) {
-    uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
-    return
-      activeSupply < _priorityRestrictedThreshold
-        ? 0
-        : activeSupply - _priorityRestrictedThreshold; // todo compare this against trySub?
-  }
-
-  /**
    * @notice Handles the receipt of a multiple ERC1155 token types. This function is called at the end of a
    * `safeBatchTransferFrom` after the balances have been updated. To accept the transfer(s), this must return
    * `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`

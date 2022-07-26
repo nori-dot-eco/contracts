@@ -17,9 +17,14 @@ abstract contract MarketWithdrawTestHelper is UpgradeableMarket {
   function _assertCorrectStates() internal {
     assertEq(
       _removal.balanceOfBatch(_suppliers, _removalIds),
-      _expectedRemovalBalances
+      _expectedRemovalBalances,
+      "Expected _removal.balanceOfBatch(_suppliers, _removalIds) to equal _expectedRemovalBalances"
     );
-    assertEq(_market.totalUnrestrictedSupply(), _expectedMarketSupply);
+    assertEq(
+      _availableSupply(_removalIds),
+      _expectedMarketSupply,
+      "Expected availableSupply to equal _expectedMarketSupply"
+    );
     // todo assert  rest of queue state
   }
 }

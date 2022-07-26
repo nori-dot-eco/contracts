@@ -81,6 +81,16 @@ abstract contract UpgradeableRemoval is Upgradeable {
     );
     return _removalIds;
   }
+
+  function _cumulativeBalanceOfRemovalsForOwner(
+    address owner,
+    uint256[] memory ids
+  ) internal view returns (uint256) {
+    return
+      _removal
+        .balanceOfBatch(new address[](ids.length).fill(address(owner)), ids)
+        .sum();
+  }
 }
 
 abstract contract NonUpgradableRemoval is Removal, Global {}
