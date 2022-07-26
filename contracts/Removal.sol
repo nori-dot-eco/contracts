@@ -455,9 +455,10 @@ contract Removal is
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
       uint256 id = ids[i];
       if (from != address(0)) {
-        if (balanceOf(from, id) == 0) {
-          // todo batch
-          require(_addressToOwnedTokenIds[from].remove(id));
+        if (
+          balanceOf(from, id) == 0 // todo batch
+        ) {
+          _addressToOwnedTokenIds[from].remove(id);
         }
       }
       if (to != address(0)) {
