@@ -10,7 +10,7 @@ contract PausableAccessPreset is
   AccessControlEnumerableUpgradeable
 {
   /**
-   * @notice Role conferring pausing and unpausing of this contract
+   * @notice Role conferring pausing and unpausing of this contract.
    */
   bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
