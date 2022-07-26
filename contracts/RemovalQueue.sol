@@ -5,9 +5,6 @@ import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./Removal.sol";
 
-// todo if we order removals in round robin order when listing, why care about tracking the order of addresses?
-// todo why can't encoded vintages be used to order removals instead of storing their set here?
-// todo can the `RemovalQueueByVintage`+`RoundRobinOrder` structs be further optimized?
 struct RemovalQueueByVintage {
   mapping(uint256 => EnumerableSetUpgradeable.UintSet) queueByVintage;
   uint256 earliestYear;
