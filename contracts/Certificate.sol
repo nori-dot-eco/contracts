@@ -8,7 +8,6 @@ import {FunctionDisabled, ArrayLengthMismatch, SenderNotRemovalContract} from ".
 import "./Removal.sol";
 import "./PausableAccessPreset.sol";
 import "./ICertificate.sol";
-import "./BytesLib.sol";
 
 error ForbiddenTransferAfterMinting();
 
@@ -25,7 +24,6 @@ contract Certificate is
   PausableAccessPreset
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-  using BytesLib for bytes;
 
   struct Balance {
     uint256 id;
