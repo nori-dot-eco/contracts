@@ -335,10 +335,8 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) public override {
-    if (
-      hasRole(MINTER_ROLE, _msgSender())
-    ) // todo consider adding `listForSale` as a function instead of overriding `safeBatchTransferFrom`
-    {
+    // todo _safeTransferFrom doesn't have the same behavior as this batch variant.fix that or disable non-batch version
+    if (hasRole(MINTER_ROLE, _msgSender())) {
       _safeBatchTransferFrom({
         from: from,
         to: to,
