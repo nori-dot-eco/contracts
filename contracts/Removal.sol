@@ -173,7 +173,6 @@ contract Removal is
 
   /**
    * @notice Marks an amount of a removal as released given a removal ID and a quantity.
-   * @param owner The owner of the removal to release.
    * @param removalId The ID of the removal to mark as released.
    * @param amount The amount of the removal to release.
    *
@@ -185,15 +184,13 @@ contract Removal is
    * - The caller must have the `RELEASER_ROLE`.
    * - The rules of `_burn` are enforced.
    */
-  function release(
-    address owner,
-    uint256 removalId,
-    uint256 amount
-  ) external onlyRole(RELEASER_ROLE) {
-    // todo are we accounting for what needs to happen in rNori when a removal is released?
-    // todo how should we handle the case where a certificate amount is 0 after releasing?
-    // todo adequately test accounting when release is called (e.g., check child balances, parent balances, etc)
-    _burn(owner, removalId, amount);
+  function release(uint256 removalId, uint256 amount)
+    external
+    onlyRole(RELEASER_ROLE)
+  {
+    // todo how should we handle the case where certificate == 0 after relasing? Should it still exist with value of 0?
+    // todo decrement child removal balances of certificate if contained in one
+    _burn(removalId, amount);
   }
 
   function marketAddress() external view returns (address) {
@@ -369,42 +366,67 @@ contract Removal is
     return super.supportsInterface(interfaceId);
   }
 
+  // todo improve docs to describe the order of which things are released from (unlisted -> market -> certificate)
   /**
    * @notice Burns an amount of tokens from an account.
-   * @dev Destroys `amount` tokens of token type `id` from `from`. If the tokens are included as part of any
+   * @dev Destroys `amount` tokens of token type `id`. If the tokens are included as part of any
    * certificates, the certificate balances are decremented by `amount` as well.
    *
    * ##### Requirements:
    *
    * - Enforces the rules of `ERC1155Upgradeable._burn`.
    */
-  function _burn(
-    address from,
-    uint256 id,
-    uint256 amount
-  ) internal override {
-    if (from == address(_market)) {
-      _market.release(id, amount);
-    } else if (from == address(_certificate)) {
-      Certificate.Balance[] memory certificatesOfRemoval = _certificate
-        .certificatesOfRemoval(id);
-      uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
-      bytes[] memory releaseCalls = new bytes[](numberOfCertificatesForRemoval);
-      for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
-        // todo releaseFromCertificate vs releaseUnlisted
-        Certificate.Balance memory certificateBalance = certificatesOfRemoval[
-          i
-        ];
-        releaseCalls[i] = abi.encodeWithSelector(
-          _certificate.releaseRemoval.selector,
-          certificateBalance.id,
-          id,
-          certificateBalance.amount
-        );
-      }
-      _certificate.multicall(releaseCalls);
+  function _burn(uint256 id, uint256 amount) internal {
+    // todo needs more tests
+    uint256 amountBurned = 0;
+    address market = this.marketAddress();
+    address certificate = this.certificateAddress();
+    uint256 unlistedBalance = balanceOf(RemovalIdLib.supplierAddress(id), id);
+    uint256 listedBalance = balanceOf(market, id);
+    uint256 soldBalance = balanceOf(certificate, id);
+    if (unlistedBalance > 0) {
+      amountBurned += MathUpgradeable.min(amount, unlistedBalance);
+      super._burn(RemovalIdLib.supplierAddress(id), id, amountBurned); // todo single call to _burnBatch or emit event
     }
-    super._burn(from, id, amount);
+    if (amount - amountBurned <= amount) {
+      if (listedBalance > 0) {
+        uint256 amountToReleaseFromMarket = 0;
+        amountToReleaseFromMarket = MathUpgradeable.min(
+          amount - amountBurned,
+          listedBalance
+        );
+        amountBurned += amountToReleaseFromMarket;
+        super._burn(market, id, amountToReleaseFromMarket);
+        _market.release(id, amountToReleaseFromMarket);
+      }
+      if (amount - amountBurned <= amount && soldBalance > 0) {
+        Certificate.Balance[] memory certificatesOfRemoval = _certificate
+          .certificatesOfRemoval(id);
+        uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
+        bytes[] memory releaseCalls = new bytes[](
+          numberOfCertificatesForRemoval
+        );
+        for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
+          Certificate.Balance memory certificateBalance = certificatesOfRemoval[
+            i
+          ];
+          uint256 amountToReleaseFromCertificate = MathUpgradeable.min(
+            amount - amountBurned,
+            certificateBalance.amount
+          );
+          amountBurned += amountToReleaseFromCertificate;
+          releaseCalls[i] = abi.encodeWithSelector(
+            _certificate.releaseRemoval.selector,
+            certificateBalance.id,
+            id,
+            amountToReleaseFromCertificate
+          );
+          super._burn(certificate, id, amountToReleaseFromCertificate);
+          if (amountBurned == amount) break;
+        }
+        _certificate.multicall(releaseCalls);
+      }
+    }
   }
 
   /**
