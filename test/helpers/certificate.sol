@@ -24,4 +24,4 @@ abstract contract UpgradeableCertificate is Upgradeable, UpgradeableRemoval {
   }
 }
 
-abstract contract NonUpgradableCertificate is Certificate, Global {}
+abstract contract NonUpgradeableCertificate is Certificate, Global {}
