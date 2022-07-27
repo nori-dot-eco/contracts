@@ -249,19 +249,6 @@ contract Certificate is
   }
 
   /**
-   * @notice Returns the sender of the transaction.
-   * @dev In all cases currently, we expect that the `_msgSender()`, `_msgSenderERC721A()` and `msg.sender` all return
-   * the same value. As such, this function is provided solely for compatibility with OpenZeppelin and ERC721A
-   * contracts. For more, see [here](https://github.com/chiru-labs/ERC721A/pull/281) and [here](
-   * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Context.sol).
-   * @return For regular transactions it returns msg.sender and for meta transactions it *can* be used to return the end
-   * user (rather than the relayer)
-   */
-  function _msgSenderERC721A() internal view override returns (address) {
-    return _msgSender();
-  }
-
-  /**
    * @notice A hook that is called before all transfers and is used to disallow non-minting, non-burning, and non-
    * certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfers.
    *
@@ -312,6 +299,19 @@ contract Certificate is
       removalIds,
       removalAmounts
     );
+  }
+
+  /**
+   * @notice Returns the sender of the transaction.
+   * @dev In all cases currently, we expect that the `_msgSender()`, `_msgSenderERC721A()` and `msg.sender` all return
+   * the same value. As such, this function is provided solely for compatibility with OpenZeppelin and ERC721A
+   * contracts. For more, see [here](https://github.com/chiru-labs/ERC721A/pull/281) and [here](
+   * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Context.sol).
+   * @return For regular transactions it returns msg.sender and for meta transactions it *can* be used to return the end
+   * user (rather than the relayer)
+   */
+  function _msgSenderERC721A() internal view override returns (address) {
+    return _msgSender();
   }
 
   function _validateReceivedRemovalBatch(
