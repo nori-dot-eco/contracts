@@ -41,7 +41,11 @@ error RemovalAmountZero(uint256 tokenId);
 /**
  * @title Removal // todo
  */
-contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
+contract Removal is
+  ERC1155SupplyUpgradeable,
+  PausableAccessPreset,
+  MulticallUpgradeable
+{
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   /**
@@ -90,6 +94,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     __ERC1155Supply_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
+    __Multicall_init_unchained();
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(PAUSER_ROLE, _msgSender());
     _grantRole(MINTER_ROLE, _msgSender());
@@ -134,7 +139,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     address to,
     uint256[] memory amounts,
     uint256[] memory ids, // todo structs[] instead of encoding beforehand
-    BatchMintRemovalsData memory data
+    BatchMintRemovalsData memory data // todo is a struct necessary here? Can we just add args instead?
   ) external onlyRole(MINTER_ROLE) {
     uint256 numberOfRemovals = ids.length;
     if (!(amounts.length == numberOfRemovals)) {
@@ -159,7 +164,13 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     });
     _mintBatch(to, ids, amounts, "");
     if (data.list) {
-      safeBatchTransferFrom(to, address(_market), ids, amounts, "");
+      safeBatchTransferFrom({
+        from: to,
+        to: address(_market),
+        ids: ids,
+        amounts: amounts,
+        data: ""
+      });
     }
   }
 
@@ -250,40 +261,6 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
   }
 
   // todo this function will not scale well- consider dropping it somehow
-  function cumulativeBalanceOfBatch(address[] memory accounts)
-    external
-    view
-    returns (uint256[] memory)
-  {
-    // todo use multicall instead
-    uint256 numberOfAccounts = accounts.length;
-    uint256[] memory batchBalances = new uint256[](numberOfAccounts);
-    for (uint256 i = 0; i < numberOfAccounts; ++i) {
-      batchBalances[i] = this.cumulativeBalanceOf(accounts[i]);
-    }
-    return batchBalances;
-  }
-
-  // todo do we need to also add a version of these functions compatible with childTokens in certificate?
-  // todo batch?
-  function cumulativeBalanceOfOwnersSubset(address owner, uint256[] memory ids)
-    external
-    view
-    returns (uint256)
-  {
-    address[] memory owners = new address[](ids.length);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      owners[i] = owner;
-    }
-    uint256[] memory totals = balanceOfBatch(owners, ids);
-    uint256 total = 0;
-    for (uint256 i = 0; i < totals.length; ++i) {
-      total += totals[i];
-    }
-    return total;
-  }
-
-  // todo this function will not scale well- consider dropping it somehow
   function tokensOfOwner(
     address owner // todo global rename (tokens -> removals?)
   ) external view returns (uint256[] memory) {
@@ -297,7 +274,7 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
       owner
     ];
-    uint256 numberOfTokensOwned = removals.length();
+    uint256 numberOfTokensOwned = this.numberOfTokensOwnedByAddress(owner);
     address[] memory owners = new address[](numberOfTokensOwned);
     for (uint256 i = 0; i < numberOfTokensOwned; ++i) {
       owners[i] = owner;
@@ -368,9 +345,21 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
       hasRole(MINTER_ROLE, _msgSender())
     ) // todo this should probably just be a different function name
     {
-      _safeBatchTransferFrom(from, to, ids, amounts, data);
+      _safeBatchTransferFrom({
+        from: from,
+        to: to,
+        ids: ids,
+        amounts: amounts,
+        data: data
+      });
     } else {
-      super.safeBatchTransferFrom(from, to, ids, amounts, data);
+      super.safeBatchTransferFrom({
+        from: from,
+        to: to,
+        ids: ids,
+        amounts: amounts,
+        data: data
+      });
     }
   }
 
@@ -466,7 +455,9 @@ contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
       uint256 id = ids[i];
       if (from != address(0)) {
-        if (balanceOf(from, id) == 0) {
+        if (
+          balanceOf(from, id) == 0 // todo batch
+        ) {
           _addressToOwnedTokenIds[from].remove(id);
         }
       }
