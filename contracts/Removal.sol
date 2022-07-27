@@ -57,12 +57,6 @@ contract Removal is
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
-   * @notice the `RestrictedNORI` contract that manages restricted tokens.
-   * todo verify we need to define _restrictedNori in the Removal contract
-   */
-  RestrictedNORI private _restrictedNori;
-
-  /**
    * @notice The `Market` contract that removals can be bought and sold from.
    */
   Market private _market;
@@ -105,12 +99,11 @@ contract Removal is
   /**
    * @dev Registers the market, rNORI, and certificate contracts so that they can be referenced in this contract.
    */
-  function registerContractAddresses(
-    RestrictedNORI restrictedNori,
-    Market market,
-    Certificate certificate
-  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
-    _restrictedNori = restrictedNori;
+  function registerContractAddresses(Market market, Certificate certificate)
+    external
+    whenNotPaused
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
     _market = market;
     _certificate = certificate;
   }
@@ -195,10 +188,6 @@ contract Removal is
 
   function marketAddress() external view returns (address) {
     return address(_market);
-  }
-
-  function restrictedNoriAddress() external view returns (address) {
-    return address(_restrictedNori);
   }
 
   function certificateAddress() external view returns (address) {
