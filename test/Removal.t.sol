@@ -4,7 +4,7 @@ pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import {BatchMintRemovalsData, RemovalAmountZero} from "@/contracts/Removal.sol";
 
-using ArrayLib for uint256[];
+using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
 
 // todo fuzz RemovalIdLib

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-// todo remove the supplier address from the removal id and consider encoding project id instead
-// reasoning: hard coded payment address may be problematic, project id more static / less risky
 struct UnpackedRemovalIdV0 {
   uint8 idVersion;
   uint8 methodology;
@@ -49,7 +47,6 @@ uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
  * For methodology 1 (regenerative ag), the subidentifier serves as a parcel identifier.
  */
 library RemovalIdLib {
-  // todo CONTRACTNAME__ERRORNAME convention (and put any declaration in interface)
   error UncapitalizedString(bytes2 country, bytes2 subdivision);
   error MethodologyVersionTooLarge(uint8 methodologyVersion);
   error UnsupportedIdVersion(uint8 idVersion);

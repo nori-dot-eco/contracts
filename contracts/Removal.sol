@@ -6,18 +6,15 @@ import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
 
-// todo shared MinterAccessPreset base contract
-// todo global rename (accounts -> owners)
-// todo disable other mint functions
-// todo investigate ERC1155SupplyUpgradeable.totalSupply
-// todo look into this and use unchecked more https://github.com/OpenZeppelin/openzeppelin-contracts/issues/3512
-// todo globally pack structs
-// todo define all structs at the file level as it makes it easier to import
-// todo rm all non-inherited/overridden batch fns (from all contracts, not just removal). Inherit from Multicall instead
+// todo shared Consider a shared MinterAccessPreset base contract that handles minting roles so role names can be shared
+// todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
+// todo disable unused inherited mint functions
+// todo check that we are not re-defining logic inherited from `ERC1155SupplyUpgradeable` (esp. `totalSupply`)
+// todo Removal.sol defines several structs making it a strong candidate for gas optimization
+// todo consider removing cumulative fns and instead use multicall where needed to prevent defining fns that dont scale
 
 struct BatchMintRemovalsData {
-  // todo can we de-dupe this with RemovalData? perhaps by nesting the struct?
-  uint256 projectId; // todo what is the max project ID size?
+  uint256 projectId; // todo what is the max project ID size? Smaller id allows tighter `BatchMintRemovalsData` struct.
   uint256 scheduleStartTime;
   uint8 holdbackPercentage;
   bool list;
@@ -39,7 +36,7 @@ error TokenIdExists(uint256 tokenId);
 error RemovalAmountZero(uint256 tokenId);
 
 /**
- * @title Removal // todo
+ * @title Removal
  */
 contract Removal is
   ERC1155SupplyUpgradeable,
@@ -60,6 +57,14 @@ contract Removal is
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
+=======
+   * @notice the `RestrictedNORI` contract that manages restricted tokens.
+   * todo verify we need to define _restrictedNori in the Removal contract
+   */
+  RestrictedNORI private _restrictedNori;
+
+  /**
+>>>>>>> origin/master
    * @notice The `Market` contract that removals can be bought and sold from.
    */
   Market private _market;
@@ -69,10 +74,14 @@ contract Removal is
    */
   Certificate private _certificate;
 
+  // todo Test accounting for `_removalIdToRemovalData` is maintained correctly (assuming we need it)
   mapping(uint256 => RemovalData) private _removalIdToRemovalData;
-  mapping(uint256 => ScheduleData) private _projectIdToScheduleData; // todo why does this live here and not in rNORI?
+  // todo Test accounting for `_projectIdToScheduleData` is maintained correctly (assuming we need it)
+  // todo consider moving `Removal._projectIdToScheduleData` to rNori
+  mapping(uint256 => ScheduleData) private _projectIdToScheduleData;
+  // todo Test accounting for `_addressToOwnedTokenIds` is maintained correctly (assuming we need it)
   mapping(address => EnumerableSetUpgradeable.UintSet)
-    private _addressToOwnedTokenIds; // todo tests that ensure this is maintained correctly
+    private _addressToOwnedTokenIds;
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -82,7 +91,6 @@ contract Removal is
   }
 
   function initialize() external initializer {
-    // todo verify all initializers are called
     __Context_init_unchained();
     __ERC1155_init_unchained("https://nori.com/api/removal/{id}.json");
     __Pausable_init_unchained();
@@ -117,7 +125,7 @@ contract Removal is
    * @param to The supplier address.
    * @param amounts Each removal's tonnes of CO2 formatted as wei.
    * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address,
-   * a parcel identifier, the vintage, country code, state code, methodology identifer, methodology version, and id
+   * a parcel identifier, the vintage, country code, state code, methodology identifier, methodology version, and id
    * format.
    * @param data Encodes the project id and schedule start time for this batch of removals, the market contract
    * address and a boolean that indicates whether to list these removals for sale now.
@@ -127,13 +135,13 @@ contract Removal is
    * ##### Requirements:
    *
    * - Enforces the rules of `Removal._beforeTokenTransfer`.
-   * TODO
+   * TODO add remaining `mintBatch` requirements docs
    */
   function mintBatch(
     address to,
     uint256[] memory amounts,
-    uint256[] memory ids, // todo structs[] instead of encoding beforehand
-    BatchMintRemovalsData memory data // todo is a struct necessary here? Can we just add args instead?
+    uint256[] memory ids, // todo consider changing the ids arg from uint256[] -> UnpackedRemovalIdV0[]
+    BatchMintRemovalsData memory data // todo is a struct necessary for the data arg? Can we just add args instead?
   ) external onlyRole(MINTER_ROLE) {
     uint256 numberOfRemovals = ids.length;
     if (!(amounts.length == numberOfRemovals)) {
@@ -187,9 +195,9 @@ contract Removal is
     uint256 removalId,
     uint256 amount
   ) external onlyRole(RELEASER_ROLE) {
-    // todo what does this need to change about rNORI?
-    // todo how should we handle the case where certificate == 0 after relasing? Should it still exist with value of 0?
-    // todo decrement child removal balances of certificate if contained in one
+    // todo are we accounting for what needs to happen in rNori when a removal is released?
+    // todo how should we handle the case where a certificate amount is 0 after releasing?
+    // todo adequately test accounting when release is called (e.g., check child balances, parent balances, etc)
     _burn(owner, removalId, amount);
   }
 
@@ -209,7 +217,8 @@ contract Removal is
     view
     returns (uint256)
   {
-    return _removalIdToRemovalData[removalId].projectId; // todo should this just return the whole struct?
+    // todo consider making `getProjectIdForRemoval` return the whole schedule struct instead of the id
+    return _removalIdToRemovalData[removalId].projectId;
   }
 
   /**
@@ -257,10 +266,10 @@ contract Removal is
     return _addressToOwnedTokenIds[owner].values();
   }
 
-  // todo rename cumulativeBalanceOfOwner
-  // todo this function will not scale well- consider dropping it somehow
+  // todo rename cumulativeBalanceOf -> cumulativeBalanceOfOwner (if we decide to keep it)
+  // todo this function will not scale well as it relies on set.values- consider dropping it
   function cumulativeBalanceOf(address owner) external view returns (uint256) {
-    // todo are the bodies of these functions re-usable across the contract? Seems like an abstraction might be possible
+    // todo if we decide to keep this function, improve internal abstraction to re-use across cumulative funcs
     EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
       owner
     ];
@@ -285,7 +294,6 @@ contract Removal is
     return _addressToOwnedTokenIds[account].length();
   }
 
-  // todo better naming for all balance functions (e.g., balanceOfIds -> blanaceOfRemovalsForAccount)
   function balanceOfIds(address account, uint256[] memory ids)
     external
     view
@@ -293,7 +301,7 @@ contract Removal is
   {
     uint256[] memory batchBalances = new uint256[](ids.length);
     for (uint256 i = 0; i < ids.length; ++i) {
-      batchBalances[i] = balanceOf(account, ids[i]); // todo batch;
+      batchBalances[i] = balanceOf(account, ids[i]); // todo batch retrieve balances outside of loop
     }
     return batchBalances;
   }
@@ -333,7 +341,7 @@ contract Removal is
   ) public override {
     if (
       hasRole(MINTER_ROLE, _msgSender())
-    ) // todo this should probably just be a different function name
+    ) // todo consider adding `listForSale` as a function instead of overriding `safeBatchTransferFrom`
     {
       _safeBatchTransferFrom({
         from: from,
@@ -431,7 +439,6 @@ contract Removal is
     super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
-  // todo (and fix _beforeTokenTransfer docs)
   function _afterTokenTransfer(
     address operator,
     address from,
@@ -440,13 +447,13 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal override {
-    // todo find a way to merge this and _beforeTokenTransfer, otherwise we loop through all IDs 2x
+    // todo find a way to merge _afterTokenTransfer and _beforeTokenTransfer, otherwise we loop through all IDs 2x
     uint256 numberOfTokenTransfers = amounts.length;
     for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
       uint256 id = ids[i];
       if (from != address(0)) {
         if (
-          balanceOf(from, id) == 0 // todo batch
+          balanceOf(from, id) == 0 // todo batch calls to remove using multicall instead of calling in a loop
         ) {
           _addressToOwnedTokenIds[from].remove(id);
         }
