@@ -1158,7 +1158,7 @@ describe('purchasing from a specified supplier', () => {
     ).to.be.revertedWith('InsufficientSupply()');
   });
   it('should revert when purchasing supply when the market is below the priority reserved threshold', async () => {
-    const { bpNori, market, feePercentage } = await setupTest({
+    const { bpNori, market } = await setupTest({
       userFixtures: {
         supplier: {
           removalDataToList: {
@@ -1171,7 +1171,7 @@ describe('purchasing from a specified supplier', () => {
     });
     const priorityRestrictedThreshold = formatTokenAmount(10);
     await market.setPriorityRestrictedThreshold(priorityRestrictedThreshold);
-    const purchaseAmount = formatTokenAmount(10);
+    const purchaseAmount = formatTokenAmount(5);
     const value = await market.getCheckoutTotal(purchaseAmount);
     const { buyer } = hre.namedSigners;
     const { v, r, s } = await buyer.permit({
