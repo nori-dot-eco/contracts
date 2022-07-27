@@ -267,9 +267,7 @@ contract Removal_release_listed is UpgradeableMarket {
   }
 }
 
-contract Removal_release_unlisted_listed_retired_and_burned is
-  UpgradeableMarket
-{
+contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
   uint256[] private _removalIds;
   address[] private _expectedOwners;
   uint256[] private _expectedBalances = [
