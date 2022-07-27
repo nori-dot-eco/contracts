@@ -57,14 +57,6 @@ contract Removal is
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
-=======
-   * @notice the `RestrictedNORI` contract that manages restricted tokens.
-   * todo verify we need to define _restrictedNori in the Removal contract
-   */
-  RestrictedNORI private _restrictedNori;
-
-  /**
->>>>>>> origin/master
    * @notice The `Market` contract that removals can be bought and sold from.
    */
   Market private _market;
