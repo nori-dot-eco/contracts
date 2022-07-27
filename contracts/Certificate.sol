@@ -8,6 +8,7 @@ import {FunctionDisabled, ArrayLengthMismatch, SenderNotRemovalContract} from ".
 import "./Removal.sol";
 import "./PausableAccessPreset.sol";
 import "./ICertificate.sol";
+import "./BytesLib.sol";
 
 error ForbiddenTransferAfterMinting();
 
@@ -24,6 +25,7 @@ contract Certificate is
   PausableAccessPreset
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+  using BytesLib for bytes;
 
   struct Balance {
     uint256 id;
@@ -124,19 +126,14 @@ contract Certificate is
   function onERC1155BatchReceived(
     address,
     address,
-    uint256[] memory removalIds,
-    uint256[] memory removalAmounts,
-    bytes memory data
+    uint256[] calldata removalIds,
+    uint256[] calldata removalAmounts,
+    bytes calldata data
   ) external returns (bytes4) {
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    address recipient;
-    assembly {
-      // todo is this assembly abi decoder worth keeping? If so, add ABILib.sol? How much gas is it saving?
-      recipient := mload(add(add(data, 32), 0)) // more efficient abi decode
-    }
-    _receiveRemovalBatch(recipient, removalIds, removalAmounts);
+    _receiveRemovalBatch(data.toAddress(), removalIds, removalAmounts);
     return this.onERC1155BatchReceived.selector;
   }
 
