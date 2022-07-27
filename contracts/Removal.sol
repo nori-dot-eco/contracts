@@ -104,10 +104,6 @@ contract Removal is
     whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
-    // todo configureContract() that does this + grantRole
-    // todo can any of these be included in the initializer instead?
-    // todo need a better contract registry system
-    // todo do we want to break apart these registerContractAddresses() functions for each separate contract?
     _market = market;
     _certificate = certificate;
   }
