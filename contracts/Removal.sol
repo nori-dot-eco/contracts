@@ -197,7 +197,7 @@ contract Removal is
     });
     if (unlistedBalance > 0) {
       uint256 amountToRelease = MathUpgradeable.min(amount, unlistedBalance);
-      _releaseUnlisted({removalId: removalId, amount: amountToRelease});
+      _releaseFromSupplier({removalId: removalId, amount: amountToRelease});
       amountReleased += amountToRelease;
     }
     if (amountReleased < amount) {
@@ -421,7 +421,7 @@ contract Removal is
     super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
-  function _releaseUnlisted(uint256 removalId, uint256 amount) internal {
+  function _releaseFromSupplier(uint256 removalId, uint256 amount) internal {
     super._burn(RemovalIdLib.supplierAddress(removalId), removalId, amount);
   }
 
