@@ -34,11 +34,11 @@ contract Removal_release is UpgradeableRemoval {
         )
       )
     );
-    _removal.release(_namedAccounts.supplier, REMOVAL_ID_FIXTURE, 1);
+    _removal.release(REMOVAL_ID_FIXTURE, 1);
   }
 }
 
-contract Removal_release_unlisted is UpgradeableRemoval {
+contract Removal_release_unlisted is UpgradeableMarket {
   function test() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 1_234_567_890,
@@ -64,7 +64,7 @@ contract Removal_release_unlisted is UpgradeableRemoval {
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       1
     );
-    _removal.release(_namedAccounts.supplier, REMOVAL_ID_FIXTURE, 1);
+    _removal.release(REMOVAL_ID_FIXTURE, 1);
     // todo events
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
@@ -113,13 +113,10 @@ contract Removal_release_retired_burned is UpgradeableMarket {
       signedPermit.s
     );
     assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 1 ether);
-    //todo
-    // vm.prank(owner);
-    // _certificate.burn()
   }
 
   function test() external {
-    _removal.release(address(_certificate), REMOVAL_ID_FIXTURE, 1 ether);
+    _removal.release(REMOVAL_ID_FIXTURE, 1 ether);
     assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
     assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
     assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
@@ -170,7 +167,7 @@ contract Removal_release_retired is UpgradeableMarket {
   }
 
   function test() external {
-    _removal.release(address(_certificate), REMOVAL_ID_FIXTURE, 1 ether);
+    _removal.release(REMOVAL_ID_FIXTURE, 1 ether);
     assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
     assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
     assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
@@ -224,7 +221,7 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
   }
 
   function test() external {
-    _removal.release(address(_certificate), REMOVAL_ID_FIXTURE, 100 ether);
+    _removal.release(REMOVAL_ID_FIXTURE, 100 ether);
     assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
     assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
     assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
@@ -259,7 +256,7 @@ contract Removal_release_listed is UpgradeableMarket {
       0
     );
     assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 1);
-    _removal.release(address(_market), REMOVAL_ID_FIXTURE, 1);
+    _removal.release(REMOVAL_ID_FIXTURE, 1);
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       0
