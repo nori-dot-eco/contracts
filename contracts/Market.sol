@@ -37,7 +37,7 @@ contract Market is PausableAccessPreset {
   using RemovalQueue for RemovalQueueByVintage;
 
   error InsufficientSupply();
-  error OnlyAdminOrSupplierCanWithdraw(); // todo consider allowing operators
+  error UnauthorizedWithdrawal(); // todo consider allowing operators
   error OutOfStock();
   error LowSupplyAllowlistRequired();
   error RemovalNotInActiveSupply(uint256 removalId);
@@ -614,11 +614,11 @@ contract Market is PausableAccessPreset {
    * todo
    */
   function withdraw(uint256 removalId) external whenNotPaused {
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     if (
-      _msgSender() == RemovalIdLib.supplierAddress(removalId) ||
+      _msgSender() == supplierAddress ||
       hasRole(DEFAULT_ADMIN_ROLE, _msgSender())
     ) {
-      address supplierAddress = RemovalIdLib.supplierAddress(removalId);
       _removeActiveRemoval(supplierAddress, removalId);
       _removal.safeTransferFrom(
         address(this),
@@ -628,7 +628,7 @@ contract Market is PausableAccessPreset {
         ""
       );
     } else {
-      revert OnlyAdminOrSupplierCanWithdraw();
+      revert UnauthorizedWithdrawal();
     }
   }
 

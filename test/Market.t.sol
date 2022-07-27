@@ -114,7 +114,7 @@ contract Market_withdraw is MarketBalanceTestHelper {
   }
 }
 
-contract Market_withdraw_reverts_OnlyAdminOrSupplierCanWithdraw is
+contract Market_withdraw_reverts_UnauthorizedWithdrawal is
   MarketBalanceTestHelper
 {
   function setUp() external {
@@ -133,7 +133,7 @@ contract Market_withdraw_reverts_OnlyAdminOrSupplierCanWithdraw is
 
   function test() external {
     vm.prank(_namedAccounts.supplier2);
-    vm.expectRevert(Market.OnlyAdminOrSupplierCanWithdraw.selector);
+    vm.expectRevert(Market.UnauthorizedWithdrawal.selector);
     _market.withdraw(_removalIds[0]);
     _assertCorrectStates();
   }
