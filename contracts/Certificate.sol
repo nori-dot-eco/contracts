@@ -76,7 +76,7 @@ contract Certificate is
     // todo validate initializers
     __Context_init_unchained();
     __ERC165_init_unchained();
-    __ERC721A_init_unchained("Certificate", "NRT");
+    __ERC721A_init_unchained("Certificate", "NCCR");
     __ERC721ABurnable_init_unchained();
     __ERC721AQueryable_init_unchained();
     __Pausable_init_unchained();
