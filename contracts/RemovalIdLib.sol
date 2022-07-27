@@ -90,7 +90,7 @@ library RemovalIdLib {
   /**
    * @notice Packs data about a removal into a 256-bit token id for the removal.
    * @dev Performs some possible validations on the data before attempting to create the id.
-   * sdf
+   *
    * @param removalData removal data struct to be packed into a uint256 ID
    */
   function createRemovalId(UnpackedRemovalIdV0 memory removalData)
