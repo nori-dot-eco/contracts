@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
+// import "forge-std/console2.sol"; // todo
 
 // todo shared Consider a shared MinterAccessPreset base contract that handles minting roles so role names can be shared
 // todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
@@ -399,7 +400,7 @@ contract Removal is
         amountBurned
       ); // todo single call to _burnBatch or emit event
     }
-    if (amount - amountBurned <= amount) {
+    if (amountBurned < amount) {
       if (listedBalance > 0) {
         uint256 amountToReleaseFromMarket = 0;
         amountToReleaseFromMarket = MathUpgradeable.min(
@@ -410,7 +411,7 @@ contract Removal is
         super._burn(market, removalId, amountToReleaseFromMarket);
         _market.release(removalId, amountToReleaseFromMarket);
       }
-      if (amount - amountBurned <= amount && soldBalance > 0) {
+      if (amountBurned < amount && soldBalance > 0) {
         Certificate.Balance[] memory certificatesOfRemoval = _certificate
           .certificatesOfRemoval(removalId);
         uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
@@ -426,13 +427,13 @@ contract Removal is
             certificateBalance.amount
           );
           amountBurned += amountToReleaseFromCertificate;
+          super._burn(certificate, removalId, amountToReleaseFromCertificate);
           releaseCalls[i] = abi.encodeWithSelector(
             _certificate.releaseRemoval.selector,
             certificateBalance.id,
             removalId,
             amountToReleaseFromCertificate
           );
-          super._burn(certificate, removalId, amountToReleaseFromCertificate);
           if (amountBurned == amount) break;
         }
         _certificate.multicall(releaseCalls);
