@@ -335,6 +335,75 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
   }
 }
 
+/** @dev A test that asserts the ability to release a removal retired across 2 certificates */
+contract Removal_release_unlisted_listed_and_retired_2x is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    assertEq(_removal.balanceOf(_namedAccounts.supplier, _removalIds[0]), 0);
+    assertEq(_removal.balanceOf(address(_market), _removalIds[0]), 1 ether);
+    uint256 ownerPrivateKey = 0xA11CE;
+    address owner = vm.addr(ownerPrivateKey);
+    uint256 checkoutTotal = _market.getCheckoutTotal(0.5 ether);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(checkoutTotal * 2));
+    for (uint256 i = 0; i < 2; i++) {
+      SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+        ownerPrivateKey,
+        address(_market),
+        checkoutTotal,
+        1 days,
+        _bpNori
+      );
+      vm.prank(owner);
+      _market.swap(
+        owner,
+        checkoutTotal,
+        signedPermit.permit.deadline,
+        signedPermit.v,
+        signedPermit.r,
+        signedPermit.s
+      );
+    }
+    assertEq(_certificate.balanceOfRemoval(0, _removalIds[0]), 0.5 ether);
+    assertEq(_certificate.balanceOfRemoval(1, _removalIds[0]), 0.5 ether);
+  }
+
+  function test() external {
+    _removal.release(_removalIds[0], 0.9 ether);
+    assertEq(
+      _removal.balanceOf(address(_certificate), _removalIds[0]),
+      0.1 ether
+    );
+    assertEq(_certificate.balanceOfRemoval(0, _removalIds[0]), 0);
+    assertEq(_certificate.balanceOfRemoval(1, _removalIds[0]), 0.1 ether);
+  }
+}
+
+contract Removal_release_partial_listed is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    assertEq(_removal.balanceOf(_namedAccounts.supplier, _removalIds[0]), 0);
+    assertEq(_removal.balanceOf(address(_market), _removalIds[0]), 1 ether);
+  }
+
+  function test() external {
+    _removal.release(_removalIds[0], 0.5 ether);
+    assertEq(_removal.balanceOf(address(_market), _removalIds[0]), 0.5 ether);
+  }
+}
+
 contract Removal_multicall is UpgradeableRemoval {
   /** @dev Asserts that we can get a cumulative balance for a list of removals owned by an account using multicall */
   function test_balanceOfBatch() external {
