@@ -1,7 +1,7 @@
 BridgedPolygonNORI_name:test() (gas: 17211)
 BridgedPolygonNORI_permit:test() (gas: 91915)
-Certificate__msgSenderERC721A:test() (gas: 354)
 BytesLibTestHarness:test() (gas: 3755)
+Certificate__msgSenderERC721A:test() (gas: 354)
 Certificate_burn:test() (gas: 338706)
 Certificate_name:test() (gas: 17262)
 LockedNORITest:testBatchGrantCreation() (gas: 886900)
