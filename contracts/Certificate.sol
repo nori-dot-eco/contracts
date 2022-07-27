@@ -169,7 +169,6 @@ contract Certificate is
     view
     returns (uint256)
   {
-    // todo consider just tracking original certificate amounts using events
     return _balances[certificateId];
   }
 
