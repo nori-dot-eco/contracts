@@ -3,14 +3,13 @@ pragma solidity =0.8.15;
 
 import {LockedNORILib, Schedule} from "../LockedNORILib.sol";
 
+// todo migrate hardhat tests to foundry tests
 /**
  * @dev Testbed contract for testing LockedNORILib library.
  *
  * Not intended for deployment in productionish environments.
  */
 contract LockedNORILibTestHarness {
-  // todo consider TestHarness vs Mock naming convention
-  // todo consider moving to mocks folder
   using LockedNORILib for Schedule;
 
   mapping(uint256 => Schedule) private _schedules;

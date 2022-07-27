@@ -12,21 +12,9 @@ import "./ICertificate.sol";
 error ForbiddenTransferAfterMinting();
 
 /**
- * todo bump solidity version globally to latest
- * todo benefit of using Interface vs contract?
- * todo error declaration consistency (inside-contract vs outside-of-contract)
  * todo document burning behavior
- * todo globally consider renaming tokenId -> certificateId / removalId
- * todo how hard would it be to use ERC721AStorage layout for child removals?
- * todo consider removing all batch functions from all contracts (seems gratuitous to include it when you can
- * usually achieve the same effect by inheriting multicall, OR using an external multicall contract)
- * todo what is _msgSenderERC721A
- * todo multicall (globally?)
- * todo we are using a git commit for the erc721a dep. bc v4.1 doesn't have a virtual approve function, but master does
- * todo remove all "see {}" syntax from natspec (this only works in the context of OZ contracts repos)
- * todo check that whenNotPaused on all mutating functions
- * todo check that all transfer functions call _beforeTokenTransfers
- * todo @dev vs @notice consistency
+ * todo ERC721a exposes both _msgSender and _msgSenderERC721A -- what are the differences and implications?
+ * todo check that all transfer functions (including those not exposed in this file) call _beforeTokenTransfers
  */
 contract Certificate is
   ICertificate,
@@ -54,15 +42,17 @@ contract Certificate is
   mapping(uint256 => mapping(uint256 => uint256))
     private _removalBalancesOfCertificate;
 
+  /*
+   * todo Add tests that ensure _removalsOfCertificate/_certificatesOfRemoval can't deviate from Removal.sol balances
+   */
   mapping(uint256 => EnumerableSetUpgradeable.UintSet)
-    private _removalsOfCertificate; // todo tests that ensure this is maintained correctly
+    private _removalsOfCertificate;
 
   mapping(uint256 => EnumerableSetUpgradeable.UintSet)
-    private _certificatesOfRemoval; // todo tests that ensure this is maintained correctly
+    private _certificatesOfRemoval;
 
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
-   * todo getter/setter
    */
   Removal private _removal;
 
@@ -74,7 +64,6 @@ contract Certificate is
   }
 
   function initialize() external initializerERC721A initializer {
-    // todo validate initializers
     __Context_init_unchained();
     __ERC165_init_unchained();
     __ERC721A_init_unchained("Certificate", "NCCR");
@@ -84,7 +73,7 @@ contract Certificate is
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Multicall_init_unchained();
-    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender()); // todo global: doesnt this happen automatically?
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(PAUSER_ROLE, _msgSender());
     _grantRole(CERTIFICATE_OPERATOR_ROLE, _msgSender());
   }
@@ -115,11 +104,10 @@ contract Certificate is
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    // todo emit event?
+    // todo Emit event when removal is released if TransferSingle events can be emitted with to: addr(0) in other cases
+    // todo decrease number of storage reads
     _removalBalancesOfCertificate[certificateId][removalId] -= amount;
-    if (
-      _removalBalancesOfCertificate[certificateId][removalId] == 0 // todo access storage once (currently 2x)
-    ) {
+    if (_removalBalancesOfCertificate[certificateId][removalId] == 0) {
       _removalsOfCertificate[certificateId].remove(removalId);
       _certificatesOfRemoval[removalId].remove(certificateId);
     }
@@ -130,10 +118,8 @@ contract Certificate is
    *
    * ##### Requirements:
    *
-   * - Can only be used when the contract is not paused (enforced by `_beforeTokenTransfers`). // todo consistency in
-   * how this requirement is worded
+   * - Can only be used when the contract is not paused (enforced by `_beforeTokenTransfers`).
    * - `_msgSender` must be the removal contract.
-   * - // TODO other reqs
    */
   function onERC1155BatchReceived(
     address,
@@ -147,7 +133,8 @@ contract Certificate is
     }
     address recipient;
     assembly {
-      recipient := mload(add(add(data, 32), 0)) // more efficient abi decode // todo keep? If so, ABILib.sol?
+      // todo is this assembly abi decoder worth keeping? If so, add ABILib.sol? How much gas is it saving?
+      recipient := mload(add(add(data, 32), 0)) // more efficient abi decode
     }
     _receiveRemovalBatch(recipient, removalIds, removalAmounts);
     return this.onERC1155BatchReceived.selector;
@@ -161,7 +148,6 @@ contract Certificate is
     view
     returns (uint256)
   {
-    // todo batch
     return _removalBalancesOfCertificate[certificateTokenId][removalTokenId];
   }
 
@@ -173,7 +159,7 @@ contract Certificate is
   }
 
   /**
-   * @dev Returns the list of removal IDs for the given certificate ID. // todo maybe drop ID from names entirely?
+   * @dev Returns the list of removal IDs for the given certificate ID.
    */
   function removalsOfCertificate(uint256 certificateId)
     external
@@ -182,7 +168,7 @@ contract Certificate is
   {
     EnumerableSetUpgradeable.UintSet
       storage removalIds = _removalsOfCertificate[certificateId];
-    // todo only if it exists continue
+    // todo short-circuit (skip to return statement) if there are no removals
     Balance[] memory removals = new Balance[](removalIds.length());
     for (uint256 i = 0; i < removalIds.length(); i++) {
       uint256 removalId = removalIds.at(i);
@@ -203,11 +189,11 @@ contract Certificate is
     returns (Balance[] memory)
   {
     EnumerableSetUpgradeable.UintSet
-      storage certifificateIds = _certificatesOfRemoval[removalId];
-    // todo only if it exists continue
-    Balance[] memory certificates = new Balance[](certifificateIds.length());
-    for (uint256 i = 0; i < certifificateIds.length(); i++) {
-      uint256 certificateId = certifificateIds.at(i);
+      storage certificateIds = _certificatesOfRemoval[removalId];
+    // todo short-circuit (skip to return statement) if there are no certificates
+    Balance[] memory certificates = new Balance[](certificateIds.length());
+    for (uint256 i = 0; i < certificateIds.length(); i++) {
+      uint256 certificateId = certificateIds.at(i);
       certificates[i] = Balance({
         id: certificateId,
         amount: _removalBalancesOfCertificate[certificateId][removalId]
@@ -255,10 +241,6 @@ contract Certificate is
    *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks).
-   *
-   * ##### Requirements:
-   *
-   * // TODO
    */
   function _beforeTokenTransfers(
     address from,
@@ -285,7 +267,7 @@ contract Certificate is
   ) internal {
     _validateReceivedRemovalBatch(removalIds, removalAmounts);
     uint256 certificateId = _nextTokenId();
-    _mint(recipient, 1); // todo consider _safeMint version?
+    _mint(recipient, 1); // todo should we be using _mint or _safeMint for ERC721A
     for (uint256 i = 0; i < removalIds.length; ++i) {
       _removalBalancesOfCertificate[certificateId][
         removalIds[i]
@@ -306,7 +288,7 @@ contract Certificate is
     uint256[] memory removalIds,
     uint256[] memory removalAmounts
   ) internal pure {
-    // todo share library since similar logic is used elsewhere to compare array lengths
+    // todo De-duplicate code that checks array-length (e.g., library or base contract)
     if (removalIds.length != removalAmounts.length) {
       revert ArrayLengthMismatch("removalIds", "removalAmounts");
     }
