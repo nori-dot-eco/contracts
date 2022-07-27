@@ -11,7 +11,7 @@ struct RemovalQueueByVintage {
   uint256 latestYear;
 }
 
-// todo rename RemovalQueueLib
+// todo rename RemovalQueue to RemovalQueueLib
 library RemovalQueue {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
@@ -55,7 +55,7 @@ library RemovalQueue {
    * @param removalToRemove the removal to remove.
    */
   function removeRemoval(
-    // todo rename as `.remove`
+    // todo rename `RemovalQueue.removeRemoval` to `RemovalQueue.remove`
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToRemove
   ) internal {

@@ -27,7 +27,7 @@ export const getConfig = (
     networks,
     etherscan,
     defender,
-    gasReporter: getGasReporterConfig(environment), // todo getters for all configs
+    gasReporter: getGasReporterConfig(environment), // todo getter vs object consistency
     solidity,
     mocha: getMochaConfig(environment),
     fireblocks,

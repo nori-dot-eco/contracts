@@ -6,7 +6,7 @@ import "@/contracts/Removal.sol";
 import "@/contracts/ArrayLib.sol";
 
 abstract contract UpgradeableRemoval is Upgradeable {
-  using ArrayLib for uint256[];
+  using UInt256ArrayLib for uint256[];
   using AddressArrayLib for address[];
 
   /**

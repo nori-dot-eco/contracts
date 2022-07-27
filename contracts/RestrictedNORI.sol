@@ -10,8 +10,7 @@ import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
 
-// todo extract some of this contract to a preset?
-// todo https://github.com/nori-dot-eco/contracts/pull/249/files#r906867575
+// todo Is this fully addressed: https://github.com/nori-dot-eco/contracts/pull/249/files#r906867575
 
 /** View information for the current state of one schedule */
 struct ScheduleSummary {
@@ -23,7 +22,7 @@ struct ScheduleSummary {
   uint256 totalClaimedAmount;
   uint256 totalQuantityRevoked;
   address[] tokenHolders;
-  bool exists; // todo can we remove the need for this?
+  bool exists; // todo remove the `exists` property from the `ScheduleSummary` struct and infer it instead
 }
 
 /** View information for one account's ownership of a schedule */
@@ -127,10 +126,7 @@ struct ScheduleDetailForAddress {
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  */
-contract RestrictedNORI is
-  ERC1155SupplyUpgradeable,
-  PausableAccessPreset // todo naming consistency at parity with OZ (is preset the suffix or prefix?)
-{
+contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
   using RestrictedNORILib for Schedule;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
@@ -218,11 +214,9 @@ contract RestrictedNORI is
     _disableInitializers();
   }
 
-  // todo document expected initialzation state (this is a holdover from LockedNORI, not totally sure what it means)
   function initialize() external initializer {
-    // todo verify all initializers are called
     __ERC1155_init_unchained(
-      "https://nori.com/api/restrictionschedule/{id}.json" // todo finalize uri
+      "https://nori.com/api/restrictionschedule/{id}.json" // todo finalize rNori uri if it needs one
     );
     __Context_init_unchained();
     __ERC165_init_unchained();
@@ -327,7 +321,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * @notice Returns summary struct for a schedule. // todo
+   * @notice Returns summary struct for a schedule.
    */
   function getScheduleSummary(uint256 scheduleId)
     public
@@ -441,7 +435,7 @@ contract RestrictedNORI is
     whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
-    _bridgedPolygonNori = BridgedPolygonNORI(bpNori); // todo configureContract() that does this + grantRole
+    _bridgedPolygonNori = BridgedPolygonNORI(bpNori);
     _removal = Removal(removal);
   }
 
@@ -459,7 +453,6 @@ contract RestrictedNORI is
     uint256 methodologyVersion,
     uint256 durationInSeconds
   ) public whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
-    // todo test gas of external vs public variant of same function, switch to external or public accordingly
     if (durationInSeconds == 0) {
       revert InvalidZeroDuration();
     }
@@ -486,11 +479,10 @@ contract RestrictedNORI is
   }
 
   /**
-   * @dev Mints RestrictedNORI to the correct schedule token ID for a given removal token ID. // todo
+   * @dev Mints RestrictedNORI to the correct schedule token ID for a given removal token ID. // todo improve wording
    */
   function mint(uint256 amount, uint256 removalId) external {
     if (!hasRole(MINTER_ROLE, _msgSender())) {
-      // todo consistency in custom errors for hasRole vs onlyRole
       revert InvalidMinter({account: _msgSender()});
     }
     uint256 projectId = _removal.getProjectIdForRemoval(removalId);
@@ -500,7 +492,6 @@ contract RestrictedNORI is
     address recipient = scheduleData.supplierAddress;
     super._mint(recipient, projectId, amount, "");
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    // todo disable slither using slither triage file instead
     // slither-disable-next-line unused-return address may already be in set and that is ok
     schedule.tokenHolders.add(recipient);
   }
@@ -517,7 +508,7 @@ contract RestrictedNORI is
    *
    * ##### Requirements:
    *
-   * - Can only be used when the contract is not paused. // todo consistency
+   * - Can only be used when the contract is not paused.
    */
   function withdrawFromSchedule(
     address recipient,
@@ -634,7 +625,7 @@ contract RestrictedNORI is
     uint256 quantityToRevoke = amount > 0 ? amount : quantityRevocable;
     // burn correct proportion from each token holder
     address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
-    // todo gas optimization -- is it more expensive to call balanceOf multiple times, or to construct this array?
+    // todo (Gas Optimization): is it more expensive to call balanceOf multiple times, or to construct this array?
     uint256[] memory scheduleIdsForBalanceOfBatch = new uint256[](
       tokenHoldersLocal.length
     );
@@ -666,7 +657,7 @@ contract RestrictedNORI is
     quantitiesToBurnForHolders[tokenHoldersLocal.length - 1] =
       quantityToRevoke -
       cumulativeQuantityToBurn;
-    // todo consider writing a batch variant of burn that accommodates multiple addresses for a single token
+    // todo use multicall to batch burn rNori outside of loop
     for (uint256 i = 0; i < (tokenHoldersLocal.length); i++) {
       super._burn(
         tokenHoldersLocal[i],

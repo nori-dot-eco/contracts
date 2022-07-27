@@ -456,7 +456,6 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
       );
   }
 
-  // todo document expected initialzation state
   function initialize(BridgedPolygonNORI bridgedPolygonNoriAddress)
     public
     initializer
