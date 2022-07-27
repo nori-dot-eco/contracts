@@ -34,7 +34,7 @@ contract Certificate_burn is UpgradeableCertificate {
       address(0),
       _removalIds,
       _removalAmounts,
-      abi.encode(_owner)
+      abi.encode(_owner, 1 ether)
     );
     assertEq(
       _certificate.totalSupply(),
@@ -44,8 +44,6 @@ contract Certificate_burn is UpgradeableCertificate {
   }
 
   function test() external {
-    console.log("uint64===", uint64(uint256(1)));
-
     vm.prank(_owner);
     _certificate.burn(_certificateId);
     assertEq(
@@ -83,7 +81,7 @@ contract Certificate_burn is UpgradeableCertificate {
       address(0),
       _removalIds2,
       _removalAmounts,
-      abi.encode(address(this)) // todo use diff. named account
+      abi.encode(address(this), 1 ether) // todo use diff. named account
     );
     assertEq(
       _certificate.balanceOf(address(this)),

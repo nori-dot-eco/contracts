@@ -44,7 +44,7 @@ contract Certificate is
   mapping(uint256 => mapping(uint256 => uint256))
     private _removalBalancesOfCertificate;
 
-  mapping(uint256 => uint256) private _deficits; // todo naming consistency for mappings (e.g, plural/non-plural)
+  mapping(uint256 => uint256) private _balances; // todo naming consistency for mappings (e.g, plural/non-plural)
 
   /*
    * todo Add tests that ensure _removalsOfCertificate/_certificatesOfRemoval can't deviate from Removal.sol balances
@@ -111,7 +111,6 @@ contract Certificate is
     // todo Emit event when removal is released if TransferSingle events can be emitted with to: addr(0) in other cases
     // todo decrease number of storage reads
     _removalBalancesOfCertificate[certificateId][removalId] -= amount;
-    _deficits[certificateId] += amount;
     if (_removalBalancesOfCertificate[certificateId][removalId] == 0) {
       _removalsOfCertificate[certificateId].remove(removalId);
       _certificatesOfRemoval[removalId].remove(certificateId);
@@ -136,7 +135,16 @@ contract Certificate is
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    _receiveRemovalBatch(data.toAddress(), removalIds, removalAmounts);
+    (address recipient, uint256 certificateAmount) = abi.decode(
+      data,
+      (address, uint256)
+    );
+    _receiveRemovalBatch({
+      recipient: recipient,
+      certificateAmount: certificateAmount,
+      removalIds: removalIds,
+      removalAmounts: removalAmounts
+    });
     return this.onERC1155BatchReceived.selector;
   }
 
@@ -164,18 +172,7 @@ contract Certificate is
     returns (uint256)
   {
     // todo consider just tracking original certificate amounts using events
-    return this.balanceOf(certificateId) + _deficits[certificateId];
-  }
-
-  function balanceOf(uint256 certificateId) external view returns (uint256) {
-    Balance[] memory certificates = this.removalsOfCertificate({
-      certificateId: certificateId
-    });
-    uint256 currentBalance = 0;
-    for (uint256 i = 0; i < certificates.length; i++) {
-      currentBalance += certificates[i].amount;
-    }
-    return currentBalance;
+    return _balances[certificateId];
   }
 
   /**
@@ -282,11 +279,13 @@ contract Certificate is
 
   function _receiveRemovalBatch(
     address recipient,
+    uint256 certificateAmount,
     uint256[] memory removalIds,
     uint256[] memory removalAmounts
   ) internal {
     _validateReceivedRemovalBatch(removalIds, removalAmounts);
     uint256 certificateId = _nextTokenId();
+    _balances[certificateId] = certificateAmount;
     _mint(recipient, 1); // todo should we be using _mint or _safeMint for ERC721A
     for (uint256 i = 0; i < removalIds.length; ++i) {
       _removalBalancesOfCertificate[certificateId][
