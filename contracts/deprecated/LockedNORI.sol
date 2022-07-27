@@ -224,7 +224,7 @@ contract LockedNORI is
    *
    * [See here for more](
    * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-777.md#erc777tokensrecipient-and-the-tokensreceived-hook)
-   */              
+   */
   function tokensReceived(
     address sender,
     address,
@@ -428,7 +428,6 @@ contract LockedNORI is
       );
   }
 
-  // todo document expected initialzation state
   function initialize(IERC777Upgradeable bridgedPolygonNoriAddress)
     public
     initializer
@@ -495,7 +494,7 @@ contract LockedNORI is
     bytes calldata userData,
     bytes calldata operatorData
   ) internal returns (bool) {
-    DepositForParams memory params = abi.decode(userData, (DepositForParams)); // todo error handling
+    DepositForParams memory params = abi.decode(userData, (DepositForParams));
     // If a startTime parameter is non-zero then set up a schedule
     // Validation happens inside _createGrant
     if (params.startTime > 0) {

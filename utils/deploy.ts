@@ -305,7 +305,7 @@ export const addContractsToDefender = async ({
     await hre.run('defender:add', {
       contractNames: Object.entries(contracts)
         .filter(([_, value]) => value !== undefined)
-        .map(([name, _]) => name), // todo delete existing contracts from defender and re-add
+        .map(([name, _]) => name), // todo Upsert contracts to OZ defender (otherwise they are added twice)
     } as any);
   }
 };

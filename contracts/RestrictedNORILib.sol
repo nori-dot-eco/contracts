@@ -17,8 +17,7 @@ struct Schedule {
   mapping(address => uint256) quantitiesRevokedByAddress;
 }
 
-// todo rename
-// todo finish fixing this documentation
+// todo Finiish RestrictedNORILib docs
 /**
  * @dev Library encapsulating the logic around restriction schedules.
  *

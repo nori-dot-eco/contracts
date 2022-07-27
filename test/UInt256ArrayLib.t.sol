@@ -1,12 +1,12 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-import "@/contracts/ArrayLib.sol";
+import {UInt256ArrayLib} from "@/contracts/ArrayLib.sol";
 
-contract ArrayLib_reference {
-  using ArrayLib for uint256[];
+// todo assertions
+contract UInt256ArrayLib_reference {
+  using UInt256ArrayLib for uint256[];
 
-  //todo assertions
   function test() external pure {
     uint256[] memory normal = new uint256[](100);
     for (uint256 i = 0; i < 100; ++i) {
@@ -16,7 +16,6 @@ contract ArrayLib_reference {
     for (uint256 i = 0; i < 50; ++i) sliced[i] = normal[i];
   }
 
-  //todo assertions
   function test_unchecked() external pure {
     uint256[] memory normal = new uint256[](100);
     for (uint256 i = 0; i < 100; ++i) {
@@ -29,10 +28,9 @@ contract ArrayLib_reference {
   }
 }
 
-contract ArrayLib_slice {
-  using ArrayLib for uint256[];
+contract UInt256ArrayLib_slice {
+  using UInt256ArrayLib for uint256[];
 
-  //todo assertions
   function test() external pure {
     uint256[] memory normal = new uint256[](100);
     for (uint256 i = 0; i < 100; ++i) {
@@ -42,23 +40,21 @@ contract ArrayLib_slice {
   }
 }
 
-contract ArrayLib_range {
-  using ArrayLib for uint256[];
+contract UInt256ArrayLib_range {
+  using UInt256ArrayLib for uint256[];
 
-  //todo assertions
   function test() external pure {
     uint256[] memory normal = new uint256[](100);
     for (uint256 i = 0; i < 100; ++i) {
       normal[i] = i;
     }
-    uint256[] memory ranged = ArrayLib.range(0, 50);
+    uint256[] memory ranged = UInt256ArrayLib.range(0, 50);
   }
 }
 
-contract ArrayLib_copy {
-  using ArrayLib for uint256[];
+contract UInt256ArrayLib_copy {
+  using UInt256ArrayLib for uint256[];
 
-  //todo assertions
   function test() external pure {
     uint256[] memory normal = new uint256[](100);
     for (uint256 i = 0; i < 100; ++i) {

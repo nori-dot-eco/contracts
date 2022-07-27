@@ -17,7 +17,6 @@ struct Schedule {
   uint256 totalCliffAmount;
 }
 
-// todo rename ScheduleLib
 /**
  * @dev Library encapsulating the logic around timed release schedules with cliffs.
  *
@@ -75,7 +74,7 @@ library LockedNORILib {
     }
     require(
       time <= schedule.endTime,
-      "LockedNORILib: Cliffs cannot end after schedule" // todo custom errors?
+      "LockedNORILib: Cliffs cannot end after schedule" // todo Use custom errors
     );
     require(
       schedule.totalCliffAmount + amount <= schedule.totalAmount,
