@@ -36,13 +36,8 @@ export const deploy: DeployFunction = async (environment) => {
   hre.trace('Set removal and bpNori addresses in rNori');
   await certificate.registerContractAddresses(removal.address);
   hre.trace('Set removal addresses in rNori');
-  await removal.registerContractAddresses(
-    rNori.address,
-    market.address,
-    certificate.address
-  );
-  hre.trace('Set rNori, market, and certificate addresses in Market');
-  // todo rest of .registerContractAddresses
+  await removal.registerContractAddresses(market.address, certificate.address);
+  hre.trace('Set market and certificate addresses in Removal');
 };
 
 export default deploy;

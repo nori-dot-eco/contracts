@@ -21,7 +21,6 @@ abstract contract UpgradeableMarket is
     _market = _deployMarket();
     vm.label(address(_market), "Market");
     _removal.registerContractAddresses( // todo move to removal helper
-      RestrictedNORI(_rNori),
       Market(_market),
       Certificate(_certificate)
     );
