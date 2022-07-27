@@ -33,7 +33,7 @@ contract Market is PausableAccessPreset {
   using RemovalQueue for RemovalQueueByVintage;
 
   error InsufficientSupply();
-  error OnlyAdminOrSupplierCanWithdraw();
+  error UnauthorizedWithdrawal(); // todo consider allowing operators
   error OutOfStock();
   error LowSupplyAllowlistRequired();
   error RemovalNotInActiveSupply(uint256 removalId);
@@ -54,7 +54,6 @@ contract Market is PausableAccessPreset {
   uint256 private _noriFeePercentage;
   uint256 private _priorityRestrictedThreshold;
   address private _currentSupplierAddress;
-
   mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
   mapping(address => RemovalQueueByVintage) private _activeSupply;
 
@@ -163,8 +162,6 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-=======
->>>>>>> origin/jaycen-withdraw-removal
    * @notice Handles the receipt of a multiple ERC1155 token types. This function is called at the end of a
    * `safeBatchTransferFrom` after the balances have been updated. To accept the transfer(s), this must return
    * `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`
@@ -609,11 +606,11 @@ contract Market is PausableAccessPreset {
    * todo consider allowing calls to withdraw to specify the recipient address for the withdrawn removal
    */
   function withdraw(uint256 removalId) external whenNotPaused {
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     if (
-      _msgSender() == RemovalIdLib.supplierAddress(removalId) ||
+      _msgSender() == supplierAddress ||
       hasRole(DEFAULT_ADMIN_ROLE, _msgSender())
     ) {
-      address supplierAddress = RemovalIdLib.supplierAddress(removalId);
       _removeActiveRemoval(supplierAddress, removalId);
       _removal.safeTransferFrom(
         address(this),
@@ -623,7 +620,7 @@ contract Market is PausableAccessPreset {
         ""
       );
     } else {
-      revert OnlyAdminOrSupplierCanWithdraw();
+      revert UnauthorizedWithdrawal();
     }
   }
 

@@ -37,7 +37,7 @@ uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
 /**
  * @dev Library encapsulating the logic around encoding and decoding removal token ids.
  *
- * The token IDs used for a given ERC1155 token in Removal encode information about the carbon removal the following
+ * The token IDs used for a given ERC1155 token in Removal encode information about the carbon removal in the following
  * format(s), where the first byte encodes the format version:
  *
  * Version 0:
@@ -87,7 +87,7 @@ library RemovalIdLib {
   /**
    * @notice Packs data about a removal into a 256-bit token id for the removal.
    * @dev Performs some possible validations on the data before attempting to create the id.
-   * sdf
+   *
    * @param removalData removal data struct to be packed into a uint256 ID
    */
   function createRemovalId(UnpackedRemovalIdV0 memory removalData)

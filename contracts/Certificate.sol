@@ -66,7 +66,7 @@ contract Certificate is
   function initialize() external initializerERC721A initializer {
     __Context_init_unchained();
     __ERC165_init_unchained();
-    __ERC721A_init_unchained("Certificate", "NRT");
+    __ERC721A_init_unchained("Certificate", "NCCR");
     __ERC721ABurnable_init_unchained();
     __ERC721AQueryable_init_unchained();
     __Pausable_init_unchained();
