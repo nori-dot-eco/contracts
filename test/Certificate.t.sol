@@ -10,6 +10,16 @@ contract Certificate_name is UpgradeableCertificate {
   }
 }
 
+contract Certificate__msgSenderERC721A is NonUpgradeableCertificate {
+  function test() external {
+    assertEq(
+      _msgSenderERC721A(),
+      _msgSender(),
+      "Expected _msgSenderERC721A() and _msgSender() to return the same value"
+    );
+  }
+}
+
 contract Certificate_burn is UpgradeableCertificate {
   address private _owner = _namedAccounts.buyer;
   uint256 private _certificateId = 0;
