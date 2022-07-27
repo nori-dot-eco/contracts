@@ -8,6 +8,7 @@
     "function-max-lines": ["warn", 120],
     "max-line-length": ["error", 120],
     "code-complexity": ["warn", 7],
-    "compiler-version": ["error", "^0.8.0"]
+    "compiler-version": ["error", "^0.8.0"],
+    "no-inline-assembly": "off"
   }
 }
