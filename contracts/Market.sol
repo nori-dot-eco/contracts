@@ -324,7 +324,6 @@ contract Market is PausableAccessPreset {
    * @param purchaseAmount The number of carbon removals being purchased.
    */
   function _checkSupply(uint256 purchaseAmount) private view {
-    // TODO: BUG: `swapFromSpecificSupplier` -> `_checkSupply` should check the suppliers balance, not the markets
     uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
     if (activeSupply == 0) {
       revert OutOfStock();
@@ -336,6 +335,32 @@ contract Market is PausableAccessPreset {
     }
     if (purchaseAmount > activeSupply) {
       revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
+    }
+  }
+
+  /**
+   * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
+   * and buyer is not priority.
+   *
+   * @param purchaseAmount The number of carbon removals being purchased.
+   */
+  function _checkSupplyOfSupplier(
+    uint256 purchaseAmount,
+    address supplierAddress
+  ) private view {
+    uint256 activeSupplyOfSupplier = _activeSupply[supplierAddress]
+      .getTotalBalanceFromRemovalQueue(_removal);
+    if (activeSupplyOfSupplier == 0) {
+      revert OutOfStock();
+    }
+    if (purchaseAmount > activeSupplyOfSupplier) {
+      revert InsufficientSupply(); // todo Assure `_checkSupplyOfSupplier` validates all possible market supply states
+    }
+    uint256 totalActiveSupply = _removal.cumulativeBalanceOf(address(this));
+    if (totalActiveSupply <= _priorityRestrictedThreshold) {
+      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+        revert LowSupplyAllowlistRequired();
+      }
     }
   }
 
