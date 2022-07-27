@@ -339,7 +339,7 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
+   * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority buyers
    * and buyer is not priority.
    *
    * @param purchaseAmount The number of carbon removals being purchased.
