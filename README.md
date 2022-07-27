@@ -4,6 +4,20 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 
 ---
 
+# Setup
+
+Make sure to initialize submodules
+
+```
+git submodule update --init --recursive
+```
+
+Then install dependencies
+
+```
+yarn install
+```
+
 ## Supported Networks and their Contracts
 
 ### polygon
@@ -14,7 +28,7 @@ The Ethereum smart contracts that power [nori](https://nori.com)
   - 0xCcFfFA6c2a030821331cC113b63babDC60BfF82A # todo fork repo note
 - Certificate
 - Removal
-- FIFOMarket
+- Market
 
 ### mumbai (polygon testnet)
 
@@ -22,7 +36,7 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 - LockedNORI # todo fork repo note
 - Certificate
 - Removal
-- FIFOMarket
+- Market
 
 ### mainnet (ethereum L1)
 
@@ -39,7 +53,7 @@ The Ethereum smart contracts that power [nori](https://nori.com)
 - LockedNORI # todo fork repo note
 - Certificate
 - Removal
-- FIFOMarket
+- Market
 - NORI
 
 NB: hardhat running locally in a separate process (see `Running and deploying to a local testnet`)
@@ -174,6 +188,12 @@ hardhat node
 - Account #9 (noriWallet): 0xf31c29b01ef18a3d9726b99ad0e9692e498cf5f8 (0 ETH)
 
 ## Tips and tricks
+
+### Foundry
+
+#### Autocomplete
+
+Follow the instructions [here](https://book.getfoundry.sh/config/shell-autocompletion.html)
 
 ### Hardhat
 

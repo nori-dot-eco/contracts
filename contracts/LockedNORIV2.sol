@@ -2,19 +2,17 @@
 pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./deprecated/ERC777PresetPausablePermissioned.sol";
-import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
+import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
 
 /**
- * @title A wrapped BridgedPolygonNORI token contract for vesting and lockup
+ * @title A wrapped BridgedPolygonNORI token contract for vesting and lockup.
  *
  * @author Nori Inc.
  *
  * @notice Based on the mechanics of a wrapped ERC-20 token, this contract layers schedules over the withdrawal
- * functionality to implement _vesting_ (a revocable grant)
- * and _lockup_ (an irrevocable timelock on utility).
+ * functionality to implement _vesting_ (a revocable grant) and _lockup_ (an irrevocable timelock on utility).
  *
  * ##### Behaviors and features
  *
@@ -90,12 +88,12 @@ import {ScheduleUtils, Schedule, Cliff} from "./ScheduleUtils.sol";
  *
  * ##### Uses
  *
- * - [ScheduleUtils](./ScheduleUtils.md) for Schedule
+ * - [LockedNORILib](./LockedNORILib.md) for Schedule
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  */
 contract LockedNORIV2 is ERC777PresetPausablePermissioned {
-  using ScheduleUtils for Schedule;
+  using LockedNORILib for Schedule;
 
   struct TokenGrant {
     Schedule vestingSchedule;
@@ -178,6 +176,11 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
   IERC1820RegistryUpgradeable private _erc1820;
 
   /**
+   * @notice Emitted on successful batch creation of new grants.
+   */
+  event TokenGrantCreatedBatch(uint256 totalAmount);
+
+  /**
    * @notice Emitted on successful creation of a new grant.
    */
   event TokenGrantCreated(
@@ -210,6 +213,14 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
    * @notice Emitted when the underlying token contract address is updated due to migration.
    */
   event UnderlyingTokenAddressUpdated(address from, address to);
+
+  /**
+   * @dev Ensure implementation contract is minimally initialized. See more [here](
+   * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract).
+   */
+  constructor() {
+    _disableInitializers();
+  }
 
   /**
    * @notice Mints wrapper token to *recipient* if a grant exists.
@@ -260,8 +271,6 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     revert("lNORI: Transfer to underlying asset failed");
   }
 
-  event BatchCreated(uint256 totalAmount);
-
   /**
    * @notice Batch version of `createGrant` with permit support.
    */
@@ -283,7 +292,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
       address recipient = _createGrant(amounts[i], grantParams[i]);
       super._mint(recipient, amounts[i], "", "");
     }
-    emit BatchCreated(totalAmount);
+    emit TokenGrantCreatedBatch(totalAmount);
     _bridgedPolygonNori.permit(
       _msgSender(),
       address(this),
@@ -445,15 +454,6 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
         grant.lastQuantityRevoked,
         grant.exists
       );
-  }
-
-  /**
-   * @dev Ensure implementation contract is minimally initialized
-   *
-   * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract
-   */
-  constructor() {
-    _disableInitializers();
   }
 
   // todo document expected initialzation state
@@ -659,7 +659,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
   }
 
   /**
-   * @notice Hook that is called before send, transfer, mint, and burn. Used used to disable transferring locked nori.
+   * @notice Hook that is called before send, transfer, mint, and burn. Used to disable transferring locked nori.
    *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)

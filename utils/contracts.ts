@@ -3,14 +3,12 @@ import type { Contract } from 'ethers';
 import type {
   BridgedPolygonNORI,
   Certificate,
-  FIFOMarket,
+  Market,
   LockedNORIV2,
   RestrictedNORI,
   NORI,
   Removal,
   RemovalTestHarness,
-  MockCertificate,
-  MockERC1155PresetPausableNonTransferrable,
 } from '@/typechain-types';
 
 export const getContract = async <TContractName extends keyof Contracts>({
@@ -127,41 +125,15 @@ export const getRemovalTestHarness = async ({
     signer,
   });
 
-export const getMockCertificate = async ({
+export const getMarket = async ({
   hre,
   signer,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<MockCertificate> =>
+}): Promise<Market> =>
   getContract({
-    contractName: 'MockCertificate',
-    hre,
-    signer,
-  });
-
-export const getMockERC1155PresetPausableNonTransferrable = async ({
-  hre,
-  signer,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-  signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<MockERC1155PresetPausableNonTransferrable> =>
-  getContract({
-    contractName: 'MockERC1155PresetPausableNonTransferrable',
-    hre,
-    signer,
-  });
-
-export const getFIFOMarket = async ({
-  hre,
-  signer,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-  signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<FIFOMarket> =>
-  getContract({
-    contractName: 'FIFOMarket',
+    contractName: 'Market',
     hre,
     signer,
   });
@@ -181,9 +153,7 @@ export const getContractsFromDeployments = async (
     RestrictedNORI: deployments.RestrictedNORI?.address
       ? await getRestrictedNORI({ hre })
       : undefined,
-    FIFOMarket: deployments.FIFOMarket?.address
-      ? await getFIFOMarket({ hre })
-      : undefined,
+    Market: deployments.Market?.address ? await getMarket({ hre }) : undefined,
     Removal: deployments.Removal?.address
       ? await getRemoval({ hre })
       : undefined,
@@ -192,13 +162,6 @@ export const getContractsFromDeployments = async (
       : undefined,
     RemovalTestHarness: deployments.RemovalTestHarness?.address
       ? await getRemovalTestHarness({ hre })
-      : undefined,
-    MockCertificate: deployments.MockCertificate?.address
-      ? await getMockCertificate({ hre })
-      : undefined,
-    MockERC1155PresetPausableNonTransferrable: deployments
-      .MockERC1155PresetPausableNonTransferrable?.address
-      ? await getMockERC1155PresetPausableNonTransferrable({ hre })
       : undefined,
   } as Required<Contracts>;
   return contracts;

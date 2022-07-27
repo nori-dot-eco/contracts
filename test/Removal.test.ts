@@ -1,75 +1,78 @@
+import { BigNumber } from 'ethers';
+
+import { sum } from '@/utils/math';
 import { SECONDS_IN_10_YEARS } from '@/test/helpers/restricted-nori';
+import { Zero, AddressZero } from '@/constants/units';
 import {
+  createBatchMintData,
   createRemovalTokenId,
   expect,
   setupTest,
-  createBatchMintData,
-  getLatestBlockTime,
 } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 
 describe('Removal', () => {
-  describe('holdback percentage', () => {
-    it('should set the holdback percentage for a removal while minting it', async () => {
-      const { fifoMarket, removal, hre } = await setupTest();
-      const tokenId = 1;
-      const holdbackPercentage = 40;
-      const packedData = await createBatchMintData({
-        hre,
-        holdbackPercentage,
-        fifoMarket,
-        listNow: false,
-      });
-      await removal.mintBatch(
-        hre.namedAccounts.supplier,
-        [formatTokenAmount(100)],
-        [tokenId],
-        packedData
-      );
-      const retrievedHoldbackPercentages =
-        await removal.batchGetHoldbackPercentages([tokenId]);
-      expect(retrievedHoldbackPercentages[0]).equal(holdbackPercentage);
+  describe('balanceOf', () => {
+    it('should return the balance for the token ID owned by the account', async () => {
+      const { removal, hre, removalAmounts, listedRemovalIds } =
+        await setupTest({
+          userFixtures: {
+            supplier: {
+              removalDataToList: {
+                listNow: false,
+                removals: [{ amount: 100 }],
+              },
+            },
+          },
+        });
+      expect(
+        await removal.balanceOf(hre.namedAccounts.supplier, listedRemovalIds[0])
+      )
+        .to.be.gt(Zero)
+        .and.to.equal(removalAmounts[0]);
     });
+  });
+  describe('batchGetHoldbackPercentages', () => {
     it('should update the holdback percentage for a removal after it has been minted', async () => {
-      const { fifoMarket, removal } = await setupTest();
-      const tokenId = 1;
-      const originalHoldbackPercentage = 40;
-      const packedData = await createBatchMintData({
-        hre,
-        holdbackPercentage: originalHoldbackPercentage,
-        fifoMarket,
-        listNow: false,
+      const holdbackPercentage = BigNumber.from(40);
+      const { removal, listedRemovalIds } = await setupTest({
+        userFixtures: {
+          supplier: {
+            removalDataToList: {
+              holdbackPercentage,
+              removals: [{ amount: 100 }],
+            },
+          },
+        },
       });
-      await removal.mintBatch(
-        hre.namedAccounts.supplier,
-        [formatTokenAmount(100)],
-        [tokenId],
-        packedData
-      );
-
-      const updatedHoldback = 20;
-      await removal.batchSetHoldbackPercentage([tokenId], updatedHoldback);
-      const retrievedHoldbackPercentages =
-        await removal.batchGetHoldbackPercentages([tokenId]);
-      expect(retrievedHoldbackPercentages[0]).equal(updatedHoldback);
-    });
-    it('should revert if trying to set a holdback percentage for a removal that does not exist', async () => {
-      const { removal } = await setupTest();
-      const tokenId = 1;
-      const holdbackPercentage = 40;
-      await expect(
-        removal.batchSetHoldbackPercentage([tokenId], holdbackPercentage)
-      ).to.be.revertedWith('TokenIdDoesNotExist');
+      const [retrievedHoldbackPercentages] =
+        await removal.batchGetHoldbackPercentages([listedRemovalIds[0]]);
+      expect(retrievedHoldbackPercentages).to.equal(holdbackPercentage);
     });
   });
   describe('mintBatch', () => {
     describe('success', () => {
+      it('should set a holdback percentage for a removal', async () => {
+        const holdbackPercentage = BigNumber.from(40);
+        const { removal, listedRemovalIds } = await setupTest({
+          userFixtures: {
+            supplier: {
+              removalDataToList: {
+                holdbackPercentage,
+                removals: [{ amount: 100 }],
+              },
+            },
+          },
+        });
+        const [listedTokensHoldbackPercentage] =
+          await removal.batchGetHoldbackPercentages(listedRemovalIds);
+        expect(listedTokensHoldbackPercentage).equal(holdbackPercentage);
+      });
       it('should mint a batch of removals without listing any', async () => {
-        const { fifoMarket, removal, hre } = await setupTest();
+        const { market, removal, hre } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
           formatTokenAmount(balance)
         );
-        const expectedMarketSupply = 0;
         const { supplier, admin } = hre.namedAccounts;
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
@@ -84,45 +87,35 @@ describe('Removal', () => {
             });
           })
         );
-
         const listNow = false;
         const packedData = await createBatchMintData({
           hre,
-          fifoMarket,
           listNow,
         });
         await expect(
           removal.mintBatch(supplier, removalBalances, tokenIds, packedData)
         )
           .to.emit(removal, 'TransferBatch')
-          .withArgs(
-            admin,
-            hre.ethers.constants.AddressZero,
-            supplier,
-            tokenIds,
-            removalBalances
-          );
+          .withArgs(admin, AddressZero, supplier, tokenIds, removalBalances);
         const balances = await Promise.all(
           tokenIds.map(async (tokenId) => {
             return removal.totalSupply(tokenId);
           })
         );
         for (const [tokenId, balance] of balances.entries()) {
-          expect(balance).to.equal(removalBalances[tokenId].toString());
+          expect(balance).to.equal(removalBalances[tokenId]);
         }
-        // not listed to the fifoMarket
-        const marketTotalSupply =
-          await fifoMarket.numberOfActiveNrtsInMarketComputed();
-        expect(marketTotalSupply).to.equal(
-          formatTokenAmount(expectedMarketSupply).toString()
+        const marketTotalSupply = await removal.cumulativeBalanceOf(
+          market.address
         );
+        expect(marketTotalSupply).to.equal(Zero);
       });
       it('should mint and list a batch of removals in the same transaction and create restriction schedules', async () => {
-        const { fifoMarket, removal } = await setupTest();
+        const { market, removal } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
           formatTokenAmount(balance)
         );
-        const expectedMarketSupply = 1000;
+        const expectedMarketSupply = sum(removalBalances);
         const { supplier, admin } = hre.namedAccounts;
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
@@ -137,42 +130,31 @@ describe('Removal', () => {
             });
           })
         );
-
         const listNow = true;
         const packedData = await createBatchMintData({
           hre,
-          fifoMarket,
           listNow,
         });
         await expect(
           removal.mintBatch(supplier, removalBalances, tokenIds, packedData)
         )
           .to.emit(removal, 'TransferBatch')
-          .withArgs(
-            admin,
-            hre.ethers.constants.AddressZero,
-            supplier,
-            tokenIds,
-            removalBalances
-          );
-
+          .withArgs(admin, AddressZero, supplier, tokenIds, removalBalances);
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {
             return removal.totalSupply(tokenId);
           })
         );
         for (const [tokenId, balance] of balances.entries()) {
-          expect(balance).to.equal(removalBalances[tokenId].toString());
+          expect(balance).to.equal(removalBalances[tokenId]);
         }
-        const marketTotalSupply =
-          await fifoMarket.numberOfActiveNrtsInMarketComputed();
-        expect(marketTotalSupply).to.equal(
-          formatTokenAmount(expectedMarketSupply).toString()
+        expect(await removal.cumulativeBalanceOf(market.address)).to.equal(
+          expectedMarketSupply
         );
       });
-
       it('should list pre-minted removals for sale in the atomic marketplace and create restriction schedules', async () => {
-        const { fifoMarket, removal, rNori } = await setupTest();
+        const { market, removal, rNori } = await setupTest();
+        const { namedAccounts, ethers } = hre;
         const removalBalances = [100, 200, 300].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -187,19 +169,14 @@ describe('Removal', () => {
             })
           )
         );
-        const scheduleStartTime = await getLatestBlockTime({ hre });
-        const projectId = 1_234_567_890;
         const listNow = false;
         const packedData = await createBatchMintData({
           hre,
-          fifoMarket,
           listNow,
-          projectId,
-          scheduleStartTime,
         });
         await expect(
           removal.mintBatch(
-            hre.namedAccounts.supplier,
+            namedAccounts.supplier,
             removalBalances,
             tokenIds,
             packedData
@@ -207,16 +184,16 @@ describe('Removal', () => {
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
-            hre.namedAccounts.admin,
-            hre.ethers.constants.AddressZero,
-            hre.namedAccounts.supplier,
+            namedAccounts.admin,
+            AddressZero,
+            namedAccounts.supplier,
             tokenIds,
             removalBalances
           );
         await expect(
           removal.safeBatchTransferFrom(
-            hre.namedAccounts.supplier,
-            fifoMarket.address,
+            namedAccounts.supplier,
+            market.address,
             tokenIds,
             removalBalances,
             ethers.utils.formatBytes32String('0x0')
@@ -224,37 +201,37 @@ describe('Removal', () => {
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
-            hre.namedAccounts.admin,
-            hre.namedAccounts.supplier,
-            fifoMarket.address,
+            namedAccounts.admin,
+            namedAccounts.supplier,
+            market.address,
             tokenIds,
             removalBalances
           )
           .to.emit(rNori, 'ScheduleCreated')
           .withArgs(
-            projectId,
-            scheduleStartTime,
-            scheduleStartTime + SECONDS_IN_10_YEARS
+            packedData.projectId,
+            packedData.scheduleStartTime,
+            BigNumber.from(packedData.scheduleStartTime).add(
+              SECONDS_IN_10_YEARS
+            )
           );
-        // market contract should have a balance for each listed tokenId
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {
-            return removal.balanceOf(fifoMarket.address, tokenId);
+            return removal.balanceOf(market.address, tokenId);
           })
         );
         for (const [tokenId, balance] of balances.entries()) {
-          expect(balance).to.equal(removalBalances[tokenId].toString());
+          expect(balance).to.equal(removalBalances[tokenId]);
         }
       });
     });
     describe('error', () => {
       describe('TokenIdExists', () => {
         it('should not mint a removal with a duplicate token id', async () => {
-          const { fifoMarket, removal, hre } = await setupTest();
+          const { removal, hre } = await setupTest();
           const removalBalances = [100, 200, 300].map((balance) =>
             formatTokenAmount(balance)
           );
-          // duplicate token id
           const tokenIds = await Promise.all(
             [2016, 2017, 2017].map((vintage) =>
               createRemovalTokenId({
@@ -266,11 +243,9 @@ describe('Removal', () => {
               })
             )
           );
-          const listNow = false;
           const packedData = await createBatchMintData({
             hre,
-            fifoMarket,
-            listNow,
+            listNow: false,
           });
           await expect(
             removal.mintBatch(
@@ -284,42 +259,25 @@ describe('Removal', () => {
       });
     });
   });
-  describe('getters', () => {
-    describe('getScheduleStartTimeForRemoval', () => {
-      it('should return the restriction schedule start time for a removal id', async () => {
-        const { fifoMarket, removal, hre } = await setupTest();
-        const removalBalances = [formatTokenAmount(100)];
-        const tokenIds = await Promise.all(
-          [2016].map((vintage) =>
-            createRemovalTokenId({
-              removal,
-              hre,
-              removalData: {
-                vintage,
-              },
-            })
-          )
-        );
-        const listNow = false;
-        const scheduleStartTime = await getLatestBlockTime({ hre });
-        const packedData = await createBatchMintData({
-          hre,
-          fifoMarket,
-          listNow,
-          scheduleStartTime,
-        });
-        await removal.mintBatch(
-          hre.namedAccounts.supplier,
-          removalBalances,
-          tokenIds,
-          packedData
-        );
-        const projectId = await removal.getProjectIdForRemoval(tokenIds[0]);
-        const scheduleData = await removal.getScheduleDataForProjectId(
-          projectId
-        );
-        expect(scheduleData.startTime).to.equal(scheduleStartTime);
+  describe('getScheduleDataForProjectId', () => {
+    it('should return the restriction schedule start time for a removal id', async () => {
+      const { removal, listedRemovalIds, scheduleStartTime } = await setupTest({
+        userFixtures: {
+          supplier: {
+            removalDataToList: {
+              listNow: false,
+              removals: [{ amount: 100 }],
+            },
+          },
+        },
       });
+      const projectId = await removal.getProjectIdForRemoval(
+        listedRemovalIds[0]
+      );
+      const { startTime } = await removal.getScheduleDataForProjectId(
+        projectId
+      );
+      expect(startTime).to.be.gt(Zero).and.to.equal(scheduleStartTime);
     });
   });
 });

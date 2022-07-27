@@ -1,80 +1,79 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import "./RestrictedNORI.sol";
-import {RemovalUtils, UnpackedRemovalIdV0} from "./RemovalUtils.sol";
-import {TokenIdExists, ArrayLengthMismatch} from "./SharedCustomErrors.sol";
+import "./Market.sol";
+import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
+import {ArrayLengthMismatch} from "./Errors.sol";
 
-// import "hardhat/console.sol"; // todo
-
-// todo non-transferable/approveable after mint (except by DEFAULT_ADMIN_ROLE)
+// todo shared MinterAccessPreset base contract
+// todo global rename (accounts -> owners)
 // todo disable other mint functions
+// todo investigate ERC1155SupplyUpgradeable.totalSupply
+// todo look into this and use unchecked more https://github.com/OpenZeppelin/openzeppelin-contracts/issues/3512
+// todo globally pack structs
+// todo define all structs at the file level as it makes it easier to import
+// todo rm all non-inherited/overridden batch fns (from all contracts, not just removal). Inherit from Multicall instead
+
+struct BatchMintRemovalsData {
+  // todo can we de-dupe this with RemovalData? perhaps by nesting the struct?
+  uint256 projectId; // todo what is the max project ID size?
+  uint256 scheduleStartTime;
+  uint8 holdbackPercentage;
+  bool list;
+}
+
+struct ScheduleData {
+  uint256 startTime;
+  address supplierAddress;
+  uint256 methodology;
+  uint256 methodologyVersion;
+}
+
+struct RemovalData {
+  uint256 projectId;
+  uint256 holdbackPercentage;
+}
+
+error TokenIdExists(uint256 tokenId);
+error RemovalAmountZero(uint256 tokenId);
 
 /**
- * @title Removal
+ * @title Removal // todo
  */
-contract Removal is
-  ERC1155PausableUpgradeable,
-  ERC1155BurnableUpgradeable,
-  ERC1155SupplyUpgradeable,
-  AccessControlEnumerableUpgradeable
-{
-  using SafeMathUpgradeable for uint256;
-  using RemovalUtils for uint256;
-
-  error TokenIdDoesNotExist(uint256 tokenId);
-  error InvalidProjectId(uint256 projectId);
-
-  struct BatchMintRemovalsData {
-    // todo why doesnt typechain generate this as a type?
-    uint256 projectId;
-    uint256 scheduleStartTime;
-    uint256 holdbackPercentage;
-    address marketAddress;
-    bool list;
-  }
-
-  struct ScheduleData {
-    uint256 startTime;
-    address supplierAddress;
-    uint256 methodology;
-    uint256 methodologyVersion;
-  }
-
-  struct RemovalData {
-    uint256 projectId;
-    uint256 holdbackPercentage;
-  }
+contract Removal is ERC1155SupplyUpgradeable, PausableAccessPreset {
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   /**
-   * @notice Role conferring minting.
-   *
-   * @dev only Nori admin address should have this role.
+   * @notice Role conferring the the ability to mark a removal as released.
+   */
+  bytes32 public constant RELEASER_ROLE = keccak256("RELEASER_ROLE");
+
+  /**
+   * @notice Role conferring the ability to mint removals as well as the ability to list minted removals that have yet
+   * to be listed for sale.
    */
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
-   * @notice Role conferring pausing and unpausing of this contract.
-   *
-   * @dev only Nori admin address should have this role.
-   */
-  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-
-  /**
-   * @notice The RestrictedNORI contract that manages restricted tokens.
+   * @notice the `RestrictedNORI` contract that manages restricted tokens.
    */
   RestrictedNORI private _restrictedNori;
-  uint256 public tokenIdCounter;
-  string public name; // todo why did I add this
-  mapping(uint256 => uint256) public indexToTokenId; // todo consider how we're keeping track of the number and order of ids, ability to iterate. consider using enumerable map
-  mapping(uint256 => bool) private _tokenIdExists;
+
+  /**
+   * @notice The `Market` contract that removals can be bought and sold from.
+   */
+  Market private _market;
+
+  /**
+   * @notice The `Certificate` contract that removals are retired into.
+   */
+  Certificate private _certificate;
+
   mapping(uint256 => RemovalData) private _removalIdToRemovalData;
-  mapping(uint256 => ScheduleData) private _projectIdToScheduleData;
+  mapping(uint256 => ScheduleData) private _projectIdToScheduleData; // todo why does this live here and not in rNORI?
+  mapping(address => EnumerableSetUpgradeable.UintSet)
+    private _addressToOwnedTokenIds; // todo tests that ensure this is maintained correctly
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -84,74 +83,136 @@ contract Removal is
   }
 
   function initialize() external initializer {
+    // todo verify all initializers are called
+    __Context_init_unchained();
     __ERC1155_init_unchained("https://nori.com/api/removal/{id}.json");
     __Pausable_init_unchained();
-    __ERC1155Burnable_init_unchained();
     __ERC1155Supply_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
-    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _setupRole(PAUSER_ROLE, _msgSender());
-    _setupRole(MINTER_ROLE, _msgSender());
-    tokenIdCounter = 0;
-    name = "Removal";
-  }
-
-  function registerRestrictedNORIAddress(address restrictedNORIAddress)
-    external
-    onlyRole(DEFAULT_ADMIN_ROLE)
-  {
-    _restrictedNori = RestrictedNORI(restrictedNORIAddress);
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _grantRole(PAUSER_ROLE, _msgSender());
+    _grantRole(MINTER_ROLE, _msgSender());
+    _grantRole(RELEASER_ROLE, _msgSender());
   }
 
   /**
-   * @dev See {IERC1155-setApprovalForAll}.
+   * @dev Registers the market, rNORI, and certificate contracts so that they can be referenced in this contract.
    */
-  function setApprovalForAll(
+  function registerContractAddresses(
+    RestrictedNORI restrictedNori,
+    Market market,
+    Certificate certificate
+  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+    // todo configureContract() that does this + grantRole
+    // todo can any of these be included in the initializer instead?
+    // todo need a better contract registry system
+    // todo do we want to break apart these registerContractAddresses() functions for each separate contract?
+    _restrictedNori = restrictedNori;
+    _market = market;
+    _certificate = certificate;
+  }
+
+  /**
+   * @notice Mints multiple removals at once (for a single supplier).
+   * @param to The supplier address.
+   * @param amounts Each removal's tonnes of CO2 formatted as wei.
+   * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address,
+   * a parcel identifier, the vintage, country code, state code, methodology identifer, methodology version, and id
+   * format.
+   * @param data Encodes the project id and schedule start time for this batch of removals, the market contract
+   * address and a boolean that indicates whether to list these removals for sale now.
+   *
+   * @dev If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
+   *
+   * ##### Requirements:
+   *
+   * - Enforces the rules of `Removal._beforeTokenTransfer`.
+   * TODO
+   */
+  function mintBatch(
+    address to,
+    uint256[] memory amounts,
+    uint256[] memory ids, // todo structs[] instead of encoding beforehand
+    BatchMintRemovalsData memory data
+  ) external onlyRole(MINTER_ROLE) {
+    uint256 numberOfRemovals = ids.length;
+    if (!(amounts.length == numberOfRemovals)) {
+      revert ArrayLengthMismatch({array1Name: "amounts", array2Name: "ids"});
+    }
+    uint256 projectId = data.projectId;
+    uint256 holdbackPercentage = data.holdbackPercentage;
+    for (uint256 i = 0; i < numberOfRemovals; ++i) {
+      uint256 id = ids[i];
+      if (exists(id) || _removalIdToRemovalData[id].projectId != 0) {
+        revert TokenIdExists({tokenId: id});
+      }
+      _removalIdToRemovalData[id].projectId = projectId; // todo access _removalIdToRemovalData[removalId] once per loop
+      _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
+    }
+    uint256 firstRemoval = ids[0];
+    _projectIdToScheduleData[projectId] = ScheduleData({
+      startTime: data.scheduleStartTime,
+      supplierAddress: RemovalIdLib.supplierAddress(firstRemoval),
+      methodology: RemovalIdLib.methodology(firstRemoval),
+      methodologyVersion: RemovalIdLib.methodologyVersion(firstRemoval)
+    });
+    _mintBatch(to, ids, amounts, "");
+    if (data.list) {
+      safeBatchTransferFrom(to, address(_market), ids, amounts, "");
+    }
+  }
+
+  /**
+   * @notice Marks an amount of a removal as released given a removal ID and a quantity.
+   * @param owner The owner of the removal to release.
+   * @param removalId The ID of the removal to mark as released.
+   * @param amount The amount of the removal to release.
+   *
+   * @dev
+   *
+   * ##### Requirements:
+   *
+   * - The rules of `_beforeTokenTransfer` are enforced.
+   * - The caller must have the `RELEASER_ROLE`.
+   * - The rules of `_burn` are enforced.
+   */
+  function release(
     address owner,
-    address operator,
-    bool approved
-  ) public virtual onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
-    _setApprovalForAll(owner, operator, approved);
+    uint256 removalId,
+    uint256 amount
+  ) external onlyRole(RELEASER_ROLE) {
+    // todo what does this need to change about rNORI?
+    // todo how should we handle the case where certificate == 0 after relasing? Should it still exist with value of 0?
+    // todo decrement child removal balances of certificate if contained in one
+    _burn(owner, removalId, amount);
+  }
+
+  function marketAddress() external view returns (address) {
+    return address(_market);
+  }
+
+  function restrictedNoriAddress() external view returns (address) {
+    return address(_restrictedNori);
+  }
+
+  function certificateAddress() external view returns (address) {
+    return address(_certificate);
   }
 
   /**
-   * @notice Packs data about a removal into a 256-bit token id for the removal.
-   * @dev Performs some possible validations on the data before attempting to create the id.
-   * @param removalData removal data encoded as bytes, with the first byte storing the version.
-   */
-  function createRemovalId(bytes calldata removalData)
-    public
-    pure
-    returns (uint256)
-  {
-    return RemovalUtils.createRemovalId(removalData);
-  }
-
-  /**
-   * @notice Unpacks a V0 removal id into its component data.
-   */
-  function unpackRemovalIdV0(uint256 removalId)
-    public
-    pure
-    returns (UnpackedRemovalIdV0 memory)
-  {
-    return removalId.unpackRemovalIdV0();
-  }
-
-  /**
-   * @notice Get the restriction schedule id (which is the removal's project id) for a given removal id.
+   * @notice Gets the restriction schedule id (which is the removal's project id) for a given removal id.
    */
   function getProjectIdForRemoval(uint256 removalId)
     external
     view
     returns (uint256)
   {
-    return _removalIdToRemovalData[removalId].projectId;
+    return _removalIdToRemovalData[removalId].projectId; // todo should this just return the whole struct?
   }
 
   /**
-   * @notice Get the restriction schedule data for a given removal id.
+   * @notice Gets the restriction schedule data for a given removal id.
    */
   function getScheduleDataForRemovalId(uint256 removalId)
     external
@@ -163,7 +224,7 @@ contract Removal is
   }
 
   /**
-   * @notice Get the restriction schedule data for a given project id.
+   * @notice Gets the restriction schedule data for a given project id.
    */
   function getScheduleDataForProjectId(uint256 projectId)
     external
@@ -173,126 +234,144 @@ contract Removal is
     return _projectIdToScheduleData[projectId];
   }
 
-  /** Get the holdback percentages for a batch of removal ids. */
+  /** @notice Gets the holdback percentages for a batch of removal ids. */
   function batchGetHoldbackPercentages(uint256[] memory removalIds)
     external
     view
     returns (uint256[] memory)
   {
-    uint256[] memory holdbackPercentages = new uint256[](removalIds.length);
-    for (uint256 i = 0; i < removalIds.length; i++) {
+    uint256 numberOfRemovals = removalIds.length;
+    uint256[] memory holdbackPercentages = new uint256[](numberOfRemovals);
+    for (uint256 i = 0; i < numberOfRemovals; ++i) {
       uint256 id = removalIds[i];
-      if (!_tokenIdExists[id]) {
-        revert TokenIdDoesNotExist({tokenId: id});
-      }
-      holdbackPercentages[i] = _removalIdToRemovalData[removalIds[i]]
-        .holdbackPercentage;
+      holdbackPercentages[i] = _removalIdToRemovalData[id].holdbackPercentage;
     }
     return holdbackPercentages;
   }
 
-  /** Set the holdback percentages for a batch of removal ids. */
-  function batchSetHoldbackPercentage(
-    uint256[] calldata removalIds,
-    uint256 holdbackPercentage
-  ) external {
-    for (uint256 i = 0; i < removalIds.length; i++) {
-      uint256 id = removalIds[i];
-      if (!_tokenIdExists[id]) {
-        revert TokenIdDoesNotExist({tokenId: id});
-      }
-      _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
+  // todo this function will not scale well- consider dropping it somehow
+  function cumulativeBalanceOfBatch(address[] memory accounts)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    // todo use multicall instead
+    uint256 numberOfAccounts = accounts.length;
+    uint256[] memory batchBalances = new uint256[](numberOfAccounts);
+    for (uint256 i = 0; i < numberOfAccounts; ++i) {
+      batchBalances[i] = this.cumulativeBalanceOf(accounts[i]);
     }
+    return batchBalances;
+  }
+
+  // todo do we need to also add a version of these functions compatible with childTokens in certificate?
+  // todo batch?
+  function cumulativeBalanceOfOwnersSubset(address owner, uint256[] memory ids)
+    external
+    view
+    returns (uint256)
+  {
+    address[] memory owners = new address[](ids.length);
+    for (uint256 i = 0; i < ids.length; ++i) {
+      owners[i] = owner;
+    }
+    uint256[] memory totals = balanceOfBatch(owners, ids);
+    uint256 total = 0;
+    for (uint256 i = 0; i < totals.length; ++i) {
+      total += totals[i];
+    }
+    return total;
+  }
+
+  // todo this function will not scale well- consider dropping it somehow
+  function tokensOfOwner(
+    address owner // todo global rename (tokens -> removals?)
+  ) external view returns (uint256[] memory) {
+    return _addressToOwnedTokenIds[owner].values();
+  }
+
+  // todo rename cumulativeBalanceOfOwner
+  // todo this function will not scale well- consider dropping it somehow
+  function cumulativeBalanceOf(address owner) external view returns (uint256) {
+    // todo are the bodies of these functions re-usable across the contract? Seems like an abstraction might be possible
+    EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
+      owner
+    ];
+    uint256 numberOfTokensOwned = removals.length();
+    address[] memory owners = new address[](numberOfTokensOwned);
+    for (uint256 i = 0; i < numberOfTokensOwned; ++i) {
+      owners[i] = owner;
+    }
+    uint256[] memory totals = balanceOfBatch(owners, removals.values());
+    uint256 total = 0;
+    for (uint256 i = 0; i < numberOfTokensOwned; ++i) {
+      total += totals[i];
+    }
+    return total;
+  }
+
+  function numberOfTokensOwnedByAddress(address account)
+    external
+    view
+    returns (uint256)
+  {
+    return _addressToOwnedTokenIds[account].length();
+  }
+
+  // todo better naming for all balance functions (e.g., balanceOfIds -> blanaceOfRemovalsForAccount)
+  function balanceOfIds(address account, uint256[] memory ids)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    uint256[] memory batchBalances = new uint256[](ids.length);
+    for (uint256 i = 0; i < ids.length; ++i) {
+      batchBalances[i] = balanceOf(account, ids[i]); // todo batch;
+    }
+    return batchBalances;
   }
 
   /**
-   * @dev mints multiple removals at once (for a single supplier).
-   * If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
-   * amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] <- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
-   * token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -> { amount: 100, supplier: 1, vintage: 2018, ... }
-   * token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -> { amount: 10, supplier: 1, vintage: 2019, ... }
-   * token id 2 URI points to vintage information (e.g., 2020) nori.com/api/removal/2 -> { amount: 50, supplier: 1, vintage: 2020, ... }
-   *
-   * @param to The supplier address
-   * @param amounts Each removal's tonnes of CO2 formatted as wei
-   * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address, a parcel identifier,
-   * the vintage, country code, state code, methodology identifer, methodology version, and id format.
-   * @param data Encodes the project id and schedule start time for this batch of removals, the market contract
-   * address and a boolean that indicates whether to list these removals for sale now.
+   * @notice Packs data about a removal into a 256-bit token id for the removal.
+   * @dev Performs some possible validations on the data before attempting to create the id.
+   * @param removalData removal data struct to be packed into a uint256 ID
    */
-  function mintBatch(
-    address to,
-    uint256[] memory amounts,
-    uint256[] memory ids,
-    bytes memory data
-  ) public {
-    uint256 idsLength = ids.length;
-    if (!(amounts.length == idsLength)) {
-      revert ArrayLengthMismatch({array1Name: "amounts", array2Name: "ids"});
-    }
-    // todo should we check that the removal id-encoded supplier address for each id is the same as `to` ?
-    // todo should we validate the removal ids any further? what about other malformed fields?
-    //    note that there is validation performed when creating ids in the first place, but room for errors/changes between id creation and then submission to this function
-    // todo do we add any validation to enforce that all removals in batch belong to the same project id?
-    BatchMintRemovalsData memory decodedData = abi.decode(
-      data,
-      (BatchMintRemovalsData)
-    );
-    uint256 projectId = decodedData.projectId;
-    uint256 scheduleStartTime = decodedData.scheduleStartTime;
-    uint256 holdbackPercentage = decodedData.holdbackPercentage;
-    bool list = decodedData.list;
-    address marketAddress = decodedData.marketAddress;
-    if (projectId == 0) {
-      revert InvalidProjectId({projectId: projectId});
-    }
-    uint256 newTokenIdCounter = tokenIdCounter;
-    for (uint256 i = 0; i < idsLength; i++) {
-      uint256 id = ids[i];
-      if (_tokenIdExists[id]) {
-        revert TokenIdExists({tokenId: id});
-      }
-      _removalIdToRemovalData[id].projectId = projectId;
-      _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
-
-      _tokenIdExists[id] = true;
-      indexToTokenId[newTokenIdCounter] = id;
-      newTokenIdCounter += 1;
-    }
-    uint256 firstId = ids[0];
-    tokenIdCounter = newTokenIdCounter;
-    _projectIdToScheduleData[projectId] = ScheduleData(
-      scheduleStartTime,
-      firstId.supplierAddress(), // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
-      firstId.methodology(), // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
-      firstId.methodologyVersion() // todo check gas costs of extracting values per line vs once using unpackRemovalIdV0
-    );
-    super._mintBatch(to, ids, amounts, data);
-    setApprovalForAll(to, _msgSender(), true); // todo look at vesting contract for potentially better approach
-    if (list) {
-      safeBatchTransferFrom(to, marketAddress, ids, amounts, data);
-    }
+  function createRemovalId(
+    UnpackedRemovalIdV0 memory removalData // todo look into using calldata elsewhere
+  ) external pure returns (uint256) {
+    return RemovalIdLib.createRemovalId(removalData);
   }
 
   /**
-   * @dev used to list removals for sale by transferring the removals to the market contract
-   *
-   * ### Requirements:
-   *  - all removals being listed must belong to the same project id.
+   * @notice Unpacks a V0 removal id into its component data.
+   */
+  function unpackRemovalIdV0(uint256 removalId)
+    external
+    pure
+    returns (UnpackedRemovalIdV0 memory)
+  {
+    return RemovalIdLib.unpackRemovalIdV0(removalId);
+  }
+
+  /**
+   * @dev Overrides the default behavior of `ERC1155Upgradeable.safeBatchTransferFrom` to allow admins to list removals
+   * for sale.
    */
   function safeBatchTransferFrom(
     address from,
     address to,
     uint256[] memory ids,
     uint256[] memory amounts,
-    bytes memory
+    bytes memory data
   ) public override {
-    // todo do we add any validation to enforce that all removals in batch belong to the same project id?
-    bytes memory projectId = abi.encode(
-      _removalIdToRemovalData[ids[0]].projectId
-    );
-    // todo require _to is a known market contract
-    super.safeBatchTransferFrom(from, to, ids, amounts, projectId);
+    if (
+      hasRole(MINTER_ROLE, _msgSender())
+    ) // todo this should probably just be a different function name
+    {
+      _safeBatchTransferFrom(from, to, ids, amounts, data);
+    } else {
+      super.safeBatchTransferFrom(from, to, ids, amounts, data);
+    }
   }
 
   function supportsInterface(bytes4 interfaceId)
@@ -304,6 +383,58 @@ contract Removal is
     return super.supportsInterface(interfaceId);
   }
 
+  /**
+   * @notice Burns an amount of tokens from an account.
+   * @dev Destroys `amount` tokens of token type `id` from `from`. If the tokens are included as part of any
+   * certificates, the certificate balances are decremented by `amount` as well.
+   *
+   * ##### Requirements:
+   *
+   * - Enforces the rules of `ERC1155Upgradeable._burn`.
+   */
+  function _burn(
+    address from,
+    uint256 id,
+    uint256 amount
+  ) internal override {
+    if (from == address(_market)) {
+      _market.release(id, amount);
+    } else if (from == address(_certificate)) {
+      Certificate.Balance[] memory certificatesOfRemoval = _certificate
+        .certificatesOfRemoval(id);
+      uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
+      bytes[] memory releaseCalls = new bytes[](numberOfCertificatesForRemoval);
+      for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
+        // todo releaseFromCertificate vs releaseUnlisted
+        Certificate.Balance memory certificateBalance = certificatesOfRemoval[
+          i
+        ];
+        releaseCalls[i] = abi.encodeWithSelector(
+          _certificate.releaseRemoval.selector,
+          certificateBalance.id,
+          id,
+          certificateBalance.amount
+        );
+      }
+      _certificate.multicall(releaseCalls);
+    }
+    super._burn(from, id, amount);
+  }
+
+  /**
+   * @notice Hook that is called before before any token transfer. This includes minting and burning, as well as
+   * batched variants.
+   *
+   * @dev Follows the rules of hooks defined [here](
+   *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+   *
+   * ##### Requirements:
+   *
+   * - The contract must not be paused.
+   * - Enforces the rules of `ERC1155Upgradeable._beforeTokenTransfer`.
+   * - Enforces the rules of `ERC1155SupplyUpgradeable._beforeTokenTransfer`.
+   * TODO rest
+   */
   function _beforeTokenTransfer(
     address operator,
     address from,
@@ -311,26 +442,38 @@ contract Removal is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  )
-    internal
-    override(
-      ERC1155SupplyUpgradeable,
-      ERC1155PausableUpgradeable,
-      ERC1155Upgradeable
-    )
-  {
-    return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+  ) internal override whenNotPaused {
+    uint256 numberOfTokenTransfers = amounts.length;
+    for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+      if (amounts[i] == 0) {
+        revert RemovalAmountZero({tokenId: ids[i]});
+      }
+    }
+    super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
-  function balanceOfIds(address account, uint256[] memory ids)
-    external
-    view
-    returns (uint256[] memory)
-  {
-    uint256[] memory batchBalances = new uint256[](ids.length);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      batchBalances[i] = balanceOf(account, ids[i]);
+  // todo (and fix _beforeTokenTransfer docs)
+  function _afterTokenTransfer(
+    address operator,
+    address from,
+    address to,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    bytes memory data
+  ) internal override {
+    // todo find a way to merge this and _beforeTokenTransfer, otherwise we loop through all IDs 2x
+    uint256 numberOfTokenTransfers = amounts.length;
+    for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+      uint256 id = ids[i];
+      if (from != address(0)) {
+        if (balanceOf(from, id) == 0) {
+          _addressToOwnedTokenIds[from].remove(id);
+        }
+      }
+      if (to != address(0)) {
+        _addressToOwnedTokenIds[to].add(id);
+      }
     }
-    return batchBalances;
+    super._afterTokenTransfer(operator, from, to, ids, amounts, data);
   }
 }

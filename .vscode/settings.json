@@ -2,6 +2,15 @@
   /** BEGIN ESLINT OPTIONS */
   "eslint.packageManager": "yarn",
   "eslint.onIgnoredFiles": "warn",
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "html",
+    // "markdown",
+    "toml"
+  ],
   /** END ESLINT OPTIONS */
 
   /** BEGIN EDITOR OPTIONS */
@@ -77,9 +86,6 @@
   /** END SOLIDITY OPTIONS */
 
   /** BEGIN TYPE CHECKING OPTIONS */
-  "js/ts.implicitProjectConfig.checkJs": true,
-  "[toml]": {
-    "editor.defaultFormatter": "tamasfe.even-better-toml"
-  }
+  "js/ts.implicitProjectConfig.checkJs": true
   /** END TYPE CHECKING OPTIONS */
 }

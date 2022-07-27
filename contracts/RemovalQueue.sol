@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import {RemovalUtils} from "./RemovalUtils.sol";
+import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./Removal.sol";
 
@@ -11,8 +11,8 @@ struct RemovalQueueByVintage {
   uint256 latestYear;
 }
 
+// todo rename RemovalQueueLib
 library RemovalQueue {
-  using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   error RemovalNotInQueue(uint256 removalId, uint256 queueVintage);
@@ -26,13 +26,12 @@ library RemovalQueue {
    * @dev The removal is added to the Enumberable Set that maps to the year of its vintage.
    * @param removalQueue the queue from storage.
    * @param removalToInsert a new removal to insert.
-   * @return bool true if success, false otherwise.
    */
   function insertRemovalByVintage(
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToInsert
-  ) internal returns (bool) {
-    uint256 vintageOfRemoval = removalToInsert.vintage();
+  ) internal {
+    uint256 vintageOfRemoval = RemovalIdLib.vintage(removalToInsert);
     if (isRemovalQueueEmpty(removalQueue)) {
       removalQueue.earliestYear = vintageOfRemoval;
       removalQueue.latestYear = vintageOfRemoval;
@@ -56,10 +55,11 @@ library RemovalQueue {
    * @param removalToRemove the removal to remove.
    */
   function removeRemoval(
+    // todo rename as `.remove`
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToRemove
   ) internal {
-    uint256 vintageOfRemoval = removalToRemove.vintage();
+    uint256 vintageOfRemoval = RemovalIdLib.vintage(removalToRemove);
     if (
       !removalQueue.queueByVintage[vintageOfRemoval].remove(removalToRemove)
     ) {

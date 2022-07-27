@@ -88,7 +88,7 @@ contract LockedNORIV2Helper {
   function getSimpleGrantCreationParamsEncoded(
     address recipient,
     uint256 fromTime
-  ) public view returns (bytes memory) {
+  ) public pure returns (bytes memory) {
     return
       encodeGrantCreationParams(
         recipient,

@@ -5,6 +5,6 @@
 
 // describe('Certificate', () => {
 //   it('todo', async () => {
-//     const { mockCertificate, hre } = await setupTest();
+//     const { certificate, hre } = await setupTest();
 //   });
 // });
