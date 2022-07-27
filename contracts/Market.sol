@@ -664,7 +664,6 @@ contract Market is PausableAccessPreset {
     if (amount == removalBalance) {
       _removeActiveRemoval(supplierAddress, removalId);
     }
-    // todo what do we do when amount != removalBalance?
   }
 
   /**
