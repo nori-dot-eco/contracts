@@ -42,21 +42,13 @@ contract Removal_release is UpgradeableRemoval {
 }
 
 contract Removal_release_unlisted is UpgradeableMarket {
-  function test() external {
+  function setUp() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 1_234_567_890,
       scheduleStartTime: block.timestamp,
       holdbackPercentage: 50,
       list: false
     });
-    vm.expectEmit(false, false, false, false); // todo
-    emit TransferBatch(
-      address(0),
-      address(0),
-      address(_namedAccounts.supplier),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      _asSingletonUintArray(1)
-    );
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
@@ -65,13 +57,17 @@ contract Removal_release_unlisted is UpgradeableMarket {
     );
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
-      1
+      1,
+      "Expected supplier to own the removal"
     );
+  }
+
+  function test() external {
     _removal.release(REMOVAL_ID_FIXTURE, 1);
-    // todo events
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
-      0
+      0,
+      "Expected the removal to be burned"
     );
   }
 }

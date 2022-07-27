@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
+import "forge-std/console2.sol";
 
 // todo shared Consider a shared MinterAccessPreset base contract that handles minting roles so role names can be shared
 // todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
@@ -375,18 +376,35 @@ contract Removal is
    * ##### Requirements:
    *
    * - Enforces the rules of `ERC1155Upgradeable._burn`.
+   * - // todo
+   *
+   * @param removalId The removal ID that should be burned.
+   * @param amount The amount of the removal ID to be burned.
    */
-  function _burn(uint256 id, uint256 amount) internal {
+  function _burn(uint256 removalId, uint256 amount) internal {
     // todo needs more tests
     uint256 amountBurned = 0;
     address market = this.marketAddress();
     address certificate = this.certificateAddress();
-    uint256 unlistedBalance = balanceOf(RemovalIdLib.supplierAddress(id), id);
-    uint256 listedBalance = balanceOf(market, id);
-    uint256 soldBalance = balanceOf(certificate, id);
+    uint256 unlistedBalance = balanceOf(
+      RemovalIdLib.supplierAddress(removalId),
+      removalId
+    );
+    uint256 listedBalance = balanceOf(market, removalId);
+    uint256 soldBalance = balanceOf(certificate, removalId);
+    console2.log(
+      "----",
+      RemovalIdLib.supplierAddress(removalId),
+      unlistedBalance,
+      removalId
+    );
     if (unlistedBalance > 0) {
       amountBurned += MathUpgradeable.min(amount, unlistedBalance);
-      super._burn(RemovalIdLib.supplierAddress(id), id, amountBurned); // todo single call to _burnBatch or emit event
+      super._burn(
+        RemovalIdLib.supplierAddress(removalId),
+        removalId,
+        amountBurned
+      ); // todo single call to _burnBatch or emit event
     }
     if (amount - amountBurned <= amount) {
       if (listedBalance > 0) {
@@ -396,12 +414,12 @@ contract Removal is
           listedBalance
         );
         amountBurned += amountToReleaseFromMarket;
-        super._burn(market, id, amountToReleaseFromMarket);
-        _market.release(id, amountToReleaseFromMarket);
+        super._burn(market, removalId, amountToReleaseFromMarket);
+        _market.release(removalId, amountToReleaseFromMarket);
       }
       if (amount - amountBurned <= amount && soldBalance > 0) {
         Certificate.Balance[] memory certificatesOfRemoval = _certificate
-          .certificatesOfRemoval(id);
+          .certificatesOfRemoval(removalId);
         uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
         bytes[] memory releaseCalls = new bytes[](
           numberOfCertificatesForRemoval
@@ -418,10 +436,10 @@ contract Removal is
           releaseCalls[i] = abi.encodeWithSelector(
             _certificate.releaseRemoval.selector,
             certificateBalance.id,
-            id,
+            removalId,
             amountToReleaseFromCertificate
           );
-          super._burn(certificate, id, amountToReleaseFromCertificate);
+          super._burn(certificate, removalId, amountToReleaseFromCertificate);
           if (amountBurned == amount) break;
         }
         _certificate.multicall(releaseCalls);

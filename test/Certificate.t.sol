@@ -44,7 +44,7 @@ contract Certificate_burn is UpgradeableCertificate {
   }
 
   function test() external {
-    console.log("uint64===", uint64(uint256(1)));
+    console2.log("uint64===", uint64(uint256(1)));
 
     vm.prank(_owner);
     _certificate.burn(_certificateId);
