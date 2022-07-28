@@ -20,11 +20,11 @@ export const deploy: DeployFunction = async (environment) => {
   const removal = await getRemoval({ hre, signer });
   const bpNori = await getBridgedPolygonNori({ hre, signer });
   if (
-    !(await rNori.hasRole(await rNori.SCHEDULE_CREATOR_ROLE(), market.address))
+    !(await rNori.hasRole(await rNori.SCHEDULE_CREATOR_ROLE(), removal.address))
   ) {
-    await rNori.grantRole(await rNori.SCHEDULE_CREATOR_ROLE(), market.address);
+    await rNori.grantRole(await rNori.SCHEDULE_CREATOR_ROLE(), removal.address);
     hre.trace(
-      "Granted Market the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI"
+      "Granted Removal the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI"
     );
   }
 

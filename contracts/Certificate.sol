@@ -8,7 +8,6 @@ import {FunctionDisabled, ArrayLengthMismatch, SenderNotRemovalContract} from ".
 import "./Removal.sol";
 import "./PausableAccessPreset.sol";
 import "./ICertificate.sol";
-import "./BytesLib.sol";
 
 error ForbiddenTransferAfterMinting();
 
@@ -25,7 +24,6 @@ contract Certificate is
   PausableAccessPreset
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-  using BytesLib for bytes;
 
   struct Balance {
     uint256 id;
@@ -43,6 +41,8 @@ contract Certificate is
 
   mapping(uint256 => mapping(uint256 => uint256))
     private _removalBalancesOfCertificate;
+
+  mapping(uint256 => uint256) private _balances; // todo naming consistency for mappings (e.g, plural/non-plural)
 
   /*
    * todo Add tests that ensure _removalsOfCertificate/_certificatesOfRemoval can't deviate from Removal.sol balances
@@ -98,6 +98,7 @@ contract Certificate is
     _removal = removal;
   }
 
+  // todo is whenNotPaused redundant since it's only called from a pausable function on the removal contract?
   function releaseRemoval(
     uint256 certificateId,
     uint256 removalId,
@@ -133,7 +134,16 @@ contract Certificate is
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    _receiveRemovalBatch(data.toAddress(), removalIds, removalAmounts);
+    (address recipient, uint256 certificateAmount) = abi.decode(
+      data,
+      (address, uint256)
+    );
+    _receiveRemovalBatch({
+      recipient: recipient,
+      certificateAmount: certificateAmount,
+      removalIds: removalIds,
+      removalAmounts: removalAmounts
+    });
     return this.onERC1155BatchReceived.selector;
   }
 
@@ -155,6 +165,14 @@ contract Certificate is
     return _totalMinted();
   }
 
+  function originalBalanceOf(uint256 certificateId)
+    external
+    view
+    returns (uint256)
+  {
+    return _balances[certificateId];
+  }
+
   /**
    * @dev Returns the list of removal IDs for the given certificate ID.
    */
@@ -165,14 +183,17 @@ contract Certificate is
   {
     EnumerableSetUpgradeable.UintSet
       storage removalIds = _removalsOfCertificate[certificateId];
-    // todo short-circuit (skip to return statement) if there are no removals
-    Balance[] memory removals = new Balance[](removalIds.length());
-    for (uint256 i = 0; i < removalIds.length(); i++) {
-      uint256 removalId = removalIds.at(i);
-      removals[i] = Balance({
-        id: removalId,
-        amount: _removalBalancesOfCertificate[certificateId][removalId]
-      });
+    uint256 numberOfRemovals = removalIds.length();
+    Balance[] memory removals = new Balance[](numberOfRemovals);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < numberOfRemovals; ++i) {
+        uint256 removalId = removalIds.at(i);
+        removals[i] = Balance({
+          id: removalId,
+          amount: _removalBalancesOfCertificate[certificateId][removalId]
+        });
+      }
     }
     return removals;
   }
@@ -187,14 +208,17 @@ contract Certificate is
   {
     EnumerableSetUpgradeable.UintSet
       storage certificateIds = _certificatesOfRemoval[removalId];
-    // todo short-circuit (skip to return statement) if there are no certificates
-    Balance[] memory certificates = new Balance[](certificateIds.length());
-    for (uint256 i = 0; i < certificateIds.length(); i++) {
-      uint256 certificateId = certificateIds.at(i);
-      certificates[i] = Balance({
-        id: certificateId,
-        amount: _removalBalancesOfCertificate[certificateId][removalId]
-      });
+    uint256 numberOfCertificates = certificateIds.length();
+    Balance[] memory certificates = new Balance[](numberOfCertificates);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < numberOfCertificates; ++i) {
+        uint256 certificateId = certificateIds.at(i);
+        certificates[i] = Balance({
+          id: certificateId,
+          amount: _removalBalancesOfCertificate[certificateId][removalId]
+        });
+      }
     }
     return certificates;
   }
@@ -259,11 +283,13 @@ contract Certificate is
 
   function _receiveRemovalBatch(
     address recipient,
+    uint256 certificateAmount,
     uint256[] memory removalIds,
     uint256[] memory removalAmounts
   ) internal {
     _validateReceivedRemovalBatch(removalIds, removalAmounts);
     uint256 certificateId = _nextTokenId();
+    _balances[certificateId] = certificateAmount;
     _mint(recipient, 1); // todo should we be using _mint or _safeMint for ERC721A
     for (uint256 i = 0; i < removalIds.length; ++i) {
       _removalBalancesOfCertificate[certificateId][

@@ -125,7 +125,7 @@ contract Recipient {
 
 // https://tagmerge.com/issue/gakonst/foundry/693
 contract LockedNORITest is
-  Test,
+  Global,
   ERC777ERC1820 // todo use pattern established in Removal/certificate/etc tests
 {
   address internal constant _ERC1820_REGISTRY_ADDRESS =

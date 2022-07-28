@@ -107,6 +107,14 @@ contract Market is PausableAccessPreset {
   }
 
   /**
+   * @notice Returns the current value of the priority restricted threshold, which is the amount of inventory
+   * that will always be reserved to sell only to buyers with the ALLOWLIST_ROLE.
+   */
+  function restrictedNoriAddress() external view returns (address) {
+    return address(_restrictedNori);
+  }
+
+  /**
    * @notice Returns the current value of the Nori fee percentage, as an integer, which is the percentage of
    * each purchase that will be paid to Nori as the marketplace operator.
    */
@@ -193,11 +201,6 @@ contract Market is PausableAccessPreset {
         _addActiveSupplier(supplierAddress);
       }
     }
-    // todo consider moving rNori schedule creating logic to the Removal or rNori contracts if possible
-    _restrictedNori.createSchedule(
-      _removal.getProjectIdForRemoval(ids[0])
-      // todo consider reverting when creating an rNori schedule if all removal IDs don't all belong to the same project
-    );
     return this.onERC1155BatchReceived.selector;
   }
 
@@ -228,7 +231,7 @@ contract Market is PausableAccessPreset {
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
-    _checkSupply({purchaseAmount: certificateAmount});
+    _checkSupply({certificateAmount: certificateAmount});
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -244,14 +247,15 @@ contract Market is PausableAccessPreset {
       r,
       s
     );
-    this.fulfillOrder(
-      _msgSender(),
-      recipient,
-      numberOfRemovals,
-      ids,
-      amounts,
-      suppliers
-    );
+    this.fulfillOrder({
+      certificateAmount: certificateAmount,
+      operator: _msgSender(),
+      recipient: recipient,
+      numberOfRemovals: numberOfRemovals,
+      ids: ids,
+      amounts: amounts,
+      suppliers: suppliers
+    });
   }
 
   /**
@@ -287,16 +291,16 @@ contract Market is PausableAccessPreset {
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    uint256 purchaseAmount = this.certificateAmountFromPurchaseTotal(amount);
+    uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     _checkSupplyOfSupplier({
-      purchaseAmount: purchaseAmount,
+      certificateAmount: certificateAmount,
       supplierAddress: supplierToBuyFrom
     });
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
       uint256[] memory amounts
-    ) = _allocateSupplySingleSupplier(purchaseAmount, supplierToBuyFrom);
+    ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
     address[] memory suppliers = new address[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       suppliers[i] = supplierToBuyFrom;
@@ -310,23 +314,24 @@ contract Market is PausableAccessPreset {
       r,
       s
     );
-    this.fulfillOrder(
-      _msgSender(),
-      recipient,
-      numberOfRemovals,
-      ids,
-      amounts,
-      suppliers
-    );
+    this.fulfillOrder({
+      certificateAmount: certificateAmount,
+      operator: _msgSender(),
+      recipient: recipient,
+      numberOfRemovals: numberOfRemovals,
+      ids: ids,
+      amounts: amounts,
+      suppliers: suppliers
+    });
   }
 
   /**
    * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
    * and buyer is not priority.
    *
-   * @param purchaseAmount The number of carbon removals being purchased.
+   * @param certificateAmount The number of carbon removals being purchased.
    */
-  function _checkSupply(uint256 purchaseAmount) private view {
+  function _checkSupply(uint256 certificateAmount) private view {
     uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
     if (activeSupply == 0) {
       revert OutOfStock();
@@ -336,7 +341,7 @@ contract Market is PausableAccessPreset {
         revert LowSupplyAllowlistRequired();
       }
     }
-    if (purchaseAmount > activeSupply) {
+    if (certificateAmount > activeSupply) {
       revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
     }
   }
@@ -345,10 +350,10 @@ contract Market is PausableAccessPreset {
    * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority buyers
    * and buyer is not priority.
    *
-   * @param purchaseAmount The number of carbon removals being purchased.
+   * @param certificateAmount The number of carbon removals being purchased.
    */
   function _checkSupplyOfSupplier(
-    uint256 purchaseAmount,
+    uint256 certificateAmount,
     address supplierAddress
   ) private view {
     uint256 activeSupplyOfSupplier = _activeSupply[supplierAddress]
@@ -569,6 +574,7 @@ contract Market is PausableAccessPreset {
    * @notice Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
    * `RestrictedNORI` contract, pays Nori the order fee, updates accounting, and mints the `Certificate`.
    *
+   * @param certificateAmount The total amount for the certificate.
    * @param operator The message sender.
    * @param recipient The recipient of the certificate.
    * @param numberOfRemovals The number of distinct removal token ids that are involved in fulfilling this order.
@@ -580,6 +586,7 @@ contract Market is PausableAccessPreset {
    * todo use correct check-effects pattern in `fulfillOrder`
    */
   function fulfillOrder(
+    uint256 certificateAmount,
     address operator,
     address recipient,
     uint256 numberOfRemovals,
@@ -619,7 +626,7 @@ contract Market is PausableAccessPreset {
         unrestrictedSupplierFee
       );
     }
-    bytes memory data = abi.encode(recipient);
+    bytes memory data = abi.encode(recipient, certificateAmount);
     _removal.safeBatchTransferFrom(
       address(this),
       address(_certificate),
@@ -630,23 +637,27 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * todo consider allowing operators of a removal to withdraw from the market
-   * todo consider allowing calls to withdraw to specify the recipient address for the withdrawn removal
+   * @notice Withdraws a removal to the supplier.
+   * @dev Withdraws a removal to the supplier address encoded in the removal ID.
    */
   function withdraw(uint256 removalId) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     if (
       _msgSender() == supplierAddress ||
-      hasRole(DEFAULT_ADMIN_ROLE, _msgSender())
+      hasRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()}) ||
+      _removal.isApprovedForAll({
+        account: supplierAddress,
+        operator: _msgSender()
+      })
     ) {
       _removeActiveRemoval(supplierAddress, removalId);
-      _removal.safeTransferFrom(
-        address(this),
-        supplierAddress,
-        removalId,
-        _removal.balanceOf(address(this), removalId),
-        ""
-      );
+      _removal.safeTransferFrom({
+        from: address(this),
+        to: RemovalIdLib.supplierAddress(removalId),
+        id: removalId,
+        amount: _removal.balanceOf(address(this), removalId),
+        data: ""
+      });
     } else {
       revert UnauthorizedWithdrawal();
     }
@@ -687,7 +698,6 @@ contract Market is PausableAccessPreset {
     if (amount == removalBalance) {
       _removeActiveRemoval(supplierAddress, removalId);
     }
-    // todo what do we do when amount != removalBalance?
   }
 
   /**

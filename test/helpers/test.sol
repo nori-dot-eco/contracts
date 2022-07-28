@@ -3,8 +3,7 @@
 pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "forge-std/Test.sol";
-import "forge-std/Vm.sol";
+import "@prb/test/Vm.sol";
 import "forge-std/console2.sol";
 import {PRBTest} from "@prb/test/PRBTest.sol";
 
