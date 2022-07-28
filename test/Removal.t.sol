@@ -336,7 +336,7 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
 }
 
 /** @dev A test that asserts the ability to release a removal retired across 2 certificates */
-contract Removal_release_unlisted_listed_and_retired_2x is UpgradeableMarket {
+contract Removal_release_retired_2x is UpgradeableMarket {
   uint256[] private _removalIds;
 
   function setUp() external {
