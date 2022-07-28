@@ -611,7 +611,6 @@ contract Market is PausableAccessPreset {
   /**
    * @notice Withdraws a removal to the supplier.
    * @dev Withdraws a removal to the supplier address encoded in the removal ID.
-   * todo consider allowing calls to withdraw to specify the recipient address for the withdrawn removal
    */
   function withdraw(uint256 removalId) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
