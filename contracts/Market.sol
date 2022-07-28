@@ -361,7 +361,7 @@ contract Market is PausableAccessPreset {
     if (activeSupplyOfSupplier == 0) {
       revert OutOfStock();
     }
-    if (purchaseAmount > activeSupplyOfSupplier) {
+    if (certificateAmount > activeSupplyOfSupplier) {
       revert InsufficientSupply(); // todo Assure `_checkSupplyOfSupplier` validates all possible market supply states
     }
     uint256 totalActiveSupply = _removal.cumulativeBalanceOf(address(this));
