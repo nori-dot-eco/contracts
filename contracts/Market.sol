@@ -107,6 +107,14 @@ contract Market is PausableAccessPreset {
   }
 
   /**
+   * @notice Returns the current value of the priority restricted threshold, which is the amount of inventory
+   * that will always be reserved to sell only to buyers with the ALLOWLIST_ROLE.
+   */
+  function restrictedNoriAddress() external view returns (address) {
+    return address(_restrictedNori);
+  }
+
+  /**
    * @notice Returns the current value of the Nori fee percentage, as an integer, which is the percentage of
    * each purchase that will be paid to Nori as the marketplace operator.
    */
@@ -193,11 +201,6 @@ contract Market is PausableAccessPreset {
         _addActiveSupplier(supplierAddress);
       }
     }
-    // todo consider moving rNori schedule creating logic to the Removal or rNori contracts if possible
-    _restrictedNori.createSchedule(
-      _removal.getProjectIdForRemoval(ids[0])
-      // todo consider reverting when creating an rNori schedule if all removal IDs don't all belong to the same project
-    );
     return this.onERC1155BatchReceived.selector;
   }
 
@@ -559,6 +562,7 @@ contract Market is PausableAccessPreset {
     uint256[] calldata amounts,
     address[] memory suppliers
   ) external {
+    // todo verify changes to `fulfillOrder` (memory->calldata arr args) that enabled [:index] arr slicing syntax is ok
     uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
     uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(

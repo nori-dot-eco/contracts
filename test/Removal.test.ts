@@ -189,6 +189,14 @@ describe('Removal', () => {
             namedAccounts.supplier,
             tokenIds,
             removalBalances
+          )
+          .to.emit(rNori, 'ScheduleCreated')
+          .withArgs(
+            packedData.projectId,
+            packedData.scheduleStartTime,
+            BigNumber.from(packedData.scheduleStartTime).add(
+              SECONDS_IN_10_YEARS
+            )
           );
         await expect(
           removal.safeBatchTransferFrom(
@@ -206,14 +214,6 @@ describe('Removal', () => {
             market.address,
             tokenIds,
             removalBalances
-          )
-          .to.emit(rNori, 'ScheduleCreated')
-          .withArgs(
-            packedData.projectId,
-            packedData.scheduleStartTime,
-            BigNumber.from(packedData.scheduleStartTime).add(
-              SECONDS_IN_10_YEARS
-            )
           );
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {

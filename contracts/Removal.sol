@@ -97,7 +97,7 @@ contract Removal is
   }
 
   /**
-   * @dev Registers the market, rNORI, and certificate contracts so that they can be referenced in this contract.
+   * @dev Registers the market, and certificate contracts so that they can be referenced in this contract.
    */
   function registerContractAddresses(Market market, Certificate certificate)
     external
@@ -153,6 +153,7 @@ contract Removal is
       methodologyVersion: RemovalIdLib.methodologyVersion(firstRemoval)
     });
     _mintBatch(to, ids, amounts, "");
+    RestrictedNORI(_market.restrictedNoriAddress()).createSchedule(projectId);
     if (data.list) {
       safeBatchTransferFrom({
         from: to,
