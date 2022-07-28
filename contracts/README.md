@@ -38,7 +38,7 @@ The total supply of each Removal token ID represent the estimated quantity of NR
 Lifecycle of a Removal:
 
 1. Minted to a supplier's address
-2. Ownership transfered to the _Market_ contract to be listed for sale.
+2. Ownership transferred to the _Market_ contract to be listed for sale.
 3. Sold by the _Market_ and ownership transferred to one or more _Certificate_
 4. Possibly burned or partially burned if the supplier fails to uphold their contractual obligation to keep the underlying carbon sequestered for the duration of their contract.
 
@@ -50,7 +50,7 @@ ERC721a token representing a carbon removal buyer's proof of purchase.
 
 Every purchase in the market mints a new _Certificate_ token with a unique ID. _Certificate_ is configured as an ERC1155 recipient to receive the purchased _Removal_ tokens.
 
-Certificates are non-transferrable. It is a fundamental tenet of the Nori market design that Removals and their Certificates cannot change hands after the purchase transaction.
+Certificates are non-transferable. It is a fundamental tenet of the Nori market design that Removals and their Certificates cannot change hands after the purchase transaction.
 
 A certificate's balance of underlying Removals may fall below the original quantity it was minted with if its underlying removals were burned. Those burned removals will be replaced by sending additional removals to the certificate. Automated replacement of those burned removals is out of scope in this iteration of the contracts.
 
@@ -86,7 +86,7 @@ Previously audited [here](). The current version was updated to support the new 
 
 Supplier insurance holdback contract.
 
-Operates similarly to _LockedNORI_ but simplified to remove cliffs and stacked vesting + unlock. Adds the ability to create more than one schedule per owner address and transferability of full or partial restricted balances between addresses.
+Operates similarly to _LockedNORI_ by acting as a wrapper token that governs the scheduled release of the underlying _BridgedPolygonNori_ asset.  Implemented as an ERC1155, each token id has its own schedule parameters that control the linear release of the underlying assets over the duration of the schedule.  It is possible to create more than one schedule per owner address and also to transfer full or partial restricted balances between addresses.
 
 ## Support Libraries
 
@@ -102,7 +102,7 @@ The schedule logic used in _RestrictedNORI_
 
 ### RemovalQueue
 
-The queueing mechanism used by the _Market_ contract to maintain an ordered list of _Removal_ tokens listed for sale on behalf of a given supplier.
+The queuing mechanism used by the _Market_ contract to maintain an ordered list of _Removal_ tokens listed for sale on behalf of a given supplier.
 
 ## Deprecated
 
