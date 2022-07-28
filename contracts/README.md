@@ -27,7 +27,7 @@ The [$NORI](./NORI.sol) token is Nori's fungible token which functions as a gift
 
 ### Removal (NRT)
 
-[source](./Removal.sol)
+[Removal.sol](./Removal.sol)
 
 ERC1155 token representing the NRTs (carbon removal credits) issued to a supplier.
 
@@ -38,13 +38,13 @@ The total supply of each Removal token ID represent the estimated quantity of NR
 Lifecycle of a Removal:
 
 1. Minted to a supplier's address
-2. Ownership transferred to the _Market_ contract to be listed for sale.
+2. Ownership transferred to the _Market_ contract to be listed for sale. Often in the scope of the minting transaction.
 3. Sold by the _Market_ and ownership transferred to one or more _Certificate_
 4. Possibly burned or partially burned if the supplier fails to uphold their contractual obligation to keep the underlying carbon sequestered for the duration of their contract.
 
 ### Certificate (NCCR)
 
-[source](./Certificate.sol)
+[Certificate.sol](./Certificate.sol)
 
 ERC721a token representing a carbon removal buyer's proof of purchase.
 
@@ -56,11 +56,11 @@ A certificate's balance of underlying Removals may fall below the original quant
 
 ### Market
 
-[source](./Market.sol)
+[Market.sol](./Market.sol)
 
 The core swap market contract in the Nori platform. Removals are listed for sale by sending them to this contract.
 
-_swap_ mechanism
+#### _Swap_ mechanism:
 
 The _swap_ function is the primary point of interaction with the market for buyers. Calls to the _swap_ function include a quantity of NRTs for purchase and a recipient wallet address to which the Certificate is minted. These calls must additionally include a pre-signed authorization to transfer the corresponding quantity of _BridgedPolygonNORI_ following the [ERC20Permit](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/draft-ERC20Permit.sol) pattern.
 
@@ -70,6 +70,10 @@ The NORI tokens transferred from the buyer to this contract are distributed as f
 - A configurable percentage of the sale proceeds due to the supplier(s) are forwarded to the _RestrictedNORI_ contract to be withheld for insurance purposes and released over the life of their NRT agreement(s). (Configured on each Removal)
 - The balance of the proceeds of the sale are forwarded to the supplier(s) address.
 
+#### Withdrawal Mechanism:
+
+An unsold _Removal_ can be withdrawn from the market (de-listed for sale) by the owner as encoded in the removal ID or by an apporpriately permissioned operator address. It may later be re-listed for sale
+
 ## Vesting and Lockup
 
 ### LockedNORIV2
@@ -78,7 +82,7 @@ The NORI tokens transferred from the buyer to this contract are distributed as f
 
 Investor and Employee timed vesting and unlocking contract.
 
-Previously audited [here](). The current version was updated to support the new ERC20Permit pattern with _BridgedPolygonNORI_ and to remove reliance on the ERC777 tokensReceived callback.
+The current version was updated to support the new [ERC20Permit](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/draft-ERC20Permit.sol) pattern with _BridgedPolygonNORI_ and to remove reliance on the ERC777 tokensReceived callback.
 
 [LockedNORI](https://polygonscan.com/token/0xccfffa6c2a030821331cc113b63babdc60bff82a) on PolygonScan.
 
@@ -86,7 +90,10 @@ Previously audited [here](). The current version was updated to support the new 
 
 Supplier insurance holdback contract.
 
-Operates similarly to _LockedNORI_ by acting as a wrapper token that governs the scheduled release of the underlying _BridgedPolygonNori_ asset.  Implemented as an ERC1155, each token id has its own schedule parameters that control the linear release of the underlying assets over the duration of the schedule.  It is possible to create more than one schedule per owner address and also to transfer full or partial restricted balances between addresses.
+Operates similarly to _LockedNORI_ by acting as a wrapper token that governs the scheduled release of the underlying _BridgedPolyg
+onNori_ asset. Implemented as an ERC1155, each token id has its own schedule parameters that control the linear release of the unde
+rlying assets over the duration of the schedule. It is possible to create more than one schedule per owner address and also to tran
+sfer full or partial restricted balances between addresses.
 
 ## Support Libraries
 
@@ -102,10 +109,14 @@ The schedule logic used in _RestrictedNORI_
 
 ### RemovalQueue
 
-The queuing mechanism used by the _Market_ contract to maintain an ordered list of _Removal_ tokens listed for sale on behalf of a given supplier.
+The queing mechanism used by the _Market_ contract to maintain an ordered list of _Removal_ tokens listed for sale on behalf of a given supplier.
 
 ## Deprecated
 
 ### LockedNORI
 
 ### ERC777PresetPausablePermissions
+
+## Prior Audit
+
+[Omniscia](https://omniscia.io/nori-multiple-token-implementations/) audited NORI, BridgedPolygonNORI and LockedNORI in March of 2022.
