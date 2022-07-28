@@ -1,16 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
-struct UnpackedRemovalIdV0 {
-  uint8 idVersion;
-  uint8 methodology;
-  uint8 methodologyVersion;
-  uint16 vintage;
-  bytes2 country;
-  bytes2 subdivision;
-  address supplierAddress;
-  uint32 subIdentifier;
-}
+import "./interfaces/IRemoval.sol";
 
 uint256 constant _BITS_PER_BYTE = 8;
 uint256 constant _ENCODED_LENGTH_BYTES_UNPACKED_ID_V0 = 256;

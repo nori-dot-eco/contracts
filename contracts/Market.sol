@@ -46,7 +46,7 @@ contract Market is PausableAccessPreset {
     address nextSupplierAddress;
   }
 
-  Removal private _removal;
+  IRemoval private _removal;
   Certificate private _certificate;
   BridgedPolygonNORI private _bridgedPolygonNori;
   RestrictedNORI private _restrictedNori;
@@ -75,7 +75,7 @@ contract Market is PausableAccessPreset {
   }
 
   function initialize(
-    Removal removal,
+    IRemoval removal,
     BridgedPolygonNORI bridgedPolygonNori,
     Certificate certificate,
     RestrictedNORI restrictedNori,

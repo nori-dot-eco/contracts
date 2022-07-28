@@ -4,6 +4,7 @@ pragma solidity =0.8.15;
 import "@/test/helpers/test.sol";
 import "@/contracts/Removal.sol";
 import "@/contracts/ArrayLib.sol";
+import "@/contracts/interfaces/IRemoval.sol";
 
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];

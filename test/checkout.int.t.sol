@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
-import {UnpackedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
+import "@/contracts/interfaces/IRemoval.sol";
 
 abstract contract Checkout is UpgradeableMarket {
   uint256 internal _removalId;

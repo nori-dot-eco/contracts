@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
-import {RemovalIdLib, UnpackedRemovalIdV0} from "../RemovalIdLib.sol";
+import "../interfaces/IRemoval.sol";
+import {RemovalIdLib} from "../RemovalIdLib.sol";
 
 /**
  * @dev Testbed contract for testing RemovalIdLib library.

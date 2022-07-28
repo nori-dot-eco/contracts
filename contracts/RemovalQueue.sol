@@ -3,7 +3,7 @@ pragma solidity =0.8.15;
 
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
-import "./Removal.sol";
+import "./interfaces/IRemoval.sol";
 
 struct RemovalQueueByVintage {
   mapping(uint256 => EnumerableSetUpgradeable.UintSet) queueByVintage;
@@ -166,7 +166,7 @@ library RemovalQueue {
    */
   function getTotalBalanceFromRemovalQueue(
     RemovalQueueByVintage storage removalQueue,
-    Removal removal
+    IRemoval removal
   ) internal view returns (uint256) {
     uint256 size = 0;
     uint256 i = 0;

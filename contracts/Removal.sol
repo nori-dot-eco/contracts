@@ -3,7 +3,7 @@ pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./Market.sol";
-import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
+import {RemovalIdLib} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
 
 // todo shared Consider a shared MinterAccessPreset base contract that handles minting roles so role names can be shared
@@ -13,35 +13,14 @@ import {ArrayLengthMismatch} from "./Errors.sol";
 // todo Removal.sol defines several structs making it a strong candidate for gas optimization
 // todo consider removing cumulative fns and instead use multicall where needed to prevent defining fns that dont scale
 
-struct BatchMintRemovalsData {
-  uint256 projectId; // todo what is the max project ID size? Smaller id allows tighter `BatchMintRemovalsData` struct.
-  uint256 scheduleStartTime;
-  uint8 holdbackPercentage;
-  bool list;
-}
-
-struct ScheduleData {
-  uint256 startTime;
-  address supplierAddress;
-  uint256 methodology;
-  uint256 methodologyVersion;
-}
-
-struct RemovalData {
-  uint256 projectId;
-  uint256 holdbackPercentage;
-}
-
-error TokenIdExists(uint256 tokenId);
-error RemovalAmountZero(uint256 tokenId);
-
 /**
  * @title Removal
  */
 contract Removal is
   ERC1155SupplyUpgradeable,
   PausableAccessPreset,
-  MulticallUpgradeable
+  MulticallUpgradeable, // todo consider adding explicit imports so intelisense (e.g., ctrl+click to see source) works
+  IRemoval
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
@@ -361,7 +340,7 @@ contract Removal is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) public override {
+  ) public override(IERC1155Upgradeable, ERC1155Upgradeable) {
     // todo _safeTransferFrom doesn't have the same behavior as this batch variant.fix that or disable non-batch version
     if (hasRole(MINTER_ROLE, _msgSender())) {
       _safeBatchTransferFrom({
@@ -385,7 +364,11 @@ contract Removal is
   function supportsInterface(bytes4 interfaceId)
     public
     view
-    override(ERC1155Upgradeable, AccessControlEnumerableUpgradeable)
+    override(
+      IERC165Upgradeable,
+      ERC1155Upgradeable,
+      AccessControlEnumerableUpgradeable
+    )
     returns (bool)
   {
     return super.supportsInterface(interfaceId);

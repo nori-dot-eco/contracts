@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
-import "./Removal.sol";
+import "./interfaces/IRemoval.sol";
 import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
@@ -175,7 +175,7 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
    */
-  Removal private _removal;
+  IRemoval private _removal;
 
   /**
    * @notice Emitted on successful creation of a new schedule.
@@ -430,13 +430,12 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    */
-  function registerContractAddresses(BridgedPolygonNORI bpNori, Removal removal)
-    external
-    whenNotPaused
-    onlyRole(DEFAULT_ADMIN_ROLE)
-  {
+  function registerContractAddresses(
+    BridgedPolygonNORI bpNori,
+    IRemoval removal
+  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     _bridgedPolygonNori = BridgedPolygonNORI(bpNori);
-    _removal = Removal(removal);
+    _removal = IRemoval(removal);
   }
 
   /**
