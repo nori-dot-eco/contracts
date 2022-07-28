@@ -166,28 +166,62 @@ contract Removal is
   }
 
   /**
-   * @notice Marks an amount of a removal as released given a removal ID and a quantity.
-   * @param owner The owner of the removal to release.
-   * @param removalId The ID of the removal to mark as released.
-   * @param amount The amount of the removal to release.
-   *
-   * @dev
+   * @notice Releases an amount of a removal.
+   * @dev Releases `amount` of removal by `removalId` by burning them.
    *
    * ##### Requirements:
    *
+   * - Releasing burns first from unlisted balances, second from listed balances and third from certificates.
+   * - If the removal is unlisted (e.g., owned by any account other than the market or certificate), the removal is
+   * simply burned.
+   * - If the removal is listed, it is delisted from the market and burned.
+   * - If the removal is owned by one or more certificates, the removal is burned iteratively across each certificate
+   * until the amount is exhausted (e.g., if a removal of amount 3 releases an amount of 2.5 and that removal is owned
+   * by 3 certificates containing an amount of 1 from the released removal, the resulting certificate's removal balances
+   * for this removal are: 0, 0, and 0.5).
+   * - If the removal is included as part of any certificates, the certificate balances are decremented by `amount`.
    * - The rules of `_beforeTokenTransfer` are enforced.
    * - The caller must have the `RELEASER_ROLE`.
    * - The rules of `_burn` are enforced.
+   *
+   * @param removalId The ID of the removal to release some amount of.
+   * @param amount The amount of the removal to release.
    */
-  function release(
-    address owner,
-    uint256 removalId,
-    uint256 amount
-  ) external onlyRole(RELEASER_ROLE) {
-    // todo are we accounting for what needs to happen in rNori when a removal is released?
-    // todo how should we handle the case where a certificate amount is 0 after releasing?
-    // todo adequately test accounting when release is called (e.g., check child balances, parent balances, etc)
-    _burn(owner, removalId, amount);
+  function release(uint256 removalId, uint256 amount)
+    external
+    onlyRole(RELEASER_ROLE)
+  {
+    uint256 amountReleased = 0;
+    uint256 unlistedBalance = balanceOf({
+      account: RemovalIdLib.supplierAddress(removalId),
+      id: removalId
+    });
+    if (unlistedBalance > 0) {
+      uint256 amountToRelease = MathUpgradeable.min(amount, unlistedBalance);
+      _releaseFromSupplier({removalId: removalId, amount: amountToRelease});
+      amountReleased += amountToRelease;
+    }
+    if (amountReleased < amount) {
+      uint256 listedBalance = balanceOf(this.marketAddress(), removalId);
+      if (listedBalance > 0) {
+        uint256 amountToRelease = MathUpgradeable.min(
+          amount - amountReleased,
+          listedBalance
+        );
+        _releaseFromMarket({amount: amountToRelease, removalId: removalId});
+        amountReleased += amountToRelease;
+      }
+      if (amountReleased < amount) {
+        if (balanceOf(this.certificateAddress(), removalId) > 0) {
+          uint256 amountToRelease = amount - amountReleased;
+          _releaseFromCertificate({
+            removalId: removalId,
+            amount: amount - amountReleased
+          });
+          amountReleased += amountToRelease;
+        }
+      }
+    }
   }
 
   function marketAddress() external view returns (address) {
@@ -328,10 +362,8 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) public override {
-    if (
-      hasRole(MINTER_ROLE, _msgSender())
-    ) // todo consider adding `listForSale` as a function instead of overriding `safeBatchTransferFrom`
-    {
+    // todo _safeTransferFrom doesn't have the same behavior as this batch variant.fix that or disable non-batch version
+    if (hasRole(MINTER_ROLE, _msgSender())) {
       _safeBatchTransferFrom({
         from: from,
         to: to,
@@ -357,44 +389,6 @@ contract Removal is
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
-  }
-
-  /**
-   * @notice Burns an amount of tokens from an account.
-   * @dev Destroys `amount` tokens of token type `id` from `from`. If the tokens are included as part of any
-   * certificates, the certificate balances are decremented by `amount` as well.
-   *
-   * ##### Requirements:
-   *
-   * - Enforces the rules of `ERC1155Upgradeable._burn`.
-   */
-  function _burn(
-    address from,
-    uint256 id,
-    uint256 amount
-  ) internal override {
-    if (from == address(_market)) {
-      _market.release(id, amount);
-    } else if (from == address(_certificate)) {
-      Certificate.Balance[] memory certificatesOfRemoval = _certificate
-        .certificatesOfRemoval(id);
-      uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
-      bytes[] memory releaseCalls = new bytes[](numberOfCertificatesForRemoval);
-      for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
-        // todo releaseFromCertificate vs releaseUnlisted
-        Certificate.Balance memory certificateBalance = certificatesOfRemoval[
-          i
-        ];
-        releaseCalls[i] = abi.encodeWithSelector(
-          _certificate.releaseRemoval.selector,
-          certificateBalance.id,
-          id,
-          certificateBalance.amount
-        );
-      }
-      _certificate.multicall(releaseCalls);
-    }
-    super._burn(from, id, amount);
   }
 
   /**
@@ -426,6 +420,44 @@ contract Removal is
       }
     }
     super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+  }
+
+  function _releaseFromSupplier(uint256 removalId, uint256 amount) internal {
+    super._burn(RemovalIdLib.supplierAddress(removalId), removalId, amount);
+  }
+
+  function _releaseFromMarket(uint256 removalId, uint256 amount) internal {
+    super._burn(this.marketAddress(), removalId, amount);
+    _market.release(removalId, amount);
+  }
+
+  function _releaseFromCertificate(uint256 removalId, uint256 amount) internal {
+    uint256 amountReleased = 0;
+    Certificate.Balance[] memory certificatesOfRemoval = _certificate
+      .certificatesOfRemoval(removalId);
+    uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
+    bytes[] memory releaseCalls = new bytes[](numberOfCertificatesForRemoval);
+    for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
+      Certificate.Balance memory certificateBalance = certificatesOfRemoval[i];
+      uint256 amountToReleaseFromCertificate = MathUpgradeable.min(
+        amount - amountReleased,
+        certificateBalance.amount
+      );
+      amountReleased += amountToReleaseFromCertificate;
+      super._burn(
+        this.certificateAddress(),
+        removalId,
+        amountToReleaseFromCertificate
+      );
+      releaseCalls[i] = abi.encodeWithSelector(
+        _certificate.releaseRemoval.selector,
+        certificateBalance.id,
+        removalId,
+        amountToReleaseFromCertificate
+      );
+      if (amountReleased == amount) break;
+    }
+    _certificate.multicall(releaseCalls);
   }
 
   function _afterTokenTransfer(

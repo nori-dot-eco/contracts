@@ -98,6 +98,7 @@ contract Certificate is
     _removal = removal;
   }
 
+  // todo is whenNotPaused redundant since it's only called from a pausable function on the removal contract?
   function releaseRemoval(
     uint256 certificateId,
     uint256 removalId,
@@ -182,14 +183,17 @@ contract Certificate is
   {
     EnumerableSetUpgradeable.UintSet
       storage removalIds = _removalsOfCertificate[certificateId];
-    // todo short-circuit (skip to return statement) if there are no removals
-    Balance[] memory removals = new Balance[](removalIds.length());
-    for (uint256 i = 0; i < removalIds.length(); i++) {
-      uint256 removalId = removalIds.at(i);
-      removals[i] = Balance({
-        id: removalId,
-        amount: _removalBalancesOfCertificate[certificateId][removalId]
-      });
+    uint256 numberOfRemovals = removalIds.length();
+    Balance[] memory removals = new Balance[](numberOfRemovals);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < numberOfRemovals; ++i) {
+        uint256 removalId = removalIds.at(i);
+        removals[i] = Balance({
+          id: removalId,
+          amount: _removalBalancesOfCertificate[certificateId][removalId]
+        });
+      }
     }
     return removals;
   }
@@ -204,14 +208,17 @@ contract Certificate is
   {
     EnumerableSetUpgradeable.UintSet
       storage certificateIds = _certificatesOfRemoval[removalId];
-    // todo short-circuit (skip to return statement) if there are no certificates
-    Balance[] memory certificates = new Balance[](certificateIds.length());
-    for (uint256 i = 0; i < certificateIds.length(); i++) {
-      uint256 certificateId = certificateIds.at(i);
-      certificates[i] = Balance({
-        id: certificateId,
-        amount: _removalBalancesOfCertificate[certificateId][removalId]
-      });
+    uint256 numberOfCertificates = certificateIds.length();
+    Balance[] memory certificates = new Balance[](numberOfCertificates);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < numberOfCertificates; ++i) {
+        uint256 certificateId = certificateIds.at(i);
+        certificates[i] = Balance({
+          id: certificateId,
+          amount: _removalBalancesOfCertificate[certificateId][removalId]
+        });
+      }
     }
     return certificates;
   }

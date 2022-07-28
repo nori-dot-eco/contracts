@@ -10,8 +10,8 @@ using AddressArrayLib for address[];
 
 abstract contract UpgradeableRemoval is Upgradeable {
   /**
-   * @dev
-   * UnpackedRemovalIdV0({
+   * @dev REMOVAL_ID_FIXTURE is the result of:
+   * RemovalIdLib.createRemovalId(UnpackedRemovalIdV0({
    *   idVersion: 0,
    *   methodology: 1,
    *   methodologyVersion: 0,
@@ -21,9 +21,10 @@ abstract contract UpgradeableRemoval is Upgradeable {
    *   supplierAddress: _namedAccounts.supplier,
    *   subIdentifier: 99_039_930
    * })
+   *
    */
   uint256 public constant REMOVAL_ID_FIXTURE =
-    28323967194635186208115198611987694236062136249434403320464507420610607802;
+    28323967194635191374224967253542818032149542492774326996283828950022961850;
 
   Removal internal _removal;
   Removal internal _removalImplementation;
