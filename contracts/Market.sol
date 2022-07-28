@@ -293,8 +293,8 @@ contract Market is PausableAccessPreset {
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     _checkSupplyOfSupplier({
-      certificateAmount: certificateAmount,
-      supplierAddress: supplierToBuyFrom
+      supplierAddress: supplierToBuyFrom,
+      certificateAmount: certificateAmount
     });
     (
       uint256 numberOfRemovals,

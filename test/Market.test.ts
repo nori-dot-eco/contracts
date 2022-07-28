@@ -1155,7 +1155,7 @@ describe('purchasing from a specified supplier', () => {
           r,
           s
         )
-    ).to.be.revertedWith('InsufficientSupply()');
+    ).to.be.revertedWith('OutOfStock()');
   });
   it('should revert when purchasing supply when the market is below the priority reserved threshold', async () => {
     const { bpNori, market } = await setupTest({
