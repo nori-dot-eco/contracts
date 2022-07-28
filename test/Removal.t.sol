@@ -9,7 +9,7 @@ using AddressArrayLib for address[];
 
 // todo fuzz RemovalIdLib
 
-contract Removal_mintBatch is UpgradeableRemoval {
+contract Removal_mintBatch is UpgradeableMarket {
   function test() external {
     _removal.mintBatch({
       to: _namedAccounts.supplier,
@@ -17,15 +17,15 @@ contract Removal_mintBatch is UpgradeableRemoval {
       ids: _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       data: BatchMintRemovalsData({
         projectId: 1,
-        scheduleStartTime: 0,
-        holdbackPercentage: 0,
+        scheduleStartTime: 1,
+        holdbackPercentage: 1,
         list: false
       })
     });
   }
 }
 
-contract Removal_release is UpgradeableRemoval {
+contract Removal_release is UpgradeableMarket {
   // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
   function test_revert_missingReleaserRole() external {
     vm.prank(address(0));
@@ -41,7 +41,7 @@ contract Removal_release is UpgradeableRemoval {
   }
 }
 
-contract Removal_release_unlisted is UpgradeableRemoval {
+contract Removal_release_unlisted is UpgradeableMarket {
   function test() external {
     BatchMintRemovalsData memory data = BatchMintRemovalsData({
       projectId: 1_234_567_890,
@@ -272,7 +272,7 @@ contract Removal_release_listed is UpgradeableMarket {
   }
 }
 
-contract Removal_multicall is UpgradeableRemoval {
+contract Removal_multicall is UpgradeableMarket {
   /** @dev Asserts that we can get a cumulative balance for a list of removals owned by an account using multicall */
   function test_balanceOfBatch() external {
     uint256[] memory ids = _seedRemovals({
