@@ -559,7 +559,6 @@ contract Market is PausableAccessPreset {
     uint256[] calldata amounts,
     address[] memory suppliers
   ) external {
-    // todo verify changes to `fulfillOrder` (memory->calldata arr args) that enabled [:index] arr slicing syntax is ok
     uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
     uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
@@ -602,23 +601,28 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * todo consider allowing operators of a removal to withdraw from the market
+   * @notice Withdraws a removal to the supplier.
+   * @dev Withdraws a removal to the supplier address encoded in the removal ID.
    * todo consider allowing calls to withdraw to specify the recipient address for the withdrawn removal
    */
   function withdraw(uint256 removalId) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     if (
       _msgSender() == supplierAddress ||
-      hasRole(DEFAULT_ADMIN_ROLE, _msgSender())
+      hasRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()}) ||
+      _removal.isApprovedForAll({
+        account: supplierAddress,
+        operator: _msgSender()
+      })
     ) {
       _removeActiveRemoval(supplierAddress, removalId);
-      _removal.safeTransferFrom(
-        address(this),
-        supplierAddress,
-        removalId,
-        _removal.balanceOf(address(this), removalId),
-        ""
-      );
+      _removal.safeTransferFrom({
+        from: address(this),
+        to: RemovalIdLib.supplierAddress(removalId),
+        id: removalId,
+        amount: _removal.balanceOf(address(this), removalId),
+        data: ""
+      });
     } else {
       revert UnauthorizedWithdrawal();
     }
@@ -659,7 +663,6 @@ contract Market is PausableAccessPreset {
     if (amount == removalBalance) {
       _removeActiveRemoval(supplierAddress, removalId);
     }
-    // todo what do we do when amount != removalBalance?
   }
 
   /**
