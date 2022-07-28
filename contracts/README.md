@@ -39,7 +39,7 @@ Lifecycle of a Removal:
 
 1. Minted to a supplier's address
 2. Ownership transferred to the _Market_ contract to be listed for sale. Often in the scope of the minting transaction.
-3. Sold by the _Market_ and ownership transferred to one or more _Certificate_
+3. Sold by the _Market_ and ownership transferred to the _Certificate_ contract with internal bookkeeping mapping ownership of removal token balances to specific certificate tokens.
 4. Possibly burned or partially burned if the supplier fails to uphold their contractual obligation to keep the underlying carbon sequestered for the duration of their contract.
 
 ### Certificate (NCCR)
