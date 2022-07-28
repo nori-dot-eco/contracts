@@ -4,7 +4,7 @@ pragma solidity =0.8.15;
 import "@/test/helpers/test.sol";
 import {LockedNORILib, Schedule, Cliff} from "@/contracts/LockedNORILib.sol";
 
-contract LockedNORILib_availableAmount is Test {
+contract LockedNORILib_availableAmount is Global {
   using LockedNORILib for Schedule;
 
   Schedule private _schedule;
