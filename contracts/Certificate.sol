@@ -7,7 +7,7 @@ import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol
 import {FunctionDisabled, ArrayLengthMismatch, SenderNotRemovalContract} from "./Errors.sol";
 import "./Removal.sol";
 import "./PausableAccessPreset.sol";
-import "./ICertificate.sol";
+import "./interfaces/ICertificate.sol";
 
 error ForbiddenTransferAfterMinting();
 

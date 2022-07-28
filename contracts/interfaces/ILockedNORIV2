@@ -1,0 +1,73 @@
+pragma solidity ^0.8.10;
+
+interface ILockedNORIV2 {
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event AuthorizedOperator(address indexed operator, address indexed tokenHolder);
+    event Burned(address indexed operator, address indexed from, uint256 amount, bytes data, bytes operatorData);
+    event Initialized(uint8 version);
+    event Minted(address indexed operator, address indexed to, uint256 amount, bytes data, bytes operatorData);
+    event Paused(address account);
+    event RevokedOperator(address indexed operator, address indexed tokenHolder);
+    event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole);
+    event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
+    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
+    event Sent(address indexed operator, address indexed from, address indexed to, uint256 amount, bytes data, bytes operatorData);
+    event SentBatch(address indexed from, address[] recipients, uint256[] amounts, bytes[] userData, bytes[] operatorData, bool[] requireReceptionAck);
+    event TokenGrantCreated(address indexed recipient, uint256 indexed amount, uint256 indexed startTime, uint256 vestEndTime, uint256 unlockEndTime);
+    event TokenGrantCreatedBatch(uint256 totalAmount);
+    event TokensClaimed(address indexed from, address indexed to, uint256 quantity);
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event UnderlyingTokenAddressUpdated(address from, address to);
+    event Unpaused(address account);
+    event UnvestedTokensRevoked(uint256 indexed atTime, address indexed from, uint256 indexed quantity);
+
+    struct TokenGrantDetail { uint256 a; address b; uint256 c; uint256 d; uint256 e; uint256 f; uint256 g; uint256 h; uint256 i; uint256 j; uint256 k; uint256 l; uint256 m; uint256 n; uint256 o; bool p; }
+
+    function DEFAULT_ADMIN_ROLE() view external returns (bytes32);
+    function ERC777_TOKENS_RECIPIENT_HASH() view external returns (bytes32);
+    function PAUSER_ROLE() view external returns (bytes32);
+    function TOKEN_GRANTER_ROLE() view external returns (bytes32);
+    function allowance(address holder, address spender) view external returns (uint256);
+    function approve(address spender, uint256 value) external returns (bool);
+    function authorizeOperator(address operator) external;
+    function balanceOf(address tokenHolder) view external returns (uint256);
+    function balanceOfBatch(address[] memory accounts) view external returns (uint256[] memory);
+    function batchCreateGrants(uint256[] memory amounts, bytes[] memory grantParams, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
+    function batchGetGrant(address[] memory accounts) view external returns ((uint256,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool)[] memory);
+    function batchRevokeUnvestedTokenAmounts(address[] memory fromAccounts, address[] memory toAccounts, uint256[] memory atTimes, uint256[] memory amounts) external;
+    function batchSend(address[] memory recipients, uint256[] memory amounts, bytes[] memory userData, bytes[] memory operatorData, bool[] memory requireReceptionAck) external;
+    function burn(uint256, bytes memory) pure external;
+    function createGrant(uint256 amount, address recipient, uint256 startTime, uint256 vestEndTime, uint256 unlockEndTime, uint256 cliff1Time, uint256 cliff2Time, uint256 vestCliff1Amount, uint256 vestCliff2Amount, uint256 unlockCliff1Amount, uint256 unlockCliff2Amount) external;
+    function decimals() pure external returns (uint8);
+    function defaultOperators() view external returns (address[] memory);
+    function depositFor(address recipient, uint256 amount) external returns (bool);
+    function getGrant(address account) view external returns (TokenGrantDetail memory);
+    function getRoleAdmin(bytes32 role) view external returns (bytes32);
+    function getRoleMember(bytes32 role, uint256 index) view external returns (address);
+    function getRoleMemberCount(bytes32 role) view external returns (uint256);
+    function grantRole(bytes32 role, address account) external;
+    function granularity() view external returns (uint256);
+    function hasRole(bytes32 role, address account) view external returns (bool);
+    function initialize(address bridgedPolygonNoriAddress) external;
+    function isOperatorFor(address operator, address tokenHolder) view external returns (bool);
+    function name() view external returns (string memory);
+    function operatorBurn(address, uint256, bytes memory, bytes memory) pure external;
+    function operatorSend(address, address, uint256, bytes memory, bytes memory) pure external;
+    function pause() external;
+    function paused() view external returns (bool);
+    function quantityRevokedFrom(address account) view external returns (uint256);
+    function renounceRole(bytes32 role, address account) external;
+    function revokeOperator(address operator) external;
+    function revokeRole(bytes32 role, address account) external;
+    function send(address, uint256, bytes memory) pure external;
+    function supportsInterface(bytes4 interfaceId) view external returns (bool);
+    function symbol() view external returns (string memory);
+    function totalSupply() view external returns (uint256);
+    function transfer(address, uint256) pure external returns (bool);
+    function transferFrom(address, address, uint256) pure external returns (bool);
+    function unlockedBalanceOf(address account) view external returns (uint256);
+    function unpause() external;
+    function updateUnderlying(address newUnderlying) external;
+    function vestedBalanceOf(address account) view external returns (uint256);
+    function withdrawTo(address recipient, uint256 amount) external returns (bool);
+}
