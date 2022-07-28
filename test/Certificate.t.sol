@@ -41,6 +41,11 @@ contract Certificate_burn is UpgradeableCertificate {
       1,
       "Total supply should be incremented after minting"
     );
+    assertEq(
+      _certificate.originalBalanceOf(0),
+      1 ether,
+      "Total supply should be incremented after minting"
+    );
   }
 
   function test() external {
@@ -102,6 +107,11 @@ contract Certificate_burn is UpgradeableCertificate {
       _certificate.certificatesOfRemoval(_removalIds2[0])[0].id,
       _certificateId + 1,
       "Removal is not used for certificate"
+    );
+    assertEq(
+      _certificate.originalBalanceOf(0),
+      1 ether,
+      "Certificate original balance should be unchanged after burning"
     );
   }
 }
