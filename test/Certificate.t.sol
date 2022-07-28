@@ -34,11 +34,16 @@ contract Certificate_burn is UpgradeableCertificate {
       address(0),
       _removalIds,
       _removalAmounts,
-      abi.encode(_owner)
+      abi.encode(_owner, 1 ether)
     );
     assertEq(
       _certificate.totalSupply(),
       1,
+      "Total supply should be incremented after minting"
+    );
+    assertEq(
+      _certificate.originalBalanceOf(0),
+      1 ether,
       "Total supply should be incremented after minting"
     );
   }
@@ -81,7 +86,7 @@ contract Certificate_burn is UpgradeableCertificate {
       address(0),
       _removalIds2,
       _removalAmounts,
-      abi.encode(address(this)) // todo use diff. named account
+      abi.encode(address(this), 1 ether) // todo use diff. named account
     );
     assertEq(
       _certificate.balanceOf(address(this)),
@@ -102,6 +107,11 @@ contract Certificate_burn is UpgradeableCertificate {
       _certificate.certificatesOfRemoval(_removalIds2[0])[0].id,
       _certificateId + 1,
       "Removal is not used for certificate"
+    );
+    assertEq(
+      _certificate.originalBalanceOf(0),
+      1 ether,
+      "Certificate original balance should be unchanged after burning"
     );
   }
 }

@@ -5,10 +5,10 @@ import "@/test/helpers/test.sol";
 import "@/contracts/Removal.sol";
 import "@/contracts/ArrayLib.sol";
 
-abstract contract UpgradeableRemoval is Upgradeable {
-  using UInt256ArrayLib for uint256[];
-  using AddressArrayLib for address[];
+using UInt256ArrayLib for uint256[];
+using AddressArrayLib for address[];
 
+abstract contract UpgradeableRemoval is Upgradeable {
   /**
    * @dev REMOVAL_ID_FIXTURE is the result of:
    * RemovalIdLib.createRemovalId(UnpackedRemovalIdV0({
@@ -20,7 +20,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
    *   subdivision: "IA",
    *   supplierAddress: _namedAccounts.supplier,
    *   subIdentifier: 99_039_930
-   * }));
+   * })
    *
    */
   uint256 public constant REMOVAL_ID_FIXTURE =

@@ -26,7 +26,7 @@ describe('RestrictedNORI', () => {
       for (const { role, expectedCount } of [
         { role: 'DEFAULT_ADMIN_ROLE', expectedCount: 1 },
         { role: 'PAUSER_ROLE', expectedCount: 1 },
-        { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Market contract and admin are both schedule creators
+        { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Removal contract and admin are both schedule creators
         { role: 'TOKEN_REVOKER_ROLE', expectedCount: 1 },
       ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
@@ -42,19 +42,20 @@ describe('RestrictedNORI', () => {
           );
         });
       }
-      for (const { role } of [
-        { role: 'SCHEDULE_CREATOR_ROLE' },
-        { role: 'MINTER_ROLE' },
-      ] as const) {
-        it(`will assign the role ${role} to the market contract`, async () => {
-          const { rNori, market } = await setupTest();
-          expect(await rNori.hasRole(await rNori[role](), market.address)).to.be
-            .true;
-          expect(await rNori.getRoleAdmin(await rNori[role]())).to.eq(
-            await rNori.DEFAULT_ADMIN_ROLE()
-          );
-        });
-      }
+      it(`will assign the role MINTER_ROLE to the market contract`, async () => {
+        const { rNori, market } = await setupTest();
+        expect(await rNori.hasRole(await rNori.MINTER_ROLE(), market.address))
+          .to.be.true;
+      });
+      it(`will assign the role SCHEDULE_CREATOR_ROLE to the removal contract`, async () => {
+        const { rNori, removal } = await setupTest();
+        expect(
+          await rNori.hasRole(
+            await rNori.SCHEDULE_CREATOR_ROLE(),
+            removal.address
+          )
+        ).to.be.true;
+      });
     });
   });
   describe('pausing', () => {
