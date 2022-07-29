@@ -74,6 +74,7 @@ contract Removal is
   // todo Test accounting for `_addressToOwnedTokenIds` is maintained correctly (assuming we need it)
   mapping(address => EnumerableSetUpgradeable.UintSet)
     private _addressToOwnedTokenIds;
+  uint256 private _currentMarketBalance;
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -289,6 +290,10 @@ contract Removal is
     return _addressToOwnedTokenIds[owner].values();
   }
 
+  function getMarketBalance() external view returns (uint256) {
+    return _currentMarketBalance;
+  }
+
   // todo rename cumulativeBalanceOf -> cumulativeBalanceOfOwner (if we decide to keep it)
   // todo this function will not scale well as it relies on set.values- consider dropping it
   function cumulativeBalanceOf(address owner) external view returns (uint256) {
@@ -414,9 +419,20 @@ contract Removal is
     bytes memory data
   ) internal override whenNotPaused {
     uint256 numberOfTokenTransfers = amounts.length;
-    for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
-      if (amounts[i] == 0) {
-        revert RemovalAmountZero({tokenId: ids[i]});
+    if (to == address(_market)) {
+      for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+        if (amounts[i] == 0) {
+          revert RemovalAmountZero({tokenId: ids[i]});
+        }
+        _currentMarketBalance += amounts[i];
+      }
+    }
+    if (from == address(_market)) {
+      for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+        if (amounts[i] == 0) {
+          revert RemovalAmountZero({tokenId: ids[i]});
+        }
+        _currentMarketBalance -= amounts[i];
       }
     }
     super._beforeTokenTransfer(operator, from, to, ids, amounts, data);

@@ -25,6 +25,7 @@ contract Removal_mintBatch is UpgradeableMarket {
   }
 }
 
+
 contract Removal_release is UpgradeableMarket {
   // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
   function test_revert_missingReleaserRole() external {
@@ -430,6 +431,7 @@ contract Removal_multicall is UpgradeableMarket {
 }
 
 contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
+
   // todo test the rest of the cases
   function test() external {
     super._beforeTokenTransfer(
@@ -456,12 +458,15 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
     );
   }
 
-  function test_zeroValueTransfer_reverts_RemovalAmountZero() external {
+  function test_zeroValueTransferToMarket_reverts_RemovalAmountZero() external {
+    address mockMarketAddress = vm.addr(1);
+    // todo figure out stdstorage
+    // stdstore.target(address(super)).sig(super._market.selector).checked_write(mockMarketAddress);
     vm.expectRevert(abi.encodeWithSelector(RemovalAmountZero.selector, 1));
     super._beforeTokenTransfer(
       _namedAccounts.admin,
       _namedAccounts.admin,
-      vm.addr(1),
+      mockMarketAddress,
       _asSingletonUintArray(1),
       _asSingletonUintArray(0),
       ""

@@ -330,7 +330,7 @@ contract Market is PausableAccessPreset {
    */
   function _checkSupply(uint256 certificateAmount) private view {
     // TODO: BUG: `swapFromSpecificSupplier` -> `_checkSupply` should check the suppliers balance, not the markets
-    uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
+    uint256 activeSupply = _removal.getMarketBalance();
     if (activeSupply == 0) {
       revert OutOfStock();
     }
