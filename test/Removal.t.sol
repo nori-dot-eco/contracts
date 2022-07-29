@@ -429,10 +429,10 @@ contract Removal_multicall is UpgradeableMarket {
   }
 }
 
-contract Removal_market_balance is UpgradeableMarket {
+contract Removal_getMarketBalance is UpgradeableMarket {
   uint256[] private _removalIds;
 
-  function test_market_balance() external {
+  function test() external {
     uint256 amountToList = 0.5 ether;
     uint256 amountToSell = 0.2 ether;
     _removalIds = _seedRemovals({
