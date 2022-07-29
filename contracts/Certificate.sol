@@ -30,13 +30,13 @@ error ForbiddenTransferAfterMinting();
  * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
  *   - all functions that mutate state are pausable
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- *    - TOKEN_GRANTER_ROLE
- *      - Can create token grants without sending BridgedPolygonNORI to the contract `createGrant`
+ *    - CERTIFICATE_OPERATOR_ROLE
+ *      - The only role that can transfer certificates after they are minted
  *    - PAUSER_ROLE
  *      - Can pause and unpause the contract
  *    - DEFAULT_ADMIN_ROLE
  *      - This is the only role that can add/revoke other accounts to any of the roles
- * - [Can receive BridgedPolygonNORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
+ * - [Can receive ERC-1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
  *   - BridgedPolygonNORI is wrapped and grants are created upon receipt
  * - [Limited ERC-777 functionality](https://eips.ethereum.org/EIPS/eip-777)
  *   - burn and operatorBurn will revert as only the internal variants are expected to be used
