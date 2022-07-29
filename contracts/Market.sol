@@ -332,23 +332,28 @@ contract Market is PausableAccessPreset {
    * @param certificateAmount The number of carbon removals being purchased.
    */
   function _checkSupply(uint256 certificateAmount) private view {
-    uint256 amountWithPriorityRestrictedThreshold = certificateAmount +
-      _priorityRestrictedThreshold;
-    uint256 availableAmountFromBalance = _removal
-      .getAmountAvailableFromOwnerBalance(
+    uint256 availableAmountFromBalance = 0;
+    uint256 limitOfBalanceToCheck = certificateAmount;
+    if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+      limitOfBalanceToCheck += _priorityRestrictedThreshold;
+      availableAmountFromBalance = _removal.getBalanceWithLimit(
         address(this),
-        amountWithPriorityRestrictedThreshold
+        limitOfBalanceToCheck
       );
+      if (availableAmountFromBalance < limitOfBalanceToCheck) {
+        revert LowSupplyAllowlistRequired();
+      }
+    } else {
+      availableAmountFromBalance = _removal.getBalanceWithLimit(
+        address(this),
+        limitOfBalanceToCheck
+      );
+    }
     if (availableAmountFromBalance == 0) {
       revert OutOfStock(); // todo Assure `_checkSupply` validates all possible market supply states
     }
     if (availableAmountFromBalance < certificateAmount) {
       revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
-    }
-    if (availableAmountFromBalance < amountWithPriorityRestrictedThreshold) {
-      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
-        revert LowSupplyAllowlistRequired();
-      }
     }
   }
 
@@ -371,15 +376,14 @@ contract Market is PausableAccessPreset {
     if (certificateAmount > activeSupplyOfSupplier) {
       revert InsufficientSupply(); // todo Assure `_checkSupplyOfSupplier` validates all possible market supply states
     }
-    uint256 amountWithPriorityRestrictedThreshold = certificateAmount +
-      _priorityRestrictedThreshold;
-    uint256 availableAmountFromBalance = _removal
-      .getAmountAvailableFromOwnerBalance(
+    if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+      uint256 limitOfBalanceToCheck = certificateAmount +
+        _priorityRestrictedThreshold;
+      uint256 availableAmountFromBalance = _removal.getBalanceWithLimit(
         address(this),
-        amountWithPriorityRestrictedThreshold
+        limitOfBalanceToCheck
       );
-    if (availableAmountFromBalance < amountWithPriorityRestrictedThreshold) {
-      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+      if (availableAmountFromBalance < limitOfBalanceToCheck) {
         revert LowSupplyAllowlistRequired();
       }
     }

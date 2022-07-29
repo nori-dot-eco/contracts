@@ -311,7 +311,14 @@ contract Removal is
     return total;
   }
 
-  function getAmountAvailableFromOwnerBalance(address owner, uint256 amount)
+  /**
+   * @notice Gets the cumulative balance of an address, under or equal to a specified limit.
+   * @dev Paginates through the removals of an owner in order to limit how many removal balances we need to check.
+   * @param owner the address of the owner of the removals to check.
+   * @param limit the maximum balance to check.
+   * @return balanceWithLimit the total balance found for the limit.
+   */
+  function getBalanceWithLimit(address owner, uint256 limit)
     external
     view
     returns (uint256)
@@ -339,8 +346,8 @@ contract Removal is
       for (j; j >= i; --j) {
         total += totals[j - i];
       }
-      if (total > amount) {
-        return amount;
+      if (total > limit) {
+        return limit;
       }
     }
     return total;
