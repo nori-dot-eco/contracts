@@ -15,6 +15,50 @@ error ForbiddenTransferAfterMinting();
  * todo document burning behavior
  * todo ERC721a exposes both _msgSender and _msgSenderERC721A -- what are the differences and implications?
  * todo check that all transfer functions (including those not exposed in this file) call _beforeTokenTransfers
+ *
+ * @title An ERC721a contract that issues non-transferable certificates of carbon removal.
+ *
+ * @author Nori Inc.
+ *
+ * @notice
+ *
+ *
+ * ###### Additional behaviors and features
+ *
+ * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
+ * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ *   - all functions that mutate state are pausable
+ * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
+ *    - TOKEN_GRANTER_ROLE
+ *      - Can create token grants without sending BridgedPolygonNORI to the contract `createGrant`
+ *    - PAUSER_ROLE
+ *      - Can pause and unpause the contract
+ *    - DEFAULT_ADMIN_ROLE
+ *      - This is the only role that can add/revoke other accounts to any of the roles
+ * - [Can receive BridgedPolygonNORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks)
+ *   - BridgedPolygonNORI is wrapped and grants are created upon receipt
+ * - [Limited ERC-777 functionality](https://eips.ethereum.org/EIPS/eip-777)
+ *   - burn and operatorBurn will revert as only the internal variants are expected to be used
+ *   - mint is not callable as only the internal variants are expected to be used when wrapping BridgedPolygonNORI
+ * - [Limited ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/erc20)
+ *   - mint is not callable as only the internal variants are expected to be used when wrapping BridgedPolygonNORI
+ *   - burn functions are not externally callable
+ * - [Extended Wrapped ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Wrapper)
+ *   - In absence of a grant LockedNORI functions identically to a standard wrapped token
+ *   - when a grant is defined, LockedNORI follows the restrictions noted above
+ *
+ * ##### Inherits
+ *
+ * ##### Implements
+ *
+ *
+ * ##### Uses
+ *
+ * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
+ *   for EnumerableSetUpgradeable.Uintset
+ * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
+ *
  */
 contract Certificate is
   ICertificate,
