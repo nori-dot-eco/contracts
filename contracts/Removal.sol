@@ -5,6 +5,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
+import "hardhat/console.sol";
+
 // todo shared Consider a shared MinterAccessPreset base contract that handles minting roles so role names can be shared
 // todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
 // todo disable unused inherited mint functions
@@ -326,9 +328,12 @@ contract Removal is
       owner
     ];
     uint256 numberOfTokensOwned = this.numberOfTokensOwnedByAddress(owner);
+    if (numberOfTokensOwned == 0) {
+      return 0;
+    }
     uint256 total = 0;
-    uint256[] memory totals = new uint256[](PAGINATION_SIZE);
     address[] memory owners = new address[](PAGINATION_SIZE);
+    uint256[] memory totals = new uint256[](PAGINATION_SIZE);
     uint256[] memory removalIds = new uint256[](PAGINATION_SIZE);
     uint256 i = 0; // Pagination cursor
     uint256 j = i; // Removal cursor
@@ -336,16 +341,15 @@ contract Removal is
       owners[i] = owner;
     }
     for (i = 0; i <= numberOfTokensOwned; i += PAGINATION_SIZE) {
-      for (j = i; j < i + PAGINATION_SIZE; ++j) {
-        removalIds[j - i] = removals.at(j);
-        if (j == numberOfTokensOwned - 1) {
+      for (j = 0; j < PAGINATION_SIZE; ++j) {
+        removalIds[j] = removals.at(i + j);
+        if (i + j == numberOfTokensOwned - 1) {
           break;
         }
       }
       totals = balanceOfBatch(owners, removalIds);
-      // We now counts the totals by iterating backwards from j, in order to avoid declaring another uint256 variable.
-      for (j; j >= i; --j) {
-        total += totals[j - i];
+      for (j; j > 0; --j) {
+        total += totals[j];
       }
       if (total > limit) {
         return limit;
