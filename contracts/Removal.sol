@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {ArrayLengthMismatch} from "./Errors.sol";
-
 // todo shared Consider a shared MinterAccessPreset base contract that handles minting roles so role names can be shared
 // todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
 // todo disable unused inherited mint functions
@@ -333,9 +332,11 @@ contract Removal is
     uint256[] memory removalIds = new uint256[](PAGINATION_SIZE);
     uint256 i = 0; // Pagination cursor
     uint256 j = i; // Removal cursor
-    for (i; i <= numberOfTokensOwned; i += PAGINATION_SIZE) {
+    for (i; i < PAGINATION_SIZE; ++i) {
+      owners[i] = owner;
+    }
+    for (i = 0; i <= numberOfTokensOwned; i += PAGINATION_SIZE) {
       for (j = i; j < i + PAGINATION_SIZE; ++j) {
-        owners[j - i] = owner;
         removalIds[j - i] = removals.at(j);
         if (j == numberOfTokensOwned - 1) {
           break;
