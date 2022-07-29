@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity =0.8.15;
-import {RemovalUtils} from "./RemovalUtils.sol";
+
+import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./Removal.sol";
 
@@ -11,9 +11,12 @@ struct RemovalQueueByVintage {
   uint256 latestYear;
 }
 
+// todo rename RemovalQueue to RemovalQueueLib
 library RemovalQueue {
-  using RemovalUtils for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+
+  error RemovalNotInQueue(uint256 removalId, uint256 queueVintage);
+  error RemovalAlreadyInQueue(uint256 removalId, uint256 queueVintage);
 
   uint256 private constant _DEFAULT_EARLIEST_YEAR = 2**256 - 1;
   uint256 private constant _DEFAULT_LATEST_YEAR = 0;
@@ -23,13 +26,12 @@ library RemovalQueue {
    * @dev The removal is added to the Enumberable Set that maps to the year of its vintage.
    * @param removalQueue the queue from storage.
    * @param removalToInsert a new removal to insert.
-   * @return bool true if success, false otherwise.
    */
   function insertRemovalByVintage(
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToInsert
-  ) internal returns (bool) {
-    uint256 vintageOfRemoval = removalToInsert.vintage();
+  ) internal {
+    uint256 vintageOfRemoval = RemovalIdLib.vintage(removalToInsert);
     if (isRemovalQueueEmpty(removalQueue)) {
       removalQueue.earliestYear = vintageOfRemoval;
       removalQueue.latestYear = vintageOfRemoval;
@@ -38,7 +40,12 @@ library RemovalQueue {
     } else if (vintageOfRemoval > removalQueue.latestYear) {
       removalQueue.latestYear = vintageOfRemoval;
     }
-    return removalQueue.queueByVintage[vintageOfRemoval].add(removalToInsert);
+    if (!removalQueue.queueByVintage[vintageOfRemoval].add(removalToInsert)) {
+      revert RemovalAlreadyInQueue({
+        removalId: removalToInsert,
+        queueVintage: vintageOfRemoval
+      });
+    }
   }
 
   /**
@@ -46,17 +53,21 @@ library RemovalQueue {
    * @dev Removes the removal from the Enumerable Set that corresponds to its vintage.
    * @param removalQueue the queue to search through.
    * @param removalToRemove the removal to remove.
-   * @return bool true if success, false otherwise.
    */
   function removeRemoval(
+    // todo rename `RemovalQueue.removeRemoval` to `RemovalQueue.remove`
     RemovalQueueByVintage storage removalQueue,
     uint256 removalToRemove
-  ) internal returns (bool) {
-    uint256 vintageOfRemoval = removalToRemove.vintage();
-    require(
-      removalQueue.queueByVintage[vintageOfRemoval].remove(removalToRemove),
-      "Market: failed to remove correct removal"
-    );
+  ) internal {
+    uint256 vintageOfRemoval = RemovalIdLib.vintage(removalToRemove);
+    if (
+      !removalQueue.queueByVintage[vintageOfRemoval].remove(removalToRemove)
+    ) {
+      revert RemovalNotInQueue({
+        removalId: removalToRemove,
+        queueVintage: vintageOfRemoval
+      });
+    }
     // If all removals were removed, check to see if there are any updates to the struct we need to make.
     if (isRemovalQueueEmptyForVintage(removalQueue, vintageOfRemoval)) {
       if (removalQueue.earliestYear == removalQueue.latestYear) {
@@ -89,7 +100,6 @@ library RemovalQueue {
         }
       }
     }
-    return true;
   }
 
   /**

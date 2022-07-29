@@ -1,6 +1,4 @@
 /* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "compareScheduleDetailForAddressStructs", "compareScheduleSummaryStructs"] }] -- have ticket to fix expect statements in these utilities */
-import { BigNumber } from 'ethers';
-
 import { formatTokenAmount, formatTokenString } from '@/utils/units';
 import { FINNEY, Zero } from '@/constants/units';
 import {
@@ -28,7 +26,7 @@ describe('RestrictedNORI', () => {
       for (const { role, expectedCount } of [
         { role: 'DEFAULT_ADMIN_ROLE', expectedCount: 1 },
         { role: 'PAUSER_ROLE', expectedCount: 1 },
-        { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Market contract and admin are both schedule creators
+        { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Removal contract and admin are both schedule creators
         { role: 'TOKEN_REVOKER_ROLE', expectedCount: 1 },
       ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
@@ -44,19 +42,20 @@ describe('RestrictedNORI', () => {
           );
         });
       }
-      for (const { role } of [
-        { role: 'SCHEDULE_CREATOR_ROLE' },
-        { role: 'MINTER_ROLE' },
-      ] as const) {
-        it(`will assign the role ${role} to the market contract`, async () => {
-          const { rNori, fifoMarket } = await setupTest();
-          expect(await rNori.hasRole(await rNori[role](), fifoMarket.address))
-            .to.be.true;
-          expect(await rNori.getRoleAdmin(await rNori[role]())).to.eq(
-            await rNori.DEFAULT_ADMIN_ROLE()
-          );
-        });
-      }
+      it(`will assign the role MINTER_ROLE to the market contract`, async () => {
+        const { rNori, market } = await setupTest();
+        expect(await rNori.hasRole(await rNori.MINTER_ROLE(), market.address))
+          .to.be.true;
+      });
+      it(`will assign the role SCHEDULE_CREATOR_ROLE to the removal contract`, async () => {
+        const { rNori, removal } = await setupTest();
+        expect(
+          await rNori.hasRole(
+            await rNori.SCHEDULE_CREATOR_ROLE(),
+            removal.address
+          )
+        ).to.be.true;
+      });
     });
   });
   describe('pausing', () => {
@@ -114,7 +113,7 @@ describe('RestrictedNORI', () => {
           methodology,
           methodologyVersion
         );
-      expect(scheduleDurationBeforeSetting).to.equal(0);
+      expect(scheduleDurationBeforeSetting).to.equal(Zero);
       await rNori.setRestrictionDurationForMethodologyAndVersion(
         methodology,
         methodologyVersion,
@@ -143,7 +142,7 @@ describe('RestrictedNORI', () => {
       ).to.be.reverted;
     });
     it('should revert if a restriction schedule is being created for a methodology/version that does not have a duration set', async () => {
-      const { removal, fifoMarket, hre } = await setupTest();
+      const { removal, hre } = await setupTest();
       const removalIdWithMethodology2 = await createRemovalTokenId({
         removal,
         removalData: { methodology: 2 },
@@ -154,7 +153,6 @@ describe('RestrictedNORI', () => {
       const amount = 20_000_000;
       const packedData = await createBatchMintData({
         hre,
-        fifoMarket,
         listNow: true,
         projectId,
         scheduleStartTime,
@@ -167,7 +165,7 @@ describe('RestrictedNORI', () => {
           [removalIdWithMethodology2],
           packedData
         )
-      ).to.be.revertedWith('Restriction duration not set');
+      ).to.be.revertedWith('rNORI: duration not set');
     });
   });
   describe(`create schedule`, () => {
@@ -179,7 +177,7 @@ describe('RestrictedNORI', () => {
         },
       ];
       const testSetup = await setupTest();
-      const { removal, fifoMarket, rNori, hre } = testSetup;
+      const { removal, rNori, hre } = testSetup;
       const { projectId, scheduleStartTime } = {
         projectId: 1_234_567_890,
         scheduleStartTime: await getLatestBlockTime({ hre }),
@@ -204,7 +202,6 @@ describe('RestrictedNORI', () => {
         [removalTokenId],
         await createBatchMintData({
           hre,
-          fifoMarket,
           listNow: false,
           projectId,
           scheduleStartTime,
@@ -218,7 +215,7 @@ describe('RestrictedNORI', () => {
         scheduleStartTime + SECONDS_IN_10_YEARS
       );
       expect(scheduleSummary.tokenHolders).to.be.empty;
-      expect(scheduleSummary.totalSupply).to.equal(0);
+      expect(scheduleSummary.totalSupply).to.equal(Zero);
     });
   });
   describe('mint', () => {
@@ -282,8 +279,8 @@ describe('RestrictedNORI', () => {
     //   expect(scheduleSummary.endTime).equals(
     //     scheduleStartTime + SECONDS_IN_10_YEARS
     //   );
-    //   expect(scheduleSummary.totalClaimedAmount).equals(0);
-    //   expect(scheduleSummary.totalQuantityRevoked).equals(0);
+    //   expect(scheduleSummary.totalClaimedAmount).equals(Zero);
+    //   expect(scheduleSummary.totalQuantityRevoked).equals(Zero);
     //   expect(scheduleSummary.exists).equals(true);
     // });
     it('should revert if the minter of RestrictedNORI is not the market contract', async () => {
@@ -340,7 +337,7 @@ describe('RestrictedNORI', () => {
       });
       const claimableBalanceForSchedule =
         await rNori.claimableBalanceForSchedule(projectId);
-      expect(claimableBalanceForSchedule).to.equal(0);
+      expect(claimableBalanceForSchedule).to.equal(Zero);
       await expect(
         rNori
           .connect(hre.namedSigners.supplier)
@@ -505,7 +502,7 @@ describe('RestrictedNORI', () => {
         );
         expect(
           await rNori.claimableBalanceForScheduleForAccount(projectId, supplier)
-        ).to.equal(0);
+        ).to.equal(Zero);
         expect(await bpNori.totalSupply()).to.equal(
           bpNoriSupplyBeforeWithdrawl
         );
@@ -614,11 +611,11 @@ describe('RestrictedNORI', () => {
         );
         expect(
           await rNori.claimableBalanceForScheduleForAccount(projectId, supplier)
-        ).to.equal(0);
+        ).to.equal(Zero);
         expect(await bpNori.totalSupply()).to.equal(
           bpNoriSupplyBeforeWithdrawl
         );
-        expect(await bpNori.balanceOf(supplier)).to.equal(0);
+        expect(await bpNori.balanceOf(supplier)).to.equal(Zero);
         expect(await bpNori.balanceOf(investor1)).to.equal(claimableBalance);
       });
       it('can withdraw correctly from a restriction schedule with multiple token holders', async () => {
@@ -733,8 +730,8 @@ describe('RestrictedNORI', () => {
         expect(await bpNori.balanceOf(supplier)).to.equal(
           supplierClaimableBalanceBeforeClaim
         );
-        expect(await bpNori.balanceOf(investor1)).to.equal(0);
-        expect(await bpNori.balanceOf(employee)).to.equal(0);
+        expect(await bpNori.balanceOf(investor1)).to.equal(Zero);
+        expect(await bpNori.balanceOf(employee)).to.equal(Zero);
       });
     });
     describe('failure', () => {
@@ -1300,7 +1297,7 @@ describe('RestrictedNORI', () => {
       });
     });
   });
-  describe('Revoking (batchRevokeUnreleasedTokenAmounts)', () => {
+  describe('Revoking (revokeUnreleasedTokens)', () => {
     describe('success', () => {
       it('should revoke a specific number of tokens, emit events, and account for the quantity revoked - single account', async () => {
         const testSetup = await setupTest({
@@ -1340,16 +1337,15 @@ describe('RestrictedNORI', () => {
         expect(originalRevocableQuantity).to.equal(removalAmounts[0].div(2));
         const quantityToRevoke = originalRevocableQuantity.div(2);
         await expect(
-          rNori.batchRevokeUnreleasedTokenAmounts([admin], listedRemovalIds, [
-            quantityToRevoke,
-          ])
+          rNori.revokeUnreleasedTokens(projectId, quantityToRevoke, admin)
         )
           .to.emit(rNori, 'TokensRevoked')
           .withArgs(
             scheduleStartTime + SECONDS_IN_5_YEARS,
-            listedRemovalIds[0],
             projectId,
-            quantityToRevoke
+            quantityToRevoke,
+            [supplier],
+            [quantityToRevoke]
           )
           .to.emit(rNori, 'Burned')
           .withArgs(admin, supplier, quantityToRevoke, '0x', '0x')
@@ -1433,25 +1429,26 @@ describe('RestrictedNORI', () => {
             '0x'
           );
         const quantityToRevoke = restrictedAmount.div(2);
-        await hre.network.provider.send('evm_setNextBlockTimestamp', [
-          scheduleStartTime + SECONDS_IN_5_YEARS,
-        ]);
-        await expect(
-          rNori.batchRevokeUnreleasedTokenAmounts([admin], listedRemovalIds, [
-            quantityToRevoke,
-          ])
-        )
-          .to.emit(rNori, 'TokensRevoked')
-          .withArgs(
-            await getLatestBlockTime({ hre }),
-            listedRemovalIds[0],
-            projectId,
-            quantityToRevoke
-          );
         const expectedRevokedFromSupplier = restrictedAmount
           .sub(amountToTransferToInvestor)
           .div(2);
         const expectedRevokedFromInvestor = amountToTransferToInvestor.div(2);
+        await hre.network.provider.send('evm_setNextBlockTimestamp', [
+          scheduleStartTime + SECONDS_IN_5_YEARS,
+        ]);
+
+        await expect(
+          rNori.revokeUnreleasedTokens(projectId, quantityToRevoke, admin)
+        )
+          .to.emit(rNori, 'TokensRevoked')
+          .withArgs(
+            await getLatestBlockTime({ hre }),
+            projectId,
+            quantityToRevoke,
+            [supplier, investor1],
+            [expectedRevokedFromSupplier, expectedRevokedFromInvestor]
+          );
+
         const supplierRestrictionScheduleDetail =
           await rNori.getScheduleDetailForAccount(supplier, projectId);
         const investorRestrictionScheduleDetail =
@@ -1477,7 +1474,7 @@ describe('RestrictedNORI', () => {
         expect(scheduleSummary.totalSupply).to.equal(
           restrictedAmount.sub(quantityToRevoke)
         );
-        expect(revocableQuantityForScheduleAfterRevocation).to.equal(0);
+        expect(revocableQuantityForScheduleAfterRevocation).to.equal(Zero);
         expect(await bpNori.balanceOf(admin)).to.equal(
           originalAdminBpNoriBalance.sub(restrictedAmount).add(quantityToRevoke)
         );
@@ -1540,10 +1537,10 @@ describe('RestrictedNORI', () => {
           scheduleStartTime + SECONDS_IN_5_YEARS * 1.5,
         ]);
         const revocableQuantityForSchedule = formatTokenAmount(750);
-        await rNori.batchRevokeUnreleasedTokenAmounts(
-          [admin],
-          listedRemovalIds,
-          [revocableQuantityForSchedule]
+        await rNori.revokeUnreleasedTokens(
+          projectId,
+          revocableQuantityForSchedule,
+          admin
         );
         const secondAmountToClaimForSupplier = formatTokenAmount(250);
         await rNori
@@ -1628,19 +1625,18 @@ describe('RestrictedNORI', () => {
           newTimestamp,
         ]);
         const expectedQuantityRevoked = restrictedAmount.div(2); // half of the restricted amount determined by newTimestamp
-        await expect(
-          rNori.batchRevokeUnreleasedTokenAmounts([admin], listedRemovalIds, [
-            0,
-          ])
-        )
+        await expect(rNori.revokeUnreleasedTokens(projectId, 0, admin))
           .to.emit(rNori, 'TokensRevoked')
           .withArgs(
-            newTimestamp,
-            listedRemovalIds[0], // todo test underflow: await rNori.revocableQuantityForSchedule (Expected "28323967194635187783729271962109934955231132147579225830224695226740474786" to be equal 0)
+            newTimestamp, // todo test underflow: await rNori.revocableQuantityForSchedule (Expected "28323967194635187783729271962109934955231132147579225830224695226740474786" to be equal 0)
             projectId,
-            expectedQuantityRevoked
+            expectedQuantityRevoked,
+            [supplier],
+            [expectedQuantityRevoked]
           );
-        expect(await rNori.revocableQuantityForSchedule(projectId)).to.equal(0);
+        expect(await rNori.revocableQuantityForSchedule(projectId)).to.equal(
+          Zero
+        );
         const newBalance = restrictedAmount.sub(expectedQuantityRevoked);
         const restrictionScheduleSummary = await rNori.getScheduleSummary(
           projectId
@@ -1656,115 +1652,6 @@ describe('RestrictedNORI', () => {
             .sub(restrictedAmount)
             .add(expectedQuantityRevoked)
         );
-      });
-      it('can revoke for more than one removal at a time, and can revoke from the same schedule repeatedly', async () => {
-        const removals = [
-          {
-            amount: 100,
-            vintage: 2018,
-          },
-          {
-            amount: 100,
-            vintage: 2019,
-          },
-        ];
-        const testSetup = await setupTest({
-          userFixtures: {
-            admin: {
-              roles: {
-                RestrictedNORI: ['MINTER_ROLE'],
-              },
-            },
-          },
-        });
-        const { rNori, hre } = testSetup;
-        const {
-          listedRemovalIds: listedRemovalIds1,
-          projectId: projectId1,
-          scheduleStartTime,
-        } = await batchMintAndListRemovalsForSale({
-          ...testSetup,
-          removalDataToList: { removals: [removals[0]] },
-        });
-        const { listedRemovalIds: listedRemovalIds2, projectId: projectId2 } =
-          await batchMintAndListRemovalsForSale({
-            ...testSetup,
-            removalDataToList: {
-              projectId: 999_999_999,
-              removals: [removals[1]],
-            },
-          });
-        const { admin } = hre.namedAccounts;
-        const restrictedAmounts = removals.map((removalData) =>
-          formatTokenAmount(removalData.amount)
-        );
-        await restrictRemovalProceeds({
-          testSetup,
-          removalIds: [listedRemovalIds1[0], listedRemovalIds2[0]],
-          removalAmountsToRestrict: restrictedAmounts,
-        });
-        const allScheduleIds: BigNumber[] = await rNori.getAllScheduleIds();
-        expect(
-          allScheduleIds.map((scheduleId) => scheduleId.toHexString())
-        ).to.have.deep.members([
-          BigNumber.from(projectId1).toHexString(),
-          BigNumber.from(projectId2).toHexString(),
-        ]);
-        await advanceTime({
-          hre,
-          timestamp: scheduleStartTime + SECONDS_IN_5_YEARS,
-        });
-        const quantityToRevoke = formatTokenAmount(1);
-        await expect(
-          rNori.batchRevokeUnreleasedTokenAmounts(
-            [admin, admin],
-            [listedRemovalIds1[0], listedRemovalIds2[0]],
-            [quantityToRevoke, quantityToRevoke]
-          )
-        )
-          .to.emit(rNori, 'TokensRevoked')
-          .withArgs(
-            await getLatestBlockTime({ hre }),
-            listedRemovalIds1[0],
-            projectId1,
-            quantityToRevoke
-          )
-          .to.emit(rNori, 'TokensRevoked')
-          .withArgs(
-            await getLatestBlockTime({ hre }),
-            listedRemovalIds2[0],
-            projectId2,
-            quantityToRevoke
-          );
-        const scheduleSummariesAfterFirstRevocation =
-          await rNori.batchGetScheduleSummaries([projectId1, projectId2]);
-        expect(scheduleSummariesAfterFirstRevocation.length).to.equal(2);
-        for (const [
-          index,
-          schedule,
-        ] of scheduleSummariesAfterFirstRevocation.entries()) {
-          compareScheduleSummaryStructs(schedule, {
-            totalQuantityRevoked: quantityToRevoke,
-            totalSupply: restrictedAmounts[index].sub(quantityToRevoke),
-          });
-        }
-        // revoke a second time
-        await rNori.batchRevokeUnreleasedTokenAmounts(
-          [admin, admin],
-          [listedRemovalIds1[0], listedRemovalIds2[0]],
-          [quantityToRevoke, quantityToRevoke]
-        );
-        const scheduleSummariesAfterSecondRevocation =
-          await rNori.batchGetScheduleSummaries([projectId1, projectId2]);
-        for (const [
-          index,
-          schedule,
-        ] of scheduleSummariesAfterSecondRevocation.entries()) {
-          compareScheduleSummaryStructs(schedule, {
-            totalQuantityRevoked: quantityToRevoke.mul(2),
-            totalSupply: restrictedAmounts[index].sub(quantityToRevoke.mul(2)),
-          });
-        }
       });
       it('should maintain the correct released amount floor when tokens are revoked, and release correctly over the course of the schedule', async () => {
         const testSetup = await setupTest({
@@ -1801,11 +1688,7 @@ describe('RestrictedNORI', () => {
           timestamp: scheduleStartTime + SECONDS_IN_5_YEARS,
         });
         const quantityToRevoke = formatTokenAmount(250);
-        await rNori.batchRevokeUnreleasedTokenAmounts(
-          [admin],
-          listedRemovalIds,
-          [quantityToRevoke]
-        );
+        await rNori.revokeUnreleasedTokens(projectId, quantityToRevoke, admin);
         const scheduleSummary = await rNori.getScheduleSummary(projectId);
         // After revoking 250 tokens, the claimable amount shouldn't drop below the current level of 500.
         expect(await rNori.revocableQuantityForSchedule(projectId)).to.closeTo(
@@ -1864,7 +1747,7 @@ describe('RestrictedNORI', () => {
         expect(scheduleSummaryAtEndOfSchedule.totalClaimableAmount).to.equal(
           quantityToRevoke.mul(3)
         );
-        expect(revocableQuantityAtEndOfSchedule).to.equal(0);
+        expect(revocableQuantityAtEndOfSchedule).to.equal(Zero);
       });
     });
     describe('failure', () => {
@@ -1881,7 +1764,8 @@ describe('RestrictedNORI', () => {
             },
           },
         });
-        const { rNori, hre, listedRemovalIds, removalAmounts } = testSetup;
+        const { rNori, hre, listedRemovalIds, removalAmounts, projectId } =
+          testSetup;
         const { buyer } = hre.namedAccounts;
         const restrictedAmount = removalAmounts[0];
         await restrictRemovalProceeds({
@@ -1892,7 +1776,7 @@ describe('RestrictedNORI', () => {
         await expect(
           rNori
             .connect(hre.namedSigners.buyer) // missing TOKEN_REVOKE_ROLE (but funded)
-            .batchRevokeUnreleasedTokenAmounts([buyer], listedRemovalIds, [1])
+            .revokeUnreleasedTokens(projectId, formatTokenAmount(1), buyer)
         ).to.be.reverted;
       });
       it('should revert when attempting to revoke more tokens than are revocable', async () => {
@@ -1919,9 +1803,11 @@ describe('RestrictedNORI', () => {
         const revocableQuantityForSchedule =
           await rNori.revocableQuantityForSchedule(projectId);
         await expect(
-          rNori.batchRevokeUnreleasedTokenAmounts([admin], listedRemovalIds, [
+          rNori.revokeUnreleasedTokens(
+            projectId,
             revocableQuantityForSchedule.add(1),
-          ])
+            admin
+          )
         ).to.be.revertedWith(`InsufficientUnreleasedTokens(${projectId})`);
       });
     });

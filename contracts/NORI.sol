@@ -3,8 +3,7 @@ pragma solidity =0.8.15;
 
 import "./ERC20Preset.sol";
 
-// todo documentation
-// todo Security aduit item: https://github.com/nori-dot-eco/contracts/security/code-scanning/499
+// todo Security audit item: https://github.com/nori-dot-eco/contracts/security/code-scanning/499
 contract NORI is ERC20Preset {
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -25,9 +24,6 @@ contract NORI is ERC20Preset {
     __ERC20Burnable_init_unchained();
     __ERC20Preset_init_unchained();
     __Multicall_init_unchained();
-    _mint(
-      _msgSender(),
-      500_000_000 * 10**uint256(decimals()) // 500,000,000 NORI
-    );
+    _mint(_msgSender(), 500_000_000 ether);
   }
 }

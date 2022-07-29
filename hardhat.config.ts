@@ -27,12 +27,21 @@ export const getConfig = (
     networks,
     etherscan,
     defender,
-    gasReporter: getGasReporterConfig(environment), // todo getters for all configs
+    gasReporter: getGasReporterConfig(environment), // todo getter vs object consistency
     solidity,
     mocha: getMochaConfig(environment),
     fireblocks,
     ethernal: getEthernalConfig(environment),
+    paths: {
+      sources: './contracts',
+      cache: './cache_hardhat',
+    },
     tracer,
+    typechain: {
+      externalArtifacts: [
+        'legacy-artifacts/contracts/LockedNORI.sol/LockedNORI.json',
+      ],
+    },
   };
   return config;
 };

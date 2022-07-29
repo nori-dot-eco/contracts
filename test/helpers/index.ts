@@ -1,37 +1,28 @@
+import type { BigNumberish } from 'ethers';
 import { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
-import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 import { add } from '@nori-dot-com/math';
 
-import { defaultRemovalTokenIdFixture } from '../fixtures/removal';
-
+import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
+import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import { sum } from '@/utils/math';
-import type {
-  MockCertificate,
-  MockERC1155PresetPausableNonTransferrable,
-} from '@/typechain-types/contracts/mocks';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
-import {
-  formatRemovalIdData,
-  generateRandomSubIdentifier,
-} from '@/utils/removal';
+import { generateRandomSubIdentifier } from '@/utils/removal';
 import type {
   Removal,
   Certificate,
-  FIFOMarket,
-  // LockedNORI, // todo import from forked repo
+  Market,
+  LockedNORIV2,
   RestrictedNORI,
   NORI,
   BridgedPolygonNORI,
   RemovalTestHarness,
 } from '@/typechain-types';
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/contracts/Removal';
 import { formatTokenAmount } from '@/utils/units';
-import type { Contracts } from '@/utils/contracts';
 import { getContractsFromDeployments } from '@/utils/contracts';
+import { Zero } from '@/constants/units';
 
 export * from './chai';
-export * from './interfaces';
 export * from './polygon';
 
 interface ContractInstances {
@@ -39,12 +30,10 @@ interface ContractInstances {
   bpNori: BridgedPolygonNORI;
   removal: Removal;
   certificate: Certificate;
-  fifoMarket: FIFOMarket;
-  // lNori: LockedNORI; // todo import from forked repo
+  market: Market;
+  lNori: LockedNORIV2;
   rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
-  mockCertificate: MockCertificate; // todo key remapping of Contracts
-  mockERC1155PresetPausableNonTransferrable: MockERC1155PresetPausableNonTransferrable; // todo consider TestHarness vs Mock naming convention
 }
 
 export const NOW = Math.floor(Date.now() / 1000);
@@ -69,23 +58,8 @@ export const advanceTime = async ({
   await hre.network.provider.send('hardhat_mine');
 };
 
-export interface MockERC1155PresetPausableNonTransferrableFixture {
-  to: Parameters<MockERC1155PresetPausableNonTransferrable['mintBatch']>[0];
-  removalId: Parameters<
-    MockERC1155PresetPausableNonTransferrable['mintBatch']
-  >[1][number];
-  removalAmount: Parameters<
-    MockERC1155PresetPausableNonTransferrable['mintBatch']
-  >[2][number];
-  data: Parameters<MockERC1155PresetPausableNonTransferrable['mintBatch']>[3];
-}
-
 interface UserFixture {
   bpBalance?: BigNumber;
-  mockERC1155PresetPausableNonTransferrableFixtures?: {
-    tokens: MockERC1155PresetPausableNonTransferrableFixture[];
-    approvalsForAll?: string[];
-  };
   removalDataToList?: RemovalDataForListing;
   roles?: RoleFixtures;
 }
@@ -135,46 +109,44 @@ export const createRemovalTokenId = async ({
   removalData?: Partial<UnpackedRemovalIdV0Struct>;
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<BigNumber> => {
-  const formattedRemovalData = formatRemovalIdData({
-    hre,
-    removalData: {
-      ...defaultRemovalTokenIdFixture,
-      ...removalData,
-    },
+  const removalId = await removal.createRemovalId({
+    ...defaultRemovalTokenIdFixture,
+    ...removalData,
   });
-  const removalId = await removal.createRemovalId(formattedRemovalData);
   return removalId;
+};
+
+type BatchMintData = {
+  [Property in keyof Parameters<Removal['mintBatch']>[3]]: Parameters<
+    Removal['mintBatch']
+  >[3][Property] extends BigNumberish
+    ? BigNumber
+    : Parameters<Removal['mintBatch']>[3][Property];
 };
 
 // todo helpers/removal.ts
 export const createBatchMintData = async ({
   hre,
-  fifoMarket,
   listNow = true,
   projectId = 1_234_567_890,
   scheduleStartTime,
-  holdbackPercentage = 0,
+  holdbackPercentage = Zero,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-  fifoMarket: FIFOMarket;
   listNow?: boolean;
   projectId?: number;
   scheduleStartTime?: number;
-  holdbackPercentage?: number;
-}): Promise<Parameters<Removal['mintBatch']>[3]> => {
-  const actualScheduleStartTime =
-    scheduleStartTime ?? (await getLatestBlockTime({ hre }));
-  const packedData = hre.ethers.utils.defaultAbiCoder.encode(
-    ['uint256', 'uint256', 'uint256', 'address', 'bool'],
-    [
-      projectId,
-      actualScheduleStartTime,
-      holdbackPercentage,
-      fifoMarket.address,
-      listNow,
-    ]
+  holdbackPercentage?: BigNumber;
+}): Promise<BatchMintData> => {
+  const actualScheduleStartTime = BigNumber.from(
+    scheduleStartTime ?? (await getLatestBlockTime({ hre }))
   );
-  return packedData;
+  return {
+    projectId: BigNumber.from(projectId),
+    scheduleStartTime: actualScheduleStartTime,
+    holdbackPercentage,
+    list: listNow,
+  };
 };
 
 // todo helpers/removal.ts
@@ -186,15 +158,17 @@ interface RemovalDataFromListing {
   removalAmounts: BigNumber[];
   projectId: number;
   scheduleStartTime: number;
-  holdbackPercentage: number;
+  holdbackPercentage: BigNumber;
 }
 
 // todo helpers/removal.ts
 interface RemovalDataForListing {
   projectId?: number;
   scheduleStartTime?: number;
-  holdbackPercentage?: number;
+  holdbackPercentage?: BigNumber;
+  listNow?: boolean;
   removals: (Partial<UnpackedRemovalIdV0Struct> & {
+    tokenId?: BigNumber;
     amount: number; // todo bignumber
     projectId?: number;
     scheduleStartTime?: number;
@@ -221,16 +195,16 @@ const getTotalAmountOfRemovals = ({
 export const batchMintAndListRemovalsForSale = async (options: {
   hre: CustomHardHatRuntimeEnvironment;
   removal: Removal;
-  fifoMarket: FIFOMarket;
+  market: Market;
   removalDataToList: RemovalDataForListing;
 }): Promise<RemovalDataFromListing> => {
-  const { removal, hre, fifoMarket, removalDataToList } = options;
+  const { removal, hre, removalDataToList } = options;
   const { projectId, scheduleStartTime, holdbackPercentage } = {
     projectId: removalDataToList.projectId ?? 1_234_567_890,
     scheduleStartTime:
       removalDataToList.scheduleStartTime ??
       (await getLatestBlockTime({ hre })),
-    holdbackPercentage: removalDataToList.holdbackPercentage ?? 0,
+    holdbackPercentage: removalDataToList.holdbackPercentage ?? Zero,
   };
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
@@ -258,8 +232,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
     listedRemovalIds,
     await createBatchMintData({
       hre,
-      fifoMarket,
-      listNow: true,
+      listNow: removalDataToList.listNow,
       projectId,
       scheduleStartTime,
       holdbackPercentage,
@@ -312,12 +285,12 @@ export const setupTest = global.hre.deployments.createFixture(
       }
     }
     let listedRemovalIds: BigNumber[] = [];
-    let totalAmountOfSupply = BigNumber.from(0);
+    let totalAmountOfSupply = Zero;
     let totalAmountOfSuppliers = 0;
     let totalAmountOfRemovals = 0;
     let projectId = 0;
     let scheduleStartTime = 0;
-    let holdbackPercentage = 0;
+    let holdbackPercentage = Zero;
     let removalAmounts: BigNumber[] = [];
     for (const [k, v] of Object.entries(userFixtures) as [
       keyof typeof namedAccounts,
@@ -345,7 +318,7 @@ export const setupTest = global.hre.deployments.createFixture(
         const mintResultData = await batchMintAndListRemovalsForSale({
           removalDataToList: v.removalDataToList,
           removal: contracts.Removal,
-          fifoMarket: contracts.FIFOMarket,
+          market: contracts.Market,
           hre,
         });
         removalAmounts = [...removalAmounts, ...mintResultData.removalAmounts];
@@ -367,38 +340,16 @@ export const setupTest = global.hre.deployments.createFixture(
         scheduleStartTime = mintResultData.scheduleStartTime; // todo allow multiple schedules/projects/percentages per fixture
         holdbackPercentage = mintResultData.holdbackPercentage; // todo allow multiple schedules/projects/percentages per fixture
       }
-      if (Boolean(v.bpBalance)) {
-        if (isBigNumberish(v.bpBalance)) {
-          // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-          await mockDepositNoriToPolygon({
-            hre,
-            contracts,
-            amount: v.bpBalance,
-            to: hre.namedAccounts[k],
-            signer: hre.namedSigners[k],
-          });
-        } else {
-          throw new Error(`Invalid bpBalance for ${k}.`);
-        }
-      }
-      if (v.mockERC1155PresetPausableNonTransferrableFixtures !== undefined) {
-        const { tokens, approvalsForAll } =
-          v.mockERC1155PresetPausableNonTransferrableFixtures;
+      const amount = v.bpBalance;
+      if (amount !== undefined) {
         // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-        await contracts.MockERC1155PresetPausableNonTransferrable.mintBatch(
-          tokens[0].to,
-          tokens?.map((f) => f.removalId),
-          tokens?.map((f) => f.removalAmount),
-          tokens[0].data
-        );
-        if (approvalsForAll !== undefined) {
-          for (const approval of approvalsForAll) {
-            // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-            await contracts.MockERC1155PresetPausableNonTransferrable.connect(
-              hre.namedSigners[k]
-            ).setApprovalForAll(approval, true);
-          }
-        }
+        await mockDepositNoriToPolygon({
+          hre,
+          contracts,
+          amount,
+          to: hre.namedAccounts[k],
+          signer: hre.namedSigners[k],
+        });
       }
     }
     return {
@@ -409,13 +360,10 @@ export const setupTest = global.hre.deployments.createFixture(
       bpNori: contracts.BridgedPolygonNORI,
       removal: contracts.Removal,
       certificate: contracts.Certificate,
-      fifoMarket: contracts.FIFOMarket,
-      // lNori: contracts.LockedNORI, // todo import from forked repo
+      market: contracts.Market,
+      lNori: contracts.LockedNORIV2,
       rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
-      mockCertificate: contracts.MockCertificate,
-      mockERC1155PresetPausableNonTransferrable:
-        contracts.MockERC1155PresetPausableNonTransferrable,
       userFixtures,
       contractFixtures,
       listedRemovalIds,

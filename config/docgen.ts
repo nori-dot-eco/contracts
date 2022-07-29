@@ -7,15 +7,15 @@ export const docgen: HardhatUserConfig['docgen'] = {
   templates: path.join(__dirname, '../docs/templates'),
   pages: (item, _file) => {
     return [
-      'FIFOMarket',
+      'Market',
       'NORI',
       'Removal',
       'Certificate',
       'BridgedPolygonNORI',
       'ERC20Preset',
-      'ScheduleUtils',
+      'LockedNORILib',
       'RemovalQueue',
-      'RemovalUtils',
+      'RemovalIdLib',
       'RestrictedNORI',
     ].includes((item as any)?.canonicalName)
       ? (item as any)?.canonicalName?.concat('.md')

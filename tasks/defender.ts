@@ -29,7 +29,7 @@ const addContractsToDefender = async (
   {
     contractNames,
   }: {
-    contractNames: ContractNames[];
+    contractNames: (keyof Contracts)[];
   },
   hre: CustomHardHatRuntimeEnvironment
 ): Promise<void> => {
@@ -39,8 +39,8 @@ const addContractsToDefender = async (
     network: { name: networkName },
     ethers,
   } = hre;
-  if (defender != undefined && isDefenderNetwork(networkName)) {
-    console.log('Adding contracts to defender');
+  if (defender !== undefined && isDefenderNetwork(networkName)) {
+    hre.log('Adding contracts to defender');
     const contracts = await Promise.all(
       contractNames.map(async (name) => {
         const factory = await ethers.getContractFactory(name);
@@ -69,12 +69,12 @@ const addContractsToDefender = async (
       return !defenderContracts.has(c.name.concat(c.network));
     });
     if (contractsToAddToDefender.length === 0) {
-      console.log('No contracts to add to defender');
+      hre.log('No contracts to add to defender');
     } else {
       await Promise.all(
         contractsToAddToDefender.map(async (c) => defenderClient.addContract(c))
       );
-      console.log(
+      hre.log(
         'Added the following contracts to defender:',
         contractsToAddToDefender.map((c) => c.name)
       );

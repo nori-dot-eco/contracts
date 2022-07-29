@@ -1,50 +1,62 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/presets/ERC1155PresetMinterPauserUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC1820ImplementerUpgradeable.sol";
-import "./ERC1155PresetPausableNonTransferrable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
+import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
+import {FunctionDisabled, ArrayLengthMismatch, SenderNotRemovalContract} from "./Errors.sol";
+import "./Removal.sol";
+import "./PausableAccessPreset.sol";
+import "./ICertificate.sol";
 
-// todo disable other mint functions
-// todo whenNotPasused
-// todo setApprovalForAll should only work when called on accounts with CERTIFICATE_OPERATOR_ROLE
-// todo consider not inheriting pausable base contract and reverting with custom error for consistency
-// todo use OZ counters for incrementing and decrementing
-
-error ForbiddenFunctionCall();
+error ForbiddenTransferAfterMinting();
 
 /**
- * @title Certificate
+ * todo document burning behavior
+ * todo ERC721a exposes both _msgSender and _msgSenderERC721A -- what are the differences and implications?
+ * todo check that all transfer functions (including those not exposed in this file) call _beforeTokenTransfers
  */
-contract Certificate is ERC1155PresetPausableNonTransferrable {
-  struct Source {
-    uint256 removalId;
+contract Certificate is
+  ICertificate,
+  ERC721ABurnableUpgradeable,
+  ERC721AQueryableUpgradeable,
+  MulticallUpgradeable,
+  PausableAccessPreset
+{
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+
+  struct Balance {
+    uint256 id;
     uint256 amount;
   }
 
   /**
-   * @notice Emitted on creation of a certificate of carbon removal.
+   * @notice Role conferring operator permissions.
+   *
+   * @dev This role is assigned to operators which are the only addresses which can transfer certificates outside of
+   * minting and burning.
    */
-  event CertificateCreated(
-    address indexed recipient,
-    uint256 indexed certificateId,
-    uint256[] removalIds,
-    uint256[] amounts
-  );
+  bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
+    keccak256("CERTIFICATE_OPERATOR_ROLE");
+
+  mapping(uint256 => mapping(uint256 => uint256))
+    private _removalBalancesOfCertificate;
+
+  mapping(uint256 => uint256) private _balances; // todo naming consistency for mappings (e.g, plural/non-plural)
+
+  /*
+   * todo Add tests that ensure _removalsOfCertificate/_certificatesOfRemoval can't deviate from Removal.sol balances
+   */
+  mapping(uint256 => EnumerableSetUpgradeable.UintSet)
+    private _removalsOfCertificate;
+
+  mapping(uint256 => EnumerableSetUpgradeable.UintSet)
+    private _certificatesOfRemoval;
 
   /**
-   * @dev a mapping of the certificate token ID -> sources
+   * @notice The Removal contract that accounts for carbon removal supply.
    */
-  mapping(uint256 => Source[]) private _sources;
-
-  /**
-   * @dev auto incrementing token ID
-   */
-  uint256 private _latestTokenId;
+  Removal private _removal;
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -53,83 +65,276 @@ contract Certificate is ERC1155PresetPausableNonTransferrable {
     _disableInitializers();
   }
 
-  function initialize() external initializer {
-    // todo verify all inherited unchained initializers are called
+  function initialize() external initializerERC721A initializer {
     __Context_init_unchained();
     __ERC165_init_unchained();
+    __ERC721A_init_unchained("Certificate", "NCCR");
+    __ERC721ABurnable_init_unchained();
+    __ERC721AQueryable_init_unchained();
+    __Pausable_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
-    __Pausable_init_unchained();
-    __ERC1155Supply_init_unchained();
-    __ERC1155_init_unchained("https://nori.com/api/certificate/{id}.json");
-    __Pausable_init_unchained();
-    __ERC1155PresetMinterPauser_init_unchained(
-      "https://nori.com/api/certificate/{id}.json"
-    );
-    __ERC1155PresetPausableNonTransferrable_init_unchained();
-    _latestTokenId = 0;
+    __Multicall_init_unchained();
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _grantRole(PAUSER_ROLE, _msgSender());
+    _grantRole(CERTIFICATE_OPERATOR_ROLE, _msgSender());
   }
 
   /**
-   * @dev mints the certificate (using a batch of certificate sources)
-   * @param to The supplier address
-   * @param removalAmounts the removal source amount
-   * @param removalIds the removal source ids
-   * @param data Additional data with no specified format, MUST be sent
-   * unaltered in call to `onERC1155Received` on `_to`
+   * @notice Registers the address of the removal contract ontract
    *
-   * @custom:example mint(address, 160, [100, 10, 50], [0, 1, 2])
-   *  - token id 0 URI points to nori.com/api/certificate/0 -> { amount: 100, removalIds: [0, 1, 2], ... }
-   *  - removalIds can be used to look up vintage years, e.g. 0 -> 2018
+   * @dev
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the contract is not paused.
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    */
-  function mintBatch(
-    address to, // todo array?
-    uint256[] memory removalIds,
-    uint256[] memory removalAmounts,
-    bytes memory data // todo array?
-  ) public override {
-    uint256 tokenId = _latestTokenId;
-    uint256 certificateAmount = abi.decode(data, (uint256)); // todo verify amount (would we be better of computing amount from the removalIds loop? how does gas compare)
-    // todo extract to base contract and overload here
-    // todo use modified mintCertificate instead of mintBatch. mintBatch should be used to mint multi certificates.
-    // todo only allowed by market contract
-    // todo require _sources[_latestTokenId] doesnt exist
-    // todo require _sources[_latestTokenId][n] doesnt exist
-    // todo is there a better way to verify that no removal amount == 0?
-    for (uint256 i = 0; i < removalIds.length; i++) {
-      if (removalAmounts[i] == 0) {
-        revert("Certificate: Removal amount 0");
-      } else {
-        _sources[tokenId].push(
-          Source({removalId: removalIds[i], amount: removalAmounts[i]})
-        );
+  function registerContractAddresses(Removal removal)
+    external
+    whenNotPaused
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    _removal = removal;
+  }
+
+  // todo is whenNotPaused redundant since it's only called from a pausable function on the removal contract?
+  function releaseRemoval(
+    uint256 certificateId,
+    uint256 removalId,
+    uint256 amount
+  ) external whenNotPaused {
+    if (_msgSender() != address(_removal)) {
+      revert SenderNotRemovalContract();
+    }
+    // todo Emit event when removal is released if TransferSingle events can be emitted with to: addr(0) in other cases
+    // todo decrease number of storage reads
+    _removalBalancesOfCertificate[certificateId][removalId] -= amount;
+    if (_removalBalancesOfCertificate[certificateId][removalId] == 0) {
+      _removalsOfCertificate[certificateId].remove(removalId);
+      _certificatesOfRemoval[removalId].remove(certificateId);
+    }
+  }
+
+  /**
+   * @dev Receives a batch of child tokens, the receiver token ID must be encoded in the field data.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the contract is not paused (enforced by `_beforeTokenTransfers`).
+   * - `_msgSender` must be the removal contract.
+   */
+  function onERC1155BatchReceived(
+    address,
+    address,
+    uint256[] calldata removalIds,
+    uint256[] calldata removalAmounts,
+    bytes calldata data
+  ) external returns (bytes4) {
+    if (_msgSender() != address(_removal)) {
+      revert SenderNotRemovalContract();
+    }
+    (address recipient, uint256 certificateAmount) = abi.decode(
+      data,
+      (address, uint256)
+    );
+    _receiveRemovalBatch({
+      recipient: recipient,
+      certificateAmount: certificateAmount,
+      removalIds: removalIds,
+      removalAmounts: removalAmounts
+    });
+    return this.onERC1155BatchReceived.selector;
+  }
+
+  /**
+   * @dev Returns the balance of a removal underlying a certificate
+   */
+  function balanceOfRemoval(uint256 certificateTokenId, uint256 removalTokenId)
+    external
+    view
+    returns (uint256)
+  {
+    return _removalBalancesOfCertificate[certificateTokenId][removalTokenId];
+  }
+
+  /**
+   * @dev Returns the total number of certificates that have been minted (including burned ones)
+   */
+  function totalMinted() external view returns (uint256) {
+    return _totalMinted();
+  }
+
+  function originalBalanceOf(uint256 certificateId)
+    external
+    view
+    returns (uint256)
+  {
+    return _balances[certificateId];
+  }
+
+  /**
+   * @dev Returns the list of removal IDs for the given certificate ID.
+   */
+  function removalsOfCertificate(uint256 certificateId)
+    external
+    view
+    returns (Balance[] memory)
+  {
+    EnumerableSetUpgradeable.UintSet
+      storage removalIds = _removalsOfCertificate[certificateId];
+    uint256 numberOfRemovals = removalIds.length();
+    Balance[] memory removals = new Balance[](numberOfRemovals);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < numberOfRemovals; ++i) {
+        uint256 removalId = removalIds.at(i);
+        removals[i] = Balance({
+          id: removalId,
+          amount: _removalBalancesOfCertificate[certificateId][removalId]
+        });
       }
     }
-    _latestTokenId = tokenId + 1;
-    emit CertificateCreated(to, tokenId, removalIds, removalAmounts);
-    super.mint(to, tokenId, certificateAmount, data);
+    return removals;
   }
 
   /**
-   * @dev Use the `mintBatch` function instead.
+   * @dev Returns the list of certificate IDs and balances for a given removal ID.
    */
-  function mint(
-    address,
-    uint256,
-    uint256,
-    bytes memory
-  ) public pure override {
-    revert ForbiddenFunctionCall(); // todo is this really what we want?
+  function certificatesOfRemoval(uint256 removalId)
+    external
+    view
+    returns (Balance[] memory)
+  {
+    EnumerableSetUpgradeable.UintSet
+      storage certificateIds = _certificatesOfRemoval[removalId];
+    uint256 numberOfCertificates = certificateIds.length();
+    Balance[] memory certificates = new Balance[](numberOfCertificates);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < numberOfCertificates; ++i) {
+        uint256 certificateId = certificateIds.at(i);
+        certificates[i] = Balance({
+          id: certificateId,
+          amount: _removalBalancesOfCertificate[certificateId][removalId]
+        });
+      }
+    }
+    return certificates;
   }
 
   /**
-   * @dev returns the removal IDs and the amounts of the sources
+   * @dev See [IERC165.supportsInterface](
+   * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
    */
-  function sources(uint256 certificateId)
+  function supportsInterface(bytes4 interfaceId)
     public
     view
-    returns (Source[] memory)
+    override(
+      AccessControlEnumerableUpgradeable,
+      ERC721AUpgradeable,
+      IERC721AUpgradeable
+    )
+    returns (bool)
   {
-    return _sources[certificateId];
+    return super.supportsInterface(interfaceId);
+  }
+
+  function setApprovalForAll(address, bool)
+    public
+    pure
+    override(ERC721AUpgradeable, IERC721AUpgradeable)
+  {
+    revert FunctionDisabled();
+  }
+
+  function approve(address, uint256)
+    public
+    pure
+    override(ERC721AUpgradeable, IERC721AUpgradeable)
+  {
+    revert FunctionDisabled();
+  }
+
+  /**
+   * @notice A hook that is called before all transfers and is used to disallow non-minting, non-burning, and non-
+   * certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfers.
+   *
+   * @dev Follows the rules of hooks defined [here](
+   *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks).
+   */
+  function _beforeTokenTransfers(
+    address from,
+    address to,
+    uint256 startTokenId,
+    uint256 quantity
+  ) internal override whenNotPaused {
+    bool isNotMinting = !(from == address(0));
+    bool isNotBurning = !(to == address(0));
+    bool isMissingOperatorRole = !hasRole(
+      CERTIFICATE_OPERATOR_ROLE,
+      _msgSender()
+    );
+    if (isNotMinting && isNotBurning && isMissingOperatorRole) {
+      revert ForbiddenTransferAfterMinting();
+    }
+    super._beforeTokenTransfers(from, to, startTokenId, quantity);
+  }
+
+  function _receiveRemovalBatch(
+    address recipient,
+    uint256 certificateAmount,
+    uint256[] memory removalIds,
+    uint256[] memory removalAmounts
+  ) internal {
+    _validateReceivedRemovalBatch(removalIds, removalAmounts);
+    uint256 certificateId = _nextTokenId();
+    _balances[certificateId] = certificateAmount;
+    _mint(recipient, 1); // todo should we be using _mint or _safeMint for ERC721A
+    for (uint256 i = 0; i < removalIds.length; ++i) {
+      _removalBalancesOfCertificate[certificateId][
+        removalIds[i]
+      ] += removalAmounts[i];
+      _removalsOfCertificate[certificateId].add(removalIds[i]);
+      _certificatesOfRemoval[removalIds[i]].add(certificateId);
+    }
+    emit ReceiveRemovalBatch(
+      _msgSender(),
+      recipient,
+      certificateId,
+      removalIds,
+      removalAmounts
+    );
+  }
+
+  /**
+   * @notice Returns the sender of the transaction.
+   * @dev In all cases currently, we expect that the `_msgSender()`, `_msgSenderERC721A()` and `msg.sender` all return
+   * the same value. As such, this function is provided solely for compatibility with OpenZeppelin and ERC721A
+   * contracts. For more, see [here](https://github.com/chiru-labs/ERC721A/pull/281) and [here](
+   * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Context.sol).
+   * @return For regular transactions it returns msg.sender and for meta transactions it *can* be used to return the end
+   * user (rather than the relayer)
+   */
+  function _msgSenderERC721A() internal view override returns (address) {
+    return _msgSender();
+  }
+
+  function _validateReceivedRemovalBatch(
+    uint256[] memory removalIds,
+    uint256[] memory removalAmounts
+  ) internal pure {
+    // todo De-duplicate code that checks array-length (e.g., library or base contract)
+    if (removalIds.length != removalAmounts.length) {
+      revert ArrayLengthMismatch("removalIds", "removalAmounts");
+    }
+  }
+
+  /**
+   * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each token will be the concatenation of the
+   * `baseURI` and the `tokenId`. Empty by default, it can be overridden in child contracts.
+   */
+  function _baseURI() internal pure override returns (string memory) {
+    return "https://nori.com/"; // todo
   }
 }

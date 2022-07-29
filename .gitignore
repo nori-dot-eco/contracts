@@ -82,11 +82,10 @@ workspace.code-workspace
 *.dbg.*
 cache
 dist
-artifacts/*
+artifacts/
 deployments/localhost
 deployments/localhost_9001
 deployments/hardhat*
-!artifacts/contracts
 .openzeppelin/unknown-9001.json
 !.openzeppelin/unknown-80001.json
 
@@ -102,3 +101,7 @@ grants.csv
 
 # tenderly
 scripts/tenderly.ts
+
+# foundry
+out
+cache_hardhat

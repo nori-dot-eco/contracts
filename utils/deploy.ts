@@ -6,31 +6,22 @@ import type { Address } from 'hardhat-deploy/types';
 import { generateRandomSubIdentifier } from './removal';
 
 import type {
-  MockCertificate,
-  MockERC1155PresetPausableNonTransferrable,
-} from '@/typechain-types/contracts/mocks';
-import type {
-  MockCertificate__factory,
-  MockERC1155PresetPausableNonTransferrable__factory,
-} from '@/typechain-types/factories/contracts/mocks';
-import type { Contracts } from '@/utils/contracts';
-import type {
-  // LockedNORI, // todo import from forked repo
-  // LockedNORI__factory, // todo import from forked repo
+  LockedNORIV2,
+  LockedNORIV2__factory,
   RestrictedNORI,
   RestrictedNORI__factory,
   Certificate,
   Certificate__factory,
-  FIFOMarket,
-  FIFOMarket__factory,
+  Market,
+  Market__factory,
   NORI,
   NORI__factory,
   Removal,
   Removal__factory,
   BridgedPolygonNORI,
   BridgedPolygonNORI__factory,
-  ScheduleTestHarness,
-  ScheduleTestHarness__factory,
+  LockedNORILibTestHarness,
+  LockedNORILibTestHarness__factory,
   RemovalTestHarness,
   RemovalTestHarness__factory,
 } from '@/typechain-types';
@@ -134,7 +125,7 @@ export const deployRemovalContract = async ({
   return hre.deployOrUpgradeProxy<Removal, Removal__factory>({
     contractName: 'Removal',
     args: [],
-    options: { initializer: 'initialize()' },
+    options: { initializer: 'initialize()', unsafeAllow: ['delegatecall'] },
   });
 };
 
@@ -145,37 +136,10 @@ export const deployRemovalTestHarness = async ({
 }): Promise<InstanceOfContract<RemovalTestHarness>> => {
   const RemovalTestHarness =
     await hre.ethers.getContractFactory<RemovalTestHarness__factory>(
-      'RemovalTestHarness' as ContractNames
+      'RemovalTestHarness'
     );
   const removalTestHarness = await RemovalTestHarness.deploy();
   return removalTestHarness;
-};
-
-export const deployMockCertificate = async ({
-  hre,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-}): Promise<InstanceOfContract<MockCertificate>> => {
-  return hre.deployOrUpgradeProxy<MockCertificate, MockCertificate__factory>({
-    contractName: 'MockCertificate' as ContractNames,
-    args: [],
-    options: { initializer: 'initialize()' },
-  });
-};
-
-export const deployMockERC1155PresetPausableNonTransferrable = async ({
-  hre,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-}): Promise<InstanceOfContract<MockERC1155PresetPausableNonTransferrable>> => {
-  return hre.deployOrUpgradeProxy<
-    MockERC1155PresetPausableNonTransferrable,
-    MockERC1155PresetPausableNonTransferrable__factory
-  >({
-    contractName: 'MockERC1155PresetPausableNonTransferrable' as ContractNames,
-    args: [],
-    options: { initializer: 'initialize()' },
-  });
 };
 
 export const deployCertificateContract = async ({
@@ -186,11 +150,11 @@ export const deployCertificateContract = async ({
   return hre.deployOrUpgradeProxy<Certificate, Certificate__factory>({
     contractName: 'Certificate',
     args: [],
-    options: { initializer: 'initialize()' },
+    options: { initializer: 'initialize()', unsafeAllow: ['delegatecall'] },
   });
 };
 
-export const deployFIFOMarketContract = async ({
+export const deployMarketContract = async ({
   hre,
   feeWallet,
   feePercentage,
@@ -198,10 +162,10 @@ export const deployFIFOMarketContract = async ({
   hre: CustomHardHatRuntimeEnvironment;
   feeWallet: Address;
   feePercentage: number;
-}): Promise<InstanceOfContract<FIFOMarket>> => {
+}): Promise<InstanceOfContract<Market>> => {
   const deployments = await hre.deployments.all<Required<Contracts>>();
-  return hre.deployOrUpgradeProxy<FIFOMarket, FIFOMarket__factory>({
-    contractName: 'FIFOMarket',
+  return hre.deployOrUpgradeProxy<Market, Market__factory>({
+    contractName: 'Market',
     args: [
       deployments.Removal.address,
       deployments.BridgedPolygonNORI.address,
@@ -265,39 +229,42 @@ export const deployNORIContract = async ({
   });
 };
 
-// export const deployLockedNORIContract = async ({ // todo import from forked repo
-//   hre,
-// }: {
-//   hre: CustomHardHatRuntimeEnvironment;
-// }): Promise<InstanceOfContract<LockedNORI>> => {
-//   return hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
-//     contractName: 'LockedNORI',
-//     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
-//     options: { initializer: 'initialize(address)' },
-//   });
-// };
+export const deployLockedNORIContract = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<LockedNORIV2>> => {
+  return hre.deployOrUpgradeProxy<LockedNORIV2, LockedNORIV2__factory>({
+    contractName: 'LockedNORIV2',
+    args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
+    options: {
+      initializer: 'initialize(address)',
+      unsafeAllow: ['constructor'],
+    },
+  });
+};
 
 export const deployTestContracts = async ({
   hre,
   contractNames: contracts,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-  contractNames: ContractNames[];
+  contractNames: (keyof Contracts)[];
 }): Promise<Contracts> => {
   const isTestnet = ['mumbai', 'goerli'].includes(hre.network.name);
   const scheduleTestHarnessInstance =
-    isTestnet !== null && contracts.includes('ScheduleTestHarness')
+    isTestnet !== null && contracts.includes('LockedNORILibTestHarness')
       ? await hre.deployNonUpgradeable<
-          ScheduleTestHarness,
-          ScheduleTestHarness__factory
+          LockedNORILibTestHarness,
+          LockedNORILibTestHarness__factory
         >({
-          contractName: 'ScheduleTestHarness',
+          contractName: 'LockedNORILibTestHarness',
           args: [],
         })
       : undefined;
   return {
     ...(scheduleTestHarnessInstance !== null && {
-      ScheduleTestHarness: scheduleTestHarnessInstance,
+      LockedNORILibTestHarness: scheduleTestHarnessInstance,
     }),
   };
 };
@@ -338,7 +305,7 @@ export const addContractsToDefender = async ({
     await hre.run('defender:add', {
       contractNames: Object.entries(contracts)
         .filter(([_, value]) => value !== undefined)
-        .map(([name, _]) => name), // todo delete existing contracts from defender and re-add
+        .map(([name, _]) => name), // todo Upsert contracts to OZ defender (otherwise they are added twice)
     } as any);
   }
 };
@@ -383,6 +350,7 @@ export const saveDeployments = async ({
  * Seeds contracts with some initial removals and market listings
  *
  * @deprecated
+ *
  * @todo don't do this during deployment
  */
 export const seedContracts = async ({
@@ -394,7 +362,7 @@ export const seedContracts = async ({
 }): Promise<void> => {
   if (
     contracts.Certificate !== undefined &&
-    contracts.FIFOMarket !== undefined &&
+    contracts.Market !== undefined &&
     contracts.Removal !== undefined
   ) {
     const tokenId = await createRemovalTokenId({
@@ -408,7 +376,6 @@ export const seedContracts = async ({
     const listNow = true;
     const packedData = await createBatchMintData({
       hre,
-      fifoMarket: contracts.FIFOMarket,
       listNow,
       scheduleStartTime: await getLatestBlockTime({ hre }),
     });
@@ -418,7 +385,7 @@ export const seedContracts = async ({
       [tokenId],
       packedData
     );
-    hre.trace('Listed 100 NRTs for sale in FIFOMarket', { tx: tx.hash });
+    hre.trace('Listed 100 NRTs for sale in Market', { tx: tx.hash });
   }
   if (
     contracts.BridgedPolygonNORI !== undefined &&

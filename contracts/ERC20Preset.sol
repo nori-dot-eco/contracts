@@ -1,55 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+import "./PausableAccessPreset.sol";
 
-// todo documentation
-// todo add CrossChainEnabledPolygonChild.sol?
 // todo AUDIT https://norinauts.slack.com/archives/C023A5VN86R/p1656529393031139
 abstract contract ERC20Preset is
-  ERC20Upgradeable,
   ERC20BurnableUpgradeable,
   ERC20PermitUpgradeable,
-  PausableUpgradeable,
-  AccessControlEnumerableUpgradeable,
-  MulticallUpgradeable
+  MulticallUpgradeable,
+  PausableAccessPreset
 {
-  /**
-   * @notice Role conferring the ability to pause and unpause mutable functions of the contract
-   */
-  bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-
-  /**
-   * @notice Pauses all functions that can mutate state
-   *
-   * @dev Used to effectively freeze a contract so that no state updates can occur
-   *
-   * ##### Requirements:
-   *
-   * - The caller must have the `PAUSER_ROLE`.
-   */
-  function pause() external onlyRole(PAUSER_ROLE) {
-    _pause();
-  }
-
-  /**
-   * @notice Unpauses all token transfers.
-   *
-   * @dev
-   *
-   * ##### Requirements:
-   *
-   * - The caller must have the `PAUSER_ROLE`.
-   */
-  function unpause() external onlyRole(PAUSER_ROLE) {
-    _unpause();
-  }
-
   function __ERC20Preset_init_unchained() internal onlyInitializing {
     // solhint-disable-previous-line func-name-mixedcase
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());

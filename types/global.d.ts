@@ -5,7 +5,12 @@ import type {
   RunSuperFunction,
   TaskArguments,
 } from 'hardhat/types/runtime';
-import type { BaseContract, Contract, ethers as defaultEthers } from 'ethers';
+import type {
+  BaseContract,
+  Contract,
+  ContractFactory,
+  ethers as defaultEthers,
+} from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
@@ -27,9 +32,19 @@ import {
 } from 'hardhat-deploy/dist/types';
 import { HardhatUserConfig } from 'hardhat/types';
 import { Address, Deployment } from 'hardhat-deploy/types';
-import { Contracts } from '@/utils/contracts';
 import { Eip2612Signer } from '@/signers/eip-26126';
 import { debug } from '@/utils/debug';
+import type {
+  BridgedPolygonNORI,
+  Certificate,
+  Market,
+  LockedNORIV2,
+  RestrictedNORI,
+  NORI,
+  Removal,
+  LockedNORILibTestHarness,
+  RemovalTestHarness,
+} from '@/typechain-types';
 
 declare module 'hardhat/config' {
   type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
@@ -118,7 +133,7 @@ interface DeployOrUpgradeProxyFunction {
     args,
     options,
   }: {
-    contractName: ContractNames;
+    contractName: keyof Contracts;
     args: unknown[];
     options?: DeployProxyOptions;
   }): Promise<InstanceOfContract<TContract>>;
@@ -130,7 +145,7 @@ interface DeployNonUpgradeableFunction {
     args,
     options,
   }: {
-    contractName: ContractNames;
+    contractName: keyof Contracts;
     args: unknown[];
     options?: FactoryOptions;
   }): Promise<InstanceOfContract<TContract>>;
@@ -175,15 +190,18 @@ declare global {
     [P in keyof T]?: DeepPartial<T[P]>;
   };
   var hre: CustomHardHatRuntimeEnvironment; // todo remove from global types to prevent usage
-  type ContractNames =
-    | 'FIFOMarket'
-    | 'NORI'
-    | 'Removal'
-    | 'Certificate'
-    // | 'LockedNORI' // todo import from forked repo
-    | 'RestrictedNORI'
-    | 'BridgedPolygonNORI'
-    | 'ScheduleTestHarness';
+
+  export interface Contracts {
+    Removal?: Removal;
+    NORI?: NORI;
+    BridgedPolygonNORI?: BridgedPolygonNORI;
+    Market?: Market;
+    LockedNORIV2?: LockedNORIV2;
+    RestrictedNORI?: RestrictedNORI;
+    Certificate?: Certificate;
+    LockedNORILibTestHarness?: LockedNORILibTestHarness;
+    RemovalTestHarness?: RemovalTestHarness;
+  }
 
   var ethers: Omit<
     typeof defaultEthers & HardhatEthersHelpers,
@@ -192,7 +210,7 @@ declare global {
     getContractFactory<
       TContractFactory extends ContractFactory = ContractFactory
     >(
-      name: ContractNames,
+      name: string,
       signerOrOptions?: Signer | FactoryOptions
     ): Promise<TContractFactory>;
   }; // todo remove from global types to prevent usage

@@ -1,3 +1,4 @@
 module.exports = {
-  skipFiles: ['ScheduleTestHarness.sol']
+  skipFiles: ['contracts/deprecated', 'contracts/test', 'lib', 'test'],
+  configureYulOptimizer: true,
 };
