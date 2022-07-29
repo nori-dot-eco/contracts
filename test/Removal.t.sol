@@ -25,7 +25,6 @@ contract Removal_mintBatch is UpgradeableMarket {
   }
 }
 
-
 contract Removal_release is UpgradeableMarket {
   // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
   function test_revert_missingReleaserRole() external {
@@ -430,8 +429,55 @@ contract Removal_multicall is UpgradeableMarket {
   }
 }
 
-contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
+contract Removal_market_balance is UpgradeableMarket {
+  uint256[] private _removalIds;
 
+  function test_market_balance() external {
+    uint256 amountToList = 0.5 ether;
+    uint256 amountToSell = 0.2 ether;
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+
+    assertEq(_removal.getMarketBalance(), 0);
+    _removal.safeBatchTransferFrom({
+      from: _namedAccounts.supplier,
+      to: address(_market),
+      ids: new uint256[](1).fill(_removalIds[0]),
+      amounts: new uint256[](1).fill(amountToList),
+      data: ""
+    });
+    assertEq(_removal.getMarketBalance(), amountToList);
+    uint256 ownerPrivateKey = 0xA11CE;
+    address owner = vm.addr(ownerPrivateKey);
+    uint256 checkoutTotal = _market.getCheckoutTotal(amountToSell);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(checkoutTotal));
+    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _bpNori
+    );
+    vm.prank(owner);
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    assertEq(_removal.getMarketBalance(), amountToList - amountToSell);
+    _market.withdraw(_removalIds[0]);
+    assertEq(_removal.getMarketBalance(), 0);
+  }
+}
+
+contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
   // todo test the rest of the cases
   function test() external {
     super._beforeTokenTransfer(
