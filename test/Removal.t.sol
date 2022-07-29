@@ -505,17 +505,11 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
   }
 
   function test_zeroValueTransferToMarket_reverts_RemovalAmountZero() external {
-    address mockMarketAddress = vm.addr(1);
-    vm.store(
-      address(this),
-      bytes32(uint256(401)),
-      bytes32(uint256(uint160(address(mockMarketAddress))))
-    );
     vm.expectRevert(abi.encodeWithSelector(RemovalAmountZero.selector, 1));
     super._beforeTokenTransfer(
       _namedAccounts.admin,
       _namedAccounts.admin,
-      mockMarketAddress,
+      vm.addr(1),
       _asSingletonUintArray(1),
       _asSingletonUintArray(0),
       ""

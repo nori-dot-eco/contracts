@@ -419,19 +419,14 @@ contract Removal is
     bytes memory data
   ) internal override whenNotPaused {
     uint256 numberOfTokenTransfers = amounts.length;
-    if (to == address(_market)) {
-      for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
-        if (amounts[i] == 0) {
-          revert RemovalAmountZero({tokenId: ids[i]});
-        }
+    for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+      if (amounts[i] == 0) {
+        revert RemovalAmountZero({tokenId: ids[i]});
+      }
+      if (to == address(_market)) {
         _currentMarketBalance += amounts[i];
       }
-    }
-    if (from == address(_market)) {
-      for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
-        if (amounts[i] == 0) {
-          revert RemovalAmountZero({tokenId: ids[i]});
-        }
+      if (from == address(_market)) {
         _currentMarketBalance -= amounts[i];
       }
     }
