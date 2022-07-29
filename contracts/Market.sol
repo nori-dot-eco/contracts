@@ -332,19 +332,20 @@ contract Market is PausableAccessPreset {
    * @param certificateAmount The number of carbon removals being purchased.
    */
   function _checkSupply(uint256 certificateAmount) private view {
-    uint256 amountToCheck = certificateAmount;
-    if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
-      amountToCheck += _priorityRestrictedThreshold
-    }
-    bool isBalanceOfOwnerGreaterThanAmount = _removal
-      .isBalanceOfOwnerGreaterThanAmount(
+    uint256 amountWithPriorityRestrictedThreshold = certificateAmount +
+      _priorityRestrictedThreshold;
+    uint256 availableAmountFromBalance = _removal
+      .getAmountAvailableFromOwnerBalance(
         address(this),
-        certificateAmount + _priorityRestrictedThreshold
+        amountWithPriorityRestrictedThreshold
       );
-    if (isBalanceOfOwnerGreaterThanAmount == 0) {
+    if (availableAmountFromBalance == 0) {
+      revert OutOfStock(); // todo Assure `_checkSupply` validates all possible market supply states
+    }
+    if (availableAmountFromBalance < certificateAmount) {
       revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
     }
-    if (activeSupply <= _priorityRestrictedThreshold) {
+    if (availableAmountFromBalance < amountWithPriorityRestrictedThreshold) {
       if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
         revert LowSupplyAllowlistRequired();
       }
@@ -370,12 +371,14 @@ contract Market is PausableAccessPreset {
     if (certificateAmount > activeSupplyOfSupplier) {
       revert InsufficientSupply(); // todo Assure `_checkSupplyOfSupplier` validates all possible market supply states
     }
-    uint256 isBalanceOfOwnerGreaterThanAmount = _removal
-      .isBalanceOfOwnerGreaterThanAmount(
+    uint256 amountWithPriorityRestrictedThreshold = certificateAmount +
+      _priorityRestrictedThreshold;
+    uint256 availableAmountFromBalance = _removal
+      .getAmountAvailableFromOwnerBalance(
         address(this),
-        certificateAmount + _priorityRestrictedThreshold
+        amountWithPriorityRestrictedThreshold
       );
-    if (!isBalanceOfOwnerGreaterThanAmount) {
+    if (availableAmountFromBalance < amountWithPriorityRestrictedThreshold) {
       if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
         revert LowSupplyAllowlistRequired();
       }

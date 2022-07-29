@@ -311,10 +311,10 @@ contract Removal is
     return total;
   }
 
-  function isBalanceOfOwnerGreaterThanAmount(address owner, uint256 amount)
+  function getAmountAvailableFromOwnerBalance(address owner, uint256 amount)
     external
     view
-    returns (bool)
+    returns (uint256)
   {
     EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
       owner
@@ -339,10 +339,10 @@ contract Removal is
         total += totals[j];
       }
       if (total > amount) {
-        return true;
+        return amount;
       }
     }
-    return false;
+    return total;
   }
 
   function numberOfTokensOwnedByAddress(address account)
