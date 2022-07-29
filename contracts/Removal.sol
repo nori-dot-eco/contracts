@@ -35,6 +35,8 @@ struct RemovalData {
 error TokenIdExists(uint256 tokenId);
 error RemovalAmountZero(uint256 tokenId);
 
+uint256 constant PAGINATION_SIZE = 10;
+
 /**
  * @title Removal
  */
@@ -307,6 +309,40 @@ contract Removal is
       total += totals[i];
     }
     return total;
+  }
+
+  function isBalanceOfOwnerGreaterThanAmount(address owner, uint256 amount)
+    external
+    view
+    returns (bool)
+  {
+    EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
+      owner
+    ];
+    uint256 numberOfTokensOwned = this.numberOfTokensOwnedByAddress(owner);
+    uint256 total = 0;
+    uint256[] memory totals = new uint256[](PAGINATION_SIZE);
+    address[] memory owners = new address[](PAGINATION_SIZE);
+    uint256[] memory removalIds = new uint256[](PAGINATION_SIZE);
+    uint256 i = 0; // Pagination cursor
+    uint256 j = i; // Removal cursor
+    for (i; i <= numberOfTokensOwned; i += PAGINATION_SIZE) {
+      for (j = i; j < i + 5; ++j) {
+        if (j > numberOfTokensOwned) {
+          break;
+        }
+        owners[i] = owner;
+        removalIds[i] = removals.at(j);
+      }
+      totals = balanceOfBatch(owners, removalIds);
+      for (j; j >= i; --j) {
+        total += totals[j];
+      }
+      if (total > amount) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function numberOfTokensOwnedByAddress(address account)

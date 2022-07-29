@@ -332,17 +332,22 @@ contract Market is PausableAccessPreset {
    * @param certificateAmount The number of carbon removals being purchased.
    */
   function _checkSupply(uint256 certificateAmount) private view {
-    uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
-    if (activeSupply == 0) {
-      revert OutOfStock();
+    uint256 amountToCheck = certificateAmount;
+    if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+      amountToCheck += _priorityRestrictedThreshold
+    }
+    bool isBalanceOfOwnerGreaterThanAmount = _removal
+      .isBalanceOfOwnerGreaterThanAmount(
+        address(this),
+        certificateAmount + _priorityRestrictedThreshold
+      );
+    if (isBalanceOfOwnerGreaterThanAmount == 0) {
+      revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
     }
     if (activeSupply <= _priorityRestrictedThreshold) {
       if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
         revert LowSupplyAllowlistRequired();
       }
-    }
-    if (certificateAmount > activeSupply) {
-      revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
     }
   }
 
@@ -356,6 +361,7 @@ contract Market is PausableAccessPreset {
     uint256 certificateAmount,
     address supplierAddress
   ) private view {
+    // TODO: Paginate this balance getter similar to isBalanceOfOwnerGreaterThanAmount
     uint256 activeSupplyOfSupplier = _activeSupply[supplierAddress]
       .getTotalBalanceFromRemovalQueue(_removal);
     if (activeSupplyOfSupplier == 0) {
@@ -364,8 +370,12 @@ contract Market is PausableAccessPreset {
     if (certificateAmount > activeSupplyOfSupplier) {
       revert InsufficientSupply(); // todo Assure `_checkSupplyOfSupplier` validates all possible market supply states
     }
-    uint256 totalActiveSupply = _removal.cumulativeBalanceOf(address(this));
-    if (totalActiveSupply <= _priorityRestrictedThreshold) {
+    uint256 isBalanceOfOwnerGreaterThanAmount = _removal
+      .isBalanceOfOwnerGreaterThanAmount(
+        address(this),
+        certificateAmount + _priorityRestrictedThreshold
+      );
+    if (!isBalanceOfOwnerGreaterThanAmount) {
       if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
         revert LowSupplyAllowlistRequired();
       }
