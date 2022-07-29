@@ -327,14 +327,15 @@ contract Removal is
     uint256 i = 0; // Pagination cursor
     uint256 j = i; // Removal cursor
     for (i; i <= numberOfTokensOwned; i += PAGINATION_SIZE) {
-      for (j = i; j < i + 5; ++j) {
-        if (j > numberOfTokensOwned - 1) {
-          break;
-        }
+      for (j = i; j < i + PAGINATION_SIZE; ++j) {
         owners[j - i] = owner;
         removalIds[j - i] = removals.at(j);
+        if (j == numberOfTokensOwned - 1) {
+          break;
+        }
       }
       totals = balanceOfBatch(owners, removalIds);
+      // We now counts the totals by iterating backwards from j, in order to avoid declaring another uint256 variable.
       for (j; j >= i; --j) {
         total += totals[j - i];
       }
