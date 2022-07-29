@@ -328,15 +328,15 @@ contract Removal is
     uint256 j = i; // Removal cursor
     for (i; i <= numberOfTokensOwned; i += PAGINATION_SIZE) {
       for (j = i; j < i + 5; ++j) {
-        if (j > numberOfTokensOwned) {
+        if (j > numberOfTokensOwned - 1) {
           break;
         }
-        owners[i] = owner;
-        removalIds[i] = removals.at(j);
+        owners[j - i] = owner;
+        removalIds[j - i] = removals.at(j);
       }
       totals = balanceOfBatch(owners, removalIds);
       for (j; j >= i; --j) {
-        total += totals[j];
+        total += totals[j - i];
       }
       if (total > amount) {
         return amount;
