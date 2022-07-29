@@ -1152,6 +1152,42 @@ describe('purchasing from a specified supplier', () => {
           r,
           s
         )
-    ).to.be.revertedWith('InsufficientSupply()');
+    ).to.be.revertedWith('OutOfStock()');
+  });
+  it('should revert when purchasing supply when the market is below the priority reserved threshold', async () => {
+    const { bpNori, market } = await setupTest({
+      userFixtures: {
+        supplier: {
+          removalDataToList: {
+            removals: [
+              { amount: 10, supplierAddress: hre.namedAccounts.supplier },
+            ],
+          },
+        },
+      },
+    });
+    const priorityRestrictedThreshold = formatTokenAmount(10);
+    await market.setPriorityRestrictedThreshold(priorityRestrictedThreshold);
+    const purchaseAmount = formatTokenAmount(5);
+    const value = await market.getCheckoutTotal(purchaseAmount);
+    const { buyer } = hre.namedSigners;
+    const { v, r, s } = await buyer.permit({
+      verifyingContract: bpNori,
+      spender: market.address,
+      value,
+    });
+    await expect(
+      market
+        .connect(buyer)
+        .swapFromSpecificSupplier(
+          buyer.address,
+          value,
+          hre.namedAccounts.supplier,
+          MaxUint256,
+          v,
+          r,
+          s
+        )
+    ).to.be.revertedWith('LowSupplyAllowlistRequired()');
   });
 });
