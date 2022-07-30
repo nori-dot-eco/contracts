@@ -296,10 +296,8 @@ contract Market is PausableAccessPreset {
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
-    _checkSupplyOfSupplier({
-      supplierAddress: supplierToBuyFrom,
-      certificateAmount: certificateAmount
-    });
+    _checkSupplyOfSupplier({supplierAddress: supplierToBuyFrom});
+    _checkSupply({certificateAmount: certificateAmount});
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -354,25 +352,13 @@ contract Market is PausableAccessPreset {
    * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority
    * buyers and buyer is not priority.
    *
-   * @param certificateAmount The number of carbon removals being purchased.
+   * @param supplierAddress The supplier address to check.
    */
-  function _checkSupplyOfSupplier(
-    uint256 certificateAmount,
-    address supplierAddress
-  ) private view {
+  function _checkSupplyOfSupplier(address supplierAddress) private view {
     uint256 activeSupplyOfSupplier = _activeSupply[supplierAddress]
       .getTotalBalanceFromRemovalQueue(_removal);
     if (activeSupplyOfSupplier == 0) {
       revert OutOfStock();
-    }
-    if (certificateAmount > activeSupplyOfSupplier) {
-      revert InsufficientSupply(); // todo Assure `_checkSupplyOfSupplier` validates all possible market supply states
-    }
-    uint256 totalActiveSupply = _removal.cumulativeBalanceOf(address(this));
-    if (totalActiveSupply <= _priorityRestrictedThreshold) {
-      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
-        revert LowSupplyAllowlistRequired();
-      }
     }
   }
 
@@ -661,7 +647,7 @@ contract Market is PausableAccessPreset {
   }
 
   function _isAuthorizedWithdrawl(address owner) internal view returns (bool) {
-    return (_msgSender() == owner || // todo try only checking these things if msgSender is not supplier
+    return (_msgSender() == owner ||
       hasRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()}) ||
       _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
   }

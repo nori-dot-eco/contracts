@@ -20,7 +20,6 @@ abstract contract Checkout is UpgradeableMarket {
       _removal.balanceOf({account: owner, id: _removalIds[0]}),
       ownsRemovalTokenId ? amount : 0
     );
-    assertEq(_removal.cumulativeBalanceOf(owner), amount);
     assertEq(_removal.numberOfTokensOwnedByAddress(owner), count);
   }
 }

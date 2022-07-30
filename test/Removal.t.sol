@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
-import {RemovalAmountZero} from "@/contracts/Removal.sol";
+import {InvalidTokenTransfer} from "@/contracts/Errors.sol";
 
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
@@ -498,8 +498,10 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
     );
   }
 
-  function test_zeroValueTransferToMarket_reverts_RemovalAmountZero() external {
-    vm.expectRevert(abi.encodeWithSelector(RemovalAmountZero.selector, 1));
+  function test_zeroValueTransferToMarket_reverts_InvalidTokenTransfer()
+    external
+  {
+    vm.expectRevert(abi.encodeWithSelector(InvalidTokenTransfer.selector, 1));
     super._beforeTokenTransfer(
       _namedAccounts.admin,
       _namedAccounts.admin,
