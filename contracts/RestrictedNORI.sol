@@ -468,13 +468,19 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role.
    */
-  function createSchedule(uint256 projectId)
-    external
-    whenNotPaused
-    onlyRole(SCHEDULE_CREATOR_ROLE)
-  {
+  function createSchedule(
+    uint256 projectId,
+    uint256 startTime,
+    uint8 methodology,
+    uint8 methodologyVersion
+  ) external whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
     if (!_scheduleIdToScheduleStruct[projectId].exists) {
-      _createSchedule(projectId);
+      _createSchedule({
+        projectId: projectId,
+        startTime: startTime,
+        methodology: methodology,
+        methodologyVersion: methodologyVersion
+      });
     }
   }
 
@@ -686,22 +692,24 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
    * Revert strings are used instead of custom errors here for proper surfacing
    * from within the market contract `onERC1155BatchReceived` hook.
    */
-  function _createSchedule(uint256 projectId) internal {
-    ScheduleData memory scheduleData = _removal.getScheduleDataForProjectId(
-      projectId
-    );
-    require(scheduleData.startTime != 0, "rNORI: Invalid start time");
+  function _createSchedule(
+    uint256 projectId,
+    uint256 startTime,
+    uint8 methodology,
+    uint8 methodologyVersion
+  ) internal {
+    require(startTime != 0, "rNORI: Invalid start time");
     require(_allScheduleIds.add(projectId), "rNORI: Schedule exists");
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
-        scheduleData.methodology,
-        scheduleData.methodologyVersion
-      );
+    uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion({
+        methodology: methodology,
+        methodologyVersion: methodologyVersion
+      });
     require(restrictionDuration != 0, "rNORI: duration not set");
     schedule.exists = true;
-    schedule.startTime = scheduleData.startTime;
-    schedule.endTime = scheduleData.startTime + restrictionDuration;
-    emit ScheduleCreated(projectId, schedule.startTime, schedule.endTime);
+    schedule.startTime = startTime;
+    schedule.endTime = startTime + restrictionDuration;
+    emit ScheduleCreated(projectId, startTime, schedule.endTime);
   }
 
   /**
