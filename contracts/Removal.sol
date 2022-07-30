@@ -209,6 +209,7 @@ contract Removal is
     return _removalIdToProjectId[removalId];
   }
 
+  // todo use multicall instead
   /** @notice Gets the holdback percentages for a batch of removal ids. */
   function batchGetHoldbackPercentages(uint256[] calldata removalIds)
     external
@@ -399,10 +400,9 @@ contract Removal is
     address to,
     uint256[] memory ids
   ) internal {
-    uint256 numberOfTokenTransfers = ids.length;
     // Skip overflow check as for loop is indexed starting at zero.
     unchecked {
-      for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+      for (uint256 i = 0; i < ids.length; ++i) {
         uint256 id = ids[i];
         if (from != address(0)) {
           if (balanceOf(from, id) == 0) {
