@@ -11,6 +11,8 @@ using AddressArrayLib for address[];
 abstract contract UpgradeableRemoval is Upgradeable {
   UnpackedRemovalIdV0[] _REMOVAL_FIXTURES;
 
+  address internal _marketAddress;
+
   /**
    * @dev REMOVAL_ID_FIXTURE is the result of:
    * RemovalIdLib.createRemovalId(UnpackedRemovalIdV0({
@@ -87,20 +89,16 @@ abstract contract UpgradeableRemoval is Upgradeable {
         subIdentifier: count + i
       });
       removals[i] = removalData;
-      _removalIds[i] = _removal.createRemovalId(removalData);
+      _removalIds[i] = RemovalIdLib.createRemovalId(removalData);
     }
-    BatchMintRemovalsData memory batchMintData = BatchMintRemovalsData({
+    _removal.mintBatch({
+      to: list ? _marketAddress : to,
+      amounts: new uint256[](count).fill(1 ether),
+      removals: removals,
       projectId: 1_234_567_890,
       scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
-      list: list
+      holdbackPercentage: 50
     });
-    _removal.mintBatch(
-      to,
-      new uint256[](count).fill(1 ether),
-      removals,
-      batchMintData
-    );
     return _removalIds;
   }
 

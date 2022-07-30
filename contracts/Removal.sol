@@ -13,16 +13,8 @@ import "forge-std/console2.sol";
 // todo Removal.sol defines several structs making it a strong candidate for gas optimization
 // todo consider removing cumulative fns and instead use multicall where needed to prevent defining fns that dont scale
 
-struct BatchMintRemovalsData {
-  uint256 projectId; // todo what is the max project ID size? Smaller id allows tighter `BatchMintRemovalsData` struct.
-  uint256 scheduleStartTime;
-  uint8 holdbackPercentage;
-  bool list;
-}
-
 struct ScheduleData {
   uint256 startTime;
-  address supplierAddress;
   uint256 methodology;
   uint256 methodologyVersion;
 }
@@ -109,58 +101,6 @@ contract Removal is
     _certificate = certificate;
   }
 
-  // /**
-  //  * @notice Mints multiple removals at once (for a single supplier).
-  //  * @param to The supplier address.
-  //  * @param amounts Each removal's tonnes of CO2 formatted as wei.
-  //  * @param removals The removals to mint (represented as an array of `UnpackedRemovalIdV0`). These removals are used
-  //  * to encode the removal IDs.
-  //  * @param data Encodes the project id and schedule start time for this batch of removals, the market contract
-  //  * address and a boolean that indicates whether to list these removals for sale now.
-  //  *
-  //  * @dev If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
-  //  *
-  //  * ##### Requirements:
-  //  *
-  //  * - Enforces the rules of `Removal._beforeTokenTransfer`.
-  //  * TODO add remaining `mintBatch` requirements docs
-  //  */
-  // function mintBatch(
-  //   address to,
-  //   uint256[] calldata amounts,
-  //   UnpackedRemovalIdV0[] calldata removals,
-  //   BatchMintRemovalsData calldata data // todo is a struct necessary for the data arg? Can we just add args instead?
-  // ) external onlyRole(MINTER_ROLE) {
-  //   uint256 numberOfRemovals = removals.length;
-  //   uint256 projectId = data.projectId;
-  //   uint256 holdbackPercentage = data.holdbackPercentage;
-  //   uint256[] memory removalIds = new uint256[](removals.length);
-  //   for (uint256 i = 0; i < numberOfRemovals; ++i) {
-  //     uint256 removalId = RemovalIdLib.createRemovalId({removal: removals[i]});
-  //     RemovalData storage removalData = _removalIdToRemovalData[removalId];
-  //     if (removalData.projectId != 0) {
-  //       revert TokenIdExists({tokenId: removalId});
-  //     }
-  //     removalIds[i] = removalId;
-  //     removalData.projectId = projectId;
-  //     removalData.holdbackPercentage = holdbackPercentage;
-  //   }
-  //   UnpackedRemovalIdV0 memory firstRemoval = removals[0];
-  //   _projectIdToScheduleData[projectId] = ScheduleData({
-  //     startTime: data.scheduleStartTime,
-  //     supplierAddress: firstRemoval.supplierAddress,
-  //     methodology: firstRemoval.methodology,
-  //     methodologyVersion: firstRemoval.methodologyVersion
-  //   });
-  //   _mintBatch({
-  //     to: data.list ? address(_market) : to,
-  //     ids: removalIds,
-  //     amounts: amounts,
-  //     data: ""
-  //   });
-  //   RestrictedNORI(_market.restrictedNoriAddress()).createSchedule(projectId);
-  // }
-
   /**
    * @notice Mints multiple removals at once (for a single supplier).
    * @param to The supplier address.
@@ -186,24 +126,15 @@ contract Removal is
     uint256 scheduleStartTime,
     uint8 holdbackPercentage
   ) external onlyRole(MINTER_ROLE) {
-    uint256 numberOfRemovals = removals.length;
-    uint256[] memory removalIds = new uint256[](removals.length);
-    for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      uint256 removalId = RemovalIdLib.createRemovalId({removal: removals[i]});
-      RemovalData storage removalData = _removalIdToRemovalData[removalId];
-      if (removalData.projectId != 0) {
-        revert TokenIdExists({tokenId: removalId});
-      }
-      removalIds[i] = removalId;
-      removalData.projectId = projectId;
-      removalData.holdbackPercentage = holdbackPercentage;
-    }
-    UnpackedRemovalIdV0 memory firstRemoval = removals[0];
-    _projectIdToScheduleData[projectId] = ScheduleData({
-      startTime: scheduleStartTime,
-      supplierAddress: firstRemoval.supplierAddress,
-      methodology: firstRemoval.methodology,
-      methodologyVersion: firstRemoval.methodologyVersion
+    uint256[] memory removalIds = _createRemovalDataBatch({
+      removals: removals,
+      projectId: projectId,
+      holdbackPercentage: holdbackPercentage
+    });
+    _createScheduleData({
+      removal: removals[0],
+      projectId: projectId,
+      scheduleStartTime: scheduleStartTime
     });
     _mintBatch({to: to, ids: removalIds, amounts: amounts, data: ""});
     RestrictedNORI(_market.restrictedNoriAddress()).createSchedule(projectId);
@@ -297,12 +228,18 @@ contract Removal is
   /**
    * @notice Gets the restriction schedule id (which is the removal's project id) for a given removal id.
    */
-  function getProjectIdForRemoval(uint256 removalId)
+  function getRemovalData(uint256 removalId)
     external
     view
-    returns (uint256)
+    returns (RemovalData memory)
   {
-    // todo consider making `getProjectIdForRemoval` return the whole schedule struct instead of the id
+    return _removalIdToRemovalData[removalId];
+  }
+
+  /**
+   * @notice Gets the restriction schedule id (which is the removal's project id) for a given removal id.
+   */
+  function getProjectId(uint256 removalId) external view returns (uint256) {
     return _removalIdToRemovalData[removalId].projectId;
   }
 
@@ -388,28 +325,6 @@ contract Removal is
     return batchBalances;
   }
 
-  /**
-   * @notice Packs data about a removal into a 256-bit token id for the removal.
-   * @dev Performs some possible validations on the data before attempting to create the id.
-   * @param removalData removal data struct to be packed into a uint256 ID
-   */
-  function createRemovalId(
-    UnpackedRemovalIdV0 memory removalData // todo look into using calldata elsewhere
-  ) external pure returns (uint256) {
-    return RemovalIdLib.createRemovalId(removalData);
-  }
-
-  /**
-   * @notice Unpacks a V0 removal id into its component data.
-   */
-  function unpackRemovalIdV0(uint256 removalId)
-    external
-    pure
-    returns (UnpackedRemovalIdV0 memory)
-  {
-    return RemovalIdLib.unpackRemovalIdV0(removalId);
-  }
-
   function supportsInterface(bytes4 interfaceId)
     public
     view
@@ -484,6 +399,54 @@ contract Removal is
 
   function _releaseFromSupplier(uint256 removalId, uint256 amount) internal {
     super._burn(RemovalIdLib.supplierAddress(removalId), removalId, amount);
+  }
+
+  function _createRemovalDataBatch(
+    UnpackedRemovalIdV0[] calldata removals,
+    uint256 projectId,
+    uint8 holdbackPercentage
+  ) internal returns (uint256[] memory) {
+    uint256[] memory removalIds = new uint256[](removals.length);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < removals.length; ++i) {
+        uint256 removalId = RemovalIdLib.createRemovalId({
+          removal: removals[i]
+        });
+        _createRemovalData({
+          removalId: removalId,
+          projectId: projectId,
+          holdbackPercentage: holdbackPercentage
+        });
+        removalIds[i] = removalId;
+      }
+    }
+    return removalIds;
+  }
+
+  function _createRemovalData(
+    uint256 removalId,
+    uint256 projectId,
+    uint8 holdbackPercentage
+  ) internal {
+    RemovalData storage removalData = _removalIdToRemovalData[removalId];
+    if (removalData.projectId != 0) {
+      revert TokenIdExists({tokenId: removalId});
+    }
+    removalData.projectId = projectId;
+    removalData.holdbackPercentage = holdbackPercentage;
+  }
+
+  function _createScheduleData(
+    UnpackedRemovalIdV0 memory removal,
+    uint256 projectId,
+    uint256 scheduleStartTime
+  ) internal {
+    _projectIdToScheduleData[projectId] = ScheduleData({
+      startTime: scheduleStartTime,
+      methodology: removal.methodology,
+      methodologyVersion: removal.methodologyVersion
+    });
   }
 
   function _releaseFromMarket(uint256 removalId, uint256 amount) internal {

@@ -416,8 +416,8 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
     returns (uint256)
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    uint256 totalSupply = totalSupply(scheduleId);
-    return schedule._revocableQuantityForSchedule(scheduleId, totalSupply);
+    uint256 supply = totalSupply(scheduleId);
+    return schedule._revocableQuantityForSchedule(scheduleId, supply);
   }
 
   // External functions ===================================================
@@ -485,15 +485,11 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
     if (!hasRole(MINTER_ROLE, _msgSender())) {
       revert InvalidMinter({account: _msgSender()});
     }
-    uint256 projectId = _removal.getProjectIdForRemoval(removalId);
-    ScheduleData memory scheduleData = _removal.getScheduleDataForProjectId(
-      projectId
-    );
-    address recipient = scheduleData.supplierAddress;
-    super._mint(recipient, projectId, amount, "");
-    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
+    uint256 projectId = _removal.getProjectId({removalId: removalId});
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
+    super._mint(supplierAddress, projectId, amount, "");
     // slither-disable-next-line unused-return address may already be in set and that is ok
-    schedule.tokenHolders.add(recipient);
+    _scheduleIdToScheduleStruct[projectId].tokenHolders.add(supplierAddress);
   }
 
   /**
@@ -695,10 +691,6 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
       projectId
     );
     require(scheduleData.startTime != 0, "rNORI: Invalid start time");
-    address recipient = scheduleData.supplierAddress;
-    if (recipient == address(0)) {
-      revert RecipientCannotBeZeroAddress();
-    }
     require(_allScheduleIds.add(projectId), "rNORI: Schedule exists");
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
