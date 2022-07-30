@@ -58,8 +58,8 @@ contract Removal is
    */
   Certificate private _certificate;
 
-  // todo Test accounting for `_removalIdToHoldbackPercentage` is maintained correctly (assuming we need it)
-  mapping(uint256 => uint256) private _removalIdToHoldbackPercentage;
+  // todo Test accounting for `_projectIdToHoldbackPercentage` is maintained correctly (assuming we need it)
+  mapping(uint256 => uint8) private _projectIdToHoldbackPercentage;
   // todo Test accounting for `_removalIdToProjectId` is maintained correctly (assuming we need it)
   // todo consider moving `Removal._removalIdToProjectId` to rNori
   mapping(uint256 => uint256) private _removalIdToProjectId;
@@ -128,15 +128,9 @@ contract Removal is
   ) external onlyRole(MINTER_ROLE) {
     uint256[] memory removalIds = _createRemovalDataBatch({
       removals: removals,
-      projectId: projectId,
-      holdbackPercentage: holdbackPercentage
+      projectId: projectId
     });
-    // _projectIdToScheduleData[projectId] = ScheduleData({
-    //   startTime: scheduleStartTime
-    //   // methodology: removal.methodology,
-    //   // methodologyVersion: removal.methodologyVersion
-    // });
-    // _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
+    _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
     _mintBatch({to: to, ids: removalIds, amounts: amounts, data: ""});
     RestrictedNORI(_market.restrictedNoriAddress()).createSchedule({
       projectId: projectId,
@@ -286,7 +280,7 @@ contract Removal is
   // }
 
   /** @notice Gets the holdback percentages for a batch of removal ids. */
-  function batchGetHoldbackPercentages(uint256[] memory removalIds)
+  function batchGetHoldbackPercentages(uint256[] calldata removalIds)
     external
     view
     returns (uint256[] memory)
@@ -294,8 +288,9 @@ contract Removal is
     uint256 numberOfRemovals = removalIds.length;
     uint256[] memory holdbackPercentages = new uint256[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      uint256 id = removalIds[i];
-      holdbackPercentages[i] = _removalIdToHoldbackPercentage[id];
+      holdbackPercentages[i] = _projectIdToHoldbackPercentage[
+        _removalIdToProjectId[removalIds[i]]
+      ];
     }
     return holdbackPercentages;
   }
@@ -422,8 +417,7 @@ contract Removal is
 
   function _createRemovalDataBatch(
     UnpackedRemovalIdV0[] calldata removals,
-    uint256 projectId,
-    uint8 holdbackPercentage
+    uint256 projectId
   ) internal returns (uint256[] memory) {
     uint256[] memory removalIds = new uint256[](removals.length);
     // Skip overflow check as for loop is indexed starting at zero.
@@ -432,27 +426,18 @@ contract Removal is
         uint256 removalId = RemovalIdLib.createRemovalId({
           removal: removals[i]
         });
-        _createRemovalData({
-          removalId: removalId,
-          projectId: projectId,
-          holdbackPercentage: holdbackPercentage
-        });
+        _createRemovalData({removalId: removalId, projectId: projectId});
         removalIds[i] = removalId;
       }
     }
-    _removalIdToProjectId[removalIds[0]] = projectId; // todo uint248+uint8 struct removal=>project
     return removalIds;
   }
 
-  function _createRemovalData(
-    uint256 removalId,
-    uint256 projectId,
-    uint8 holdbackPercentage
-  ) internal {
+  function _createRemovalData(uint256 removalId, uint256 projectId) internal {
     if (_removalIdToProjectId[removalId] != 0) {
       revert TokenIdExists({tokenId: removalId});
     }
-    _removalIdToHoldbackPercentage[removalId] = holdbackPercentage;
+    _removalIdToProjectId[removalId] = projectId;
   }
 
   // function _createScheduleData(
