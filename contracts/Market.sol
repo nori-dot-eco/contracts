@@ -185,23 +185,27 @@ contract Market is PausableAccessPreset {
   function onERC1155BatchReceived(
     address,
     address,
-    uint256[] memory ids,
+    uint256[] memory ids, // todo calldata?
     uint256[] memory,
     bytes memory
   ) external returns (bytes4) {
     // todo revert if Market.onERC1155BatchReceived sender is not the removal contract
     for (uint256 i = 0; i < ids.length; i++) {
-      uint256 removalToAdd = ids[i];
-      address supplierAddress = RemovalIdLib.supplierAddress(removalToAdd);
-      _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
-      if (
-        _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
-        address(0) // If a new supplier has been added, or if the supplier had previously sold out
-      ) {
-        _addActiveSupplier(supplierAddress);
-      }
+      _listRemovalForSale({id: ids[i]});
     }
     return this.onERC1155BatchReceived.selector;
+  }
+
+  function onERC1155Received(
+    address,
+    address,
+    uint256 id,
+    uint256,
+    bytes calldata
+  ) external returns (bytes4) {
+    // todo revert if Market.onERC1155Received sender is not the removal contract
+    _listRemovalForSale({id: id});
+    return this.onERC1155Received.selector;
   }
 
   /**
@@ -347,8 +351,8 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority buyers
-   * and buyer is not priority.
+   * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority
+   * buyers and buyer is not priority.
    *
    * @param certificateAmount The number of carbon removals being purchased.
    */
@@ -642,24 +646,34 @@ contract Market is PausableAccessPreset {
    */
   function withdraw(uint256 removalId) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    if (
-      _msgSender() == supplierAddress ||
-      hasRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()}) ||
-      _removal.isApprovedForAll({
-        account: supplierAddress,
-        operator: _msgSender()
-      })
-    ) {
+    if (_isAuthorizedWithdrawl({owner: supplierAddress})) {
       _removeActiveRemoval(supplierAddress, removalId);
       _removal.safeTransferFrom({
         from: address(this),
-        to: RemovalIdLib.supplierAddress(removalId),
+        to: supplierAddress,
         id: removalId,
         amount: _removal.balanceOf(address(this), removalId),
         data: ""
       });
     } else {
       revert UnauthorizedWithdrawal();
+    }
+  }
+
+  function _isAuthorizedWithdrawl(address owner) internal view returns (bool) {
+    return (_msgSender() == owner || // todo try only checking these things if msgSender is not supplier
+      hasRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()}) ||
+      _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
+  }
+
+  function _listRemovalForSale(uint256 id) internal {
+    address supplierAddress = RemovalIdLib.supplierAddress(id);
+    _activeSupply[supplierAddress].insertRemovalByVintage(id);
+    if (
+      _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
+      address(0) // If a new supplier has been added, or if the supplier had previously sold out
+    ) {
+      _addActiveSupplier(supplierAddress);
     }
   }
 

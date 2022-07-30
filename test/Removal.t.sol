@@ -9,17 +9,97 @@ using AddressArrayLib for address[];
 
 // todo fuzz RemovalIdLib
 
-contract Removal_mintBatch is UpgradeableMarket {
+contract Removal_mintBatch0 is UpgradeableMarket {
+  // function test() external {
+  //   _removal.mintBatch({
+  //     to: _namedAccounts.supplier,
+  //     amounts: _asSingletonUintArray(1 ether),
+  //     removals: _REMOVAL_FIXTURES,
+  //     data: BatchMintRemovalsData({
+  //       projectId: 1,
+  //       scheduleStartTime: 1,
+  //       holdbackPercentage: 1,
+  //       list: false
+  //     })
+  //   });
+  // }
+
+  // function test() external {
+  //   _removal.mintBatch({
+  //     to: _namedAccounts.supplier,
+  //     amounts: _asSingletonUintArray(1 ether),
+  //     removals: _REMOVAL_FIXTURES,
+  //     data: BatchMintRemovalsData({
+  //       projectId: 1,
+  //       scheduleStartTime: 1,
+  //       holdbackPercentage: 1,
+  //       list: false
+  //     })
+  //   });
+  // }
+
+  function test() external {
+    _removal.mintBatch2({
+      to: _namedAccounts.supplier,
+      amounts: _asSingletonUintArray(1 ether),
+      removals: _REMOVAL_FIXTURES,
+      projectId: 1,
+      scheduleStartTime: 1,
+      holdbackPercentage: 1
+    });
+  }
+}
+
+contract Removal_mintBatch_list is UpgradeableMarket {
   function test() external {
     _removal.mintBatch({
       to: _namedAccounts.supplier,
       amounts: _asSingletonUintArray(1 ether),
-      ids: _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      removals: _REMOVAL_FIXTURES,
       data: BatchMintRemovalsData({
         projectId: 1,
         scheduleStartTime: 1,
         holdbackPercentage: 1,
-        list: false
+        list: true
+      })
+    });
+  }
+}
+
+/** @dev Tests that a supplier can be listed in the queue twice with two sequential calls to `mintBatch` */
+contract Removal_mintBatch_list_sequential is UpgradeableMarket {
+  function test() external {
+    _removal.mintBatch({
+      to: _namedAccounts.supplier,
+      amounts: _asSingletonUintArray(1 ether),
+      removals: _REMOVAL_FIXTURES,
+      data: BatchMintRemovalsData({
+        projectId: 1,
+        scheduleStartTime: 1,
+        holdbackPercentage: 1,
+        list: true
+      })
+    });
+    UnpackedRemovalIdV0[] memory ids = new UnpackedRemovalIdV0[](1);
+    ids[0] = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    _removal.mintBatch({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids,
+      data: BatchMintRemovalsData({
+        projectId: 1_234_567_890,
+        scheduleStartTime: block.timestamp,
+        holdbackPercentage: 50,
+        list: true
       })
     });
   }
@@ -52,7 +132,7 @@ contract Removal_release_unlisted is UpgradeableMarket {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      _REMOVAL_FIXTURES,
       data
     );
     assertEq(
@@ -87,7 +167,7 @@ contract Removal_release_retired_burned is UpgradeableMarket {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      _REMOVAL_FIXTURES,
       data
     );
     uint256 ownerPrivateKey = 0xA11CE;
@@ -140,7 +220,7 @@ contract Removal_release_retired is UpgradeableMarket {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1 ether),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      _REMOVAL_FIXTURES,
       data
     );
     uint256 ownerPrivateKey = 0xA11CE;
@@ -191,7 +271,7 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(100 ether),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      _REMOVAL_FIXTURES,
       data
     );
     uint256 ownerPrivateKey = 0xA11CE; // todo use named accounts
@@ -249,7 +329,7 @@ contract Removal_release_listed is UpgradeableMarket {
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      _REMOVAL_FIXTURES,
       data
     );
     assertEq(
@@ -287,12 +367,10 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
       count: 1,
       list: false
     });
-    _removal.safeBatchTransferFrom({
+    _removal.consign({
       from: _namedAccounts.supplier,
-      to: address(_market),
-      ids: new uint256[](1).fill(_removalIds[0]),
-      amounts: new uint256[](1).fill(0.5 ether),
-      data: ""
+      id: _removalIds[0],
+      amount: 0.5 ether
     });
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, _removalIds[0]),
@@ -440,14 +518,11 @@ contract Removal_getMarketBalance is UpgradeableMarket {
       count: 1,
       list: false
     });
-
     assertEq(_removal.getMarketBalance(), 0);
-    _removal.safeBatchTransferFrom({
+    _removal.consign({
       from: _namedAccounts.supplier,
-      to: address(_market),
-      ids: new uint256[](1).fill(_removalIds[0]),
-      amounts: new uint256[](1).fill(amountToList),
-      data: ""
+      id: _removalIds[0],
+      amount: amountToList
     });
     assertEq(_removal.getMarketBalance(), amountToList);
     uint256 ownerPrivateKey = 0xA11CE;

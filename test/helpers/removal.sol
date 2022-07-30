@@ -9,6 +9,8 @@ using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
 
 abstract contract UpgradeableRemoval is Upgradeable {
+  UnpackedRemovalIdV0[] _REMOVAL_FIXTURES;
+
   /**
    * @dev REMOVAL_ID_FIXTURE is the result of:
    * RemovalIdLib.createRemovalId(UnpackedRemovalIdV0({
@@ -39,6 +41,18 @@ abstract contract UpgradeableRemoval is Upgradeable {
 
   constructor() {
     _removal = _deployRemoval();
+    _REMOVAL_FIXTURES.push(
+      UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: 2018,
+        country: "US",
+        subdivision: "IA",
+        supplierAddress: _namedAccounts.supplier,
+        subIdentifier: 99_039_930
+      })
+    );
   }
 
   function _deployRemoval() internal returns (Removal) {
@@ -60,6 +74,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
     bool list
   ) internal returns (uint256[] memory) {
     uint256[] memory _removalIds = new uint256[](count);
+    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](count);
     for (uint32 i = 0; i < count; i++) {
       UnpackedRemovalIdV0 memory removalData = UnpackedRemovalIdV0({
         idVersion: 0,
@@ -71,6 +86,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
         supplierAddress: to,
         subIdentifier: count + i
       });
+      removals[i] = removalData;
       _removalIds[i] = _removal.createRemovalId(removalData);
     }
     BatchMintRemovalsData memory batchMintData = BatchMintRemovalsData({
@@ -82,7 +98,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
     _removal.mintBatch(
       to,
       new uint256[](count).fill(1 ether),
-      _removalIds,
+      removals,
       batchMintData
     );
     return _removalIds;

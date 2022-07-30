@@ -146,13 +146,11 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        expect(await removal.getMarketBalance()).to.equal(
-          expectedMarketSupply
-        );
+        expect(await removal.getMarketBalance()).to.equal(expectedMarketSupply);
       });
       it('should list pre-minted removals for sale in the atomic marketplace and create restriction schedules', async () => {
         const { market, removal, rNori } = await setupTest();
-        const { namedAccounts, ethers } = hre;
+        const { namedAccounts } = hre;
         const removalBalances = [100, 200, 300].map((balance) =>
           formatTokenAmount(balance)
         );
@@ -197,21 +195,39 @@ describe('Removal', () => {
             )
           );
         await expect(
-          removal.safeBatchTransferFrom(
-            namedAccounts.supplier,
-            market.address,
-            tokenIds,
-            removalBalances,
-            ethers.utils.formatBytes32String('0x0')
+          removal.multicall(
+            tokenIds.map((id, index) =>
+              removal.interface.encodeFunctionData('consign', [
+                namedAccounts.supplier,
+                id,
+                removalBalances[index],
+              ])
+            )
           )
         )
-          .to.emit(removal, 'TransferBatch')
+          .to.emit(removal, 'TransferSingle')
           .withArgs(
             namedAccounts.admin,
             namedAccounts.supplier,
             market.address,
-            tokenIds,
-            removalBalances
+            tokenIds[0],
+            removalBalances[0]
+          )
+          .to.emit(removal, 'TransferSingle')
+          .withArgs(
+            namedAccounts.admin,
+            namedAccounts.supplier,
+            market.address,
+            tokenIds[1],
+            removalBalances[1]
+          )
+          .to.emit(removal, 'TransferSingle')
+          .withArgs(
+            namedAccounts.admin,
+            namedAccounts.supplier,
+            market.address,
+            tokenIds[2],
+            removalBalances[2]
           );
         const balances = await Promise.all(
           tokenIds.map((tokenId) => {

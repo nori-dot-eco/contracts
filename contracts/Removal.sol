@@ -4,8 +4,8 @@ pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
-import {ArrayLengthMismatch} from "./Errors.sol";
-
+import {InvalidCall} from "./Errors.sol";
+import "forge-std/console2.sol";
 // todo shared Consider a shared MinterAccessPreset base contract that handles minting roles so role names can be shared
 // todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
 // todo disable unused inherited mint functions
@@ -54,7 +54,7 @@ contract Removal is
    * @notice Role conferring the ability to mint removals as well as the ability to list minted removals that have yet
    * to be listed for sale.
    */
-  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+  bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE"); // todo listing (consigner role?)
 
   /**
    * @notice The `Market` contract that removals can be bought and sold from.
@@ -109,17 +109,69 @@ contract Removal is
     _certificate = certificate;
   }
 
+  // /**
+  //  * @notice Mints multiple removals at once (for a single supplier).
+  //  * @param to The supplier address.
+  //  * @param amounts Each removal's tonnes of CO2 formatted as wei.
+  //  * @param removals The removals to mint (represented as an array of `UnpackedRemovalIdV0`). These removals are used
+  //  * to encode the removal IDs.
+  //  * @param data Encodes the project id and schedule start time for this batch of removals, the market contract
+  //  * address and a boolean that indicates whether to list these removals for sale now.
+  //  *
+  //  * @dev If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
+  //  *
+  //  * ##### Requirements:
+  //  *
+  //  * - Enforces the rules of `Removal._beforeTokenTransfer`.
+  //  * TODO add remaining `mintBatch` requirements docs
+  //  */
+  // function mintBatch(
+  //   address to,
+  //   uint256[] calldata amounts,
+  //   UnpackedRemovalIdV0[] calldata removals,
+  //   BatchMintRemovalsData calldata data // todo is a struct necessary for the data arg? Can we just add args instead?
+  // ) external onlyRole(MINTER_ROLE) {
+  //   uint256 numberOfRemovals = removals.length;
+  //   uint256 projectId = data.projectId;
+  //   uint256 holdbackPercentage = data.holdbackPercentage;
+  //   uint256[] memory removalIds = new uint256[](removals.length);
+  //   for (uint256 i = 0; i < numberOfRemovals; ++i) {
+  //     uint256 removalId = RemovalIdLib.createRemovalId({removal: removals[i]});
+  //     RemovalData storage removalData = _removalIdToRemovalData[removalId];
+  //     if (removalData.projectId != 0) {
+  //       revert TokenIdExists({tokenId: removalId});
+  //     }
+  //     removalIds[i] = removalId;
+  //     removalData.projectId = projectId;
+  //     removalData.holdbackPercentage = holdbackPercentage;
+  //   }
+  //   UnpackedRemovalIdV0 memory firstRemoval = removals[0];
+  //   _projectIdToScheduleData[projectId] = ScheduleData({
+  //     startTime: data.scheduleStartTime,
+  //     supplierAddress: firstRemoval.supplierAddress,
+  //     methodology: firstRemoval.methodology,
+  //     methodologyVersion: firstRemoval.methodologyVersion
+  //   });
+  //   _mintBatch({
+  //     to: data.list ? address(_market) : to,
+  //     ids: removalIds,
+  //     amounts: amounts,
+  //     data: ""
+  //   });
+  //   RestrictedNORI(_market.restrictedNoriAddress()).createSchedule(projectId);
+  // }
+
   /**
    * @notice Mints multiple removals at once (for a single supplier).
    * @param to The supplier address.
-   * @param amounts Each removal's tonnes of CO2 formatted as wei.
-   * @param ids The token ids to use for this batch of removals. The id itself encodes the supplier's ethereum address,
-   * a parcel identifier, the vintage, country code, state code, methodology identifier, methodology version, and id
-   * format.
-   * @param data Encodes the project id and schedule start time for this batch of removals, the market contract
-   * address and a boolean that indicates whether to list these removals for sale now.
+   * @param amounts Each removal's tonnes of CO2 formatted.
+   * @param removals The removals to mint (represented as an array of `UnpackedRemovalIdV0`). These removals are used
+   * to encode the removal IDs.
+   * @param projectId The project id for this batch of removals.
+   * @param scheduleStartTime The start time of the schedule for this batch of removals.
+   * @param holdbackPercentage The holdback percentage for this batch of removals.
    *
-   * @dev If `list` is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
+   * @dev If `to` is the market address, the removals are listed for sale in the market.
    *
    * ##### Requirements:
    *
@@ -128,42 +180,51 @@ contract Removal is
    */
   function mintBatch(
     address to,
-    uint256[] memory amounts,
-    uint256[] memory ids, // todo consider changing the ids arg from uint256[] -> UnpackedRemovalIdV0[]
-    BatchMintRemovalsData memory data // todo is a struct necessary for the data arg? Can we just add args instead?
+    uint256[] calldata amounts,
+    UnpackedRemovalIdV0[] calldata removals,
+    uint256 projectId,
+    uint256 scheduleStartTime,
+    uint8 holdbackPercentage
   ) external onlyRole(MINTER_ROLE) {
-    uint256 numberOfRemovals = ids.length;
-    if (!(amounts.length == numberOfRemovals)) {
-      revert ArrayLengthMismatch({array1Name: "amounts", array2Name: "ids"});
-    }
-    uint256 projectId = data.projectId;
-    uint256 holdbackPercentage = data.holdbackPercentage;
+    uint256 numberOfRemovals = removals.length;
+    uint256[] memory removalIds = new uint256[](removals.length);
     for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      uint256 id = ids[i];
-      if (exists(id) || _removalIdToRemovalData[id].projectId != 0) {
-        revert TokenIdExists({tokenId: id});
+      uint256 removalId = RemovalIdLib.createRemovalId({removal: removals[i]});
+      RemovalData storage removalData = _removalIdToRemovalData[removalId];
+      if (removalData.projectId != 0) {
+        revert TokenIdExists({tokenId: removalId});
       }
-      _removalIdToRemovalData[id].projectId = projectId; // todo access _removalIdToRemovalData[removalId] once per loop
-      _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
+      removalIds[i] = removalId;
+      removalData.projectId = projectId;
+      removalData.holdbackPercentage = holdbackPercentage;
     }
-    uint256 firstRemoval = ids[0];
+    UnpackedRemovalIdV0 memory firstRemoval = removals[0];
     _projectIdToScheduleData[projectId] = ScheduleData({
-      startTime: data.scheduleStartTime,
-      supplierAddress: RemovalIdLib.supplierAddress(firstRemoval),
-      methodology: RemovalIdLib.methodology(firstRemoval),
-      methodologyVersion: RemovalIdLib.methodologyVersion(firstRemoval)
+      startTime: scheduleStartTime,
+      supplierAddress: firstRemoval.supplierAddress,
+      methodology: firstRemoval.methodology,
+      methodologyVersion: firstRemoval.methodologyVersion
     });
-    _mintBatch(to, ids, amounts, "");
+    _mintBatch({to: to, ids: removalIds, amounts: amounts, data: ""});
     RestrictedNORI(_market.restrictedNoriAddress()).createSchedule(projectId);
-    if (data.list) {
-      safeBatchTransferFrom({
-        from: to,
-        to: address(_market),
-        ids: ids,
-        amounts: amounts,
-        data: ""
-      });
-    }
+  }
+
+  function consign(
+    address from,
+    uint256 id,
+    uint256 amount
+  )
+    external
+    onlyRole(MINTER_ROLE) // todo consignor_role
+  {
+    // todo test that checks consignment can happen using multi call with mix-match project ids
+    _safeTransferFrom({
+      from: from,
+      to: address(_market),
+      id: id,
+      amount: amount,
+      data: ""
+    });
   }
 
   /**
@@ -283,13 +344,6 @@ contract Removal is
     return holdbackPercentages;
   }
 
-  // todo this function will not scale well- consider dropping it somehow
-  function tokensOfOwner(
-    address owner // todo global rename (tokens -> removals?)
-  ) external view returns (uint256[] memory) {
-    return _addressToOwnedTokenIds[owner].values();
-  }
-
   function getMarketBalance() external view returns (uint256) {
     return _currentMarketBalance;
   }
@@ -356,37 +410,6 @@ contract Removal is
     return RemovalIdLib.unpackRemovalIdV0(removalId);
   }
 
-  /**
-   * @dev Overrides the default behavior of `ERC1155Upgradeable.safeBatchTransferFrom` to allow admins to list removals
-   * for sale.
-   */
-  function safeBatchTransferFrom(
-    address from,
-    address to,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    bytes memory data
-  ) public override {
-    // todo _safeTransferFrom doesn't have the same behavior as this batch variant.fix that or disable non-batch version
-    if (hasRole(MINTER_ROLE, _msgSender())) {
-      _safeBatchTransferFrom({
-        from: from,
-        to: to,
-        ids: ids,
-        amounts: amounts,
-        data: data
-      });
-    } else {
-      super.safeBatchTransferFrom({
-        from: from,
-        to: to,
-        ids: ids,
-        amounts: amounts,
-        data: data
-      });
-    }
-  }
-
   function supportsInterface(bytes4 interfaceId)
     public
     view
@@ -394,6 +417,32 @@ contract Removal is
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
+  }
+
+  function isApprovedForAll(address account, address operator)
+    public
+    view
+    override
+    returns (bool)
+  {
+    return
+      account == address(_market) ||
+      super.isApprovedForAll({account: account, operator: operator});
+  }
+
+  function _setApprovalForAll(
+    address owner,
+    address operator,
+    bool approved
+  ) internal override whenNotPaused {
+    if (operator == address(_market)) {
+      revert InvalidCall();
+    }
+    super._setApprovalForAll({
+      owner: owner,
+      operator: operator,
+      approved: approved
+    });
   }
 
   /**
@@ -418,15 +467,15 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal override whenNotPaused {
-    uint256 numberOfTokenTransfers = amounts.length;
-    for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+    for (uint256 i = 0; i < ids.length; ++i) {
       if (amounts[i] == 0) {
         revert RemovalAmountZero({tokenId: ids[i]});
       }
-      if (to == address(_market)) {
+      address market = address(_market);
+      if (to == market) {
         _currentMarketBalance += amounts[i];
       }
-      if (from == address(_market)) {
+      if (from == market) {
         _currentMarketBalance -= amounts[i];
       }
     }
@@ -479,21 +528,29 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal override {
-    // todo find a way to merge _afterTokenTransfer and _beforeTokenTransfer, otherwise we loop through all IDs 2x
-    uint256 numberOfTokenTransfers = amounts.length;
-    for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
-      uint256 id = ids[i];
-      if (from != address(0)) {
-        if (
-          balanceOf(from, id) == 0 // todo batch calls to remove using multicall instead of calling in a loop
-        ) {
-          _addressToOwnedTokenIds[from].remove(id);
+    _updateOwnedTokenIds(from, to, ids);
+    super._afterTokenTransfer(operator, from, to, ids, amounts, data);
+  }
+
+  function _updateOwnedTokenIds(
+    address from,
+    address to,
+    uint256[] memory ids
+  ) internal {
+    uint256 numberOfTokenTransfers = ids.length;
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < numberOfTokenTransfers; ++i) {
+        uint256 id = ids[i];
+        if (from != address(0)) {
+          if (balanceOf(from, id) == 0) {
+            _addressToOwnedTokenIds[from].remove(id);
+          }
+        }
+        if (to != address(0)) {
+          _addressToOwnedTokenIds[to].add(id);
         }
       }
-      if (to != address(0)) {
-        _addressToOwnedTokenIds[to].add(id);
-      }
     }
-    super._afterTokenTransfer(operator, from, to, ids, amounts, data);
   }
 }
