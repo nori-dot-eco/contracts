@@ -332,7 +332,7 @@ contract Market is PausableAccessPreset {
    * @param certificateAmount The number of carbon removals being purchased.
    */
   function _checkSupply(uint256 certificateAmount) private view {
-    uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
+    uint256 activeSupply = _removal.getMarketBalance();
     if (activeSupply == 0) {
       revert OutOfStock();
     }
