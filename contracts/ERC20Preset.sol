@@ -38,42 +38,6 @@ abstract contract ERC20Preset is
   }
 
   /**
-   * @notice Grants a role to an account.
-   *
-   * @dev Grants `role` to `account` if the `_beforeRoleGranted` hook is satisfied
-   *
-   * ##### Requirements:
-   *
-   * - The contract must not be paused.
-   */
-  function _grantRole(bytes32 role, address account)
-    internal
-    virtual
-    override
-    whenNotPaused
-  {
-    super._grantRole(role, account);
-  }
-
-  /**
-   * @notice Revokes a role from an account.
-   *
-   * @dev Revokes `role` from `account` if the `_beforeRoleGranted` hook is satisfied
-   *
-   * ##### Requirements:
-   *
-   * - The contract must not be paused.
-   */
-  function _revokeRole(bytes32 role, address account)
-    internal
-    virtual
-    override
-    whenNotPaused
-  {
-    super._revokeRole(role, account);
-  }
-
-  /**
    * @notice See ERC20-approve for more details [here](
    * https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20-approve-address-uint256-)
    *
