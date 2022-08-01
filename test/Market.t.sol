@@ -4,6 +4,7 @@ pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 import "@/contracts/ArrayLib.sol";
+import "@/contracts/Removal.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
 
@@ -367,5 +368,32 @@ contract Market__isAuthorizedWithdrawal_false is NonUpgradeableMarket {
 
   function test_returnsFalseWhenAllConditionsAreFalse() external {
     assertEq(_isAuthorizedWithdrawal({owner: _namedAccounts.supplier}), false);
+  }
+}
+
+contract Market__checkPrioritySupply is NonUpgradeableMarket {
+  function test() external view {
+    _checkPrioritySupply({certificateAmount: 0.5 ether, activeSupply: 1 ether});
+  }
+}
+
+contract Market__checkPrioritySupply_ALLOWLIST_ROLE is NonUpgradeableMarket {
+  address private deployer = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
+
+  function setUp() external {
+    _grantRole({role: ALLOWLIST_ROLE, account: deployer});
+  }
+
+  function test() external view {
+    _checkPrioritySupply({certificateAmount: 1 ether, activeSupply: 0.5 ether});
+  }
+}
+
+contract Market__checkPrioritySupply_reverts_LowSupplyAllowlistRequired is
+  NonUpgradeableMarket
+{
+  function test() external {
+    vm.expectRevert(LowSupplyAllowlistRequired.selector);
+    _checkPrioritySupply({certificateAmount: 1 ether, activeSupply: 0.5 ether});
   }
 }

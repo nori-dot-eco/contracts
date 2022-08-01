@@ -5,6 +5,8 @@ import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "./Errors.sol";
+import "forge-std/console2.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 /**
  * @title Nori Inc.'s carbon removal marketplace.
@@ -290,7 +292,10 @@ contract Market is PausableAccessPreset {
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     _checkSupplyOfSupplier({supplierAddress: supplierToBuyFrom});
-    _checkPrioritySupply({certificateAmount: certificateAmount});
+    _checkPrioritySupply({
+      certificateAmount: certificateAmount,
+      activeSupply: _removal.getMarketBalance()
+    });
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -318,20 +323,6 @@ contract Market is PausableAccessPreset {
       amounts: amounts,
       suppliers: suppliers
     });
-  }
-
-  /**
-   * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
-   *
-   * @param certificateAmount The number of carbon removals being purchased.
-   */
-  function _checkPrioritySupply(uint256 certificateAmount) private view {
-    uint256 activeSupply = _removal.getMarketBalance();
-    if (activeSupply - certificateAmount <= _priorityRestrictedThreshold) {
-      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
-        revert LowSupplyAllowlistRequired();
-      }
-    }
   }
 
   /**
@@ -662,6 +653,28 @@ contract Market is PausableAccessPreset {
       address(0) // If a new supplier has been added, or if the supplier had previously sold out
     ) {
       _addActiveSupplier(supplierAddress);
+    }
+  }
+
+  /**
+   * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
+   *
+   * @param certificateAmount The number of carbon removals being purchased.
+   * @param activeSupply The amount of active supply in the market.
+   */
+  function _checkPrioritySupply(uint256 certificateAmount, uint256 activeSupply)
+    internal
+    view
+  {
+    (, uint256 supply) = SafeMathUpgradeable.trySub(
+      activeSupply,
+      certificateAmount
+    );
+    if (supply <= _priorityRestrictedThreshold) {
+      console2.log("sender", _msgSender());
+      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+        revert LowSupplyAllowlistRequired();
+      }
     }
   }
 
