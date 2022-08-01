@@ -328,36 +328,6 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
-   *
-   * @param certificateAmount The number of carbon removals being purchased.
-   */
-  function _checkPrioritySupply(uint256 certificateAmount) private view {
-    uint256 activeSupply = _removal.getMarketBalance();
-    if (activeSupply - certificateAmount <= _priorityRestrictedThreshold) {
-      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
-        revert LowSupplyAllowlistRequired();
-      }
-    }
-  }
-
-  /**
-   * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
-   * and buyer is not priority.
-   *
-   * @param certificateAmount The number of carbon removals being purchased.
-   */
-  function _checkSupply(uint256 certificateAmount) private view {
-    uint256 activeSupply = _removal.getMarketBalance();
-    if (activeSupply == 0) {
-      revert OutOfStock();
-    }
-    if (certificateAmount > activeSupply) {
-      revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
-    }
-  }
-
-  /**
    * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority
    * buyers and buyer is not priority.
    *
@@ -670,6 +640,36 @@ contract Market is PausableAccessPreset {
       address(0) // If a new supplier has been added, or if the supplier had previously sold out
     ) {
       _addActiveSupplier(supplierAddress);
+    }
+  }
+
+  /**
+   * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
+   *
+   * @param certificateAmount The number of carbon removals being purchased.
+   */
+  function _checkPrioritySupply(uint256 certificateAmount) internal view {
+    uint256 activeSupply = _removal.getMarketBalance();
+    if (activeSupply - certificateAmount <= _priorityRestrictedThreshold) {
+      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+        revert LowSupplyAllowlistRequired();
+      }
+    }
+  }
+
+  /**
+   * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
+   * and buyer is not priority.
+   *
+   * @param certificateAmount The number of carbon removals being purchased.
+   */
+  function _checkSupply(uint256 certificateAmount) internal view {
+    uint256 activeSupply = _removal.getMarketBalance();
+    if (activeSupply == 0) {
+      revert OutOfStock();
+    }
+    if (certificateAmount > activeSupply) {
+      revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
     }
   }
 
