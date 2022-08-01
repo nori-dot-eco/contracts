@@ -105,9 +105,7 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        const marketTotalSupply = await removal.cumulativeBalanceOf(
-          market.address
-        );
+        const marketTotalSupply = await removal.getMarketBalance();
         expect(marketTotalSupply).to.equal(Zero);
       });
       it('should mint and list a batch of removals in the same transaction and create restriction schedules', async () => {
@@ -148,7 +146,7 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        expect(await removal.cumulativeBalanceOf(market.address)).to.equal(
+        expect(await removal.getMarketBalance()).to.equal(
           expectedMarketSupply
         );
       });

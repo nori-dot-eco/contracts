@@ -292,7 +292,10 @@ contract Market is PausableAccessPreset {
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
-    _checkSupply({certificateAmount: certificateAmount});
+    _checkSupplyOfSupplier({
+      supplierAddress: supplierToBuyFrom,
+      certificateAmount: certificateAmount
+    });
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -329,8 +332,7 @@ contract Market is PausableAccessPreset {
    * @param certificateAmount The number of carbon removals being purchased.
    */
   function _checkSupply(uint256 certificateAmount) private view {
-    // TODO: BUG: `swapFromSpecificSupplier` -> `_checkSupply` should check the suppliers balance, not the markets
-    uint256 activeSupply = _removal.cumulativeBalanceOf(address(this));
+    uint256 activeSupply = _removal.getMarketBalance();
     if (activeSupply == 0) {
       revert OutOfStock();
     }
@@ -341,6 +343,32 @@ contract Market is PausableAccessPreset {
     }
     if (certificateAmount > activeSupply) {
       revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
+    }
+  }
+
+  /**
+   * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority buyers
+   * and buyer is not priority.
+   *
+   * @param certificateAmount The number of carbon removals being purchased.
+   */
+  function _checkSupplyOfSupplier(
+    uint256 certificateAmount,
+    address supplierAddress
+  ) private view {
+    uint256 activeSupplyOfSupplier = _activeSupply[supplierAddress]
+      .getTotalBalanceFromRemovalQueue(_removal);
+    if (activeSupplyOfSupplier == 0) {
+      revert OutOfStock();
+    }
+    if (certificateAmount > activeSupplyOfSupplier) {
+      revert InsufficientSupply(); // todo Assure `_checkSupplyOfSupplier` validates all possible market supply states
+    }
+    uint256 totalActiveSupply = _removal.cumulativeBalanceOf(address(this));
+    if (totalActiveSupply <= _priorityRestrictedThreshold) {
+      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+        revert LowSupplyAllowlistRequired();
+      }
     }
   }
 
