@@ -17,7 +17,11 @@ import "./ICertificate.sol";
  *
  * @author Nori Inc.
  *
- * @notice
+ * @notice This contract issues sequentially increasing ERC721 token ids to purchasers of certificates of carbon
+ * removal in Nori's marketplace. The carbon removals that supply each certificate are accounted for using ERC1155
+ * tokens in the Removal contract. Upon purchase, ownership of the relevant Removal token ids and balances is
+ * transfered to this contract.  Internally, `_removalBalancesOfCertificate` tracks the subset of those Removal
+ * tokens and balances that belong to each specific certificate id.
  *
  *
  * ###### Additional behaviors and features
@@ -33,22 +37,14 @@ import "./ICertificate.sol";
  *      - Can pause and unpause the contract
  *    - DEFAULT_ADMIN_ROLE
  *      - This is the only role that can add/revoke other accounts to any of the roles
- * - [Can receive ERC-1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
- *   - BridgedPolygonNORI is wrapped and grants are created upon receipt
- * - [Limited ERC-777 functionality](https://eips.ethereum.org/EIPS/eip-777)
- *   - burn and operatorBurn will revert as only the internal variants are expected to be used
- *   - mint is not callable as only the internal variants are expected to be used when wrapping BridgedPolygonNORI
- * - [Limited ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/erc20)
- *   - mint is not callable as only the internal variants are expected to be used when wrapping BridgedPolygonNORI
- *   - burn functions are not externally callable
- * - [Extended Wrapped ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Wrapper)
- *   - In absence of a grant LockedNORI functions identically to a standard wrapped token
- *   - when a grant is defined, LockedNORI follows the restrictions noted above
+ * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
+ *   - A certificate is minted and internal accounting ties the certificate to the ERC1155 tokens upon receipt.
  *
  * ##### Inherits
+ * TODO
  *
  * ##### Implements
- *
+ * TODO
  *
  * ##### Uses
  *
@@ -122,12 +118,14 @@ contract Certificate is
   }
 
   /**
-   * @notice Registers the address of the removal contract ontract
+   * @notice Registers the address of the Removal contract.
    *
-   * @dev
+   * @dev This function is called as part of the market deployment process to register relevant contract
+   * addresses among market contracts.
+   *
+   * @param removal The address of the Removal contract.
    *
    * ##### Requirements:
-   *
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    */
@@ -140,6 +138,22 @@ contract Certificate is
   }
 
   // todo is whenNotPaused redundant since it's only called from a pausable function on the removal contract?
+  /**
+   * @notice Removes `amount` of this `removalId` from the specified `certificateId` in the internal accounting
+   * that keeps track of which removals belong to a given certificate.
+   *
+   * @dev This function can only ever be called by the Removal contract, and should be called in the course of
+   * executing Removal.release. Burning the corresponding removal balance from the Certificate contract happens
+   * in Removal.release.
+   *
+   * @param certificateId The id of the certificate from which this removal is being released.
+   * @param removalId The removal token to release.
+   * @param amount The balance of the removal token to release.
+   *
+   * ##### Requirements:
+   * - Can only be called by the Removal contract.
+   * - Can only be used when contract is not paused.
+   */
   function releaseRemoval(
     uint256 certificateId,
     uint256 removalId,
@@ -158,10 +172,13 @@ contract Certificate is
   }
 
   /**
-   * @dev Receives a batch of child tokens, the receiver token ID must be encoded in the field data.
+   * @dev Receives a batch of child tokens, the certificate recipient and amount must be encoded in the field data.
+   *
+   * @param removalIds The array of ERC1155 Removal token ids being received in this batch.
+   * @param removalAmounts The array of balances being received for each corresponding token id.
+   * @param data Bytes that encode the certificate's recipient address and total amount.
    *
    * ##### Requirements:
-   *
    * - Can only be used when the contract is not paused (enforced by `_beforeTokenTransfers`).
    * - `_msgSender` must be the removal contract.
    */
@@ -189,7 +206,10 @@ contract Certificate is
   }
 
   /**
-   * @dev Returns the balance of a removal underlying a certificate
+   * @notice Returns the balance of a removal token underlying a certificate.
+   *
+   * @param certificateTokenId The certificate token to retrieve the balance for.
+   * @param removalTokenId The removal token for which to retrieve the balance for this certificate.
    */
   function balanceOfRemoval(uint256 certificateTokenId, uint256 removalTokenId)
     external
@@ -200,12 +220,18 @@ contract Certificate is
   }
 
   /**
-   * @dev Returns the total number of certificates that have been minted (including burned ones)
+   * @notice Returns the total number of certificates that have been minted (including burned ones)
    */
   function totalMinted() external view returns (uint256) {
     return _totalMinted();
   }
 
+  /**
+   * @notice Returns the original number of tonnes of carbon removals purchased when the specified certificate
+   * was created.
+   *
+   * @param certificateId The certificate to retrieve the original amount for.
+   */
   function originalBalanceOf(uint256 certificateId)
     external
     view
@@ -215,7 +241,9 @@ contract Certificate is
   }
 
   /**
-   * @dev Returns the list of removal IDs for the given certificate ID.
+   * @notice Returns the list of removal IDs that comprise the given certificate ID.
+   *
+   * @param certificateId The certificate ID for which to retrieve underlying removal IDs.
    */
   function removalsOfCertificate(uint256 certificateId)
     external
@@ -240,7 +268,11 @@ contract Certificate is
   }
 
   /**
-   * @dev Returns the list of certificate IDs and balances for a given removal ID.
+   * @notice Returns the list of certificate IDs the given removal ID has been included in, and the balance included
+   * in each certificate.
+   *
+   * @param removalId The removal token ID for which to retrieve all relevant certificate IDs and balances.
+   * @return An array of Balance structs, each of which includes an `id` and `amount`.
    */
   function certificatesOfRemoval(uint256 removalId)
     external
@@ -281,6 +313,10 @@ contract Certificate is
     return super.supportsInterface(interfaceId);
   }
 
+  /**
+   * @dev Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.
+   * See
+   */
   function setApprovalForAll(address, bool)
     public
     pure
@@ -289,6 +325,9 @@ contract Certificate is
     revert FunctionDisabled();
   }
 
+  /**
+   * @dev Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.
+   */
   function approve(address, uint256)
     public
     pure
@@ -322,6 +361,16 @@ contract Certificate is
     super._beforeTokenTransfers(from, to, startTokenId, quantity);
   }
 
+  /**
+   * @dev Called when a batch of ERC1155 Removal tokens are sent to this contract.
+   * Mints a new certificate token to the next sequential ID and updates the internal data structures
+   * that track the relationship between the certificate and its constituent removal tokens and balances.
+   *
+   * @param recipient The address receiving the new certificate.
+   * @param certificateAmount The total number of tonnes of carbon removals represented by the new certificate.
+   * @param removalIds The removal token IDs that are being included in the certificate.
+   * @param removalAmounts The balances of each corresponding removal token that are being included in the certificate.
+   */
   function _receiveRemovalBatch(
     address recipient,
     uint256 certificateAmount,
@@ -361,6 +410,13 @@ contract Certificate is
     return _msgSender();
   }
 
+  /**
+   * @dev Validates the incoming batch of removal token data to ensure the number of IDs and the number of amounts
+   * specified are the same length.
+   *
+   * @param removalIds An array of removal token ids.
+   * @param removalAmounts An array of amounts.
+   */
   function _validateReceivedRemovalBatch(
     uint256[] memory removalIds,
     uint256[] memory removalAmounts
