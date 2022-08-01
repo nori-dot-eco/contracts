@@ -297,7 +297,7 @@ contract Market is PausableAccessPreset {
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     _checkSupplyOfSupplier({supplierAddress: supplierToBuyFrom});
-    _checkSupply({certificateAmount: certificateAmount});
+    _checkPrioritySupply({certificateAmount: certificateAmount});
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -328,6 +328,20 @@ contract Market is PausableAccessPreset {
   }
 
   /**
+   * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
+   *
+   * @param certificateAmount The number of carbon removals being purchased.
+   */
+  function _checkPrioritySupply(uint256 certificateAmount) private view {
+    uint256 activeSupply = _removal.getMarketBalance();
+    if (activeSupply - certificateAmount <= _priorityRestrictedThreshold) {
+      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+        revert LowSupplyAllowlistRequired();
+      }
+    }
+  }
+
+  /**
    * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
    * and buyer is not priority.
    *
@@ -337,11 +351,6 @@ contract Market is PausableAccessPreset {
     uint256 activeSupply = _removal.getMarketBalance();
     if (activeSupply == 0) {
       revert OutOfStock();
-    }
-    if (activeSupply <= _priorityRestrictedThreshold) {
-      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
-        revert LowSupplyAllowlistRequired();
-      }
     }
     if (certificateAmount > activeSupply) {
       revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
