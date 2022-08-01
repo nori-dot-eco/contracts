@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import "./Certificate.sol";
 import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
-import {SenderNotRemovalContract} from "./Errors.sol";
+import "./Errors.sol";
 
 /**
  * @title Nori Inc.'s carbon removal marketplace.
@@ -31,12 +30,6 @@ import {SenderNotRemovalContract} from "./Errors.sol";
 contract Market is PausableAccessPreset {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
-
-  error InsufficientSupply();
-  error UnauthorizedWithdrawal(); // todo consider allowing operators
-  error OutOfStock();
-  error LowSupplyAllowlistRequired();
-  error RemovalNotInActiveSupply(uint256 removalId);
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
