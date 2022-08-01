@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
-import {ArrayLengthMismatch} from "./Errors.sol";
+import "./Errors.sol";
 
 // todo shared Consider a shared MinterAccessPreset base contract that handles minting roles so role names can be shared
 // todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
@@ -31,9 +30,6 @@ struct RemovalData {
   uint256 projectId;
   uint256 holdbackPercentage;
 }
-
-error TokenIdExists(uint256 tokenId);
-error RemovalAmountZero(uint256 tokenId);
 
 /**
  * @title Removal
