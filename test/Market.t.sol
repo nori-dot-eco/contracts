@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 import "@/contracts/ArrayLib.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
@@ -319,5 +320,52 @@ contract Market_withdraw_2x1_back is MarketBalanceTestHelper {
 contract Market_ALLOWLIST_ROLE is UpgradeableMarket {
   function test() external {
     assertEq(_market.ALLOWLIST_ROLE(), keccak256("ALLOWLIST_ROLE"));
+  }
+}
+
+contract Market__isAuthorizedWithdrawal_true is NonUpgradeableMarket {
+  function setUp() external {
+    vm.store(
+      address(this),
+      bytes32(uint256(251)), // sets the _removal storage slot to the market contract to enable mock calls
+      bytes32(uint256(uint160(address(this))))
+    );
+  }
+
+  function test_returnsTrueWhenMsgSenderEqualsOwner() external {
+    assertEq(_isAuthorizedWithdrawal({owner: _msgSender()}), true);
+  }
+
+  function test_returnsTrueWhenMsgSenderHasDefaultAdminRole() external {
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    assertEq(_isAuthorizedWithdrawal({owner: _namedAccounts.supplier}), true);
+  }
+
+  function test_returnsTrueWhenMsgSenderIsApprovedForAll() external {
+    vm.mockCall(
+      address(this),
+      abi.encodeWithSelector(IERC1155Upgradeable.isApprovedForAll.selector),
+      abi.encode(true)
+    );
+    assertEq(_isAuthorizedWithdrawal({owner: address(0)}), true);
+  }
+}
+
+contract Market__isAuthorizedWithdrawal_false is NonUpgradeableMarket {
+  function setUp() external {
+    vm.store(
+      address(this),
+      bytes32(uint256(251)), // sets the _removal storage slot to the market contract to enable mock calls
+      bytes32(uint256(uint160(address(this))))
+    );
+    vm.mockCall(
+      address(this),
+      abi.encodeWithSelector(IERC1155Upgradeable.isApprovedForAll.selector),
+      abi.encode(false)
+    );
+  }
+
+  function test_returnsFalseWhenAllConditionsAreFalse() external {
+    assertEq(_isAuthorizedWithdrawal({owner: _namedAccounts.supplier}), false);
   }
 }

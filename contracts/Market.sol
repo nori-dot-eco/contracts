@@ -642,7 +642,7 @@ contract Market is PausableAccessPreset {
    */
   function withdraw(uint256 removalId) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    if (_isAuthorizedWithdrawl({owner: supplierAddress})) {
+    if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
       _removeActiveRemoval(supplierAddress, removalId);
       _removal.safeTransferFrom({
         from: address(this),
@@ -656,7 +656,7 @@ contract Market is PausableAccessPreset {
     }
   }
 
-  function _isAuthorizedWithdrawl(address owner) internal view returns (bool) {
+  function _isAuthorizedWithdrawal(address owner) internal view returns (bool) {
     return (_msgSender() == owner ||
       hasRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()}) ||
       _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
