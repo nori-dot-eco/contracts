@@ -117,7 +117,7 @@ contract Removal is
   );
 
   /**
-   * @notice Emitted on updating `_addressToOwnedTokenIds`.
+   * @notice Emitted on updating `_currentMarketBalance`.
    * @param updatedMarketBalance The updated balance of the market.
    * @param amount The amount used to update the market.
    * @param isAdded True if the amount was added, false if it was removed.
