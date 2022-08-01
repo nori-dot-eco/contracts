@@ -191,7 +191,7 @@ contract Market_withdraw_reverts is MarketBalanceTestHelper {
 
   function test() external {
     vm.prank(_namedAccounts.supplier2);
-    vm.expectRevert(Market.UnauthorizedWithdrawal.selector);
+    vm.expectRevert(UnauthorizedWithdrawal.selector);
     _market.withdraw(_removalIds[0]);
     _assertCorrectStates();
   }

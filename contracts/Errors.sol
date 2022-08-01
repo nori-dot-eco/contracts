@@ -19,3 +19,8 @@ error UncapitalizedString(bytes2 country, bytes2 subdivision);
 error MethodologyVersionTooLarge(uint8 methodologyVersion);
 error UnsupportedIdVersion(uint8 idVersion);
 error ForbiddenTransferAfterMinting();
+error InsufficientSupply();
+error UnauthorizedWithdrawal(); // todo consider allowing operators
+error OutOfStock();
+error LowSupplyAllowlistRequired();
+error RemovalNotInActiveSupply(uint256 removalId);
