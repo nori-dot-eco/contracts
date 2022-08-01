@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import "./Certificate.sol";
 import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
-import {SenderNotRemovalContract} from "./Errors.sol";
+import "./Errors.sol";
 
 /**
  * @title Nori Inc.'s carbon removal marketplace.
@@ -31,12 +30,6 @@ import {SenderNotRemovalContract} from "./Errors.sol";
 contract Market is PausableAccessPreset {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
-
-  error InsufficientSupply();
-  error UnauthorizedWithdrawal(); // todo consider allowing operators
-  error OutOfStock();
-  error LowSupplyAllowlistRequired();
-  error RemovalNotInActiveSupply(uint256 removalId);
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -641,18 +634,11 @@ contract Market is PausableAccessPreset {
    */
   function withdraw(uint256 removalId) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    if (
-      _msgSender() == supplierAddress ||
-      hasRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()}) ||
-      _removal.isApprovedForAll({
-        account: supplierAddress,
-        operator: _msgSender()
-      })
-    ) {
+    if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
       _removeActiveRemoval(supplierAddress, removalId);
       _removal.safeTransferFrom({
         from: address(this),
-        to: RemovalIdLib.supplierAddress(removalId),
+        to: supplierAddress,
         id: removalId,
         amount: _removal.balanceOf(address(this), removalId),
         data: ""
@@ -660,6 +646,12 @@ contract Market is PausableAccessPreset {
     } else {
       revert UnauthorizedWithdrawal();
     }
+  }
+
+  function _isAuthorizedWithdrawal(address owner) internal view returns (bool) {
+    return (_msgSender() == owner ||
+      hasRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()}) ||
+      _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
   }
 
   function _listRemovalForSale(uint256 id) internal {
