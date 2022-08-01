@@ -24,6 +24,10 @@ abstract contract Global is PRBTest {
       buyer: account("buyer")
     });
 
+  constructor() {
+    vm.label(msg.sender, "Deployer");
+  }
+
   function account(string memory name) internal returns (address) {
     address addr = address(
       uint160(uint256((keccak256(abi.encodePacked(name)))))
