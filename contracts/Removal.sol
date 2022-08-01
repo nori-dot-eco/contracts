@@ -126,10 +126,8 @@ contract Removal is
       revert ArrayLengthMismatch({array1Name: "amounts", array2Name: "ids"});
     }
     uint256 projectId = data.projectId;
-    uint256 holdbackPercentage = data.holdbackPercentage;
+    _projectIdToHoldbackPercentage[projectId] = data.holdbackPercentage;
     _createRemovalDataBatch({ids: ids, projectId: projectId});
-    _removalIdToProjectId[projectId] = holdbackPercentage;
-    _removalIdToProjectId[projectId] = data.holdbackPercentage;
     _mintBatch(to, ids, amounts, "");
     uint256 firstRemoval = ids[0];
     RestrictedNORI(_market.restrictedNoriAddress()).createSchedule({
