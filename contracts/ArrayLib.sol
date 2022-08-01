@@ -14,7 +14,6 @@ library UInt256ArrayLib {
     }
   }
 
-  // todo does this work with calldata instead of memory? perhaps with assembly?
   function fill(uint256[] memory arr, uint256 val)
     internal
     pure

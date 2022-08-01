@@ -19,7 +19,6 @@ abstract contract UpgradeableMarket is
 
   constructor() {
     _market = _deployMarket();
-    _marketAddress = address(_market);
     vm.label(address(_market), "Market");
     _removal.registerContractAddresses( // todo move to removal helper
       Market(_market),
