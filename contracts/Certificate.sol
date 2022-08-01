@@ -59,6 +59,51 @@ contract Certificate is
   Removal private _removal;
 
   /**
+   * @notice Emitted on updating `_removalBalancesOfCertificate`.
+   * @param certificatedId The certificate to connected to the removal.
+   * @param removalId The removal to update the balance for.
+   * @param isAdded Whether the amount was added or removed.
+   * @param amount The amount to added or removed for the certificate.
+   */
+  event RemovalBalancesOfCertificateUpdated(
+    uint256 indexed certificatedId,
+    uint256 indexed removalId,
+    bool indexed isAdded,
+    uint256 amount
+  );
+
+  /**
+   * @notice Emitted on updating `_removalsOfCertificate`.
+   * @param certificateId The certificate to update.
+   * @param removalId The removal to update for the certificate.
+   * @param isAdded True if the removal was added, false if it was removed.
+   */
+  event RemovalsOfCertificateUpdated(
+    uint256 indexed certificateId,
+    uint256 indexed removalId,
+    bool indexed isAdded
+  );
+
+  /**
+   * @notice Emitted on updating `_certificatesOfRemoval`.
+   * @param removalId The removal to update.
+   * @param certificateId The certificate to update for the removal.
+   * @param isAdded True if the certificate was added, false if it was removed.
+   */
+  event CertificateOfRemovalsUpdated(
+    uint256 indexed removalId,
+    uint256 indexed certificateId,
+    bool indexed isAdded
+  );
+
+  /**
+   * @notice Emitted on updating `_balances`.
+   * @param certificateId The certificate to update.
+   * @param amount The updated amount of the balance for the certificate.
+   */
+  event BalancesUpdated(uint256 indexed certificateId, uint256 indexed amount);
+
+  /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
@@ -110,9 +155,17 @@ contract Certificate is
     // todo Emit event when removal is released if TransferSingle events can be emitted with to: addr(0) in other cases
     // todo decrease number of storage reads
     _removalBalancesOfCertificate[certificateId][removalId] -= amount;
+    emit RemovalBalancesOfCertificateUpdated(
+      certificateId,
+      removalId,
+      false,
+      amount
+    );
     if (_removalBalancesOfCertificate[certificateId][removalId] == 0) {
       _removalsOfCertificate[certificateId].remove(removalId);
+      emit RemovalsOfCertificateUpdated(certificateId, removalId, false);
       _certificatesOfRemoval[removalId].remove(certificateId);
+      emit CertificateOfRemovalsUpdated(removalId, certificateId, false);
     }
   }
 
@@ -290,13 +343,22 @@ contract Certificate is
     _validateReceivedRemovalBatch(removalIds, removalAmounts);
     uint256 certificateId = _nextTokenId();
     _balances[certificateId] = certificateAmount;
+    emit BalancesUpdated(certificateId, certificateAmount);
     _mint(recipient, 1); // todo should we be using _mint or _safeMint for ERC721A
     for (uint256 i = 0; i < removalIds.length; ++i) {
       _removalBalancesOfCertificate[certificateId][
         removalIds[i]
       ] += removalAmounts[i];
+      emit RemovalBalancesOfCertificateUpdated(
+        certificateId,
+        removalIds[i],
+        true,
+        removalAmounts[i]
+      );
       _removalsOfCertificate[certificateId].add(removalIds[i]);
+      emit RemovalsOfCertificateUpdated(certificateId, removalIds[i], true);
       _certificatesOfRemoval[removalIds[i]].add(certificateId);
+      emit CertificateOfRemovalsUpdated(removalIds[i], certificateId, true);
     }
     emit ReceiveRemovalBatch(
       _msgSender(),
