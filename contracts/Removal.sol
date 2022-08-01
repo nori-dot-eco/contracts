@@ -77,6 +77,58 @@ contract Removal is
   uint256 private _currentMarketBalance;
 
   /**
+   * @notice Emitted on updating `_removalIdToRemovalData`.
+   * @param removalId The id of the removal that was added.
+   * @param projectId The projectId that the removalId was added to.
+   * @param holdbackPercentage The holdback percentage for the project.
+   */
+  event RemovalIdToRemovalDataUpdated(
+    uint256 indexed removalId,
+    uint256 indexed projectId,
+    uint256 holdbackPercentage
+  );
+
+  /**
+   * @notice Emitted on updating `_projectIdToScheduleData`.
+   * @param projectId The projectId that the schedule was created for.
+   * @param supplierAddress The address of the project's supplier.
+   * @param methodology The methodology for the project.
+   * @param methodologyVersion The version of the methodology.
+   * @param startTime The start time for the schedule.
+   */
+  event ProjectIdToScheduleDataUpdated(
+    uint256 indexed projectId,
+    address supplierAddress,
+    uint256 methodology,
+    uint256 methodologyVersion,
+    uint256 startTime
+  );
+
+  /**
+   * @notice Emitted on updating `_addressToOwnedTokenIds`.
+   * @param ownerAddress The address of the owner of the removal.
+   * @param removalId The ID of the updated removal.
+   * @param isAdded True if the removal was added, false if it was removed.
+   */
+  event AddressToTokenIdsUpdated(
+    address indexed ownerAddress,
+    uint256 indexed removalId,
+    bool indexed isAdded
+  );
+
+  /**
+   * @notice Emitted on updating `_addressToOwnedTokenIds`.
+   * @param updatedMarketBalance The updated balance of the market.
+   * @param amount The amount used to update the market.
+   * @param isAdded True if the amount was added, false if it was removed.
+   */
+  event CurrentMarketBalanceUpdated(
+    uint256 indexed updatedMarketBalance,
+    uint256 indexed amount,
+    bool indexed isAdded
+  );
+
+  /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
@@ -145,6 +197,7 @@ contract Removal is
       }
       _removalIdToRemovalData[id].projectId = projectId; // todo access _removalIdToRemovalData[removalId] once per loop
       _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
+      emit RemovalIdToRemovalDataUpdated(id, projectId, holdbackPercentage);
     }
     uint256 firstRemoval = ids[0];
     _projectIdToScheduleData[projectId] = ScheduleData({
@@ -153,6 +206,13 @@ contract Removal is
       methodology: RemovalIdLib.methodology(firstRemoval),
       methodologyVersion: RemovalIdLib.methodologyVersion(firstRemoval)
     });
+    emit ProjectIdToScheduleDataUpdated(
+      projectId,
+      _projectIdToScheduleData[projectId].supplierAddress,
+      _projectIdToScheduleData[projectId].methodology,
+      _projectIdToScheduleData[projectId].methodologyVersion,
+      _projectIdToScheduleData[projectId].startTime
+    );
     _mintBatch(to, ids, amounts, "");
     RestrictedNORI(_market.restrictedNoriAddress()).createSchedule(projectId);
     if (data.list) {
@@ -425,9 +485,19 @@ contract Removal is
       }
       if (to == address(_market)) {
         _currentMarketBalance += amounts[i];
+        emit CurrentMarketBalanceUpdated(
+          _currentMarketBalance,
+          amounts[i],
+          true
+        );
       }
       if (from == address(_market)) {
         _currentMarketBalance -= amounts[i];
+        emit CurrentMarketBalanceUpdated(
+          _currentMarketBalance,
+          amounts[i],
+          true
+        );
       }
     }
     super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
@@ -488,10 +558,12 @@ contract Removal is
           balanceOf(from, id) == 0 // todo batch calls to remove using multicall instead of calling in a loop
         ) {
           _addressToOwnedTokenIds[from].remove(id);
+          emit AddressToTokenIdsUpdated(from, id, false);
         }
       }
       if (to != address(0)) {
         _addressToOwnedTokenIds[to].add(id);
+        emit AddressToTokenIdsUpdated(to, id, true);
       }
     }
     super._afterTokenTransfer(operator, from, to, ids, amounts, data);
