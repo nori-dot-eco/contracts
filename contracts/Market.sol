@@ -57,8 +57,39 @@ contract Market is PausableAccessPreset {
 
   /**
    * @notice Emitted on setting of `_priorityRestrictedThreshold`.
+   * @param threshold The updated threshold for priority restricted supply.
    */
   event PriorityRestrictedThresholdSet(uint256 threshold);
+
+  /**
+   * @notice Emitted on setting of `_noriFeeWallet`.
+   * @param updatedWalletAddress The updated address of the Nori fee wallet.
+   */
+  event NoriFeeWalletUpdated(address updatedWalletAddress);
+
+  /**
+   * @notice Emitted on setting of `_noriFeePercentage`.
+   * @param updatedFeePercentage The updated fee percentage for Nori.
+   */
+  event NoriFeePercentageUpdated(uint256 updatedFeePercentage);
+
+  /**
+   * @notice Emitted on setting of `_currentSupplierAddress`.
+   * @param updatedSupplierAddress The updated supplier address.
+   */
+  event CurrentSupplierAddressChanged(address updatedSupplierAddress);
+
+  /**
+   * @notice Emitted on setting nextSupplierAddress for a supplier in `_suppliersInRoundRobinOrder`.
+   * @param supplierAddress The supplier to update the round robin order for.
+   * @param nextSupplierAddress The updated nextSupplierAddress for the supplier.
+   * @param previousSupplierAddress The updated previousSupplierAddress for the supplier.
+   */
+  event SuppliersRoundRobinOrderUpdated(
+    address indexed supplierAddress,
+    address indexed nextSupplierAddress,
+    address indexed previousSupplierAddress
+  );
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -541,6 +572,7 @@ contract Market is PausableAccessPreset {
     whenNotPaused
   {
     _noriFeePercentage = noriFeePercentage_;
+    emit NoriFeePercentageUpdated(noriFeePercentage_);
   }
 
   /**
@@ -561,6 +593,7 @@ contract Market is PausableAccessPreset {
     whenNotPaused
   {
     _noriFeeWallet = noriFeeWalletAddress;
+    emit NoriFeeWalletUpdated(noriFeeWalletAddress);
   }
 
   /**
@@ -714,6 +747,9 @@ contract Market is PausableAccessPreset {
     _currentSupplierAddress = _suppliersInRoundRobinOrder[
       _currentSupplierAddress
     ].nextSupplierAddress;
+    emit CurrentSupplierAddressChanged(
+      _suppliersInRoundRobinOrder[_currentSupplierAddress].nextSupplierAddress
+    );
   }
 
   /**
@@ -724,37 +760,59 @@ contract Market is PausableAccessPreset {
    * is added, at the position of the current supplier, update the previous pointer of the current supplier to point to
    * the new supplier, and update the next pointer of the previous supplier to the new supplier.
    */
-  function _addActiveSupplier(address supplierAddress) private {
+  function _addActiveSupplier(address newSupplierAddress) private {
     // If this is the first supplier to be added, update the intialized addresses.
     if (_currentSupplierAddress == address(0)) {
-      _currentSupplierAddress = supplierAddress;
-      _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
-        previousSupplierAddress: supplierAddress,
-        nextSupplierAddress: supplierAddress
+      _currentSupplierAddress = newSupplierAddress;
+      emit CurrentSupplierAddressChanged(newSupplierAddress);
+      _suppliersInRoundRobinOrder[newSupplierAddress] = RoundRobinOrder({
+        previousSupplierAddress: newSupplierAddress,
+        nextSupplierAddress: newSupplierAddress
       });
+      emit SuppliersRoundRobinOrderUpdated(
+        newSupplierAddress,
+        newSupplierAddress,
+        newSupplierAddress
+      );
     } else {
+      address previousOfCurrentSupplierAddress = _suppliersInRoundRobinOrder[
+        _currentSupplierAddress
+      ].previousSupplierAddress;
       /**
        * Add the new supplier to the round robin order, with the current supplier as next and the current supplier's
        * previous supplier as previous.
        */
-      _suppliersInRoundRobinOrder[supplierAddress] = RoundRobinOrder({
-        previousSupplierAddress: _suppliersInRoundRobinOrder[
-          _currentSupplierAddress
-        ].previousSupplierAddress,
-        nextSupplierAddress: _currentSupplierAddress
+      _suppliersInRoundRobinOrder[newSupplierAddress] = RoundRobinOrder({
+        nextSupplierAddress: _currentSupplierAddress,
+        previousSupplierAddress: previousOfCurrentSupplierAddress
       });
+      emit SuppliersRoundRobinOrderUpdated(
+        newSupplierAddress,
+        _currentSupplierAddress,
+        previousOfCurrentSupplierAddress
+      );
       /**
-       * Update the previous supplier to point to the new supplier as next.
+       * Update the previous supplier from the current supplier to point to the new supplier as next.
        */
-      _suppliersInRoundRobinOrder[
-        _suppliersInRoundRobinOrder[_currentSupplierAddress]
+      _suppliersInRoundRobinOrder[previousOfCurrentSupplierAddress]
+        .nextSupplierAddress = newSupplierAddress;
+      emit SuppliersRoundRobinOrderUpdated(
+        previousOfCurrentSupplierAddress,
+        newSupplierAddress,
+        _suppliersInRoundRobinOrder[previousOfCurrentSupplierAddress]
           .previousSupplierAddress
-      ].nextSupplierAddress = supplierAddress;
+      );
       /**
        * Update the current supplier to point to the new supplier as previous.
        */
       _suppliersInRoundRobinOrder[_currentSupplierAddress]
-        .previousSupplierAddress = supplierAddress;
+        .previousSupplierAddress = newSupplierAddress;
+      emit SuppliersRoundRobinOrderUpdated(
+        _currentSupplierAddress,
+        _suppliersInRoundRobinOrder[_currentSupplierAddress]
+          .nextSupplierAddress,
+        newSupplierAddress
+      );
     }
   }
 
@@ -776,21 +834,38 @@ contract Market is PausableAccessPreset {
       _suppliersInRoundRobinOrder[addressToRemove].nextSupplierAddress
     ) {
       _currentSupplierAddress = address(0);
+      emit CurrentSupplierAddressChanged(address(0));
     } else {
+      address previousOfRemovedSupplierAddress = _suppliersInRoundRobinOrder[
+        addressToRemove
+      ].previousSupplierAddress;
+      address nextOfRemovedSupplierAddress = _suppliersInRoundRobinOrder[
+        addressToRemove
+      ].nextSupplierAddress;
+
       /**
        * Set the next of the previous supplier to point to the removed supplier's next.
        */
-      _suppliersInRoundRobinOrder[
+      _suppliersInRoundRobinOrder[previousOfRemovedSupplierAddress]
+        .nextSupplierAddress = nextOfRemovedSupplierAddress;
+      emit SuppliersRoundRobinOrderUpdated(
+        previousOfRemovedSupplierAddress,
+        nextOfRemovedSupplierAddress,
         _suppliersInRoundRobinOrder[addressToRemove].previousSupplierAddress
-      ].nextSupplierAddress = _suppliersInRoundRobinOrder[addressToRemove]
-        .nextSupplierAddress;
+      );
+
       /**
        * Set the previous of the next supplier to point to the removed supplier's previous.
        */
-      _suppliersInRoundRobinOrder[
-        _suppliersInRoundRobinOrder[addressToRemove].nextSupplierAddress
-      ].previousSupplierAddress = _suppliersInRoundRobinOrder[addressToRemove]
-        .previousSupplierAddress;
+      _suppliersInRoundRobinOrder[nextOfRemovedSupplierAddress]
+        .previousSupplierAddress = previousOfRemovedSupplierAddress;
+      emit SuppliersRoundRobinOrderUpdated(
+        nextOfRemovedSupplierAddress,
+        _suppliersInRoundRobinOrder[nextOfRemovedSupplierAddress]
+          .nextSupplierAddress,
+        previousOfRemovedSupplierAddress
+      );
+
       /**
        * If the supplier is the current supplier, update that address to the next supplier.
        */
@@ -805,5 +880,10 @@ contract Market is PausableAccessPreset {
       nextSupplierAddress: address(0),
       previousSupplierAddress: address(0)
     });
+    emit SuppliersRoundRobinOrderUpdated(
+      addressToRemove,
+      address(0),
+      address(0)
+    );
   }
 }
