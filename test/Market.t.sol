@@ -600,3 +600,14 @@ contract Market__validateSuppliersSupply is
     _validateSuppliersSupply({certificateAmount: 1, activeSupplyOfSupplier: 0});
   }
 }
+
+contract Market__validateSupply is NonUpgradeableMarket, UpgradeableRemoval {
+  function test() external pure {
+    _validateSupply({certificateAmount: 1 ether, activeSupply: 1 ether});
+  }
+
+  function test_reverts_OutOfSupply() external {
+    vm.expectRevert(InsufficientSupply.selector);
+    _validateSupply({certificateAmount: 1 ether, activeSupply: 0.9 ether});
+  }
+}

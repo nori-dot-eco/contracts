@@ -25,6 +25,8 @@ Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriorityRestric
 Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired:test() (gas: 7640)
 Market__validateSuppliersSupply:test() (gas: 270)
 Market__validateSuppliersSupply:test_reverts_OutOfStock() (gas: 3133)
+Market__validateSupply:test() (gas: 270)
+Market__validateSupply:test_reverts_OutOfSupply() (gas: 3154)
 Market_onERC1155BatchReceived:test() (gas: 195874)
 Market_onERC1155Received:test() (gas: 192928)
 Market_setPriorityRestrictedThreshold:test() (gas: 154744)
