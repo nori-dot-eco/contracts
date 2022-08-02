@@ -169,10 +169,10 @@ contract Removal is
    * ##### Requirements:
    *
    * - Releasing burns first from unlisted balances, second from listed balances and third from certificates.
-   * - 1. If the removal is unlisted (e.g., owned by any account other than the market or certificate), the removal is
+   * - If the removal is unlisted (e.g., owned by any account other than the market or certificate), the removal is
    * simply burned.
-   * - 2. If the removal is listed, it is delisted from the market and burned.
-   * - 3. If the removal is owned by one or more certificates, the removal is burned iteratively across each certificate
+   * - If the removal is listed, it is delisted from the market and burned.
+   * - If the removal is owned by one or more certificates, the removal is burned iteratively across each certificate
    * until the amount is exhausted (e.g., if a removal of amount 3 releases an amount of 2.5 and that removal is owned
    * by 3 certificates containing an amount of 1 from the released removal, the resulting certificate's removal balances
    * for this removal are: 0, 0, and 0.5).
