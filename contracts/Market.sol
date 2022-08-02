@@ -665,11 +665,11 @@ contract Market is PausableAccessPreset {
     internal
     view
   {
-    (, uint256 supply) = SafeMathUpgradeable.trySub(
+    (, uint256 supplyAfterPurchase) = SafeMathUpgradeable.trySub(
       activeSupply,
       certificateAmount
     );
-    if (supply <= _priorityRestrictedThreshold) {
+    if (supplyAfterPurchase < _priorityRestrictedThreshold) {
       if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
         revert LowSupplyAllowlistRequired();
       }

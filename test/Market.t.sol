@@ -372,26 +372,44 @@ contract Market__isAuthorizedWithdrawal_false is NonUpgradeableMarket {
 }
 
 contract Market__checkPrioritySupply is NonUpgradeableMarket {
-  function test() external view {
+  function test_supplyAfterPurchaseIsLessThanPriorityRestrictedThreshold()
+    external
+    view
+  {
     _checkPrioritySupply({certificateAmount: 0.5 ether, activeSupply: 1 ether});
+  }
+
+  function test_supplyAfterPurchaseIsZero() external view {
+    _checkPrioritySupply({certificateAmount: 1 ether, activeSupply: 1 ether});
   }
 }
 
-contract Market__checkPrioritySupply_ALLOWLIST_ROLE is NonUpgradeableMarket {
+contract Market__checkPrioritySupply_buyerIsAllowlistedAndAmountExceedsPriorityRestrictedThreshold is
+  NonUpgradeableMarket
+{
   function setUp() external {
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    vm.prank(_msgSender());
+    this.setPriorityRestrictedThreshold({threshold: 0.5 ether});
     _grantRole({role: ALLOWLIST_ROLE, account: _namedAccounts.deployer});
   }
 
   function test() external view {
-    _checkPrioritySupply({certificateAmount: 1 ether, activeSupply: 0.5 ether});
+    _checkPrioritySupply({certificateAmount: 1 ether, activeSupply: 1 ether});
   }
 }
 
 contract Market__checkPrioritySupply_reverts_LowSupplyAllowlistRequired is
   NonUpgradeableMarket
 {
+  function setUp() external {
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    vm.prank(_msgSender());
+    this.setPriorityRestrictedThreshold({threshold: 1 ether});
+  }
+
   function test() external {
     vm.expectRevert(LowSupplyAllowlistRequired.selector);
-    _checkPrioritySupply({certificateAmount: 1 ether, activeSupply: 0.5 ether});
+    _checkPrioritySupply({certificateAmount: 1 ether, activeSupply: 1 ether});
   }
 }
