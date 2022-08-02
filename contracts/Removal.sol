@@ -89,7 +89,7 @@ struct RemovalData {
  * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
  *   - all functions that mutate state are pausable
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- *    - MINTER_ROLE
+ *    - CONSIGNOR_ROLE
  *      - Can mint removal tokens and list them for sale in the Market contract
  *    - RELEASER_ROLE
  *      - Can release partial or full removal balances
@@ -98,17 +98,27 @@ struct RemovalData {
  *    - DEFAULT_ADMIN_ROLE
  *      - This is the only role that can add/revoke other accounts to any of the roles
  * - [Limited ERC-1155 functionality](https://eips.ethereum.org/EIPS/eip-1155)
- *   - `mint` and `safeTransferFrom` will revert as only the batch variants are expected to be used
- *   - TODO how else does this contract deviate from standard ERC1155 functionality?
+ *   - TODO document how this contract deviates from standard ERC1155 functionality?
  *
  * ##### Inherits
- * TODO
+ * - [ERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc11555)
+ * - [ERC1155Supply](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Supply)
+ * - [MulticallUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Multicall)
+ * - [PausableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ * - [AccessControlEnumerableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/access)
+ * - [ContextUpgradeable](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
+ * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
  *
  * ##### Implements
- * TODO
+ * - TODO does it actually implement the full 1155 interface?  how do we capture this correctly?
+ * - [IERC1155Upgradeable]()
+ * IERC1155MetadataURIUpgradeable
+ *
+ * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
+ * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
  *
  * ##### Uses
- *
  * - [RemovalIdLib](./RemovalIdLib.md) for uint256
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
@@ -174,6 +184,11 @@ contract Removal is
 
   /**
    * @dev Registers the market, and certificate contracts so that they can be referenced in this contract.
+   * Called as part of the market contract system deployment process.
+   *
+   * ##### Requirements:
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   * - Can only be used when this contract is not paused
    */
   function registerContractAddresses(Market market, Certificate certificate)
     external
@@ -186,7 +201,10 @@ contract Removal is
 
   /**
    * @notice Mints multiple removals at once (for a single supplier).
-   * @param to The supplier address.
+   *
+   * @dev If `to` is the market address, the removals are listed for sale in the market.
+   *
+   * @param to The recipient of this batch of removals. Should be the supplier's address or the market address.
    * @param amounts Each removal's tonnes of CO2 formatted.
    * @param removals The removals to mint (represented as an array of `UnpackedRemovalIdV0`). These removals are used
    * to encode the removal IDs.
@@ -194,11 +212,10 @@ contract Removal is
    * @param scheduleStartTime The start time of the schedule for this batch of removals.
    * @param holdbackPercentage The holdback percentage for this batch of removals.
    *
-   * @dev If `to` is the market address, the removals are listed for sale in the market.
-   *
    * ##### Requirements:
+   * - Can only be used when the caller has the `CONSIGNER_ROLE`
+   * - Enforces the rules of `Removal._beforeTokenTransfer`
    *
-   * - Enforces the rules of `Removal._beforeTokenTransfer`.
    * TODO add remaining `mintBatch` requirements docs
    */
   function mintBatch(
@@ -223,6 +240,16 @@ contract Removal is
     });
   }
 
+  /**
+   * @notice Lists the provided `amount` of the specified removal `id` for sale in Nori's marketplace.
+   *
+   * @dev The Market contract implements `onERC1155Received`, which is invoked upon receipt of any tokens from
+   * this contract, and handles the mechanics of listing this token for sale.
+   *
+   * @param from The current owner of the specified token ID and amount
+   * @param id The token ID of the removal token being listed for sale
+   * @param amount The balance of this token ID to transfer to the Market contract
+   */
   function consign(
     address from,
     uint256 id,
@@ -239,20 +266,25 @@ contract Removal is
   }
 
   /**
-   * @notice Releases an amount of a removal.
-   * @dev Releases `amount` of removal by `removalId` by burning them.
+   * @notice Accounts for carbon that has failed to meet its permanence guarantee and has been released into
+   * the atmosphere prematurely.
+   *
+   * @dev Releases `amount` of removal `removalId` by burning it. The replacement of released removals that had
+   * already been included in certificates is beyond the scope of this version of the contracts.
    *
    * ##### Requirements:
    *
    * - Releasing burns first from unlisted balances, second from listed balances and third from certificates.
-   * - If the removal is unlisted (e.g., owned by any account other than the market or certificate), the removal is
-   * simply burned.
-   * - If the removal is listed, it is delisted from the market and burned.
-   * - If the removal is owned by one or more certificates, the removal is burned iteratively across each certificate
-   * until the amount is exhausted (e.g., if a removal of amount 3 releases an amount of 2.5 and that removal is owned
-   * by 3 certificates containing an amount of 1 from the released removal, the resulting certificate's removal balances
-   * for this removal are: 0, 0, and 0.5).
-   * - If the removal is included as part of any certificates, the certificate balances are decremented by `amount`.
+   * - If there is unlisted balance for this removal (e.g., owned by the supplier address encoded in the token ID),
+   * that balance is burned up to `amount`.
+   * - If the released amount has not yet been fully burned and the removal is listed, it is delisted from the market
+   * and up to any remaining released amount is burned from the Market's balance.
+   * - Finally, if the released amount is still not fully accounted for, the removal must be owned by one or more
+   * certificates. The remaining released amount is burned from the Certificate contract's balance and certificate
+   * balances are decremented iteratively across each certificate until the amount is exhausted (e.g., if a removal
+   * of amount 3 releases an amount of 2.5 and that removal is owned by 3 certificates containing an amount of 1 each
+   * from the released removal, the resulting certificate's removal balances for this removal are: 0, 0, and 0.5).
+   *
    * - The rules of `_beforeTokenTransfer` are enforced.
    * - The caller must have the `RELEASER_ROLE`.
    * - The rules of `_burn` are enforced.
@@ -297,16 +329,24 @@ contract Removal is
     }
   }
 
+  /**
+   * @notice The address of the Market contract.
+   */
   function marketAddress() external view returns (address) {
     return address(_market);
   }
 
+  /**
+   * @notice The address of the Certificate contract.
+   */
   function certificateAddress() external view returns (address) {
     return address(_certificate);
   }
 
   /**
-   * @notice Gets the restriction schedule id (which is the removal's project id) for a given removal id.
+   * @notice Gets the project id (which is the removal's schedule id in RestrictedNORI) for a given removal id.
+   *
+   * @param removalId The removal token ID for which to retrieve the project id
    */
   function getProjectId(uint256 removalId) external view returns (uint256) {
     return _removalIdToProjectId[removalId];
