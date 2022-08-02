@@ -92,8 +92,6 @@ contract Market is PausableAccessPreset {
     _grantRole(ALLOWLIST_ROLE, _msgSender());
   }
 
-  
-
   /**
    * @notice Returns the current value of the priority restricted threshold, which is the amount of inventory
    * that will always be reserved to sell only to buyers with the ALLOWLIST_ROLE.
@@ -231,7 +229,10 @@ contract Market is PausableAccessPreset {
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
-    _checkSupply({certificateAmount: certificateAmount});
+    _validatePrioritySupply({
+      certificateAmount: certificateAmount,
+      activeSupply: _removal.getMarketBalance()
+    });
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -292,8 +293,11 @@ contract Market is PausableAccessPreset {
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
-    _checkSupplyOfSupplier({supplierAddress: supplierToBuyFrom});
-    _checkPrioritySupply({
+    _validateSuppliersSupply({
+      activeSupplyOfSupplier: _activeSupply[supplierToBuyFrom]
+        .getTotalBalanceFromRemovalQueue(_removal)
+    });
+    _validatePrioritySupply({
       certificateAmount: certificateAmount,
       activeSupply: _removal.getMarketBalance()
     });
@@ -327,30 +331,15 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
-   * and buyer is not priority.
-   *
-   * @param certificateAmount The number of carbon removals being purchased.
-   */
-  function _checkSupply(uint256 certificateAmount) private view {
-    uint256 activeSupply = _removal.getMarketBalance();
-    if (activeSupply == 0) {
-      revert OutOfStock();
-    }
-    if (certificateAmount > activeSupply) {
-      revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
-    }
-  }
-
-  /**
    * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority
    * buyers and buyer is not priority.
    *
-   * @param supplierAddress The supplier address to check.
+   * @param activeSupplyOfSupplier The amount of supply held by the supplier
    */
-  function _checkSupplyOfSupplier(address supplierAddress) internal view {
-    uint256 activeSupplyOfSupplier = _activeSupply[supplierAddress]
-      .getTotalBalanceFromRemovalQueue(_removal);
+  function _validateSuppliersSupply(uint256 activeSupplyOfSupplier)
+    internal
+    pure
+  {
     if (activeSupplyOfSupplier == 0) {
       revert OutOfStock();
     }
@@ -663,10 +652,13 @@ contract Market is PausableAccessPreset {
    * @param certificateAmount The number of carbon removals being purchased.
    * @param activeSupply The amount of active supply in the market.
    */
-  function _checkPrioritySupply(uint256 certificateAmount, uint256 activeSupply)
-    internal
-    view
-  {
+  function _validatePrioritySupply(
+    uint256 certificateAmount,
+    uint256 activeSupply
+  ) internal view {
+    if (activeSupply == 0) {
+      revert OutOfStock();
+    }
     (, uint256 supplyAfterPurchase) = SafeMathUpgradeable.trySub(
       activeSupply,
       certificateAmount

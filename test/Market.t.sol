@@ -372,20 +372,26 @@ contract Market__isAuthorizedWithdrawal_false is NonUpgradeableMarket {
   }
 }
 
-contract Market__checkPrioritySupply is NonUpgradeableMarket {
+contract Market__validatePrioritySupply is NonUpgradeableMarket {
   function test_supplyAfterPurchaseIsLessThanPriorityRestrictedThreshold()
     external
     view
   {
-    _checkPrioritySupply({certificateAmount: 0.5 ether, activeSupply: 1 ether});
+    _validatePrioritySupply({
+      certificateAmount: 0.5 ether,
+      activeSupply: 1 ether
+    });
   }
 
   function test_supplyAfterPurchaseIsZero() external view {
-    _checkPrioritySupply({certificateAmount: 1 ether, activeSupply: 1 ether});
+    _validatePrioritySupply({
+      certificateAmount: 1 ether,
+      activeSupply: 1 ether
+    });
   }
 }
 
-contract Market__checkPrioritySupply_buyerIsAllowlistedAndAmountExceedsPriorityRestrictedThreshold is
+contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriorityRestrictedThreshold is
   NonUpgradeableMarket
 {
   function setUp() external {
@@ -396,11 +402,14 @@ contract Market__checkPrioritySupply_buyerIsAllowlistedAndAmountExceedsPriorityR
   }
 
   function test() external view {
-    _checkPrioritySupply({certificateAmount: 1 ether, activeSupply: 1 ether});
+    _validatePrioritySupply({
+      certificateAmount: 1 ether,
+      activeSupply: 1 ether
+    });
   }
 }
 
-contract Market__checkPrioritySupply_reverts_LowSupplyAllowlistRequired is
+contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
   NonUpgradeableMarket
 {
   function setUp() external {
@@ -411,7 +420,10 @@ contract Market__checkPrioritySupply_reverts_LowSupplyAllowlistRequired is
 
   function test() external {
     vm.expectRevert(LowSupplyAllowlistRequired.selector);
-    _checkPrioritySupply({certificateAmount: 1 ether, activeSupply: 1 ether});
+    _validatePrioritySupply({
+      certificateAmount: 1 ether,
+      activeSupply: 1 ether
+    });
   }
 }
 
@@ -572,25 +584,16 @@ contract Market_onERC1155BatchReceived is UpgradeableMarket {
   }
 }
 
-contract Market__checkSupplyOfSupplier is
+contract Market__validateSuppliersSupply is
   NonUpgradeableMarket,
   UpgradeableRemoval
 {
-  function setUp() external {
-    vm.store(
-      address(this),
-      bytes32(uint256(251)), // sets the _removal storage slot to the market contract to enable mock calls
-      bytes32(uint256(uint160(address(this))))
-    );
-    _listForSale({id: REMOVAL_ID_FIXTURE});
+  function test() external pure {
+    _validateSuppliersSupply({activeSupplyOfSupplier: 1 ether});
   }
 
-  function test() external {
-    vm.mockCall(
-      address(this),
-      abi.encodeWithSelector(Removal.balanceOfIds.selector),
-      abi.encode(new uint256[](1).fill(1 ether))
-    );
-    _checkSupplyOfSupplier({supplierAddress: _namedAccounts.supplier});
+  function test_reverts_OutOfStock() external {
+    vm.expectRevert(OutOfStock.selector);
+    _validateSuppliersSupply({activeSupplyOfSupplier: 0});
   }
 }
