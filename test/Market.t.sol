@@ -589,11 +589,14 @@ contract Market__validateSuppliersSupply is
   UpgradeableRemoval
 {
   function test() external pure {
-    _validateSuppliersSupply({activeSupplyOfSupplier: 1 ether});
+    _validateSuppliersSupply({
+      certificateAmount: 0.5 ether,
+      activeSupplyOfSupplier: 1 ether
+    });
   }
 
   function test_reverts_OutOfStock() external {
-    vm.expectRevert(OutOfStock.selector);
-    _validateSuppliersSupply({activeSupplyOfSupplier: 0});
+    vm.expectRevert(InsufficientSupply.selector);
+    _validateSuppliersSupply({certificateAmount: 1, activeSupplyOfSupplier: 0});
   }
 }

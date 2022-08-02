@@ -229,9 +229,14 @@ contract Market is PausableAccessPreset {
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
+    uint256 activeSupply = _removal.getMarketBalance();
+    _validateSupply({
+      certificateAmount: certificateAmount,
+      activeSupply: activeSupply
+    });
     _validatePrioritySupply({
       certificateAmount: certificateAmount,
-      activeSupply: _removal.getMarketBalance()
+      activeSupply: activeSupply
     });
     (
       uint256 numberOfRemovals,
@@ -294,6 +299,7 @@ contract Market is PausableAccessPreset {
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
     _validateSuppliersSupply({
+      certificateAmount: certificateAmount,
       activeSupplyOfSupplier: _activeSupply[supplierToBuyFrom]
         .getTotalBalanceFromRemovalQueue(_removal)
     });
@@ -331,17 +337,53 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority
-   * buyers and buyer is not priority.
+   * @dev Reverts if total available supply in the market is not enough to fulfill the purchase.
    *
-   * @param activeSupplyOfSupplier The amount of supply held by the supplier
+   * @param certificateAmount The number of carbon removals being purchased
+   * @param activeSupply The amount of active supply in the market
    */
-  function _validateSuppliersSupply(uint256 activeSupplyOfSupplier)
+  function _validateSupply(uint256 certificateAmount, uint256 activeSupply)
     internal
     pure
   {
-    if (activeSupplyOfSupplier == 0) {
-      revert OutOfStock();
+    if (certificateAmount > activeSupply) {
+      revert InsufficientSupply();
+    }
+  }
+
+  /**
+   * @dev Reverts if supplier does not have enough supply to fulfill the supplier-specific purchase.
+   *
+   * @param certificateAmount The number of carbon removals being purchased
+   * @param activeSupplyOfSupplier The amount of supply held by the supplier
+   */
+  function _validateSuppliersSupply(
+    uint256 certificateAmount,
+    uint256 activeSupplyOfSupplier
+  ) internal pure {
+    if (certificateAmount > activeSupplyOfSupplier) {
+      revert InsufficientSupply();
+    }
+  }
+
+  /**
+   * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
+   *
+   * @param certificateAmount The number of carbon removals being purchased.
+   * @param activeSupply The amount of active supply in the market.
+   */
+  function _validatePrioritySupply(
+    uint256 certificateAmount,
+    uint256 activeSupply
+  ) internal view {
+    (, uint256 supplyAfterPurchase) = SafeMathUpgradeable.trySub(
+      activeSupply,
+      certificateAmount
+    );
+    if (supplyAfterPurchase < _priorityRestrictedThreshold) {
+      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+        revert LowSupplyAllowlistRequired();
+      }
     }
   }
 
@@ -643,30 +685,6 @@ contract Market is PausableAccessPreset {
       address(0) // If a new supplier has been added, or if the supplier had previously sold out
     ) {
       _addActiveSupplier(supplierAddress);
-    }
-  }
-
-  /**
-   * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
-   *
-   * @param certificateAmount The number of carbon removals being purchased.
-   * @param activeSupply The amount of active supply in the market.
-   */
-  function _validatePrioritySupply(
-    uint256 certificateAmount,
-    uint256 activeSupply
-  ) internal view {
-    if (activeSupply == 0) {
-      revert OutOfStock();
-    }
-    (, uint256 supplyAfterPurchase) = SafeMathUpgradeable.trySub(
-      activeSupply,
-      certificateAmount
-    );
-    if (supplyAfterPurchase < _priorityRestrictedThreshold) {
-      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
-        revert LowSupplyAllowlistRequired();
-      }
     }
   }
 
