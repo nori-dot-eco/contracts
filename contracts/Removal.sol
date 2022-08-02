@@ -11,6 +11,8 @@ import "./Errors.sol";
 // todo check that we are not re-defining logic inherited from `ERC1155SupplyUpgradeable` (esp. `totalSupply`)
 // todo Removal.sol defines several structs making it a strong candidate for gas optimization
 // todo consider removing cumulative fns and instead use multicall where needed to prevent defining fns that dont scale
+// todo we don't currently have a way of introspecting the full set of existent removal token ids - events solve this?
+// todo shouldn't we be able to mint more of the same id? what if we need to correct a balance?
 
 struct BatchMintRemovalsData {
   uint256 projectId; // todo what is the max project ID size? Smaller id allows tighter `BatchMintRemovalsData` struct.
@@ -32,7 +34,83 @@ struct RemovalData {
 }
 
 /**
- * @title Removal
+ * @title An extended ERC1155 token contract for carbon removal accounting.
+ *
+ * @author Nori Inc.
+ *
+ * @notice This contract uses ERC1155 tokens as an accounting system for keeping track of carbon that Nori has
+ * verified to have been removed from the atmosphere. Each token ID encodes information about the source of the
+ * removed carbon (see RemovalIdLib.sol for encoding details), and each token represents the smallest unit of
+ * carbon removal accounting.  For example, in an agricultural methodology, a specific token ID represents one
+ * parcel of land in a specific year.  The total supply of that token ID is the number of tonnes of carbon
+ * removed.
+ *
+ * ##### Behaviors and features
+ *
+ * ##### Minting
+ * - Only accounts with the MINTER_ROLE can mint removal tokens, which should only be account(s) controlled by Nori.
+ * - When removal tokens are minted, additional data about those removals are stored in a mapping, such as a projectId
+ * and a holdback percentage (which determines the percentage of the sale proceeds from the token that will be routed
+ * to the RestrictedNORI contract). A restriction schedule is created per projectId (if necessary) in RestrictedNORI
+ * (see RestrictedNORI.sol)
+ * - TODO can existant token ids be minted additional balance?
+ *
+ *
+ * ##### Listing
+ * - _Listing_ refers to the process of listing removal tokens for sale in Nori's marketplace (Market.sol)
+ * - Removals are listed for sale by transferring ownership of the tokens to the Market contract via
+ * `safeBatchTransferFrom`. If the `list` field of the `data` parameter in `mintBatch` is set to true,
+ * removal tokens will be listed in the same transaction that they are minted.
+ * - Only accounts with the MINTER_ROLE can list removals for sale in the market.
+ *
+ *
+ * ##### Releasing
+ * - _Releasing_ refers to the process of accounting for carbon that has failed to meet its permanence guarantee
+ * and has been released into the atmosphere prematurely.
+ * - This accounting is performed by burning the affected balance of a removal that has been released.
+ * - Only accounts with the RELEASER_ROLE can initiate a release.
+ * - When a removal token is released, balances are burned in a specific order until the released amount
+ * has been accounted for: Releasing burns first from unlisted balances, second from listed balances and third
+ * from any certificates in which this removal may have already been included. (see `Removal.release`)
+ * - Affected certificates will have any released balances replaced by new removals purchased by Nori, though an
+ * automated implementation of this process is beyond the scope of this version of the contracts.
+ *
+ *
+ * ##### Token ID encoding and decoding
+ * - This contract uses the inlined library RemovalIdLib.sol for uint256.
+ * - `createRemovalId` and `unpackRemovalIdV0` are exposed externally for encoding and decoding removal token IDs
+ * that contain uniquely identifying information about the removal. See RemovalIdLib.sol for encoding details.
+ *
+ * ###### Additional behaviors and features
+ *
+ * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
+ * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ *   - all functions that mutate state are pausable
+ * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
+ *    - MINTER_ROLE
+ *      - Can mint removal tokens and list them for sale in the Market contract
+ *    - RELEASER_ROLE
+ *      - Can release partial or full removal balances
+ *    - PAUSER_ROLE
+ *      - Can pause and unpause the contract
+ *    - DEFAULT_ADMIN_ROLE
+ *      - This is the only role that can add/revoke other accounts to any of the roles
+ * - [Limited ERC-1155 functionality](https://eips.ethereum.org/EIPS/eip-1155)
+ *   - `mint` and `safeTransferFrom` will revert as only the batch variants are expected to be used
+ *   - TODO how else does this contract deviate from standard ERC1155 functionality?
+ *
+ * ##### Inherits
+ * TODO
+ *
+ * ##### Implements
+ * TODO
+ *
+ * ##### Uses
+ *
+ * - [RemovalIdLib](./RemovalIdLib.md) for uint256
+ * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
+ *
  */
 contract Removal is
   ERC1155SupplyUpgradeable,
