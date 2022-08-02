@@ -179,9 +179,9 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
   }
 }
 
-contract Removal_release is UpgradeableMarket {
+contract Removal_release_reverts_AccessControl is UpgradeableMarket {
   // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
-  function test_revert_missingReleaserRole() external {
+  function test() external {
     vm.prank(address(0));
     vm.expectRevert(
       bytes(

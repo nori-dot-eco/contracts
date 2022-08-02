@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
@@ -8,7 +7,7 @@ import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
-import {ArrayLengthMismatch} from "./Errors.sol";
+import "./Errors.sol";
 
 // todo Is this fully addressed: https://github.com/nori-dot-eco/contracts/pull/249/files#r906867575
 
@@ -130,13 +129,6 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
   using RestrictedNORILib for Schedule;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-
-  error RecipientCannotBeZeroAddress();
-  error NonexistentSchedule(uint256 scheduleId);
-  error InsufficientUnreleasedTokens(uint256 scheduleId);
-  error InsufficientClaimableBalance(address account, uint256 scheduleId);
-  error InvalidMinter(address account);
-  error InvalidZeroDuration();
 
   /**
    * @notice Role conferring creation of schedules.

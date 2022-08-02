@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
-import {ArrayLengthMismatch} from "./Errors.sol";
+import "./Errors.sol";
 
 // todo shared Consider a shared MinterAccessPreset base contract that handles minting roles so role names can be shared
 // todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
@@ -176,6 +175,7 @@ contract Removal is
     external
     onlyRole(RELEASER_ROLE)
   {
+    // todo might need to add pagination/incremental if removal spans a ton of certificates and reaches max gas
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
       account: RemovalIdLib.supplierAddress(removalId),
