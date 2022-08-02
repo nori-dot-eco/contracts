@@ -1,8 +1,5 @@
 import { MaxUint256 } from '@/constants/units';
-import {
-  expect,
-  setupTest,
-} from '@/test/helpers';
+import { expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 import sinon from 'sinon';
 
@@ -38,11 +35,11 @@ describe('Certificate', () => {
         v,
         r,
         s
-    );
+      );
     const formattedRemovalAmount = formatTokenAmount(removalAmount);
-    await expect(removal.release(removalId, formattedRemovalAmount))
+    await expect(removal.release(removalId, purchaseAmount))
       .to.emit(certificate, 'RemovalReleased')
-      .withArgs(removalId, formattedRemovalAmount);
+      .withArgs(0, removalId, formattedRemovalAmount);
   });
   it('should emit a ReceiveRemovalBatch event when Certificate is created', async () => {
     const removalAmount = 3;
@@ -82,9 +79,9 @@ describe('Certificate', () => {
       .withArgs(
         removal.address,
         buyer.address,
-        sinon.match.any, // TODO: How to get CertificateId here?
+        0,
         [removalId],
-        [removalAmount]
+        [purchaseAmount]
       );
   });
 });
