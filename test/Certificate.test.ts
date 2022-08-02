@@ -37,9 +37,9 @@ describe('Certificate', () => {
         s
       );
     const formattedRemovalAmount = formatTokenAmount(removalAmount);
-    await expect(removal.release(removalId, purchaseAmount))
+    await expect(removal.release(removalId, formattedRemovalAmount))
       .to.emit(certificate, 'RemovalReleased')
-      .withArgs(0, removalId, formattedRemovalAmount);
+      .withArgs(0, removalId, purchaseAmount);
   });
   it('should emit a ReceiveRemovalBatch event when Certificate is created', async () => {
     const removalAmount = 3;
