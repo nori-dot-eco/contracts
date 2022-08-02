@@ -48,8 +48,8 @@ contract Market is PausableAccessPreset {
   uint256 private _noriFeePercentage;
   uint256 private _priorityRestrictedThreshold;
   address private _currentSupplierAddress;
-  mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
-  mapping(address => RemovalQueueByVintage) private _activeSupply;
+  mapping(address => RoundRobinOrder) internal _suppliersInRoundRobinOrder;
+  mapping(address => RemovalQueueByVintage) internal _activeSupply;
 
   /**
    * @notice Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
@@ -91,6 +91,8 @@ contract Market is PausableAccessPreset {
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
   }
+
+  
 
   /**
    * @notice Returns the current value of the priority restricted threshold, which is the amount of inventory
@@ -185,7 +187,7 @@ contract Market is PausableAccessPreset {
   ) external returns (bytes4) {
     // todo revert if Market.onERC1155BatchReceived sender is not the removal contract
     for (uint256 i = 0; i < ids.length; i++) {
-      _listRemovalForSale({id: ids[i]});
+      _listForSale({id: ids[i]});
     }
     return this.onERC1155BatchReceived.selector;
   }
@@ -198,7 +200,7 @@ contract Market is PausableAccessPreset {
     bytes calldata
   ) external returns (bytes4) {
     // todo revert if Market.onERC1155Received sender is not the removal contract
-    _listRemovalForSale({id: id});
+    _listForSale({id: id});
     return this.onERC1155Received.selector;
   }
 
@@ -346,7 +348,7 @@ contract Market is PausableAccessPreset {
    *
    * @param supplierAddress The supplier address to check.
    */
-  function _checkSupplyOfSupplier(address supplierAddress) private view {
+  function _checkSupplyOfSupplier(address supplierAddress) internal view {
     uint256 activeSupplyOfSupplier = _activeSupply[supplierAddress]
       .getTotalBalanceFromRemovalQueue(_removal);
     if (activeSupplyOfSupplier == 0) {
@@ -644,7 +646,7 @@ contract Market is PausableAccessPreset {
       _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
   }
 
-  function _listRemovalForSale(uint256 id) internal {
+  function _listForSale(uint256 id) internal {
     address supplierAddress = RemovalIdLib.supplierAddress(id);
     _activeSupply[supplierAddress].insertRemovalByVintage(id);
     if (
