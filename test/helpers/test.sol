@@ -9,7 +9,7 @@ import {PRBTest} from "@prb/test/PRBTest.sol";
 
 abstract contract Global is PRBTest {
   struct NamedAccounts {
-    // todo generate from mnemonic env variables
+    address deployer; // the default sender account for transactions configured in foundry.toml
     address admin;
     address supplier;
     address supplier2;
@@ -18,6 +18,8 @@ abstract contract Global is PRBTest {
 
   NamedAccounts internal _namedAccounts =
     NamedAccounts({
+      // todo use .env: https://book.getfoundry.sh/tutorials/solidity-scripting?highlight=.env#deploying-our-contract
+      deployer: 0x465d5a3fFeA4CD109043499Fa576c3E16f918463,
       admin: account("admin"),
       supplier: account("supplier"),
       supplier2: account("supplier2"),

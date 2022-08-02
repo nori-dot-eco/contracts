@@ -5,7 +5,6 @@ import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "./Errors.sol";
-import "forge-std/console2.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 /**
@@ -671,7 +670,6 @@ contract Market is PausableAccessPreset {
       certificateAmount
     );
     if (supply <= _priorityRestrictedThreshold) {
-      console2.log("sender", _msgSender());
       if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
         revert LowSupplyAllowlistRequired();
       }

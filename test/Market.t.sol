@@ -378,10 +378,8 @@ contract Market__checkPrioritySupply is NonUpgradeableMarket {
 }
 
 contract Market__checkPrioritySupply_ALLOWLIST_ROLE is NonUpgradeableMarket {
-  address private deployer = 0x00a329c0648769A73afAc7F9381E08FB43dBEA72;
-
   function setUp() external {
-    _grantRole({role: ALLOWLIST_ROLE, account: deployer});
+    _grantRole({role: ALLOWLIST_ROLE, account: _namedAccounts.deployer});
   }
 
   function test() external view {
