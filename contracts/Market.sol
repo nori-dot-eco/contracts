@@ -178,23 +178,27 @@ contract Market is PausableAccessPreset {
   function onERC1155BatchReceived(
     address,
     address,
-    uint256[] memory ids,
+    uint256[] memory ids, // todo calldata?
     uint256[] memory,
     bytes memory
   ) external returns (bytes4) {
     // todo revert if Market.onERC1155BatchReceived sender is not the removal contract
     for (uint256 i = 0; i < ids.length; i++) {
-      uint256 removalToAdd = ids[i];
-      address supplierAddress = RemovalIdLib.supplierAddress(removalToAdd);
-      _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
-      if (
-        _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
-        address(0) // If a new supplier has been added, or if the supplier had previously sold out
-      ) {
-        _addActiveSupplier(supplierAddress);
-      }
+      _listRemovalForSale({id: ids[i]});
     }
     return this.onERC1155BatchReceived.selector;
+  }
+
+  function onERC1155Received(
+    address,
+    address,
+    uint256 id,
+    uint256,
+    bytes calldata
+  ) external returns (bytes4) {
+    // todo revert if Market.onERC1155Received sender is not the removal contract
+    _listRemovalForSale({id: id});
+    return this.onERC1155Received.selector;
   }
 
   /**
@@ -285,10 +289,8 @@ contract Market is PausableAccessPreset {
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
-    _checkSupplyOfSupplier({
-      supplierAddress: supplierToBuyFrom,
-      certificateAmount: certificateAmount
-    });
+    _checkSupplyOfSupplier({supplierAddress: supplierToBuyFrom});
+    _checkSupply({certificateAmount: certificateAmount});
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -340,28 +342,16 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority buyers
-   * and buyer is not priority.
+   * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority
+   * buyers and buyer is not priority.
    *
-   * @param certificateAmount The number of carbon removals being purchased.
+   * @param supplierAddress The supplier address to check.
    */
-  function _checkSupplyOfSupplier(
-    uint256 certificateAmount,
-    address supplierAddress
-  ) private view {
+  function _checkSupplyOfSupplier(address supplierAddress) private view {
     uint256 activeSupplyOfSupplier = _activeSupply[supplierAddress]
       .getTotalBalanceFromRemovalQueue(_removal);
     if (activeSupplyOfSupplier == 0) {
       revert OutOfStock();
-    }
-    if (certificateAmount > activeSupplyOfSupplier) {
-      revert InsufficientSupply(); // todo Assure `_checkSupplyOfSupplier` validates all possible market supply states
-    }
-    uint256 totalActiveSupply = _removal.cumulativeBalanceOf(address(this));
-    if (totalActiveSupply <= _priorityRestrictedThreshold) {
-      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
-        revert LowSupplyAllowlistRequired();
-      }
     }
   }
 
@@ -635,7 +625,7 @@ contract Market is PausableAccessPreset {
    */
   function withdraw(uint256 removalId) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
+    if (_isAuthorizedWithdrawl({owner: supplierAddress})) {
       _removeActiveRemoval(supplierAddress, removalId);
       _removal.safeTransferFrom({
         from: address(this),
@@ -653,6 +643,17 @@ contract Market is PausableAccessPreset {
     return (_msgSender() == owner ||
       hasRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()}) ||
       _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
+  }
+
+  function _listRemovalForSale(uint256 id) internal {
+    address supplierAddress = RemovalIdLib.supplierAddress(id);
+    _activeSupply[supplierAddress].insertRemovalByVintage(id);
+    if (
+      _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
+      address(0) // If a new supplier has been added, or if the supplier had previously sold out
+    ) {
+      _addActiveSupplier(supplierAddress);
+    }
   }
 
   /**
