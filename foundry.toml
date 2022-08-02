@@ -1,4 +1,6 @@
 [profile.default]
+sender = "0x465d5a3fFeA4CD109043499Fa576c3E16f918463"
+tx_origin = "0x465d5a3fFeA4CD109043499Fa576c3E16f918463"
 via_ir = false # todo enable via_ir for deployments
 src = 'contracts'
 out = 'out'

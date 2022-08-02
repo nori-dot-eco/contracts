@@ -188,6 +188,7 @@ contract Removal is
     external
     onlyRole(RELEASER_ROLE)
   {
+    // todo might need to add pagination/incremental if removal spans a ton of certificates and reaches max gas
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
       account: RemovalIdLib.supplierAddress(removalId),

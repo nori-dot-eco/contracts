@@ -178,7 +178,7 @@ library RemovalQueue {
       for (i = 0; i < size; i++) {
         ids[i] = removalQueue.queueByVintage[currentYear].at(i);
       }
-      uint256[] memory batchedBalances = removal.balanceOfIds(
+      uint256[] memory batchedBalances = removal.balanceOfIds( // todo batch
         address(this),
         ids
       );
