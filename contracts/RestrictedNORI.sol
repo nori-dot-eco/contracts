@@ -354,6 +354,13 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
   }
 
   /**
+   * @notice Returns the existence of a schedule
+   */
+  function scheduleExists(uint256 scheduleId) public view returns (bool) {
+    return _scheduleIdToScheduleStruct[scheduleId].exists;
+  }
+
+  /**
    * @notice Returns an array of summary structs for the specified schedules.
    */
   function batchGetScheduleSummaries(uint256[] calldata scheduleIds)
@@ -474,14 +481,19 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
     uint8 methodology,
     uint8 methodologyVersion
   ) external whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
-    if (!_scheduleIdToScheduleStruct[projectId].exists) {
-      _createSchedule({
-        projectId: projectId,
-        startTime: startTime,
+    uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion({
         methodology: methodology,
         methodologyVersion: methodologyVersion
       });
-    }
+    _validateSchedule({
+      startTime: startTime,
+      restrictionDuration: restrictionDuration
+    });
+    _createSchedule({
+      projectId: projectId,
+      startTime: startTime,
+      restrictionDuration: restrictionDuration
+    });
   }
 
   /**
@@ -695,21 +707,23 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
   function _createSchedule(
     uint256 projectId,
     uint256 startTime,
-    uint8 methodology,
-    uint8 methodologyVersion
+    uint256 restrictionDuration
   ) internal {
-    require(startTime != 0, "rNORI: Invalid start time");
-    require(_allScheduleIds.add(projectId), "rNORI: Schedule exists");
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion({
-        methodology: methodology,
-        methodologyVersion: methodologyVersion
-      });
-    require(restrictionDuration != 0, "rNORI: duration not set");
     schedule.exists = true;
     schedule.startTime = startTime;
     schedule.endTime = startTime + restrictionDuration;
+    _allScheduleIds.add(projectId);
     emit ScheduleCreated(projectId, startTime, schedule.endTime);
+  }
+
+  function _validateSchedule(uint256 startTime, uint256 restrictionDuration)
+    internal
+    pure
+  {
+    // todo this can probably be moved to the rNoriLib along with _createSchedule (if not, some schedule creator lib)
+    require(startTime != 0, "rNORI: Invalid start time");
+    require(restrictionDuration != 0, "rNORI: duration not set");
   }
 
   /**

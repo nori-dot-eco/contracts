@@ -24,6 +24,17 @@ abstract contract Global is PRBTest {
       buyer: account("buyer")
     });
 
+  event LogNamedArray(string key, uint8[] value);
+
+  /** @dev Checks if `a` equals `b`. */
+  function eq(uint8[] memory a, uint8[] memory b)
+    private
+    pure
+    returns (bool result)
+  {
+    result = keccak256(abi.encode(a)) == keccak256(abi.encode(b));
+  }
+
   function account(string memory name) internal returns (address) {
     address addr = address(
       uint160(uint256((keccak256(abi.encodePacked(name)))))
@@ -52,6 +63,15 @@ abstract contract Global is PRBTest {
     address[] memory array = new address[](1);
     array[0] = element;
     return array;
+  }
+
+  function assertEq(uint8[] memory a, uint8[] memory b) internal virtual {
+    if (!eq(a, b)) {
+      emit Log("Error: a == b not satisfied [uint8[]]");
+      emit LogNamedArray("  Expected", b);
+      emit LogNamedArray("    Actual", a);
+      fail();
+    }
   }
 }
 

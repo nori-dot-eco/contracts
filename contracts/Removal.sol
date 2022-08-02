@@ -127,15 +127,18 @@ contract Removal is
     }
     uint256 projectId = data.projectId;
     _projectIdToHoldbackPercentage[projectId] = data.holdbackPercentage;
-    _createRemovalDataBatch({ids: ids, projectId: projectId});
+    _createRemovalDataBatch({removalIds: ids, projectId: projectId});
     _mintBatch(to, ids, amounts, "");
-    uint256 firstRemoval = ids[0];
-    RestrictedNORI(_market.restrictedNoriAddress()).createSchedule({
-      projectId: projectId,
-      startTime: data.scheduleStartTime,
-      methodology: RemovalIdLib.methodology(firstRemoval), // todo enforce same methodology+version across ids?
-      methodologyVersion: RemovalIdLib.methodologyVersion(firstRemoval)
-    });
+    RestrictedNORI rNori = RestrictedNORI(_market.restrictedNoriAddress());
+    if (!rNori.scheduleExists({scheduleId: projectId})) {
+      uint256 firstRemoval = ids[0];
+      rNori.createSchedule({
+        projectId: projectId,
+        startTime: data.scheduleStartTime,
+        methodology: RemovalIdLib.methodology(firstRemoval), // todo enforce same methodology+version across ids?
+        methodologyVersion: RemovalIdLib.methodologyVersion(firstRemoval)
+      });
+    }
     if (data.list) {
       safeBatchTransferFrom({
         from: to,
@@ -222,17 +225,16 @@ contract Removal is
   }
 
   /** @notice Gets the holdback percentages for a batch of removal ids. */
-  function batchGetHoldbackPercentages(uint256[] memory removalIds)
+  function batchGetHoldbackPercentages(uint256[] memory ids)
     external
     view
-    returns (uint256[] memory)
+    returns (uint8[] memory)
   {
-    uint256 numberOfRemovals = removalIds.length;
-    uint256[] memory holdbackPercentages = new uint256[](numberOfRemovals);
+    uint256 numberOfRemovals = ids.length;
+    uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      uint256 id = removalIds[i];
       holdbackPercentages[i] = _projectIdToHoldbackPercentage[
-        _removalIdToProjectId[removalIds[i]]
+        _removalIdToProjectId[ids[i]]
       ];
     }
     return holdbackPercentages;
@@ -392,19 +394,20 @@ contract Removal is
     super._burn(RemovalIdLib.supplierAddress(removalId), removalId, amount);
   }
 
-  function _createRemovalDataBatch(uint256[] calldata ids, uint256 projectId)
-    internal
-  {
+  function _createRemovalDataBatch(
+    uint256[] calldata removalIds,
+    uint256 projectId
+  ) internal {
     // Skip overflow check as for loop is indexed starting at zero.
     unchecked {
-      for (uint256 i = 0; i < ids.length; ++i) {
-        _createRemovalData({removalId: ids[i], projectId: projectId});
+      for (uint256 i = 0; i < removalIds.length; ++i) {
+        _createRemovalData({removalId: removalIds[i], projectId: projectId});
       }
     }
   }
 
   function _createRemovalData(uint256 removalId, uint256 projectId) internal {
-    _validateRemovalData({removalId: removalId});
+    _validateRemoval({id: removalId});
     _removalIdToProjectId[removalId] = projectId;
   }
 
@@ -468,9 +471,9 @@ contract Removal is
     super._afterTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
-  function _validateRemovalData(uint256 removalId) internal view {
-    if (_removalIdToProjectId[removalId] != 0) {
-      revert TokenIdExists(removalId);
+  function _validateRemoval(uint256 id) internal view {
+    if (_removalIdToProjectId[id] != 0) {
+      revert TokenIdExists(id);
     }
   }
 }
