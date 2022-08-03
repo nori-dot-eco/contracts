@@ -3,6 +3,8 @@ import path from 'path';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 
+import { defaultRemovalTokenIdFixture } from '../test/fixtures/removal';
+
 import { generateRandomSubIdentifier } from './removal';
 
 import type {
@@ -27,7 +29,6 @@ import type {
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
 import {
-  createRemovalTokenId,
   mockDepositNoriToPolygon,
   createBatchMintData,
   getLatestBlockTime,
@@ -365,25 +366,21 @@ export const seedContracts = async ({
     contracts.Market !== undefined &&
     contracts.Removal !== undefined
   ) {
-    const tokenId = await createRemovalTokenId({
-      removal: contracts.Removal,
-      hre,
-      removalData: {
-        supplierAddress: hre.namedAccounts.supplier,
-        subIdentifier: generateRandomSubIdentifier(), // keep token ids unique
-      },
-    });
-    const listNow = true;
+    const tokenId = {
+      ...defaultRemovalTokenIdFixture,
+      subIdentifier: generateRandomSubIdentifier(), // keep token ids unique
+    };
     const packedData = await createBatchMintData({
       hre,
-      listNow,
       scheduleStartTime: await getLatestBlockTime({ hre }),
     });
     const tx = await contracts.Removal.mintBatch(
-      hre.namedAccounts.supplier,
+      contracts.Market.address,
       [formatTokenAmount(100)],
       [tokenId],
-      packedData
+      packedData.projectId,
+      packedData.scheduleStartTime,
+      packedData.holdbackPercentage
     );
     hre.trace('Listed 100 NRTs for sale in Market', { tx: tx.hash });
   }

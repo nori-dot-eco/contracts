@@ -61,22 +61,21 @@ library RemovalIdLib {
     }
   }
 
-  function validate(UnpackedRemovalIdV0 memory removalData) internal pure {
-    if (removalData.idVersion != 0) {
-      revert UnsupportedIdVersion({idVersion: removalData.idVersion});
+  function validate(UnpackedRemovalIdV0 memory removal) internal pure {
+    if (removal.idVersion != 0) {
+      revert UnsupportedIdVersion({idVersion: removal.idVersion});
     }
-    if (removalData.methodologyVersion > 15) {
+    if (removal.methodologyVersion > 15) {
       revert MethodologyVersionTooLarge({
-        methodologyVersion: removalData.methodologyVersion
+        methodologyVersion: removal.methodologyVersion
       });
     }
     if (
-      !(isCapitalized(removalData.country) &&
-        isCapitalized(removalData.subdivision))
+      !(isCapitalized(removal.country) && isCapitalized(removal.subdivision))
     ) {
       revert UncapitalizedString({
-        country: removalData.country,
-        subdivision: removalData.subdivision
+        country: removal.country,
+        subdivision: removal.subdivision
       });
     }
   }
@@ -85,29 +84,26 @@ library RemovalIdLib {
    * @notice Packs data about a removal into a 256-bit token id for the removal.
    * @dev Performs some possible validations on the data before attempting to create the id.
    *
-   * @param removalData removal data struct to be packed into a uint256 ID
+   * @param removal removal data struct to be packed into a uint256 ID
    */
-  function createRemovalId(UnpackedRemovalIdV0 memory removalData)
-    internal
-    pure
-    returns (uint256)
-  {
-    removalData.validate();
-    uint256 methodologyData = (removalData.methodology << 4) |
-      removalData.methodologyVersion;
+  function createRemovalId(
+    UnpackedRemovalIdV0 memory removal // todo rename create
+  ) internal pure returns (uint256) {
+    removal.validate();
+    uint256 methodologyData = (removal.methodology << 4) |
+      removal.methodologyVersion;
     return
-      (uint256(removalData.idVersion) <<
-        (_ID_VERSION_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(removal.idVersion) << (_ID_VERSION_OFFSET * _BITS_PER_BYTE)) |
       (uint256(methodologyData) <<
         (_METHODOLOGY_DATA_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(removalData.vintage) << (_VINTAGE_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(uint16(removalData.country)) <<
+      (uint256(removal.vintage) << (_VINTAGE_OFFSET * _BITS_PER_BYTE)) |
+      (uint256(uint16(removal.country)) <<
         (_COUNTRY_CODE_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(uint16(removalData.subdivision)) <<
+      (uint256(uint16(removal.subdivision)) <<
         (_ADMIN1_CODE_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(uint160(removalData.supplierAddress)) <<
+      (uint256(uint160(removal.supplierAddress)) <<
         (_ADDRESS_OFFSET * _BITS_PER_BYTE)) |
-      (uint256(removalData.subIdentifier) << (_SUBID_OFFSET * _BITS_PER_BYTE));
+      (uint256(removal.subIdentifier) << (_SUBID_OFFSET * _BITS_PER_BYTE));
   }
 
   /**
