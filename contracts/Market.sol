@@ -608,7 +608,6 @@ contract Market is PausableAccessPreset {
     address[] memory suppliers
   ) external {
     // todo verify changes to `fulfillOrder` (memory->calldata arr args) that enabled [:index] arr slicing syntax is ok
-    bytes[] memory rNoriMintCalls = new bytes[](numberOfRemovals);
     uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
     uint8[] memory holdbackPercentages = _getHoldbackPercentages(batchedIds);
