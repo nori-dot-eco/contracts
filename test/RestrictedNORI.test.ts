@@ -1,10 +1,11 @@
 /* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "compareScheduleDetailForAddressStructs", "compareScheduleSummaryStructs"] }] -- have ticket to fix expect statements in these utilities */
+import { defaultRemovalTokenIdFixture } from './fixtures/removal';
+
 import { formatTokenAmount, formatTokenString } from '@/utils/units';
 import { FINNEY, Zero } from '@/constants/units';
 import {
   expect,
   advanceTime,
-  createRemovalTokenId,
   getLatestBlockTime,
   batchMintAndListRemovalsForSale,
   createBatchMintData,
@@ -142,28 +143,28 @@ describe('RestrictedNORI', () => {
       ).to.be.reverted;
     });
     it('should revert if a restriction schedule is being created for a methodology/version that does not have a duration set', async () => {
-      const { removal, hre } = await setupTest();
-      const removalIdWithMethodology2 = await createRemovalTokenId({
-        removal,
-        removalData: { methodology: 2 },
-        hre,
-      });
+      const { removal, hre, market } = await setupTest();
+      const removalIdWithMethodology2 = {
+        ...defaultRemovalTokenIdFixture,
+        methodology: 2,
+      };
       const projectId = 1_234_567_890;
       const scheduleStartTime = await getLatestBlockTime({ hre });
       const amount = 20_000_000;
       const packedData = await createBatchMintData({
         hre,
-        listNow: true,
         projectId,
-        scheduleStartTime, 
+        scheduleStartTime,
       });
 
       await expect(
         removal.mintBatch(
-          hre.namedAccounts.supplier,
+          market.address,
           [amount],
           [removalIdWithMethodology2],
-          packedData
+          packedData.projectId,
+          packedData.scheduleStartTime,
+          packedData.holdbackPercentage
         )
       ).to.be.revertedWith('rNORI: duration not set');
     });
@@ -183,29 +184,27 @@ describe('RestrictedNORI', () => {
         scheduleStartTime: await getLatestBlockTime({ hre }),
       };
       const { supplier } = hre.namedAccounts;
-      const removalTokenId = await createRemovalTokenId({
-        removal,
-        hre,
-        removalData: {
-          supplierAddress: supplier,
-          vintage: 2016,
-          subIdentifier: 9_999_999,
-        },
-      });
+      const removalTokenId = await {
+        ...defaultRemovalTokenIdFixture,
+        vintage: 2016,
+        subIdentifier: 9_999_999,
+      };
       const removalAmounts = removals.map((removalData) =>
         formatTokenString(removalData.amount.toString())
       );
+      const packedData = await createBatchMintData({
+        hre,
+        projectId,
+        scheduleStartTime,
+      });
       await removal.mintBatch(
         // mint removals but don't list yet (or a schedule will be created via listing)
         supplier,
         removalAmounts,
         [removalTokenId],
-        await createBatchMintData({
-          hre,
-          listNow: false,
-          projectId,
-          scheduleStartTime,
-        })
+        packedData.projectId,
+        packedData.scheduleStartTime,
+        packedData.holdbackPercentage
       );
       const scheduleSummary = await rNori.getScheduleSummary(projectId);
       expect(scheduleSummary.scheduleTokenId).to.equal(projectId);
@@ -297,10 +296,16 @@ describe('RestrictedNORI', () => {
           },
         },
       });
-      const { rNori, bpNori, hre, listedRemovalIds } = testSetup;
+      const { rNori, bpNori, hre, listedRemovalIds, removalTestHarness } =
+        testSetup;
       await bpNori.transfer(rNori.address, 1);
       await expect(
-        rNori.connect(hre.namedSigners.buyer).mint(1, listedRemovalIds[0])
+        rNori
+          .connect(hre.namedSigners.buyer)
+          .mint(
+            1,
+            await removalTestHarness.createRemovalId(listedRemovalIds[0])
+          )
       ).to.be.revertedWith(`InvalidMinter("${hre.namedAccounts.buyer}")`);
     });
   });
@@ -326,12 +331,22 @@ describe('RestrictedNORI', () => {
           },
         },
       });
-      const { rNori, hre, removalAmounts, listedRemovalIds, projectId } =
-        testSetup;
+      const {
+        rNori,
+        hre,
+        removalAmounts,
+        listedRemovalIds,
+        projectId,
+        removalTestHarness,
+      } = testSetup;
       const { supplier } = hre.namedAccounts;
       await restrictRemovalProceeds({
         testSetup,
-        removalIds: listedRemovalIds,
+        removalIds: await Promise.all(
+          listedRemovalIds.map(async (r) =>
+            removalTestHarness.createRemovalId(r)
+          )
+        ),
         removalAmountsToRestrict: removalAmounts,
       });
       const claimableBalanceForSchedule =
@@ -373,11 +388,16 @@ describe('RestrictedNORI', () => {
         scheduleStartTime,
         totalAmountOfSupply,
         removalAmounts,
+        removalTestHarness,
       } = testSetup;
       const { supplier } = hre.namedAccounts;
       await restrictRemovalProceeds({
         testSetup,
-        removalIds: listedRemovalIds,
+        removalIds: await Promise.all(
+          listedRemovalIds.map(async (r) =>
+            removalTestHarness.createRemovalId(r)
+          )
+        ),
         removalAmountsToRestrict: removalAmounts,
       });
       await advanceTime({
@@ -418,10 +438,13 @@ describe('RestrictedNORI', () => {
         projectId,
         scheduleStartTime,
         removalAmounts,
+        removalTestHarness,
       } = testSetup;
       await restrictRemovalProceeds({
         testSetup,
-        removalIds: [listedRemovalIds[0]],
+        removalIds: [
+          await removalTestHarness.createRemovalId(listedRemovalIds[0]),
+        ],
         removalAmountsToRestrict: [removalAmounts[0]],
       });
       await advanceTime({
@@ -435,7 +458,9 @@ describe('RestrictedNORI', () => {
       );
       await restrictRemovalProceeds({
         testSetup,
-        removalIds: [listedRemovalIds[1]],
+        removalIds: [
+          await removalTestHarness.createRemovalId(listedRemovalIds[1]),
+        ],
         removalAmountsToRestrict: [removalAmounts[1]],
       });
       const claimableBalanceAfterSecondRestriction =
@@ -469,11 +494,16 @@ describe('RestrictedNORI', () => {
           projectId,
           scheduleStartTime,
           removalAmounts,
+          removalTestHarness,
         } = testSetup;
         const { supplier } = hre.namedAccounts;
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         await advanceTime({
@@ -527,11 +557,16 @@ describe('RestrictedNORI', () => {
           projectId,
           scheduleStartTime,
           removalAmounts,
+          removalTestHarness,
         } = testSetup;
         const { supplier } = hre.namedAccounts;
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         await advanceTime({
@@ -578,11 +613,16 @@ describe('RestrictedNORI', () => {
           projectId,
           scheduleStartTime,
           removalAmounts,
+          removalTestHarness,
         } = testSetup;
         const { supplier, investor1 } = hre.namedAccounts;
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         await advanceTime({
@@ -638,11 +678,16 @@ describe('RestrictedNORI', () => {
           projectId,
           scheduleStartTime,
           removalAmounts,
+          removalTestHarness,
         } = testSetup;
         const { supplier, investor1, employee } = hre.namedAccounts;
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         await rNori
@@ -754,11 +799,16 @@ describe('RestrictedNORI', () => {
           projectId,
           scheduleStartTime,
           removalAmounts,
+          removalTestHarness,
         } = testSetup;
         const { supplier } = hre.namedAccounts;
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         await advanceTime({
@@ -799,12 +849,22 @@ describe('RestrictedNORI', () => {
               },
             },
           });
-          const { rNori, hre, listedRemovalIds, projectId, removalAmounts } =
-            testSetup;
+          const {
+            rNori,
+            hre,
+            listedRemovalIds,
+            projectId,
+            removalAmounts,
+            removalTestHarness,
+          } = testSetup;
           const { supplier, investor1 } = hre.namedAccounts;
           await restrictRemovalProceeds({
             testSetup,
-            removalIds: listedRemovalIds,
+            removalIds: await Promise.all(
+              listedRemovalIds.map(async (r) =>
+                removalTestHarness.createRemovalId(r)
+              )
+            ),
             removalAmountsToRestrict: removalAmounts,
           });
           const supplierScheduleDetailBeforeTransfer =
@@ -884,12 +944,22 @@ describe('RestrictedNORI', () => {
               },
             },
           });
-          const { rNori, hre, listedRemovalIds, projectId, removalAmounts } =
-            testSetup;
+          const {
+            rNori,
+            hre,
+            listedRemovalIds,
+            projectId,
+            removalAmounts,
+            removalTestHarness,
+          } = testSetup;
           const { supplier, investor1 } = hre.namedAccounts;
           await restrictRemovalProceeds({
             testSetup,
-            removalIds: listedRemovalIds,
+            removalIds: await Promise.all(
+              listedRemovalIds.map(async (r) =>
+                removalTestHarness.createRemovalId(r)
+              )
+            ),
             removalAmountsToRestrict: removalAmounts,
           });
           const supplierScheduleDetailBeforeTransfer =
@@ -973,7 +1043,7 @@ describe('RestrictedNORI', () => {
               },
             },
           });
-          const { rNori, hre } = testSetup;
+          const { rNori, hre, removalTestHarness } = testSetup;
           const { listedRemovalIds: listedRemovalIds1, projectId: projectId1 } =
             await batchMintAndListRemovalsForSale({
               ...testSetup,
@@ -996,7 +1066,10 @@ describe('RestrictedNORI', () => {
           );
           await restrictRemovalProceeds({
             testSetup,
-            removalIds: [listedRemovalIds1[0], listedRemovalIds2[0]],
+            removalIds: [
+              await removalTestHarness.createRemovalId(listedRemovalIds1[0]),
+              await removalTestHarness.createRemovalId(listedRemovalIds2[0]),
+            ],
             removalAmountsToRestrict: restrictedAmounts,
           });
           // just to make the claimable balances easily computable
@@ -1146,7 +1219,7 @@ describe('RestrictedNORI', () => {
               },
             },
           });
-          const { rNori, hre } = testSetup;
+          const { rNori, hre, removalTestHarness } = testSetup;
           const { listedRemovalIds: listedRemovalIds1, projectId: projectId1 } =
             await batchMintAndListRemovalsForSale({
               ...testSetup,
@@ -1166,7 +1239,10 @@ describe('RestrictedNORI', () => {
           );
           await restrictRemovalProceeds({
             testSetup,
-            removalIds: [listedRemovalIds1[0], listedRemovalIds2[0]],
+            removalIds: [
+              await removalTestHarness.createRemovalId(listedRemovalIds1[0]),
+              await removalTestHarness.createRemovalId(listedRemovalIds2[0]),
+            ],
             removalAmountsToRestrict: restrictedAmounts,
           });
           const supplierScheduleDetailsBeforeTransfer =
@@ -1280,12 +1356,22 @@ describe('RestrictedNORI', () => {
             },
           },
         });
-        const { rNori, hre, listedRemovalIds, projectId, removalAmounts } =
-          testSetup;
+        const {
+          rNori,
+          hre,
+          listedRemovalIds,
+          projectId,
+          removalAmounts,
+          removalTestHarness,
+        } = testSetup;
         const { supplier, investor1 } = hre.namedAccounts;
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         await expect(
@@ -1319,12 +1405,17 @@ describe('RestrictedNORI', () => {
           projectId,
           removalAmounts,
           scheduleStartTime,
+          removalTestHarness,
         } = testSetup;
         const { supplier, admin } = hre.namedAccounts;
         const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
         const restrictedAmount = await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         await advanceTime({
@@ -1406,12 +1497,17 @@ describe('RestrictedNORI', () => {
           projectId,
           scheduleStartTime,
           removalAmounts,
+          removalTestHarness,
         } = testSetup;
         const { supplier, admin, investor1 } = hre.namedAccounts;
         const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
         const restrictedAmount = await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         await hre.network.provider.send('evm_setNextBlockTimestamp', [
@@ -1500,11 +1596,16 @@ describe('RestrictedNORI', () => {
           projectId,
           scheduleStartTime,
           removalAmounts,
+          removalTestHarness,
         } = testSetup;
         const { supplier, admin, investor1, employee } = hre.namedAccounts;
         const restrictedAmount = await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         await rNori
@@ -1611,12 +1712,17 @@ describe('RestrictedNORI', () => {
           projectId,
           scheduleStartTime,
           removalAmounts,
+          removalTestHarness,
         } = testSetup;
         const { supplier, admin } = hre.namedAccounts;
         const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
         const restrictedAmount = await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         const newTimestamp = scheduleStartTime + SECONDS_IN_5_YEARS;
@@ -1674,11 +1780,16 @@ describe('RestrictedNORI', () => {
           projectId,
           scheduleStartTime,
           removalAmounts,
+          removalTestHarness,
         } = testSetup;
         const { admin } = hre.namedAccounts;
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         // At halfway through the schedule should have 500 released tokens, 500 claimable.
@@ -1763,13 +1874,23 @@ describe('RestrictedNORI', () => {
             },
           },
         });
-        const { rNori, hre, listedRemovalIds, removalAmounts, projectId } =
-          testSetup;
+        const {
+          rNori,
+          hre,
+          listedRemovalIds,
+          removalAmounts,
+          projectId,
+          removalTestHarness,
+        } = testSetup;
         const { buyer } = hre.namedAccounts;
         const restrictedAmount = removalAmounts[0];
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: [restrictedAmount],
         });
         await expect(
@@ -1791,12 +1912,22 @@ describe('RestrictedNORI', () => {
             },
           },
         });
-        const { rNori, hre, listedRemovalIds, projectId, removalAmounts } =
-          testSetup;
+        const {
+          rNori,
+          hre,
+          listedRemovalIds,
+          projectId,
+          removalAmounts,
+          removalTestHarness,
+        } = testSetup;
         const { admin } = hre.namedAccounts;
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: listedRemovalIds,
+          removalIds: await Promise.all(
+            listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
           removalAmountsToRestrict: removalAmounts,
         });
         const revocableQuantityForSchedule =

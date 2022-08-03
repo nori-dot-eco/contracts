@@ -253,6 +253,17 @@ contract Removal is
     return batchBalances;
   }
 
+  /**
+   * @notice Unpacks a V0 removal id into its component data.
+   */
+  function unpackRemovalIdV0(uint256 removalId)
+    external
+    pure
+    returns (UnpackedRemovalIdV0 memory)
+  {
+    return RemovalIdLib.unpackRemovalIdV0(removalId);
+  }
+
   function setApprovalForAll(address operator, bool approved)
     public
     override
@@ -434,12 +445,6 @@ contract Removal is
   function _validateRemoval(uint256 id) internal view {
     if (_removalIdToProjectId[id] != 0) {
       revert InvalidData();
-    }
-  }
-
-  function _validateRemoval(uint256 id) internal view {
-    if (_removalIdToProjectId[id] != 0) {
-      revert TokenIdExists(id);
     }
   }
 }
