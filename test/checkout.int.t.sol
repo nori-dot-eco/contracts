@@ -3,8 +3,12 @@
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import {UnpackedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
+import {AddressArrayLib, UInt256ArrayLib} from "@/contracts/ArrayLib.sol";
 
 abstract contract Checkout is UpgradeableMarket {
+  using AddressArrayLib for address[];
+  using UInt256ArrayLib for uint256[];
+
   uint256 internal _removalId;
   uint256 internal _certificateTokenId;
 
@@ -42,13 +46,22 @@ abstract contract Checkout is UpgradeableMarket {
     bool ownsRemovalTokenId,
     uint256 count
   ) internal {
+    uint256[] memory tokensOfOwner = _removal.tokensOfOwner(owner);
     assertEq(
-      _removal.tokensOfOwner(owner),
+      tokensOfOwner,
       ownsRemovalTokenId
         ? _asSingletonUintArray(_certificate.removalsOfCertificate(0)[0].id)
         : new uint256[](amount)
     );
-    assertEq(_removal.cumulativeBalanceOf(owner), amount);
+    assertEq(
+      _removal
+        .balanceOfBatch(
+          new address[](tokensOfOwner.length).fill(owner),
+          tokensOfOwner
+        )
+        .sum(),
+      amount
+    );
     assertEq(_removal.numberOfTokensOwnedByAddress(owner), count);
   }
 }
