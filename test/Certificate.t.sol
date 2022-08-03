@@ -42,7 +42,7 @@ contract Certificate_burn is UpgradeableCertificate {
       "Total supply should be incremented after minting"
     );
     assertEq(
-      _certificate.originalBalanceOf(0),
+      _certificate.purchaseAmount(0),
       1 ether,
       "Total supply should be incremented after minting"
     );
@@ -109,9 +109,112 @@ contract Certificate_burn is UpgradeableCertificate {
       "Removal is not used for certificate"
     );
     assertEq(
-      _certificate.originalBalanceOf(0),
+      _certificate.purchaseAmount(0),
       1 ether,
       "Certificate original balance should be unchanged after burning"
     );
+  }
+}
+
+contract Certificate_approve is UpgradeableCertificate {
+  function test() external {
+    vm.expectRevert(FunctionDisabled.selector);
+    _certificate.approve(_namedAccounts.buyer, 0);
+  }
+}
+
+contract Certificate_setApprovalForAll is UpgradeableCertificate {
+  function test() external {
+    vm.expectRevert(FunctionDisabled.selector);
+    _certificate.setApprovalForAll(_namedAccounts.buyer, true);
+  }
+}
+
+contract Certificate_safeTransferFrom is NonUpgradeableCertificate {
+  function setUp() external {
+    _mint(_namedAccounts.deployer, 1);
+    _grantRole({
+      role: CERTIFICATE_OPERATOR_ROLE,
+      account: _namedAccounts.deployer
+    });
+  }
+
+  function test() external {
+    safeTransferFrom({
+      from: _namedAccounts.deployer,
+      to: _namedAccounts.buyer,
+      tokenId: 0
+    });
+  }
+
+  function test_overload() external {
+    safeTransferFrom({
+      from: _namedAccounts.deployer,
+      to: _namedAccounts.buyer,
+      tokenId: 0,
+      _data: ""
+    });
+  }
+}
+
+contract Certificate_safeTransferFrom_reverts_ForbiddenTransferAfterMinting is
+  NonUpgradeableCertificate
+{
+  function setUp() external {
+    _mint(_namedAccounts.deployer, 1);
+  }
+
+  function test() external {
+    vm.expectRevert(ForbiddenTransferAfterMinting.selector);
+    safeTransferFrom({
+      from: _namedAccounts.deployer,
+      to: _namedAccounts.buyer,
+      tokenId: 0
+    });
+  }
+
+  function test_overload() external {
+    vm.expectRevert(ForbiddenTransferAfterMinting.selector);
+    safeTransferFrom({
+      from: _namedAccounts.deployer,
+      to: _namedAccounts.buyer,
+      tokenId: 0,
+      _data: ""
+    });
+  }
+}
+
+contract Certificate_transferFrom is NonUpgradeableCertificate {
+  function setUp() external {
+    _mint(_namedAccounts.deployer, 1);
+    _grantRole({
+      role: CERTIFICATE_OPERATOR_ROLE,
+      account: _namedAccounts.deployer
+    });
+  }
+
+  function test() external {
+    transferFrom({
+      from: _namedAccounts.deployer,
+      to: _namedAccounts.buyer,
+      tokenId: 0
+    });
+  }
+}
+
+contract Certificate_transferFrom_reverts_ForbiddenTransferAfterMinting is
+  NonUpgradeableCertificate
+{
+  function setUp() external {
+    _mint(_namedAccounts.deployer, 1);
+  }
+
+  function test() external {
+    vm.expectRevert(ForbiddenTransferAfterMinting.selector);
+    transferFrom({
+      from: _namedAccounts.deployer,
+      to: _namedAccounts.buyer,
+      tokenId: 0
+    });
   }
 }

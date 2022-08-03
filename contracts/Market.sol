@@ -5,6 +5,7 @@ import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "./Errors.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 /**
  * @title Nori Inc.'s carbon removal marketplace.
@@ -24,7 +25,6 @@ import "./Errors.sol";
  * todo Consider adding MARKET_ADMIN_ROLE (sets thresholds, etc, so they can be done from admin ui without super admin)
  * todo Consider adding getters for number of active suppliers
  * todo consider globally renaming "active"/"reserved" to names that better describe "(un)available" (e.g., "listed"?)
- * todo consistency in variables/fns that use "cumulative" vs "total" nomenclature (perhaps use count vs total)
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
  */
 contract Market is PausableAccessPreset {
@@ -47,8 +47,8 @@ contract Market is PausableAccessPreset {
   uint256 private _noriFeePercentage;
   uint256 private _priorityRestrictedThreshold;
   address private _currentSupplierAddress;
-  mapping(address => RoundRobinOrder) private _suppliersInRoundRobinOrder;
-  mapping(address => RemovalQueueByVintage) private _activeSupply;
+  mapping(address => RoundRobinOrder) internal _suppliersInRoundRobinOrder;
+  mapping(address => RemovalQueueByVintage) internal _activeSupply;
 
   /**
    * @notice Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
@@ -184,7 +184,7 @@ contract Market is PausableAccessPreset {
   ) external returns (bytes4) {
     // todo revert if Market.onERC1155BatchReceived sender is not the removal contract
     for (uint256 i = 0; i < ids.length; i++) {
-      _listRemovalForSale({id: ids[i]});
+      _listForSale({id: ids[i]});
     }
     return this.onERC1155BatchReceived.selector;
   }
@@ -197,7 +197,7 @@ contract Market is PausableAccessPreset {
     bytes calldata
   ) external returns (bytes4) {
     // todo revert if Market.onERC1155Received sender is not the removal contract
-    _listRemovalForSale({id: id});
+    _listForSale({id: id});
     return this.onERC1155Received.selector;
   }
 
@@ -228,7 +228,15 @@ contract Market is PausableAccessPreset {
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
-    _checkSupply({certificateAmount: certificateAmount});
+    uint256 activeSupply = _removal.getMarketBalance();
+    _validateSupply({
+      certificateAmount: certificateAmount,
+      activeSupply: activeSupply
+    });
+    _validatePrioritySupply({
+      certificateAmount: certificateAmount,
+      activeSupply: activeSupply
+    });
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -289,8 +297,15 @@ contract Market is PausableAccessPreset {
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this.certificateAmountFromPurchaseTotal(amount);
-    _checkSupplyOfSupplier({supplierAddress: supplierToBuyFrom});
-    _checkSupply({certificateAmount: certificateAmount});
+    _validateSuppliersSupply({
+      certificateAmount: certificateAmount,
+      activeSupplyOfSupplier: _activeSupply[supplierToBuyFrom]
+        .getTotalBalanceFromRemovalQueue(_removal)
+    });
+    _validatePrioritySupply({
+      certificateAmount: certificateAmount,
+      activeSupply: _removal.getMarketBalance()
+    });
     (
       uint256 numberOfRemovals,
       uint256[] memory ids,
@@ -321,37 +336,53 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev Reverts if market is out of stock or if available stock is being reserved for priority buyers
-   * and buyer is not priority.
+   * @dev Reverts if total available supply in the market is not enough to fulfill the purchase.
    *
-   * @param certificateAmount The number of carbon removals being purchased.
+   * @param certificateAmount The number of carbon removals being purchased
+   * @param activeSupply The amount of active supply in the market
    */
-  function _checkSupply(uint256 certificateAmount) private view {
-    uint256 activeSupply = _removal.getMarketBalance();
-    if (activeSupply == 0) {
-      revert OutOfStock();
-    }
-    if (activeSupply <= _priorityRestrictedThreshold) {
-      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
-        revert LowSupplyAllowlistRequired();
-      }
-    }
+  function _validateSupply(uint256 certificateAmount, uint256 activeSupply)
+    internal
+    pure
+  {
     if (certificateAmount > activeSupply) {
-      revert InsufficientSupply(); // todo Assure `_checkSupply` validates all possible market supply states
+      revert InsufficientSupply();
     }
   }
 
   /**
-   * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority
-   * buyers and buyer is not priority.
+   * @dev Reverts if supplier does not have enough supply to fulfill the supplier-specific purchase.
    *
-   * @param supplierAddress The supplier address to check.
+   * @param certificateAmount The number of carbon removals being purchased
+   * @param activeSupplyOfSupplier The amount of supply held by the supplier
    */
-  function _checkSupplyOfSupplier(address supplierAddress) private view {
-    uint256 activeSupplyOfSupplier = _activeSupply[supplierAddress]
-      .getTotalBalanceFromRemovalQueue(_removal);
-    if (activeSupplyOfSupplier == 0) {
-      revert OutOfStock();
+  function _validateSuppliersSupply(
+    uint256 certificateAmount,
+    uint256 activeSupplyOfSupplier
+  ) internal pure {
+    if (certificateAmount > activeSupplyOfSupplier) {
+      revert InsufficientSupply();
+    }
+  }
+
+  /**
+   * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
+   *
+   * @param certificateAmount The number of carbon removals being purchased.
+   * @param activeSupply The amount of active supply in the market.
+   */
+  function _validatePrioritySupply(
+    uint256 certificateAmount,
+    uint256 activeSupply
+  ) internal view {
+    (, uint256 supplyAfterPurchase) = SafeMathUpgradeable.trySub(
+      activeSupply,
+      certificateAmount
+    );
+    if (supplyAfterPurchase < _priorityRestrictedThreshold) {
+      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+        revert LowSupplyAllowlistRequired();
+      }
     }
   }
 
@@ -580,9 +611,9 @@ contract Market is PausableAccessPreset {
     // todo verify changes to `fulfillOrder` (memory->calldata arr args) that enabled [:index] arr slicing syntax is ok
     uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
-    uint256[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages(
-      batchedIds
-    );
+    uint8[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages({
+      ids: batchedIds
+    });
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       uint256 restrictedSupplierFee = 0;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
@@ -625,7 +656,7 @@ contract Market is PausableAccessPreset {
    */
   function withdraw(uint256 removalId) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    if (_isAuthorizedWithdrawl({owner: supplierAddress})) {
+    if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
       _removeActiveRemoval(supplierAddress, removalId);
       _removal.safeTransferFrom({
         from: address(this),
@@ -645,7 +676,7 @@ contract Market is PausableAccessPreset {
       _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
   }
 
-  function _listRemovalForSale(uint256 id) internal {
+  function _listForSale(uint256 id) internal {
     address supplierAddress = RemovalIdLib.supplierAddress(id);
     _activeSupply[supplierAddress].insertRemovalByVintage(id);
     if (

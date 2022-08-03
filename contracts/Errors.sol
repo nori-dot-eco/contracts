@@ -5,7 +5,6 @@ error ArrayLengthMismatch(string array1Name, string array2Name);
 error FunctionDisabled();
 error MissingRole(bytes32 role);
 error SenderNotRemovalContract();
-error TokenIdExists(uint256 tokenId);
 error RemovalAmountZero(uint256 tokenId);
 error NonexistentSchedule(uint256 scheduleId);
 error RecipientCannotBeZeroAddress();

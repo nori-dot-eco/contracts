@@ -24,4 +24,8 @@ abstract contract UpgradeableCertificate is Upgradeable, UpgradeableRemoval {
   }
 }
 
-abstract contract NonUpgradeableCertificate is Certificate, Global {}
+contract NonUpgradeableCertificate is Certificate, Global {
+  constructor() {
+    vm.label(address(this), "NonUpgradeableCertificate");
+  }
+}

@@ -1,4 +1,3 @@
-import type { BigNumberish } from 'ethers';
 import { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { add } from '@nori-dot-com/math';
@@ -100,44 +99,21 @@ type TestEnvironment<TOptions extends SetupTestOptions = SetupTestOptions> =
     };
 
 // todo helpers/removal.ts
-export const createRemovalTokenId = async ({
-  removal,
-  removalData,
-  hre,
-}: {
-  removal: Removal;
-  removalData?: Partial<UnpackedRemovalIdV0Struct>;
-  hre: CustomHardHatRuntimeEnvironment;
-}): Promise<BigNumber> => {
-  const removalId = await removal.createRemovalId({
-    ...defaultRemovalTokenIdFixture,
-    ...removalData,
-  });
-  return removalId;
-};
-
-type BatchMintData = {
-  [Property in keyof Parameters<Removal['mintBatch']>[3]]: Parameters<
-    Removal['mintBatch']
-  >[3][Property] extends BigNumberish
-    ? BigNumber
-    : Parameters<Removal['mintBatch']>[3][Property];
-};
-
-// todo helpers/removal.ts
 export const createBatchMintData = async ({
   hre,
-  listNow = true,
   projectId = 1_234_567_890,
   scheduleStartTime,
   holdbackPercentage = Zero,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-  listNow?: boolean;
   projectId?: number;
   scheduleStartTime?: number;
   holdbackPercentage?: BigNumber;
-}): Promise<BatchMintData> => {
+}): Promise<{
+  projectId: Parameters<Removal['mintBatch']>[3];
+  scheduleStartTime: Parameters<Removal['mintBatch']>[4];
+  holdbackPercentage: Parameters<Removal['mintBatch']>[5];
+}> => {
   const actualScheduleStartTime = BigNumber.from(
     scheduleStartTime ?? (await getLatestBlockTime({ hre }))
   );
@@ -145,13 +121,12 @@ export const createBatchMintData = async ({
     projectId: BigNumber.from(projectId),
     scheduleStartTime: actualScheduleStartTime,
     holdbackPercentage,
-    list: listNow,
   };
 };
 
 // todo helpers/removal.ts
 interface RemovalDataFromListing {
-  listedRemovalIds: BigNumber[];
+  listedRemovalIds: UnpackedRemovalIdV0Struct[];
   totalAmountOfSupply: BigNumber; // todo bignumber ?
   totalAmountOfSuppliers: number;
   totalAmountOfRemovals: number;
@@ -198,7 +173,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
   market: Market;
   removalDataToList: RemovalDataForListing;
 }): Promise<RemovalDataFromListing> => {
-  const { removal, hre, removalDataToList } = options;
+  const { removal, hre, removalDataToList, market } = options;
   const { projectId, scheduleStartTime, holdbackPercentage } = {
     projectId: removalDataToList.projectId ?? 1_234_567_890,
     scheduleStartTime:
@@ -208,41 +183,32 @@ export const batchMintAndListRemovalsForSale = async (options: {
   };
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
-  const listedRemovalIds: BigNumber[] = [];
+  const removals: UnpackedRemovalIdV0Struct[] = [];
   for (const [index, removalData] of removalDataToList.removals.entries()) {
-    // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
-    const removalTokenId = await createRemovalTokenId({
-      removal,
-      hre,
-      removalData: {
-        supplierAddress: removalData.supplierAddress ?? supplier,
-        vintage: removalData.vintage ?? defaultStartingVintage + index,
-        subIdentifier:
-          removalData.subIdentifier ?? generateRandomSubIdentifier(),
-      },
-    });
-    listedRemovalIds.push(removalTokenId);
+    const removalTokenId: UnpackedRemovalIdV0Struct = {
+      ...defaultRemovalTokenIdFixture,
+      supplierAddress: removalData.supplierAddress ?? supplier,
+      vintage: removalData.vintage ?? defaultStartingVintage + index,
+      subIdentifier: removalData.subIdentifier ?? generateRandomSubIdentifier(),
+    };
+    removals.push(removalTokenId);
   }
   const removalAmounts = removalDataToList.removals.map((removalData) =>
     formatTokenAmount(removalData.amount)
   );
   await removal.mintBatch(
-    supplier,
+    removalDataToList.listNow === false ? supplier : market.address,
     removalAmounts,
-    listedRemovalIds,
-    await createBatchMintData({
-      hre,
-      listNow: removalDataToList.listNow,
-      projectId,
-      scheduleStartTime,
-      holdbackPercentage,
-    })
+    removals,
+    projectId,
+    scheduleStartTime,
+    holdbackPercentage
   );
   const totalAmountOfSupply = sum(removalAmounts);
   const totalAmountOfSuppliers = getTotalAmountOfSuppliers(removalDataToList);
   const totalAmountOfRemovals = getTotalAmountOfRemovals(removalDataToList);
   return {
-    listedRemovalIds,
+    listedRemovalIds: removals,
     totalAmountOfSupply,
     totalAmountOfSuppliers,
     totalAmountOfRemovals,
@@ -284,7 +250,7 @@ export const setupTest = global.hre.deployments.createFixture(
         await (contracts[contract] as any).pause();
       }
     }
-    let listedRemovalIds: BigNumber[] = [];
+    let removals: UnpackedRemovalIdV0Struct[] = [];
     let totalAmountOfSupply = Zero;
     let totalAmountOfSuppliers = 0;
     let totalAmountOfRemovals = 0;
@@ -322,10 +288,7 @@ export const setupTest = global.hre.deployments.createFixture(
           hre,
         });
         removalAmounts = [...removalAmounts, ...mintResultData.removalAmounts];
-        listedRemovalIds = [
-          ...listedRemovalIds,
-          ...mintResultData.listedRemovalIds,
-        ];
+        removals = [...removals, ...mintResultData.listedRemovalIds];
         totalAmountOfSupply =
           mintResultData.totalAmountOfSupply.add(totalAmountOfSupply);
         totalAmountOfSuppliers = add(
@@ -366,7 +329,7 @@ export const setupTest = global.hre.deployments.createFixture(
       removalTestHarness: contracts.RemovalTestHarness,
       userFixtures,
       contractFixtures,
-      listedRemovalIds,
+      listedRemovalIds: removals,
       totalAmountOfSupply,
       totalAmountOfSuppliers,
       totalAmountOfRemovals,

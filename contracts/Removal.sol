@@ -5,35 +5,6 @@ import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {InvalidCall, InvalidData, InvalidTokenTransfer} from "./Errors.sol";
 
-// todo shared Consider a shared MinterAccessPreset base contract that handles minting roles so role names can be shared
-// todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
-// todo disable unused inherited mint functions
-// todo check that we are not re-defining logic inherited from `ERC1155SupplyUpgradeable` (esp. `totalSupply`)
-// todo Removal.sol defines several structs making it a strong candidate for gas optimization
-// todo consider removing cumulative fns and instead use multicall where needed to prevent defining fns that dont scale
-// todo we don't currently have a way of introspecting the full set of existent removal token ids - events solve this?
-// todo shouldn't we be able to mint more of the same id? what if we need to correct a balance?
-// todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
-
-struct BatchMintRemovalsData {
-  uint256 projectId; // todo what is the max project ID size? Smaller id allows tighter `BatchMintRemovalsData` struct.
-  uint256 scheduleStartTime;
-  uint8 holdbackPercentage;
-  bool list;
-}
-
-struct ScheduleData {
-  uint256 startTime;
-  address supplierAddress;
-  uint256 methodology;
-  uint256 methodologyVersion;
-}
-
-struct RemovalData {
-  uint256 projectId;
-  uint256 holdbackPercentage;
-}
-
 /**
  * @title An extended ERC1155 token contract for carbon removal accounting.
  *
@@ -144,7 +115,7 @@ contract Removal is
   /**
    * @notice The `Market` contract that removals can be bought and sold from.
    */
-  Market private _market;
+  Market internal _market;
 
   /**
    * @notice The `Certificate` contract that removals are retired into.
@@ -232,12 +203,15 @@ contract Removal is
     });
     _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
     _mintBatch({to: to, ids: removalIds, amounts: amounts, data: ""});
-    RestrictedNORI(_market.restrictedNoriAddress()).createSchedule({
-      projectId: projectId,
-      startTime: scheduleStartTime,
-      methodology: removals[0].methodology, // todo enforce same methodology+version across ids?
-      methodologyVersion: removals[0].methodologyVersion
-    });
+    RestrictedNORI rNori = RestrictedNORI(_market.restrictedNoriAddress());
+    if (!rNori.scheduleExists({scheduleId: projectId})) {
+      rNori.createSchedule({
+        projectId: projectId,
+        startTime: scheduleStartTime,
+        methodology: removals[0].methodology, // todo enforce same methodology+version across ids?
+        methodologyVersion: removals[0].methodologyVersion
+      });
+    }
   }
 
   /**
@@ -296,6 +270,7 @@ contract Removal is
     external
     onlyRole(RELEASER_ROLE)
   {
+    // todo might need to add pagination/incremental if removal spans a ton of certificates and reaches max gas
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
       account: RemovalIdLib.supplierAddress(removalId),
@@ -354,16 +329,16 @@ contract Removal is
 
   // todo use multicall instead
   /** @notice Gets the holdback percentages for a batch of removal ids. */
-  function batchGetHoldbackPercentages(uint256[] calldata removalIds)
+  function batchGetHoldbackPercentages(uint256[] calldata ids)
     external
     view
-    returns (uint256[] memory)
+    returns (uint8[] memory)
   {
-    uint256 numberOfRemovals = removalIds.length;
-    uint256[] memory holdbackPercentages = new uint256[](numberOfRemovals);
+    uint256 numberOfRemovals = ids.length;
+    uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; ++i) {
       holdbackPercentages[i] = _projectIdToHoldbackPercentage[
-        _removalIdToProjectId[removalIds[i]]
+        _removalIdToProjectId[ids[i]]
       ];
     }
     return holdbackPercentages;
@@ -381,16 +356,27 @@ contract Removal is
     return _addressToOwnedTokenIds[account].length();
   }
 
-  function balanceOfIds(address account, uint256[] memory ids)
+  /**
+   * @notice Unpacks a V0 removal id into its component data.
+   */
+  function unpackRemovalIdV0(uint256 removalId)
     external
-    view
-    returns (uint256[] memory)
+    pure
+    returns (UnpackedRemovalIdV0 memory)
   {
-    uint256[] memory batchBalances = new uint256[](ids.length);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      batchBalances[i] = balanceOf(account, ids[i]); // todo batch retrieve balances outside of loop
-    }
-    return batchBalances;
+    return RemovalIdLib.unpackRemovalIdV0(removalId);
+  }
+
+  function setApprovalForAll(address operator, bool approved)
+    public
+    override
+    whenNotPaused
+  {
+    _setApprovalForAll({
+      owner: _msgSender(),
+      operator: operator,
+      approved: approved
+    });
   }
 
   function supportsInterface(bytes4 interfaceId)
@@ -488,7 +474,7 @@ contract Removal is
   }
 
   function _createRemovalData(uint256 removalId, uint256 projectId) internal {
-    _validateRemovalData({removalId: removalId});
+    _validateRemoval({id: removalId});
     _removalIdToProjectId[removalId] = projectId;
   }
 
@@ -559,8 +545,8 @@ contract Removal is
     }
   }
 
-  function _validateRemovalData(uint256 removalId) internal view {
-    if (_removalIdToProjectId[removalId] != 0) {
+  function _validateRemoval(uint256 id) internal view {
+    if (_removalIdToProjectId[id] != 0) {
       revert InvalidData();
     }
   }
