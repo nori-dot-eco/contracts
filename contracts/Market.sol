@@ -80,15 +80,47 @@ contract Market is PausableAccessPreset {
   event CurrentSupplierAddressChanged(address updatedSupplierAddress);
 
   /**
-   * @notice Emitted on setting nextSupplierAddress for a supplier in `_suppliersInRoundRobinOrder`.
-   * @param supplierAddress The supplier to update the round robin order for.
-   * @param nextSupplierAddress The updated nextSupplierAddress for the supplier.
-   * @param previousSupplierAddress The updated previousSupplierAddress for the supplier.
+   * @notice Emitted when adding a supplier to `_activeSupply`.
+   * @param addedSupplierAddress The supplier that was added.
+   * @param nextSupplierAddress The next of the supplier that was added, updated to point to `addedSupplierAddress` as previous.
+   * @param previousSupplierAddress The previous of the supplier that was added, updated to point to `addedSupplierAddress` as next.
    */
-  event SuppliersRoundRobinOrderUpdated(
-    address indexed supplierAddress,
+  event SupplierAdded(
+    address indexed addedSupplierAddress,
     address indexed nextSupplierAddress,
     address indexed previousSupplierAddress
+  );
+
+  /**
+   * @notice Emitted when removing a supplier from `_activeSupply`.
+   * @param removedSupplierAddress The supplier that was removed.
+   * @param nextSupplierAddress The next of the supplier that was removed, updated to point to `previousSupplierAddress` as previous.
+   * @param previousSupplierAddress The previous of the supplier that was removed, updated to point to `nextSupplierAddress` as next.
+   */
+  event SupplierRemoved(
+    address indexed removedSupplierAddress,
+    address indexed nextSupplierAddress,
+    address indexed previousSupplierAddress
+  );
+
+  /**
+   * @notice Emitted when a removal is added to `_activeSupply`.
+   * @param removalId The removal that was added.
+   * @param supplierAddress The address of the supplier for the removal.
+   */
+  event RemovalAdded(
+    uint256 indexed removalId,
+    address indexed supplierAddress
+  );
+
+  /**
+   * @notice Emitted when a Removal is removed from `_activeSupply`.
+   * @param removalId The removal that was added.
+   * @param supplierAddress The address of the supplier for the removal.
+   */
+  event RemovalRemoved(
+    uint256 indexed removalId,
+    address indexed supplierAddress
   );
 
   /**
@@ -217,13 +249,7 @@ contract Market is PausableAccessPreset {
     for (uint256 i = 0; i < ids.length; i++) {
       uint256 removalToAdd = ids[i];
       address supplierAddress = RemovalIdLib.supplierAddress(removalToAdd);
-      _activeSupply[supplierAddress].insertRemovalByVintage(removalToAdd);
-      if (
-        _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
-        address(0) // If a new supplier has been added, or if the supplier had previously sold out
-      ) {
-        _addActiveSupplier(supplierAddress);
-      }
+      _addActiveRemoval(removalToAdd, supplierAddress);
     }
     return this.onERC1155BatchReceived.selector;
   }
@@ -446,13 +472,8 @@ contract Market is PausableAccessPreset {
         amounts[numberOfRemovalsForOrder] = removalAmount; // this removal is getting used up
         suppliers[numberOfRemovalsForOrder] = _currentSupplierAddress;
         remainingAmountToFill -= removalAmount;
-        _activeSupply[_currentSupplierAddress].removeRemoval(removalId);
-        if (_activeSupply[_currentSupplierAddress].isRemovalQueueEmpty()) {
-          /**
-           * If the supplier is out of supply, remove them from the active suppliers.
-           */
-          _removeActiveSupplier(_currentSupplierAddress);
-        } else if (
+        _removeActiveRemoval(removalId, _currentSupplierAddress);
+        if (
           /**
            *  If the supplier is the only supplier remaining with supply, don't bother incrementing.
            */
@@ -669,7 +690,7 @@ contract Market is PausableAccessPreset {
   function withdraw(uint256 removalId) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
-      _removeActiveRemoval(supplierAddress, removalId);
+      _removeActiveRemoval(removalId, supplierAddress);
       _removal.safeTransferFrom({
         from: address(this),
         to: supplierAddress,
@@ -692,14 +713,31 @@ contract Market is PausableAccessPreset {
    * @notice Removes the specified removal id from the active supply data structure.
    * @dev If this is the supplier's last active removal, the supplier is also removed from the active supplier queue.
    */
-  function _removeActiveRemoval(
-    address supplierAddress,
-    uint256 removalId // todo flip param order
-  ) internal {
+  function _removeActiveRemoval(uint256 removalId, address supplierAddress)
+    internal
+  {
     _activeSupply[supplierAddress].removeRemoval(removalId);
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _removeActiveSupplier(supplierAddress); // todo can this be combined inside .removeRemoval?
     }
+    emit RemovalRemoved(removalId, supplierAddress);
+  }
+
+  /**
+   * @notice Adds the specified removal id from the active supply data structure.
+   * @dev If this is the supplier's first active removal, the supplier is also added to the active supplier queue.
+   */
+  function _addActiveRemoval(uint256 removalId, address supplierAddress)
+    internal
+  {
+    _activeSupply[supplierAddress].insertRemovalByVintage(removalId);
+    if (
+      _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
+      address(0) // If a new supplier has been added, or if the supplier had previously sold out
+    ) {
+      _addActiveSupplier(supplierAddress);
+    }
+    emit RemovalAdded(removalId, supplierAddress);
   }
 
   /**
@@ -711,7 +749,6 @@ contract Market is PausableAccessPreset {
    * - The contract must not be paused. This is enforced by `Removal._beforeTokenTransfer`.
    *
    * todo Add the rest of the requirements
-   * todo Emit event when removal is released if TransferSingle events can be emitted with to: addr(0) in other cases
    * todo is `whenNotPaused` modifier redundant since it's only invoked from `Removal.release` calls?
    */
   function release(uint256 removalId, uint256 amount) external whenNotPaused {
@@ -721,7 +758,7 @@ contract Market is PausableAccessPreset {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     uint256 removalBalance = _removal.balanceOf(address(this), removalId);
     if (amount == removalBalance) {
-      _removeActiveRemoval(supplierAddress, removalId);
+      _removeActiveRemoval(removalId, supplierAddress);
     }
   }
 
@@ -769,7 +806,7 @@ contract Market is PausableAccessPreset {
         previousSupplierAddress: newSupplierAddress,
         nextSupplierAddress: newSupplierAddress
       });
-      emit SuppliersRoundRobinOrderUpdated(
+      emit SupplierAdded(
         newSupplierAddress,
         newSupplierAddress,
         newSupplierAddress
@@ -786,32 +823,20 @@ contract Market is PausableAccessPreset {
         nextSupplierAddress: _currentSupplierAddress,
         previousSupplierAddress: previousOfCurrentSupplierAddress
       });
-      emit SuppliersRoundRobinOrderUpdated(
-        newSupplierAddress,
-        _currentSupplierAddress,
-        previousOfCurrentSupplierAddress
-      );
       /**
        * Update the previous supplier from the current supplier to point to the new supplier as next.
        */
       _suppliersInRoundRobinOrder[previousOfCurrentSupplierAddress]
         .nextSupplierAddress = newSupplierAddress;
-      emit SuppliersRoundRobinOrderUpdated(
-        previousOfCurrentSupplierAddress,
-        newSupplierAddress,
-        _suppliersInRoundRobinOrder[previousOfCurrentSupplierAddress]
-          .previousSupplierAddress
-      );
       /**
        * Update the current supplier to point to the new supplier as previous.
        */
       _suppliersInRoundRobinOrder[_currentSupplierAddress]
         .previousSupplierAddress = newSupplierAddress;
-      emit SuppliersRoundRobinOrderUpdated(
+      emit SupplierAdded(
+        newSupplierAddress,
         _currentSupplierAddress,
-        _suppliersInRoundRobinOrder[_currentSupplierAddress]
-          .nextSupplierAddress,
-        newSupplierAddress
+        previousOfCurrentSupplierAddress
       );
     }
   }
@@ -826,45 +851,31 @@ contract Market is PausableAccessPreset {
    * pointers of the removed supplier to the 0x address.
    */
   function _removeActiveSupplier(address addressToRemove) private {
+    address previousOfRemovedSupplierAddress = _suppliersInRoundRobinOrder[
+      addressToRemove
+    ].previousSupplierAddress;
+    address nextOfRemovedSupplierAddress = _suppliersInRoundRobinOrder[
+      addressToRemove
+    ].nextSupplierAddress;
+
     /**
      * If this is the last supplier, clear all current tracked addresses.
      */
-    if (
-      addressToRemove ==
-      _suppliersInRoundRobinOrder[addressToRemove].nextSupplierAddress
-    ) {
+    if (addressToRemove == nextOfRemovedSupplierAddress) {
       _currentSupplierAddress = address(0);
       emit CurrentSupplierAddressChanged(address(0));
     } else {
-      address previousOfRemovedSupplierAddress = _suppliersInRoundRobinOrder[
-        addressToRemove
-      ].previousSupplierAddress;
-      address nextOfRemovedSupplierAddress = _suppliersInRoundRobinOrder[
-        addressToRemove
-      ].nextSupplierAddress;
-
       /**
        * Set the next of the previous supplier to point to the removed supplier's next.
        */
       _suppliersInRoundRobinOrder[previousOfRemovedSupplierAddress]
         .nextSupplierAddress = nextOfRemovedSupplierAddress;
-      emit SuppliersRoundRobinOrderUpdated(
-        previousOfRemovedSupplierAddress,
-        nextOfRemovedSupplierAddress,
-        _suppliersInRoundRobinOrder[addressToRemove].previousSupplierAddress
-      );
 
       /**
        * Set the previous of the next supplier to point to the removed supplier's previous.
        */
       _suppliersInRoundRobinOrder[nextOfRemovedSupplierAddress]
         .previousSupplierAddress = previousOfRemovedSupplierAddress;
-      emit SuppliersRoundRobinOrderUpdated(
-        nextOfRemovedSupplierAddress,
-        _suppliersInRoundRobinOrder[nextOfRemovedSupplierAddress]
-          .nextSupplierAddress,
-        previousOfRemovedSupplierAddress
-      );
 
       /**
        * If the supplier is the current supplier, update that address to the next supplier.
@@ -880,10 +891,11 @@ contract Market is PausableAccessPreset {
       nextSupplierAddress: address(0),
       previousSupplierAddress: address(0)
     });
-    emit SuppliersRoundRobinOrderUpdated(
+
+    emit SupplierRemoved(
       addressToRemove,
-      address(0),
-      address(0)
+      nextOfRemovedSupplierAddress,
+      previousOfRemovedSupplierAddress
     );
   }
 }
