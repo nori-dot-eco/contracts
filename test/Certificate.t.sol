@@ -42,7 +42,7 @@ contract Certificate_burn is UpgradeableCertificate {
       "Total supply should be incremented after minting"
     );
     assertEq(
-      _certificate.originalBalanceOf(0),
+      _certificate.purchaseAmount(0),
       1 ether,
       "Total supply should be incremented after minting"
     );
@@ -109,9 +109,14 @@ contract Certificate_burn is UpgradeableCertificate {
       "Removal is not used for certificate"
     );
     assertEq(
-      _certificate.originalBalanceOf(0),
+      _certificate.purchaseAmount(0),
       1 ether,
       "Certificate original balance should be unchanged after burning"
     );
   }
 }
+
+// safeTransferFrom reverts  (2x overloads)
+// setApprovalForAll reverts
+// approve reverts
+// transferFrom reverts
