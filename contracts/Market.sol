@@ -620,13 +620,7 @@ contract Market is PausableAccessPreset {
           (unrestrictedSupplierFee * holdbackPercentages[i]) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        rNoriMintCalls[i] = (
-          abi.encodeWithSelector(
-            _restrictedNori.mint.selector,
-            restrictedSupplierFee,
-            batchedIds[i]
-          )
-        );
+        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo mint rNori in a single batch call
         _bridgedPolygonNori.transferFrom(
           operator,
           address(_restrictedNori),
@@ -644,7 +638,6 @@ contract Market is PausableAccessPreset {
         unrestrictedSupplierFee
       );
     }
-    _restrictedNori.multicall(rNoriMintCalls);
     bytes memory data = abi.encode(recipient, certificateAmount);
     _removal.safeBatchTransferFrom(
       address(this),
