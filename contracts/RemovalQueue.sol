@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./Removal.sol";
+import "./Errors.sol";
 
 struct RemovalQueueByVintage {
   mapping(uint256 => EnumerableSetUpgradeable.UintSet) queueByVintage;
@@ -14,9 +14,6 @@ struct RemovalQueueByVintage {
 // todo rename RemovalQueue to RemovalQueueLib
 library RemovalQueue {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-
-  error RemovalNotInQueue(uint256 removalId, uint256 queueVintage);
-  error RemovalAlreadyInQueue(uint256 removalId, uint256 queueVintage);
 
   uint256 private constant _DEFAULT_EARLIEST_YEAR = 2**256 - 1;
   uint256 private constant _DEFAULT_LATEST_YEAR = 0;
@@ -181,7 +178,7 @@ library RemovalQueue {
       for (i = 0; i < size; i++) {
         ids[i] = removalQueue.queueByVintage[currentYear].at(i);
       }
-      uint256[] memory batchedBalances = removal.balanceOfIds(
+      uint256[] memory batchedBalances = removal.balanceOfIds( // todo batch
         address(this),
         ids
       );

@@ -16,7 +16,11 @@ abstract contract UpgradeableRestrictedNORI is Upgradeable {
     RestrictedNORI impl = new RestrictedNORI();
     vm.label(address(_rNori), "RestrictedNORI Implementation");
     bytes memory initializer = abi.encodeWithSelector(impl.initialize.selector);
-    return RestrictedNORI(_deployProxy(address(impl), initializer));
+    RestrictedNORI rNoriProxy = RestrictedNORI(
+      _deployProxy(address(impl), initializer)
+    );
+    vm.label(address(rNoriProxy), "RestrictedNORI Proxy");
+    return rNoriProxy;
   }
 }
 
