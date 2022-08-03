@@ -169,13 +169,9 @@ library RemovalQueue {
     Removal removal
   ) internal view returns (uint256 totalBalance) {
     uint256 latestYear = removalQueue.latestYear;
-    for (
-      uint256 earliestYear = removalQueue.earliestYear;
-      earliestYear <= latestYear;
-      ++earliestYear
-    ) {
+    for (uint256 year = removalQueue.earliestYear; year <= latestYear; ++year) {
       EnumerableSetUpgradeable.UintSet storage vintagesForYear = removalQueue
-        .queueByVintage[earliestYear];
+        .queueByVintage[year];
       uint256[] memory removalIds = new uint256[](vintagesForYear.length());
       uint256 numberOfRemovals = removalIds.length;
       // Skip overflow check as for loop is indexed starting at zero.
