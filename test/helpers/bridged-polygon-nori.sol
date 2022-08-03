@@ -17,7 +17,7 @@ abstract contract UpgradeableBridgedPolygonNORI is Upgradeable {
 
   function _deployBridgedPolygonNORI() internal returns (BridgedPolygonNORI) {
     BridgedPolygonNORI impl = new BridgedPolygonNORI();
-    vm.label(address(impl), "RestrictedNORI Implementation");
+    vm.label(address(impl), "BridgedPolygonNORI Implementation");
     address childChainManagerProxy = address(0); // todo deploy an actual polygon child chain manager using vm.etch
     bytes memory initializer = abi.encodeWithSelector(
       impl.initialize.selector,

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
-import {BatchMintRemovalsData, RemovalAmountZero} from "@/contracts/Removal.sol";
+import {InvalidTokenTransfer} from "@/contracts/Errors.sol";
 
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
@@ -11,16 +11,38 @@ using AddressArrayLib for address[];
 
 contract Removal_mintBatch is UpgradeableMarket {
   function test() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 1, list: false});
+  }
+}
+
+contract Removal_mintBatch_list is UpgradeableMarket {
+  function test() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
+  }
+}
+
+/** @dev Tests that a supplier can be listed in the queue twice with two sequential calls to `mintBatch` */
+contract Removal_mintBatch_list_sequential is UpgradeableMarket {
+  function test() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
+    UnpackedRemovalIdV0[] memory ids = new UnpackedRemovalIdV0[](1);
+    ids[0] = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
     _removal.mintBatch({
-      to: _namedAccounts.supplier,
-      amounts: _asSingletonUintArray(1 ether),
-      ids: _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      data: BatchMintRemovalsData({
-        projectId: 1,
-        scheduleStartTime: 1,
-        holdbackPercentage: 1,
-        list: false
-      })
+      to: address(_market),
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
     });
   }
 }
@@ -43,25 +65,44 @@ contract Removal_getProjectId is UpgradeableMarket {
 
 contract Removal__createRemovalDataBatch is NonUpgradeableRemoval {
   /** @dev allows using the `calldata` type for the `removalIds` param as this function is external  */
+
   function createRemovalDataBatch(
-    uint256[] calldata removalIds,
+    UnpackedRemovalIdV0[] calldata removals,
     uint256 projectId
   ) external {
-    _createRemovalDataBatch({removalIds: removalIds, projectId: projectId});
+    _createRemovalDataBatch({removals: removals, projectId: projectId});
   }
 
   function test() external {
-    this.createRemovalDataBatch({
-      removalIds: new uint256[](1).fill(uint256(1)),
-      projectId: 1
+    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](1);
+    removals[0] = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: 99_039_930
     });
+    this.createRemovalDataBatch({removals: removals, projectId: 1});
   }
 
-  function test_reverts_TokenIdExists() external {
-    uint256[] memory removalIds = new uint256[](1).fill(uint256(1));
-    this.createRemovalDataBatch({removalIds: removalIds, projectId: 1});
-    vm.expectRevert(abi.encodeWithSelector(TokenIdExists.selector, 1));
-    this.createRemovalDataBatch({removalIds: removalIds, projectId: 1});
+  function test_reverts_InvalidData2() external {
+    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](1);
+    removals[0] = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: 99_039_930
+    });
+    this.createRemovalDataBatch({removals: removals, projectId: 1});
+    vm.expectRevert(InvalidData.selector);
+    this.createRemovalDataBatch({removals: removals, projectId: 1});
   }
 }
 
@@ -70,9 +111,9 @@ contract Removal__createRemovalData is NonUpgradeableRemoval {
     _createRemovalData({removalId: 1, projectId: 1});
   }
 
-  function test_reverts_TokenIdExists() external {
+  function test_reverts_InvalidData() external {
     _createRemovalData({removalId: 1, projectId: 1});
-    vm.expectRevert(abi.encodeWithSelector(TokenIdExists.selector, 1));
+    vm.expectRevert(InvalidData.selector);
     _createRemovalData({removalId: 1, projectId: 1});
   }
 }
@@ -86,8 +127,8 @@ contract Removal__validateRemoval is NonUpgradeableRemoval {
     _validateRemoval({id: 2});
   }
 
-  function test_reverts_TokenIdExists() external {
-    vm.expectRevert(abi.encodeWithSelector(TokenIdExists.selector, 1));
+  function test_reverts_InvalidData() external {
+    vm.expectRevert(InvalidData.selector);
     _validateRemoval({id: 1});
   }
 }
@@ -97,20 +138,18 @@ contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
   uint8[] private _holdbackPercentages;
 
   function setUp() external {
-    BatchMintRemovalsData memory data = BatchMintRemovalsData({
-      projectId: 1_234_567_890,
+    UnpackedRemovalIdV0[] memory removalBatch = new UnpackedRemovalIdV0[](1);
+    removalBatch[0] = REMOVAL_DATA_FIXTURE;
+    _removal.mintBatch({
+      to: _namedAccounts.supplier,
+      amounts: _asSingletonUintArray(1),
+      removals: removalBatch,
       scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
-      list: false
+      projectId: 1_234_567_890,
+      holdbackPercentage: 50
     });
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      data
-    );
     _removalIds = [REMOVAL_ID_FIXTURE];
-    _holdbackPercentages = [data.holdbackPercentage];
+    _holdbackPercentages = [50];
   }
 
   function test() external {
@@ -123,55 +162,48 @@ contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
 
 contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
   uint8 private constant _secondHoldbackPercentage = 10;
+  uint8 private constant _firstHoldbackPercentage = 50;
   uint256[] private _removalIds;
   uint8[] private _holdbackPercentages;
   uint256 private _secondRemovalId;
-  BatchMintRemovalsData private _secondBatchMintData =
-    BatchMintRemovalsData({
-      projectId: 1_234_567_891,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: _secondHoldbackPercentage,
-      list: false
-    });
 
   function setUp() external {
-    BatchMintRemovalsData memory data = BatchMintRemovalsData({
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
-      list: false
-    });
+    UnpackedRemovalIdV0[]
+      memory firstRemovalBatchFixture = new UnpackedRemovalIdV0[](1);
+    firstRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      data
+      firstRemovalBatchFixture,
+      1_234_567_890,
+      block.timestamp,
+      _firstHoldbackPercentage
     );
+    UnpackedRemovalIdV0[]
+      memory secondRemovalBatchFixture = new UnpackedRemovalIdV0[](1);
+    secondRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
+    secondRemovalBatchFixture[0].subIdentifier =
+      REMOVAL_DATA_FIXTURE.subIdentifier +
+      1;
     _secondRemovalId = RemovalIdLib.createRemovalId(
-      UnpackedRemovalIdV0({
-        idVersion: 0,
-        methodology: 1,
-        methodologyVersion: 0,
-        vintage: 2018,
-        country: "US",
-        subdivision: "IA",
-        supplierAddress: _namedAccounts.supplier,
-        subIdentifier: 99_039_931
-      })
+      secondRemovalBatchFixture[0]
     );
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
-      new uint256[](1).fill(_secondRemovalId),
-      _secondBatchMintData
+      secondRemovalBatchFixture,
+      1_234_567_891,
+      block.timestamp,
+      _secondHoldbackPercentage
     );
     _removalIds = [REMOVAL_ID_FIXTURE, _secondRemovalId];
-    _holdbackPercentages = [data.holdbackPercentage, _secondHoldbackPercentage];
+    _holdbackPercentages = [
+      _firstHoldbackPercentage,
+      _secondHoldbackPercentage
+    ];
   }
 
   function test() external {
-    _removalIds.push(_secondRemovalId);
-    _holdbackPercentages.push(_secondHoldbackPercentage);
     assertEq(
       _removal.batchGetHoldbackPercentages({ids: _removalIds}),
       _holdbackPercentages
@@ -196,30 +228,25 @@ contract Removal_release_reverts_AccessControl is UpgradeableMarket {
 }
 
 contract Removal_release_unlisted is UpgradeableMarket {
+  uint256[] private _removalIds;
+
   function setUp() external {
-    BatchMintRemovalsData memory data = BatchMintRemovalsData({
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
       list: false
     });
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      data
-    );
     assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
-      1,
+      _removal.balanceOf(_namedAccounts.supplier, _removalIds[0]),
+      1 ether,
       "Expected supplier to own the removal"
     );
   }
 
   function test() external {
-    _removal.release(REMOVAL_ID_FIXTURE, 1);
+    _removal.release(_removalIds[0], 1 ether);
     assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      _removal.balanceOf(_namedAccounts.supplier, _removalIds[0]),
       0,
       "Expected the removal to be burned"
     );
@@ -231,19 +258,14 @@ contract Removal_release_unlisted is UpgradeableMarket {
  * of a certificate and then subsequently burned by the owner of the certificate.
  */
 contract Removal_release_retired_burned is UpgradeableMarket {
+  uint256[] private _removalIds;
+
   function setUp() external {
-    BatchMintRemovalsData memory data = BatchMintRemovalsData({
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
       list: true
     });
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1 ether),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      data
-    );
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
     uint256 checkoutTotal = _market.getCheckoutTotal(1 ether); // todo replace other test usage of _market.getNoriFee
@@ -265,17 +287,17 @@ contract Removal_release_retired_burned is UpgradeableMarket {
       signedPermit.r,
       signedPermit.s
     );
-    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 1 ether);
+    assertEq(_certificate.balanceOfRemoval(0, _removalIds[0]), 1 ether);
     vm.prank(owner);
     _certificate.burn(0);
   }
 
   function test() external {
-    _removal.release(REMOVAL_ID_FIXTURE, 1 ether);
-    assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
-    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.exists(REMOVAL_ID_FIXTURE), false);
+    _removal.release(_removalIds[0], 1 ether);
+    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
+    assertEq(_certificate.balanceOfRemoval(0, _removalIds[0]), 0);
+    assertEq(_removal.totalSupply(_removalIds[0]), 0);
+    assertEq(_removal.exists(_removalIds[0]), false);
   }
 }
 
@@ -284,19 +306,14 @@ contract Removal_release_retired_burned is UpgradeableMarket {
  * of a certificate
  */
 contract Removal_release_retired is UpgradeableMarket {
+  uint256[] private _removalIds;
+
   function setUp() external {
-    BatchMintRemovalsData memory data = BatchMintRemovalsData({
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
       list: true
     });
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1 ether),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      data
-    );
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
     uint256 checkoutTotal = _market.getCheckoutTotal(1 ether); // todo replace other test usage of _market.getNoriFee
@@ -318,15 +335,15 @@ contract Removal_release_retired is UpgradeableMarket {
       signedPermit.r,
       signedPermit.s
     );
-    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 1 ether);
+    assertEq(_certificate.balanceOfRemoval(0, _removalIds[0]), 1 ether);
   }
 
   function test() external {
-    _removal.release(REMOVAL_ID_FIXTURE, 1 ether);
-    assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
-    assertEq(_certificate.balanceOfRemoval(0, REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.exists(REMOVAL_ID_FIXTURE), false);
+    _removal.release(_removalIds[0], 1 ether);
+    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
+    assertEq(_certificate.balanceOfRemoval(0, _removalIds[0]), 0);
+    assertEq(_removal.totalSupply(_removalIds[0]), 0);
+    assertEq(_removal.exists(_removalIds[0]), false);
   }
 }
 
@@ -336,18 +353,14 @@ contract Removal_release_retired is UpgradeableMarket {
  */
 contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
   function setUp() external {
-    BatchMintRemovalsData memory data = BatchMintRemovalsData({
+    _removal.mintBatch({
+      to: address(_market),
+      amounts: new uint256[](1).fill(100 ether),
+      removals: _REMOVAL_FIXTURES,
       projectId: 1_234_567_890,
       scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
-      list: true
+      holdbackPercentage: 50
     });
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(100 ether),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      data
-    );
     uint256 ownerPrivateKey = 0xA11CE; // todo use named accounts
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
     uint256 cumulativeCheckoutTotal = _market.getCheckoutTotal(100 ether);
@@ -386,12 +399,6 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
 
 contract Removal_release_listed is UpgradeableMarket {
   function test() external {
-    BatchMintRemovalsData memory data = BatchMintRemovalsData({
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
-      list: true
-    });
     vm.expectEmit(false, false, false, false); // todo
     emit TransferBatch(
       address(0),
@@ -400,12 +407,14 @@ contract Removal_release_listed is UpgradeableMarket {
       _asSingletonUintArray(REMOVAL_ID_FIXTURE),
       _asSingletonUintArray(1)
     );
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      data
-    );
+    _removal.mintBatch({
+      to: _marketAddress,
+      amounts: _asSingletonUintArray(1),
+      removals: _REMOVAL_FIXTURES,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       0
@@ -441,12 +450,10 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
       count: 1,
       list: false
     });
-    _removal.safeBatchTransferFrom({
+    _removal.consign({
       from: _namedAccounts.supplier,
-      to: address(_market),
-      ids: new uint256[](1).fill(_removalIds[0]),
-      amounts: new uint256[](1).fill(0.5 ether),
-      data: ""
+      id: _removalIds[0],
+      amount: 0.5 ether
     });
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, _removalIds[0]),
@@ -594,14 +601,11 @@ contract Removal_getMarketBalance is UpgradeableMarket {
       count: 1,
       list: false
     });
-
     assertEq(_removal.getMarketBalance(), 0);
-    _removal.safeBatchTransferFrom({
+    _removal.consign({
       from: _namedAccounts.supplier,
-      to: address(_market),
-      ids: new uint256[](1).fill(_removalIds[0]),
-      amounts: new uint256[](1).fill(amountToList),
-      data: ""
+      id: _removalIds[0],
+      amount: amountToList
     });
     assertEq(_removal.getMarketBalance(), amountToList);
     uint256 ownerPrivateKey = 0xA11CE;
@@ -658,8 +662,10 @@ contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
     );
   }
 
-  function test_zeroValueTransferToMarket_reverts_RemovalAmountZero() external {
-    vm.expectRevert(abi.encodeWithSelector(RemovalAmountZero.selector, 1));
+  function test_zeroValueTransferToMarket_reverts_InvalidTokenTransfer()
+    external
+  {
+    vm.expectRevert(abi.encodeWithSelector(InvalidTokenTransfer.selector, 1));
     super._beforeTokenTransfer(
       _namedAccounts.admin,
       _namedAccounts.admin,

@@ -124,12 +124,10 @@ contract Market_withdraw_as_operator is MarketBalanceTestHelper {
       count: 1,
       list: false
     });
-    _removal.safeBatchTransferFrom({
+    _removal.consign({
       from: _namedAccounts.supplier,
-      to: address(_market),
-      ids: new uint256[](1).fill(_removalIds[0]),
-      amounts: new uint256[](1).fill(_amountPerRemoval),
-      data: ""
+      id: _removalIds[0],
+      amount: _amountPerRemoval
     });
     vm.prank(_namedAccounts.supplier);
     _removal.setApprovalForAll(_namedAccounts.supplier2, true);
@@ -148,7 +146,7 @@ contract Market_withdraw_as_operator is MarketBalanceTestHelper {
     _expectedMarketSupply = 0;
     _expectedTokenCount.set(_namedAccounts.supplier, 1);
     _expectedTokenCount.set(address(_market), 0);
-    _assertCorrectStates();
+    _assertCorrectStates(); // todo accept expected states as args instead
   }
 }
 
