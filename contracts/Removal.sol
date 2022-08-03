@@ -436,4 +436,10 @@ contract Removal is
       revert InvalidData();
     }
   }
+
+  function _validateRemoval(uint256 id) internal view {
+    if (_removalIdToProjectId[id] != 0) {
+      revert TokenIdExists(id);
+    }
+  }
 }
