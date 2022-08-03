@@ -19,8 +19,6 @@ struct BatchMintRemovalsData {
   bool list;
 }
 
-error TokenIdExists(uint256 tokenId);
-error RemovalAmountZero(uint256 tokenId);
 
 /**
  * @title Removal
