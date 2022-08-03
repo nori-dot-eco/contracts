@@ -288,17 +288,6 @@ contract Removal is
     return super.supportsInterface(interfaceId);
   }
 
-  function isApprovedForAll(address account, address operator)
-    public
-    view
-    override
-    returns (bool)
-  {
-    return
-      account == address(_market) ||
-      super.isApprovedForAll({account: account, operator: operator});
-  }
-
   function _setApprovalForAll(
     address owner,
     address operator,
