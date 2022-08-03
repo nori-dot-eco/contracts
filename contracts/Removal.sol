@@ -3,7 +3,6 @@ pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
-import "forge-std/console2.sol";
 import {InvalidCall, InvalidData, InvalidTokenTransfer} from "./Errors.sol";
 
 /**
@@ -215,7 +214,7 @@ contract Removal is
 
   // todo use multicall instead
   /** @notice Gets the holdback percentages for a batch of removal ids. */
-  function batchGetHoldbackPercentages(uint256[] memory ids)
+  function batchGetHoldbackPercentages(uint256[] calldata ids)
     external
     view
     returns (uint8[] memory)
@@ -252,17 +251,6 @@ contract Removal is
       batchBalances[i] = balanceOf(account, ids[i]); // todo batch retrieve balances outside of loop
     }
     return batchBalances;
-  }
-
-  /**
-   * @notice Packs data about a removal into a 256-bit token id for the removal.
-   * @dev Performs some possible validations on the data before attempting to create the id.
-   * @param removalData removal data struct to be packed into a uint256 ID
-   */
-  function createRemovalId(
-    UnpackedRemovalIdV0 memory removalData // todo look into using calldata elsewhere
-  ) external pure returns (uint256) {
-    return RemovalIdLib.createRemovalId(removalData);
   }
 
   function setApprovalForAll(address operator, bool approved)
@@ -444,9 +432,6 @@ contract Removal is
   }
 
   function _validateRemoval(uint256 id) internal view {
-    console2.log("id---", id);
-    console2.log("rdid---", _removalIdToProjectId[id]);
-
     if (_removalIdToProjectId[id] != 0) {
       revert InvalidData();
     }
