@@ -20,7 +20,6 @@ struct BatchMintRemovalsData {
 
 /**
  * @title Removal
- *  // todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
  */
 contract Removal is
   ERC1155SupplyUpgradeable,
@@ -253,18 +252,6 @@ contract Removal is
     returns (uint256)
   {
     return _addressToOwnedTokenIds[account].length();
-  }
-
-  function balanceOfIds(address account, uint256[] memory ids)
-    external
-    view
-    returns (uint256[] memory)
-  {
-    uint256[] memory batchBalances = new uint256[](ids.length);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      batchBalances[i] = balanceOf(account, ids[i]); // todo batch retrieve balances outside of loop
-    }
-    return batchBalances;
   }
 
   /**

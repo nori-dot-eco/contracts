@@ -111,4 +111,61 @@ abstract contract UpgradeableRemoval is Upgradeable {
   }
 }
 
-abstract contract NonUpgradableRemoval is Removal, Global {}
+contract NonUpgradeableRemoval is Removal, Global {
+  constructor() {
+    vm.label(address(this), "NonUpgradeableRemoval");
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: msg.sender});
+    _grantRole({role: MINTER_ROLE, account: address(this)});
+  }
+
+  function _seedRemovals(
+    address to,
+    uint32 count,
+    bool list,
+    bool uniqueVintages
+  ) internal returns (uint256[] memory) {
+    uint256[] memory _removalIds = new uint256[](count);
+    for (uint32 i = 0; i < count; i++) {
+      UnpackedRemovalIdV0 memory removalData = UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: uniqueVintages ? 2018 + uint16(i) : 2018,
+        country: "AA",
+        subdivision: "ZZ",
+        supplierAddress: to,
+        subIdentifier: count + i
+      });
+      _removalIds[i] = this.createRemovalId(removalData);
+    }
+    BatchMintRemovalsData memory batchMintData = BatchMintRemovalsData({
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50,
+      list: list
+    });
+    this.mintBatch(
+      to,
+      new uint256[](count).fill(1 ether),
+      _removalIds,
+      batchMintData
+    );
+    return _removalIds;
+  }
+
+  /** todo de-duplicate with UpgradeableRemoval._seedRemovals */
+  function seedRemovals(
+    address to,
+    uint32 count,
+    bool list,
+    bool uniqueVintages
+  ) external returns (uint256[] memory) {
+    return
+      _seedRemovals({
+        to: to,
+        count: count,
+        list: list,
+        uniqueVintages: uniqueVintages
+      });
+  }
+}

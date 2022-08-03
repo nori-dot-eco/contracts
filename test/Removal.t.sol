@@ -41,7 +41,7 @@ contract Removal_getProjectId is UpgradeableMarket {
   }
 }
 
-contract Removal__createRemovalDataBatch is NonUpgradableRemoval {
+contract Removal__createRemovalDataBatch is NonUpgradeableRemoval {
   /** @dev allows using the `calldata` type for the `removalIds` param as this function is external  */
   function createRemovalDataBatch(
     uint256[] calldata removalIds,
@@ -65,7 +65,7 @@ contract Removal__createRemovalDataBatch is NonUpgradableRemoval {
   }
 }
 
-contract Removal__createRemovalData is NonUpgradableRemoval {
+contract Removal__createRemovalData is NonUpgradeableRemoval {
   function test() external {
     _createRemovalData({removalId: 1, projectId: 1});
   }
@@ -77,7 +77,7 @@ contract Removal__createRemovalData is NonUpgradableRemoval {
   }
 }
 
-contract Removal__validateRemoval is NonUpgradableRemoval {
+contract Removal__validateRemoval is NonUpgradeableRemoval {
   function setUp() external {
     _createRemovalData({removalId: 1, projectId: 1});
   }
@@ -631,7 +631,7 @@ contract Removal_getMarketBalance is UpgradeableMarket {
   }
 }
 
-contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
+contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
   // todo test the rest of the cases
   function test() external {
     super._beforeTokenTransfer(
