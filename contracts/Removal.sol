@@ -10,7 +10,6 @@ import "./Errors.sol";
 // todo disable unused inherited mint functions
 // todo check that we are not re-defining logic inherited from `ERC1155SupplyUpgradeable` (esp. `totalSupply`)
 // todo Removal.sol defines several structs making it a strong candidate for gas optimization
-// todo consider removing cumulative fns and instead use multicall where needed to prevent defining fns that dont scale
 
 struct BatchMintRemovalsData {
   uint256 projectId; // todo what is the max project ID size? Smaller id allows tighter `BatchMintRemovalsData` struct.
@@ -245,26 +244,6 @@ contract Removal is
 
   function getMarketBalance() external view returns (uint256) {
     return _currentMarketBalance;
-  }
-
-  // todo rename cumulativeBalanceOf -> cumulativeBalanceOfOwner (if we decide to keep it)
-  // todo this function will not scale well as it relies on set.values- consider dropping it
-  function cumulativeBalanceOf(address owner) external view returns (uint256) {
-    // todo if we decide to keep this function, improve internal abstraction to re-use across cumulative funcs
-    EnumerableSetUpgradeable.UintSet storage removals = _addressToOwnedTokenIds[
-      owner
-    ];
-    uint256 numberOfTokensOwned = this.numberOfTokensOwnedByAddress(owner);
-    address[] memory owners = new address[](numberOfTokensOwned);
-    for (uint256 i = 0; i < numberOfTokensOwned; ++i) {
-      owners[i] = owner;
-    }
-    uint256[] memory totals = balanceOfBatch(owners, removals.values());
-    uint256 total = 0;
-    for (uint256 i = 0; i < numberOfTokensOwned; ++i) {
-      total += totals[i];
-    }
-    return total;
   }
 
   function numberOfTokensOwnedByAddress(address account)
