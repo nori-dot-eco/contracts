@@ -102,29 +102,29 @@ describe('Market', () => {
           .withArgs(newNoriFeePercentage);
       });
     });
-    describe('CurrentSupplierAddressChanged', () => {
-      it.todo('should be emitted when _currentSupplierAddress is updated');
-    });
-    describe('SupplierAdded', () => {
-      it.todo(
-        'should be emitted when a supplier is added to _activeSupply with _addActiveSupplier'
-      );
-    });
-    describe('SupplierRemoved', () => {
-      it.todo(
-        'should be emitted when a supplier is removed from _activeSupply with _removeActiveSupplier'
-      );
-    });
-    describe('RemovalAdded', () => {
-      it.todo(
-        'should be emitted when a removal is added to _activeSupply with _addActiveRemoval'
-      );
-    });
-    describe('RemovalRemoved', () => {
-      it.todo(
-        'should be emitted when a removal is removed from _activeSupply with _removeActiveRemoval'
-      );
-    });
+    // describe('CurrentSupplierAddressChanged', () => {
+    //   it.todo('should be emitted when _currentSupplierAddress is updated');
+    // });
+    // describe('SupplierAdded', () => {
+    //   it.todo(
+    //     'should be emitted when a supplier is added to _activeSupply with _addActiveSupplier'
+    //   );
+    // });
+    // describe('SupplierRemoved', () => {
+    //   it.todo(
+    //     'should be emitted when a supplier is removed from _activeSupply with _removeActiveSupplier'
+    //   );
+    // });
+    // describe('RemovalAdded', () => {
+    //   it.todo(
+    //     'should be emitted when a removal is added to _activeSupply with _addActiveRemoval'
+    //   );
+    // });
+    // describe('RemovalRemoved', () => {
+    //   it.todo(
+    //     'should be emitted when a removal is removed from _activeSupply with _removeActiveRemoval'
+    //   );
+    // });
   });
   describe('role access', () => {
     describe('DEFAULT_ADMIN_ROLE', () => {
