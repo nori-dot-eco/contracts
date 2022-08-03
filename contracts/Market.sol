@@ -611,6 +611,8 @@ contract Market is PausableAccessPreset {
     // todo verify changes to `fulfillOrder` (memory->calldata arr args) that enabled [:index] arr slicing syntax is ok
     uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
+    // bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovals);
+
     uint8[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages({
       ids: batchedIds
     });

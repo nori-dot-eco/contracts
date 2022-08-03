@@ -204,10 +204,20 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
   }
 
   function test() external {
-    assertEq(
-      _removal.batchGetHoldbackPercentages({ids: _removalIds}),
-      _holdbackPercentages
-    );
+    uint256 numberOfRemovalIds = _removalIds.length;
+    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovalIds);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+        _removal.getHoldbackPercentage.selector,
+        _removalIds[i]
+      );
+    }
+    bytes[] memory results = _removal.multicall(getHoldbackPercentageCalls);
+    uint8[] memory decodedResults = new uint8[](numberOfRemovalIds);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      decodedResults[i] = uint8(uint256(bytes32(results[i])));
+    }
+    assertEq(decodedResults, _holdbackPercentages);
   }
 }
 
