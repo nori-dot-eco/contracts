@@ -44,6 +44,88 @@ describe('Market', () => {
       );
     });
   });
+  describe('events', () => {
+    describe('PriorityRestrictedThresholdSet', () => {
+      it('should be emitted when priorityRestrictedThreshold is updated', async () => {
+        const role = 'DEFAULT_ADMIN_ROLE';
+        const accountWithRole = 'admin';
+        const { market, hre } = await setupTest();
+        const { namedAccounts, namedSigners } = hre;
+        const roleId = await market[role]();
+        expect(await market.hasRole(roleId, namedAccounts[accountWithRole])).to
+          .be.true;
+        const newThreshold = formatTokenAmount(100);
+        await expect(
+          market
+            .connect(namedSigners[accountWithRole])
+            .setPriorityRestrictedThreshold(newThreshold)
+        )
+          .to.emit(market, 'PriorityRestrictedThresholdSet')
+          .withArgs(newThreshold);
+      });
+    });
+    describe('NoriFeeWalletUpdated', () => {
+      it('should be emitted when noriFeeWalletAddress is updated', async () => {
+        const role = 'DEFAULT_ADMIN_ROLE';
+        const accountWithRole = 'admin';
+        const { market, hre } = await setupTest();
+        const { namedAccounts, namedSigners } = hre;
+        const roleId = await market[role]();
+        expect(await market.hasRole(roleId, namedAccounts[accountWithRole])).to
+          .be.true;
+        const newNoriFeeWalletAddress = hre.namedAccounts.admin;
+        await expect(
+          market
+            .connect(namedSigners[accountWithRole])
+            .setNoriFeeWallet(newNoriFeeWalletAddress)
+        )
+          .to.emit(market, 'NoriFeeWalletAddressUpdated')
+          .withArgs(newNoriFeeWalletAddress);
+      });
+    });
+    describe('NoriFeePercentageUpdated', () => {
+      it('should be emitted when noriFeePercentage is updated', async () => {
+        const role = 'DEFAULT_ADMIN_ROLE';
+        const accountWithRole = 'admin';
+        const { market, hre } = await setupTest();
+        const { namedAccounts, namedSigners } = hre;
+        const roleId = await market[role]();
+        expect(await market.hasRole(roleId, namedAccounts[accountWithRole])).to
+          .be.true;
+        const newNoriFeePercentage = formatTokenAmount(40);
+        await expect(
+          market
+            .connect(namedSigners[accountWithRole])
+            .setNoriFeePercentage(newNoriFeePercentage)
+        )
+          .to.emit(market, 'NoriFeeWalletAddressUpdated')
+          .withArgs(newNoriFeePercentage);
+      });
+    });
+    describe('CurrentSupplierAddressChanged', () => {
+      it.todo('should be emitted when _currentSupplierAddress is updated');
+    });
+    describe('SupplierAdded', () => {
+      it.todo(
+        'should be emitted when a supplier is added to _activeSupply with _addActiveSupplier'
+      );
+    });
+    describe('SupplierRemoved', () => {
+      it.todo(
+        'should be emitted when a supplier is removed from _activeSupply with _removeActiveSupplier'
+      );
+    });
+    describe('RemovalAdded', () => {
+      it.todo(
+        'should be emitted when a removal is added to _activeSupply with _addActiveRemoval'
+      );
+    });
+    describe('RemovalRemoved', () => {
+      it.todo(
+        'should be emitted when a removal is removed from _activeSupply with _removeActiveRemoval'
+      );
+    });
+  });
   describe('role access', () => {
     describe('DEFAULT_ADMIN_ROLE', () => {
       it(`should allow accounts with the role "DEFAULT_ADMIN_ROLE" to set the priority restricted threshold while accounts without this role cannot`, async () => {

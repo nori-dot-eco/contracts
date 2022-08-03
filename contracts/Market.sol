@@ -62,10 +62,10 @@ contract Market is PausableAccessPreset {
   event PriorityRestrictedThresholdSet(uint256 threshold);
 
   /**
-   * @notice Emitted on setting of `_noriFeeWallet`.
+   * @notice Emitted on setting of `_noriFeeWalletAddress`.
    * @param updatedWalletAddress The updated address of the Nori fee wallet.
    */
-  event NoriFeeWalletUpdated(address updatedWalletAddress);
+  event NoriFeeWalletAddressUpdated(address updatedWalletAddress);
 
   /**
    * @notice Emitted on setting of `_noriFeePercentage`.
@@ -641,7 +641,7 @@ contract Market is PausableAccessPreset {
     whenNotPaused
   {
     _noriFeeWallet = noriFeeWalletAddress;
-    emit NoriFeeWalletUpdated(noriFeeWalletAddress);
+    emit NoriFeeWalletAddressUpdated(noriFeeWalletAddress);
   }
 
   /**
