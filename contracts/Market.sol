@@ -366,8 +366,7 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev Reverts if supplier is out of stock or if total available supply in the market is being reserved for priority
-   * buyers and buyer is not priority.
+   * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
    *
    * @param certificateAmount The number of carbon removals being purchased.
    * @param activeSupply The amount of active supply in the market.
