@@ -13,6 +13,7 @@ abstract contract Global is PRBTest {
     address admin;
     address supplier;
     address supplier2;
+    address supplier3;
     address buyer;
   }
 
@@ -23,6 +24,7 @@ abstract contract Global is PRBTest {
       admin: account("admin"),
       supplier: account("supplier"),
       supplier2: account("supplier2"),
+      supplier3: account("supplier3"),
       buyer: account("buyer")
     });
 
