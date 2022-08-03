@@ -182,14 +182,16 @@ contract Certificate is
       storage removalIds = _removalsOfCertificate[certificateId];
     uint256 numberOfRemovals = removalIds.length();
     Balance[] memory removals = new Balance[](numberOfRemovals);
-    // Skip overflow check as for loop is indexed starting at zero.
-    unchecked {
-      for (uint256 i = 0; i < numberOfRemovals; ++i) {
-        uint256 removalId = removalIds.at(i);
-        removals[i] = Balance({
-          id: removalId,
-          amount: _removalBalancesOfCertificate[certificateId][removalId]
-        });
+    if (numberOfRemovals != 0) {
+      // Skip overflow check as for loop is indexed starting at zero.
+      unchecked {
+        for (uint256 i = 0; i < numberOfRemovals; ++i) {
+          uint256 removalId = removalIds.at(i);
+          removals[i] = Balance({
+            id: removalId,
+            amount: _removalBalancesOfCertificate[certificateId][removalId]
+          });
+        }
       }
     }
     return removals;
@@ -207,14 +209,16 @@ contract Certificate is
       storage certificateIds = _certificatesOfRemoval[removalId];
     uint256 numberOfCertificates = certificateIds.length();
     Balance[] memory certificates = new Balance[](numberOfCertificates);
-    // Skip overflow check as for loop is indexed starting at zero.
-    unchecked {
-      for (uint256 i = 0; i < numberOfCertificates; ++i) {
-        uint256 certificateId = certificateIds.at(i);
-        certificates[i] = Balance({
-          id: certificateId,
-          amount: _removalBalancesOfCertificate[certificateId][removalId]
-        });
+    if (numberOfCertificates != 0) {
+      // Skip overflow check as for loop is indexed starting at zero.
+      unchecked {
+        for (uint256 i = 0; i < numberOfCertificates; ++i) {
+          uint256 certificateId = certificateIds.at(i);
+          certificates[i] = Balance({
+            id: certificateId,
+            amount: _removalBalancesOfCertificate[certificateId][removalId]
+          });
+        }
       }
     }
     return certificates;
