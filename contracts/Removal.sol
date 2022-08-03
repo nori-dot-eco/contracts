@@ -19,7 +19,6 @@ struct BatchMintRemovalsData {
   bool list;
 }
 
-
 /**
  * @title Removal
  */
@@ -274,18 +273,6 @@ contract Removal is
     returns (uint256)
   {
     return _addressToOwnedTokenIds[account].length();
-  }
-
-  function balanceOfIds(address account, uint256[] memory ids)
-    external
-    view
-    returns (uint256[] memory)
-  {
-    uint256[] memory batchBalances = new uint256[](ids.length);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      batchBalances[i] = balanceOf(account, ids[i]); // todo batch retrieve balances outside of loop
-    }
-    return batchBalances;
   }
 
   /**
