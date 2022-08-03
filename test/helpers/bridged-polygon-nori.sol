@@ -17,20 +17,22 @@ abstract contract UpgradeableBridgedPolygonNORI is Upgradeable {
 
   function _deployBridgedPolygonNORI() internal returns (BridgedPolygonNORI) {
     BridgedPolygonNORI impl = new BridgedPolygonNORI();
+    vm.label(address(impl), "BridgedPolygonNORI Implementation");
     address childChainManagerProxy = address(0); // todo deploy an actual polygon child chain manager using vm.etch
     bytes memory initializer = abi.encodeWithSelector(
       impl.initialize.selector,
       "initialize(address)",
       childChainManagerProxy
     );
-    return BridgedPolygonNORI(_deployProxy(address(impl), initializer));
+    BridgedPolygonNORI proxy = BridgedPolygonNORI(
+      _deployProxy(address(impl), initializer)
+    );
+    vm.label(address(proxy), "BridgedPolygonNORI Proxy");
+    return proxy;
   }
 }
 
-abstract contract NonUpgradableBridgedPolygonNORIMock is
-  BridgedPolygonNORI,
-  Global
-{}
+contract NonUpgradableBridgedPolygonNORIMock is BridgedPolygonNORI, Global {}
 
 abstract contract UpgradableBridgedPolygonNORIMock is
   UpgradeableBridgedPolygonNORI

@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
+import "@/test/helpers/removal.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 import "@/contracts/ArrayLib.sol";
+import "@/contracts/Removal.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
 
@@ -121,12 +124,10 @@ contract Market_withdraw_as_operator is MarketBalanceTestHelper {
       count: 1,
       list: false
     });
-    _removal.safeBatchTransferFrom({
+    _removal.consign({
       from: _namedAccounts.supplier,
-      to: address(_market),
-      ids: new uint256[](1).fill(_removalIds[0]),
-      amounts: new uint256[](1).fill(_amountPerRemoval),
-      data: ""
+      id: _removalIds[0],
+      amount: _amountPerRemoval
     });
     vm.prank(_namedAccounts.supplier);
     _removal.setApprovalForAll(_namedAccounts.supplier2, true);
@@ -145,7 +146,7 @@ contract Market_withdraw_as_operator is MarketBalanceTestHelper {
     _expectedMarketSupply = 0;
     _expectedTokenCount.set(_namedAccounts.supplier, 1);
     _expectedTokenCount.set(address(_market), 0);
-    _assertCorrectStates();
+    _assertCorrectStates(); // todo accept expected states as args instead
   }
 }
 
@@ -191,7 +192,7 @@ contract Market_withdraw_reverts is MarketBalanceTestHelper {
 
   function test() external {
     vm.prank(_namedAccounts.supplier2);
-    vm.expectRevert(Market.UnauthorizedWithdrawal.selector);
+    vm.expectRevert(UnauthorizedWithdrawal.selector);
     _market.withdraw(_removalIds[0]);
     _assertCorrectStates();
   }
@@ -319,5 +320,292 @@ contract Market_withdraw_2x1_back is MarketBalanceTestHelper {
 contract Market_ALLOWLIST_ROLE is UpgradeableMarket {
   function test() external {
     assertEq(_market.ALLOWLIST_ROLE(), keccak256("ALLOWLIST_ROLE"));
+  }
+}
+
+contract Market__isAuthorizedWithdrawal_true is NonUpgradeableMarket {
+  function setUp() external {
+    vm.store(
+      address(this),
+      bytes32(uint256(251)), // sets the _removal storage slot to the market contract to enable mock calls
+      bytes32(uint256(uint160(address(this))))
+    );
+  }
+
+  function test_returnsTrueWhenMsgSenderEqualsOwner() external {
+    assertEq(_isAuthorizedWithdrawal({owner: _msgSender()}), true);
+  }
+
+  function test_returnsTrueWhenMsgSenderHasDefaultAdminRole() external {
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    assertEq(_isAuthorizedWithdrawal({owner: _namedAccounts.supplier}), true);
+  }
+
+  function test_returnsTrueWhenMsgSenderIsApprovedForAll() external {
+    vm.mockCall(
+      address(this),
+      abi.encodeWithSelector(IERC1155Upgradeable.isApprovedForAll.selector),
+      abi.encode(true)
+    );
+    assertEq(_isAuthorizedWithdrawal({owner: address(0)}), true);
+  }
+}
+
+contract Market__isAuthorizedWithdrawal_false is NonUpgradeableMarket {
+  function setUp() external {
+    vm.store(
+      address(this),
+      bytes32(uint256(251)), // sets the _removal storage slot to the market contract to enable mock calls
+      bytes32(uint256(uint160(address(this))))
+    );
+    vm.mockCall(
+      address(this),
+      abi.encodeWithSelector(IERC1155Upgradeable.isApprovedForAll.selector),
+      abi.encode(false)
+    );
+  }
+
+  function test_returnsFalseWhenAllConditionsAreFalse() external {
+    assertEq(_isAuthorizedWithdrawal({owner: _namedAccounts.supplier}), false);
+  }
+}
+
+contract Market__validatePrioritySupply is NonUpgradeableMarket {
+  function test_supplyAfterPurchaseIsLessThanPriorityRestrictedThreshold()
+    external
+    view
+  {
+    _validatePrioritySupply({
+      certificateAmount: 0.5 ether,
+      activeSupply: 1 ether
+    });
+  }
+
+  function test_supplyAfterPurchaseIsZero() external view {
+    _validatePrioritySupply({
+      certificateAmount: 1 ether,
+      activeSupply: 1 ether
+    });
+  }
+}
+
+contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriorityRestrictedThreshold is
+  NonUpgradeableMarket
+{
+  function setUp() external {
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    vm.prank(_msgSender());
+    this.setPriorityRestrictedThreshold({threshold: 0.5 ether});
+    _grantRole({role: ALLOWLIST_ROLE, account: _namedAccounts.deployer});
+  }
+
+  function test() external view {
+    _validatePrioritySupply({
+      certificateAmount: 1 ether,
+      activeSupply: 1 ether
+    });
+  }
+}
+
+contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
+  NonUpgradeableMarket
+{
+  function setUp() external {
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    vm.prank(_msgSender());
+    this.setPriorityRestrictedThreshold({threshold: 1 ether});
+  }
+
+  function test() external {
+    vm.expectRevert(LowSupplyAllowlistRequired.selector);
+    _validatePrioritySupply({
+      certificateAmount: 1 ether,
+      activeSupply: 1 ether
+    });
+  }
+}
+
+contract Market__listForSale is NonUpgradeableMarket, UpgradeableRemoval {
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+
+  function test() external {
+    _listForSale({id: REMOVAL_ID_FIXTURE});
+  }
+
+  function test__list1VintageFor1Supplier() external {
+    _listForSale({id: REMOVAL_ID_FIXTURE});
+    address supplier = RemovalIdLib.supplierAddress(REMOVAL_ID_FIXTURE);
+    uint256 earliestYear = _activeSupply[supplier].earliestYear;
+    assertEq(earliestYear, REMOVAL_DATA_FIXTURE.vintage);
+    assertEq(_activeSupply[supplier].latestYear, REMOVAL_DATA_FIXTURE.vintage);
+    EnumerableSetUpgradeable.UintSet storage queueByVintage = _activeSupply[
+      supplier
+    ].queueByVintage[earliestYear];
+    assertEq(queueByVintage.length(), 1);
+    assertEq(queueByVintage.at(0), REMOVAL_ID_FIXTURE);
+    assertEq(
+      _suppliersInRoundRobinOrder[supplier].nextSupplierAddress,
+      supplier
+    );
+    assertEq(
+      _suppliersInRoundRobinOrder[supplier].previousSupplierAddress,
+      supplier
+    );
+  }
+
+  function test__list2VintagesFor1SupplierFor1SubIdentifier() external {
+    UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
+    secondRemovalsData.vintage = REMOVAL_DATA_FIXTURE.vintage + 1;
+    uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
+    _listForSale({id: REMOVAL_ID_FIXTURE});
+    _listForSale({id: secondRemovalsId});
+    uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
+    uint256 latestYear = secondRemovalsData.vintage;
+    address supplier = RemovalIdLib.supplierAddress(secondRemovalsId);
+    EnumerableSetUpgradeable.UintSet storage queueByVintage = _activeSupply[
+      supplier
+    ].queueByVintage[latestYear];
+    assertEq(_activeSupply[supplier].earliestYear, earliestYear);
+    assertEq(_activeSupply[supplier].latestYear, latestYear);
+    assertEq(queueByVintage.length(), 1);
+    assertEq(queueByVintage.at(0), secondRemovalsId);
+    assertEq(
+      _suppliersInRoundRobinOrder[supplier].nextSupplierAddress,
+      supplier
+    );
+    assertEq(
+      _suppliersInRoundRobinOrder[supplier].previousSupplierAddress,
+      supplier
+    );
+  }
+
+  function test__lis2VintagesFor1SupplierFor2SubIdentifiers() external {
+    UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
+    secondRemovalsData.subIdentifier = REMOVAL_DATA_FIXTURE.subIdentifier + 1;
+    uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
+    _listForSale({id: REMOVAL_ID_FIXTURE});
+    _listForSale({id: secondRemovalsId});
+    uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
+    uint256 latestYear = secondRemovalsData.vintage;
+    EnumerableSetUpgradeable.UintSet storage queueByVintage = _activeSupply[
+      _namedAccounts.supplier
+    ].queueByVintage[latestYear];
+    assertEq(_activeSupply[_namedAccounts.supplier].earliestYear, earliestYear);
+    assertEq(_activeSupply[_namedAccounts.supplier].latestYear, latestYear);
+    assertEq(queueByVintage.length(), 2);
+    assertEq(queueByVintage.at(0), REMOVAL_ID_FIXTURE);
+    assertEq(queueByVintage.at(1), secondRemovalsId);
+    assertEq(
+      _suppliersInRoundRobinOrder[_namedAccounts.supplier].nextSupplierAddress,
+      _namedAccounts.supplier
+    );
+    assertEq(
+      _suppliersInRoundRobinOrder[_namedAccounts.supplier]
+        .previousSupplierAddress,
+      _namedAccounts.supplier
+    );
+  }
+
+  function test__list1VintageFor2Suppliers() external {
+    UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
+    secondRemovalsData.supplierAddress = _namedAccounts.supplier2;
+    uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
+    _listForSale({id: REMOVAL_ID_FIXTURE});
+    _listForSale({id: secondRemovalsId});
+    uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
+    uint256 latestYear = REMOVAL_DATA_FIXTURE.vintage;
+    EnumerableSetUpgradeable.UintSet storage queueByVintage = _activeSupply[
+      _namedAccounts.supplier
+    ].queueByVintage[earliestYear];
+    EnumerableSetUpgradeable.UintSet storage queueByVintage2 = _activeSupply[
+      _namedAccounts.supplier2
+    ].queueByVintage[earliestYear];
+    assertEq(_activeSupply[_namedAccounts.supplier].earliestYear, earliestYear);
+    assertEq(_activeSupply[_namedAccounts.supplier].latestYear, latestYear);
+    assertEq(
+      _activeSupply[_namedAccounts.supplier2].earliestYear,
+      earliestYear
+    );
+    assertEq(_activeSupply[_namedAccounts.supplier2].latestYear, latestYear);
+    assertEq(queueByVintage.length(), 1);
+    assertEq(queueByVintage2.length(), 1);
+    assertEq(queueByVintage.at(0), REMOVAL_ID_FIXTURE);
+    assertEq(queueByVintage2.at(0), secondRemovalsId);
+    assertEq(
+      _suppliersInRoundRobinOrder[_namedAccounts.supplier].nextSupplierAddress,
+      _namedAccounts.supplier2
+    );
+    assertEq(
+      _suppliersInRoundRobinOrder[_namedAccounts.supplier]
+        .previousSupplierAddress,
+      _namedAccounts.supplier2
+    );
+    assertEq(
+      _suppliersInRoundRobinOrder[_namedAccounts.supplier2].nextSupplierAddress,
+      _namedAccounts.supplier
+    );
+    assertEq(
+      _suppliersInRoundRobinOrder[_namedAccounts.supplier2]
+        .previousSupplierAddress,
+      _namedAccounts.supplier
+    );
+  }
+}
+
+contract Market_onERC1155Received is UpgradeableMarket {
+  function test() external {
+    assertEq(
+      _market.onERC1155Received(
+        address(0),
+        address(0),
+        REMOVAL_ID_FIXTURE,
+        uint256(1),
+        ""
+      ),
+      IERC1155ReceiverUpgradeable.onERC1155Received.selector
+    );
+  }
+}
+
+contract Market_onERC1155BatchReceived is UpgradeableMarket {
+  function test() external {
+    assertEq(
+      _market.onERC1155BatchReceived(
+        address(0),
+        address(0),
+        new uint256[](1).fill(REMOVAL_ID_FIXTURE),
+        new uint256[](1).fill(1),
+        ""
+      ),
+      IERC1155ReceiverUpgradeable.onERC1155BatchReceived.selector
+    );
+  }
+}
+
+contract Market__validateSuppliersSupply is
+  NonUpgradeableMarket,
+  UpgradeableRemoval
+{
+  function test() external pure {
+    _validateSuppliersSupply({
+      certificateAmount: 0.5 ether,
+      activeSupplyOfSupplier: 1 ether
+    });
+  }
+
+  function test_reverts_OutOfStock() external {
+    vm.expectRevert(InsufficientSupply.selector);
+    _validateSuppliersSupply({certificateAmount: 1, activeSupplyOfSupplier: 0});
+  }
+}
+
+contract Market__validateSupply is NonUpgradeableMarket, UpgradeableRemoval {
+  function test() external pure {
+    _validateSupply({certificateAmount: 1 ether, activeSupply: 1 ether});
+  }
+
+  function test_reverts_OutOfSupply() external {
+    vm.expectRevert(InsufficientSupply.selector);
+    _validateSupply({certificateAmount: 1 ether, activeSupply: 0.9 ether});
   }
 }

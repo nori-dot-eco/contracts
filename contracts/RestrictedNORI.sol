@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
@@ -8,7 +7,7 @@ import "./BridgedPolygonNORI.sol";
 import "./Removal.sol";
 import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
-import {ArrayLengthMismatch} from "./Errors.sol";
+import "./Errors.sol";
 
 // todo Is this fully addressed: https://github.com/nori-dot-eco/contracts/pull/249/files#r906867575
 
@@ -130,13 +129,6 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
   using RestrictedNORILib for Schedule;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-
-  error RecipientCannotBeZeroAddress();
-  error NonexistentSchedule(uint256 scheduleId);
-  error InsufficientUnreleasedTokens(uint256 scheduleId);
-  error InsufficientClaimableBalance(address account, uint256 scheduleId);
-  error InvalidMinter(address account);
-  error InvalidZeroDuration();
 
   /**
    * @notice Role conferring creation of schedules.
@@ -354,6 +346,13 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
   }
 
   /**
+   * @notice Returns the existence of a schedule
+   */
+  function scheduleExists(uint256 scheduleId) public view returns (bool) {
+    return _scheduleIdToScheduleStruct[scheduleId].exists;
+  }
+
+  /**
    * @notice Returns an array of summary structs for the specified schedules.
    */
   function batchGetScheduleSummaries(uint256[] calldata scheduleIds)
@@ -416,8 +415,8 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
     returns (uint256)
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    uint256 totalSupply = totalSupply(scheduleId);
-    return schedule._revocableQuantityForSchedule(scheduleId, totalSupply);
+    uint256 supply = totalSupply(scheduleId);
+    return schedule._revocableQuantityForSchedule(scheduleId, supply);
   }
 
   // External functions ===================================================
@@ -468,14 +467,25 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role.
    */
-  function createSchedule(uint256 projectId)
-    external
-    whenNotPaused
-    onlyRole(SCHEDULE_CREATOR_ROLE)
-  {
-    if (!_scheduleIdToScheduleStruct[projectId].exists) {
-      _createSchedule(projectId);
-    }
+  function createSchedule(
+    uint256 projectId,
+    uint256 startTime,
+    uint8 methodology,
+    uint8 methodologyVersion
+  ) external whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
+    uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion({
+        methodology: methodology,
+        methodologyVersion: methodologyVersion
+      });
+    _validateSchedule({
+      startTime: startTime,
+      restrictionDuration: restrictionDuration
+    });
+    _createSchedule({
+      projectId: projectId,
+      startTime: startTime,
+      restrictionDuration: restrictionDuration
+    });
   }
 
   /**
@@ -485,15 +495,11 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
     if (!hasRole(MINTER_ROLE, _msgSender())) {
       revert InvalidMinter({account: _msgSender()});
     }
-    uint256 projectId = _removal.getProjectIdForRemoval(removalId);
-    ScheduleData memory scheduleData = _removal.getScheduleDataForProjectId(
-      projectId
-    );
-    address recipient = scheduleData.supplierAddress;
-    super._mint(recipient, projectId, amount, "");
-    Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
+    uint256 projectId = _removal.getProjectId({removalId: removalId});
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
+    super._mint(supplierAddress, projectId, amount, "");
     // slither-disable-next-line unused-return address may already be in set and that is ok
-    schedule.tokenHolders.add(recipient);
+    _scheduleIdToScheduleStruct[projectId].tokenHolders.add(supplierAddress);
   }
 
   /**
@@ -690,26 +696,26 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
    * Revert strings are used instead of custom errors here for proper surfacing
    * from within the market contract `onERC1155BatchReceived` hook.
    */
-  function _createSchedule(uint256 projectId) internal {
-    ScheduleData memory scheduleData = _removal.getScheduleDataForProjectId(
-      projectId
-    );
-    require(scheduleData.startTime != 0, "rNORI: Invalid start time");
-    address recipient = scheduleData.supplierAddress;
-    if (recipient == address(0)) {
-      revert RecipientCannotBeZeroAddress();
-    }
-    require(_allScheduleIds.add(projectId), "rNORI: Schedule exists");
+  function _createSchedule(
+    uint256 projectId,
+    uint256 startTime,
+    uint256 restrictionDuration
+  ) internal {
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion(
-        scheduleData.methodology,
-        scheduleData.methodologyVersion
-      );
-    require(restrictionDuration != 0, "rNORI: duration not set");
     schedule.exists = true;
-    schedule.startTime = scheduleData.startTime;
-    schedule.endTime = scheduleData.startTime + restrictionDuration;
-    emit ScheduleCreated(projectId, schedule.startTime, schedule.endTime);
+    schedule.startTime = startTime;
+    schedule.endTime = startTime + restrictionDuration;
+    _allScheduleIds.add(projectId);
+    emit ScheduleCreated(projectId, startTime, schedule.endTime);
+  }
+
+  function _validateSchedule(uint256 startTime, uint256 restrictionDuration)
+    internal
+    pure
+  {
+    // todo this can probably be moved to the rNoriLib along with _createSchedule (if not, some schedule creator lib)
+    require(startTime != 0, "rNORI: Invalid start time");
+    require(restrictionDuration != 0, "rNORI: duration not set");
   }
 
   /**

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "./Errors.sol";
 
 /** The internal governing parameters and data for a schedule */
 struct Schedule {
@@ -17,7 +17,7 @@ struct Schedule {
   mapping(address => uint256) quantitiesRevokedByAddress;
 }
 
-// todo Finiish RestrictedNORILib docs
+// todo Finish RestrictedNORILib docs
 /**
  * @dev Library encapsulating the logic around restriction schedules.
  *
@@ -28,9 +28,8 @@ struct Schedule {
  *
  */
 library RestrictedNORILib {
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RestrictedNORILib for Schedule;
-
-  error NonexistentSchedule(uint256 scheduleId);
 
   /**
    * @dev The total amount of released tokens available at the current block timestamp for the schedule.
