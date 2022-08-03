@@ -42,7 +42,7 @@ contract RestrictedNORI__linearReleaseAmountAvailable is
 
 contract RestrictedNORI_scheduleExists is UpgradeableMarket {
   function setUp() external {
-    _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
+    _seedRemovals({to: _namedAccounts.supplier, count: 1, list: false});
   }
 
   function test() external {

@@ -5,7 +5,6 @@ error ArrayLengthMismatch(string array1Name, string array2Name);
 error FunctionDisabled();
 error MissingRole(bytes32 role);
 error SenderNotRemovalContract();
-error TokenIdExists(uint256 tokenId);
 error RemovalAmountZero(uint256 tokenId);
 error NonexistentSchedule(uint256 scheduleId);
 error RecipientCannotBeZeroAddress();
@@ -24,3 +23,7 @@ error UnauthorizedWithdrawal(); // todo consider allowing operators
 error OutOfStock();
 error LowSupplyAllowlistRequired();
 error RemovalNotInActiveSupply(uint256 removalId);
+error Unauthorized(); // todo perhaps use this for any authorization error
+error InvalidData();
+error InvalidCall();
+error InvalidTokenTransfer(uint256 tokenId);
