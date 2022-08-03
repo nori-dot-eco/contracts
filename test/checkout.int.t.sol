@@ -69,7 +69,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     );
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(amount));
-    assertEq(_removal.cumulativeBalanceOf(address(_market)), 1 ether);
+    assertEq(_removal.getMarketBalance(), 1 ether);
     assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
@@ -130,7 +130,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
       _removalIds,
       "Expected the market to own the removals"
     );
-    assertEq(_removal.cumulativeBalanceOf(address(_market)), 10 ether);
+    assertEq(_removal.getMarketBalance(), 10 ether);
     assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 10);
     assertEq(_expectedCertificateAmount, 10 ether);
     uint256 ownerPrivateKey = 0xA11CE;

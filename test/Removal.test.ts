@@ -105,9 +105,7 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        const marketTotalSupply = await removal.cumulativeBalanceOf(
-          market.address
-        );
+        const marketTotalSupply = await removal.getMarketBalance();
         expect(marketTotalSupply).to.equal(Zero);
       });
       it('should mint and list a batch of removals in the same transaction and create restriction schedules', async () => {
@@ -148,7 +146,7 @@ describe('Removal', () => {
         for (const [tokenId, balance] of balances.entries()) {
           expect(balance).to.equal(removalBalances[tokenId]);
         }
-        expect(await removal.cumulativeBalanceOf(market.address)).to.equal(
+        expect(await removal.getMarketBalance()).to.equal(
           expectedMarketSupply
         );
       });
@@ -257,27 +255,6 @@ describe('Removal', () => {
           ).revertedWith('TokenIdExists');
         });
       });
-    });
-  });
-  describe('getScheduleDataForProjectId', () => {
-    it('should return the restriction schedule start time for a removal id', async () => {
-      const { removal, listedRemovalIds, scheduleStartTime } = await setupTest({
-        userFixtures: {
-          supplier: {
-            removalDataToList: {
-              listNow: false,
-              removals: [{ amount: 100 }],
-            },
-          },
-        },
-      });
-      const projectId = await removal.getProjectIdForRemoval(
-        listedRemovalIds[0]
-      );
-      const { startTime } = await removal.getScheduleDataForProjectId(
-        projectId
-      );
-      expect(startTime).to.be.gt(Zero).and.to.equal(scheduleStartTime);
     });
   });
 });

@@ -25,9 +25,163 @@ contract Removal_mintBatch is UpgradeableMarket {
   }
 }
 
-contract Removal_release is UpgradeableMarket {
+contract Removal_getProjectId is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+  }
+
+  function test() external {
+    assertEq(_removal.getProjectId(_removalIds[0]), 1234567890);
+  }
+}
+
+contract Removal__createRemovalDataBatch is NonUpgradableRemoval {
+  /** @dev allows using the `calldata` type for the `removalIds` param as this function is external  */
+  function createRemovalDataBatch(
+    uint256[] calldata removalIds,
+    uint256 projectId
+  ) external {
+    _createRemovalDataBatch({removalIds: removalIds, projectId: projectId});
+  }
+
+  function test() external {
+    this.createRemovalDataBatch({
+      removalIds: new uint256[](1).fill(uint256(1)),
+      projectId: 1
+    });
+  }
+
+  function test_reverts_TokenIdExists() external {
+    uint256[] memory removalIds = new uint256[](1).fill(uint256(1));
+    this.createRemovalDataBatch({removalIds: removalIds, projectId: 1});
+    vm.expectRevert(abi.encodeWithSelector(TokenIdExists.selector, 1));
+    this.createRemovalDataBatch({removalIds: removalIds, projectId: 1});
+  }
+}
+
+contract Removal__createRemovalData is NonUpgradableRemoval {
+  function test() external {
+    _createRemovalData({removalId: 1, projectId: 1});
+  }
+
+  function test_reverts_TokenIdExists() external {
+    _createRemovalData({removalId: 1, projectId: 1});
+    vm.expectRevert(abi.encodeWithSelector(TokenIdExists.selector, 1));
+    _createRemovalData({removalId: 1, projectId: 1});
+  }
+}
+
+contract Removal__validateRemoval is NonUpgradableRemoval {
+  function setUp() external {
+    _createRemovalData({removalId: 1, projectId: 1});
+  }
+
+  function test() external view {
+    _validateRemoval({id: 2});
+  }
+
+  function test_reverts_TokenIdExists() external {
+    vm.expectRevert(abi.encodeWithSelector(TokenIdExists.selector, 1));
+    _validateRemoval({id: 1});
+  }
+}
+
+contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
+  uint256[] private _removalIds;
+  uint8[] private _holdbackPercentages;
+
+  function setUp() external {
+    BatchMintRemovalsData memory data = BatchMintRemovalsData({
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50,
+      list: false
+    });
+    _removal.mintBatch(
+      _namedAccounts.supplier,
+      _asSingletonUintArray(1),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      data
+    );
+    _removalIds = [REMOVAL_ID_FIXTURE];
+    _holdbackPercentages = [data.holdbackPercentage];
+  }
+
+  function test() external {
+    assertEq(
+      _holdbackPercentages,
+      _removal.batchGetHoldbackPercentages({ids: _removalIds})
+    );
+  }
+}
+
+contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
+  uint8 private constant _secondHoldbackPercentage = 10;
+  uint256[] private _removalIds;
+  uint8[] private _holdbackPercentages;
+  uint256 private _secondRemovalId;
+  BatchMintRemovalsData private _secondBatchMintData =
+    BatchMintRemovalsData({
+      projectId: 1_234_567_891,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: _secondHoldbackPercentage,
+      list: false
+    });
+
+  function setUp() external {
+    BatchMintRemovalsData memory data = BatchMintRemovalsData({
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50,
+      list: false
+    });
+    _removal.mintBatch(
+      _namedAccounts.supplier,
+      _asSingletonUintArray(1),
+      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      data
+    );
+    _secondRemovalId = RemovalIdLib.createRemovalId(
+      UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: 2018,
+        country: "US",
+        subdivision: "IA",
+        supplierAddress: _namedAccounts.supplier,
+        subIdentifier: 99_039_931
+      })
+    );
+    _removal.mintBatch(
+      _namedAccounts.supplier,
+      _asSingletonUintArray(1),
+      new uint256[](1).fill(_secondRemovalId),
+      _secondBatchMintData
+    );
+    _removalIds = [REMOVAL_ID_FIXTURE, _secondRemovalId];
+    _holdbackPercentages = [data.holdbackPercentage, _secondHoldbackPercentage];
+  }
+
+  function test() external {
+    _removalIds.push(_secondRemovalId);
+    _holdbackPercentages.push(_secondHoldbackPercentage);
+    assertEq(
+      _removal.batchGetHoldbackPercentages({ids: _removalIds}),
+      _holdbackPercentages
+    );
+  }
+}
+
+contract Removal_release_reverts_AccessControl is UpgradeableMarket {
   // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
-  function test_revert_missingReleaserRole() external {
+  function test() external {
     vm.prank(address(0));
     vm.expectRevert(
       bytes(
@@ -429,6 +583,54 @@ contract Removal_multicall is UpgradeableMarket {
   }
 }
 
+contract Removal_getMarketBalance is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function test() external {
+    uint256 amountToList = 0.5 ether;
+    uint256 amountToSell = 0.2 ether;
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+
+    assertEq(_removal.getMarketBalance(), 0);
+    _removal.safeBatchTransferFrom({
+      from: _namedAccounts.supplier,
+      to: address(_market),
+      ids: new uint256[](1).fill(_removalIds[0]),
+      amounts: new uint256[](1).fill(amountToList),
+      data: ""
+    });
+    assertEq(_removal.getMarketBalance(), amountToList);
+    uint256 ownerPrivateKey = 0xA11CE;
+    address owner = vm.addr(ownerPrivateKey);
+    uint256 checkoutTotal = _market.getCheckoutTotal(amountToSell);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(checkoutTotal));
+    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _bpNori
+    );
+    vm.prank(owner);
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    assertEq(_removal.getMarketBalance(), amountToList - amountToSell);
+    _market.withdraw(_removalIds[0]);
+    assertEq(_removal.getMarketBalance(), 0);
+  }
+}
+
 contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
   // todo test the rest of the cases
   function test() external {
@@ -456,7 +658,7 @@ contract Removal__beforeTokenTransfer is NonUpgradableRemoval {
     );
   }
 
-  function test_zeroValueTransfer_reverts_RemovalAmountZero() external {
+  function test_zeroValueTransferToMarket_reverts_RemovalAmountZero() external {
     vm.expectRevert(abi.encodeWithSelector(RemovalAmountZero.selector, 1));
     super._beforeTokenTransfer(
       _namedAccounts.admin,

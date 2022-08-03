@@ -38,4 +38,40 @@ contract PausableAccessPreset is
   function unpause() external onlyRole(PAUSER_ROLE) {
     _unpause();
   }
+
+  /**
+   * @notice Grants a role to an account.
+   *
+   * @dev Grants `role` to `account` if the `_beforeRoleGranted` hook is satisfied
+   *
+   * ##### Requirements:
+   *
+   * - The contract must not be paused.
+   */
+  function _grantRole(bytes32 role, address account)
+    internal
+    virtual
+    override
+    whenNotPaused
+  {
+    super._grantRole(role, account);
+  }
+
+  /**
+   * @notice Revokes a role from an account.
+   *
+   * @dev Revokes `role` from `account` if the `_beforeRoleGranted` hook is satisfied
+   *
+   * ##### Requirements:
+   *
+   * - The contract must not be paused.
+   */
+  function _revokeRole(bytes32 role, address account)
+    internal
+    virtual
+    override
+    whenNotPaused
+  {
+    super._revokeRole(role, account);
+  }
 }

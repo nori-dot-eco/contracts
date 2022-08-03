@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
-import {FunctionDisabled, ArrayLengthMismatch, SenderNotRemovalContract} from "./Errors.sol";
+import "./Errors.sol";
 import "./Removal.sol";
 import "./PausableAccessPreset.sol";
 import "./ICertificate.sol";
-
-error ForbiddenTransferAfterMinting();
 
 /**
  * todo document burning behavior
