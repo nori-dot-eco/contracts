@@ -25,7 +25,6 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
  * todo Consider adding MARKET_ADMIN_ROLE (sets thresholds, etc, so they can be done from admin ui without super admin)
  * todo Consider adding getters for number of active suppliers
  * todo consider globally renaming "active"/"reserved" to names that better describe "(un)available" (e.g., "listed"?)
- * todo consistency in variables/fns that use "cumulative" vs "total" nomenclature (perhaps use count vs total)
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
  */
 contract Market is PausableAccessPreset {

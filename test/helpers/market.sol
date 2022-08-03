@@ -62,4 +62,8 @@ abstract contract UpgradeableMarket is
   }
 }
 
-abstract contract NonUpgradeableMarket is Market, Global {}
+contract NonUpgradeableMarket is Market, Global {
+  constructor() {
+    vm.label(address(this), "NonUpgradeableMarket");
+  }
+}

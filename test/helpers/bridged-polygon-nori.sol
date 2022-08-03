@@ -32,10 +32,7 @@ abstract contract UpgradeableBridgedPolygonNORI is Upgradeable {
   }
 }
 
-abstract contract NonUpgradableBridgedPolygonNORIMock is
-  BridgedPolygonNORI,
-  Global
-{}
+contract NonUpgradableBridgedPolygonNORIMock is BridgedPolygonNORI, Global {}
 
 abstract contract UpgradableBridgedPolygonNORIMock is
   UpgradeableBridgedPolygonNORI

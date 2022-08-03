@@ -7,7 +7,6 @@ import {InvalidCall, InvalidData, InvalidTokenTransfer} from "./Errors.sol";
 
 /**
  * @title Removal
- *  // todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
  */
 contract Removal is
   ERC1155SupplyUpgradeable,
@@ -30,7 +29,7 @@ contract Removal is
   /**
    * @notice The `Market` contract that removals can be bought and sold from.
    */
-  Market private _market;
+  Market internal _market;
 
   /**
    * @notice The `Certificate` contract that removals are retired into.
@@ -241,18 +240,6 @@ contract Removal is
     return _addressToOwnedTokenIds[account].length();
   }
 
-  function balanceOfIds(address account, uint256[] memory ids)
-    external
-    view
-    returns (uint256[] memory)
-  {
-    uint256[] memory batchBalances = new uint256[](ids.length);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      batchBalances[i] = balanceOf(account, ids[i]); // todo batch retrieve balances outside of loop
-    }
-    return batchBalances;
-  }
-
   /**
    * @notice Unpacks a V0 removal id into its component data.
    */
@@ -269,9 +256,6 @@ contract Removal is
     override
     whenNotPaused
   {
-    if (operator == address(_market)) {
-      revert InvalidCall();
-    }
     _setApprovalForAll({
       owner: _msgSender(),
       operator: operator,
@@ -286,18 +270,6 @@ contract Removal is
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
-  }
-
-  function _setApprovalForAll(
-    address owner,
-    address operator,
-    bool approved
-  ) internal override {
-    super._setApprovalForAll({
-      owner: owner,
-      operator: operator,
-      approved: approved
-    });
   }
 
   /**

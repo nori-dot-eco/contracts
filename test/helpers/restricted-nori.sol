@@ -23,6 +23,6 @@ abstract contract UpgradeableRestrictedNORI is Upgradeable {
   }
 }
 
-abstract contract NonUpgradableRestrictedNORI is RestrictedNORI, Global {}
+contract NonUpgradableRestrictedNORI is RestrictedNORI, Global {}
 
 abstract contract UpgradableRestrictedNORI is UpgradeableRestrictedNORI {}
