@@ -257,25 +257,4 @@ describe('Removal', () => {
       });
     });
   });
-  describe('getScheduleDataForProjectId', () => {
-    it('should return the restriction schedule start time for a removal id', async () => {
-      const { removal, listedRemovalIds, scheduleStartTime } = await setupTest({
-        userFixtures: {
-          supplier: {
-            removalDataToList: {
-              listNow: false,
-              removals: [{ amount: 100 }],
-            },
-          },
-        },
-      });
-      const projectId = await removal.getProjectIdForRemoval(
-        listedRemovalIds[0]
-      );
-      const { startTime } = await removal.getScheduleDataForProjectId(
-        projectId
-      );
-      expect(startTime).to.be.gt(Zero).and.to.equal(scheduleStartTime);
-    });
-  });
 });

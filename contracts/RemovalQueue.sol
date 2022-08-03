@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import {RemovalIdLib} from "./RemovalIdLib.sol";
+import {AddressArrayLib, UInt256ArrayLib} from "./ArrayLib.sol";
 import "./Removal.sol";
 import "./Errors.sol";
 
@@ -14,6 +15,8 @@ struct RemovalQueueByVintage {
 // todo rename RemovalQueue to RemovalQueueLib
 library RemovalQueue {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+  using AddressArrayLib for address[];
+  using UInt256ArrayLib for uint256[];
 
   uint256 private constant _DEFAULT_EARLIEST_YEAR = 2**256 - 1;
   uint256 private constant _DEFAULT_LATEST_YEAR = 0;
@@ -159,33 +162,31 @@ library RemovalQueue {
    *
    * @param removalQueue the queue from storage.
    * @param removal the removal contract.
-   * @return uint256 the total balance of the queue.
+   * @return totalBalance the total balance of the queue.
    */
   function getTotalBalanceFromRemovalQueue(
     RemovalQueueByVintage storage removalQueue,
     Removal removal
-  ) internal view returns (uint256) {
-    uint256 size = 0;
-    uint256 i = 0;
-    uint256 totalBalance = 0;
-    for (
-      uint256 currentYear = removalQueue.earliestYear;
-      currentYear <= removalQueue.latestYear;
-      currentYear++
-    ) {
-      size = removalQueue.queueByVintage[currentYear].length();
-      uint256[] memory ids = new uint256[](size);
-      for (i = 0; i < size; i++) {
-        ids[i] = removalQueue.queueByVintage[currentYear].at(i);
+  ) internal view returns (uint256 totalBalance) {
+    uint256 latestYear = removalQueue.latestYear;
+    for (uint256 year = removalQueue.earliestYear; year <= latestYear; ++year) {
+      EnumerableSetUpgradeable.UintSet storage vintagesForYear = removalQueue
+        .queueByVintage[year];
+      uint256[] memory removalIds = new uint256[](vintagesForYear.length());
+      uint256 numberOfRemovals = removalIds.length;
+      // Skip overflow check as for loop is indexed starting at zero.
+      unchecked {
+        for (uint256 i = 0; i < numberOfRemovals; ++i) {
+          removalIds[i] = vintagesForYear.at(i);
+        }
       }
-      uint256[] memory batchedBalances = removal.balanceOfIds(
-        address(this),
-        ids
-      );
-      for (i = 0; i < size; i++) {
-        totalBalance += batchedBalances[i];
-      }
+      totalBalance += removal
+      // todo extracting this outside of the loop into a single call would drastically improve performance
+        .balanceOfBatch(
+          new address[](numberOfRemovals).fill(address(this)),
+          removalIds
+        )
+        .sum();
     }
-    return totalBalance;
   }
 }

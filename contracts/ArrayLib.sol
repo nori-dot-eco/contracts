@@ -2,43 +2,38 @@
 pragma solidity =0.8.15;
 
 library UInt256ArrayLib {
-  function range(uint256 from, uint256 to)
+  function fill(uint256[] memory from, uint256 val)
     internal
     pure
-    returns (uint256[] memory ret)
+    returns (uint256[] memory arr)
   {
-    assert(from <= to);
-    unchecked {
-      ret = new uint256[](to - from);
-      for (uint256 i; i < to - from; ++i) ret[i] = from + i;
+    uint256 len = from.length;
+    arr = new uint256[](len);
+    assembly {
+      // equivalent to `for (let i = 1; i < len + 1; i++) arr[i] = val;`
+      for {
+        let i := 1
+      } lt(i, add(len, 1)) {
+        i := add(i, 1)
+      } {
+        mstore(add(arr, mul(32, i)), val)
+      }
     }
   }
 
-  function fill(uint256[] memory arr, uint256 val)
-    internal
-    pure
-    returns (uint256[] memory)
-  {
-    return _fill(arr, new uint256[](arr.length), val);
-  }
-
-  function sum(uint256[] memory arr) internal pure returns (uint256) {
-    uint256 n = arr.length;
-    uint256 total = 0;
-    for (uint256 i = 0; i < n; ++i) total += arr[i];
-    return total;
-  }
-
-  function _fill(
-    uint256[] memory from,
-    uint256[] memory to,
-    uint256 val
-  ) internal pure returns (uint256[] memory) {
-    uint256 n = from.length;
-    unchecked {
-      for (uint256 i = 0; i < n; ++i) to[i] = val;
+  function sum(uint256[] memory data) internal pure returns (uint256 total) {
+    assembly {
+      // equivalent to `for (let i = 0; i < data.length + 1; i++) total += arr[i];`
+      let len := mload(data)
+      let element := add(data, 32)
+      for {
+        let end := add(element, mul(len, 32))
+      } lt(element, end) {
+        element := add(element, 32)
+      } {
+        total := add(total, mload(element))
+      }
     }
-    return to;
   }
 
   function slice(
@@ -49,7 +44,7 @@ library UInt256ArrayLib {
     assert(from <= to);
     assert(to <= arr.length);
     assembly {
-      ret := add(arr, mul(0x20, from))
+      ret := add(arr, mul(32, from))
       mstore(ret, sub(to, from))
     }
   }
@@ -68,23 +63,22 @@ library UInt256ArrayLib {
 }
 
 library AddressArrayLib {
-  function fill(address[] memory arr, address val)
+  function fill(address[] memory from, address val)
     internal
     pure
-    returns (address[] memory)
+    returns (address[] memory arr)
   {
-    return _fill(arr, new address[](arr.length), val);
-  }
-
-  function _fill(
-    address[] memory from,
-    address[] memory to,
-    address val
-  ) internal pure returns (address[] memory) {
-    uint256 n = from.length;
-    unchecked {
-      for (uint256 i = 0; i < n; ++i) to[i] = val;
+    uint256 len = from.length;
+    arr = new address[](len);
+    assembly {
+      // equivalent to `for (let i = 1; i < len + 1; i++) arr[i] = val;`
+      for {
+        let i := 1
+      } lt(i, add(len, 1)) {
+        i := add(i, 1)
+      } {
+        mstore(add(arr, mul(32, i)), val)
+      }
     }
-    return to;
   }
 }

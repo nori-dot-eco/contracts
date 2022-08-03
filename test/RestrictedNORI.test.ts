@@ -155,7 +155,7 @@ describe('RestrictedNORI', () => {
         hre,
         listNow: true,
         projectId,
-        scheduleStartTime,
+        scheduleStartTime, 
       });
 
       await expect(
@@ -207,7 +207,6 @@ describe('RestrictedNORI', () => {
           scheduleStartTime,
         })
       );
-      await rNori.createSchedule(projectId);
       const scheduleSummary = await rNori.getScheduleSummary(projectId);
       expect(scheduleSummary.scheduleTokenId).to.equal(projectId);
       expect(scheduleSummary.startTime).to.equal(scheduleStartTime);
