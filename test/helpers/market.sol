@@ -62,4 +62,4 @@ abstract contract UpgradeableMarket is
   }
 }
 
-abstract contract NonUpgradableMarket is Market, Global {}
+abstract contract NonUpgradeableMarket is Market, Global {}

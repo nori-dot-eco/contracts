@@ -47,9 +47,173 @@ contract Removal_mintBatch_list_sequential is UpgradeableMarket {
   }
 }
 
-contract Removal_release is UpgradeableMarket {
+contract Removal_getProjectId is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+  }
+
+  function test() external {
+    assertEq(_removal.getProjectId(_removalIds[0]), 1234567890);
+  }
+}
+
+contract Removal__createRemovalDataBatch is NonUpgradableRemoval {
+  /** @dev allows using the `calldata` type for the `removalIds` param as this function is external  */
+
+  function createRemovalDataBatch(
+    UnpackedRemovalIdV0[] calldata removals,
+    uint256 projectId
+  ) external {
+    _createRemovalDataBatch({removals: removals, projectId: projectId});
+  }
+
+  function test() external {
+    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](1);
+    removals[0] = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: 99_039_930
+    });
+    this.createRemovalDataBatch({removals: removals, projectId: 1});
+  }
+
+  function test_reverts_InvalidData2() external {
+    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](1);
+    removals[0] = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: 99_039_930
+    });
+    this.createRemovalDataBatch({removals: removals, projectId: 1});
+    vm.expectRevert(InvalidData.selector);
+    this.createRemovalDataBatch({removals: removals, projectId: 1});
+  }
+}
+
+contract Removal__createRemovalData is NonUpgradableRemoval {
+  function test() external {
+    _createRemovalData({removalId: 1, projectId: 1});
+  }
+
+  function test_reverts_InvalidData() external {
+    _createRemovalData({removalId: 1, projectId: 1});
+    vm.expectRevert(InvalidData.selector);
+    _createRemovalData({removalId: 1, projectId: 1});
+  }
+}
+
+contract Removal__validateRemoval is NonUpgradableRemoval {
+  function setUp() external {
+    _createRemovalData({removalId: 1, projectId: 1});
+  }
+
+  function test() external view {
+    _validateRemoval({id: 2});
+  }
+
+  function test_reverts_InvalidData() external {
+    vm.expectRevert(InvalidData.selector);
+    _validateRemoval({id: 1});
+  }
+}
+
+contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
+  uint256[] private _removalIds;
+  uint8[] private _holdbackPercentages;
+
+  function setUp() external {
+    UnpackedRemovalIdV0[] memory removalBatch = new UnpackedRemovalIdV0[](1);
+    removalBatch[0] = REMOVAL_DATA_FIXTURE;
+    _removal.mintBatch({
+      to: _namedAccounts.supplier,
+      amounts: _asSingletonUintArray(1),
+      removals: removalBatch,
+      scheduleStartTime: block.timestamp,
+      projectId: 1_234_567_890,
+      holdbackPercentage: 50
+    });
+    _removalIds = [REMOVAL_ID_FIXTURE];
+    _holdbackPercentages = [50];
+  }
+
+  function test() external {
+    assertEq(
+      _holdbackPercentages,
+      _removal.batchGetHoldbackPercentages({ids: _removalIds})
+    );
+  }
+}
+
+contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
+  uint8 private constant _secondHoldbackPercentage = 10;
+  uint8 private constant _firstHoldbackPercentage = 50;
+  uint256[] private _removalIds;
+  uint8[] private _holdbackPercentages;
+  uint256 private _secondRemovalId;
+
+  function setUp() external {
+    UnpackedRemovalIdV0[]
+      memory firstRemovalBatchFixture = new UnpackedRemovalIdV0[](1);
+    firstRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
+    _removal.mintBatch(
+      _namedAccounts.supplier,
+      _asSingletonUintArray(1),
+      firstRemovalBatchFixture,
+      1_234_567_890,
+      block.timestamp,
+      _firstHoldbackPercentage
+    );
+    UnpackedRemovalIdV0[]
+      memory secondRemovalBatchFixture = new UnpackedRemovalIdV0[](1);
+    secondRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
+    secondRemovalBatchFixture[0].subIdentifier =
+      REMOVAL_DATA_FIXTURE.subIdentifier +
+      1;
+    _secondRemovalId = RemovalIdLib.createRemovalId(
+      secondRemovalBatchFixture[0]
+    );
+    _removal.mintBatch(
+      _namedAccounts.supplier,
+      _asSingletonUintArray(1),
+      secondRemovalBatchFixture,
+      1_234_567_891,
+      block.timestamp,
+      _secondHoldbackPercentage
+    );
+    _removalIds = [REMOVAL_ID_FIXTURE, _secondRemovalId];
+    _holdbackPercentages = [
+      _firstHoldbackPercentage,
+      _secondHoldbackPercentage
+    ];
+  }
+
+  function test() external {
+    assertEq(
+      _removal.batchGetHoldbackPercentages({ids: _removalIds}),
+      _holdbackPercentages
+    );
+  }
+}
+
+contract Removal_release_reverts_AccessControl is UpgradeableMarket {
   // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
-  function test_revert_missingReleaserRole() external {
+  function test() external {
     vm.prank(address(0));
     vm.expectRevert(
       bytes(

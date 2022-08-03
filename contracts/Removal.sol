@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
@@ -112,12 +111,15 @@ contract Removal is
     });
     _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
     _mintBatch({to: to, ids: removalIds, amounts: amounts, data: ""});
-    RestrictedNORI(_market.restrictedNoriAddress()).createSchedule({
-      projectId: projectId,
-      startTime: scheduleStartTime,
-      methodology: removals[0].methodology, // todo enforce same methodology+version across ids?
-      methodologyVersion: removals[0].methodologyVersion
-    });
+    RestrictedNORI rNori = RestrictedNORI(_market.restrictedNoriAddress());
+    if (!rNori.scheduleExists({scheduleId: projectId})) {
+      rNori.createSchedule({
+        projectId: projectId,
+        startTime: scheduleStartTime,
+        methodology: removals[0].methodology, // todo enforce same methodology+version across ids?
+        methodologyVersion: removals[0].methodologyVersion
+      });
+    }
   }
 
   function consign(
@@ -161,6 +163,7 @@ contract Removal is
     external
     onlyRole(RELEASER_ROLE)
   {
+    // todo might need to add pagination/incremental if removal spans a ton of certificates and reaches max gas
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
       account: RemovalIdLib.supplierAddress(removalId),
@@ -211,16 +214,16 @@ contract Removal is
 
   // todo use multicall instead
   /** @notice Gets the holdback percentages for a batch of removal ids. */
-  function batchGetHoldbackPercentages(uint256[] calldata removalIds)
+  function batchGetHoldbackPercentages(uint256[] calldata ids)
     external
     view
-    returns (uint256[] memory)
+    returns (uint8[] memory)
   {
-    uint256 numberOfRemovals = removalIds.length;
-    uint256[] memory holdbackPercentages = new uint256[](numberOfRemovals);
+    uint256 numberOfRemovals = ids.length;
+    uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; ++i) {
       holdbackPercentages[i] = _projectIdToHoldbackPercentage[
-        _removalIdToProjectId[removalIds[i]]
+        _removalIdToProjectId[ids[i]]
       ];
     }
     return holdbackPercentages;
@@ -250,6 +253,21 @@ contract Removal is
     return batchBalances;
   }
 
+  function setApprovalForAll(address operator, bool approved)
+    public
+    override
+    whenNotPaused
+  {
+    if (operator == address(_market)) {
+      revert InvalidCall();
+    }
+    _setApprovalForAll({
+      owner: _msgSender(),
+      operator: operator,
+      approved: approved
+    });
+  }
+
   function supportsInterface(bytes4 interfaceId)
     public
     view
@@ -274,10 +292,7 @@ contract Removal is
     address owner,
     address operator,
     bool approved
-  ) internal override whenNotPaused {
-    if (operator == address(_market)) {
-      revert InvalidCall();
-    }
+  ) internal override {
     super._setApprovalForAll({
       owner: owner,
       operator: operator,
@@ -345,7 +360,7 @@ contract Removal is
   }
 
   function _createRemovalData(uint256 removalId, uint256 projectId) internal {
-    _validateRemovalData({removalId: removalId});
+    _validateRemoval({id: removalId});
     _removalIdToProjectId[removalId] = projectId;
   }
 
@@ -416,8 +431,8 @@ contract Removal is
     }
   }
 
-  function _validateRemovalData(uint256 removalId) internal view {
-    if (_removalIdToProjectId[removalId] != 0) {
+  function _validateRemoval(uint256 id) internal view {
+    if (_removalIdToProjectId[id] != 0) {
       revert InvalidData();
     }
   }
