@@ -22,7 +22,6 @@ struct BatchMintRemovalsData {
 
 /**
  * @title Removal
- *  // todo consider globally renaming `account` to `owner`. Or if not, make sure we are cosnsistent with the naming
  */
 contract Removal is
   ERC1155SupplyUpgradeable,

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import {RemovalIdLib} from "./RemovalIdLib.sol";
+import {AddressArrayLib} from "./ArrayLib.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./Removal.sol";
 import "./Errors.sol";
@@ -14,6 +15,7 @@ struct RemovalQueueByVintage {
 // todo rename RemovalQueue to RemovalQueueLib
 library RemovalQueue {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+  using AddressArrayLib for address[];
 
   uint256 private constant _DEFAULT_EARLIEST_YEAR = 2**256 - 1;
   uint256 private constant _DEFAULT_LATEST_YEAR = 0;
@@ -178,8 +180,8 @@ library RemovalQueue {
       for (i = 0; i < size; i++) {
         ids[i] = removalQueue.queueByVintage[currentYear].at(i);
       }
-      uint256[] memory batchedBalances = removal.balanceOfIds( // todo batch
-        address(this),
+      uint256[] memory batchedBalances = removal.balanceOfBatch(
+        fill(address(this), ids.length),
         ids
       );
       for (i = 0; i < size; i++) {
@@ -187,5 +189,24 @@ library RemovalQueue {
       }
     }
     return totalBalance;
+  }
+
+  function fill(address val, uint256 length)
+    internal
+    pure
+    returns (address[] memory)
+  {
+    // uint256 n = from.length;
+    // address[] memory to = new address[](from.length);
+    assembly {
+      // Create an dynamic sized array manually.
+      let memOffset := mload(0x40) // 0x40 is the address where next free memory slot is stored in Solidity.
+      mstore(memOffset, 0x20) // single dimensional array, data offset is 0x20
+      mstore(add(memOffset, 32), length)
+      mstore(add(memOffset, 64), val) // array[0] = a
+      // mstore(add(memOffset, 96), val) // array[1] = b
+      return(memOffset, 96)
+    }
+    // return to;
   }
 }
