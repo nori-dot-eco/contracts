@@ -417,7 +417,6 @@ contract Market is PausableAccessPreset {
     for (uint256 i = 0; i < numberOfActiveRemovalsInMarket; i++) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
-      // todo retrieve balances in a single batch call
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       if (remainingAmountToFill < removalAmount) {
         /**
@@ -609,22 +608,25 @@ contract Market is PausableAccessPreset {
     address[] memory suppliers
   ) external {
     // todo verify changes to `fulfillOrder` (memory->calldata arr args) that enabled [:index] arr slicing syntax is ok
+    bytes[] memory rNoriMintCalls = new bytes[](numberOfRemovals);
     uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
-    // bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovals);
-
-    uint8[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages({
-      ids: batchedIds
-    });
+    uint8[] memory holdbackPercentages = _getHoldbackPercentages(batchedIds);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
-      uint256 restrictedSupplierFee = 0;
+      uint256 restrictedSupplierFee;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
       if (holdbackPercentages[i] > 0) {
         restrictedSupplierFee =
           (unrestrictedSupplierFee * holdbackPercentages[i]) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo mint rNori in a single batch call
+        rNoriMintCalls[i] = (
+          abi.encodeWithSelector(
+            _restrictedNori.mint.selector,
+            restrictedSupplierFee,
+            batchedIds[i]
+          )
+        );
         _bridgedPolygonNori.transferFrom(
           operator,
           address(_restrictedNori),
@@ -642,6 +644,7 @@ contract Market is PausableAccessPreset {
         unrestrictedSupplierFee
       );
     }
+    _restrictedNori.multicall(rNoriMintCalls);
     bytes memory data = abi.encode(recipient, certificateAmount);
     _removal.safeBatchTransferFrom(
       address(this),
@@ -738,6 +741,34 @@ contract Market is PausableAccessPreset {
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
+  }
+
+  /**
+   * @dev Gets the holdback percentages for a batch of removal ids using multicall.
+   * @param ids The removal token IDs for which to retrieve the holdback percentages
+   */
+  function _getHoldbackPercentages(uint256[] memory ids)
+    internal
+    returns (uint8[] memory)
+  {
+    uint256 numberOfRemovals = ids.length;
+    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovals);
+    for (uint256 i = 0; i < numberOfRemovals; i++) {
+      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+        _removal.getHoldbackPercentage.selector,
+        ids[i]
+      );
+    }
+    bytes[] memory holdbackPercentageResults = _removal.multicall(
+      getHoldbackPercentageCalls
+    );
+    uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
+    for (uint256 i = 0; i < numberOfRemovals; i++) {
+      holdbackPercentages[i] = uint8(
+        uint256(bytes32(holdbackPercentageResults[i]))
+      );
+    }
+    return holdbackPercentages;
   }
 
   /**

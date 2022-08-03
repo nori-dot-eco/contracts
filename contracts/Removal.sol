@@ -216,23 +216,6 @@ contract Removal is
     return _projectIdToHoldbackPercentage[_removalIdToProjectId[id]];
   }
 
-  // todo use multicall instead
-  /** @notice Gets the holdback percentages for a batch of removal ids. */
-  function batchGetHoldbackPercentages(uint256[] calldata ids)
-    external
-    view
-    returns (uint8[] memory)
-  {
-    uint256 numberOfRemovals = ids.length;
-    uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
-    for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      holdbackPercentages[i] = _projectIdToHoldbackPercentage[
-        _removalIdToProjectId[ids[i]]
-      ];
-    }
-    return holdbackPercentages;
-  }
-
   function getMarketBalance() external view returns (uint256) {
     return _currentMarketBalance;
   }
