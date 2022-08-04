@@ -65,7 +65,7 @@ contract Certificate is
    * @notice Emitted when a removal is released from a Certificate.
    * @param certificatedId The certificate to connected to the removal.
    * @param removalId The removal to update the balance for.
-   * @param amount The amount to added or removed for the certificate.
+   * @param amount The amount removed from the certificate.
    */
   event RemovalReleased(
     uint256 indexed certificatedId,
