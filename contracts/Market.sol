@@ -74,12 +74,6 @@ contract Market is PausableAccessPreset {
   event NoriFeePercentageUpdated(uint256 updatedFeePercentage);
 
   /**
-   * @notice Emitted on setting of `_currentSupplierAddress`.
-   * @param updatedSupplierAddress The updated supplier address.
-   */
-  event CurrentSupplierAddressChanged(address updatedSupplierAddress);
-
-  /**
    * @notice Emitted when adding a supplier to `_activeSupply`.
    * @param addedSupplierAddress The supplier that was added.
    * @param nextSupplierAddress The next of the supplier that was added, updated to point to `addedSupplierAddress` as previous.
@@ -822,9 +816,6 @@ contract Market is PausableAccessPreset {
     _currentSupplierAddress = _suppliersInRoundRobinOrder[
       _currentSupplierAddress
     ].nextSupplierAddress;
-    emit CurrentSupplierAddressChanged(
-      _suppliersInRoundRobinOrder[_currentSupplierAddress].nextSupplierAddress
-    );
   }
 
   /**
@@ -839,7 +830,6 @@ contract Market is PausableAccessPreset {
     // If this is the first supplier to be added, update the intialized addresses.
     if (_currentSupplierAddress == address(0)) {
       _currentSupplierAddress = newSupplierAddress;
-      emit CurrentSupplierAddressChanged(newSupplierAddress);
       _suppliersInRoundRobinOrder[newSupplierAddress] = RoundRobinOrder({
         previousSupplierAddress: newSupplierAddress,
         nextSupplierAddress: newSupplierAddress
@@ -901,7 +891,6 @@ contract Market is PausableAccessPreset {
      */
     if (addressToRemove == nextOfRemovedSupplierAddress) {
       _currentSupplierAddress = address(0);
-      emit CurrentSupplierAddressChanged(address(0));
     } else {
       /**
        * Set the next of the previous supplier to point to the removed supplier's next.
