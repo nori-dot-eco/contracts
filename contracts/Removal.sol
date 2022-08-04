@@ -79,14 +79,12 @@ contract Removal is
   /**
    * @notice Emitted on updating `_removalIdToRemovalData` with a new removal.
    * @param removalId The id of the removal that was released.
-   * @param projectId The projectId that the removalId was released from.
    * @param releasedFrom The address the removal was released from.
    * @param amount The amount that was released.
    */
   event RemovalReleased(
     uint256 indexed removalId,
-    uint256 indexed projectId,
-    uint256 indexed supplierAddress,
+    address indexed releasedFrom,
     uint256 amount
   );
 
@@ -116,30 +114,6 @@ contract Removal is
     uint256 indexed methodology,
     uint256 methodologyVersion,
     uint256 startTime
-  );
-
-  /**
-   * @notice Emitted on updating `_addressToOwnedTokenIds`.
-   * @param ownerAddress The address of the owner of the removal.
-   * @param removalId The ID of the updated removal.
-   * @param isAdded True if the removal was added, false if it was removed.
-   */
-  event AddressToTokenIdsUpdated(
-    address indexed ownerAddress,
-    uint256 indexed removalId,
-    bool indexed isAdded
-  );
-
-  /**
-   * @notice Emitted on updating `_currentMarketBalance`.
-   * @param updatedMarketBalance The updated balance of the market.
-   * @param amount The amount used to update the market.
-   * @param isAdded True if the amount was added, false if it was removed.
-   */
-  event CurrentMarketBalanceUpdated(
-    uint256 indexed updatedMarketBalance,
-    uint256 indexed amount,
-    bool indexed isAdded
   );
 
   /**
@@ -509,14 +483,14 @@ contract Removal is
 
   function _releaseFromSupplier(uint256 removalId, uint256 amount) internal {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    emit RemovalReleased(removalId, projectId, supplierAddress, amount);
+    emit RemovalReleased(removalId, supplierAddress, amount);
     super._burn(supplierAddress, removalId, amount);
   }
 
   function _releaseFromMarket(uint256 removalId, uint256 amount) internal {
     super._burn(this.marketAddress(), removalId, amount);
     _market.release(removalId, amount);
-    emit RemovalReleased(removalId, projectId, supplierAddress, amount);
+    emit RemovalReleased(removalId, this.marketAddress(), amount);
   }
 
   function _releaseFromCertificate(uint256 removalId, uint256 amount) internal {
@@ -545,8 +519,7 @@ contract Removal is
       );
       emit RemovalReleased(
         removalId,
-        projectId,
-        supplierAddress,
+        this.certificateAddress(),
         amountToReleaseFromCertificate
       );
       if (amountReleased == amount) break;
