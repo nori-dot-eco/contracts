@@ -756,7 +756,7 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @notice Adds the specified removal id from the active supply data structure.
+   * @notice Adds the specified removal id to the active supply data structure.
    * @dev If this is the supplier's first active removal, the supplier is also added to the active supplier queue.
    */
   function _addActiveRemoval(uint256 removalId, address supplierAddress)
