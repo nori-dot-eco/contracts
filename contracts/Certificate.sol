@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
-
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
-import {FunctionDisabled, ArrayLengthMismatch, SenderNotRemovalContract} from "./Errors.sol";
+import "./Errors.sol";
 import "./Removal.sol";
 import "./PausableAccessPreset.sol";
-import "./ICertificate.sol";
-
-error ForbiddenTransferAfterMinting();
 
 /**
  * todo document burning behavior
@@ -17,7 +13,6 @@ error ForbiddenTransferAfterMinting();
  * todo check that all transfer functions (including those not exposed in this file) call _beforeTokenTransfers
  */
 contract Certificate is
-  ICertificate,
   ERC721ABurnableUpgradeable,
   ERC721AQueryableUpgradeable,
   MulticallUpgradeable,
@@ -42,7 +37,7 @@ contract Certificate is
   mapping(uint256 => mapping(uint256 => uint256))
     private _removalBalancesOfCertificate;
 
-  mapping(uint256 => uint256) private _balances; // todo naming consistency for mappings (e.g, plural/non-plural)
+  mapping(uint256 => uint256) private _purchaseAmounts; // todo naming consistency for mappings (e.g, plural/non-plural)
 
   /*
    * todo Add tests that ensure _removalsOfCertificate/_certificatesOfRemoval can't deviate from Removal.sol balances
@@ -57,6 +52,26 @@ contract Certificate is
    * @notice The Removal contract that accounts for carbon removal supply.
    */
   Removal private _removal;
+
+  event ReceiveRemovalBatch(
+    address from,
+    address indexed recipient,
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] removalAmounts
+  );
+
+  /**
+   * @notice Emitted when a removal is released from a Certificate.
+   * @param certificatedId The certificate to connected to the removal.
+   * @param removalId The removal to update the balance for.
+   * @param amount The amount removed from the certificate.
+   */
+  event RemovalReleased(
+    uint256 indexed certificatedId,
+    uint256 indexed removalId,
+    uint256 amount
+  );
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -107,13 +122,13 @@ contract Certificate is
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    // todo Emit event when removal is released if TransferSingle events can be emitted with to: addr(0) in other cases
     // todo decrease number of storage reads
     _removalBalancesOfCertificate[certificateId][removalId] -= amount;
     if (_removalBalancesOfCertificate[certificateId][removalId] == 0) {
       _removalsOfCertificate[certificateId].remove(removalId);
       _certificatesOfRemoval[removalId].remove(certificateId);
     }
+    emit RemovalReleased(certificateId, removalId, amount);
   }
 
   /**
@@ -130,7 +145,7 @@ contract Certificate is
     uint256[] calldata removalIds,
     uint256[] calldata removalAmounts,
     bytes calldata data
-  ) external returns (bytes4) {
+  ) external whenNotPaused returns (bytes4) {
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
@@ -165,12 +180,12 @@ contract Certificate is
     return _totalMinted();
   }
 
-  function originalBalanceOf(uint256 certificateId)
+  function purchaseAmount(uint256 certificateId)
     external
     view
     returns (uint256)
   {
-    return _balances[certificateId];
+    return _purchaseAmounts[certificateId];
   }
 
   /**
@@ -289,7 +304,7 @@ contract Certificate is
   ) internal {
     _validateReceivedRemovalBatch(removalIds, removalAmounts);
     uint256 certificateId = _nextTokenId();
-    _balances[certificateId] = certificateAmount;
+    _purchaseAmounts[certificateId] = certificateAmount;
     _mint(recipient, 1); // todo should we be using _mint or _safeMint for ERC721A
     for (uint256 i = 0; i < removalIds.length; ++i) {
       _removalBalancesOfCertificate[certificateId][

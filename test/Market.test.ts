@@ -251,8 +251,7 @@ describe('Market', () => {
             },
           },
         });
-        const totalListedSupply = await removal.getMarketBalance(
-        );
+        const totalListedSupply = await removal.getMarketBalance();
         expect(totalListedSupply).to.equal(totalAmountOfSupply);
       });
       it('should correctly report the number of NRTs for sale when there are multiple removals in inventory and some were purchased', async () => {
@@ -1152,7 +1151,7 @@ describe('purchasing from a specified supplier', () => {
           r,
           s
         )
-    ).to.be.revertedWith('OutOfStock()');
+    ).to.be.revertedWith('InsufficientSupply()');
   });
   it('should revert when purchasing supply when the market is below the priority reserved threshold', async () => {
     const { bpNori, market } = await setupTest({

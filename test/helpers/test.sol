@@ -3,26 +3,45 @@
 pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "@prb/test/Vm.sol";
+import "forge-std/Test.sol";
 import "forge-std/console2.sol";
 import {PRBTest} from "@prb/test/PRBTest.sol";
 
 abstract contract Global is PRBTest {
   struct NamedAccounts {
-    // todo generate from mnemonic env variables
+    address deployer; // the default sender account for transactions configured in foundry.toml
     address admin;
     address supplier;
     address supplier2;
+    address supplier3;
     address buyer;
   }
 
   NamedAccounts internal _namedAccounts =
     NamedAccounts({
+      // todo use .env: https://book.getfoundry.sh/tutorials/solidity-scripting?highlight=.env#deploying-our-contract
+      deployer: 0x465d5a3fFeA4CD109043499Fa576c3E16f918463,
       admin: account("admin"),
       supplier: account("supplier"),
       supplier2: account("supplier2"),
+      supplier3: account("supplier3"),
       buyer: account("buyer")
     });
+
+  constructor() {
+    vm.label(msg.sender, "Deployer");
+  }
+
+  event LogNamedArray(string key, uint8[] value);
+
+  /** @dev Checks if `a` equals `b`. */
+  function eq(uint8[] memory a, uint8[] memory b)
+    private
+    pure
+    returns (bool result)
+  {
+    result = keccak256(abi.encode(a)) == keccak256(abi.encode(b));
+  }
 
   function account(string memory name) internal returns (address) {
     address addr = address(
@@ -52,6 +71,15 @@ abstract contract Global is PRBTest {
     address[] memory array = new address[](1);
     array[0] = element;
     return array;
+  }
+
+  function assertEq(uint8[] memory a, uint8[] memory b) internal virtual {
+    if (!eq(a, b)) {
+      emit Log("Error: a == b not satisfied [uint8[]]");
+      emit LogNamedArray("  Expected", b);
+      emit LogNamedArray("    Actual", a);
+      fail();
+    }
   }
 }
 

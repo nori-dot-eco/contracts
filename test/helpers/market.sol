@@ -19,7 +19,7 @@ abstract contract UpgradeableMarket is
 
   constructor() {
     _market = _deployMarket();
-    vm.label(address(_market), "Market");
+    _marketAddress = address(_market);
     _removal.registerContractAddresses( // todo move to removal helper
       Market(_market),
       Certificate(_certificate)
@@ -62,4 +62,8 @@ abstract contract UpgradeableMarket is
   }
 }
 
-abstract contract NonUpgradableMarket is Market, Global {}
+contract NonUpgradeableMarket is Market, Global {
+  constructor() {
+    vm.label(address(this), "NonUpgradeableMarket");
+  }
+}

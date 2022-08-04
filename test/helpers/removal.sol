@@ -9,6 +9,10 @@ using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
 
 abstract contract UpgradeableRemoval is Upgradeable {
+  UnpackedRemovalIdV0[] _REMOVAL_FIXTURES;
+
+  address internal _marketAddress;
+
   /**
    * @dev REMOVAL_ID_FIXTURE is the result of:
    * RemovalIdLib.createRemovalId(UnpackedRemovalIdV0({
@@ -20,11 +24,23 @@ abstract contract UpgradeableRemoval is Upgradeable {
    *   subdivision: "IA",
    *   supplierAddress: _namedAccounts.supplier,
    *   subIdentifier: 99_039_930
-   * })
+   * }))
    *
    */
   uint256 public constant REMOVAL_ID_FIXTURE =
     28323967194635191374224967253542818032149542492774326996283828950022961850;
+
+  UnpackedRemovalIdV0 public REMOVAL_DATA_FIXTURE =
+    UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: 99_039_930
+    });
 
   Removal internal _removal;
   Removal internal _removalImplementation;
@@ -39,6 +55,18 @@ abstract contract UpgradeableRemoval is Upgradeable {
 
   constructor() {
     _removal = _deployRemoval();
+    _REMOVAL_FIXTURES.push(
+      UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: 2018,
+        country: "US",
+        subdivision: "IA",
+        supplierAddress: _namedAccounts.supplier,
+        subIdentifier: 99_039_930
+      })
+    );
   }
 
   function _deployRemoval() internal returns (Removal) {
@@ -60,6 +88,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
     bool list
   ) internal returns (uint256[] memory) {
     uint256[] memory _removalIds = new uint256[](count);
+    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](count);
     for (uint32 i = 0; i < count; i++) {
       UnpackedRemovalIdV0 memory removalData = UnpackedRemovalIdV0({
         idVersion: 0,
@@ -71,20 +100,17 @@ abstract contract UpgradeableRemoval is Upgradeable {
         supplierAddress: to,
         subIdentifier: count + i
       });
-      _removalIds[i] = _removal.createRemovalId(removalData);
+      removals[i] = removalData;
+      _removalIds[i] = RemovalIdLib.createRemovalId(removalData);
     }
-    BatchMintRemovalsData memory batchMintData = BatchMintRemovalsData({
+    _removal.mintBatch({
+      to: list ? _marketAddress : to,
+      amounts: new uint256[](count).fill(1 ether),
+      removals: removals,
       projectId: 1_234_567_890,
       scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50,
-      list: list
+      holdbackPercentage: 50
     });
-    _removal.mintBatch(
-      to,
-      new uint256[](count).fill(1 ether),
-      _removalIds,
-      batchMintData
-    );
     return _removalIds;
   }
 
@@ -99,4 +125,58 @@ abstract contract UpgradeableRemoval is Upgradeable {
   }
 }
 
-abstract contract NonUpgradableRemoval is Removal, Global {}
+contract NonUpgradeableRemoval is Removal, Global {
+  constructor() {
+    vm.label(address(this), "NonUpgradeableRemoval");
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: msg.sender});
+    _grantRole({role: CONSIGNOR_ROLE, account: address(this)});
+  }
+
+  function _seedRemovals(
+    address to,
+    uint32 count,
+    bool list,
+    bool uniqueVintages
+  ) internal returns (uint256[] memory) {
+    UnpackedRemovalIdV0[] memory _removals = new UnpackedRemovalIdV0[](count);
+    uint256[] memory _removalIds = new uint256[](count);
+    for (uint32 i = 0; i < count; i++) {
+      _removals[i] = UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: uniqueVintages ? 2018 + uint16(i) : 2018,
+        country: "AA",
+        subdivision: "ZZ",
+        supplierAddress: to,
+        subIdentifier: count + i
+      });
+      _removalIds[i] = RemovalIdLib.createRemovalId(_removals[i]);
+    }
+    this.mintBatch(
+      list ? address(_market) : to,
+      new uint256[](count).fill(1 ether),
+      _removals,
+      1_234_567_890,
+      block.timestamp,
+      50
+    );
+    return _removalIds;
+  }
+
+  /** todo de-duplicate with UpgradeableRemoval._seedRemovals */
+  function seedRemovals(
+    address to,
+    uint32 count,
+    bool list,
+    bool uniqueVintages
+  ) external returns (uint256[] memory) {
+    return
+      _seedRemovals({
+        to: to,
+        count: count,
+        list: list,
+        uniqueVintages: uniqueVintages
+      });
+  }
+}
