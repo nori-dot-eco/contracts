@@ -20,6 +20,11 @@ contract RemovalQueue_getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
       bytes32(uint256(254)), // sets the markets _restrictedNori storage slot to this contract to enable mock calls
       bytes32(uint256(uint160(address(this))))
     );
+    vm.store(
+      address(this),
+      bytes32(uint256(251)), // sets the markets _removal storage slot to allow receiving 1155
+      bytes32(uint256(uint160(address(_removal))))
+    );
   }
 
   function setUp() external {
