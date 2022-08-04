@@ -98,7 +98,7 @@ describe('Market', () => {
             .connect(namedSigners[accountWithRole])
             .setNoriFeePercentage(newNoriFeePercentage)
         )
-          .to.emit(market, 'NoriFeeWalletAddressUpdated')
+          .to.emit(market, 'NoriFeePercentageUpdated')
           .withArgs(newNoriFeePercentage);
       });
     });
