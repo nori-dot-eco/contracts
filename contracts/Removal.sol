@@ -25,7 +25,8 @@ import {InvalidCall, InvalidData, InvalidTokenTransfer} from "./Errors.sol";
  * and a holdback percentage (which determines the percentage of the sale proceeds from the token that will be routed
  * to the RestrictedNORI contract). A restriction schedule is created per projectId (if necessary) in RestrictedNORI
  * (see RestrictedNORI.sol)
- * - TODO can existant token ids be minted additional balance?
+ * - Minting reverts when attempting to mint a token ID that already exists. Therefore the current iteration of this
+ * contract has no way to add balance to an existing token ID.
  *
  *
  * ##### Listing
@@ -72,6 +73,7 @@ import {InvalidCall, InvalidData, InvalidTokenTransfer} from "./Errors.sol";
  *   - TODO document how this contract deviates from standard ERC1155 functionality?
  *
  * ##### Inherits
+ *
  * - [ERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc11555)
  * - [ERC1155Supply](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Supply)
  * - [MulticallUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Multicall)
@@ -82,14 +84,14 @@ import {InvalidCall, InvalidData, InvalidTokenTransfer} from "./Errors.sol";
  * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
  *
  * ##### Implements
- * - TODO does it actually implement the full 1155 interface?  how do we capture this correctly?
- * - [IERC1155Upgradeable]()
- * IERC1155MetadataURIUpgradeable
  *
+ * - [IERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155)
+ * - [IERC1155MetadataURI](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155MetadataURI)
  * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
  * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
  *
  * ##### Uses
+ *
  * - [RemovalIdLib](./RemovalIdLib.md) for uint256
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *

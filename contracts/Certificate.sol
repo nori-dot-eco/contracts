@@ -40,10 +40,23 @@ import "./PausableAccessPreset.sol";
  *   - A certificate is minted and internal accounting ties the certificate to the ERC1155 tokens upon receipt.
  *
  * ##### Inherits
- * TODO
+ *
+ * - [ERC721Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721)
+ * - [ERC721Burnable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#ERC721Burnable)
+ * - [MulticallUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Multicall)
+ * - [PausableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ * - [AccessControlEnumerableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/access)
+ * - [ContextUpgradeable](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
+ * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
  *
  * ##### Implements
- * TODO
+ *
+ * - [IERC721](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721)
+ * - [IERC721Metadata](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721Metadata)
+ * - [IERC721Enumerable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721Enumerable)
+ * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
+ * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
  *
  * ##### Uses
  *
