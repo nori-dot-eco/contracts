@@ -115,6 +115,18 @@ contract Certificate is
   );
 
   /**
+   * @notice Emitted when a removal is released from a Certificate.
+   * @param certificatedId The certificate to connected to the removal.
+   * @param removalId The removal to update the balance for.
+   * @param amount The amount removed from the certificate.
+   */
+  event RemovalReleased(
+    uint256 indexed certificatedId,
+    uint256 indexed removalId,
+    uint256 amount
+  );
+
+  /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
@@ -181,13 +193,13 @@ contract Certificate is
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    // todo Emit event when removal is released if TransferSingle events can be emitted with to: addr(0) in other cases
     // todo decrease number of storage reads
     _removalBalancesOfCertificate[certificateId][removalId] -= amount;
     if (_removalBalancesOfCertificate[certificateId][removalId] == 0) {
       _removalsOfCertificate[certificateId].remove(removalId);
       _certificatesOfRemoval[removalId].remove(certificateId);
     }
+    emit RemovalReleased(certificateId, removalId, amount);
   }
 
   /**
