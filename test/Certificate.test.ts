@@ -6,17 +6,25 @@ import sinon from 'sinon';
 describe('Certificate', () => {
   it('should emit a RemovalReleased event when a removal is released from the Certificate', async () => {
     const removalAmount = 3;
-    const { bpNori, certificate, market, removal, listedRemovalIds } =
-      await setupTest({
-        userFixtures: {
-          supplier: {
-            removalDataToList: {
-              removals: [{ amount: removalAmount }],
-            },
+    const {
+      bpNori,
+      certificate,
+      market,
+      removal,
+      listedRemovalIds,
+      removalTestHarness,
+    } = await setupTest({
+      userFixtures: {
+        supplier: {
+          removalDataToList: {
+            removals: [{ amount: removalAmount }],
           },
         },
-      });
-    const removalId = listedRemovalIds[0];
+      },
+    });
+    const removalId = await removalTestHarness.createRemovalId(
+      listedRemovalIds[0]
+    );
     const purchaseAmount = formatTokenAmount(1);
     const value = await market.getCheckoutTotal(purchaseAmount); // todo use getCheckoutTotal globally
     const { buyer } = hre.namedSigners;
@@ -43,17 +51,22 @@ describe('Certificate', () => {
   });
   it('should emit a ReceiveRemovalBatch event when Certificate is created', async () => {
     const removalAmount = 3;
-    const { bpNori, certificate, market, removal, listedRemovalIds } =
-      await setupTest({
-        userFixtures: {
-          supplier: {
-            removalDataToList: {
-              removals: [{ amount: removalAmount }],
-            },
+    const {
+      bpNori,
+      certificate,
+      market,
+      removal,
+      listedRemovalIds,
+      removalTestHarness,
+    } = await setupTest({
+      userFixtures: {
+        supplier: {
+          removalDataToList: {
+            removals: [{ amount: removalAmount }],
           },
         },
-      });
-    const removalId = listedRemovalIds[0];
+      },
+    });
     const purchaseAmount = formatTokenAmount(1);
     const value = await market.getCheckoutTotal(purchaseAmount); // todo use getCheckoutTotal globally
     const { buyer } = hre.namedSigners;
@@ -62,6 +75,9 @@ describe('Certificate', () => {
       spender: market.address,
       value,
     });
+    const removalId = await removalTestHarness.createRemovalId(
+      listedRemovalIds[0]
+    );
     await expect(
       market
         .connect(buyer)
