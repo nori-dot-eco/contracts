@@ -77,15 +77,29 @@ contract Removal is
   uint256 private _currentMarketBalance;
 
   /**
-   * @notice Emitted on updating `_removalIdToRemovalData`.
+   * @notice Emitted on updating `_removalIdToRemovalData` with a new removal.
+   * @param removalId The id of the removal that was released.
+   * @param projectId The projectId that the removalId was released from.
+   * @param releasedFrom The address the removal was released from.
+   * @param amount The amount that was released.
+   */
+  event RemovalReleased(
+    uint256 indexed removalId,
+    uint256 indexed projectId,
+    uint256 indexed supplierAddress,
+    uint256 amount
+  );
+
+  /**
+   * @notice Emitted on updating `_removalIdToRemovalData` with a new removal.
    * @param removalId The id of the removal that was added.
    * @param projectId The projectId that the removalId was added to.
    * @param holdbackPercentage The holdback percentage for the project.
    */
-  event RemovalIdToRemovalDataUpdated(
+  event RemovalAdded(
     uint256 indexed removalId,
     uint256 indexed projectId,
-    uint256 holdbackPercentage
+    uint256 indexed holdbackPercentage
   );
 
   /**
@@ -96,10 +110,10 @@ contract Removal is
    * @param methodologyVersion The version of the methodology.
    * @param startTime The start time for the schedule.
    */
-  event ProjectIdToScheduleDataUpdated(
+  event ProjectScheduleUpdated(
     uint256 indexed projectId,
-    address supplierAddress,
-    uint256 methodology,
+    address indexed supplierAddress,
+    uint256 indexed methodology,
     uint256 methodologyVersion,
     uint256 startTime
   );
@@ -197,7 +211,7 @@ contract Removal is
       }
       _removalIdToRemovalData[id].projectId = projectId; // todo access _removalIdToRemovalData[removalId] once per loop
       _removalIdToRemovalData[id].holdbackPercentage = holdbackPercentage;
-      emit RemovalIdToRemovalDataUpdated(id, projectId, holdbackPercentage);
+      emit RemovalAdded(id, projectId, holdbackPercentage);
     }
     uint256 firstRemoval = ids[0];
     _projectIdToScheduleData[projectId] = ScheduleData({
@@ -206,7 +220,7 @@ contract Removal is
       methodology: RemovalIdLib.methodology(firstRemoval),
       methodologyVersion: RemovalIdLib.methodologyVersion(firstRemoval)
     });
-    emit ProjectIdToScheduleDataUpdated(
+    emit ProjectScheduleUpdated(
       projectId,
       _projectIdToScheduleData[projectId].supplierAddress,
       _projectIdToScheduleData[projectId].methodology,
@@ -485,31 +499,24 @@ contract Removal is
       }
       if (to == address(_market)) {
         _currentMarketBalance += amounts[i];
-        emit CurrentMarketBalanceUpdated(
-          _currentMarketBalance,
-          amounts[i],
-          true
-        );
       }
       if (from == address(_market)) {
         _currentMarketBalance -= amounts[i];
-        emit CurrentMarketBalanceUpdated(
-          _currentMarketBalance,
-          amounts[i],
-          true
-        );
       }
     }
     super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
   function _releaseFromSupplier(uint256 removalId, uint256 amount) internal {
-    super._burn(RemovalIdLib.supplierAddress(removalId), removalId, amount);
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
+    emit RemovalReleased(removalId, projectId, supplierAddress, amount);
+    super._burn(supplierAddress, removalId, amount);
   }
 
   function _releaseFromMarket(uint256 removalId, uint256 amount) internal {
     super._burn(this.marketAddress(), removalId, amount);
     _market.release(removalId, amount);
+    emit RemovalReleased(removalId, projectId, supplierAddress, amount);
   }
 
   function _releaseFromCertificate(uint256 removalId, uint256 amount) internal {
@@ -536,6 +543,12 @@ contract Removal is
         removalId,
         amountToReleaseFromCertificate
       );
+      emit RemovalReleased(
+        removalId,
+        projectId,
+        supplierAddress,
+        amountToReleaseFromCertificate
+      );
       if (amountReleased == amount) break;
     }
     _certificate.multicall(releaseCalls);
@@ -558,12 +571,10 @@ contract Removal is
           balanceOf(from, id) == 0 // todo batch calls to remove using multicall instead of calling in a loop
         ) {
           _addressToOwnedTokenIds[from].remove(id);
-          emit AddressToTokenIdsUpdated(from, id, false);
         }
       }
       if (to != address(0)) {
         _addressToOwnedTokenIds[to].add(id);
-        emit AddressToTokenIdsUpdated(to, id, true);
       }
     }
     super._afterTokenTransfer(operator, from, to, ids, amounts, data);
