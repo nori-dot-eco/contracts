@@ -6,7 +6,95 @@ import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {InvalidCall, InvalidData, InvalidTokenTransfer} from "./Errors.sol";
 
 /**
- * @title Removal
+ * @title An extended ERC1155 token contract for carbon removal accounting.
+ *
+ * @author Nori Inc.
+ *
+ * @notice This contract uses ERC1155 tokens as an accounting system for keeping track of carbon that Nori has
+ * verified to have been removed from the atmosphere. Each token ID encodes information about the source of the
+ * removed carbon (see RemovalIdLib.sol for encoding details), and each token represents the smallest unit of
+ * carbon removal accounting.  For example, in an agricultural methodology, a specific token ID represents one
+ * parcel of land in a specific year.  The total supply of that token ID is the number of tonnes of carbon
+ * removed.
+ *
+ * ##### Behaviors and features
+ *
+ * ##### Minting
+ * - Only accounts with the MINTER_ROLE can mint removal tokens, which should only be account(s) controlled by Nori.
+ * - When removal tokens are minted, additional data about those removals are stored in a mapping, such as a projectId
+ * and a holdback percentage (which determines the percentage of the sale proceeds from the token that will be routed
+ * to the RestrictedNORI contract). A restriction schedule is created per projectId (if necessary) in RestrictedNORI
+ * (see RestrictedNORI.sol)
+ * - Minting reverts when attempting to mint a token ID that already exists. Therefore the current iteration of this
+ * contract has no way to add balance to an existing token ID.
+ *
+ *
+ * ##### Listing
+ * - _Listing_ refers to the process of listing removal tokens for sale in Nori's marketplace (Market.sol)
+ * - Removals are listed for sale by transferring ownership of the tokens to the Market contract via
+ * `safeBatchTransferFrom`. If the `list` field of the `data` parameter in `mintBatch` is set to true,
+ * removal tokens will be listed in the same transaction that they are minted.
+ * - Only accounts with the MINTER_ROLE can list removals for sale in the market.
+ *
+ *
+ * ##### Releasing
+ * - _Releasing_ refers to the process of accounting for carbon that has failed to meet its permanence guarantee
+ * and has been released into the atmosphere prematurely.
+ * - This accounting is performed by burning the affected balance of a removal that has been released.
+ * - Only accounts with the RELEASER_ROLE can initiate a release.
+ * - When a removal token is released, balances are burned in a specific order until the released amount
+ * has been accounted for: Releasing burns first from unlisted balances, second from listed balances and third
+ * from any certificates in which this removal may have already been included. (see `Removal.release`)
+ * - Affected certificates will have any released balances replaced by new removals purchased by Nori, though an
+ * automated implementation of this process is beyond the scope of this version of the contracts.
+ *
+ *
+ * ##### Token ID encoding and decoding
+ * - This contract uses the inlined library RemovalIdLib.sol for uint256.
+ * - `createRemovalId` and `unpackRemovalIdV0` are exposed externally for encoding and decoding removal token IDs
+ * that contain uniquely identifying information about the removal. See RemovalIdLib.sol for encoding details.
+ *
+ * ###### Additional behaviors and features
+ *
+ * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
+ * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ *   - all functions that mutate state are pausable
+ * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
+ *    - CONSIGNOR_ROLE
+ *      - Can mint removal tokens and list them for sale in the Market contract
+ *    - RELEASER_ROLE
+ *      - Can release partial or full removal balances
+ *    - PAUSER_ROLE
+ *      - Can pause and unpause the contract
+ *    - DEFAULT_ADMIN_ROLE
+ *      - This is the only role that can add/revoke other accounts to any of the roles
+ * - [Limited ERC-1155 functionality](https://eips.ethereum.org/EIPS/eip-1155)
+ *   - TODO document how this contract deviates from standard ERC1155 functionality?
+ *
+ * ##### Inherits
+ *
+ * - [ERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc11555)
+ * - [ERC1155Supply](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Supply)
+ * - [MulticallUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Multicall)
+ * - [PausableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ * - [AccessControlEnumerableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/access)
+ * - [ContextUpgradeable](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
+ * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
+ *
+ * ##### Implements
+ *
+ * - [IERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155)
+ * - [IERC1155MetadataURI](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155MetadataURI)
+ * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
+ * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
+ *
+ * ##### Uses
+ *
+ * - [RemovalIdLib](./RemovalIdLib.md) for uint256
+ * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
+ *
  */
 contract Removal is
   ERC1155SupplyUpgradeable,
@@ -69,6 +157,11 @@ contract Removal is
 
   /**
    * @dev Registers the market, and certificate contracts so that they can be referenced in this contract.
+   * Called as part of the market contract system deployment process.
+   *
+   * ##### Requirements:
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   * - Can only be used when this contract is not paused
    */
   function registerContractAddresses(Market market, Certificate certificate)
     external
@@ -81,7 +174,10 @@ contract Removal is
 
   /**
    * @notice Mints multiple removals at once (for a single supplier).
-   * @param to The supplier address.
+   *
+   * @dev If `to` is the market address, the removals are listed for sale in the market.
+   *
+   * @param to The recipient of this batch of removals. Should be the supplier's address or the market address.
    * @param amounts Each removal's tonnes of CO2 formatted.
    * @param removals The removals to mint (represented as an array of `UnpackedRemovalIdV0`). These removals are used
    * to encode the removal IDs.
@@ -89,11 +185,10 @@ contract Removal is
    * @param scheduleStartTime The start time of the schedule for this batch of removals.
    * @param holdbackPercentage The holdback percentage for this batch of removals.
    *
-   * @dev If `to` is the market address, the removals are listed for sale in the market.
-   *
    * ##### Requirements:
+   * - Can only be used when the caller has the `CONSIGNER_ROLE`
+   * - Enforces the rules of `Removal._beforeTokenTransfer`
    *
-   * - Enforces the rules of `Removal._beforeTokenTransfer`.
    * TODO add remaining `mintBatch` requirements docs
    */
   function mintBatch(
@@ -146,6 +241,16 @@ contract Removal is
     _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
   }
 
+  /**
+   * @notice Lists the provided `amount` of the specified removal `id` for sale in Nori's marketplace.
+   *
+   * @dev The Market contract implements `onERC1155Received`, which is invoked upon receipt of any tokens from
+   * this contract, and handles the mechanics of listing this token for sale.
+   *
+   * @param from The current owner of the specified token ID and amount
+   * @param id The token ID of the removal token being listed for sale
+   * @param amount The balance of this token ID to transfer to the Market contract
+   */
   function consign(
     address from,
     uint256 id,
@@ -162,20 +267,25 @@ contract Removal is
   }
 
   /**
-   * @notice Releases an amount of a removal.
-   * @dev Releases `amount` of removal by `removalId` by burning them.
+   * @notice Accounts for carbon that has failed to meet its permanence guarantee and has been released into
+   * the atmosphere prematurely.
+   *
+   * @dev Releases `amount` of removal `removalId` by burning it. The replacement of released removals that had
+   * already been included in certificates is beyond the scope of this version of the contracts.
    *
    * ##### Requirements:
    *
    * - Releasing burns first from unlisted balances, second from listed balances and third from certificates.
-   * - If the removal is unlisted (e.g., owned by any account other than the market or certificate), the removal is
-   * simply burned.
-   * - If the removal is listed, it is delisted from the market and burned.
-   * - If the removal is owned by one or more certificates, the removal is burned iteratively across each certificate
-   * until the amount is exhausted (e.g., if a removal of amount 3 releases an amount of 2.5 and that removal is owned
-   * by 3 certificates containing an amount of 1 from the released removal, the resulting certificate's removal balances
-   * for this removal are: 0, 0, and 0.5).
-   * - If the removal is included as part of any certificates, the certificate balances are decremented by `amount`.
+   * - If there is unlisted balance for this removal (e.g., owned by the supplier address encoded in the token ID),
+   * that balance is burned up to `amount`.
+   * - If the released amount has not yet been fully burned and the removal is listed, it is delisted from the market
+   * and up to any remaining released amount is burned from the Market's balance.
+   * - Finally, if the released amount is still not fully accounted for, the removal must be owned by one or more
+   * certificates. The remaining released amount is burned from the Certificate contract's balance and certificate
+   * balances are decremented iteratively across each certificate until the amount is exhausted (e.g., if a removal
+   * of amount 3 releases an amount of 2.5 and that removal is owned by 3 certificates containing an amount of 1 each
+   * from the released removal, the resulting certificate's removal balances for this removal are: 0, 0, and 0.5).
+   *
    * - The rules of `_beforeTokenTransfer` are enforced.
    * - The caller must have the `RELEASER_ROLE`.
    * - The rules of `_burn` are enforced.
@@ -221,16 +331,24 @@ contract Removal is
     }
   }
 
+  /**
+   * @notice The address of the Market contract.
+   */
   function marketAddress() external view returns (address) {
     return address(_market);
   }
 
+  /**
+   * @notice The address of the Certificate contract.
+   */
   function certificateAddress() external view returns (address) {
     return address(_certificate);
   }
 
   /**
-   * @notice Gets the restriction schedule id (which is the removal's project id) for a given removal id.
+   * @notice Gets the project id (which is the removal's schedule id in RestrictedNORI) for a given removal id.
+   *
+   * @param removalId The removal token ID for which to retrieve the project id
    */
   function getProjectId(uint256 removalId) external view returns (uint256) {
     return _removalIdToProjectId[removalId];
@@ -295,6 +413,32 @@ contract Removal is
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
+  }
+
+  function isApprovedForAll(address account, address operator)
+    public
+    view
+    override
+    returns (bool)
+  {
+    return
+      account == address(_market) ||
+      super.isApprovedForAll({account: account, operator: operator});
+  }
+
+  function _setApprovalForAll(
+    address owner,
+    address operator,
+    bool approved
+  ) internal override whenNotPaused {
+    if (operator == address(_market)) {
+      revert InvalidCall();
+    }
+    super._setApprovalForAll({
+      owner: owner,
+      operator: operator,
+      approved: approved
+    });
   }
 
   /**

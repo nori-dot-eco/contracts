@@ -13,7 +13,6 @@ error InsufficientClaimableBalance(address account, uint256 scheduleId);
 error InvalidMinter(address account);
 error InvalidZeroDuration();
 error RemovalNotInQueue(uint256 removalId, uint256 queueVintage);
-error RemovalAlreadyInQueue(uint256 removalId, uint256 queueVintage);
 error UncapitalizedString(bytes2 country, bytes2 subdivision);
 error MethodologyVersionTooLarge(uint8 methodologyVersion);
 error UnsupportedIdVersion(uint8 idVersion);
