@@ -105,3 +105,6 @@ scripts/tenderly.ts
 # foundry
 out
 cache_hardhat
+
+# interfaces
+contracts/interfaces/

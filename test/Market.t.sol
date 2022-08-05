@@ -278,13 +278,10 @@ contract Market_withdraw_2x1_front_relist is MarketBalanceTestHelper {
   }
 
   function test() external {
-    vm.prank(_namedAccounts.supplier);
-    _removal.safeBatchTransferFrom({
+    _removal.consign({
       from: _namedAccounts.supplier,
-      to: address(_market),
-      ids: new uint256[](1).fill(_removalIds[0]),
-      amounts: new uint256[](1).fill(_amountPerRemoval),
-      data: ""
+      id: _removalIds[0],
+      amount: _amountPerRemoval
     });
     _assertListedState();
   }
