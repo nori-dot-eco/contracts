@@ -183,6 +183,7 @@ contract Removal__validateRemoval is NonUpgradeableRemoval {
 contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
   uint256[] private _removalIds;
   uint8[] private _holdbackPercentages;
+  uint8[] private _retrievedHoldbackPercentages;
 
   function setUp() external {
     UnpackedRemovalIdV0[] memory removalBatch = new UnpackedRemovalIdV0[](1);
@@ -197,13 +198,22 @@ contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
     });
     _removalIds = [REMOVAL_ID_FIXTURE];
     _holdbackPercentages = [50];
+    uint256 numberOfRemovalIds = _removalIds.length;
+    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovalIds);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+        _removal.getHoldbackPercentage.selector,
+        _removalIds[i]
+      );
+    }
+    bytes[] memory results = _removal.multicall(getHoldbackPercentageCalls);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      _retrievedHoldbackPercentages.push(uint8(uint256(bytes32(results[i]))));
+    }
   }
 
   function test() external {
-    assertEq(
-      _holdbackPercentages,
-      _removal.batchGetHoldbackPercentages({ids: _removalIds})
-    );
+    assertEq(_holdbackPercentages, _retrievedHoldbackPercentages);
   }
 }
 
@@ -213,6 +223,7 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
   uint256[] private _removalIds;
   uint8[] private _holdbackPercentages;
   uint256 private _secondRemovalId;
+  uint8[] private _retrievedHoldbackPercentages;
 
   function setUp() external {
     UnpackedRemovalIdV0[]
@@ -248,13 +259,22 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
       _firstHoldbackPercentage,
       _secondHoldbackPercentage
     ];
+    uint256 numberOfRemovalIds = _removalIds.length;
+    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovalIds);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+        _removal.getHoldbackPercentage.selector,
+        _removalIds[i]
+      );
+    }
+    bytes[] memory results = _removal.multicall(getHoldbackPercentageCalls);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      _retrievedHoldbackPercentages.push(uint8(uint256(bytes32(results[i]))));
+    }
   }
 
   function test() external {
-    assertEq(
-      _removal.batchGetHoldbackPercentages({ids: _removalIds}),
-      _holdbackPercentages
-    );
+    assertEq(_holdbackPercentages, _retrievedHoldbackPercentages);
   }
 }
 
