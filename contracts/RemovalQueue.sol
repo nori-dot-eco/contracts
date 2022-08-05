@@ -40,12 +40,7 @@ library RemovalQueue {
     } else if (vintageOfRemoval > removalQueue.latestYear) {
       removalQueue.latestYear = vintageOfRemoval;
     }
-    if (!removalQueue.queueByVintage[vintageOfRemoval].add(removalToInsert)) {
-      revert RemovalAlreadyInQueue({
-        removalId: removalToInsert,
-        queueVintage: vintageOfRemoval
-      });
-    }
+    removalQueue.queueByVintage[vintageOfRemoval].add(removalToInsert);
   }
 
   /**

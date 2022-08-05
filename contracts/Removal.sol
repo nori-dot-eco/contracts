@@ -217,6 +217,31 @@ contract Removal is
   }
 
   /**
+   * @notice Mints additional balance for multiple removals at once (for a single supplier).
+   * @param to The supplier address or market address.
+   * @param amounts Each removal's additional tonnes of CO2 formatted.
+   * @param ids The removal IDs to add balance for.
+   *
+   * @dev If `to` is the market address, the removals are listed for sale in the market.
+   *
+   * ##### Requirements:
+   * - IDs must already have been minted via `mintBatch`.
+   * - Enforces the rules of `Removal._beforeTokenTransfer`.
+   */
+  function addBalance(
+    address to,
+    uint256[] calldata amounts,
+    uint256[] calldata ids
+  ) external onlyRole(CONSIGNOR_ROLE) {
+    for (uint256 i = 0; i < ids.length; i++) {
+      if (_removalIdToProjectId[ids[i]] == 0) {
+        revert RemovalNotYetMinted({tokenId: ids[i]});
+      }
+    }
+    _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
+  }
+
+  /**
    * @notice Lists the provided `amount` of the specified removal `id` for sale in Nori's marketplace.
    *
    * @dev The Market contract implements `onERC1155Received`, which is invoked upon receipt of any tokens from
@@ -329,21 +354,9 @@ contract Removal is
     return _removalIdToProjectId[removalId];
   }
 
-  // todo use multicall instead
-  /** @notice Gets the holdback percentages for a batch of removal ids. */
-  function batchGetHoldbackPercentages(uint256[] calldata ids)
-    external
-    view
-    returns (uint8[] memory)
-  {
-    uint256 numberOfRemovals = ids.length;
-    uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
-    for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      holdbackPercentages[i] = _projectIdToHoldbackPercentage[
-        _removalIdToProjectId[ids[i]]
-      ];
-    }
-    return holdbackPercentages;
+  /** @notice Gets the holdback percentage for a removal. */
+  function getHoldbackPercentage(uint256 id) external view returns (uint8) {
+    return _projectIdToHoldbackPercentage[_removalIdToProjectId[id]];
   }
 
   function getMarketBalance() external view returns (uint256) {

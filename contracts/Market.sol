@@ -171,6 +171,9 @@ contract Market is PausableAccessPreset {
    * @dev
    * See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver] for more.
    *
+   * ##### Requirements:
+   * - Can only receive ERC1155 tokens from the Removal contract
+   *
    * @param ids An array containing ids of each token being transferred (order and length must match values array)
    * @return bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
    * if transfer is allowed
@@ -182,7 +185,7 @@ contract Market is PausableAccessPreset {
     uint256[] memory,
     bytes memory
   ) external returns (bytes4) {
-    // todo revert if Market.onERC1155BatchReceived sender is not the removal contract
+    require(_msgSender() == address(_removal), "Sender not Removal contract");
     for (uint256 i = 0; i < ids.length; i++) {
       _listForSale({id: ids[i]});
     }
@@ -196,7 +199,7 @@ contract Market is PausableAccessPreset {
     uint256,
     bytes calldata
   ) external returns (bytes4) {
-    // todo revert if Market.onERC1155Received sender is not the removal contract
+    require(_msgSender() == address(_removal), "Sender not Removal contract");
     _listForSale({id: id});
     return this.onERC1155Received.selector;
   }
@@ -417,7 +420,6 @@ contract Market is PausableAccessPreset {
     for (uint256 i = 0; i < numberOfActiveRemovalsInMarket; i++) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
-      // todo retrieve balances in a single batch call
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       if (remainingAmountToFill < removalAmount) {
         /**
@@ -611,11 +613,9 @@ contract Market is PausableAccessPreset {
     // todo verify changes to `fulfillOrder` (memory->calldata arr args) that enabled [:index] arr slicing syntax is ok
     uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
-    uint8[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages({
-      ids: batchedIds
-    });
+    uint8[] memory holdbackPercentages = _getHoldbackPercentages(batchedIds);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
-      uint256 restrictedSupplierFee = 0;
+      uint256 restrictedSupplierFee;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
       if (holdbackPercentages[i] > 0) {
         restrictedSupplierFee =
@@ -736,6 +736,40 @@ contract Market is PausableAccessPreset {
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
+  }
+
+  /**
+   * @dev Gets the holdback percentages for a batch of removal ids using multicall.
+   * @param ids The removal token IDs for which to retrieve the holdback percentages
+   */
+  function _getHoldbackPercentages(uint256[] memory ids)
+    internal
+    returns (uint8[] memory)
+  {
+    uint256 numberOfRemovals = ids.length;
+    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovals);
+    unchecked {
+      for (uint256 i = 0; i < numberOfRemovals; ++i) {
+        getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+          _removal.getHoldbackPercentage.selector,
+          ids[i]
+        );
+      }
+    }
+
+    bytes[] memory holdbackPercentageResults = _removal.multicall(
+      getHoldbackPercentageCalls
+    );
+    uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
+    unchecked {
+      for (uint256 i = 0; i < numberOfRemovals; ++i) {
+        holdbackPercentages[i] = uint8(
+          uint256(bytes32(holdbackPercentageResults[i]))
+        );
+      }
+    }
+
+    return holdbackPercentages;
   }
 
   /**

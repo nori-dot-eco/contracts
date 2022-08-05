@@ -72,6 +72,53 @@ contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
   }
 }
 
+contract Removal_addBalance is UpgradeableMarket {
+  uint256[] _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+  }
+
+  function test() external {
+    uint256 removalId = _removalIds[0];
+    _removal.addBalance({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(2 ether),
+      ids: new uint256[](1).fill(removalId)
+    });
+    assertEq(_removal.balanceOf(_namedAccounts.supplier, removalId), 3 ether);
+  }
+}
+
+contract Removal_addBalance_reverts_RemovalNotYetMinted is UpgradeableMarket {
+  function test() external {
+    uint256 unmintedTokenId = RemovalIdLib.createRemovalId({
+      removal: UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: 2018,
+        country: "US",
+        subdivision: "IA",
+        supplierAddress: _namedAccounts.supplier,
+        subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+      })
+    });
+    vm.expectRevert(
+      abi.encodeWithSelector(RemovalNotYetMinted.selector, unmintedTokenId)
+    );
+    _removal.addBalance({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(1 ether),
+      ids: new uint256[](1).fill(unmintedTokenId)
+    });
+  }
+}
+
 contract Removal_getProjectId is UpgradeableMarket {
   uint256[] private _removalIds;
 
@@ -161,6 +208,7 @@ contract Removal__validateRemoval is NonUpgradeableRemoval {
 contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
   uint256[] private _removalIds;
   uint8[] private _holdbackPercentages;
+  uint8[] private _retrievedHoldbackPercentages;
 
   function setUp() external {
     UnpackedRemovalIdV0[] memory removalBatch = new UnpackedRemovalIdV0[](1);
@@ -175,13 +223,22 @@ contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
     });
     _removalIds = [REMOVAL_ID_FIXTURE];
     _holdbackPercentages = [50];
+    uint256 numberOfRemovalIds = _removalIds.length;
+    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovalIds);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+        _removal.getHoldbackPercentage.selector,
+        _removalIds[i]
+      );
+    }
+    bytes[] memory results = _removal.multicall(getHoldbackPercentageCalls);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      _retrievedHoldbackPercentages.push(uint8(uint256(bytes32(results[i]))));
+    }
   }
 
   function test() external {
-    assertEq(
-      _holdbackPercentages,
-      _removal.batchGetHoldbackPercentages({ids: _removalIds})
-    );
+    assertEq(_holdbackPercentages, _retrievedHoldbackPercentages);
   }
 }
 
@@ -191,6 +248,7 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
   uint256[] private _removalIds;
   uint8[] private _holdbackPercentages;
   uint256 private _secondRemovalId;
+  uint8[] private _retrievedHoldbackPercentages;
 
   function setUp() external {
     UnpackedRemovalIdV0[]
@@ -226,13 +284,22 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
       _firstHoldbackPercentage,
       _secondHoldbackPercentage
     ];
+    uint256 numberOfRemovalIds = _removalIds.length;
+    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovalIds);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+        _removal.getHoldbackPercentage.selector,
+        _removalIds[i]
+      );
+    }
+    bytes[] memory results = _removal.multicall(getHoldbackPercentageCalls);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      _retrievedHoldbackPercentages.push(uint8(uint256(bytes32(results[i]))));
+    }
   }
 
   function test() external {
-    assertEq(
-      _removal.batchGetHoldbackPercentages({ids: _removalIds}),
-      _holdbackPercentages
-    );
+    assertEq(_holdbackPercentages, _retrievedHoldbackPercentages);
   }
 }
 
