@@ -254,7 +254,7 @@ declare global {
 
   namespace NodeJS {
     interface ProcessEnv {
-      MNEMONIC: string | null;
+      MNEMONIC?: string;
       INFURA_STAGING_KEY?: string;
       TENDERLY_USERNAME: string;
       TENDERLY_PROJECT: string;
