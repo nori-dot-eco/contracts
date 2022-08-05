@@ -47,6 +47,53 @@ contract Removal_mintBatch_list_sequential is UpgradeableMarket {
   }
 }
 
+contract Removal_addBalance is UpgradeableMarket {
+  uint256[] _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+  }
+
+  function test() external {
+    uint256 removalId = _removalIds[0];
+    _removal.addBalance({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(2 ether),
+      ids: new uint256[](1).fill(removalId)
+    });
+    assertEq(_removal.balanceOf(_namedAccounts.supplier, removalId), 3 ether);
+  }
+}
+
+contract Removal_addBalance_reverts_RemovalNotYetMinted is UpgradeableMarket {
+  function test() external {
+    uint256 unmintedTokenId = RemovalIdLib.createRemovalId({
+      removal: UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: 2018,
+        country: "US",
+        subdivision: "IA",
+        supplierAddress: _namedAccounts.supplier,
+        subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+      })
+    });
+    vm.expectRevert(
+      abi.encodeWithSelector(RemovalNotYetMinted.selector, unmintedTokenId)
+    );
+    _removal.addBalance({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(1 ether),
+      ids: new uint256[](1).fill(unmintedTokenId)
+    });
+  }
+}
+
 contract Removal_getProjectId is UpgradeableMarket {
   uint256[] private _removalIds;
 
