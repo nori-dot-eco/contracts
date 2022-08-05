@@ -745,21 +745,27 @@ contract Market is PausableAccessPreset {
   {
     uint256 numberOfRemovals = ids.length;
     bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovals);
-    for (uint256 i = 0; i < numberOfRemovals; i++) {
-      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
-        _removal.getHoldbackPercentage.selector,
-        ids[i]
-      );
+    unchecked {
+      for (uint256 i = 0; i < numberOfRemovals; ++i) {
+        getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+          _removal.getHoldbackPercentage.selector,
+          ids[i]
+        );
+      }
     }
+
     bytes[] memory holdbackPercentageResults = _removal.multicall(
       getHoldbackPercentageCalls
     );
     uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
-    for (uint256 i = 0; i < numberOfRemovals; i++) {
-      holdbackPercentages[i] = uint8(
-        uint256(bytes32(holdbackPercentageResults[i]))
-      );
+    unchecked {
+      for (uint256 i = 0; i < numberOfRemovals; ++i) {
+        holdbackPercentages[i] = uint8(
+          uint256(bytes32(holdbackPercentageResults[i]))
+        );
+      }
     }
+
     return holdbackPercentages;
   }
 
