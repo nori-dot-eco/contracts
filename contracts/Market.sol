@@ -171,6 +171,9 @@ contract Market is PausableAccessPreset {
    * @dev
    * See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver] for more.
    *
+   * ##### Requirements:
+   * - Can only receive ERC1155 tokens from the Removal contract
+   *
    * @param ids An array containing ids of each token being transferred (order and length must match values array)
    * @return bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
    * if transfer is allowed
@@ -182,7 +185,7 @@ contract Market is PausableAccessPreset {
     uint256[] memory,
     bytes memory
   ) external returns (bytes4) {
-    // todo revert if Market.onERC1155BatchReceived sender is not the removal contract
+    require(_msgSender() == address(_removal), "Sender not Removal contract");
     for (uint256 i = 0; i < ids.length; i++) {
       _listForSale({id: ids[i]});
     }
@@ -196,7 +199,7 @@ contract Market is PausableAccessPreset {
     uint256,
     bytes calldata
   ) external returns (bytes4) {
-    // todo revert if Market.onERC1155Received sender is not the removal contract
+    require(_msgSender() == address(_removal), "Sender not Removal contract");
     _listForSale({id: id});
     return this.onERC1155Received.selector;
   }
