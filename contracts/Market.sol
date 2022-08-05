@@ -420,7 +420,6 @@ contract Market is PausableAccessPreset {
     for (uint256 i = 0; i < numberOfActiveRemovalsInMarket; i++) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
-      // todo retrieve balances in a single batch call
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       if (remainingAmountToFill < removalAmount) {
         /**
@@ -614,11 +613,9 @@ contract Market is PausableAccessPreset {
     // todo verify changes to `fulfillOrder` (memory->calldata arr args) that enabled [:index] arr slicing syntax is ok
     uint256[] memory batchedIds = ids[:numberOfRemovals];
     uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
-    uint8[] memory holdbackPercentages = _removal.batchGetHoldbackPercentages({
-      ids: batchedIds
-    });
+    uint8[] memory holdbackPercentages = _getHoldbackPercentages(batchedIds);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
-      uint256 restrictedSupplierFee = 0;
+      uint256 restrictedSupplierFee;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
       if (holdbackPercentages[i] > 0) {
         restrictedSupplierFee =
@@ -739,6 +736,40 @@ contract Market is PausableAccessPreset {
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
+  }
+
+  /**
+   * @dev Gets the holdback percentages for a batch of removal ids using multicall.
+   * @param ids The removal token IDs for which to retrieve the holdback percentages
+   */
+  function _getHoldbackPercentages(uint256[] memory ids)
+    internal
+    returns (uint8[] memory)
+  {
+    uint256 numberOfRemovals = ids.length;
+    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovals);
+    unchecked {
+      for (uint256 i = 0; i < numberOfRemovals; ++i) {
+        getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+          _removal.getHoldbackPercentage.selector,
+          ids[i]
+        );
+      }
+    }
+
+    bytes[] memory holdbackPercentageResults = _removal.multicall(
+      getHoldbackPercentageCalls
+    );
+    uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
+    unchecked {
+      for (uint256 i = 0; i < numberOfRemovals; ++i) {
+        holdbackPercentages[i] = uint8(
+          uint256(bytes32(holdbackPercentageResults[i]))
+        );
+      }
+    }
+
+    return holdbackPercentages;
   }
 
   /**
