@@ -59,18 +59,6 @@ contract Removal is
   );
 
   /**
-   * @notice Emitted on updating `_removalIdToRemovalData` with a new removal.
-   * @param removalId The id of the removal that was added.
-   * @param projectId The projectId that the removalId was added to.
-   * @param holdbackPercentage The holdback percentage for the project.
-   */
-  event RemovalAdded(
-    uint256 indexed removalId,
-    uint256 indexed projectId,
-    uint256 indexed holdbackPercentage
-  );
-
-  /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
