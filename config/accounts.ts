@@ -33,7 +33,7 @@ export const namedAccounts: NamedAccounts = Object.fromEntries(
 ) as NamedAccounts;
 
 export const accounts: HardhatNetworkAccountUserConfig[] | undefined =
-  MNEMONIC !== undefined
+  MNEMONIC !== null
     ? [...Array.from({ length: 10 })].map((_, index) => {
         return {
           privateKey: ethers.Wallet.fromMnemonic(
