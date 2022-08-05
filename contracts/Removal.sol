@@ -3,7 +3,7 @@ pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
-import {InvalidCall, InvalidData, InvalidTokenTransfer} from "./Errors.sol";
+import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
 
 /**
  * @title An extended ERC1155 token contract for carbon removal accounting.
@@ -452,8 +452,9 @@ contract Removal is
     bytes memory data
   ) internal override whenNotPaused {
     for (uint256 i = 0; i < ids.length; ++i) {
+      uint256 id = ids[i];
       if (amounts[i] == 0) {
-        revert InvalidTokenTransfer({tokenId: ids[i]});
+        revert InvalidTokenTransfer({tokenId: id});
       }
       address market = address(_market);
       if (to == market) {
@@ -461,6 +462,14 @@ contract Removal is
       }
       if (from == market) {
         _currentMarketBalance -= amounts[i];
+      }
+      if (
+        to != RemovalIdLib.supplierAddress(id) &&
+        to != market &&
+        to != address(_certificate) &&
+        to != address(0)
+      ) {
+        revert ForbiddenTransfer();
       }
     }
     super._beforeTokenTransfer(operator, from, to, ids, amounts, data);

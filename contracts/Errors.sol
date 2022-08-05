@@ -22,4 +22,5 @@ error Unauthorized(); // todo perhaps use this for any authorization error
 error InvalidData();
 error InvalidCall();
 error InvalidTokenTransfer(uint256 tokenId);
+error ForbiddenTransfer();
 error RemovalNotYetMinted(uint256 tokenId);

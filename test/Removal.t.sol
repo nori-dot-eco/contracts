@@ -47,6 +47,31 @@ contract Removal_mintBatch_list_sequential is UpgradeableMarket {
   }
 }
 
+contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
+  function test() external {
+    UnpackedRemovalIdV0[] memory ids = new UnpackedRemovalIdV0[](1);
+    ids[0] = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    vm.expectRevert(ForbiddenTransfer.selector);
+    _removal.mintBatch({
+      to: _namedAccounts.supplier2, // not the supplier encoded in the removal id
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+  }
+}
+
 contract Removal_addBalance is UpgradeableMarket {
   uint256[] _removalIds;
 
@@ -703,13 +728,30 @@ contract Removal_getMarketBalance is UpgradeableMarket {
 }
 
 contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
+  uint256 private _removalId;
+
+  function setUp() external {
+    _removalId = RemovalIdLib.createRemovalId(
+      UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: 2018,
+        country: "US",
+        subdivision: "IA",
+        supplierAddress: _namedAccounts.supplier,
+        subIdentifier: 99_039_930
+      })
+    );
+  }
+
   // todo test the rest of the cases
   function test() external {
     super._beforeTokenTransfer(
       _namedAccounts.admin,
       _namedAccounts.admin,
-      _namedAccounts.admin,
-      _asSingletonUintArray(1),
+      _namedAccounts.supplier,
+      new uint256[](1).fill(_removalId),
       _asSingletonUintArray(1),
       ""
     );
@@ -741,5 +783,57 @@ contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
       _asSingletonUintArray(0),
       ""
     );
+  }
+}
+
+contract Removal_safeTransferFrom_reverts_ForbiddenTransfer is
+  UpgradeableMarket
+{
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+  }
+
+  function test() external {
+    vm.expectRevert(ForbiddenTransfer.selector);
+    vm.prank(_namedAccounts.supplier);
+    _removal.safeTransferFrom({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.supplier2,
+      id: _removalIds[0],
+      amount: 1 ether,
+      data: ""
+    });
+  }
+}
+
+contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
+  UpgradeableMarket
+{
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 2,
+      list: false
+    });
+  }
+
+  function test() external {
+    vm.expectRevert(ForbiddenTransfer.selector);
+    vm.prank(_namedAccounts.supplier);
+    _removal.safeBatchTransferFrom({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.supplier2,
+      ids: _removalIds,
+      amounts: new uint256[](2).fill(1 ether),
+      data: ""
+    });
   }
 }
