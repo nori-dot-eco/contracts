@@ -20,6 +20,11 @@ contract RemovalQueue_getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
       bytes32(uint256(254)), // sets the markets _restrictedNori storage slot to this contract to enable mock calls
       bytes32(uint256(uint160(address(this))))
     );
+    vm.store(
+      address(this),
+      bytes32(uint256(251)), // sets the markets _removal storage slot to allow receiving 1155
+      bytes32(uint256(uint160(address(_removal))))
+    );
   }
 
   function setUp() external {
@@ -73,5 +78,60 @@ contract RemovalQueue_getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
       ),
       100 ether
     );
+  }
+}
+
+contract RemovalQueue_insertRemovalByVintage is NonUpgradeableMarket {
+  using RemovalQueue for RemovalQueueByVintage;
+  using RemovalIdLib for uint256;
+
+  NonUpgradeableRemoval private _removal;
+  uint256[] private _removalIds;
+
+  constructor() {
+    _removal = new NonUpgradeableRemoval();
+    vm.store(
+      address(_removal),
+      bytes32(uint256(401)), // sets the Removal._market storage slot to this contract to enable mock calls
+      bytes32(uint256(uint160(address(this))))
+    );
+    vm.store(
+      address(this),
+      bytes32(uint256(254)), // sets the markets _restrictedNori storage slot to this contract to enable mock calls
+      bytes32(uint256(uint160(address(this))))
+    );
+  }
+
+  function setUp() external {
+    vm.mockCall(
+      address(this),
+      abi.encodeWithSelector(RestrictedNORI.scheduleExists.selector),
+      abi.encode(true)
+    );
+    _removalIds = _removal.seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false,
+      uniqueVintages: false
+    });
+  }
+
+  function test_insertRemovalOnce() external {
+    RemovalQueueByVintage storage removalQueue = _activeSupply[
+      _namedAccounts.supplier
+    ];
+    uint256 removalId = _removalIds[0];
+    removalQueue.insertRemovalByVintage(removalId);
+    assertEq(removalQueue.getSizeOfQueueForVintage(removalId.vintage()), 1);
+  }
+
+  function test_insertRemovalTwice() external {
+    RemovalQueueByVintage storage removalQueue = _activeSupply[
+      _namedAccounts.supplier
+    ];
+    uint256 removalId = _removalIds[0];
+    removalQueue.insertRemovalByVintage(removalId);
+    removalQueue.insertRemovalByVintage(removalId);
+    assertEq(removalQueue.getSizeOfQueueForVintage(removalId.vintage()), 1);
   }
 }
