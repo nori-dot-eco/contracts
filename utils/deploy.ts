@@ -244,7 +244,7 @@ export const deployLockedNORIContract = async ({
     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
     options: {
       initializer: 'initialize(address)',
-      unsafeAllow: ['constructor', 'delegatecall'],
+      unsafeAllow: ['constructor'],
     },
   });
 };

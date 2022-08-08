@@ -2,7 +2,6 @@
 pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
 import "./deprecated/ERC777PresetPausablePermissioned.sol";
 import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
@@ -93,10 +92,7 @@ import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  */
-contract LockedNORIV2 is
-  ERC777PresetPausablePermissioned,
-  MulticallUpgradeable
-{
+contract LockedNORIV2 is ERC777PresetPausablePermissioned {
   using LockedNORILib for Schedule;
 
   struct TokenGrant {
@@ -471,7 +467,6 @@ contract LockedNORIV2 is
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
-    __Multicall_init_unchained();
     __ERC777PresetPausablePermissioned_init_unchained();
     __ERC777_init_unchained("Locked NORI", "lNORI", operators);
     _bridgedPolygonNori = bridgedPolygonNoriAddress;

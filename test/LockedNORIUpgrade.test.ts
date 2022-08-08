@@ -68,7 +68,7 @@ describe('LockedNORI V1 to V2 upgrade', () => {
     const lNoriV2 = (await upgrades.upgradeProxy(
       lNori.address,
       LockedNORIV2Factory as any,
-      { unsafeAllow: ['constructor', 'delegatecall'] }
+      { unsafeAllow: ['constructor'] }
     )) as any as LockedNORIV2;
     await lNoriV2.updateUnderlying(bpNori.address);
     expect(await lNoriV2.balanceOf(recipient)).to.eq(GRANT_AMOUNT);
