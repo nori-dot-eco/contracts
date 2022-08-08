@@ -4,6 +4,7 @@ import "./Certificate.sol";
 import "./RestrictedNORI.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
+import {UInt256ArrayLib} from "./ArrayLib.sol";
 import "./Errors.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
@@ -30,7 +31,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 contract Market is PausableAccessPreset {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
-
+  using UInt256ArrayLib for uint256[];
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
    */
@@ -49,6 +50,12 @@ contract Market is PausableAccessPreset {
   address private _currentSupplierAddress;
   mapping(address => RoundRobinOrder) internal _suppliersInRoundRobinOrder;
   mapping(address => RemovalQueueByVintage) internal _activeSupply;
+
+  /**
+   * @notice Role conferring the ability to configure the Nori fee wallet, the Nori fee percentage, and the priority
+   * restricted threshold.
+   */
+  bytes32 public constant MARKET_ADMIN_ROLE = keccak256("MARKET_ADMIN_ROLE");
 
   /**
    * @notice Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
@@ -89,6 +96,7 @@ contract Market is PausableAccessPreset {
     _currentSupplierAddress = address(0);
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(ALLOWLIST_ROLE, _msgSender());
+    _grantRole(MARKET_ADMIN_ROLE, _msgSender());
   }
 
   /**
@@ -156,7 +164,7 @@ contract Market is PausableAccessPreset {
   function setPriorityRestrictedThreshold(uint256 threshold)
     external
     whenNotPaused
-    onlyRole(DEFAULT_ADMIN_ROLE)
+    onlyRole(MARKET_ADMIN_ROLE)
   {
     _priorityRestrictedThreshold = threshold;
     emit PriorityRestrictedThresholdSet(threshold);
@@ -184,7 +192,7 @@ contract Market is PausableAccessPreset {
     uint256[] memory ids, // todo calldata?
     uint256[] memory,
     bytes memory
-  ) external returns (bytes4) {
+  ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
     for (uint256 i = 0; i < ids.length; i++) {
       _listForSale({id: ids[i]});
@@ -198,7 +206,7 @@ contract Market is PausableAccessPreset {
     uint256 id,
     uint256,
     bytes calldata
-  ) external returns (bytes4) {
+  ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
     _listForSale({id: id});
     return this.onERC1155Received.selector;
@@ -255,7 +263,7 @@ contract Market is PausableAccessPreset {
       r,
       s
     );
-    this.fulfillOrder({
+    _fulfillOrder({
       certificateAmount: certificateAmount,
       operator: _msgSender(),
       recipient: recipient,
@@ -327,7 +335,7 @@ contract Market is PausableAccessPreset {
       r,
       s
     );
-    this.fulfillOrder({
+    _fulfillOrder({
       certificateAmount: certificateAmount,
       operator: _msgSender(),
       recipient: recipient,
@@ -553,14 +561,14 @@ contract Market is PausableAccessPreset {
    * @dev
    *
    * ##### Requirements:
-   * - Can only be used when the caller has the DEFAULT_ADMIN_ROLE
+   * - Can only be used when the caller has the MARKET_ADMIN_ROLE
    * - Can only be used when this contract is not paused
    *
    * @param noriFeePercentage_ The new fee percentage as an integer.
    */
   function setNoriFeePercentage(uint256 noriFeePercentage_)
     external
-    onlyRole(DEFAULT_ADMIN_ROLE)
+    onlyRole(MARKET_ADMIN_ROLE)
     whenNotPaused
   {
     _noriFeePercentage = noriFeePercentage_;
@@ -573,14 +581,14 @@ contract Market is PausableAccessPreset {
    * @dev
    *
    * ##### Requirements:
-   * - Can only be used when the caller has the DEFAULT_ADMIN_ROLE
+   * - Can only be used when the caller has the MARKET_ADMIN_ROLE
    * - Can only be used when this contract is not paused
    *
    * @param noriFeeWalletAddress The wallet address where Nori collects market fees.
    */
   function setNoriFeeWallet(address noriFeeWalletAddress)
     external
-    onlyRole(DEFAULT_ADMIN_ROLE)
+    onlyRole(MARKET_ADMIN_ROLE)
     whenNotPaused
   {
     _noriFeeWallet = noriFeeWalletAddress;
@@ -598,21 +606,19 @@ contract Market is PausableAccessPreset {
    * @param amounts An array of amounts being allocated from each corresponding removal token.
    * @param suppliers An array of suppliers
    *
-   * todo permission `fulfillOrder` now that it is external (or figure out how to use calldata with internal fns)
    * todo use correct check-effects pattern in `fulfillOrder`
    */
-  function fulfillOrder(
+  function _fulfillOrder(
     uint256 certificateAmount,
     address operator,
     address recipient,
     uint256 numberOfRemovals,
-    uint256[] calldata ids,
-    uint256[] calldata amounts,
+    uint256[] memory ids,
+    uint256[] memory amounts,
     address[] memory suppliers
-  ) external {
-    // todo verify changes to `fulfillOrder` (memory->calldata arr args) that enabled [:index] arr slicing syntax is ok
-    uint256[] memory batchedIds = ids[:numberOfRemovals];
-    uint256[] memory batchedAmounts = amounts[:numberOfRemovals];
+  ) internal {
+    uint256[] memory batchedIds = ids.slice(0, numberOfRemovals);
+    uint256[] memory batchedAmounts = amounts.slice(0, numberOfRemovals);
     uint8[] memory holdbackPercentages = _getHoldbackPercentages(batchedIds);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       uint256 restrictedSupplierFee;
@@ -633,7 +639,7 @@ contract Market is PausableAccessPreset {
         operator,
         _noriFeeWallet,
         this.getNoriFee(batchedAmounts[i])
-      ); // todo use MultiCall to batch transfer bpNori in `fulfillOrder`
+      ); // todo use MultiCall to batch transfer bpNori in `_fulfillOrder`
       _bridgedPolygonNori.transferFrom(
         operator,
         suppliers[i],
@@ -672,7 +678,7 @@ contract Market is PausableAccessPreset {
 
   function _isAuthorizedWithdrawal(address owner) internal view returns (bool) {
     return (_msgSender() == owner ||
-      hasRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()}) ||
+      hasRole({role: MARKET_ADMIN_ROLE, account: _msgSender()}) ||
       _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
   }
 
