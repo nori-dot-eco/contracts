@@ -1,6 +1,6 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, var-name-mixedcase */
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.15;
+pragma solidity =0.8.16;
 import "@/test/helpers/test.sol";
 import "@/contracts/Removal.sol";
 import "@/contracts/ArrayLib.sol";

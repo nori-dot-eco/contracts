@@ -82,7 +82,7 @@
 
   /** BEGIN SOLIDITY OPTIONS */
   "solidity.linter": "solhint",
-  "solidity.compileUsingRemoteVersion": "0.8.15",
+  "solidity.compileUsingRemoteVersion": "0.8.16",
   /** END SOLIDITY OPTIONS */
 
   /** BEGIN TYPE CHECKING OPTIONS */

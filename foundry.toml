@@ -9,7 +9,7 @@ libs = [
   'lib'
 ]
 test = 'test'
-solc_version = '0.8.15'
+solc_version = '0.8.16'
 optimizer_runs = 5000000 # todo configure foundry settings via process.env
 gas_reports = [ '*' ]
 

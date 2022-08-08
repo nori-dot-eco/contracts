@@ -3,7 +3,7 @@ import type { HardhatUserConfig } from 'hardhat/types';
 export const solidity: HardhatUserConfig['solidity'] = {
   compilers: [
     {
-      version: '0.8.15',
+      version: '0.8.16',
       settings: {
         viaIR: process.env.VIA_IR && !process.env.CI,
         ...(!process.env.CI && {
