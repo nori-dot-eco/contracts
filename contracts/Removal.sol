@@ -198,7 +198,7 @@ contract Removal is
     uint256 projectId,
     uint256 scheduleStartTime,
     uint8 holdbackPercentage
-  ) external onlyRole(CONSIGNOR_ROLE) {
+  ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
     uint256[] memory removalIds = _createRemovalDataBatch({
       removals: removals,
       projectId: projectId
@@ -232,7 +232,7 @@ contract Removal is
     address to,
     uint256[] calldata amounts,
     uint256[] calldata ids
-  ) external onlyRole(CONSIGNOR_ROLE) {
+  ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
     for (uint256 i = 0; i < ids.length; i++) {
       if (_removalIdToProjectId[ids[i]] == 0) {
         revert RemovalNotYetMinted({tokenId: ids[i]});
@@ -255,7 +255,7 @@ contract Removal is
     address from,
     uint256 id,
     uint256 amount
-  ) external onlyRole(CONSIGNOR_ROLE) {
+  ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
     // todo test that checks consignment can happen using multi call with mix-match project ids
     _safeTransferFrom({
       from: from,
@@ -295,6 +295,7 @@ contract Removal is
    */
   function release(uint256 removalId, uint256 amount)
     external
+    whenNotPaused
     onlyRole(RELEASER_ROLE)
   {
     // todo might need to add pagination/incremental if removal spans a ton of certificates and reaches max gas
@@ -329,6 +330,38 @@ contract Removal is
         }
       }
     }
+  }
+
+  /**
+   * @dev See {IERC1155-safeTransferFrom}.
+   */
+  function safeTransferFrom(
+    address from,
+    address to,
+    uint256 id,
+    uint256 amount,
+    bytes memory data
+  ) public override whenNotPaused {
+    if (_msgSender() != address(_market)) {
+      revert ForbiddenTransfer();
+    }
+    super.safeTransferFrom(from, to, id, amount, data);
+  }
+
+  /**
+   * @dev See {IERC1155-safeBatchTransferFrom}.
+   */
+  function safeBatchTransferFrom(
+    address from,
+    address to,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    bytes memory data
+  ) public override whenNotPaused {
+    if (_msgSender() != address(_market)) {
+      revert ForbiddenTransfer();
+    }
+    super.safeBatchTransferFrom(from, to, ids, amounts, data);
   }
 
   /**
@@ -401,32 +434,6 @@ contract Removal is
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
-  }
-
-  function isApprovedForAll(address account, address operator)
-    public
-    view
-    override
-    returns (bool)
-  {
-    return
-      account == address(_market) ||
-      super.isApprovedForAll({account: account, operator: operator});
-  }
-
-  function _setApprovalForAll(
-    address owner,
-    address operator,
-    bool approved
-  ) internal override whenNotPaused {
-    if (operator == address(_market)) {
-      revert InvalidCall();
-    }
-    super._setApprovalForAll({
-      owner: owner,
-      operator: operator,
-      approved: approved
-    });
   }
 
   /**

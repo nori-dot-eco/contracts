@@ -812,6 +812,30 @@ contract Removal_safeTransferFrom_reverts_ForbiddenTransfer is
   }
 }
 
+contract Removal_safeTransferFrom_reverts_when_paused is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+    _removal.pause();
+  }
+
+  function test() external {
+    vm.expectRevert("Pausable: paused");
+    _removal.safeTransferFrom({
+      from: _namedAccounts.supplier,
+      to: address(_market),
+      id: _removalIds[0],
+      amount: 1 ether,
+      data: ""
+    });
+  }
+}
+
 contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
   UpgradeableMarket
 {
@@ -835,5 +859,44 @@ contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
       amounts: new uint256[](2).fill(1 ether),
       data: ""
     });
+  }
+}
+
+contract Removal_grantRole is UpgradeableMarket {
+  function setUp() external {
+    _removal.pause();
+  }
+
+  function test_reverts_when_paused() external {
+    bytes32 adminRole = _removal.DEFAULT_ADMIN_ROLE();
+    vm.expectRevert("Pausable: paused");
+    _removal.grantRole(adminRole, _namedAccounts.supplier);
+  }
+}
+
+contract Removal_renounceRole is UpgradeableMarket {
+  function setUp() external {
+    _removal.pause();
+  }
+
+  function test_reverts_when_paused() external {
+    bytes32 adminRole = _removal.DEFAULT_ADMIN_ROLE();
+    vm.expectRevert("Pausable: paused");
+    _removal.renounceRole(adminRole, address(this));
+  }
+}
+
+contract Removal_revokeRole is UpgradeableMarket {
+  bytes32 private adminRole;
+
+  function setUp() external {
+    adminRole = _removal.DEFAULT_ADMIN_ROLE();
+    _removal.grantRole(adminRole, _namedAccounts.supplier);
+    _removal.pause();
+  }
+
+  function test_reverts_when_paused() external {
+    vm.expectRevert("Pausable: paused");
+    _removal.revokeRole(adminRole, _namedAccounts.supplier);
   }
 }

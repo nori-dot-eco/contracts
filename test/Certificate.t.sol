@@ -114,6 +114,13 @@ contract Certificate_burn is UpgradeableCertificate {
       "Certificate original balance should be unchanged after burning"
     );
   }
+
+  function test_reverts_when_paused() external {
+    _certificate.pause();
+    vm.prank(_owner);
+    vm.expectRevert("Pausable: paused");
+    _certificate.burn(_certificateId);
+  }
 }
 
 contract Certificate_approve is UpgradeableCertificate {
@@ -147,7 +154,28 @@ contract Certificate_safeTransferFrom is NonUpgradeableCertificate {
     });
   }
 
+  function test_reverts_when_paused() external {
+    super._pause();
+    vm.expectRevert("Pausable: paused");
+    safeTransferFrom({
+      from: _namedAccounts.deployer,
+      to: _namedAccounts.buyer,
+      tokenId: 0
+    });
+  }
+
   function test_overload() external {
+    safeTransferFrom({
+      from: _namedAccounts.deployer,
+      to: _namedAccounts.buyer,
+      tokenId: 0,
+      _data: ""
+    });
+  }
+
+  function test_overload_reverts_when_paused() external {
+    super._pause();
+    vm.expectRevert("Pausable: paused");
     safeTransferFrom({
       from: _namedAccounts.deployer,
       to: _namedAccounts.buyer,
@@ -194,6 +222,16 @@ contract Certificate_transferFrom is NonUpgradeableCertificate {
   }
 
   function test() external {
+    transferFrom({
+      from: _namedAccounts.deployer,
+      to: _namedAccounts.buyer,
+      tokenId: 0
+    });
+  }
+
+  function test_reverts_when_paused() external {
+    super._pause();
+    vm.expectRevert("Pausable: paused");
     transferFrom({
       from: _namedAccounts.deployer,
       to: _namedAccounts.buyer,
