@@ -178,6 +178,8 @@ export const deployMarketContract = async ({
     options: {
       initializer:
         'initialize(address,address,address,address,address,uint256)',
+      unsafeAllow: ['delegatecall'],
+
     },
   });
 };
@@ -192,6 +194,8 @@ export const deployRestrictedNORI = async ({
     args: [],
     options: {
       initializer: 'initialize()',
+      unsafeAllow: ['delegatecall'],
+
     },
   });
 };
@@ -240,7 +244,7 @@ export const deployLockedNORIContract = async ({
     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
     options: {
       initializer: 'initialize(address)',
-      unsafeAllow: ['constructor'],
+      unsafeAllow: ['constructor', 'delegatecall'],
     },
   });
 };
