@@ -278,13 +278,10 @@ contract Market_withdraw_2x1_front_relist is MarketBalanceTestHelper {
   }
 
   function test() external {
-    vm.prank(_namedAccounts.supplier);
-    _removal.safeBatchTransferFrom({
+    _removal.consign({
       from: _namedAccounts.supplier,
-      to: address(_market),
-      ids: new uint256[](1).fill(_removalIds[0]),
-      amounts: new uint256[](1).fill(_amountPerRemoval),
-      data: ""
+      id: _removalIds[0],
+      amount: _amountPerRemoval
     });
     _assertListedState();
   }
@@ -338,7 +335,7 @@ contract Market__isAuthorizedWithdrawal_true is NonUpgradeableMarket {
   }
 
   function test_returnsTrueWhenMsgSenderHasDefaultAdminRole() external {
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
     assertEq(_isAuthorizedWithdrawal({owner: _namedAccounts.supplier}), true);
   }
 
@@ -394,7 +391,7 @@ contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriori
   NonUpgradeableMarket
 {
   function setUp() external {
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
     vm.prank(_msgSender());
     this.setPriorityRestrictedThreshold({threshold: 0.5 ether});
     _grantRole({role: ALLOWLIST_ROLE, account: _namedAccounts.deployer});
@@ -412,7 +409,7 @@ contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
   NonUpgradeableMarket
 {
   function setUp() external {
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
     vm.prank(_msgSender());
     this.setPriorityRestrictedThreshold({threshold: 1 ether});
   }
