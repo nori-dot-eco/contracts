@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
@@ -143,6 +144,7 @@ contract Removal is
 
   function initialize() external initializer {
     __Context_init_unchained();
+    __ERC165_init_unchained();
     __ERC1155_init_unchained("https://nori.com/api/removal/{id}.json");
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
