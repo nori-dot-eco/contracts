@@ -467,7 +467,9 @@ contract Market is PausableAccessPreset {
         break;
       }
     }
-    // todo revert single-supplier supply allocation if the total from suppliers != certificate amount
+    if (amounts.sum() != certificateAmount) {
+      revert IncorrectSupplyAllocation();
+    }
     return (numberOfRemovalsForOrder, ids, amounts, suppliers);
   }
 
@@ -550,7 +552,9 @@ contract Market is PausableAccessPreset {
         break;
       }
     }
-    // todo revert multi-supplier supply allocation if the total from suppliers != certificate amount
+    if (amounts.sum() != certificateAmount) {
+      revert IncorrectSupplyAllocation();
+    }
     return (numberOfRemovals, ids, amounts);
   }
 
