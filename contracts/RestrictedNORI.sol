@@ -491,7 +491,7 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
   /**
    * @dev Mints RestrictedNORI to the correct schedule token ID for a given removal token ID. // todo improve wording
    */
-  function mint(uint256 amount, uint256 removalId) external {
+  function mint(uint256 amount, uint256 removalId) external whenNotPaused {
     if (!hasRole(MINTER_ROLE, _msgSender())) {
       revert InvalidMinter({account: _msgSender()});
     }
