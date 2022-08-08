@@ -144,7 +144,7 @@ contract Removal is
 
   function initialize() external initializer {
     __Context_init_unchained();
-    __ERC165_init_unchained();
+    // __ERC165_init_unchained();
     __ERC1155_init_unchained("https://nori.com/api/removal/{id}.json");
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
