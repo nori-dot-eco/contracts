@@ -7,6 +7,7 @@ import {RemovalIdLib} from "./RemovalIdLib.sol";
 import {UInt256ArrayLib} from "./ArrayLib.sol";
 import "./Errors.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
 
 /**
  * @title Nori Inc.'s carbon removal marketplace.
@@ -28,7 +29,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
  * todo consider globally renaming "active"/"reserved" to names that better describe "(un)available" (e.g., "listed"?)
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
  */
-contract Market is PausableAccessPreset {
+contract Market is PausableAccessPreset, IERC1155ReceiverUpgradeable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
   using UInt256ArrayLib for uint256[];
@@ -748,7 +749,7 @@ contract Market is PausableAccessPreset {
     public
     view
     virtual
-    override
+    override(AccessControlEnumerableUpgradeable, IERC165Upgradeable)
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
