@@ -378,14 +378,14 @@ contract Removal is
   }
 
   /**
-   * @notice The address of the Market contract.
+   * @notice The address of the `Market` contract.
    */
   function marketAddress() external view returns (address) {
     return address(_market);
   }
 
   /**
-   * @notice The address of the Certificate contract.
+   * @notice The address of the `Certificate` contract.
    */
   function certificateAddress() external view returns (address) {
     return address(_certificate);
