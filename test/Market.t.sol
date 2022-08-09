@@ -423,15 +423,15 @@ contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
   }
 }
 
-contract Market__listForSale is NonUpgradeableMarket, UpgradeableRemoval {
+contract Market__addActiveRemoval is NonUpgradeableMarket, UpgradeableRemoval {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   function test() external {
-    _listForSale({id: REMOVAL_ID_FIXTURE});
+    _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
   }
 
   function test__list1VintageFor1Supplier() external {
-    _listForSale({id: REMOVAL_ID_FIXTURE});
+    _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
     address supplier = RemovalIdLib.supplierAddress(REMOVAL_ID_FIXTURE);
     uint256 earliestYear = _activeSupply[supplier].earliestYear;
     assertEq(earliestYear, REMOVAL_DATA_FIXTURE.vintage);
@@ -455,8 +455,8 @@ contract Market__listForSale is NonUpgradeableMarket, UpgradeableRemoval {
     UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
     secondRemovalsData.vintage = REMOVAL_DATA_FIXTURE.vintage + 1;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
-    _listForSale({id: REMOVAL_ID_FIXTURE});
-    _listForSale({id: secondRemovalsId});
+    _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
+    _addActiveRemoval({removalId: secondRemovalsId});
     uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
     uint256 latestYear = secondRemovalsData.vintage;
     address supplier = RemovalIdLib.supplierAddress(secondRemovalsId);
@@ -481,8 +481,8 @@ contract Market__listForSale is NonUpgradeableMarket, UpgradeableRemoval {
     UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
     secondRemovalsData.subIdentifier = REMOVAL_DATA_FIXTURE.subIdentifier + 1;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
-    _listForSale({id: REMOVAL_ID_FIXTURE});
-    _listForSale({id: secondRemovalsId});
+    _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
+    _addActiveRemoval({removalId: secondRemovalsId});
     uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
     uint256 latestYear = secondRemovalsData.vintage;
     EnumerableSetUpgradeable.UintSet storage queueByVintage = _activeSupply[
@@ -508,8 +508,8 @@ contract Market__listForSale is NonUpgradeableMarket, UpgradeableRemoval {
     UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
     secondRemovalsData.supplierAddress = _namedAccounts.supplier2;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
-    _listForSale({id: REMOVAL_ID_FIXTURE});
-    _listForSale({id: secondRemovalsId});
+    _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
+    _addActiveRemoval({removalId: secondRemovalsId});
     uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
     uint256 latestYear = REMOVAL_DATA_FIXTURE.vintage;
     EnumerableSetUpgradeable.UintSet storage queueByVintage = _activeSupply[
