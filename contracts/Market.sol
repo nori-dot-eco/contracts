@@ -70,13 +70,13 @@ contract Market is PausableAccessPreset {
   /**
    * @notice Emitted on updating the addresses for contracts.
    *
-   * @param market The address of the new `market` contract.
+   * @param removal The address of the new `removal` contract.
    * @param certificate The address of the new `certificate` contract.
    * @param bridgedPolygonNORI The address of the new `bridgedPolygonNORI` contract.
    * @param restrictedNORI The address of the new market contract.
    */
   event ContractAddressesRegistered(
-    Market market,
+    Removal removal,
     Certificate certificate,
     BridgedPolygonNORI bridgedPolygonNORI,
     RestrictedNORI restrictedNORI
@@ -615,12 +615,12 @@ contract Market is PausableAccessPreset {
    * - Can only be used when this contract is not paused
    */
   function registerContractAddresses(
-    Market market,
+    Removal removal,
     Certificate certificate,
     BridgedPolygonNORI bridgedPolygonNORI,
     RestrictedNORI restrictedNORI
   ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
-    _removal = market;
+    _removal = removal;
     _certificate = certificate;
     _bridgedPolygonNori = bridgedPolygonNORI;
     _restrictedNori = restrictedNORI;
