@@ -754,7 +754,7 @@ contract RestrictedNORI is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) internal override(ERC1155SupplyUpgradeable) whenNotPaused {
+  ) internal virtual override(ERC1155SupplyUpgradeable) whenNotPaused {
     bool isBurning = to == address(0);
     bool isWithdrawing = isBurning && from == operator;
     if (isBurning) {
