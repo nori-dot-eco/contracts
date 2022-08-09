@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "./BridgedPolygonNORI.sol";
@@ -125,7 +126,11 @@ struct ScheduleDetailForAddress {
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  */
-contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
+contract RestrictedNORI is
+  ERC1155SupplyUpgradeable,
+  PausableAccessPreset,
+  MulticallUpgradeable
+{
   using RestrictedNORILib for Schedule;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
@@ -216,6 +221,7 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
+    __Multicall_init_unchained();
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     _grantRole(PAUSER_ROLE, _msgSender());
     _grantRole(SCHEDULE_CREATOR_ROLE, _msgSender());
