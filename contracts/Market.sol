@@ -817,13 +817,6 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @notice The address of the `RestrictedNori` contract.
-   */
-  function restrictedNoriAddress() external view returns (address) {
-    return address(_restrictedNori);
-  }
-
-  /**
    * @dev Gets the holdback percentages for a batch of removal ids using multicall.
    * @param ids The removal token IDs for which to retrieve the holdback percentages
    */
