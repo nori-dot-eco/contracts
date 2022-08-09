@@ -178,6 +178,8 @@ export const deployMarketContract = async ({
     options: {
       initializer:
         'initialize(address,address,address,address,address,uint256)',
+      unsafeAllow: ['delegatecall'],
+
     },
   });
 };
@@ -192,6 +194,8 @@ export const deployRestrictedNORI = async ({
     args: [],
     options: {
       initializer: 'initialize()',
+      unsafeAllow: ['delegatecall'],
+
     },
   });
 };

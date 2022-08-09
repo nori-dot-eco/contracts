@@ -2,6 +2,8 @@
 pragma solidity =0.8.15;
 import "./Certificate.sol";
 import "./RestrictedNORI.sol";
+import "./PausableAccessPreset.sol";
+import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import {UInt256ArrayLib} from "./ArrayLib.sol";
@@ -28,7 +30,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
  * todo consider globally renaming "active"/"reserved" to names that better describe "(un)available" (e.g., "listed"?)
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
  */
-contract Market is PausableAccessPreset {
+contract Market is PausableAccessPreset, MulticallUpgradeable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
   using UInt256ArrayLib for uint256[];
@@ -128,8 +130,10 @@ contract Market is PausableAccessPreset {
   ) public initializer {
     __Context_init_unchained();
     __ERC165_init_unchained();
+    __Pausable_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
+    __Multicall_init_unchained();
     _removal = removal;
     _bridgedPolygonNori = bridgedPolygonNori;
     _certificate = certificate;

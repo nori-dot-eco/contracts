@@ -325,7 +325,7 @@ contract Market__isAuthorizedWithdrawal_true is NonUpgradeableMarket {
   function setUp() external {
     vm.store(
       address(this),
-      bytes32(uint256(251)), // sets the _removal storage slot to the market contract to enable mock calls
+      bytes32(uint256(301)), // sets the _removal storage slot to the market contract to enable mock calls
       bytes32(uint256(uint160(address(this))))
     );
   }
@@ -353,7 +353,7 @@ contract Market__isAuthorizedWithdrawal_false is NonUpgradeableMarket {
   function setUp() external {
     vm.store(
       address(this),
-      bytes32(uint256(251)), // sets the _removal storage slot to the market contract to enable mock calls
+      bytes32(uint256(301)), // sets the _removal storage slot to the market contract to enable mock calls
       bytes32(uint256(uint160(address(this))))
     );
     vm.mockCall(
