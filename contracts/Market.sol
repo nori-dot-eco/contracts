@@ -75,47 +75,34 @@ contract Market is PausableAccessPreset {
 
   /**
    * @notice Emitted when adding a supplier to `_activeSupply`.
-   * @param addedSupplierAddress The supplier that was added.
-   * @param nextSupplierAddress The next of the supplier that was added, updated to point to `addedSupplierAddress` as previous.
-   * @param previousSupplierAddress The previous of the supplier that was added, updated to point to `addedSupplierAddress` as next.
+   * @param added The supplier that was added.
+   * @param next The next of the supplier that was added, updated to point to `addedSupplierAddress` as previous.
+   * @param previous The previous of the supplier that was added, updated to point to `addedSupplierAddress` as next.
    */
   event SupplierAdded(
-    address indexed addedSupplierAddress,
-    address indexed nextSupplierAddress,
-    address indexed previousSupplierAddress
+    address indexed added,
+    address indexed next,
+    address indexed previous
   );
 
   /**
    * @notice Emitted when removing a supplier from `_activeSupply`.
-   * @param removedSupplierAddress The supplier that was removed.
-   * @param nextSupplierAddress The next of the supplier that was removed, updated to point to `previousSupplierAddress` as previous.
-   * @param previousSupplierAddress The previous of the supplier that was removed, updated to point to `nextSupplierAddress` as next.
+   * @param removed The supplier that was removed.
+   * @param next The next of the supplier that was removed, updated to point to `previousSupplierAddress` as previous.
+   * @param previous The previous of the supplier that was removed, updated to point to `nextSupplierAddress` as next.
    */
   event SupplierRemoved(
-    address indexed removedSupplierAddress,
-    address indexed nextSupplierAddress,
-    address indexed previousSupplierAddress
+    address indexed removed,
+    address indexed next,
+    address indexed previous
   );
 
   /**
    * @notice Emitted when a removal is added to `_activeSupply`.
-   * @param removalId The removal that was added.
+   * @param id The removal that was added.
    * @param supplierAddress The address of the supplier for the removal.
    */
-  event RemovalAdded(
-    uint256 indexed removalId,
-    address indexed supplierAddress
-  );
-
-  /**
-   * @notice Emitted when a Removal is removed from `_activeSupply`.
-   * @param removalId The removal that was added.
-   * @param supplierAddress The address of the supplier for the removal.
-   */
-  event RemovalRemoved(
-    uint256 indexed removalId,
-    address indexed supplierAddress
-  );
+  event RemovalAdded(uint256 indexed id, address indexed supplierAddress);
 
   /**
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -752,7 +739,6 @@ contract Market is PausableAccessPreset {
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _removeActiveSupplier(supplierAddress); // todo can this be combined inside .removeRemoval?
     }
-    emit RemovalRemoved(removalId, supplierAddress);
   }
 
   /**
