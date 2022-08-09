@@ -81,7 +81,10 @@ contract Market is PausableAccessPreset {
     RestrictedNORI restrictedNori,
     address noriFeeWalletAddress,
     uint256 noriFeePercentage_
-  ) public initializer {
+  ) external initializer {
+    if (noriFeeWalletAddress == address(0)) {
+      revert NoriFeeWalletZeroAddress();
+    }
     __Context_init_unchained();
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
@@ -595,6 +598,9 @@ contract Market is PausableAccessPreset {
     onlyRole(MARKET_ADMIN_ROLE)
     whenNotPaused
   {
+    if (noriFeeWalletAddress == address(0)) {
+      revert NoriFeeWalletZeroAddress();
+    }
     _noriFeeWallet = noriFeeWalletAddress;
   }
 

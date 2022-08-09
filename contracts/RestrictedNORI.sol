@@ -348,7 +348,7 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
   /**
    * @notice Returns the existence of a schedule
    */
-  function scheduleExists(uint256 scheduleId) public view returns (bool) {
+  function scheduleExists(uint256 scheduleId) external view returns (bool) {
     return _scheduleIdToScheduleStruct[scheduleId].exists;
   }
 
@@ -410,7 +410,7 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
    * @notice Returns the current number of revocable tokens for a given schedule at the current block timestamp.
    */
   function revocableQuantityForSchedule(uint256 scheduleId)
-    public
+    external
     view
     returns (uint256)
   {

@@ -25,3 +25,4 @@ error InvalidTokenTransfer(uint256 tokenId);
 error ForbiddenTransfer();
 error RemovalNotYetMinted(uint256 tokenId);
 error IncorrectSupplyAllocation();
+error NoriFeeWalletZeroAddress();
