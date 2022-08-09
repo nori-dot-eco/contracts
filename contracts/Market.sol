@@ -139,13 +139,6 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @notice Template getter.
-   */
-  function getTemplate() external view returns (uint256) {
-    return template;
-  }
-
-  /**
    * @notice Calculates the Nori fee required for a purchase of `amount` tonnes of carbon removals.
    * todo consider renaming getNoriFee to something like `calculateNoriFee`
    */
