@@ -136,6 +136,18 @@ contract Removal is
   uint256 private _currentMarketBalance;
 
   /**
+   * @notice Emitted on releasing a removal from a supplier, the market, or a certificate.
+   * @param id The id of the removal that was released.
+   * @param fromAddress The address the removal was released from.
+   * @param amount The amount that was released.
+   */
+  event RemovalReleased(
+    uint256 indexed id,
+    address indexed fromAddress,
+    uint256 amount
+  );
+
+  /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
@@ -485,7 +497,9 @@ contract Removal is
   }
 
   function _releaseFromSupplier(uint256 removalId, uint256 amount) internal {
-    super._burn(RemovalIdLib.supplierAddress(removalId), removalId, amount);
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
+    emit RemovalReleased(removalId, supplierAddress, amount);
+    super._burn(supplierAddress, removalId, amount);
   }
 
   function _createRemovalDataBatch(
@@ -514,6 +528,7 @@ contract Removal is
   function _releaseFromMarket(uint256 removalId, uint256 amount) internal {
     super._burn(this.marketAddress(), removalId, amount);
     _market.release(removalId, amount);
+    emit RemovalReleased(removalId, this.marketAddress(), amount);
   }
 
   function _releaseFromCertificate(uint256 removalId, uint256 amount) internal {
@@ -538,6 +553,11 @@ contract Removal is
         _certificate.releaseRemoval.selector,
         certificateBalance.id,
         removalId,
+        amountToReleaseFromCertificate
+      );
+      emit RemovalReleased(
+        removalId,
+        this.certificateAddress(),
         amountToReleaseFromCertificate
       );
       if (amountReleased == amount) break;
