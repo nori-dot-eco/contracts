@@ -4,6 +4,7 @@ pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import "@/test/helpers/removal.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@/contracts/ArrayLib.sol";
 import "@/contracts/Removal.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
@@ -277,13 +278,10 @@ contract Market_withdraw_2x1_front_relist is MarketBalanceTestHelper {
   }
 
   function test() external {
-    vm.prank(_namedAccounts.supplier);
-    _removal.safeBatchTransferFrom({
+    _removal.consign({
       from: _namedAccounts.supplier,
-      to: address(_market),
-      ids: new uint256[](1).fill(_removalIds[0]),
-      amounts: new uint256[](1).fill(_amountPerRemoval),
-      data: ""
+      id: _removalIds[0],
+      amount: _amountPerRemoval
     });
     _assertListedState();
   }
@@ -337,7 +335,7 @@ contract Market__isAuthorizedWithdrawal_true is NonUpgradeableMarket {
   }
 
   function test_returnsTrueWhenMsgSenderHasDefaultAdminRole() external {
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
     assertEq(_isAuthorizedWithdrawal({owner: _namedAccounts.supplier}), true);
   }
 
@@ -393,7 +391,7 @@ contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriori
   NonUpgradeableMarket
 {
   function setUp() external {
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
     vm.prank(_msgSender());
     this.setPriorityRestrictedThreshold({threshold: 0.5 ether});
     _grantRole({role: ALLOWLIST_ROLE, account: _namedAccounts.deployer});
@@ -411,7 +409,7 @@ contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
   NonUpgradeableMarket
 {
   function setUp() external {
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
     vm.prank(_msgSender());
     this.setPriorityRestrictedThreshold({threshold: 1 ether});
   }
@@ -554,6 +552,7 @@ contract Market__addActiveRemoval is NonUpgradeableMarket, UpgradeableRemoval {
 
 contract Market_onERC1155Received is UpgradeableMarket {
   function test() external {
+    vm.prank(address(_removal));
     assertEq(
       _market.onERC1155Received(
         address(0),
@@ -567,8 +566,52 @@ contract Market_onERC1155Received is UpgradeableMarket {
   }
 }
 
+contract Market_onERC1155Received_reverts_SenderNotRemovalContract is
+  UpgradeableMarket
+{
+  NonUpgradeableRemoval private _unregisteredRemovalDuplicate;
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _unregisteredRemovalDuplicate = new NonUpgradeableRemoval();
+    _unregisteredRemovalDuplicate.grantRole(
+      _unregisteredRemovalDuplicate.CONSIGNOR_ROLE(),
+      address(this)
+    );
+    _marketAddress = address(_market);
+    _unregisteredRemovalDuplicate.registerContractAddresses(
+      Market(_market),
+      Certificate(_certificate)
+    );
+    _rNori.registerContractAddresses(
+      BridgedPolygonNORI(_bpNori),
+      Removal(_unregisteredRemovalDuplicate)
+    );
+    _rNori.grantRole(
+      _rNori.SCHEDULE_CREATOR_ROLE(),
+      address(_unregisteredRemovalDuplicate)
+    );
+    _removalIds = _unregisteredRemovalDuplicate.seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false,
+      uniqueVintages: false
+    });
+  }
+
+  function test() external {
+    vm.expectRevert("Sender not Removal contract");
+    _unregisteredRemovalDuplicate.consign({
+      from: _namedAccounts.supplier,
+      id: _removalIds[0],
+      amount: 1 ether
+    });
+  }
+}
+
 contract Market_onERC1155BatchReceived is UpgradeableMarket {
   function test() external {
+    vm.prank(address(_removal));
     assertEq(
       _market.onERC1155BatchReceived(
         address(0),
@@ -579,6 +622,44 @@ contract Market_onERC1155BatchReceived is UpgradeableMarket {
       ),
       IERC1155ReceiverUpgradeable.onERC1155BatchReceived.selector
     );
+  }
+}
+
+contract Market_onERC1155BatchReceived_reverts_SenderNotRemovalContract is
+  UpgradeableMarket
+{
+  NonUpgradeableRemoval private _unregisteredRemovalDuplicate;
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _unregisteredRemovalDuplicate = new NonUpgradeableRemoval();
+    _unregisteredRemovalDuplicate.grantRole(
+      _unregisteredRemovalDuplicate.CONSIGNOR_ROLE(),
+      address(this)
+    );
+    _marketAddress = address(_market);
+    _unregisteredRemovalDuplicate.registerContractAddresses(
+      Market(_market),
+      Certificate(_certificate)
+    );
+    _rNori.registerContractAddresses(
+      BridgedPolygonNORI(_bpNori),
+      Removal(_unregisteredRemovalDuplicate)
+    );
+    _rNori.grantRole(
+      _rNori.SCHEDULE_CREATOR_ROLE(),
+      address(_unregisteredRemovalDuplicate)
+    );
+  }
+
+  function test() external {
+    vm.expectRevert("Sender not Removal contract");
+    _removalIds = _unregisteredRemovalDuplicate.seedRemovals({
+      to: address(_market),
+      count: 2,
+      list: false,
+      uniqueVintages: false
+    });
   }
 }
 

@@ -47,6 +47,78 @@ contract Removal_mintBatch_list_sequential is UpgradeableMarket {
   }
 }
 
+contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
+  function test() external {
+    UnpackedRemovalIdV0[] memory ids = new UnpackedRemovalIdV0[](1);
+    ids[0] = UnpackedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    vm.expectRevert(ForbiddenTransfer.selector);
+    _removal.mintBatch({
+      to: _namedAccounts.supplier2, // not the supplier encoded in the removal id
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+  }
+}
+
+contract Removal_addBalance is UpgradeableMarket {
+  uint256[] _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+  }
+
+  function test() external {
+    uint256 removalId = _removalIds[0];
+    _removal.addBalance({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(2 ether),
+      ids: new uint256[](1).fill(removalId)
+    });
+    assertEq(_removal.balanceOf(_namedAccounts.supplier, removalId), 3 ether);
+  }
+}
+
+contract Removal_addBalance_reverts_RemovalNotYetMinted is UpgradeableMarket {
+  function test() external {
+    uint256 unmintedTokenId = RemovalIdLib.createRemovalId({
+      removal: UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: 2018,
+        country: "US",
+        subdivision: "IA",
+        supplierAddress: _namedAccounts.supplier,
+        subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+      })
+    });
+    vm.expectRevert(
+      abi.encodeWithSelector(RemovalNotYetMinted.selector, unmintedTokenId)
+    );
+    _removal.addBalance({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(1 ether),
+      ids: new uint256[](1).fill(unmintedTokenId)
+    });
+  }
+}
+
 contract Removal_getProjectId is UpgradeableMarket {
   uint256[] private _removalIds;
 
@@ -136,6 +208,7 @@ contract Removal__validateRemoval is NonUpgradeableRemoval {
 contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
   uint256[] private _removalIds;
   uint8[] private _holdbackPercentages;
+  uint8[] private _retrievedHoldbackPercentages;
 
   function setUp() external {
     UnpackedRemovalIdV0[] memory removalBatch = new UnpackedRemovalIdV0[](1);
@@ -150,13 +223,22 @@ contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
     });
     _removalIds = [REMOVAL_ID_FIXTURE];
     _holdbackPercentages = [50];
+    uint256 numberOfRemovalIds = _removalIds.length;
+    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovalIds);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+        _removal.getHoldbackPercentage.selector,
+        _removalIds[i]
+      );
+    }
+    bytes[] memory results = _removal.multicall(getHoldbackPercentageCalls);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      _retrievedHoldbackPercentages.push(uint8(uint256(bytes32(results[i]))));
+    }
   }
 
   function test() external {
-    assertEq(
-      _holdbackPercentages,
-      _removal.batchGetHoldbackPercentages({ids: _removalIds})
-    );
+    assertEq(_holdbackPercentages, _retrievedHoldbackPercentages);
   }
 }
 
@@ -166,6 +248,7 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
   uint256[] private _removalIds;
   uint8[] private _holdbackPercentages;
   uint256 private _secondRemovalId;
+  uint8[] private _retrievedHoldbackPercentages;
 
   function setUp() external {
     UnpackedRemovalIdV0[]
@@ -201,13 +284,22 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
       _firstHoldbackPercentage,
       _secondHoldbackPercentage
     ];
+    uint256 numberOfRemovalIds = _removalIds.length;
+    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovalIds);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
+        _removal.getHoldbackPercentage.selector,
+        _removalIds[i]
+      );
+    }
+    bytes[] memory results = _removal.multicall(getHoldbackPercentageCalls);
+    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
+      _retrievedHoldbackPercentages.push(uint8(uint256(bytes32(results[i]))));
+    }
   }
 
   function test() external {
-    assertEq(
-      _removal.batchGetHoldbackPercentages({ids: _removalIds}),
-      _holdbackPercentages
-    );
+    assertEq(_holdbackPercentages, _retrievedHoldbackPercentages);
   }
 }
 
@@ -636,13 +728,30 @@ contract Removal_getMarketBalance is UpgradeableMarket {
 }
 
 contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
+  uint256 private _removalId;
+
+  function setUp() external {
+    _removalId = RemovalIdLib.createRemovalId(
+      UnpackedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: 2018,
+        country: "US",
+        subdivision: "IA",
+        supplierAddress: _namedAccounts.supplier,
+        subIdentifier: 99_039_930
+      })
+    );
+  }
+
   // todo test the rest of the cases
   function test() external {
     super._beforeTokenTransfer(
       _namedAccounts.admin,
       _namedAccounts.admin,
-      _namedAccounts.admin,
-      _asSingletonUintArray(1),
+      _namedAccounts.supplier,
+      new uint256[](1).fill(_removalId),
       _asSingletonUintArray(1),
       ""
     );
@@ -674,5 +783,120 @@ contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
       _asSingletonUintArray(0),
       ""
     );
+  }
+}
+
+contract Removal_safeTransferFrom_reverts_ForbiddenTransfer is
+  UpgradeableMarket
+{
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+  }
+
+  function test() external {
+    vm.expectRevert(ForbiddenTransfer.selector);
+    vm.prank(_namedAccounts.supplier);
+    _removal.safeTransferFrom({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.supplier2,
+      id: _removalIds[0],
+      amount: 1 ether,
+      data: ""
+    });
+  }
+}
+
+contract Removal_safeTransferFrom_reverts_when_paused is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+    _removal.pause();
+  }
+
+  function test() external {
+    vm.expectRevert("Pausable: paused");
+    _removal.safeTransferFrom({
+      from: _namedAccounts.supplier,
+      to: address(_market),
+      id: _removalIds[0],
+      amount: 1 ether,
+      data: ""
+    });
+  }
+}
+
+contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
+  UpgradeableMarket
+{
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 2,
+      list: false
+    });
+  }
+
+  function test() external {
+    vm.expectRevert(ForbiddenTransfer.selector);
+    vm.prank(_namedAccounts.supplier);
+    _removal.safeBatchTransferFrom({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.supplier2,
+      ids: _removalIds,
+      amounts: new uint256[](2).fill(1 ether),
+      data: ""
+    });
+  }
+}
+
+contract Removal_grantRole is UpgradeableMarket {
+  function setUp() external {
+    _removal.pause();
+  }
+
+  function test_reverts_when_paused() external {
+    bytes32 adminRole = _removal.DEFAULT_ADMIN_ROLE();
+    vm.expectRevert("Pausable: paused");
+    _removal.grantRole(adminRole, _namedAccounts.supplier);
+  }
+}
+
+contract Removal_renounceRole is UpgradeableMarket {
+  function setUp() external {
+    _removal.pause();
+  }
+
+  function test_reverts_when_paused() external {
+    bytes32 adminRole = _removal.DEFAULT_ADMIN_ROLE();
+    vm.expectRevert("Pausable: paused");
+    _removal.renounceRole(adminRole, address(this));
+  }
+}
+
+contract Removal_revokeRole is UpgradeableMarket {
+  bytes32 private adminRole;
+
+  function setUp() external {
+    adminRole = _removal.DEFAULT_ADMIN_ROLE();
+    _removal.grantRole(adminRole, _namedAccounts.supplier);
+    _removal.pause();
+  }
+
+  function test_reverts_when_paused() external {
+    vm.expectRevert("Pausable: paused");
+    _removal.revokeRole(adminRole, _namedAccounts.supplier);
   }
 }

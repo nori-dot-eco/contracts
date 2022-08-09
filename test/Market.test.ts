@@ -127,9 +127,9 @@ describe('Market', () => {
     // });
   });
   describe('role access', () => {
-    describe('DEFAULT_ADMIN_ROLE', () => {
-      it(`should allow accounts with the role "DEFAULT_ADMIN_ROLE" to set the priority restricted threshold while accounts without this role cannot`, async () => {
-        const role = 'DEFAULT_ADMIN_ROLE';
+    describe('MARKET_ADMIN_ROLE', () => {
+      it(`should allow accounts with the role "MARKET_ADMIN_ROLE" to set the priority restricted threshold while accounts without this role cannot`, async () => {
+        const role = 'MARKET_ADMIN_ROLE';
         const accountWithRole = 'admin';
         const accountWithoutRole = 'buyer';
         const { market, hre } = await setupTest();
