@@ -379,7 +379,7 @@ contract Certificate is
     address to,
     uint256 startTokenId,
     uint256 quantity
-  ) internal override whenNotPaused {
+  ) internal virtual override whenNotPaused {
     bool isNotMinting = !(from == address(0));
     bool isNotBurning = !(to == address(0));
     bool isMissingOperatorRole = !hasRole(
