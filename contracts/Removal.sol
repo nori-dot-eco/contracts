@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "./Market.sol";
 import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
 import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
@@ -143,6 +144,18 @@ contract Removal is
   event ContractAddressesRegistered(Market market, Certificate certificate);
 
   /**
+   * @notice Emitted on releasing a removal from a supplier, the market, or a certificate.
+   * @param id The id of the removal that was released.
+   * @param fromAddress The address the removal was released from.
+   * @param amount The amount that was released.
+   */
+  event RemovalReleased(
+    uint256 indexed id,
+    address indexed fromAddress,
+    uint256 amount
+  );
+
+  /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
@@ -151,6 +164,7 @@ contract Removal is
 
   function initialize() external initializer {
     __Context_init_unchained();
+    __ERC165_init_unchained();
     __ERC1155_init_unchained("https://nori.com/api/removal/{id}.json");
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
@@ -496,7 +510,9 @@ contract Removal is
   }
 
   function _releaseFromSupplier(uint256 removalId, uint256 amount) internal {
-    super._burn(RemovalIdLib.supplierAddress(removalId), removalId, amount);
+    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
+    emit RemovalReleased(removalId, supplierAddress, amount);
+    super._burn(supplierAddress, removalId, amount);
   }
 
   function _createRemovalDataBatch(
@@ -525,6 +541,7 @@ contract Removal is
   function _releaseFromMarket(uint256 removalId, uint256 amount) internal {
     super._burn(this.marketAddress(), removalId, amount);
     _market.release(removalId, amount);
+    emit RemovalReleased(removalId, this.marketAddress(), amount);
   }
 
   function _releaseFromCertificate(uint256 removalId, uint256 amount) internal {
@@ -549,6 +566,11 @@ contract Removal is
         _certificate.releaseRemoval.selector,
         certificateBalance.id,
         removalId,
+        amountToReleaseFromCertificate
+      );
+      emit RemovalReleased(
+        removalId,
+        this.certificateAddress(),
         amountToReleaseFromCertificate
       );
       if (amountReleased == amount) break;
