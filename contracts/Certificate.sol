@@ -259,6 +259,13 @@ contract Certificate is
   }
 
   /**
+   * @notice The address of the `Removal` contract.
+   */
+  function removalAddress() external view returns (address) {
+    return address(_removal);
+  }
+
+  /**
    * @notice Returns the total number of certificates that have been minted (including burned ones)
    */
   function totalMinted() external view returns (uint256) {
