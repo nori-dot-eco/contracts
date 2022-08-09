@@ -727,6 +727,10 @@ contract Market is PausableAccessPreset {
       _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
   }
 
+  /**
+   * @notice Adds the specified removal id to the active supply data structure.
+   * @dev If this is the supplier's first active removal, the supplier is also added to the active supplier queue.
+   */
   function _addActiveRemoval(uint256 removalId) internal {
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     _activeSupply[supplierAddress].insertRemovalByVintage(removalId);
@@ -736,6 +740,7 @@ contract Market is PausableAccessPreset {
     ) {
       _addActiveSupplier(supplierAddress);
     }
+    emit RemovalAdded(removalId, supplierAddress);
   }
 
   /**
@@ -749,23 +754,6 @@ contract Market is PausableAccessPreset {
     if (_activeSupply[supplierAddress].isRemovalQueueEmpty()) {
       _removeActiveSupplier(supplierAddress); // todo can this be combined inside .removeRemoval?
     }
-  }
-
-  /**
-   * @notice Adds the specified removal id to the active supply data structure.
-   * @dev If this is the supplier's first active removal, the supplier is also added to the active supplier queue.
-   */
-  function _addActiveRemoval(uint256 removalId, address supplierAddress)
-    internal
-  {
-    _activeSupply[supplierAddress].insertRemovalByVintage(removalId);
-    if (
-      _suppliersInRoundRobinOrder[supplierAddress].nextSupplierAddress ==
-      address(0) // If a new supplier has been added, or if the supplier had previously sold out
-    ) {
-      _addActiveSupplier(supplierAddress);
-    }
-    emit RemovalAdded(removalId, supplierAddress);
   }
 
   /**
