@@ -594,10 +594,10 @@ contract Market is PausableAccessPreset {
   }
 
   /**
-   * @dev Registers the `market`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
+   * @dev Registers the `removal`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
    * can be referenced in this contract. Called as part of the market contract system deployment process.
    *
-   * @param market The address of the `market` contract.
+   * @param removal The address of the `removal` contract.
    * @param certificate The address of the `certificate` contract.
    * @param bridgedPolygonNORI The address of the `bridgedPolygonNORI` contract.
    * @param restrictedNORI The address of the market contract.
