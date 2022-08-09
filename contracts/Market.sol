@@ -803,6 +803,34 @@ contract Market is PausableAccessPreset {
   }
 
   /**
+   * @notice The address of the `Removal` contract.
+   */
+  function removalAddress() external view returns (address) {
+    return address(_removal);
+  }
+
+  /**
+   * @notice The address of the `Certificate` contract.
+   */
+  function certificateAddress() external view returns (address) {
+    return address(_certificate);
+  }
+
+  /**
+   * @notice The address of the `BridgedPolygonNori` contract.
+   */
+  function bridgedPolygonNoriAddress() external view returns (address) {
+    return address(_bridgedPolygonNori);
+  }
+
+  /**
+   * @notice The address of the `RestrictedNori` contract.
+   */
+  function restrictedNoriAddress() external view returns (address) {
+    return address(_restrictedNori);
+  }
+
+  /**
    * @dev Gets the holdback percentages for a batch of removal ids using multicall.
    * @param ids The removal token IDs for which to retrieve the holdback percentages
    */
