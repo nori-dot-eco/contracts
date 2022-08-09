@@ -47,14 +47,14 @@ contract Removal is
   uint256 private _currentMarketBalance;
 
   /**
-   * @notice Emitted on updating `_removalIdToRemovalData` with a new removal.
-   * @param removalId The id of the removal that was released.
-   * @param releasedFrom The address the removal was released from.
+   * @notice Emitted on releasing a removal from a supplier, the market, or a certificate.
+   * @param id The id of the removal that was released.
+   * @param fromAddress The address the removal was released from.
    * @param amount The amount that was released.
    */
   event RemovalReleased(
-    uint256 indexed removalId,
-    address indexed releasedFrom,
+    uint256 indexed id,
+    address indexed fromAddress,
     uint256 amount
   );
 
