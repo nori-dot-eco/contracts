@@ -135,6 +135,14 @@ contract Removal is
   uint256 private _currentMarketBalance;
 
   /**
+   * @notice Emitted on updating the addresses for contracts.
+   *
+   * @param market The address of the new `market` contract.
+   * @param certificate The address of the new `certificate` contract.
+   */
+  event ContractAddressesRegistered(Market market, Certificate certificate);
+
+  /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
@@ -159,7 +167,11 @@ contract Removal is
    * @dev Registers the market, and certificate contracts so that they can be referenced in this contract.
    * Called as part of the market contract system deployment process.
    *
+   * @param market The address of the `market` contract.
+   * @param certificate The address of the `certificate` contract.
+   *
    * ##### Requirements:
+   *
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    * - Can only be used when this contract is not paused
    */
@@ -170,6 +182,7 @@ contract Removal is
   {
     _market = market;
     _certificate = certificate;
+    emit ContractAddressesRegistered(market, certificate);
   }
 
   /**

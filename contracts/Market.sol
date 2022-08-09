@@ -68,6 +68,21 @@ contract Market is PausableAccessPreset {
   event PriorityRestrictedThresholdSet(uint256 threshold);
 
   /**
+   * @notice Emitted on updating the addresses for contracts.
+   *
+   * @param market The address of the new `market` contract.
+   * @param certificate The address of the new `certificate` contract.
+   * @param bridgedPolygonNORI The address of the new `bridgedPolygonNORI` contract.
+   * @param restrictedNORI The address of the new market contract.
+   */
+  event ContractAddressesRegistered(
+    Market market,
+    Certificate certificate,
+    BridgedPolygonNORI bridgedPolygonNORI,
+    RestrictedNORI restrictedNORI
+  );
+
+  /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
@@ -121,6 +136,13 @@ contract Market is PausableAccessPreset {
    */
   function noriFeePercentage() external view returns (uint256) {
     return _noriFeePercentage;
+  }
+
+  /**
+   * @notice Template getter.
+   */
+  function getTemplate() external view returns (uint256) {
+    return template;
   }
 
   /**
@@ -576,6 +598,38 @@ contract Market is PausableAccessPreset {
     whenNotPaused
   {
     _noriFeePercentage = noriFeePercentage_;
+  }
+
+  /**
+   * @dev Registers the `market`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
+   * can be referenced in this contract. Called as part of the market contract system deployment process.
+   *
+   * @param market The address of the `market` contract.
+   * @param certificate The address of the `certificate` contract.
+   * @param bridgedPolygonNORI The address of the `bridgedPolygonNORI` contract.
+   * @param restrictedNORI The address of the market contract.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   * - Can only be used when this contract is not paused
+   */
+  function registerContractAddresses(
+    Market market,
+    Certificate certificate,
+    BridgedPolygonNORI bridgedPolygonNORI,
+    RestrictedNORI restrictedNORI
+  ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+    _removal = market;
+    _certificate = certificate;
+    _bridgedPolygonNori = bridgedPolygonNORI;
+    _restrictedNori = restrictedNORI;
+    emit ContractAddressesRegistered(
+      _removal,
+      _certificate,
+      _bridgedPolygonNori,
+      _restrictedNori
+    );
   }
 
   /**

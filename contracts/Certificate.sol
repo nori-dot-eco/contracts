@@ -127,6 +127,13 @@ contract Certificate is
   );
 
   /**
+   * @notice Emitted on updating the addresses for contracts.
+   *
+   * @param removal The address of the new `market` contract.
+   */
+  event ContractAddressesRegistered(Removal removal);
+
+  /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
@@ -166,6 +173,7 @@ contract Certificate is
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     _removal = removal;
+    emit ContractAddressesRegistered(removal);
   }
 
   // todo is whenNotPaused redundant since it's only called from a pausable function on the removal contract?
