@@ -498,7 +498,6 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
     uint256 projectId = _removal.getProjectId({removalId: removalId});
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     super._mint(supplierAddress, projectId, amount, "");
-    // slither-disable-next-line unused-return address may already be in set and that is ok
     _scheduleIdToScheduleStruct[projectId].tokenHolders.add(supplierAddress);
   }
 
@@ -547,11 +546,9 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
     super.safeTransferFrom(from, to, id, amount, data);
     Schedule storage schedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
-      // slither-disable-next-line unused-return address may already be in set and that is ok
       schedule.tokenHolders.add(to);
     }
     if (balanceOf(from, id) == 0) {
-      // slither-disable-next-line unused-return return value irrelevant, address guaranteed removed
       schedule.tokenHolders.remove(from);
     }
   }
@@ -574,11 +571,9 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
     for (uint256 i = 0; i < ids.length; i++) {
       Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
       if (amounts[i] != 0) {
-        // slither-disable-next-line unused-return address may already be in set and that is ok
         schedule.tokenHolders.add(to);
       }
       if (balanceOf(from, ids[i]) == 0) {
-        // slither-disable-next-line unused-return return value irrelevant, address guaranteed removed
         schedule.tokenHolders.remove(from);
       }
     }
@@ -615,7 +610,6 @@ contract RestrictedNORI is ERC1155SupplyUpgradeable, PausableAccessPreset {
     uint256 amount,
     address toAccount
   ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
-    // slither-disable-next-line calls-loop choose to get the project id from the removal contract
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: projectId});
