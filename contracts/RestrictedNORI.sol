@@ -22,7 +22,6 @@ struct ScheduleSummary {
   uint256 totalClaimedAmount;
   uint256 totalQuantityRevoked;
   address[] tokenHolders;
-  bool exists; // todo remove the `exists` property from the `ScheduleSummary` struct and infer it instead
 }
 
 /** View information for one account's ownership of a schedule */
@@ -308,7 +307,7 @@ contract RestrictedNORI is
         scheduleIds.length
       );
     for (uint256 i = 0; i < scheduleIds.length; i++) {
-      if (_scheduleIdToScheduleStruct[scheduleIds[i]].exists) {
+      if (_scheduleIdToScheduleStruct[scheduleIds[i]]._doesExist()) {
         scheduleDetails[i] = getScheduleDetailForAccount(
           account,
           scheduleIds[i]
@@ -346,8 +345,7 @@ contract RestrictedNORI is
         ),
         schedule.totalClaimedAmount,
         schedule.totalQuantityRevoked,
-        tokenHoldersArray,
-        schedule.exists
+        tokenHoldersArray
       );
   }
 
@@ -355,7 +353,7 @@ contract RestrictedNORI is
    * @notice Returns the existence of a schedule
    */
   function scheduleExists(uint256 scheduleId) external view returns (bool) {
-    return _scheduleIdToScheduleStruct[scheduleId].exists;
+    return _scheduleIdToScheduleStruct[scheduleId]._doesExist();
   }
 
   /**
@@ -617,7 +615,7 @@ contract RestrictedNORI is
     address toAccount
   ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    if (!schedule.exists) {
+    if (!schedule._doesExist()) {
       revert NonexistentSchedule({scheduleId: projectId});
     }
     uint256 quantityRevocable = schedule._revocableQuantityForSchedule(
@@ -702,7 +700,6 @@ contract RestrictedNORI is
     uint256 restrictionDuration
   ) internal {
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    schedule.exists = true;
     schedule.startTime = startTime;
     schedule.endTime = startTime + restrictionDuration;
     _allScheduleIds.add(projectId);
