@@ -76,6 +76,21 @@ contract Market is
   event PriorityRestrictedThresholdSet(uint256 threshold);
 
   /**
+   * @notice Emitted on updating the addresses for contracts.
+   *
+   * @param removal The address of the new `removal` contract.
+   * @param certificate The address of the new `certificate` contract.
+   * @param bridgedPolygonNORI The address of the new `bridgedPolygonNORI` contract.
+   * @param restrictedNORI The address of the new market contract.
+   */
+  event ContractAddressesRegistered(
+    Removal removal,
+    Certificate certificate,
+    BridgedPolygonNORI bridgedPolygonNORI,
+    RestrictedNORI restrictedNORI
+  );
+
+  /**
    * @notice Emitted on setting of `_noriFeeWalletAddress`.
    * @param updatedWalletAddress The updated address of the Nori fee wallet.
    */
@@ -631,6 +646,38 @@ contract Market is
   }
 
   /**
+   * @dev Registers the `removal`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
+   * can be referenced in this contract. Called as part of the market contract system deployment process.
+   *
+   * @param removal The address of the `removal` contract.
+   * @param certificate The address of the `certificate` contract.
+   * @param bridgedPolygonNORI The address of the `bridgedPolygonNORI` contract.
+   * @param restrictedNORI The address of the market contract.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   * - Can only be used when this contract is not paused
+   */
+  function registerContractAddresses(
+    Removal removal,
+    Certificate certificate,
+    BridgedPolygonNORI bridgedPolygonNORI,
+    RestrictedNORI restrictedNORI
+  ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+    _removal = removal;
+    _certificate = certificate;
+    _bridgedPolygonNori = bridgedPolygonNORI;
+    _restrictedNori = restrictedNORI;
+    emit ContractAddressesRegistered(
+      _removal,
+      _certificate,
+      _bridgedPolygonNori,
+      _restrictedNori
+    );
+  }
+
+  /**
    * @notice Sets the Nori fee wallet address (as an integer) which is the address to which the
    * marketplace operator fee will be routed during each purchase.
    *
@@ -805,6 +852,27 @@ contract Market is
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
+  }
+
+  /**
+   * @notice The address of the `Removal` contract.
+   */
+  function removalAddress() external view returns (address) {
+    return address(_removal);
+  }
+
+  /**
+   * @notice The address of the `Certificate` contract.
+   */
+  function certificateAddress() external view returns (address) {
+    return address(_certificate);
+  }
+
+  /**
+   * @notice The address of the `BridgedPolygonNori` contract.
+   */
+  function bridgedPolygonNoriAddress() external view returns (address) {
+    return address(_bridgedPolygonNori);
   }
 
   /**
