@@ -726,13 +726,14 @@ contract Market is
   ) internal {
     uint256[] memory batchedIds = ids.slice(0, numberOfRemovals);
     uint256[] memory batchedAmounts = amounts.slice(0, numberOfRemovals);
-    uint8[] memory holdbackPercentages = _getHoldbackPercentages(batchedIds);
+    uint8 holdbackPercentage;
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       uint256 restrictedSupplierFee;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
-      if (holdbackPercentages[i] > 0) {
+      holdbackPercentage = _removal.getHoldbackPercentage(batchedIds[i]);
+      if (holdbackPercentage > 0) {
         restrictedSupplierFee =
-          (unrestrictedSupplierFee * holdbackPercentages[i]) /
+          (unrestrictedSupplierFee * holdbackPercentage) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
         _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo mint rNori in a single batch call
@@ -873,40 +874,6 @@ contract Market is
    */
   function bridgedPolygonNoriAddress() external view returns (address) {
     return address(_bridgedPolygonNori);
-  }
-
-  /**
-   * @dev Gets the holdback percentages for a batch of removal ids using multicall.
-   * @param ids The removal token IDs for which to retrieve the holdback percentages
-   */
-  function _getHoldbackPercentages(uint256[] memory ids)
-    internal
-    returns (uint8[] memory)
-  {
-    uint256 numberOfRemovals = ids.length;
-    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovals);
-    unchecked {
-      for (uint256 i = 0; i < numberOfRemovals; ++i) {
-        getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
-          _removal.getHoldbackPercentage.selector,
-          ids[i]
-        );
-      }
-    }
-
-    bytes[] memory holdbackPercentageResults = _removal.multicall(
-      getHoldbackPercentageCalls
-    );
-    uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
-    unchecked {
-      for (uint256 i = 0; i < numberOfRemovals; ++i) {
-        holdbackPercentages[i] = uint8(
-          uint256(bytes32(holdbackPercentageResults[i]))
-        );
-      }
-    }
-
-    return holdbackPercentages;
   }
 
   /**
