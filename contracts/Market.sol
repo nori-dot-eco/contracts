@@ -25,8 +25,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * Each of these certificates is a non-transferrable, non-fungible token that owns the specific removal tokens
  * and token balances that comprise the specific certificate for the amount purchased.
  *
- * todo Emit events when state mutates and other existing events aren't capturing that change
- * todo Consider adding MARKET_ADMIN_ROLE (sets thresholds, etc, so they can be done from admin ui without super admin)
  * todo Consider adding getters for number of active suppliers
  * todo consider globally renaming "active"/"reserved" to names that better describe "(un)available" (e.g., "listed"?)
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
@@ -245,7 +243,7 @@ contract Market is
   function onERC1155BatchReceived(
     address,
     address,
-    uint256[] memory ids, // todo calldata?
+    uint256[] memory ids,
     uint256[] memory,
     bytes memory
   ) external whenNotPaused returns (bytes4) {
@@ -261,7 +259,7 @@ contract Market is
     address,
     uint256 id,
     uint256,
-    bytes calldata
+    bytes memory
   ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
     _addActiveRemoval({removalId: id});
@@ -352,7 +350,7 @@ contract Market is
    * @param r The r value for the permit's secp256k1 signature
    * @param s The s value for the permit's secp256k1 signature
    *
-   * todo make `swapFromSpecificSupplier` and `swap` re-use more of the same logic to de-dupe code
+   * todo make `swapFromSpecificSupddplier` and `swap` re-use more of the same logic to de-dupe code
    */
   function swapFromSpecificSupplier(
     address recipient,
@@ -688,7 +686,7 @@ contract Market is
           (unrestrictedSupplierFee * holdbackPercentages[i]) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo mint rNori in a single batch call
+        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]);
         _bridgedPolygonNori.transferFrom(
           operator,
           address(_restrictedNori),
@@ -699,7 +697,7 @@ contract Market is
         operator,
         _noriFeeWallet,
         this.getNoriFee(batchedAmounts[i])
-      ); // todo use MultiCall to batch transfer bpNori in `_fulfillOrder`
+      );
       _bridgedPolygonNori.transferFrom(
         operator,
         suppliers[i],

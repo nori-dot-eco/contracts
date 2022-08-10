@@ -10,8 +10,6 @@ import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "./Errors.sol";
 
-// todo Is this fully addressed: https://github.com/nori-dot-eco/contracts/pull/249/files#r906867575
-
 /** View information for the current state of one schedule */
 struct ScheduleSummary {
   uint256 scheduleTokenId;
@@ -663,7 +661,6 @@ contract RestrictedNORI is
     quantitiesToBurnForHolders[tokenHoldersLocal.length - 1] =
       quantityToRevoke -
       cumulativeQuantityToBurn;
-    // todo use multicall to batch burn rNori outside of loop
     for (uint256 i = 0; i < (tokenHoldersLocal.length); i++) {
       super._burn(
         tokenHoldersLocal[i],
