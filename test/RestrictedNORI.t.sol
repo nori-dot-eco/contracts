@@ -73,6 +73,55 @@ contract RestrictedNORI__validateSchedule_reverts is
     _validateSchedule({startTime: 1, restrictionDuration: 0});
   }
 }
+
+contract RestrictedNORI_revokeUnreleasedTokens is UpgradeableMarket {
+  uint256[] private _removalIds;
+  uint256 holdbackPercentage = 50;
+  uint256 projectId = 1_234_567_890;
+
+  function setUp() external {
+    // setup creates removals for 3 different suppliers but uses the same project ID for each removal
+    // When sold, this will result in an rNori schedule that has 3 different token holders.
+    address[3] memory suppliers = [
+      _namedAccounts.supplier,
+      _namedAccounts.supplier2,
+      _namedAccounts.supplier3
+    ];
+    for (uint256 i = 0; i < suppliers.length; i++) {
+      uint256[] memory localRemovalIds = _seedRemovals({
+        to: suppliers[i],
+        count: 1,
+        list: true
+      });
+      _removalIds.push(localRemovalIds[0]);
+    }
+    uint256 ownerPrivateKey = 0xA11CE;
+    address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
+    uint256 checkoutTotal = _market.getCheckoutTotal(3 ether); // todo replace other test usage of _market.getNoriFee
+    vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
+    _bpNori.deposit(owner, abi.encode(checkoutTotal));
+    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _bpNori
+    );
+    vm.prank(owner);
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+  }
+
+  function test() external {
+    _rNori.revokeUnreleasedTokens(projectId, 1 ether, _namedAccounts.admin);
+  }
+}
 //
 // todo createSchedule
 // todo _createSchedule

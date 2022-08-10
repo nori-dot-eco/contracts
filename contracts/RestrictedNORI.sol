@@ -297,28 +297,6 @@ contract RestrictedNORI is
   }
 
   /**
-   * @notice Returns an account-specific view of the details of specified schedules.
-   */
-  function batchGetScheduleDetailsForAccount(
-    address account,
-    uint256[] memory scheduleIds
-  ) external view returns (ScheduleDetailForAddress[] memory) {
-    ScheduleDetailForAddress[]
-      memory scheduleDetails = new ScheduleDetailForAddress[](
-        scheduleIds.length
-      );
-    for (uint256 i = 0; i < scheduleIds.length; i++) {
-      if (_scheduleIdToScheduleStruct[scheduleIds[i]].exists) {
-        scheduleDetails[i] = getScheduleDetailForAccount(
-          account,
-          scheduleIds[i]
-        );
-      }
-    }
-    return scheduleDetails;
-  }
-
-  /**
    * @notice Returns summary struct for a schedule.
    */
   function getScheduleSummary(uint256 scheduleId)
@@ -356,23 +334,6 @@ contract RestrictedNORI is
    */
   function scheduleExists(uint256 scheduleId) external view returns (bool) {
     return _scheduleIdToScheduleStruct[scheduleId].exists;
-  }
-
-  /**
-   * @notice Returns an array of summary structs for the specified schedules.
-   */
-  function batchGetScheduleSummaries(uint256[] calldata scheduleIds)
-    external
-    view
-    returns (ScheduleSummary[] memory)
-  {
-    ScheduleSummary[] memory scheduleSummaries = new ScheduleSummary[](
-      scheduleIds.length
-    );
-    for (uint256 i = 0; i < scheduleIds.length; i++) {
-      scheduleSummaries[i] = getScheduleSummary(scheduleIds[i]);
-    }
-    return scheduleSummaries;
   }
 
   /**
