@@ -350,7 +350,7 @@ contract Market is
    * @param r The r value for the permit's secp256k1 signature
    * @param s The s value for the permit's secp256k1 signature
    *
-   * todo make `swapFromSpecificSupddplier` and `swap` re-use more of the same logic to de-dupe code
+   * todo make `swapFromSpecificSupplier` and `swap` re-use more of the same logic to de-dupe code
    */
   function swapFromSpecificSupplier(
     address recipient,
