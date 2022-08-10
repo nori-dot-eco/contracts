@@ -680,6 +680,7 @@ contract Market is
     uint256[] memory batchedIds = ids.slice(0, numberOfRemovals);
     uint256[] memory batchedAmounts = amounts.slice(0, numberOfRemovals);
     uint8[] memory holdbackPercentages = _getHoldbackPercentages(batchedIds);
+    bytes[] memory transferFromCalls = new bytes[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       uint256 restrictedSupplierFee;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
@@ -700,12 +701,19 @@ contract Market is
         _noriFeeWallet,
         this.getNoriFee(batchedAmounts[i])
       ); // todo use MultiCall to batch transfer bpNori in `_fulfillOrder`
-      _bridgedPolygonNori.transferFrom(
+      transferFromCalls[i] = abi.encodeWithSelector(
+        _bridgedPolygonNori.transferFrom.selector,
         operator,
         suppliers[i],
         unrestrictedSupplierFee
       );
+      // _bridgedPolygonNori.transferFrom(
+      //   operator,
+      //   suppliers[i],
+      //   unrestrictedSupplierFee
+      // );
     }
+    _bridgedPolygonNori.multicall(transferFromCalls);
     bytes memory data = abi.encode(recipient, certificateAmount);
     _removal.safeBatchTransferFrom(
       address(this),
