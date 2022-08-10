@@ -629,12 +629,10 @@ contract RestrictedNORI is
     uint256 quantityToRevoke = amount > 0 ? amount : quantityRevocable;
     // burn correct proportion from each token holder
     address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
-    // todo (Gas Optimization): is it more expensive to call balanceOf multiple times, or to construct this array?
-    uint256[] memory scheduleIdsForBalanceOfBatch = new uint256[](
-      tokenHoldersLocal.length
-    );
+
+    uint256[] memory accountBalances = new uint256[](tokenHoldersLocal.length);
     for (uint256 i = 0; i < tokenHoldersLocal.length; i++) {
-      scheduleIdsForBalanceOfBatch[i] = projectId;
+      accountBalances[i] = balanceOf(tokenHoldersLocal[i], projectId);
     }
     uint256[] memory quantitiesToBurnForHolders = new uint256[](
       tokenHoldersLocal.length
@@ -642,10 +640,6 @@ contract RestrictedNORI is
     // Calculate the final holder's quantity to revoke by subtracting the sum of other quantities
     // from the desired total to revoke, thus avoiding any precision rounding errors from affecting
     // the total quantity revoked by up to several wei.
-    uint256[] memory accountBalances = balanceOfBatch(
-      tokenHoldersLocal,
-      scheduleIdsForBalanceOfBatch
-    );
     uint256 cumulativeQuantityToBurn = 0;
     for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); i++) {
       uint256 quantityToBurnForHolder = _quantityToRevokePerTokenHolder(
