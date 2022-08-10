@@ -354,7 +354,7 @@ contract RestrictedNORI is
   /**
    * @notice Returns the existence of a schedule
    */
-  function scheduleExists(uint256 scheduleId) public view returns (bool) {
+  function scheduleExists(uint256 scheduleId) external view returns (bool) {
     return _scheduleIdToScheduleStruct[scheduleId].exists;
   }
 
@@ -416,7 +416,7 @@ contract RestrictedNORI is
    * @notice Returns the current number of revocable tokens for a given schedule at the current block timestamp.
    */
   function revocableQuantityForSchedule(uint256 scheduleId)
-    public
+    external
     view
     returns (uint256)
   {
@@ -504,7 +504,6 @@ contract RestrictedNORI is
     uint256 projectId = _removal.getProjectId({removalId: removalId});
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     super._mint(supplierAddress, projectId, amount, "");
-    // slither-disable-next-line unused-return address may already be in set and that is ok
     _scheduleIdToScheduleStruct[projectId].tokenHolders.add(supplierAddress);
   }
 
@@ -553,11 +552,9 @@ contract RestrictedNORI is
     super.safeTransferFrom(from, to, id, amount, data);
     Schedule storage schedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
-      // slither-disable-next-line unused-return address may already be in set and that is ok
       schedule.tokenHolders.add(to);
     }
     if (balanceOf(from, id) == 0) {
-      // slither-disable-next-line unused-return return value irrelevant, address guaranteed removed
       schedule.tokenHolders.remove(from);
     }
   }
@@ -580,11 +577,9 @@ contract RestrictedNORI is
     for (uint256 i = 0; i < ids.length; ++i) {
       Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
       if (amounts[i] != 0) {
-        // slither-disable-next-line unused-return address may already be in set and that is ok
         schedule.tokenHolders.add(to);
       }
       if (balanceOf(from, ids[i]) == 0) {
-        // slither-disable-next-line unused-return return value irrelevant, address guaranteed removed
         schedule.tokenHolders.remove(from);
       }
     }
@@ -621,7 +616,6 @@ contract RestrictedNORI is
     uint256 amount,
     address toAccount
   ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
-    // slither-disable-next-line calls-loop choose to get the project id from the removal contract
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     if (!schedule.exists) {
       revert NonexistentSchedule({scheduleId: projectId});
@@ -754,7 +748,7 @@ contract RestrictedNORI is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) internal override(ERC1155SupplyUpgradeable) whenNotPaused {
+  ) internal virtual override(ERC1155SupplyUpgradeable) whenNotPaused {
     bool isBurning = to == address(0);
     bool isWithdrawing = isBurning && from == operator;
     if (isBurning) {

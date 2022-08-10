@@ -9,6 +9,7 @@ import {RemovalIdLib} from "./RemovalIdLib.sol";
 import {UInt256ArrayLib} from "./ArrayLib.sol";
 import "./Errors.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
 
 /**
  * @title Nori Inc.'s carbon removal marketplace.
@@ -30,7 +31,11 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
  * todo consider globally renaming "active"/"reserved" to names that better describe "(un)available" (e.g., "listed"?)
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
  */
-contract Market is PausableAccessPreset, MulticallUpgradeable {
+contract Market is
+  PausableAccessPreset,
+  IERC1155ReceiverUpgradeable,
+  MulticallUpgradeable
+{
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
   using UInt256ArrayLib for uint256[];
@@ -127,7 +132,10 @@ contract Market is PausableAccessPreset, MulticallUpgradeable {
     RestrictedNORI restrictedNori,
     address noriFeeWalletAddress,
     uint256 noriFeePercentage_
-  ) public initializer {
+  ) external initializer {
+    if (noriFeeWalletAddress == address(0)) {
+      revert NoriFeeWalletZeroAddress();
+    }
     __Context_init_unchained();
     __ERC165_init_unchained();
     __Pausable_init_unchained();
@@ -639,6 +647,9 @@ contract Market is PausableAccessPreset, MulticallUpgradeable {
     onlyRole(MARKET_ADMIN_ROLE)
     whenNotPaused
   {
+    if (noriFeeWalletAddress == address(0)) {
+      revert NoriFeeWalletZeroAddress();
+    }
     _noriFeeWallet = noriFeeWalletAddress;
     emit NoriFeeWalletAddressUpdated(noriFeeWalletAddress);
   }
@@ -790,7 +801,7 @@ contract Market is PausableAccessPreset, MulticallUpgradeable {
     public
     view
     virtual
-    override
+    override(AccessControlEnumerableUpgradeable, IERC165Upgradeable)
     returns (bool)
   {
     return super.supportsInterface(interfaceId);

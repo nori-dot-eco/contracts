@@ -471,7 +471,7 @@ contract Removal is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) internal override whenNotPaused {
+  ) internal virtual override whenNotPaused {
     for (uint256 i = 0; i < ids.length; ++i) {
       uint256 id = ids[i];
       if (amounts[i] == 0) {
@@ -572,7 +572,7 @@ contract Removal is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) internal override {
+  ) internal virtual override {
     _updateOwnedTokenIds(from, to, ids);
     super._afterTokenTransfer(operator, from, to, ids, amounts, data);
   }
