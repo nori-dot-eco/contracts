@@ -65,7 +65,6 @@ export const compareScheduleSummaryStructs = (
     'totalSupply',
     'totalClaimableAmount',
     'totalQuantityRevoked',
-    'exists',
   ] as const;
   for (const key of keys) {
     if (key in expectedScheduleSummary) {
