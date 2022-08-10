@@ -690,3 +690,30 @@ contract Market__validateSupply is NonUpgradeableMarket, UpgradeableRemoval {
     _validateSupply({certificateAmount: 1 ether, activeSupply: 0.9 ether});
   }
 }
+
+contract Market__multicall_initialize_reverts is UpgradeableMarket {
+  function test() external {
+    bytes[] memory multicallArg = new bytes[](1);
+    multicallArg[0] = (
+      abi.encodeWithSelector(
+        _market.initialize.selector,
+        _removal,
+        _bpNori,
+        _certificate,
+        _rNori,
+        _namedAccounts.admin,
+        15
+      )
+    );
+    vm.expectRevert("Initializable: contract is already initialized");
+    _market.multicall(multicallArg);
+  }
+}
+
+contract Market__multicall_empty_bytes_reverts is UpgradeableMarket {
+  function test() external {
+    bytes[] memory multicallArg = new bytes[](1);
+    vm.expectRevert("Address: low-level delegate call failed");
+    _market.multicall(multicallArg);
+  }
+}
