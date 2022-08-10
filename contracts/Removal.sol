@@ -247,7 +247,7 @@ contract Removal is
     uint256[] calldata amounts,
     uint256[] calldata ids
   ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
-    for (uint256 i = 0; i < ids.length; i++) {
+    for (uint256 i = 0; i < ids.length; ++i) {
       if (_removalIdToProjectId[ids[i]] == 0) {
         revert RemovalNotYetMinted({tokenId: ids[i]});
       }
