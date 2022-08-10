@@ -345,7 +345,7 @@ contract RestrictedNORI is
         ),
         schedule.totalClaimedAmount,
         schedule.totalQuantityRevoked,
-        tokenHoldersArray,
+        tokenHoldersArray
       );
   }
 
