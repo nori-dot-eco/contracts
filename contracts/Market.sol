@@ -184,7 +184,11 @@ contract Market is
    * todo consider renaming getNoriFee to something like `calculateNoriFee`
    */
   function getNoriFee(uint256 amount) external view returns (uint256) {
-    return (amount * _noriFeePercentage) / 100;
+    return
+      SafeMathUpgradeable.div(
+        SafeMathUpgradeable.mul(amount, _noriFeePercentage),
+        100
+      );
   }
 
   /**
@@ -210,7 +214,11 @@ contract Market is
     view
     returns (uint256)
   {
-    return (purchaseTotal * 100) / (100 + _noriFeePercentage);
+    return
+      SafeMathUpgradeable.div(
+        SafeMathUpgradeable.mul(purchaseTotal, 100),
+        SafeMathUpgradeable.add(100, _noriFeePercentage)
+      );
   }
 
   /**
