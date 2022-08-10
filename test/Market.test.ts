@@ -1017,10 +1017,23 @@ describe('Market', () => {
       await market
         .connect(buyer)
         .swap(buyer.address, value, MaxUint256, v, r, s);
-      const scheduleSummaries = await rNori.batchGetScheduleSummaries([
-        projectId1,
-        projectId2,
-      ]);
+
+        // Problem - multicall is a transaction not a call and we can't get any return values
+       const multicallResults = await rNori.multicall(
+        [
+          projectId1,
+          projectId2,
+        ].map((id) =>
+            rNori.interface.encodeFunctionData('getScheduleSummary', [
+              id
+            ])
+          )
+        )
+
+      // const scheduleSummaries = await rNori.batchGetScheduleSummaries([
+      //   projectId1,
+      //   projectId2,
+      // ]);
       const buyerFinalNoriBalance = await bpNori.balanceOf(buyer.address);
       const supplierFinalNoriBalance = await bpNori.balanceOf(supplier.address);
       const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet.address);
