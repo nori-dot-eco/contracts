@@ -264,7 +264,7 @@ contract RestrictedNORI is
     uint256[] memory allScheduleIdsArray = new uint256[](
       _allScheduleIds.length()
     );
-    for (uint256 i = 0; i < allScheduleIdsArray.length; i++) {
+    for (uint256 i = 0; i < allScheduleIdsArray.length; ++i) {
       allScheduleIdsArray[i] = _allScheduleIds.at(i);
     }
     return allScheduleIdsArray;
@@ -306,7 +306,7 @@ contract RestrictedNORI is
       memory scheduleDetails = new ScheduleDetailForAddress[](
         scheduleIds.length
       );
-    for (uint256 i = 0; i < scheduleIds.length; i++) {
+    for (uint256 i = 0; i < scheduleIds.length; ++i) {
       if (_scheduleIdToScheduleStruct[scheduleIds[i]]._doesExist()) {
         scheduleDetails[i] = getScheduleDetailForAccount(
           account,
@@ -329,7 +329,7 @@ contract RestrictedNORI is
     uint256 numberOfTokenHolders = schedule.tokenHolders.length();
     address[] memory tokenHoldersArray = new address[](numberOfTokenHolders);
     uint256[] memory scheduleIdArray = new uint256[](numberOfTokenHolders);
-    for (uint256 i = 0; i < schedule.tokenHolders.length(); i++) {
+    for (uint256 i = 0; i < schedule.tokenHolders.length(); ++i) {
       tokenHoldersArray[i] = schedule.tokenHolders.at(i);
       scheduleIdArray[i] = scheduleId;
     }
@@ -367,7 +367,7 @@ contract RestrictedNORI is
     ScheduleSummary[] memory scheduleSummaries = new ScheduleSummary[](
       scheduleIds.length
     );
-    for (uint256 i = 0; i < scheduleIds.length; i++) {
+    for (uint256 i = 0; i < scheduleIds.length; ++i) {
       scheduleSummaries[i] = getScheduleSummary(scheduleIds[i]);
     }
     return scheduleSummaries;
@@ -572,7 +572,7 @@ contract RestrictedNORI is
     bytes memory data
   ) public override {
     super.safeBatchTransferFrom(from, to, ids, amounts, data);
-    for (uint256 i = 0; i < ids.length; i++) {
+    for (uint256 i = 0; i < ids.length; ++i) {
       Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
       if (amounts[i] != 0) {
         schedule.tokenHolders.add(to);
@@ -633,7 +633,7 @@ contract RestrictedNORI is
     uint256[] memory scheduleIdsForBalanceOfBatch = new uint256[](
       tokenHoldersLocal.length
     );
-    for (uint256 i = 0; i < tokenHoldersLocal.length; i++) {
+    for (uint256 i = 0; i < tokenHoldersLocal.length; ++i) {
       scheduleIdsForBalanceOfBatch[i] = projectId;
     }
     uint256[] memory quantitiesToBurnForHolders = new uint256[](
@@ -647,7 +647,7 @@ contract RestrictedNORI is
       scheduleIdsForBalanceOfBatch
     );
     uint256 cumulativeQuantityToBurn = 0;
-    for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); i++) {
+    for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); ++i) {
       uint256 quantityToBurnForHolder = _quantityToRevokePerTokenHolder(
         quantityToRevoke,
         projectId,
@@ -662,7 +662,7 @@ contract RestrictedNORI is
       quantityToRevoke -
       cumulativeQuantityToBurn;
     // todo use multicall to batch burn rNori outside of loop
-    for (uint256 i = 0; i < (tokenHoldersLocal.length); i++) {
+    for (uint256 i = 0; i < (tokenHoldersLocal.length); ++i) {
       super._burn(
         tokenHoldersLocal[i],
         projectId,
@@ -749,7 +749,7 @@ contract RestrictedNORI is
     bool isBurning = to == address(0);
     bool isWithdrawing = isBurning && from == operator;
     if (isBurning) {
-      for (uint256 i = 0; i < ids.length; i++) {
+      for (uint256 i = 0; i < ids.length; ++i) {
         uint256 id = ids[i];
         Schedule storage schedule = _scheduleIdToScheduleStruct[id];
         if (isWithdrawing) {

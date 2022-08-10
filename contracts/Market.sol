@@ -265,7 +265,7 @@ contract Market is
     bytes memory
   ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
-    for (uint256 i = 0; i < ids.length; i++) {
+    for (uint256 i = 0; i < ids.length; ++i) {
       _addActiveRemoval(ids[i]);
     }
     return this.onERC1155BatchReceived.selector;
@@ -394,7 +394,7 @@ contract Market is
       uint256[] memory amounts
     ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
     address[] memory suppliers = new address[](numberOfRemovals);
-    for (uint256 i = 0; i < numberOfRemovals; i++) {
+    for (uint256 i = 0; i < numberOfRemovals; ++i) {
       suppliers[i] = supplierToBuyFrom;
     }
     _bridgedPolygonNori.permit(
@@ -496,7 +496,7 @@ contract Market is
     uint256[] memory amounts = new uint256[](numberOfActiveRemovalsInMarket);
     address[] memory suppliers = new address[](numberOfActiveRemovalsInMarket);
     uint256 numberOfRemovalsForOrder = 0;
-    for (uint256 i = 0; i < numberOfActiveRemovalsInMarket; i++) {
+    for (uint256 i = 0; i < numberOfActiveRemovalsInMarket; ++i) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
@@ -528,7 +528,7 @@ contract Market is
           _incrementCurrentSupplierAddress();
         }
       }
-      numberOfRemovalsForOrder++;
+      ++numberOfRemovalsForOrder;
       if (remainingAmountToFill == 0) {
         break;
       }
@@ -569,7 +569,7 @@ contract Market is
     for (
       uint256 vintage = supplierRemovalQueue.earliestYear;
       vintage <= latestYear;
-      vintage++
+      ++vintage
     ) {
       totalNumberOfRemovalsForSupplier += supplierRemovalQueue
         .queueByVintage[vintage]
@@ -582,7 +582,7 @@ contract Market is
     uint256[] memory ids = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256[] memory amounts = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256 numberOfRemovals = 0;
-    for (uint256 i = 0; i < totalNumberOfRemovalsForSupplier; i++) {
+    for (uint256 i = 0; i < totalNumberOfRemovalsForSupplier; ++i) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       /**
@@ -613,7 +613,7 @@ contract Market is
           _removeActiveSupplier(supplier);
         }
       }
-      numberOfRemovals++;
+      ++numberOfRemovals;
       if (remainingAmountToFill == 0) {
         break;
       }
@@ -727,7 +727,7 @@ contract Market is
     uint256[] memory batchedIds = ids.slice(0, numberOfRemovals);
     uint256[] memory batchedAmounts = amounts.slice(0, numberOfRemovals);
     uint8[] memory holdbackPercentages = _getHoldbackPercentages(batchedIds);
-    for (uint256 i = 0; i < numberOfRemovals; i++) {
+    for (uint256 i = 0; i < numberOfRemovals; ++i) {
       uint256 restrictedSupplierFee;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
       if (holdbackPercentages[i] > 0) {
