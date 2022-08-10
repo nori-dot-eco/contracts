@@ -727,9 +727,10 @@ contract Market is
     uint256[] memory batchedIds = ids.slice(0, numberOfRemovals);
     uint256[] memory batchedAmounts = amounts.slice(0, numberOfRemovals);
     uint8 holdbackPercentage;
+    uint256 restrictedSupplierFee;
+    uint256 unrestrictedSupplierFee;
     for (uint256 i = 0; i < numberOfRemovals; i++) {
-      uint256 restrictedSupplierFee;
-      uint256 unrestrictedSupplierFee = batchedAmounts[i];
+      unrestrictedSupplierFee = batchedAmounts[i];
       holdbackPercentage = _removal.getHoldbackPercentage(batchedIds[i]);
       if (holdbackPercentage > 0) {
         restrictedSupplierFee =
