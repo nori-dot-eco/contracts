@@ -1069,7 +1069,7 @@ describe('Market', () => {
           },
         });
       const purchaseAmount = formatTokenAmount(1);
-      const value = await market.getCheckoutTotal(purchaseAmount); // todo use getCheckoutTotal globally
+      const value = await market.calculateCheckoutTotal(purchaseAmount); // todo use calculateCheckoutTotal globally
       const { buyer, investor1 } = hre.namedSigners;
       const deadline = MaxUint256;
       const { v, r, s } = await buyer.permit({
@@ -1131,7 +1131,7 @@ describe('purchasing from a specified supplier', () => {
     });
     await market
       .connect(buyer)
-      .swapFromSpecificSupplier(
+      .swapFromSupplier(
         buyer.address,
         value,
         hre.namedAccounts.supplier,
@@ -1176,7 +1176,7 @@ describe('purchasing from a specified supplier', () => {
       },
     });
     const purchaseAmount = formatTokenAmount(30); // enough total supply, not enough from specific supplier
-    const value = await market.getCheckoutTotal(purchaseAmount);
+    const value = await market.calculateCheckoutTotal(purchaseAmount);
     const { buyer } = hre.namedSigners;
     const { v, r, s } = await buyer.permit({
       verifyingContract: bpNori,
@@ -1186,7 +1186,7 @@ describe('purchasing from a specified supplier', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSpecificSupplier(
+        .swapFromSupplier(
           buyer.address,
           value,
           hre.namedAccounts.supplier,
@@ -1224,7 +1224,7 @@ describe('purchasing from a specified supplier', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSpecificSupplier(
+        .swapFromSupplier(
           buyer.address,
           value,
           hre.namedAccounts.investor2,
@@ -1250,7 +1250,7 @@ describe('purchasing from a specified supplier', () => {
     const priorityRestrictedThreshold = formatTokenAmount(10);
     await market.setPriorityRestrictedThreshold(priorityRestrictedThreshold);
     const purchaseAmount = formatTokenAmount(5);
-    const value = await market.getCheckoutTotal(purchaseAmount);
+    const value = await market.calculateCheckoutTotal(purchaseAmount);
     const { buyer } = hre.namedSigners;
     const { v, r, s } = await buyer.permit({
       verifyingContract: bpNori,
@@ -1260,7 +1260,7 @@ describe('purchasing from a specified supplier', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSpecificSupplier(
+        .swapFromSupplier(
           buyer.address,
           value,
           hre.namedAccounts.supplier,

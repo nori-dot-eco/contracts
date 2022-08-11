@@ -375,14 +375,14 @@ contract Market__validatePrioritySupply is NonUpgradeableMarket {
   {
     _validatePrioritySupply({
       certificateAmount: 0.5 ether,
-      activeSupply: 1 ether
+      availableSupply: 1 ether
     });
   }
 
   function test_supplyAfterPurchaseIsZero() external view {
     _validatePrioritySupply({
       certificateAmount: 1 ether,
-      activeSupply: 1 ether
+      availableSupply: 1 ether
     });
   }
 }
@@ -400,7 +400,7 @@ contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriori
   function test() external view {
     _validatePrioritySupply({
       certificateAmount: 1 ether,
-      activeSupply: 1 ether
+      availableSupply: 1 ether
     });
   }
 }
@@ -418,7 +418,7 @@ contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
     vm.expectRevert(LowSupplyAllowlistRequired.selector);
     _validatePrioritySupply({
       certificateAmount: 1 ether,
-      activeSupply: 1 ether
+      availableSupply: 1 ether
     });
   }
 }
@@ -647,12 +647,12 @@ contract Market_onERC1155BatchReceived_reverts_SenderNotRemovalContract is
 
 contract Market__validateSupply is NonUpgradeableMarket, UpgradeableRemoval {
   function test() external pure {
-    _validateSupply({certificateAmount: 1 ether, activeSupply: 1 ether});
+    _validateSupply({certificateAmount: 1 ether, availableSupply: 1 ether});
   }
 
   function test_reverts_OutOfSupply() external {
     vm.expectRevert(InsufficientSupply.selector);
-    _validateSupply({certificateAmount: 1 ether, activeSupply: 0.9 ether});
+    _validateSupply({certificateAmount: 1 ether, availableSupply: 0.9 ether});
   }
 }
 

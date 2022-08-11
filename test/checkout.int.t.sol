@@ -40,10 +40,9 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     // todo refactor so setup lives in this contracts setUp function (improves gas reporting)
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
-    uint256 amount = _market.getCheckoutTotal(1 ether);
-    uint256 certificateAmount = _market.certificateAmountFromPurchaseTotal(
-      amount
-    );
+    uint256 amount = _market.calculateCheckoutTotal(1 ether);
+    uint256 certificateAmount = _market
+      .calculateCertificateAmountFromPurchaseTotal(amount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(amount));
     assertEq(_removal.getMarketBalance(), 1 ether);
@@ -95,10 +94,9 @@ contract Checkout_buyingFromTenRemovals is Checkout {
       count: 10,
       list: true
     });
-    _purchaseAmount = _market.getCheckoutTotal(10 ether);
-    _expectedCertificateAmount = _market.certificateAmountFromPurchaseTotal(
-      _purchaseAmount
-    );
+    _purchaseAmount = _market.calculateCheckoutTotal(10 ether);
+    _expectedCertificateAmount = _market
+      .calculateCertificateAmountFromPurchaseTotal(_purchaseAmount);
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -189,10 +187,9 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
       count: 10,
       list: true
     });
-    _purchaseAmount = _market.getCheckoutTotal(10 ether);
-    _expectedCertificateAmount = _market.certificateAmountFromPurchaseTotal(
-      _purchaseAmount
-    );
+    _purchaseAmount = _market.calculateCheckoutTotal(10 ether);
+    _expectedCertificateAmount = _market
+      .calculateCertificateAmountFromPurchaseTotal(_purchaseAmount);
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -228,10 +225,10 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
 
   function test() external {
     vm.prank(_owner);
-    _market.swapFromSpecificSupplier({
+    _market.swapFromSupplier({
       recipient: _owner,
       amount: _purchaseAmount,
-      supplierToBuyFrom: _namedAccounts.supplier,
+      supplier: _namedAccounts.supplier,
       deadline: _signedPermit.permit.deadline,
       v: _signedPermit.v,
       r: _signedPermit.r,
@@ -287,10 +284,9 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
       });
       _removalIds.push(localRemovalIds[0]);
     }
-    _purchaseAmount = _market.getCheckoutTotal(10 ether);
-    _expectedCertificateAmount = _market.certificateAmountFromPurchaseTotal(
-      _purchaseAmount
-    );
+    _purchaseAmount = _market.calculateCheckoutTotal(10 ether);
+    _expectedCertificateAmount = _market
+      .calculateCertificateAmountFromPurchaseTotal(_purchaseAmount);
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
