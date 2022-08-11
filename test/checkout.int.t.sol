@@ -176,3 +176,195 @@ contract Checkout_buyingFromTenRemovals is Checkout {
     );
   }
 }
+
+contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
+  uint256 private _expectedCertificateAmount;
+  uint256 private _purchaseAmount;
+  address private _owner;
+  SignedPermit private _signedPermit;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 10,
+      list: true
+    });
+    _purchaseAmount = _market.getCheckoutTotal(10 ether);
+    _expectedCertificateAmount = _market.certificateAmountFromPurchaseTotal(
+      _purchaseAmount
+    );
+    assertEq(
+      _removal.balanceOfBatch(
+        new address[](_removalIds.length).fill(address(_market)),
+        _removalIds
+      ),
+      new uint256[](_removalIds.length).fill(1 ether),
+      "Expected the market to own the removals"
+    );
+    assertEq(_removal.getMarketBalance(), 10 ether);
+    assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 10);
+    assertEq(_expectedCertificateAmount, 10 ether);
+    uint256 ownerPrivateKey = 0xA11CE;
+    _owner = vm.addr(ownerPrivateKey);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
+    vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
+    _certificate.ownerOf(_certificateTokenId);
+    vm.prank(_owner);
+    _signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      _purchaseAmount,
+      1 days,
+      _bpNori
+    );
+    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    _assertExpectedBalances(address(_certificate), 0, false, 0);
+    assertEq(
+      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
+      0
+    );
+  }
+
+  function test() external {
+    vm.prank(_owner);
+    _market.swapFromSpecificSupplier({
+      recipient: _owner,
+      amount: _purchaseAmount,
+      supplierToBuyFrom: _namedAccounts.supplier,
+      deadline: _signedPermit.permit.deadline,
+      v: _signedPermit.v,
+      r: _signedPermit.r,
+      s: _signedPermit.s
+    });
+    _assertExpectedBalances(address(_market), 0, false, 0);
+    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    assertEq(
+      _removal.balanceOfBatch(
+        new address[](_removalIds.length).fill(address(_certificate)),
+        _removalIds
+      ),
+      new uint256[](_removalIds.length).fill(1 ether),
+      "Expected the certificate to own the removals"
+    );
+    assertEq(
+      _certificate.removalsOfCertificate(0).length,
+      _removalIds.length,
+      "Expected the number removals held by the certificate to be equal to the number of removal IDs"
+    );
+    for (uint256 i = 0; i < 10; i++) {
+      assertContains(
+        _removalIds,
+        _certificate.removalsOfCertificate(0)[i].id,
+        "Expected the certificate to hold the removal"
+      );
+    }
+    assertEq(
+      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
+      _expectedCertificateAmount / _removalIds.length,
+      "Removal balance is wrong"
+    );
+    assertEq(
+      _certificate.ownerOf(_certificateTokenId),
+      _owner,
+      "The wrong owner has the certificate"
+    );
+  }
+}
+
+contract Checkout_buyingFromTenSuppliers is Checkout {
+  uint256 private _expectedCertificateAmount;
+  uint256 private _purchaseAmount;
+  address private _owner;
+  SignedPermit private _signedPermit;
+
+  function setUp() external {
+    for (uint256 i = 0; i < 10; i++) {
+      uint256[] memory localRemovalIds = _seedRemovals({
+        to: vm.addr(i + 1), // unique, arbitrary supplier address for each removal (pk can't be 0)
+        count: 1,
+        list: true
+      });
+      _removalIds.push(localRemovalIds[0]);
+    }
+    _purchaseAmount = _market.getCheckoutTotal(10 ether);
+    _expectedCertificateAmount = _market.certificateAmountFromPurchaseTotal(
+      _purchaseAmount
+    );
+    assertEq(
+      _removal.balanceOfBatch(
+        new address[](_removalIds.length).fill(address(_market)),
+        _removalIds
+      ),
+      new uint256[](_removalIds.length).fill(1 ether),
+      "Expected the market to own the removals"
+    );
+    assertEq(_removal.getMarketBalance(), 10 ether);
+    assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 10);
+    assertEq(_expectedCertificateAmount, 10 ether);
+    uint256 ownerPrivateKey = 0xA11CE;
+    _owner = vm.addr(ownerPrivateKey);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
+    vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
+    _certificate.ownerOf(_certificateTokenId);
+    vm.prank(_owner);
+    _signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      _purchaseAmount,
+      1 days,
+      _bpNori
+    );
+    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    _assertExpectedBalances(address(_certificate), 0, false, 0);
+    assertEq(
+      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
+      0
+    );
+  }
+
+  function test() external {
+    vm.prank(_owner);
+    _market.swap(
+      _owner,
+      _purchaseAmount,
+      _signedPermit.permit.deadline,
+      _signedPermit.v,
+      _signedPermit.r,
+      _signedPermit.s
+    );
+    _assertExpectedBalances(address(_market), 0, false, 0);
+    // _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    assertEq(
+      _removal.balanceOfBatch(
+        new address[](_removalIds.length).fill(address(_certificate)),
+        _removalIds
+      ),
+      new uint256[](_removalIds.length).fill(1 ether),
+      "Expected the certificate to own the removals"
+    );
+    assertEq(
+      _certificate.removalsOfCertificate(0).length,
+      _removalIds.length,
+      "Expected the number removals held by the certificate to be equal to the number of removal IDs"
+    );
+    for (uint256 i = 0; i < 10; i++) {
+      assertContains(
+        _removalIds,
+        _certificate.removalsOfCertificate(0)[i].id,
+        "Expected the certificate to hold the removal"
+      );
+    }
+    assertEq(
+      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
+      _expectedCertificateAmount / _removalIds.length,
+      "Removal balance is wrong"
+    );
+    assertEq(
+      _certificate.ownerOf(_certificateTokenId),
+      _owner,
+      "The wrong owner has the certificate"
+    );
+  }
+}

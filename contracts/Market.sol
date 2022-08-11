@@ -6,7 +6,7 @@ import "./PausableAccessPreset.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
-import {UInt256ArrayLib} from "./ArrayLib.sol";
+import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
 import "./Errors.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
@@ -37,6 +37,7 @@ contract Market is
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
   using UInt256ArrayLib for uint256[];
+  using AddressArrayLib for address[];
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
    */
@@ -258,9 +259,9 @@ contract Market is
   function onERC1155BatchReceived(
     address,
     address,
-    uint256[] memory ids,
-    uint256[] memory,
-    bytes memory
+    uint256[] calldata ids,
+    uint256[] calldata,
+    bytes calldata
   ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
     for (uint256 i = 0; i < ids.length; ++i) {
@@ -274,7 +275,7 @@ contract Market is
     address,
     uint256 id,
     uint256,
-    bytes memory
+    bytes calldata
   ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
     _addActiveRemoval({removalId: id});
@@ -391,10 +392,9 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts
     ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
-    address[] memory suppliers = new address[](numberOfRemovals);
-    for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      suppliers[i] = supplierToBuyFrom;
-    }
+    address[] memory suppliers = new address[](numberOfRemovals).fill(
+      supplierToBuyFrom
+    );
     _bridgedPolygonNori.permit(
       _msgSender(),
       address(this),
