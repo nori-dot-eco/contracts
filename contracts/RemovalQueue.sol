@@ -74,7 +74,7 @@ library RemovalQueue {
         for (
           uint256 currentYear = removalQueue.earliestYear + 1;
           currentYear <= removalQueue.latestYear;
-          currentYear++
+          ++currentYear
         ) {
           if (removalQueue.queueByVintage[currentYear].length() > 0) {
             removalQueue.earliestYear = currentYear;

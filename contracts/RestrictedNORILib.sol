@@ -9,7 +9,6 @@ struct Schedule {
   uint256 startTime;
   uint256 endTime;
   uint256 totalClaimedAmount;
-  bool exists;
   uint256 totalQuantityRevoked;
   uint256 releasedAmountFloor;
   EnumerableSetUpgradeable.AddressSet tokenHolders;
@@ -93,7 +92,7 @@ library RestrictedNORILib {
     uint256 scheduleId,
     uint256 totalSupply
   ) internal view returns (uint256) {
-    if (!schedule.exists) {
+    if (!schedule._doesExist()) {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
     return
@@ -144,11 +143,18 @@ library RestrictedNORILib {
     uint256 scheduleId,
     uint256 totalSupply
   ) internal view returns (uint256) {
-    if (!schedule.exists) {
+    if (!schedule._doesExist()) {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
     return
       schedule._scheduleTrueTotal(totalSupply) -
       schedule._releasedBalanceOfSingleSchedule(totalSupply);
+  }
+
+  /**
+   * @notice Returns the existence of a schedule
+   */
+  function _doesExist(Schedule storage schedule) internal view returns (bool) {
+    return schedule.endTime != 0;
   }
 }
