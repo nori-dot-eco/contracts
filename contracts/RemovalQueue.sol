@@ -176,7 +176,6 @@ library RemovalQueue {
         }
       }
       totalBalance += removal
-      // todo extracting this outside of the loop into a single call would drastically improve performance
         .balanceOfBatch(
           new address[](numberOfRemovals).fill(address(this)),
           removalIds
