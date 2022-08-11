@@ -73,6 +73,9 @@ contract Certificate is
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
+  /**
+   * @notice The amount of balance and the removal ID that was used for a certificate.
+   */
   struct Balance {
     uint256 id;
     uint256 amount;
@@ -87,17 +90,30 @@ contract Certificate is
   bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
     keccak256("CERTIFICATE_OPERATOR_ROLE");
 
+  /**
+   * @notice Keeps track of the balances for each removal of a certificate.
+   */
   mapping(uint256 => mapping(uint256 => uint256))
     private _removalBalancesOfCertificate;
 
+  /**
+   * @notice Keeps track of the original purchase amount for a certificate.
+   */
   mapping(uint256 => uint256) private _purchaseAmounts; // todo naming consistency for mappings (e.g, plural/non-plural)
 
   /*
    * todo Add tests that ensure _removalsOfCertificate/_certificatesOfRemoval can't deviate from Removal.sol balances
    */
+
+  /**
+   * @notice Keeps track of the removals used for a given certificate.
+   */
   mapping(uint256 => EnumerableSetUpgradeable.UintSet)
     private _removalsOfCertificate;
 
+  /**
+   * @notice Keeps track of the certificates created from a given removal.
+   */
   mapping(uint256 => EnumerableSetUpgradeable.UintSet)
     private _certificatesOfRemoval;
 
@@ -106,6 +122,14 @@ contract Certificate is
    */
   Removal private _removal;
 
+  /**
+   * @notice Emitted when a batch of removals is recieved to create a Certificate.
+   * @param from Address removals were sent from.
+   * @param recipient Address to send the certificate token to.
+   * @param certificateId The ID of the certificate the removals were used for.
+   * @param removalIds The removal IDs used for the certificate.
+   * @param removalAmounts The amounts from each removal used for the certificate.
+   */
   event ReceiveRemovalBatch(
     address from,
     address indexed recipient,
@@ -161,11 +185,11 @@ contract Certificate is
    * @dev This function is called as part of the market deployment process to register relevant contract
    * addresses among market contracts.
    *
-   * @param removal The address of the Removal contract.
-   *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   *
+   * @param removal The address of the Removal contract.
    */
   function registerContractAddresses(Removal removal)
     external
@@ -185,13 +209,13 @@ contract Certificate is
    * executing Removal.release. Burning the corresponding removal balance from the Certificate contract happens
    * in Removal.release.
    *
-   * @param certificateId The id of the certificate from which this removal is being released.
-   * @param removalId The removal token to release.
-   * @param amount The balance of the removal token to release.
-   *
    * ##### Requirements:
    * - Can only be called by the Removal contract.
    * - Can only be used when contract is not paused.
+   *
+   * @param certificateId The id of the certificate from which this removal is being released.
+   * @param removalId The removal token to release.
+   * @param amount The balance of the removal token to release.
    */
   function releaseRemoval(
     uint256 certificateId,
@@ -211,15 +235,18 @@ contract Certificate is
   }
 
   /**
-   * @dev Receives a batch of child tokens, the certificate recipient and amount must be encoded in the field data.
+   * @notice Receives a batch of child tokens, the certificate recipient and amount must be encoded in the field data.
    *
-   * @param removalIds The array of ERC1155 Removal token ids being received in this batch.
-   * @param removalAmounts The array of balances being received for each corresponding token id.
-   * @param data Bytes that encode the certificate's recipient address and total amount.
+   * @dev See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver-onERC1155BatchReceived-address-address-uint256---uint256---bytes-] for more.
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused (enforced by `_beforeTokenTransfers`).
    * - `_msgSender` must be the removal contract.
+   *
+   * @param removalIds The array of ERC1155 Removal token ids being received in this batch.
+   * @param removalAmounts The array of balances being received for each corresponding token id.
+   * @param data Bytes that encode the certificate's recipient address and total amount.
+   * @return selector the selector of the function.
    */
   function onERC1155BatchReceived(
     address,
@@ -249,6 +276,7 @@ contract Certificate is
    *
    * @param certificateTokenId The certificate token to retrieve the balance for.
    * @param removalTokenId The removal token for which to retrieve the balance for this certificate.
+   * @return balance The balance of a removal used for this certificate.
    */
   function balanceOfRemoval(uint256 certificateTokenId, uint256 removalTokenId)
     external
@@ -259,14 +287,20 @@ contract Certificate is
   }
 
   /**
-   * @notice The address of the `Removal` contract.
+   * @notice Returns the address of the `Removal` contract.
+   *
+   * @return removalAddress address of the `Removal` contract.
    */
   function removalAddress() external view returns (address) {
     return address(_removal);
   }
 
   /**
-   * @notice Returns the total number of certificates that have been minted (including burned ones)
+   * @notice Returns the total number of certificates that have been minted.
+   *
+   * @dev Includes burned certificates.
+   *
+   * @return totalMinted Total number of certificates that have been minted.
    */
   function totalMinted() external view returns (uint256) {
     return _totalMinted();
@@ -277,6 +311,7 @@ contract Certificate is
    * was created.
    *
    * @param certificateId The certificate to retrieve the original amount for.
+   * @return purchaseAmount The tonnes of carbon removal purchased for the certificate.
    */
   function purchaseAmount(uint256 certificateId)
     external
@@ -290,6 +325,7 @@ contract Certificate is
    * @notice Returns the list of removal IDs that comprise the given certificate ID.
    *
    * @param certificateId The certificate ID for which to retrieve underlying removal IDs.
+   * @return removals The removals comprising the certificate.
    */
   function removalsOfCertificate(uint256 certificateId)
     external
@@ -318,7 +354,7 @@ contract Certificate is
    * in each certificate.
    *
    * @param removalId The removal token ID for which to retrieve all relevant certificate IDs and balances.
-   * @return An array of Balance structs, each of which includes an `id` and `amount`.
+   * @return certificates An array of Balance structs, each of which includes an `id` and `amount`.
    */
   function certificatesOfRemoval(uint256 removalId)
     external
@@ -361,7 +397,6 @@ contract Certificate is
 
   /**
    * @dev Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.
-   * See
    */
   function setApprovalForAll(address, bool)
     public
@@ -388,26 +423,36 @@ contract Certificate is
    *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks).
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused
+   * - Can only be used when the caller has the `CERTIFICATE_OPERATOR_ROLE`
+   *
    */
   function _beforeTokenTransfers(
     address from,
     address to,
     uint256 startTokenId,
     uint256 quantity
-  ) internal virtual override whenNotPaused {
+  )
+    internal
+    virtual
+    override
+    onlyRole(CERTIFICATE_OPERATOR_ROLE)
+    whenNotPaused
+  {
     bool isNotMinting = !(from == address(0));
     bool isNotBurning = !(to == address(0));
-    bool isMissingOperatorRole = !hasRole(
-      CERTIFICATE_OPERATOR_ROLE,
-      _msgSender()
-    );
-    if (isNotMinting && isNotBurning && isMissingOperatorRole) {
+    if (isNotMinting && isNotBurning) {
       revert ForbiddenTransferAfterMinting();
     }
     super._beforeTokenTransfers(from, to, startTokenId, quantity);
   }
 
   /**
+   * @notice Creates a new certificate for a batch of removals.
+   *
    * @dev Called when a batch of ERC1155 Removal tokens are sent to this contract.
    * Mints a new certificate token to the next sequential ID and updates the internal data structures
    * that track the relationship between the certificate and its constituent removal tokens and balances.
@@ -445,10 +490,12 @@ contract Certificate is
 
   /**
    * @notice Returns the sender of the transaction.
+   *
    * @dev In all cases currently, we expect that the `_msgSender()`, `_msgSenderERC721A()` and `msg.sender` all return
    * the same value. As such, this function is provided solely for compatibility with OpenZeppelin and ERC721A
    * contracts. For more, see [here](https://github.com/chiru-labs/ERC721A/pull/281) and [here](
    * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Context.sol).
+   *
    * @return For regular transactions it returns msg.sender and for meta transactions it *can* be used to return the end
    * user (rather than the relayer)
    */
@@ -457,11 +504,12 @@ contract Certificate is
   }
 
   /**
-   * @dev Validates the incoming batch of removal token data to ensure the number of IDs and the number of amounts
-   * specified are the same length.
+   * @notice Validates the incoming batch of removal token data by comparing the lengths of ids and amounts.
    *
-   * @param removalIds An array of removal token ids.
-   * @param removalAmounts An array of amounts.
+   * @dev Reverts if the array lengths do not match.
+   *
+   * @param removalIds Array of removal token ids.
+   * @param removalAmounts Array of amounts.
    */
   function _validateReceivedRemovalBatch(
     uint256[] memory removalIds,
@@ -474,7 +522,9 @@ contract Certificate is
   }
 
   /**
-   * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each token will be the concatenation of the
+   * @notice The baseUri for the certificate token.
+   *
+   * @dev Base URI for computing `tokenURI`. If set, the resulting URI for each token will be the concatenation of the
    * `baseURI` and the `tokenId`. Empty by default, it can be overridden in child contracts.
    */
   function _baseURI() internal pure override returns (string memory) {
