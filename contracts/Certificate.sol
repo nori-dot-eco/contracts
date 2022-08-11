@@ -69,7 +69,7 @@ contract Certificate is
   ERC721ABurnableUpgradeable,
   ERC721AQueryableUpgradeable,
   MulticallUpgradeable,
-  PausableAccessPreset,
+  PausableAccessPreset
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
