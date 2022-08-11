@@ -107,7 +107,7 @@ The logic for multiple cliffs followed by linear unlock used by the _LockedNORIV
 
 The schedule logic used in _RestrictedNORI_
 
-### RemovalQueue
+### RemovalsByYearLib
 
 The queing mechanism used by the _Market_ contract to maintain an ordered list of _Removal_ tokens listed for sale on behalf of a given supplier.
 

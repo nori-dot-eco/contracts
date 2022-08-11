@@ -107,22 +107,22 @@ describe('Market', () => {
     // });
     // describe('SupplierAdded', () => {
     //   it.todo(
-    //     'should be emitted when a supplier is added to _activeSupply with _addActiveSupplier'
+    //     'should be emitted when a supplier is added to _listedSupply with _addActiveSupplier'
     //   );
     // });
     // describe('SupplierRemoved', () => {
     //   it.todo(
-    //     'should be emitted when a supplier is removed from _activeSupply with _removeActiveSupplier'
+    //     'should be emitted when a supplier is removed from _listedSupply with _removeActiveSupplier'
     //   );
     // });
     // describe('RemovalAdded', () => {
     //   it.todo(
-    //     'should be emitted when a removal is added to _activeSupply with _addActiveRemoval'
+    //     'should be emitted when a removal is added to _listedSupply with _addActiveRemoval'
     //   );
     // });
     // describe('RemovalRemoved', () => {
     //   it.todo(
-    //     'should be emitted when a removal is removed from _activeSupply with _removeActiveRemoval'
+    //     'should be emitted when a removal is removed from _listedSupply with _removeActiveRemoval'
     //   );
     // });
   });

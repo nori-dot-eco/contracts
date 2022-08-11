@@ -164,7 +164,7 @@ contract RestrictedNORI is
   /**
    * @notice The BridgedPolygonNORI contract for which this contract wraps tokens.
    */
-  BridgedPolygonNORI private _bridgedPolygonNori;
+  BridgedPolygonNORI private _bridgedPolygonNORI;
 
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
@@ -436,7 +436,7 @@ contract RestrictedNORI is
     whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
-    _bridgedPolygonNori = BridgedPolygonNORI(bpNori);
+    _bridgedPolygonNORI = BridgedPolygonNORI(bpNori);
     _removal = Removal(removal);
   }
 
@@ -527,7 +527,7 @@ contract RestrictedNORI is
     schedule.totalClaimedAmount += amount;
     schedule.claimedAmountsByAddress[_msgSender()] += amount;
     emit TokensClaimed(_msgSender(), recipient, scheduleId, amount);
-    _bridgedPolygonNori.transfer(recipient, amount);
+    _bridgedPolygonNORI.transfer(recipient, amount);
     return true;
   }
 
@@ -671,7 +671,7 @@ contract RestrictedNORI is
       tokenHoldersLocal,
       quantitiesToBurnForHolders
     );
-    _bridgedPolygonNori.transfer(toAccount, quantityToRevoke);
+    _bridgedPolygonNORI.transfer(toAccount, quantityToRevoke);
   }
 
   // Private implementations ==========================================
