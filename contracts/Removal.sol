@@ -550,24 +550,21 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal virtual override whenNotPaused {
+    address market = address(_market);
+    bool isToAllowed = to == market ||
+      (to == address(_certificate) || to == address(0));
     for (uint256 i = 0; i < ids.length; ++i) {
       uint256 id = ids[i];
       if (amounts[i] == 0) {
         revert InvalidTokenTransfer({tokenId: id});
       }
-      address market = address(_market);
       if (to == market) {
         _currentMarketBalance += amounts[i];
       }
       if (from == market) {
         _currentMarketBalance -= amounts[i];
       }
-      if (
-        to != id.supplierAddress() &&
-        to != market &&
-        to != address(_certificate) &&
-        to != address(0)
-      ) {
+      if (!isToAllowed && to != id.supplierAddress()) {
         revert ForbiddenTransfer();
       }
     }
