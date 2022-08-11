@@ -3,7 +3,6 @@ pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
 import "./Errors.sol";
 import "./Removal.sol";
 import "./PausableAccessPreset.sol";
@@ -71,7 +70,6 @@ contract Certificate is
   ERC721AQueryableUpgradeable,
   MulticallUpgradeable,
   PausableAccessPreset,
-  IERC1155ReceiverUpgradeable
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
