@@ -259,9 +259,9 @@ contract Market is
   function onERC1155BatchReceived(
     address,
     address,
-    uint256[] memory ids,
-    uint256[] memory,
-    bytes memory
+    uint256[] calldata ids,
+    uint256[] calldata,
+    bytes calldata
   ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
     for (uint256 i = 0; i < ids.length; ++i) {
@@ -275,7 +275,7 @@ contract Market is
     address,
     uint256 id,
     uint256,
-    bytes memory
+    bytes calldata
   ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
     _addActiveRemoval({removalId: id});
