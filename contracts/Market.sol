@@ -224,7 +224,7 @@ contract Market is
    * @notice Returns the current value of the priority restricted threshold, which is the amount of inventory
    * that will always be reserved to sell only to buyers with the ALLOWLIST_ROLE.
    *
-   * @return priorityRestrictedThreshold The treshold of supply allowed for priority customers only.
+   * @return priorityRestrictedThreshold The threshold of supply allowed for priority customers only.
    */
   function priorityRestrictedThreshold() external view returns (uint256) {
     return _priorityRestrictedThreshold;
