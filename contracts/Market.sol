@@ -29,7 +29,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  *
  * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
  * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
- *   - all functions that mutate state are pausable
+ *   - all external functions that mutate state are pausable
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
  *    - MARKET_ADMIN_ROLE
  *      - Can set the fee percentage, fee wallet address, and priority restricted threshold
@@ -1003,13 +1003,8 @@ contract Market is
   }
 
   /**
-   * @notice Returns true if this contract implements the interface defined by `interfaceId`.
-   *
    * @dev See [IERC165.supportsInterface](
    * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
-   *
-   * @param interfaceId the ID of the interface
-   * @return isSupported whether or not the interface is implemented by the contract
    */
   function supportsInterface(bytes4 interfaceId)
     public
