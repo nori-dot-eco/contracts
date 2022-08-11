@@ -435,16 +435,14 @@ contract Certificate is
     address to,
     uint256 startTokenId,
     uint256 quantity
-  )
-    internal
-    virtual
-    override
-    onlyRole(CERTIFICATE_OPERATOR_ROLE)
-    whenNotPaused
-  {
+  ) internal virtual override whenNotPaused {
     bool isNotMinting = !(from == address(0));
     bool isNotBurning = !(to == address(0));
-    if (isNotMinting && isNotBurning) {
+    bool isMissingOperatorRole = !hasRole(
+      CERTIFICATE_OPERATOR_ROLE,
+      _msgSender()
+    );
+    if (isNotMinting && isNotBurning && isMissingOperatorRole) {
       revert ForbiddenTransferAfterMinting();
     }
     super._beforeTokenTransfers(from, to, startTokenId, quantity);
