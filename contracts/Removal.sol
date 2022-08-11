@@ -549,7 +549,6 @@ contract Removal is
     Certificate.Balance[] memory certificatesOfRemoval = _certificate
       .certificatesOfRemoval(removalId);
     uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
-    bytes[] memory releaseCalls = new bytes[](numberOfCertificatesForRemoval);
     for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
       Certificate.Balance memory certificateBalance = certificatesOfRemoval[i];
       uint256 amountToReleaseFromCertificate = MathUpgradeable.min(
@@ -562,12 +561,11 @@ contract Removal is
         removalId,
         amountToReleaseFromCertificate
       );
-      releaseCalls[i] = abi.encodeWithSelector(
-        _certificate.releaseRemoval.selector,
-        certificateBalance.id,
-        removalId,
-        amountToReleaseFromCertificate
-      );
+      _certificate.releaseRemoval({
+        certificateId: certificateBalance.id,
+        removalId: removalId,
+        amount: amountToReleaseFromCertificate
+      });
       emit RemovalReleased(
         removalId,
         this.certificateAddress(),
@@ -575,7 +573,6 @@ contract Removal is
       );
       if (amountReleased == amount) break;
     }
-    _certificate.multicall(releaseCalls);
   }
 
   function _afterTokenTransfer(
