@@ -25,6 +25,42 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * Each of these certificates is a non-transferrable, non-fungible token that owns the specific removal tokens
  * and token balances that comprise the specific certificate for the amount purchased.
  *
+ * ###### Additional behaviors and features
+ *
+ * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
+ * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ *   - all functions that mutate state are pausable
+ * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
+ *    - MARKET_ADMIN_ROLE
+ *      - Can set the fee percentage, fee wallet address, and priority restricted threshold
+ *      - This is the only role that can add/revoke other accounts to any of the roles
+ *    - ALLOWLIST_ROLE
+ *      - Can purchase from priority restricted supply
+ * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
+ *
+ * ##### Inherits
+ *
+ * - [IERC1155ReceiverUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
+ * - [MulticallUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Multicall)
+ * - [PausableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+ * - [AccessControlEnumerableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/access)
+ * - [ContextUpgradeable](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable)
+ * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
+ * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
+ *
+ * ##### Implements
+ *
+ * - [IERC1155](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155)
+ * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
+ * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
+ *
+ * ##### Uses
+ *
+ * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
+ *   for EnumerableSetUpgradeable.Uintset
+ * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
+ *
+ *
  * todo Consider adding getters for number of active suppliers
  * todo consider globally renaming "active"/"reserved" to names that better describe "(un)available" (e.g., "listed"?)
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
