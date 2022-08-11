@@ -2,7 +2,7 @@
 pragma solidity =0.8.15;
 import "./Errors.sol";
 
-struct UnpackedRemovalIdV0 {
+struct DecodedRemovalIdV0 {
   uint8 idVersion;
   uint8 methodology;
   uint8 methodologyVersion;
@@ -48,7 +48,7 @@ uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
  * For methodology 1 (regenerative ag), the subidentifier serves as a parcel identifier.
  */
 library RemovalIdLib {
-  using RemovalIdLib for UnpackedRemovalIdV0;
+  using RemovalIdLib for DecodedRemovalIdV0;
 
   function isCapitalized(bytes2 characters) internal pure returns (bool valid) {
     assembly {
@@ -61,7 +61,7 @@ library RemovalIdLib {
     }
   }
 
-  function validate(UnpackedRemovalIdV0 memory removal) internal pure {
+  function validate(DecodedRemovalIdV0 memory removal) internal pure {
     if (removal.idVersion != 0) {
       revert UnsupportedIdVersion({idVersion: removal.idVersion});
     }
@@ -87,7 +87,7 @@ library RemovalIdLib {
    * @param removal removal data struct to be packed into a uint256 ID
    */
   function createRemovalId(
-    UnpackedRemovalIdV0 memory removal // todo rename create
+    DecodedRemovalIdV0 memory removal // todo rename create
   ) internal pure returns (uint256) {
     removal.validate();
     uint256 methodologyData = (removal.methodology << 4) |
@@ -109,13 +109,13 @@ library RemovalIdLib {
   /**
    * @notice Unpacks a V0 removal id into its component data.
    */
-  function unpackRemovalIdV0(uint256 removalId)
+  function decodeRemovalIdV0(uint256 removalId)
     internal
     pure
-    returns (UnpackedRemovalIdV0 memory)
+    returns (DecodedRemovalIdV0 memory)
   {
     return
-      UnpackedRemovalIdV0(
+      DecodedRemovalIdV0(
         version(removalId),
         methodology(removalId),
         methodologyVersion(removalId),

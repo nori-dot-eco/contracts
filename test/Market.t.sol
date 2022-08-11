@@ -446,7 +446,7 @@ contract Market__addActiveRemoval is NonUpgradeableMarket, UpgradeableRemoval {
   }
 
   function test__list2VintagesFor1SupplierFor1SubIdentifier() external {
-    UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
+    DecodedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
     secondRemovalsData.vintage = REMOVAL_DATA_FIXTURE.vintage + 1;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
     _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
@@ -466,7 +466,7 @@ contract Market__addActiveRemoval is NonUpgradeableMarket, UpgradeableRemoval {
   }
 
   function test__lis2VintagesFor1SupplierFor2SubIdentifiers() external {
-    UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
+    DecodedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
     secondRemovalsData.subIdentifier = REMOVAL_DATA_FIXTURE.subIdentifier + 1;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
     _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
@@ -489,7 +489,7 @@ contract Market__addActiveRemoval is NonUpgradeableMarket, UpgradeableRemoval {
   }
 
   function test__list1VintageFor2Suppliers() external {
-    UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
+    DecodedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
     secondRemovalsData.supplierAddress = _namedAccounts.supplier2;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
     _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});

@@ -3,7 +3,7 @@ pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "./Market.sol";
-import {RemovalIdLib, UnpackedRemovalIdV0} from "./RemovalIdLib.sol";
+import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
 import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
 
 /**
@@ -55,7 +55,7 @@ import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from 
  * - This contract uses the inlined library RemovalIdLib.sol for uint256.
  * - When minting tokens, an array of structs containing information about each removal is passed as an argument to
  * `mintBatch` and that data is used to generate the encoded token IDs for each removal.
- * - `unpackRemovalIdV0` is exposed externally for encoding and decoding removal token IDs that contain uniquely
+ * - `decodeRemovalIdV0` is exposed externally for encoding and decoding removal token IDs that contain uniquely
  * identifying information about the removal. See RemovalIdLib.sol for encoding details.
  *
  * ###### Additional behaviors and features
@@ -131,11 +131,11 @@ contract Removal is
   // todo Test accounting for `_projectIdToHoldbackPercentage` is maintained correctly (assuming we need it)
   mapping(uint256 => uint8) private _projectIdToHoldbackPercentage;
   // todo Test accounting for `_removalIdToProjectId` is maintained correctly (assuming we need it)
-  // todo consider moving `Removal._removalIdToProjectId` to rNori
+  // todo consider moving `Removal._removalIdToProjectId` to _restrictedNORI
   mapping(uint256 => uint256) private _removalIdToProjectId;
   // todo Test accounting for `_addressToOwnedTokenIds` is maintained correctly (assuming we need it)
   mapping(address => EnumerableSetUpgradeable.UintSet)
-    private _addressToOwnedTokenIds;
+    private _addressToOwnedTokenIds; // TODO expose getter for the list of ids for an address
   uint256 private _currentMarketBalance;
 
   /**
@@ -210,7 +210,7 @@ contract Removal is
    *
    * @param to The recipient of this batch of removals. Should be the supplier's address or the market address.
    * @param amounts Each removal's tonnes of CO2 formatted.
-   * @param removals The removals to mint (represented as an array of `UnpackedRemovalIdV0`). These removals are used
+   * @param removals The removals to mint (represented as an array of `DecodedRemovalIdV0`). These removals are used
    * to encode the removal IDs.
    * @param projectId The project id for this batch of removals.
    * @param scheduleStartTime The start time of the schedule for this batch of removals.
@@ -226,20 +226,22 @@ contract Removal is
   function mintBatch(
     address to,
     uint256[] calldata amounts,
-    UnpackedRemovalIdV0[] calldata removals,
+    DecodedRemovalIdV0[] calldata removals,
     uint256 projectId,
     uint256 scheduleStartTime,
     uint8 holdbackPercentage
   ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
-    uint256[] memory removalIds = _createRemovalDataBatch({
+    uint256[] memory ids = _createRemovals({
       removals: removals,
       projectId: projectId
     });
     _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
-    _mintBatch({to: to, ids: removalIds, amounts: amounts, data: ""});
-    RestrictedNORI rNori = RestrictedNORI(_market.restrictedNoriAddress());
-    if (!rNori.scheduleExists({scheduleId: projectId})) {
-      rNori.createSchedule({
+    _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
+    RestrictedNORI _restrictedNORI = RestrictedNORI(
+      _market.restrictedNoriAddress()
+    );
+    if (!_restrictedNORI.scheduleExists({scheduleId: projectId})) {
+      _restrictedNORI.createSchedule({
         projectId: projectId,
         startTime: scheduleStartTime,
         methodology: removals[0].methodology, // todo enforce same methodology+version across ids?
@@ -305,7 +307,7 @@ contract Removal is
    * @notice Accounts for carbon that has failed to meet its permanence guarantee and has been released into
    * the atmosphere prematurely.
    *
-   * @dev Releases `amount` of removal `removalId` by burning it. The replacement of released removals that had
+   * @dev Releases `amount` of removal `id` by burning it. The replacement of released removals that had
    * already been included in certificates is beyond the scope of this version of the contracts.
    *
    * ##### Requirements:
@@ -326,10 +328,10 @@ contract Removal is
    * - The rules of `_burn` are enforced.
    * - Can only be used when the contract is not paused.
    *
-   * @param removalId The ID of the removal to release some amount of.
+   * @param id The ID of the removal to release some amount of.
    * @param amount The amount of the removal to release.
    */
-  function release(uint256 removalId, uint256 amount)
+  function release(uint256 id, uint256 amount)
     external
     whenNotPaused
     onlyRole(RELEASER_ROLE)
@@ -337,31 +339,28 @@ contract Removal is
     // todo might need to add pagination/incremental if removal spans a ton of certificates and reaches max gas
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
-      account: removalId.supplierAddress(),
-      id: removalId
+      account: id.supplierAddress(),
+      id: id
     });
     if (unlistedBalance > 0) {
       uint256 amountToRelease = MathUpgradeable.min(amount, unlistedBalance);
-      _releaseFromSupplier({removalId: removalId, amount: amountToRelease});
+      _releaseFromSupplier({id: id, amount: amountToRelease});
       amountReleased += amountToRelease;
     }
     if (amountReleased < amount) {
-      uint256 listedBalance = balanceOf(this.marketAddress(), removalId);
+      uint256 listedBalance = balanceOf(this.marketAddress(), id);
       if (listedBalance > 0) {
         uint256 amountToRelease = MathUpgradeable.min(
           amount - amountReleased,
           listedBalance
         );
-        _releaseFromMarket({amount: amountToRelease, removalId: removalId});
+        _releaseFromMarket({amount: amountToRelease, id: id});
         amountReleased += amountToRelease;
       }
       if (amountReleased < amount) {
-        if (balanceOf(this.certificateAddress(), removalId) > 0) {
+        if (balanceOf(this.certificateAddress(), id) > 0) {
           uint256 amountToRelease = amount - amountReleased;
-          _releaseFromCertificate({
-            removalId: removalId,
-            amount: amount - amountReleased
-          });
+          _releaseFromCertificate({id: id, amount: amount - amountReleased});
           amountReleased += amountToRelease;
         }
       }
@@ -437,10 +436,10 @@ contract Removal is
   /**
    * @notice Gets the project id (which is the removal's schedule id in RestrictedNORI) for a given removal id.
    *
-   * @param removalId The removal token ID for which to retrieve the project id
+   * @param id The removal token ID for which to retrieve the project id
    */
-  function getProjectId(uint256 removalId) external view returns (uint256) {
-    return _removalIdToProjectId[removalId];
+  function getProjectId(uint256 id) external view returns (uint256) {
+    return _removalIdToProjectId[id];
   }
 
   /**
@@ -477,14 +476,14 @@ contract Removal is
   /**
    * @notice Decodes a V0 removal id into its component data.
    *
-   * @param removalId The token ID to decode.
+   * @param id The token ID to decode.
    */
-  function unpackRemovalIdV0(uint256 removalId)
+  function decodeRemovalIdV0(uint256 id)
     external
     pure
-    returns (UnpackedRemovalIdV0 memory)
+    returns (DecodedRemovalIdV0 memory)
   {
-    return removalId.unpackRemovalIdV0();
+    return id.decodeRemovalIdV0();
   }
 
   /**
@@ -555,6 +554,14 @@ contract Removal is
       if (amounts[i] == 0) {
         revert InvalidTokenTransfer({tokenId: id});
       }
+      if (from != address(0)) {
+        if (balanceOf(from, id) == 0) {
+          _addressToOwnedTokenIds[from].remove(id);
+        }
+      }
+      if (to != address(0)) {
+        _addressToOwnedTokenIds[to].add(id);
+      }
       address market = address(_market);
       if (to == market) {
         _currentMarketBalance += amounts[i];
@@ -575,52 +582,50 @@ contract Removal is
   }
 
   /**
-   * @dev Burns `amount` of token ID `removalId` from the supplier address encoded in the ID.
+   * @dev Burns `amount` of token ID `id` from the supplier address encoded in the ID.
    *
    * Emits a {RemovalReleased} event.
    *
-   * @param removalId The token ID to burn.
+   * @param id The token ID to burn.
    * @param amount The amount to burn.
    */
-  function _releaseFromSupplier(uint256 removalId, uint256 amount) internal {
-    address supplierAddress = removalId.supplierAddress();
-    emit RemovalReleased(removalId, supplierAddress, amount);
-    super._burn(supplierAddress, removalId, amount);
+  function _releaseFromSupplier(uint256 id, uint256 amount) internal {
+    address supplierAddress = id.supplierAddress();
+    emit RemovalReleased(id, supplierAddress, amount);
+    super._burn(supplierAddress, id, amount);
   }
 
-  function _createRemovalDataBatch(
-    UnpackedRemovalIdV0[] calldata removals,
+  function _createRemovals(
+    DecodedRemovalIdV0[] calldata removals,
     uint256 projectId
   ) internal returns (uint256[] memory) {
-    uint256[] memory removalIds = new uint256[](removals.length);
+    uint256[] memory ids = new uint256[](removals.length);
     // Skip overflow check as for loop is indexed starting at zero.
     unchecked {
       for (uint256 i = 0; i < removals.length; ++i) {
-        uint256 removalId = RemovalIdLib.createRemovalId({
-          removal: removals[i]
-        });
-        _createRemovalData({removalId: removalId, projectId: projectId});
-        removalIds[i] = removalId;
+        uint256 id = RemovalIdLib.createRemovalId({removal: removals[i]});
+        _createRemoval({id: id, projectId: projectId});
+        ids[i] = id;
       }
     }
-    return removalIds;
+    return ids;
   }
 
-  function _createRemovalData(uint256 removalId, uint256 projectId) internal {
-    _validateRemoval({id: removalId});
-    _removalIdToProjectId[removalId] = projectId;
+  function _createRemoval(uint256 id, uint256 projectId) internal {
+    _validateRemoval({id: id});
+    _removalIdToProjectId[id] = projectId;
   }
 
-  function _releaseFromMarket(uint256 removalId, uint256 amount) internal {
-    super._burn(this.marketAddress(), removalId, amount);
-    _market.release(removalId, amount);
-    emit RemovalReleased(removalId, this.marketAddress(), amount);
+  function _releaseFromMarket(uint256 id, uint256 amount) internal {
+    super._burn(this.marketAddress(), id, amount);
+    _market.release(id, amount);
+    emit RemovalReleased(id, this.marketAddress(), amount);
   }
 
-  function _releaseFromCertificate(uint256 removalId, uint256 amount) internal {
+  function _releaseFromCertificate(uint256 id, uint256 amount) internal {
     uint256 amountReleased = 0;
     Certificate.Balance[] memory certificatesOfRemoval = _certificate
-      .certificatesOfRemoval(removalId);
+      .certificatesOfRemoval(id);
     uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
     for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
       Certificate.Balance memory certificateBalance = certificatesOfRemoval[i];
@@ -631,16 +636,16 @@ contract Removal is
       amountReleased += amountToReleaseFromCertificate;
       super._burn(
         this.certificateAddress(),
-        removalId,
+        id,
         amountToReleaseFromCertificate
       );
       _certificate.releaseRemoval({
         certificateId: certificateBalance.id,
-        removalId: removalId,
+        removalId: id,
         amount: amountToReleaseFromCertificate
       });
       emit RemovalReleased(
-        removalId,
+        id,
         this.certificateAddress(),
         amountToReleaseFromCertificate
       );
@@ -648,38 +653,38 @@ contract Removal is
     }
   }
 
-  function _afterTokenTransfer(
-    address operator,
-    address from,
-    address to,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    bytes memory data
-  ) internal virtual override {
-    _updateOwnedTokenIds(from, to, ids);
-    super._afterTokenTransfer(operator, from, to, ids, amounts, data);
-  }
+  // function _afterTokenTransfer(
+  //   address operator,
+  //   address from,
+  //   address to,
+  //   uint256[] memory ids,
+  //   uint256[] memory amounts,
+  //   bytes memory data
+  // ) internal virtual override {
+  //   _updateOwnedTokenIds(from, to, ids);
+  //   super._afterTokenTransfer(operator, from, to, ids, amounts, data);
+  // }
 
-  function _updateOwnedTokenIds(
-    address from,
-    address to,
-    uint256[] memory ids
-  ) internal {
-    // Skip overflow check as for loop is indexed starting at zero.
-    unchecked {
-      for (uint256 i = 0; i < ids.length; ++i) {
-        uint256 id = ids[i];
-        if (from != address(0)) {
-          if (balanceOf(from, id) == 0) {
-            _addressToOwnedTokenIds[from].remove(id);
-          }
-        }
-        if (to != address(0)) {
-          _addressToOwnedTokenIds[to].add(id);
-        }
-      }
-    }
-  }
+  // function _updateOwnedTokenIds(
+  //   address from,
+  //   address to,
+  //   uint256[] memory ids
+  // ) internal {
+  //   // Skip overflow check as for loop is indexed starting at zero.
+  //   unchecked {
+  //     for (uint256 i = 0; i < ids.length; ++i) {
+  //       uint256 id = ids[i];
+  //       if (from != address(0)) {
+  //         if (balanceOf(from, id) == 0) {
+  //           _addressToOwnedTokenIds[from].remove(id);
+  //         }
+  //       }
+  //       if (to != address(0)) {
+  //         _addressToOwnedTokenIds[to].add(id);
+  //       }
+  //     }
+  //   }
+  // }
 
   function _validateRemoval(uint256 id) internal view {
     if (_removalIdToProjectId[id] != 0) {

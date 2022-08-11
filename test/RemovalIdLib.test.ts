@@ -17,7 +17,7 @@ describe('RemovalIdLib', () => {
     const removalData: UnpackedRemovalIdV0Struct = defaultRemovalTokenIdFixture;
     const removalId = await harness.createRemovalId(removalData);
     const unpackedRemovalId: UnpackedRemovalIdV0StructOutput =
-      await harness.unpackRemovalIdV0(removalId);
+      await harness.decodeRemovalIdV0(removalId);
     expect(unpackedRemovalId.idVersion).equal(removalData.idVersion);
     expect(unpackedRemovalId.methodology).equal(removalData.methodology);
     expect(unpackedRemovalId.methodologyVersion).equal(
@@ -58,7 +58,7 @@ describe('RemovalIdLib', () => {
   //   );
 
   //   const unpackedRemovalId: UnpackedRemovalIdV0StructOutput =
-  //     await harness.unpackRemovalIdV0(removalId);
+  //     await harness.decodeRemovalIdV0(removalId);
 
   //   expect(unpackedRemovalId.idVersion).equal(removalData.idVersion);
   //   expect(unpackedRemovalId.methodology).equal(removalData.methodology);

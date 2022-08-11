@@ -25,8 +25,8 @@ contract Removal_mintBatch_list is UpgradeableMarket {
 contract Removal_mintBatch_list_sequential is UpgradeableMarket {
   function test() external {
     _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
-    UnpackedRemovalIdV0[] memory ids = new UnpackedRemovalIdV0[](1);
-    ids[0] = UnpackedRemovalIdV0({
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 0,
@@ -49,8 +49,8 @@ contract Removal_mintBatch_list_sequential is UpgradeableMarket {
 
 contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
   function test() external {
-    UnpackedRemovalIdV0[] memory ids = new UnpackedRemovalIdV0[](1);
-    ids[0] = UnpackedRemovalIdV0({
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 0,
@@ -97,7 +97,7 @@ contract Removal_addBalance is UpgradeableMarket {
 contract Removal_addBalance_reverts_RemovalNotYetMinted is UpgradeableMarket {
   function test() external {
     uint256 unmintedTokenId = RemovalIdLib.createRemovalId({
-      removal: UnpackedRemovalIdV0({
+      removal: DecodedRemovalIdV0({
         idVersion: 0,
         methodology: 1,
         methodologyVersion: 0,
@@ -139,15 +139,15 @@ contract Removal__createRemovalDataBatch is NonUpgradeableRemoval {
   /** @dev allows using the `calldata` type for the `removalIds` param as this function is external  */
 
   function createRemovalDataBatch(
-    UnpackedRemovalIdV0[] calldata removals,
+    DecodedRemovalIdV0[] calldata removals,
     uint256 projectId
   ) external {
-    _createRemovalDataBatch({removals: removals, projectId: projectId});
+    _createRemovals({removals: removals, projectId: projectId});
   }
 
   function test() external {
-    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](1);
-    removals[0] = UnpackedRemovalIdV0({
+    DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
+    removals[0] = DecodedRemovalIdV0({
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 0,
@@ -161,8 +161,8 @@ contract Removal__createRemovalDataBatch is NonUpgradeableRemoval {
   }
 
   function test_reverts_InvalidData2() external {
-    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](1);
-    removals[0] = UnpackedRemovalIdV0({
+    DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
+    removals[0] = DecodedRemovalIdV0({
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 0,
@@ -180,19 +180,19 @@ contract Removal__createRemovalDataBatch is NonUpgradeableRemoval {
 
 contract Removal__createRemovalData is NonUpgradeableRemoval {
   function test() external {
-    _createRemovalData({removalId: 1, projectId: 1});
+    _createRemoval({id: 1, projectId: 1});
   }
 
   function test_reverts_InvalidData() external {
-    _createRemovalData({removalId: 1, projectId: 1});
+    _createRemoval({id: 1, projectId: 1});
     vm.expectRevert(InvalidData.selector);
-    _createRemovalData({removalId: 1, projectId: 1});
+    _createRemoval({id: 1, projectId: 1});
   }
 }
 
 contract Removal__validateRemoval is NonUpgradeableRemoval {
   function setUp() external {
-    _createRemovalData({removalId: 1, projectId: 1});
+    _createRemoval({id: 1, projectId: 1});
   }
 
   function test() external view {
@@ -211,7 +211,7 @@ contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
   uint8[] private _retrievedHoldbackPercentages;
 
   function setUp() external {
-    UnpackedRemovalIdV0[] memory removalBatch = new UnpackedRemovalIdV0[](1);
+    DecodedRemovalIdV0[] memory removalBatch = new DecodedRemovalIdV0[](1);
     removalBatch[0] = REMOVAL_DATA_FIXTURE;
     _removal.mintBatch({
       to: _namedAccounts.supplier,
@@ -251,8 +251,8 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
   uint8[] private _retrievedHoldbackPercentages;
 
   function setUp() external {
-    UnpackedRemovalIdV0[]
-      memory firstRemovalBatchFixture = new UnpackedRemovalIdV0[](1);
+    DecodedRemovalIdV0[]
+      memory firstRemovalBatchFixture = new DecodedRemovalIdV0[](1);
     firstRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
     _removal.mintBatch(
       _namedAccounts.supplier,
@@ -262,8 +262,8 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
       block.timestamp,
       _firstHoldbackPercentage
     );
-    UnpackedRemovalIdV0[]
-      memory secondRemovalBatchFixture = new UnpackedRemovalIdV0[](1);
+    DecodedRemovalIdV0[]
+      memory secondRemovalBatchFixture = new DecodedRemovalIdV0[](1);
     secondRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
     secondRemovalBatchFixture[0].subIdentifier =
       REMOVAL_DATA_FIXTURE.subIdentifier +
@@ -732,7 +732,7 @@ contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
 
   function setUp() external {
     _removalId = RemovalIdLib.createRemovalId(
-      UnpackedRemovalIdV0({
+      DecodedRemovalIdV0({
         idVersion: 0,
         methodology: 1,
         methodologyVersion: 0,

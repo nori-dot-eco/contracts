@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
-import {UnpackedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
+import {DecodedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
 import {AddressArrayLib, UInt256ArrayLib} from "@/contracts/ArrayLib.sol";
 
 using AddressArrayLib for address[];

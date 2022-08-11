@@ -1152,7 +1152,7 @@ describe('purchasing from a specified supplier', () => {
     // const sources = await certificate.sources(0);// todo
     // expect(sources.length).to.equal(2);
     // const decodedRemovalIds = await Promise.all(
-    //   sources.map((source) => removal.unpackRemovalIdV0(source.removalId))
+    //   sources.map((source) => removal.decodeRemovalIdV0(source.removalId))
     // );
     // expect(decodedRemovalIds.map((e) => e.supplierAddress)).to.deep.equal(
     //   Array.from({ length: decodedRemovalIds.length }).fill(

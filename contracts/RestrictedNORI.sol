@@ -497,7 +497,7 @@ contract RestrictedNORI is
     if (!hasRole(MINTER_ROLE, _msgSender())) {
       revert InvalidMinter({account: _msgSender()});
     }
-    uint256 projectId = _removal.getProjectId({removalId: removalId});
+    uint256 projectId = _removal.getProjectId({id: removalId});
     address supplierAddress = RemovalIdLib.supplierAddress(removalId);
     super._mint(supplierAddress, projectId, amount, "");
     _scheduleIdToScheduleStruct[projectId].tokenHolders.add(supplierAddress);

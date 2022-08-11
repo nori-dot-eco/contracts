@@ -9,13 +9,13 @@ using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
 
 abstract contract UpgradeableRemoval is Upgradeable {
-  UnpackedRemovalIdV0[] _REMOVAL_FIXTURES;
+  DecodedRemovalIdV0[] _REMOVAL_FIXTURES;
 
   address internal _marketAddress;
 
   /**
    * @dev REMOVAL_ID_FIXTURE is the result of:
-   * RemovalIdLib.createRemovalId(UnpackedRemovalIdV0({
+   * RemovalIdLib.createRemovalId(DecodedRemovalIdV0({
    *   idVersion: 0,
    *   methodology: 1,
    *   methodologyVersion: 0,
@@ -30,8 +30,8 @@ abstract contract UpgradeableRemoval is Upgradeable {
   uint256 public constant REMOVAL_ID_FIXTURE =
     28323967194635191374224967253542818032149542492774326996283828950022961850;
 
-  UnpackedRemovalIdV0 public REMOVAL_DATA_FIXTURE =
-    UnpackedRemovalIdV0({
+  DecodedRemovalIdV0 public REMOVAL_DATA_FIXTURE =
+    DecodedRemovalIdV0({
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 0,
@@ -56,7 +56,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
   constructor() {
     _removal = _deployRemoval();
     _REMOVAL_FIXTURES.push(
-      UnpackedRemovalIdV0({
+      DecodedRemovalIdV0({
         idVersion: 0,
         methodology: 1,
         methodologyVersion: 0,
@@ -88,9 +88,9 @@ abstract contract UpgradeableRemoval is Upgradeable {
     bool list
   ) internal returns (uint256[] memory) {
     uint256[] memory _removalIds = new uint256[](count);
-    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](count);
+    DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](count);
     for (uint32 i = 0; i < count; i++) {
-      UnpackedRemovalIdV0 memory removalData = UnpackedRemovalIdV0({
+      DecodedRemovalIdV0 memory removalData = DecodedRemovalIdV0({
         idVersion: 0,
         methodology: 1,
         methodologyVersion: 0,
@@ -138,10 +138,10 @@ contract NonUpgradeableRemoval is Removal, Global {
     bool list,
     bool uniqueVintages
   ) internal returns (uint256[] memory) {
-    UnpackedRemovalIdV0[] memory _removals = new UnpackedRemovalIdV0[](count);
+    DecodedRemovalIdV0[] memory _removals = new DecodedRemovalIdV0[](count);
     uint256[] memory _removalIds = new uint256[](count);
     for (uint32 i = 0; i < count; i++) {
-      _removals[i] = UnpackedRemovalIdV0({
+      _removals[i] = DecodedRemovalIdV0({
         idVersion: 0,
         methodology: 1,
         methodologyVersion: 0,
