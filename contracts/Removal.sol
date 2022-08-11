@@ -549,20 +549,12 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal virtual override whenNotPaused {
+    address market = address(_market);
     for (uint256 i = 0; i < ids.length; ++i) {
       uint256 id = ids[i];
       if (amounts[i] == 0) {
         revert InvalidTokenTransfer({tokenId: id});
       }
-      if (from != address(0)) {
-        if (balanceOf(from, id) == 0) {
-          _addressToOwnedTokenIds[from].remove(id);
-        }
-      }
-      if (to != address(0)) {
-        _addressToOwnedTokenIds[to].add(id);
-      }
-      address market = address(_market);
       if (to == market) {
         _currentMarketBalance += amounts[i];
       }
@@ -653,38 +645,38 @@ contract Removal is
     }
   }
 
-  // function _afterTokenTransfer(
-  //   address operator,
-  //   address from,
-  //   address to,
-  //   uint256[] memory ids,
-  //   uint256[] memory amounts,
-  //   bytes memory data
-  // ) internal virtual override {
-  //   _updateOwnedTokenIds(from, to, ids);
-  //   super._afterTokenTransfer(operator, from, to, ids, amounts, data);
-  // }
+  function _afterTokenTransfer(
+    address operator,
+    address from,
+    address to,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    bytes memory data
+  ) internal virtual override {
+    _updateOwnedTokenIds(from, to, ids);
+    super._afterTokenTransfer(operator, from, to, ids, amounts, data);
+  }
 
-  // function _updateOwnedTokenIds(
-  //   address from,
-  //   address to,
-  //   uint256[] memory ids
-  // ) internal {
-  //   // Skip overflow check as for loop is indexed starting at zero.
-  //   unchecked {
-  //     for (uint256 i = 0; i < ids.length; ++i) {
-  //       uint256 id = ids[i];
-  //       if (from != address(0)) {
-  //         if (balanceOf(from, id) == 0) {
-  //           _addressToOwnedTokenIds[from].remove(id);
-  //         }
-  //       }
-  //       if (to != address(0)) {
-  //         _addressToOwnedTokenIds[to].add(id);
-  //       }
-  //     }
-  //   }
-  // }
+  function _updateOwnedTokenIds(
+    address from,
+    address to,
+    uint256[] memory ids
+  ) internal {
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < ids.length; ++i) {
+        uint256 id = ids[i];
+        if (from != address(0)) {
+          if (balanceOf(from, id) == 0) {
+            _addressToOwnedTokenIds[from].remove(id);
+          }
+        }
+        if (to != address(0)) {
+          _addressToOwnedTokenIds[to].add(id);
+        }
+      }
+    }
+  }
 
   function _validateRemoval(uint256 id) internal view {
     if (_removalIdToProjectId[id] != 0) {

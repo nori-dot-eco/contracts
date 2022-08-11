@@ -61,7 +61,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  *
- * todo Consider adding getters for number of active suppliers
+ * todo Consider adding getters for number of active suppliers (and actually just getting all suppliers in the list)
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
  */
 contract Market is
@@ -934,9 +934,8 @@ contract Market is
   }
 
   /**
-   * @notice Authorizes withdrawal for the removal.
-   *
-   * @dev Reverts if the caller is not the owner of the removal and does not have the role `MARKET_ADMIN_ROLE`.
+   * @dev Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
+   * does not have the role `MARKET_ADMIN_ROLE`.
    *
    * @param owner The owner of the removal
    */
@@ -947,9 +946,8 @@ contract Market is
   }
 
   /**
-   * @notice Adds the specified removal ID to the listed supply data structure.
-   *
-   * @dev If this is the supplier's first listed removal, the supplier is also added to the active supplier queue.
+   * @dev Adds the specified removal ID to the _listedSupply data structure. If this is the supplier's
+   * first listed removal, the supplier is also added to the active supplier queue.
    *
    * @param removalId The ID of the removal to add
    */
@@ -965,9 +963,8 @@ contract Market is
   }
 
   /**
-   * @notice Removes the specified removal ID from the listed supply data structure.
-   *
-   * @dev If this is the supplier's last listed removal, the supplier is also removed from the active supplier queue.
+   * @dev Removes the specified removal ID from the listed supply data structure. If this is the supplier's last
+   * listed removal, the supplier is also removed from the active supplier queue.
    *
    * @param removalId The ID of the removal to remove
    * @param supplierAddress The address of the supplier of the removal
@@ -1053,12 +1050,11 @@ contract Market is
   }
 
   /**
-   * @notice Adds a supplier to the active supplier queue.
-   *
-   * @dev Called when a new supplier is added to the marketplace. If the first supplier, initializes a cicularly
-   * doubly-linked list, where initially the first supplier points to itself as next and previous. When a new supplier
-   * is added, at the position of the current supplier, update the previous pointer of the current supplier to point to
-   * the new supplier, and update the next pointer of the previous supplier to the new supplier.
+   * @dev Adds a supplier to the active supplier queue. Called when a new supplier is added to the marketplace.
+   * If the first supplier, initializes a cicularly doubly-linked list, where initially the first supplier points
+   * to itself as next and previous. When a new supplier is added, at the position of the current supplier, update
+   * the previous pointer of the current supplier to point to the new supplier, and update the next pointer of the
+   * previous supplier to the new supplier.
    *
    * @param newSupplierAddress the address of the new supplier to add
    */
@@ -1104,11 +1100,9 @@ contract Market is
   }
 
   /**
-   * @notice Removes a supplier from the active supplier queue.
-   *
-   * @dev Called when a supplier's last removal is used for an order. If the last supplier,
-   * resets the pointer for the currentSupplierAddress. Otherwise, from the position of the supplier to be
-   * removed, update the previous supplier to point to the next of the removed supplier, and the next of
+   * @dev Removes a supplier from the active supplier queue. Called when a supplier's last removal is used for an order.
+   * If the last supplier, resets the pointer for the currentSupplierAddress. Otherwise, from the position of the supplier
+   * to be removed, update the previous supplier to point to the next of the removed supplier, and the next of
    * the removed supplier to point to the previous of the remove supplier. Then, set the next and previous
    * pointers of the removed supplier to the 0x address.
    *
