@@ -6,7 +6,7 @@ import "./PausableAccessPreset.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import {RemovalQueue, RemovalQueueByVintage} from "./RemovalQueue.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
-import {UInt256ArrayLib} from "./ArrayLib.sol";
+import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
 import "./Errors.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
@@ -37,6 +37,7 @@ contract Market is
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalQueue for RemovalQueueByVintage;
   using UInt256ArrayLib for uint256[];
+  using AddressArrayLib for address[];
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
    */
@@ -392,6 +393,7 @@ contract Market is
       uint256[] memory amounts
     ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
     address[] memory suppliers = new address[](numberOfRemovals);
+    // suppliers.fill(supplierToBuyFrom);
     for (uint256 i = 0; i < numberOfRemovals; ++i) {
       suppliers[i] = supplierToBuyFrom;
     }
