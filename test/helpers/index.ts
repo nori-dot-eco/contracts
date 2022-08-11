@@ -2,7 +2,7 @@ import { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { add } from '@nori-dot-com/math';
 
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
+import type { DecodedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import { sum } from '@/utils/math';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
