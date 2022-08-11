@@ -4,14 +4,14 @@ pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import "./PausableAccessPreset.sol";
+import "./AccessPresetPausable.sol";
 
 // todo AUDIT https://norinauts.slack.com/archives/C023A5VN86R/p1656529393031139
 abstract contract ERC20Preset is
   ERC20BurnableUpgradeable,
   ERC20PermitUpgradeable,
   MulticallUpgradeable,
-  PausableAccessPreset
+  AccessPresetPausable
 {
   function __ERC20Preset_init_unchained() internal onlyInitializing {
     // solhint-disable-previous-line func-name-mixedcase

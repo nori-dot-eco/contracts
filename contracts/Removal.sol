@@ -101,7 +101,7 @@ import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from 
  */
 contract Removal is
   ERC1155SupplyUpgradeable,
-  PausableAccessPreset,
+  AccessPresetPausable,
   MulticallUpgradeable
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;

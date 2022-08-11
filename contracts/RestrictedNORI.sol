@@ -125,7 +125,7 @@ struct ScheduleDetailForAddress {
  */
 contract RestrictedNORI is
   ERC1155SupplyUpgradeable,
-  PausableAccessPreset,
+  AccessPresetPausable,
   MulticallUpgradeable
 {
   using RestrictedNORILib for Schedule;

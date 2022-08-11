@@ -2,7 +2,7 @@
 pragma solidity =0.8.15;
 import "./Certificate.sol";
 import "./RestrictedNORI.sol";
-import "./PausableAccessPreset.sol";
+import "./AccessPresetPausable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import {RemovalsByYearLib, RemovalsByYear} from "./RemovalsByYearLib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
@@ -65,7 +65,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
  */
 contract Market is
-  PausableAccessPreset,
+  AccessPresetPausable,
   IERC1155ReceiverUpgradeable,
   MulticallUpgradeable
 {
