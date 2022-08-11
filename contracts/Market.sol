@@ -25,8 +25,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * Each of these certificates is a non-transferrable, non-fungible token that owns the specific removal tokens
  * and token balances that comprise the specific certificate for the amount purchased.
  *
- * todo Emit events when state mutates and other existing events aren't capturing that change
- * todo Consider adding MARKET_ADMIN_ROLE (sets thresholds, etc, so they can be done from admin ui without super admin)
  * todo Consider adding getters for number of active suppliers
  * todo consider globally renaming "active"/"reserved" to names that better describe "(un)available" (e.g., "listed"?)
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
@@ -337,12 +335,12 @@ contract Market is
   function onERC1155BatchReceived(
     address,
     address,
-    uint256[] memory ids, // todo calldata?
+    uint256[] memory ids,
     uint256[] memory,
     bytes memory
   ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
-    for (uint256 i = 0; i < ids.length; i++) {
+    for (uint256 i = 0; i < ids.length; ++i) {
       _addActiveRemoval(ids[i]);
     }
     return this.onERC1155BatchReceived.selector;
@@ -369,7 +367,7 @@ contract Market is
     address,
     uint256 id,
     uint256,
-    bytes calldata
+    bytes memory
   ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
     _addActiveRemoval({removalId: id});
@@ -496,7 +494,7 @@ contract Market is
       uint256[] memory amounts
     ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
     address[] memory suppliers = new address[](numberOfRemovals);
-    for (uint256 i = 0; i < numberOfRemovals; i++) {
+    for (uint256 i = 0; i < numberOfRemovals; ++i) {
       suppliers[i] = supplierToBuyFrom;
     }
     _bridgedPolygonNori.permit(
@@ -603,7 +601,7 @@ contract Market is
     uint256[] memory amounts = new uint256[](numberOfActiveRemovalsInMarket);
     address[] memory suppliers = new address[](numberOfActiveRemovalsInMarket);
     uint256 numberOfRemovalsForOrder = 0;
-    for (uint256 i = 0; i < numberOfActiveRemovalsInMarket; i++) {
+    for (uint256 i = 0; i < numberOfActiveRemovalsInMarket; ++i) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
@@ -635,7 +633,7 @@ contract Market is
           _incrementCurrentSupplierAddress();
         }
       }
-      numberOfRemovalsForOrder++;
+      ++numberOfRemovalsForOrder;
       if (remainingAmountToFill == 0) {
         break;
       }
@@ -675,7 +673,7 @@ contract Market is
     for (
       uint256 vintage = supplierRemovalQueue.earliestYear;
       vintage <= latestYear;
-      vintage++
+      ++vintage
     ) {
       totalNumberOfRemovalsForSupplier += supplierRemovalQueue
         .queueByVintage[vintage]
@@ -688,7 +686,7 @@ contract Market is
     uint256[] memory ids = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256[] memory amounts = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256 numberOfRemovals = 0;
-    for (uint256 i = 0; i < totalNumberOfRemovalsForSupplier; i++) {
+    for (uint256 i = 0; i < totalNumberOfRemovalsForSupplier; ++i) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       /**
@@ -719,7 +717,7 @@ contract Market is
           _removeActiveSupplier(supplier);
         }
       }
-      numberOfRemovals++;
+      ++numberOfRemovals;
       if (remainingAmountToFill == 0) {
         break;
       }
@@ -831,16 +829,18 @@ contract Market is
   ) internal {
     uint256[] memory batchedIds = ids.slice(0, numberOfRemovals);
     uint256[] memory batchedAmounts = amounts.slice(0, numberOfRemovals);
-    uint8[] memory holdbackPercentages = _getHoldbackPercentages(batchedIds);
+    uint8 holdbackPercentage;
+    uint256 restrictedSupplierFee;
+    uint256 unrestrictedSupplierFee;
     for (uint256 i = 0; i < numberOfRemovals; i++) {
-      uint256 restrictedSupplierFee;
-      uint256 unrestrictedSupplierFee = batchedAmounts[i];
-      if (holdbackPercentages[i] > 0) {
+      unrestrictedSupplierFee = batchedAmounts[i];
+      holdbackPercentage = _removal.getHoldbackPercentage(batchedIds[i]);
+      if (holdbackPercentage > 0) {
         restrictedSupplierFee =
-          (unrestrictedSupplierFee * holdbackPercentages[i]) /
+          (unrestrictedSupplierFee * holdbackPercentage) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]); // todo mint rNori in a single batch call
+        _restrictedNori.mint(restrictedSupplierFee, batchedIds[i]);
         _bridgedPolygonNori.transferFrom(
           operator,
           address(_restrictedNori),
@@ -851,7 +851,7 @@ contract Market is
         operator,
         _noriFeeWallet,
         this.getNoriFee(batchedAmounts[i])
-      ); // todo use MultiCall to batch transfer bpNori in `_fulfillOrder`
+      );
       _bridgedPolygonNori.transferFrom(
         operator,
         suppliers[i],
@@ -1013,44 +1013,6 @@ contract Market is
   }
 
   /**
-   * @notice Gets the holdback percentages from a batch of removals
-   *
-   * @param removalIds The removal token IDs for which to retrieve the holdback percentages
-   * @return The holdback percentages for the removals.
-   */
-  function _getHoldbackPercentages(uint256[] memory removalIds)
-    internal
-    returns (uint8[] memory)
-  {
-    uint256 numberOfRemovals = removalIds.length;
-    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovals);
-    unchecked {
-      for (uint256 i = 0; i < numberOfRemovals; ++i) {
-        getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
-          _removal.getHoldbackPercentage.selector,
-          removalIds[i]
-        );
-      }
-    }
-
-    bytes[] memory holdbackPercentageResults = _removal.multicall(
-      getHoldbackPercentageCalls
-    );
-    uint8[] memory holdbackPercentages = new uint8[](numberOfRemovals);
-    unchecked {
-      for (uint256 i = 0; i < numberOfRemovals; ++i) {
-        holdbackPercentages[i] = uint8(
-          uint256(bytes32(holdbackPercentageResults[i]))
-        );
-      }
-    }
-
-    return holdbackPercentages;
-  }
-
-  /**
-   * @notice Increments the current supplier to the next supplier in the queue.
-   *
    * @dev Updates `_currentSupplierAddress` to the next of whatever is the current supplier.
    * Used to iterate in a round-robin way through the linked list of active suppliers.
    */
@@ -1122,7 +1084,7 @@ contract Market is
    * the removed supplier to point to the previous of the remove supplier. Then, set the next and previous
    * pointers of the removed supplier to the 0x address.
    *
-   * @param newSupplierAddress the address of the supplier to remove
+   * @param addressToRemove the address of the supplier to remove
    */
   function _removeActiveSupplier(address addressToRemove) private {
     address previousOfRemovedSupplierAddress = _suppliersInRoundRobinOrder[
