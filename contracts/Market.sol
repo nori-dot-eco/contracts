@@ -392,11 +392,9 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts
     ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
-    address[] memory suppliers = new address[](numberOfRemovals);
-    // suppliers.fill(supplierToBuyFrom);
-    for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      suppliers[i] = supplierToBuyFrom;
-    }
+    address[] memory suppliers = new address[](numberOfRemovals).fill(
+      supplierToBuyFrom
+    );
     _bridgedPolygonNori.permit(
       _msgSender(),
       address(this),
