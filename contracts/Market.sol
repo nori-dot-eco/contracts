@@ -74,6 +74,21 @@ contract Market is
   event PriorityRestrictedThresholdSet(uint256 threshold);
 
   /**
+   * @notice Emitted on updating the addresses for contracts.
+   *
+   * @param removal The address of the new `removal` contract.
+   * @param certificate The address of the new `certificate` contract.
+   * @param bridgedPolygonNORI The address of the new `bridgedPolygonNORI` contract.
+   * @param restrictedNORI The address of the new market contract.
+   */
+  event ContractAddressesRegistered(
+    Removal removal,
+    Certificate certificate,
+    BridgedPolygonNORI bridgedPolygonNORI,
+    RestrictedNORI restrictedNORI
+  );
+
+  /**
    * @notice Emitted on setting of `_noriFeeWalletAddress`.
    * @param updatedWalletAddress The updated address of the Nori fee wallet.
    */
@@ -248,7 +263,7 @@ contract Market is
     bytes memory
   ) external whenNotPaused returns (bytes4) {
     require(_msgSender() == address(_removal), "Sender not Removal contract");
-    for (uint256 i = 0; i < ids.length; i++) {
+    for (uint256 i = 0; i < ids.length; ++i) {
       _addActiveRemoval(ids[i]);
     }
     return this.onERC1155BatchReceived.selector;
@@ -377,7 +392,7 @@ contract Market is
       uint256[] memory amounts
     ) = _allocateSupplySingleSupplier(certificateAmount, supplierToBuyFrom);
     address[] memory suppliers = new address[](numberOfRemovals);
-    for (uint256 i = 0; i < numberOfRemovals; i++) {
+    for (uint256 i = 0; i < numberOfRemovals; ++i) {
       suppliers[i] = supplierToBuyFrom;
     }
     _bridgedPolygonNori.permit(
@@ -479,7 +494,7 @@ contract Market is
     uint256[] memory amounts = new uint256[](numberOfActiveRemovalsInMarket);
     address[] memory suppliers = new address[](numberOfActiveRemovalsInMarket);
     uint256 numberOfRemovalsForOrder = 0;
-    for (uint256 i = 0; i < numberOfActiveRemovalsInMarket; i++) {
+    for (uint256 i = 0; i < numberOfActiveRemovalsInMarket; ++i) {
       uint256 removalId = _activeSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
@@ -511,7 +526,7 @@ contract Market is
           _incrementCurrentSupplierAddress();
         }
       }
-      numberOfRemovalsForOrder++;
+      ++numberOfRemovalsForOrder;
       if (remainingAmountToFill == 0) {
         break;
       }
@@ -552,7 +567,7 @@ contract Market is
     for (
       uint256 vintage = supplierRemovalQueue.earliestYear;
       vintage <= latestYear;
-      vintage++
+      ++vintage
     ) {
       totalNumberOfRemovalsForSupplier += supplierRemovalQueue
         .queueByVintage[vintage]
@@ -565,7 +580,7 @@ contract Market is
     uint256[] memory ids = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256[] memory amounts = new uint256[](totalNumberOfRemovalsForSupplier);
     uint256 numberOfRemovals = 0;
-    for (uint256 i = 0; i < totalNumberOfRemovalsForSupplier; i++) {
+    for (uint256 i = 0; i < totalNumberOfRemovalsForSupplier; ++i) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf(address(this), removalId);
       /**
@@ -596,7 +611,7 @@ contract Market is
           _removeActiveSupplier(supplier);
         }
       }
-      numberOfRemovals++;
+      ++numberOfRemovals;
       if (remainingAmountToFill == 0) {
         break;
       }
@@ -626,6 +641,38 @@ contract Market is
   {
     _noriFeePercentage = noriFeePercentage_;
     emit NoriFeePercentageUpdated(noriFeePercentage_);
+  }
+
+  /**
+   * @dev Registers the `removal`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
+   * can be referenced in this contract. Called as part of the market contract system deployment process.
+   *
+   * @param removal The address of the `removal` contract.
+   * @param certificate The address of the `certificate` contract.
+   * @param bridgedPolygonNORI The address of the `bridgedPolygonNORI` contract.
+   * @param restrictedNORI The address of the market contract.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   * - Can only be used when this contract is not paused
+   */
+  function registerContractAddresses(
+    Removal removal,
+    Certificate certificate,
+    BridgedPolygonNORI bridgedPolygonNORI,
+    RestrictedNORI restrictedNORI
+  ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+    _removal = removal;
+    _certificate = certificate;
+    _bridgedPolygonNori = bridgedPolygonNORI;
+    _restrictedNori = restrictedNORI;
+    emit ContractAddressesRegistered(
+      _removal,
+      _certificate,
+      _bridgedPolygonNori,
+      _restrictedNori
+    );
   }
 
   /**
@@ -678,7 +725,7 @@ contract Market is
     uint256[] memory batchedIds = ids.slice(0, numberOfRemovals);
     uint256[] memory batchedAmounts = amounts.slice(0, numberOfRemovals);
     uint8[] memory holdbackPercentages = _getHoldbackPercentages(batchedIds);
-    for (uint256 i = 0; i < numberOfRemovals; i++) {
+    for (uint256 i = 0; i < numberOfRemovals; ++i) {
       uint256 restrictedSupplierFee;
       uint256 unrestrictedSupplierFee = batchedAmounts[i];
       if (holdbackPercentages[i] > 0) {
@@ -803,6 +850,27 @@ contract Market is
     returns (bool)
   {
     return super.supportsInterface(interfaceId);
+  }
+
+  /**
+   * @notice The address of the `Removal` contract.
+   */
+  function removalAddress() external view returns (address) {
+    return address(_removal);
+  }
+
+  /**
+   * @notice The address of the `Certificate` contract.
+   */
+  function certificateAddress() external view returns (address) {
+    return address(_certificate);
+  }
+
+  /**
+   * @notice The address of the `BridgedPolygonNori` contract.
+   */
+  function bridgedPolygonNoriAddress() external view returns (address) {
+    return address(_bridgedPolygonNori);
   }
 
   /**

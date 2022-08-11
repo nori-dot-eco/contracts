@@ -136,6 +136,14 @@ contract Removal is
   uint256 private _currentMarketBalance;
 
   /**
+   * @notice Emitted on updating the addresses for contracts.
+   *
+   * @param market The address of the new `market` contract.
+   * @param certificate The address of the new `certificate` contract.
+   */
+  event ContractAddressesRegistered(Market market, Certificate certificate);
+
+  /**
    * @notice Emitted on releasing a removal from a supplier, the market, or a certificate.
    * @param id The id of the removal that was released.
    * @param fromAddress The address the removal was released from.
@@ -173,7 +181,11 @@ contract Removal is
    * @dev Registers the market, and certificate contracts so that they can be referenced in this contract.
    * Called as part of the market contract system deployment process.
    *
+   * @param market The address of the `market` contract.
+   * @param certificate The address of the `certificate` contract.
+   *
    * ##### Requirements:
+   *
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    * - Can only be used when this contract is not paused
    */
@@ -184,6 +196,7 @@ contract Removal is
   {
     _market = market;
     _certificate = certificate;
+    emit ContractAddressesRegistered(market, certificate);
   }
 
   /**
@@ -247,7 +260,7 @@ contract Removal is
     uint256[] calldata amounts,
     uint256[] calldata ids
   ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
-    for (uint256 i = 0; i < ids.length; i++) {
+    for (uint256 i = 0; i < ids.length; ++i) {
       if (_removalIdToProjectId[ids[i]] == 0) {
         revert RemovalNotYetMinted({tokenId: ids[i]});
       }
@@ -379,14 +392,14 @@ contract Removal is
   }
 
   /**
-   * @notice The address of the Market contract.
+   * @notice The address of the `Market` contract.
    */
   function marketAddress() external view returns (address) {
     return address(_market);
   }
 
   /**
-   * @notice The address of the Certificate contract.
+   * @notice The address of the `Certificate` contract.
    */
   function certificateAddress() external view returns (address) {
     return address(_certificate);

@@ -28,7 +28,6 @@ contract RestrictedNORI__linearReleaseAmountAvailable is
     vm.warp(blockTimestamp);
     schedule.startTime = blockTimestamp - scheduleDuration / 2;
     schedule.endTime = blockTimestamp + scheduleDuration / 2;
-    schedule.exists = true;
     totalSupplyValue = 100 ether;
   }
 

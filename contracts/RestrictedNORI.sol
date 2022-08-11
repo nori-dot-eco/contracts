@@ -20,7 +20,6 @@ struct ScheduleSummary {
   uint256 totalClaimedAmount;
   uint256 totalQuantityRevoked;
   address[] tokenHolders;
-  bool exists; // todo remove the `exists` property from the `ScheduleSummary` struct and infer it instead
 }
 
 /** View information for one account's ownership of a schedule */
@@ -263,7 +262,7 @@ contract RestrictedNORI is
     uint256[] memory allScheduleIdsArray = new uint256[](
       _allScheduleIds.length()
     );
-    for (uint256 i = 0; i < allScheduleIdsArray.length; i++) {
+    for (uint256 i = 0; i < allScheduleIdsArray.length; ++i) {
       allScheduleIdsArray[i] = _allScheduleIds.at(i);
     }
     return allScheduleIdsArray;
@@ -305,8 +304,8 @@ contract RestrictedNORI is
       memory scheduleDetails = new ScheduleDetailForAddress[](
         scheduleIds.length
       );
-    for (uint256 i = 0; i < scheduleIds.length; i++) {
-      if (_scheduleIdToScheduleStruct[scheduleIds[i]].exists) {
+    for (uint256 i = 0; i < scheduleIds.length; ++i) {
+      if (_scheduleIdToScheduleStruct[scheduleIds[i]]._doesExist()) {
         scheduleDetails[i] = getScheduleDetailForAccount(
           account,
           scheduleIds[i]
@@ -328,7 +327,7 @@ contract RestrictedNORI is
     uint256 numberOfTokenHolders = schedule.tokenHolders.length();
     address[] memory tokenHoldersArray = new address[](numberOfTokenHolders);
     uint256[] memory scheduleIdArray = new uint256[](numberOfTokenHolders);
-    for (uint256 i = 0; i < schedule.tokenHolders.length(); i++) {
+    for (uint256 i = 0; i < schedule.tokenHolders.length(); ++i) {
       tokenHoldersArray[i] = schedule.tokenHolders.at(i);
       scheduleIdArray[i] = scheduleId;
     }
@@ -344,8 +343,7 @@ contract RestrictedNORI is
         ),
         schedule.totalClaimedAmount,
         schedule.totalQuantityRevoked,
-        tokenHoldersArray,
-        schedule.exists
+        tokenHoldersArray
       );
   }
 
@@ -353,7 +351,7 @@ contract RestrictedNORI is
    * @notice Returns the existence of a schedule
    */
   function scheduleExists(uint256 scheduleId) external view returns (bool) {
-    return _scheduleIdToScheduleStruct[scheduleId].exists;
+    return _scheduleIdToScheduleStruct[scheduleId]._doesExist();
   }
 
   /**
@@ -367,7 +365,7 @@ contract RestrictedNORI is
     ScheduleSummary[] memory scheduleSummaries = new ScheduleSummary[](
       scheduleIds.length
     );
-    for (uint256 i = 0; i < scheduleIds.length; i++) {
+    for (uint256 i = 0; i < scheduleIds.length; ++i) {
       scheduleSummaries[i] = getScheduleSummary(scheduleIds[i]);
     }
     return scheduleSummaries;
@@ -572,7 +570,7 @@ contract RestrictedNORI is
     bytes memory data
   ) public override {
     super.safeBatchTransferFrom(from, to, ids, amounts, data);
-    for (uint256 i = 0; i < ids.length; i++) {
+    for (uint256 i = 0; i < ids.length; ++i) {
       Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
       if (amounts[i] != 0) {
         schedule.tokenHolders.add(to);
@@ -615,7 +613,7 @@ contract RestrictedNORI is
     address toAccount
   ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    if (!schedule.exists) {
+    if (!schedule._doesExist()) {
       revert NonexistentSchedule({scheduleId: projectId});
     }
     uint256 quantityRevocable = schedule._revocableQuantityForSchedule(
@@ -631,7 +629,7 @@ contract RestrictedNORI is
     address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
 
     uint256[] memory accountBalances = new uint256[](tokenHoldersLocal.length);
-    for (uint256 i = 0; i < tokenHoldersLocal.length; i++) {
+    for (uint256 i = 0; i < tokenHoldersLocal.length; ++i) {
       accountBalances[i] = balanceOf(tokenHoldersLocal[i], projectId);
     }
     uint256[] memory quantitiesToBurnForHolders = new uint256[](
@@ -641,7 +639,7 @@ contract RestrictedNORI is
     // from the desired total to revoke, thus avoiding any precision rounding errors from affecting
     // the total quantity revoked by up to several wei.
     uint256 cumulativeQuantityToBurn = 0;
-    for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); i++) {
+    for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); ++i) {
       uint256 quantityToBurnForHolder = _quantityToRevokePerTokenHolder(
         quantityToRevoke,
         projectId,
@@ -655,7 +653,7 @@ contract RestrictedNORI is
     quantitiesToBurnForHolders[tokenHoldersLocal.length - 1] =
       quantityToRevoke -
       cumulativeQuantityToBurn;
-    for (uint256 i = 0; i < (tokenHoldersLocal.length); i++) {
+    for (uint256 i = 0; i < (tokenHoldersLocal.length); ++i) {
       super._burn(
         tokenHoldersLocal[i],
         projectId,
@@ -693,7 +691,6 @@ contract RestrictedNORI is
     uint256 restrictionDuration
   ) internal {
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    schedule.exists = true;
     schedule.startTime = startTime;
     schedule.endTime = startTime + restrictionDuration;
     _allScheduleIds.add(projectId);
@@ -743,7 +740,7 @@ contract RestrictedNORI is
     bool isBurning = to == address(0);
     bool isWithdrawing = isBurning && from == operator;
     if (isBurning) {
-      for (uint256 i = 0; i < ids.length; i++) {
+      for (uint256 i = 0; i < ids.length; ++i) {
         uint256 id = ids[i];
         Schedule storage schedule = _scheduleIdToScheduleStruct[id];
         if (isWithdrawing) {
