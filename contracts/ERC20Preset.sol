@@ -6,7 +6,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20Pe
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "./AccessPresetPausable.sol";
 
-// todo AUDIT https://norinauts.slack.com/archives/C023A5VN86R/p1656529393031139
+/**
+ * TODO question for the auditors:
+ * The OZ upgrades plugin flags the use of `delegatecall` as unsafe to use with upgradeable contracts,
+ * but this is necessary to use if inheriting from Multicall because multicall uses it.
+ * Is this a false positive? And is it ok that we specify explicit `unsafeAllow` for `delegatecall`?
+ *
+ */
 abstract contract ERC20Preset is
   ERC20BurnableUpgradeable,
   ERC20PermitUpgradeable,
