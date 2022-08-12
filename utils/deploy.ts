@@ -127,7 +127,10 @@ export const deployRemovalContract = async ({
     contractName: 'Removal',
     // TODO:sw from config by environment
     args: ['https://registry.nori.com/removals/'],
-    options: { initializer: 'initialize(string memory)', unsafeAllow: ['delegatecall'] },
+    options: {
+      initializer: 'initialize(string)',
+      unsafeAllow: ['delegatecall'],
+    },
   });
 };
 
@@ -153,7 +156,10 @@ export const deployCertificateContract = async ({
     contractName: 'Certificate',
     // TODO:sw from config by environment
     args: ['https://registry.nori.com/certificates/'],
-    options: { initializer: 'initialize(string memory)', unsafeAllow: ['delegatecall'] },
+    options: {
+      initializer: 'initialize(string)',
+      unsafeAllow: ['delegatecall'],
+    },
   });
 };
 
@@ -181,7 +187,6 @@ export const deployMarketContract = async ({
       initializer:
         'initialize(address,address,address,address,address,uint256)',
       unsafeAllow: ['delegatecall'],
-
     },
   });
 };
@@ -197,7 +202,6 @@ export const deployRestrictedNORI = async ({
     options: {
       initializer: 'initialize()',
       unsafeAllow: ['delegatecall'],
-
     },
   });
 };
