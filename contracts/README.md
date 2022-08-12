@@ -1,8 +1,28 @@
 # Nori Smart Contracts
 
+Nori's product is the NRT or Nori _Removal_ Tonne which can be thought of
+as a carbon credit granted to a supplier for the CO2 they have removed from
+the atmosphere.
+The supplier consigns this asset in Nori's marketplace and gets paid in _NORI_ token.
+A buyer of NRTs is issued a _Certificate_
+(NCCR) which is non-transferrable and owns the NRTs that were swapped from
+the supplier for NORI. If a supplier is found to have prematurely released the
+sequestered carbon the corresponding NRTs will be burned and funds from the insurance
+reserve used to replace them making the Certificate and buyer whole.
+
+Nori collects a configurable marketplace fee (currently 15%) of each transaction
+and additionally restricts a percentage of the proceeds of the swap to be held
+in an insurance reserve and released linearly over the supplier's ten year contract
+with Nori. _RestrictedNORI_ implements this restriction and schedule release mechanism
+with support for transfer of restricted token blocks between wallets.
+
+Investors and employees have received token grants bound by vesting and lockup
+terms. These grants and implemented by _LockedNORI_ which does not currently support
+transfer of locked tokens and allows a maxaimum of one grant schedule per wallet address.
+
 Detailed documentation on these contracts is available [here](../docs)
 
-## ERC20 Token
+## ERC20 Tokens
 
 ### NORI (NORI)
 
@@ -12,18 +32,18 @@ The [$NORI](./NORI.sol) token is Nori's fungible token which functions as a gift
 - Initial supply minted at deployment: 500M
 - Minting and burning are disabled.
 
-[NORI on Etherscan](https://etherscan.io/token/0x961760ad1bed52bf4d79aa4b1558e7f9d72071e4) Currently live deployment: (will get replaced with a new version of the contract having ERC777 support removed.)
+[NORI on Etherscan](https://etherscan.io/token/0x961760ad1bed52bf4d79aa4b1558e7f9d72071e4) Current live deployment: (will be replaced with the current version of the contract having ERC777 support removed with our next deployment.)
 
 ### BridgedPolygonNORI (NORI)
 
 [BridgedPolygonNORI](./BridgedPolygonNORI.sol) is the [$NORI](./NORI.sol) token bridged to Polygon PoS.
 
-- Polygon child chain mapper is the only contract with mint / burn permission.
+- Polygon child chain mapper is the only contract with mint / burn permission (DEPOSITOR_ROLE).
 - Initially deployed with totalSupply of zero.
 
-[NORI on PolygonScan](https://polygonscan.com/token/0x8cf6e82919f69ae382def8f94e581a43ce1e70c1) Currently live deployment (will get replaced with a new version of the contract having ERC777 support removed.)
+[NORI on PolygonScan](https://polygonscan.com/token/0x8cf6e82919f69ae382def8f94e581a43ce1e70c1) Current live deployment (will be replaced with the current version of the contract having ERC777 support removed with our next deployment.)
 
-## Nori Marketplace
+## Marketplace Contracts
 
 ### Removal (NRT)
 
@@ -37,7 +57,7 @@ The total supply of each Removal token ID represent the estimated quantity of NR
 
 Lifecycle of a Removal:
 
-1. Minted to a supplier's address
+1. Minted to a supplier's wallet address
 2. Ownership transferred to the _Market_ contract to be listed for sale. Often in the scope of the minting transaction.
 3. Sold by the _Market_ and ownership transferred to the _Certificate_ contract with internal bookkeeping mapping ownership of removal token balances to specific certificate tokens.
 4. Possibly burned or partially burned if the supplier fails to uphold their contractual obligation to keep the underlying carbon sequestered for the duration of their contract.
