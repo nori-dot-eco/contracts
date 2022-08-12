@@ -197,6 +197,8 @@ contract Removal is
    * @notice Registers the market and certificate contracts so that they can be referenced in this contract.
    * Called as part of the market contract system deployment process.
    *
+   * Emits a `ContractAddressesRegistered` event.
+   *
    * @param market The address of the `Market` contract.
    * @param certificate The address of the `Certificate` contract.
    *
@@ -541,7 +543,8 @@ contract Removal is
    * `interfaceId`. See the corresponding
    * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
    * to learn more about how these ids are created.
-   *
+   * See [IERC165.supportsInterface](
+   * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
    * This function call must use less than 30 000 gas.
    */
   function supportsInterface(bytes4 interfaceId)
