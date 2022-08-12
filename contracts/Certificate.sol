@@ -184,6 +184,8 @@ contract Certificate is
    * @dev This function is called as part of the market deployment process to register relevant contract
    * addresses among market contracts.
    *
+   * Emits a `ContractAddressesRegistered` event.
+   *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
@@ -206,6 +208,8 @@ contract Certificate is
    * @dev This function can only ever be called by the Removal contract, and should be called in the course of
    * executing Removal.release. Burning the corresponding removal balance from the Certificate contract happens
    * in Removal.release.
+   *
+   * Emits a `RemovalReleased` event.
    *
    * ##### Requirements:
    * - Can only be called by the Removal contract.
@@ -452,6 +456,8 @@ contract Certificate is
    * @dev Called when a batch of ERC1155 Removal tokens are sent to this contract.
    * Mints a new certificate token to the next sequential ID and updates the internal data structures
    * that track the relationship between the certificate and its constituent removal tokens and balances.
+   *
+   * Emits a `ReceiveRemovalBatch` event.
    *
    * @param recipient The address receiving the new certificate.
    * @param certificateAmount The total number of tonnes of carbon removals represented by the new certificate.
