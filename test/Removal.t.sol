@@ -21,6 +21,12 @@ contract Removal_mintBatch_list is UpgradeableMarket {
   }
 }
 
+contract Removal_mintBatch_many is UpgradeableMarket {
+  function test() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 30, list: true});
+  }
+}
+
 /** @dev Tests that a supplier can be listed in the queue twice with two sequential calls to `mintBatch` */
 contract Removal_mintBatch_list_sequential is UpgradeableMarket {
   function test() external {
