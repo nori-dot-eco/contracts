@@ -129,11 +129,23 @@ contract Removal is
   Certificate private _certificate;
 
   // todo Test accounting for `_projectIdToHoldbackPercentage` is maintained correctly (assuming we need it)
+  /**
+   * @dev Maps from a given project id to the holdback percentage that will be used to determine what percentage of
+   * proceeds are routed to `RestrictedNORI` when removals from this project are sold.
+   */
   mapping(uint256 => uint8) private _projectIdToHoldbackPercentage;
+
   // todo Test accounting for `_removalIdToProjectId` is maintained correctly (assuming we need it)
   // todo consider moving `Removal._removalIdToProjectId` to _restrictedNORI
+  /**
+   * @dev Maps from a removal id to the project id it belongs to.
+   */
   mapping(uint256 => uint256) private _removalIdToProjectId;
+
   // todo Test accounting for `_addressToOwnedTokenIds` is maintained correctly (assuming we need it)
+  /**
+   * Maps from an address to an EnumerableSet of the token ids for which that address has a non-zero balance.
+   */
   mapping(address => EnumerableSetUpgradeable.UintSet)
     private _addressToOwnedTokenIds;
   uint256 private _currentMarketBalance;
@@ -182,8 +194,10 @@ contract Removal is
   }
 
   /**
-   * @dev Registers the market and certificate contracts so that they can be referenced in this contract.
+   * @notice Registers the market and certificate contracts so that they can be referenced in this contract.
    * Called as part of the market contract system deployment process.
+   *
+   * Emits a `ContractAddressesRegistered` event.
    *
    * @param market The address of the `Market` contract.
    * @param certificate The address of the `Certificate` contract.
@@ -201,19 +215,6 @@ contract Removal is
     _market = market;
     _certificate = certificate;
     emit ContractAddressesRegistered(market, certificate);
-  }
-
-  /**
-   * @notice Returns an array of all token IDs currently owned by `owner`.
-   *
-   * @param owner The account for which to retrieve owned token IDs.
-   */
-  function getOwnedTokenIds(address owner)
-    external
-    view
-    returns (uint256[] memory)
-  {
-    return _addressToOwnedTokenIds[owner].values();
   }
 
   /**
@@ -336,7 +337,6 @@ contract Removal is
    * of amount 3 releases an amount of 2.5 and that removal is owned by 3 certificates containing an amount of 1 each
    * from the released removal, the resulting certificate's removal balances for this removal are: 0, 0, and 0.5).
    *
-   * - The rules of `_beforeTokenTransfer` are enforced.
    * - The caller must have the `RELEASER_ROLE`.
    * - The rules of `_burn` are enforced.
    * - Can only be used when the contract is not paused.
@@ -381,17 +381,99 @@ contract Removal is
   }
 
   /**
-   * @dev Transfers `amount` tokens of token type `id` from `from` to `to`.
+   * @notice The address of the `Market` contract.
+   */
+  function marketAddress() external view returns (address) {
+    return address(_market);
+  }
+
+  /**
+   * @notice The address of the `Certificate` contract.
+   */
+  function certificateAddress() external view returns (address) {
+    return address(_certificate);
+  }
+
+  /**
+   * @notice Gets the project id (which is the removal's schedule id in RestrictedNORI) for a given removal ID.
    *
-   * Emits a {TransferSingle} event.
+   * @param id The removal token ID for which to retrieve the project id
+   */
+  function getProjectId(uint256 id) external view returns (uint256) {
+    return _removalIdToProjectId[id];
+  }
+
+  /**
+   * @notice Gets the holdback percentage for a removal.
    *
-   * Requirements:
+   * @param id The removal token ID for which to retrieve the holdback percentage.
+   */
+  function getHoldbackPercentage(uint256 id) external view returns (uint8) {
+    return _projectIdToHoldbackPercentage[_removalIdToProjectId[id]];
+  }
+
+  /**
+   * @notice The current total balance of all removal tokens owned by the `Market` contract.
+   * This sum is maintained as a running total for efficient lookup during purchases.
+   */
+  function getMarketBalance() external view returns (uint256) {
+    return _currentMarketBalance;
+  }
+
+  /**
+   * @notice Returns an array of all token IDs currently owned by `owner`.
+   *
+   * @param owner The account for which to retrieve owned token IDs.
+   */
+  function getOwnedTokenIds(address owner)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    return _addressToOwnedTokenIds[owner].values();
+  }
+
+  /**
+   * @notice The number of unique token IDs owned by the given `account`.
+   * Maintained for efficient lookup of the number of distinct removal tokens owned by the Market.
+   *
+   * @param account The account for which to retrieve the unique number of token ids owned.
+   */
+  function numberOfTokensOwnedByAddress(address account)
+    external
+    view
+    returns (uint256)
+  {
+    return _addressToOwnedTokenIds[account].length();
+  }
+
+  /**
+   * @notice Decodes a V0 removal ID into its component data.
+   *
+   * @param id The token ID to decode.
+   */
+  function decodeRemovalIdV0(uint256 id)
+    external
+    pure
+    returns (DecodedRemovalIdV0 memory)
+  {
+    return id.decodeRemovalIdV0();
+  }
+
+  /**
+   * @notice Transfers `amount` tokens of token type `id` from `from` to `to`.
+   *
+   * @dev Calls `ERC1155Upgradeable.safeTransferFrom`
+   *
+   * Emits a `TransferSingle` event.
+   *
+   * ##### Requirements:
    *
    * - Can only be called by the `Market` contract.
    * - `to` cannot be the zero address.
-   * - If the caller is not `from`, it must have been approved to spend ``from``'s tokens via {setApprovalForAll}.
+   * - If the caller is not `from`, it must have been approved to spend ``from``'s tokens via `setApprovalForAll`.
    * - `from` must have a balance of tokens of type `id` of at least `amount`.
-   * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155Received} and return the
+   * - If `to` refers to a smart contract, it must implement `IERC1155Receiver.onERC1155Received` and return the
    * acceptance magic value.
    */
   function safeTransferFrom(
@@ -408,9 +490,9 @@ contract Removal is
   }
 
   /**
-   * @dev Batched version of {safeTransferFrom}.
+   * @notice Batched version of `safeTransferFrom`.
    *
-   * Emits a {TransferBatch} event.
+   * Emits a `TransferBatch` event.
    *
    * Requirements:
    *
@@ -433,78 +515,11 @@ contract Removal is
   }
 
   /**
-   * @notice The address of the `Market` contract.
-   */
-  function marketAddress() external view returns (address) {
-    return address(_market);
-  }
-
-  /**
-   * @notice The address of the `Certificate` contract.
-   */
-  function certificateAddress() external view returns (address) {
-    return address(_certificate);
-  }
-
-  /**
-   * @notice Gets the project id (which is the removal's schedule id in RestrictedNORI) for a given removal id.
+   * @notice Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`,
    *
-   * @param id The removal token ID for which to retrieve the project id
-   */
-  function getProjectId(uint256 id) external view returns (uint256) {
-    return _removalIdToProjectId[id];
-  }
-
-  /**
-   * @notice Gets the holdback percentage for a removal.
+   * Emits an `ApprovalForAll` event.
    *
-   * @param id The removal token ID for which to retrieve the holdback percentage.
-   */
-  function getHoldbackPercentage(uint256 id) external view returns (uint8) {
-    return _projectIdToHoldbackPercentage[_removalIdToProjectId[id]];
-  }
-
-  /**
-   * @dev The current total balance of all removal tokens owned by the `Market` contract.
-   * This sum is maintained as a running total for efficient lookup during purchases.
-   */
-  function getMarketBalance() external view returns (uint256) {
-    return _currentMarketBalance;
-  }
-
-  /**
-   * @dev The number of unique token IDs owned by the given `account`.
-   * Maintained for efficient lookup of the number of distinct removal tokens owned by the Market.
-   *
-   * @param account The account for which to retrieve the unique number of token ids owned.
-   */
-  function numberOfTokensOwnedByAddress(address account)
-    external
-    view
-    returns (uint256)
-  {
-    return _addressToOwnedTokenIds[account].length();
-  }
-
-  /**
-   * @notice Decodes a V0 removal id into its component data.
-   *
-   * @param id The token ID to decode.
-   */
-  function decodeRemovalIdV0(uint256 id)
-    external
-    pure
-    returns (DecodedRemovalIdV0 memory)
-  {
-    return id.decodeRemovalIdV0();
-  }
-
-  /**
-   * @dev Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`,
-   *
-   * Emits an {ApprovalForAll} event.
-   *
-   * Requirements:
+   * ##### Requirements:
    * - Can only be used when the contract is not paused.
    * - `operator` cannot be the caller.
    *
@@ -524,11 +539,12 @@ contract Removal is
   }
 
   /**
-   * @dev Returns true if this contract implements the interface defined by
+   * @notice Returns true if this contract implements the interface defined by
    * `interfaceId`. See the corresponding
    * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
    * to learn more about how these ids are created.
-   *
+   * See [IERC165.supportsInterface](
+   * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
    * This function call must use less than 30 000 gas.
    */
   function supportsInterface(bytes4 interfaceId)
@@ -541,9 +557,113 @@ contract Removal is
   }
 
   /**
+   * @notice Called during `mintBatch`, creates the removal IDs from the removal data, validates
+   * the new IDs to prevent minting a pre-existing ID, stores the project id in a mapping.
+   *
+   * @param removals An array of `DecodedRemovalIdV0` structs containing data about each removal
+   * @param projectId The project identifier for this batch of removals.
+   */
+  function _createRemovals(
+    DecodedRemovalIdV0[] calldata removals,
+    uint256 projectId
+  ) internal returns (uint256[] memory) {
+    uint256[] memory ids = new uint256[](removals.length);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < removals.length; ++i) {
+        uint256 id = RemovalIdLib.createRemovalId({removal: removals[i]});
+        _createRemoval({id: id, projectId: projectId});
+        ids[i] = id;
+      }
+    }
+    return ids;
+  }
+
+  /**
+   * @notice Called by `_createRemovals`, validates the new IDs to prevent minting a pre-existing ID,
+   * stores the project id in a mapping.
+   *
+   * @param id The removal ID being minted.
+   * @param projectId The project id for this removal.
+   */
+  function _createRemoval(uint256 id, uint256 projectId) internal {
+    _validateRemoval({id: id});
+    _removalIdToProjectId[id] = projectId;
+  }
+
+  /**
+   * @notice Burns `amount` of token ID `id` from the supplier address encoded in the ID.
+   *
+   * Emits a `RemovalReleased` event.
+   *
+   * @param id The token ID to burn.
+   * @param amount The amount to burn.
+   */
+  function _releaseFromSupplier(uint256 id, uint256 amount) internal {
+    address supplierAddress = id.supplierAddress();
+    emit RemovalReleased(id, supplierAddress, amount);
+    super._burn(supplierAddress, id, amount);
+  }
+
+  /**
+   * @notice Burns `amount` of token ID `id` from the Market's balance.
+   *
+   * Emits a `RemovalReleased` event.
+   *
+   * @param id The token ID to burn.
+   * @param amount The amount to burn.
+   */
+  function _releaseFromMarket(uint256 id, uint256 amount) internal {
+    super._burn(this.marketAddress(), id, amount);
+    _market.release(id, amount);
+    emit RemovalReleased(id, this.marketAddress(), amount);
+  }
+
+  /**
+   * @notice Burns `amount` of token ID `id` from the Certificate's balance. Updates the internal accounting in
+   * Certificate that maps removal IDs and amounts to the certificates in which they were included by iteratively
+   * releasing from affected certificates (`Certficiate.releaseRemoval`) until `amount` removals have been released.
+   *
+   * Emits a `RemovalReleased` event.
+   *
+   * @param id The token ID to burn.
+   * @param amount The amount to burn.
+   */
+  function _releaseFromCertificate(uint256 id, uint256 amount) internal {
+    uint256 amountReleased = 0;
+    Certificate.Balance[] memory certificatesOfRemoval = _certificate
+      .certificatesOfRemoval(id);
+    uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
+    for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
+      Certificate.Balance memory certificateBalance = certificatesOfRemoval[i];
+      uint256 amountToReleaseFromCertificate = MathUpgradeable.min(
+        amount - amountReleased,
+        certificateBalance.amount
+      );
+      amountReleased += amountToReleaseFromCertificate;
+      super._burn(
+        this.certificateAddress(),
+        id,
+        amountToReleaseFromCertificate
+      );
+      _certificate.releaseRemoval({
+        certificateId: certificateBalance.id,
+        removalId: id,
+        amount: amountToReleaseFromCertificate
+      });
+      emit RemovalReleased(
+        id,
+        this.certificateAddress(),
+        amountToReleaseFromCertificate
+      );
+      if (amountReleased == amount) break;
+    }
+  }
+
+  /**
    * @notice Hook that is called before before any token transfer. This includes minting and burning, as well as
-   * batched variants. Disables transfers to any address that is not the `Market` or `Certificate` contracts, or
-   * the supplier address that is encoded in the token ID itself.
+   * batched variants. Disables transfers to any address that is not the `Market` or `Certificate` contracts, the zero
+   * address (for burning), or the supplier address that is encoded in the token ID itself.
    *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
@@ -584,77 +704,25 @@ contract Removal is
   }
 
   /**
-   * @dev Burns `amount` of token ID `id` from the supplier address encoded in the ID.
+   * @notice Hook that is called after any token transfer. This includes minting
+   * and burning, as well as batched variants.
+   * Updates the mapping from address to set of owned token IDs.
    *
-   * Emits a {RemovalReleased} event.
+   * The same hook is called on both single and batched variants. For single
+   * transfers, the length of the `id` and `amount` arrays will be 1.
    *
-   * @param id The token ID to burn.
-   * @param amount The amount to burn.
+   * Calling conditions (for each `id` and `amount` pair):
+   *
+   * - When `from` and `to` are both non-zero, `amount` of ``from``'s tokens
+   * of token type `id` will be  transferred to `to`.
+   * - When `from` is zero, `amount` tokens of token type `id` will be minted
+   * for `to`.
+   * - when `to` is zero, `amount` of ``from``'s tokens of token type `id`
+   * will be burned.
+   * - `from` and `to` are never both zero.
+   * - `ids` and `amounts` have the same, non-zero length.
+   *
    */
-  function _releaseFromSupplier(uint256 id, uint256 amount) internal {
-    address supplierAddress = id.supplierAddress();
-    emit RemovalReleased(id, supplierAddress, amount);
-    super._burn(supplierAddress, id, amount);
-  }
-
-  function _createRemovals(
-    DecodedRemovalIdV0[] calldata removals,
-    uint256 projectId
-  ) internal returns (uint256[] memory) {
-    uint256[] memory ids = new uint256[](removals.length);
-    // Skip overflow check as for loop is indexed starting at zero.
-    unchecked {
-      for (uint256 i = 0; i < removals.length; ++i) {
-        uint256 id = RemovalIdLib.createRemovalId({removal: removals[i]});
-        _createRemoval({id: id, projectId: projectId});
-        ids[i] = id;
-      }
-    }
-    return ids;
-  }
-
-  function _createRemoval(uint256 id, uint256 projectId) internal {
-    _validateRemoval({id: id});
-    _removalIdToProjectId[id] = projectId;
-  }
-
-  function _releaseFromMarket(uint256 id, uint256 amount) internal {
-    super._burn(this.marketAddress(), id, amount);
-    _market.release(id, amount);
-    emit RemovalReleased(id, this.marketAddress(), amount);
-  }
-
-  function _releaseFromCertificate(uint256 id, uint256 amount) internal {
-    uint256 amountReleased = 0;
-    Certificate.Balance[] memory certificatesOfRemoval = _certificate
-      .certificatesOfRemoval(id);
-    uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
-    for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
-      Certificate.Balance memory certificateBalance = certificatesOfRemoval[i];
-      uint256 amountToReleaseFromCertificate = MathUpgradeable.min(
-        amount - amountReleased,
-        certificateBalance.amount
-      );
-      amountReleased += amountToReleaseFromCertificate;
-      super._burn(
-        this.certificateAddress(),
-        id,
-        amountToReleaseFromCertificate
-      );
-      _certificate.releaseRemoval({
-        certificateId: certificateBalance.id,
-        removalId: id,
-        amount: amountToReleaseFromCertificate
-      });
-      emit RemovalReleased(
-        id,
-        this.certificateAddress(),
-        amountToReleaseFromCertificate
-      );
-      if (amountReleased == amount) break;
-    }
-  }
-
   function _afterTokenTransfer(
     address operator,
     address from,
@@ -667,6 +735,14 @@ contract Removal is
     super._afterTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
+  /**
+   * @notice Updates the mapping from address to set of owned token IDs.
+   * Called during `_afterTokenTransfer`.
+   *
+   * @param from The address from which tokens were transferred.
+   * @param to The address to which tokens were transferred.
+   * @param ids The token ids that were transferred.
+   */
   function _updateOwnedTokenIds(
     address from,
     address to,
@@ -688,6 +764,12 @@ contract Removal is
     }
   }
 
+  /**
+   * @notice Validates that the provided `id` should be minted.
+   * Reverts if a project id has already been set for `id`.
+   *
+   * @param id The ID to validate.
+   */
   function _validateRemoval(uint256 id) internal view {
     if (_removalIdToProjectId[id] != 0) {
       revert InvalidData();

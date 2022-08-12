@@ -9,7 +9,6 @@ import "./AccessPresetPausable.sol";
 
 /**
  * todo document burning behavior
- * todo ERC721a exposes both _msgSender and _msgSenderERC721A -- what are the differences and implications?
  * todo check that all transfer functions (including those not exposed in this file) call _beforeTokenTransfers
  *
  * @title An ERC721a contract that issues non-transferable certificates of carbon removal.
@@ -185,6 +184,8 @@ contract Certificate is
    * @dev This function is called as part of the market deployment process to register relevant contract
    * addresses among market contracts.
    *
+   * Emits a `ContractAddressesRegistered` event.
+   *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
@@ -200,7 +201,6 @@ contract Certificate is
     emit ContractAddressesRegistered(removal);
   }
 
-  // todo is whenNotPaused redundant since it's only called from a pausable function on the removal contract?
   /**
    * @notice Removes `amount` of this `removalId` from the specified `certificateId` in the internal accounting
    * that keeps track of which removals belong to a given certificate.
@@ -208,6 +208,8 @@ contract Certificate is
    * @dev This function can only ever be called by the Removal contract, and should be called in the course of
    * executing Removal.release. Burning the corresponding removal balance from the Certificate contract happens
    * in Removal.release.
+   *
+   * Emits a `RemovalReleased` event.
    *
    * ##### Requirements:
    * - Can only be called by the Removal contract.
@@ -455,6 +457,8 @@ contract Certificate is
    * Mints a new certificate token to the next sequential ID and updates the internal data structures
    * that track the relationship between the certificate and its constituent removal tokens and balances.
    *
+   * Emits a `ReceiveRemovalBatch` event.
+   *
    * @param recipient The address receiving the new certificate.
    * @param certificateAmount The total number of tonnes of carbon removals represented by the new certificate.
    * @param removalIds The removal token IDs that are being included in the certificate.
@@ -469,7 +473,7 @@ contract Certificate is
     _validateReceivedRemovalBatch(removalIds, removalAmounts);
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
-    _mint(recipient, 1); // todo should we be using _mint or _safeMint for ERC721A
+    _mint(recipient, 1);
     for (uint256 i = 0; i < removalIds.length; ++i) {
       _removalBalancesOfCertificate[certificateId][
         removalIds[i]

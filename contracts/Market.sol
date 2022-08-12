@@ -25,6 +25,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * Each of these certificates is a non-transferrable, non-fungible token that owns the specific removal tokens
  * and token balances that comprise the specific certificate for the amount purchased.
  *
+ * The market maintains a "priority restricted threshold", which is a configurable threshold of supply that is
+ * always reserved to sell only to buyers who have the `ALLOWLIST_ROLE`.  Purchases that would drop supply below
+ * this threshold will revert without the correct role.
+ *
  * ###### Additional behaviors and features
  *
  * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
@@ -61,7 +65,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  *
- * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
  */
 contract Market is
   AccessPresetPausable,
@@ -258,6 +261,110 @@ contract Market is
   }
 
   /**
+   * @dev Registers the `removal`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
+   * can be referenced in this contract. Called as part of the market contract system deployment process.
+   *
+   * Emits a `ContractAddressesRegistered` event.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
+   * - Can only be used when this contract is not paused.
+   *
+   * @param removal The address of the `removal` contract.
+   * @param certificate The address of the `certificate` contract.
+   * @param bridgedPolygonNORI The address of the `bridgedPolygonNORI` contract.
+   * @param restrictedNORI The address of the market contract.
+   *
+   */
+  function registerContractAddresses(
+    Removal removal,
+    Certificate certificate,
+    BridgedPolygonNORI bridgedPolygonNORI,
+    RestrictedNORI restrictedNORI
+  ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+    _removal = removal;
+    _certificate = certificate;
+    _bridgedPolygonNORI = bridgedPolygonNORI;
+    _restrictedNORI = restrictedNORI;
+    emit ContractAddressesRegistered(
+      _removal,
+      _certificate,
+      _bridgedPolygonNORI,
+      _restrictedNORI
+    );
+  }
+
+  /**
+   * @notice Sets the current value of the priority restricted threshold, which is the amount of inventory
+   * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
+   *
+   * Emits a `PriorityRestrictedThresholdSet` event.
+   *
+   * @dev ##### Requirements:
+   *
+   * - Can only receive ERC1155 tokens from the Removal contract.
+   * - Can only be used when this contract is not paused.
+   *
+   * @param threshold The updated priority restricted threshold
+   */
+  function setPriorityRestrictedThreshold(uint256 threshold)
+    external
+    whenNotPaused
+    onlyRole(MARKET_ADMIN_ROLE)
+  {
+    _priorityRestrictedThreshold = threshold;
+    emit PriorityRestrictedThresholdSet(threshold);
+  }
+
+  /**
+   * @notice Sets the Nori fee percentage (as an integer) which is the percentage of
+   * each purchase that will be paid to Nori as the marketplace operator.
+   *
+   * Emits a `NoriFeePercentageUpdated` event.
+   *
+   * @dev ##### Requirements:
+   *
+   * - Can only be used when the caller has the MARKET_ADMIN_ROLE
+   * - Can only be used when this contract is not paused
+   *
+   * @param noriFeePercentage_ The new fee percentage as an integer.
+   */
+  function setNoriFeePercentage(uint256 noriFeePercentage_)
+    external
+    onlyRole(MARKET_ADMIN_ROLE)
+    whenNotPaused
+  {
+    _noriFeePercentage = noriFeePercentage_;
+    emit NoriFeePercentageUpdated(noriFeePercentage_);
+  }
+
+  /**
+   * @notice Sets the Nori fee wallet address (as an integer) which is the address to which the
+   * marketplace operator fee will be routed during each purchase.
+   *
+   * Emits a `NoriFeeWalletAddressUpdated` event.
+   *
+   * @dev ##### Requirements:
+   *
+   * - Can only be used when the caller has the MARKET_ADMIN_ROLE
+   * - Can only be used when this contract is not paused
+   *
+   * @param noriFeeWalletAddress The wallet address where Nori collects market fees.
+   */
+  function setNoriFeeWallet(address noriFeeWalletAddress)
+    external
+    onlyRole(MARKET_ADMIN_ROLE)
+    whenNotPaused
+  {
+    if (noriFeeWalletAddress == address(0)) {
+      revert NoriFeeWalletZeroAddress();
+    }
+    _noriFeeWallet = noriFeeWalletAddress;
+    emit NoriFeeWalletAddressUpdated(noriFeeWalletAddress);
+  }
+
+  /**
    * @notice Returns the current value of the priority restricted threshold, which is the amount of inventory
    * that will always be reserved to sell only to buyers with the ALLOWLIST_ROLE.
    *
@@ -265,16 +372,6 @@ contract Market is
    */
   function priorityRestrictedThreshold() external view returns (uint256) {
     return _priorityRestrictedThreshold;
-  }
-
-  /**
-   * @notice Returns the current value of the priority restricted threshold, which is the amount of inventory
-   * that will always be reserved to sell only to buyers with the ALLOWLIST_ROLE.
-   *
-   * @return restrictedNoriAddress Address of the restrictedNORI contract.
-   */
-  function restrictedNoriAddress() external view returns (address) {
-    return address(_restrictedNORI);
   }
 
   /**
@@ -288,11 +385,19 @@ contract Market is
   }
 
   /**
+   * @notice Returns the address to which the marketplace operator fee will be routed during each purchase.
+   *
+   * @return walletAddress the wallet address used for Nori's fees.
+   */
+  function noriFeeWallet() external view returns (address) {
+    return _noriFeeWallet;
+  }
+
+  /**
    * @notice Calculates the Nori fee required for a purchase of `amount` tonnes of carbon removals.
    *
    * @param amount The amount of carbon removals for the purchase.
    * @return fee the amount of the fee for Nori.
-   * todo consider renaming calculateNoriFee to something like `calculateNoriFee`
    */
   function calculateNoriFee(uint256 amount) external view returns (uint256) {
     return (amount * _noriFeePercentage) / 100;
@@ -313,15 +418,6 @@ contract Market is
   }
 
   /**
-   * @notice Returns the address to which the marketplace operator fee will be routed during each purchase.
-   *
-   * @return walletAddress the wallet address used for Nori's fees.
-   */
-  function noriFeeWallet() external view returns (address) {
-    return _noriFeeWallet;
-  }
-
-  /**
    * @notice Calculates the quantity of carbon removals being purchased given the purchase total and the
    * percentage of that purchase total that is due to Nori as a transaction fee.
    *
@@ -337,24 +433,98 @@ contract Market is
   }
 
   /**
-   * @notice Sets the current value of the priority restricted threshold, which is the amount of inventory
-   * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
-   * todo make sure explanaation of priority restricted threshold exists either here or top level
+   * @notice Returns the address of the `Removal` contract.
    *
-   * @dev ##### Requirements:
-   *
-   * - Can only receive ERC1155 tokens from the Removal contract.
-   * - Can only be used when this contract is not paused.
-   *
-   * @param threshold The updated priority restricted threshold
+   * @return removalAddress Address of the `Removal` contract
    */
-  function setPriorityRestrictedThreshold(uint256 threshold)
+  function removalAddress() external view returns (address) {
+    return address(_removal);
+  }
+
+  /**
+   * @notice Returns address of the `RestrictedNORI` contract.
+   *
+   * @return restrictedNoriAddress Address of the `RestrictedNORI` contract.
+   */
+  function restrictedNoriAddress() external view returns (address) {
+    return address(_restrictedNORI);
+  }
+
+  /**
+   * @notice Returns the address of the `Certificate` contract.
+   *
+   * @return certificateAddress Address of the `Certificate` contract
+   */
+  function certificateAddress() external view returns (address) {
+    return address(_certificate);
+  }
+
+  /**
+   * @notice Returns the address of the `BridgedPolygonNori` contract.
+   *
+   * @return bridgedPolygonNoriAddress Address of the `BridgedPolygonNori` contract
+   */
+  function bridgedPolygonNoriAddress() external view returns (address) {
+    return address(_bridgedPolygonNORI);
+  }
+
+  /**
+   * @notice Returns an array of all suppliers that currently have removals listed in the market.
+   *
+   * @return suppliers All currently active suppliers in the market.
+   */
+  function getActiveSuppliers()
     external
-    whenNotPaused
-    onlyRole(MARKET_ADMIN_ROLE)
+    view
+    returns (address[] memory suppliers)
   {
-    _priorityRestrictedThreshold = threshold;
-    emit PriorityRestrictedThresholdSet(threshold);
+    uint256 supplierCount;
+    if (_suppliers[_currentSupplierAddress].next != address(0)) {
+      supplierCount = 1;
+      address nextSupplier = _suppliers[_currentSupplierAddress].next;
+      while (nextSupplier != _currentSupplierAddress) {
+        nextSupplier = _suppliers[nextSupplier].next;
+        ++supplierCount;
+      }
+    }
+    address[] memory supplierArray = new address[](supplierCount);
+    address currentSupplier = _currentSupplierAddress;
+    LinkedListNode memory currentSupplierNode = _suppliers[currentSupplier];
+    for (uint256 i = 0; i < supplierCount; ++i) {
+      supplierArray[i] = currentSupplier;
+      currentSupplier = currentSupplierNode.next;
+      currentSupplierNode = _suppliers[currentSupplier];
+    }
+    return supplierArray;
+  }
+
+  /**
+   * @notice Gets all listed removal IDs for a given supplier.
+   *
+   * @param supplier the supplier for which to return listed removal IDs.
+   * @return removalIds the listed removal IDs for this supplier.
+   */
+  function getRemovalIdsForSupplier(address supplier)
+    external
+    view
+    returns (uint256[] memory removalIds)
+  {
+    RemovalsByYear storage removalsByYear = _listedSupply[supplier];
+    return removalsByYear.getAllRemovalIds();
+  }
+
+  /**
+   * @dev See [IERC165.supportsInterface](
+   * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
+   */
+  function supportsInterface(bytes4 interfaceId)
+    public
+    view
+    virtual
+    override(AccessControlEnumerableUpgradeable, IERC165Upgradeable)
+    returns (bool)
+  {
+    return super.supportsInterface(interfaceId);
   }
 
   /**
@@ -414,51 +584,6 @@ contract Market is
     require(_msgSender() == address(_removal), "Sender not Removal contract");
     _addActiveRemoval({removalId: id});
     return this.onERC1155Received.selector;
-  }
-
-  /**
-   * @notice Returns an array of all suppliers that currently have removals listed in the market.
-   *
-   * @return suppliers All currently active suppliers in the market.
-   */
-  function getActiveSuppliers()
-    external
-    view
-    returns (address[] memory suppliers)
-  {
-    uint256 supplierCount;
-    if (_suppliers[_currentSupplierAddress].next != address(0)) {
-      supplierCount = 1;
-      address nextSupplier = _suppliers[_currentSupplierAddress].next;
-      while (nextSupplier != _currentSupplierAddress) {
-        nextSupplier = _suppliers[nextSupplier].next;
-        ++supplierCount;
-      }
-    }
-    address[] memory supplierArray = new address[](supplierCount);
-    address currentSupplier = _currentSupplierAddress;
-    LinkedListNode memory currentSupplierNode = _suppliers[currentSupplier];
-    for (uint256 i = 0; i < supplierCount; ++i) {
-      supplierArray[i] = currentSupplier;
-      currentSupplier = currentSupplierNode.next;
-      currentSupplierNode = _suppliers[currentSupplier];
-    }
-    return supplierArray;
-  }
-
-  /**
-   * @notice Gets all listed removal IDs for a given supplier.
-   *
-   * @param supplier the supplier for which to return listed removal IDs.
-   * @return removalIds the listed removal IDs for this supplier.
-   */
-  function getRemovalIdsForSupplier(address supplier)
-    external
-    view
-    returns (uint256[] memory removalIds)
-  {
-    RemovalsByYear storage removalsByYear = _listedSupply[supplier];
-    return removalsByYear.getAllRemovalIds();
   }
 
   /**
@@ -599,6 +724,33 @@ contract Market is
       amounts: amounts,
       suppliers: suppliers
     });
+  }
+
+  /**
+   * @notice Withdraws a removal to the supplier.
+   *
+   * @dev Withdraws a removal to the supplier address encoded in the removal ID.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   *
+   * @param removalId The id of the removal to withdraw from the market.
+   */
+  function withdraw(uint256 removalId) external whenNotPaused {
+    address supplierAddress = removalId.supplierAddress();
+    if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
+      _removeActiveRemoval(removalId, supplierAddress);
+      _removal.safeTransferFrom({
+        from: address(this),
+        to: supplierAddress,
+        id: removalId,
+        amount: _removal.balanceOf(address(this), removalId),
+        data: ""
+      });
+    } else {
+      revert UnauthorizedWithdrawal();
+    }
   }
 
   /**
@@ -792,82 +944,6 @@ contract Market is
   }
 
   /**
-   * @notice Sets the Nori fee percentage (as an integer) which is the percentage of
-   * each purchase that will be paid to Nori as the marketplace operator.
-   *
-   * @dev ##### Requirements:
-   *
-   * - Can only be used when the caller has the MARKET_ADMIN_ROLE
-   * - Can only be used when this contract is not paused
-   *
-   * @param noriFeePercentage_ The new fee percentage as an integer.
-   */
-  function setNoriFeePercentage(uint256 noriFeePercentage_)
-    external
-    onlyRole(MARKET_ADMIN_ROLE)
-    whenNotPaused
-  {
-    _noriFeePercentage = noriFeePercentage_;
-    emit NoriFeePercentageUpdated(noriFeePercentage_);
-  }
-
-  /**
-   * @dev Registers the `removal`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
-   * can be referenced in this contract. Called as part of the market contract system deployment process.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
-   * - Can only be used when this contract is not paused.
-   *
-   * @param removal The address of the `removal` contract.
-   * @param certificate The address of the `certificate` contract.
-   * @param bridgedPolygonNORI The address of the `bridgedPolygonNORI` contract.
-   * @param restrictedNORI The address of the market contract.
-   *
-   */
-  function registerContractAddresses(
-    Removal removal,
-    Certificate certificate,
-    BridgedPolygonNORI bridgedPolygonNORI,
-    RestrictedNORI restrictedNORI
-  ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
-    _removal = removal;
-    _certificate = certificate;
-    _bridgedPolygonNORI = bridgedPolygonNORI;
-    _restrictedNORI = restrictedNORI;
-    emit ContractAddressesRegistered(
-      _removal,
-      _certificate,
-      _bridgedPolygonNORI,
-      _restrictedNORI
-    );
-  }
-
-  /**
-   * @notice Sets the Nori fee wallet address (as an integer) which is the address to which the
-   * marketplace operator fee will be routed during each purchase.
-   *
-   * @dev ##### Requirements:
-   *
-   * - Can only be used when the caller has the MARKET_ADMIN_ROLE
-   * - Can only be used when this contract is not paused
-   *
-   * @param noriFeeWalletAddress The wallet address where Nori collects market fees.
-   */
-  function setNoriFeeWallet(address noriFeeWalletAddress)
-    external
-    onlyRole(MARKET_ADMIN_ROLE)
-    whenNotPaused
-  {
-    if (noriFeeWalletAddress == address(0)) {
-      revert NoriFeeWalletZeroAddress();
-    }
-    _noriFeeWallet = noriFeeWalletAddress;
-    emit NoriFeeWalletAddressUpdated(noriFeeWalletAddress);
-  }
-
-  /**
    * @notice Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
    * `RestrictedNORI` contract, pays Nori the order fee, updates accounting, and mints the `Certificate`.
    *
@@ -935,33 +1011,6 @@ contract Market is
   }
 
   /**
-   * @notice Withdraws a removal to the supplier.
-   *
-   * @dev Withdraws a removal to the supplier address encoded in the removal ID.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   *
-   * @param removalId The id of the removal to withdraw from the market.
-   */
-  function withdraw(uint256 removalId) external whenNotPaused {
-    address supplierAddress = removalId.supplierAddress();
-    if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
-      _removeActiveRemoval(removalId, supplierAddress);
-      _removal.safeTransferFrom({
-        from: address(this),
-        to: supplierAddress,
-        id: removalId,
-        amount: _removal.balanceOf(address(this), removalId),
-        data: ""
-      });
-    } else {
-      revert UnauthorizedWithdrawal();
-    }
-  }
-
-  /**
    * @dev Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
    * does not have the role `MARKET_ADMIN_ROLE`.
    *
@@ -976,6 +1025,8 @@ contract Market is
   /**
    * @dev Adds the specified removal ID to the _listedSupply data structure. If this is the supplier's
    * first listed removal, the supplier is also added to the active supplier queue.
+   *
+   * Emits a `RemovalAdded` event.
    *
    * @param removalId The ID of the removal to add
    */
@@ -1029,47 +1080,6 @@ contract Market is
   }
 
   /**
-   * @dev See [IERC165.supportsInterface](
-   * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
-   */
-  function supportsInterface(bytes4 interfaceId)
-    public
-    view
-    virtual
-    override(AccessControlEnumerableUpgradeable, IERC165Upgradeable)
-    returns (bool)
-  {
-    return super.supportsInterface(interfaceId);
-  }
-
-  /**
-   * @notice Returns the address of the `Removal` contract.
-   *
-   * @return removalAddress Address of the `Removal` contract
-   */
-  function removalAddress() external view returns (address) {
-    return address(_removal);
-  }
-
-  /**
-   * @notice Returns the address of the `Certificate` contract.
-   *
-   * @return certificateAddress Address of the `Certificate` contract
-   */
-  function certificateAddress() external view returns (address) {
-    return address(_certificate);
-  }
-
-  /**
-   * @notice Returns the address of the `BridgedPolygonNori` contract.
-   *
-   * @return bridgedPolygonNoriAddress Address of the `BridgedPolygonNori` contract
-   */
-  function bridgedPolygonNoriAddress() external view returns (address) {
-    return address(_bridgedPolygonNORI);
-  }
-
-  /**
    * @dev Updates `_currentSupplierAddress` to the next of whatever is the current supplier.
    * Used to iterate in a round-robin way through the linked list of active suppliers.
    */
@@ -1083,6 +1093,8 @@ contract Market is
    * to itself as next and previous. When a new supplier is added, at the position of the current supplier, update
    * the previous pointer of the current supplier to point to the new supplier, and update the next pointer of the
    * previous supplier to the new supplier.
+   *
+   * Emits a `SupplierAdded` event.
    *
    * @param newSupplierAddress the address of the new supplier to add
    */
@@ -1133,6 +1145,8 @@ contract Market is
    * to be removed, update the previous supplier to point to the next of the removed supplier, and the next of
    * the removed supplier to point to the previous of the remove supplier. Then, set the next and previous
    * pointers of the removed supplier to the 0x address.
+   *
+   * Emits a `SupplierRemoved` event.
    *
    * @param supplierToRemove the address of the supplier to remove
    */
