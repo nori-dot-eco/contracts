@@ -432,7 +432,7 @@ contract Market is
       address nextSupplier = _suppliers[_currentSupplierAddress].next;
       while (nextSupplier != _currentSupplierAddress) {
         nextSupplier = _suppliers[nextSupplier].next;
-        supplierCount += 1;
+        ++supplierCount;
       }
     }
     address[] memory supplierArray = new address[](supplierCount);
