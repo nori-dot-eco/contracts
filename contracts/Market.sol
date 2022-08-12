@@ -25,6 +25,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * Each of these certificates is a non-transferrable, non-fungible token that owns the specific removal tokens
  * and token balances that comprise the specific certificate for the amount purchased.
  *
+ * The market maintains a "priority restricted threshold", which is a configurable threshold of supply that is
+ * always reserved to sell only to buyers who have the `ALLOWLIST_ROLE`.  Purchases that would drop supply below
+ * this threshold will revert without the correct role.
+ *
  * ###### Additional behaviors and features
  *
  * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
@@ -260,6 +264,8 @@ contract Market is
    * @dev Registers the `removal`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
    * can be referenced in this contract. Called as part of the market contract system deployment process.
    *
+   * Emits a `ContractAddressesRegistered` event.
+   *
    * ##### Requirements:
    *
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
@@ -292,7 +298,8 @@ contract Market is
   /**
    * @notice Sets the current value of the priority restricted threshold, which is the amount of inventory
    * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
-   * todo make sure explanaation of priority restricted threshold exists either here or top level
+   *
+   * Emits a `PriorityRestrictedThresholdSet` event.
    *
    * @dev ##### Requirements:
    *
@@ -314,6 +321,8 @@ contract Market is
    * @notice Sets the Nori fee percentage (as an integer) which is the percentage of
    * each purchase that will be paid to Nori as the marketplace operator.
    *
+   * Emits a `NoriFeePercentageUpdated` event.
+   *
    * @dev ##### Requirements:
    *
    * - Can only be used when the caller has the MARKET_ADMIN_ROLE
@@ -333,6 +342,8 @@ contract Market is
   /**
    * @notice Sets the Nori fee wallet address (as an integer) which is the address to which the
    * marketplace operator fee will be routed during each purchase.
+   *
+   * Emits a `NoriFeeWalletAddressUpdated` event.
    *
    * @dev ##### Requirements:
    *
@@ -1016,6 +1027,8 @@ contract Market is
    * @dev Adds the specified removal ID to the _listedSupply data structure. If this is the supplier's
    * first listed removal, the supplier is also added to the active supplier queue.
    *
+   * Emits a `RemovalAdded` event.
+   *
    * @param removalId The ID of the removal to add
    */
   function _addActiveRemoval(uint256 removalId) internal {
@@ -1082,6 +1095,8 @@ contract Market is
    * the previous pointer of the current supplier to point to the new supplier, and update the next pointer of the
    * previous supplier to the new supplier.
    *
+   * Emits a `SupplierAdded` event.
+   *
    * @param newSupplierAddress the address of the new supplier to add
    */
   function _addActiveSupplier(address newSupplierAddress) private {
@@ -1131,6 +1146,8 @@ contract Market is
    * to be removed, update the previous supplier to point to the next of the removed supplier, and the next of
    * the removed supplier to point to the previous of the remove supplier. Then, set the next and previous
    * pointers of the removed supplier to the 0x address.
+   *
+   * Emits a `SupplierRemoved` event.
    *
    * @param supplierToRemove the address of the supplier to remove
    */
