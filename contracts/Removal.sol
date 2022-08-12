@@ -129,11 +129,23 @@ contract Removal is
   Certificate private _certificate;
 
   // todo Test accounting for `_projectIdToHoldbackPercentage` is maintained correctly (assuming we need it)
+  /**
+   * @dev Maps from a given project id to the holdback percentage that will be used to determine what percentage of
+   * proceeds are routed to `RestrictedNORI` when removals from this project are sold.
+   */
   mapping(uint256 => uint8) private _projectIdToHoldbackPercentage;
+
   // todo Test accounting for `_removalIdToProjectId` is maintained correctly (assuming we need it)
   // todo consider moving `Removal._removalIdToProjectId` to _restrictedNORI
+  /**
+   * @dev Maps from a removal id to the project id it belongs to.
+   */
   mapping(uint256 => uint256) private _removalIdToProjectId;
+
   // todo Test accounting for `_addressToOwnedTokenIds` is maintained correctly (assuming we need it)
+  /**
+   * Maps from an address to an EnumerableSet of the token ids for which that address has a non-zero balance.
+   */
   mapping(address => EnumerableSetUpgradeable.UintSet)
     private _addressToOwnedTokenIds;
   uint256 private _currentMarketBalance;
@@ -182,7 +194,7 @@ contract Removal is
   }
 
   /**
-   * @dev Registers the market and certificate contracts so that they can be referenced in this contract.
+   * @notice Registers the market and certificate contracts so that they can be referenced in this contract.
    * Called as part of the market contract system deployment process.
    *
    * @param market The address of the `Market` contract.
@@ -399,7 +411,7 @@ contract Removal is
   }
 
   /**
-   * @dev The current total balance of all removal tokens owned by the `Market` contract.
+   * @notice The current total balance of all removal tokens owned by the `Market` contract.
    * This sum is maintained as a running total for efficient lookup during purchases.
    */
   function getMarketBalance() external view returns (uint256) {
@@ -420,7 +432,7 @@ contract Removal is
   }
 
   /**
-   * @dev The number of unique token IDs owned by the given `account`.
+   * @notice The number of unique token IDs owned by the given `account`.
    * Maintained for efficient lookup of the number of distinct removal tokens owned by the Market.
    *
    * @param account The account for which to retrieve the unique number of token ids owned.
@@ -447,17 +459,19 @@ contract Removal is
   }
 
   /**
-   * @dev Transfers `amount` tokens of token type `id` from `from` to `to`.
+   * @notice Transfers `amount` tokens of token type `id` from `from` to `to`.
    *
-   * Emits a {TransferSingle} event.
+   * @dev Calls `ERC1155Upgradeable.safeTransferFrom`
    *
-   * Requirements:
+   * Emits a `TransferSingle` event.
+   *
+   * ##### Requirements:
    *
    * - Can only be called by the `Market` contract.
    * - `to` cannot be the zero address.
-   * - If the caller is not `from`, it must have been approved to spend ``from``'s tokens via {setApprovalForAll}.
+   * - If the caller is not `from`, it must have been approved to spend ``from``'s tokens via `setApprovalForAll`.
    * - `from` must have a balance of tokens of type `id` of at least `amount`.
-   * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155Received} and return the
+   * - If `to` refers to a smart contract, it must implement `IERC1155Receiver.onERC1155Received` and return the
    * acceptance magic value.
    */
   function safeTransferFrom(
@@ -474,9 +488,9 @@ contract Removal is
   }
 
   /**
-   * @dev Batched version of {safeTransferFrom}.
+   * @notice Batched version of `safeTransferFrom`.
    *
-   * Emits a {TransferBatch} event.
+   * Emits a `TransferBatch` event.
    *
    * Requirements:
    *
@@ -499,11 +513,11 @@ contract Removal is
   }
 
   /**
-   * @dev Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`,
+   * @notice Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`,
    *
-   * Emits an {ApprovalForAll} event.
+   * Emits an `ApprovalForAll` event.
    *
-   * Requirements:
+   * ##### Requirements:
    * - Can only be used when the contract is not paused.
    * - `operator` cannot be the caller.
    *
@@ -523,7 +537,7 @@ contract Removal is
   }
 
   /**
-   * @dev Returns true if this contract implements the interface defined by
+   * @notice Returns true if this contract implements the interface defined by
    * `interfaceId`. See the corresponding
    * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
    * to learn more about how these ids are created.
@@ -540,7 +554,7 @@ contract Removal is
   }
 
   /**
-   * @dev Called during `mintBatch`, creates the removal IDs from the removal data, validates
+   * @notice Called during `mintBatch`, creates the removal IDs from the removal data, validates
    * the new IDs to prevent minting a pre-existing ID, stores the project id in a mapping.
    *
    * @param removals An array of `DecodedRemovalIdV0` structs containing data about each removal
@@ -563,7 +577,7 @@ contract Removal is
   }
 
   /**
-   * @dev Called by `_createRemovals`, validates the new IDs to prevent minting a pre-existing ID,
+   * @notice Called by `_createRemovals`, validates the new IDs to prevent minting a pre-existing ID,
    * stores the project id in a mapping.
    *
    * @param id The removal ID being minted.
@@ -575,9 +589,9 @@ contract Removal is
   }
 
   /**
-   * @dev Burns `amount` of token ID `id` from the supplier address encoded in the ID.
+   * @notice Burns `amount` of token ID `id` from the supplier address encoded in the ID.
    *
-   * Emits a {RemovalReleased} event.
+   * Emits a `RemovalReleased` event.
    *
    * @param id The token ID to burn.
    * @param amount The amount to burn.
@@ -589,9 +603,9 @@ contract Removal is
   }
 
   /**
-   * @dev Burns `amount` of token ID `id` from the Market's balance.
+   * @notice Burns `amount` of token ID `id` from the Market's balance.
    *
-   * Emits a {RemovalReleased} event.
+   * Emits a `RemovalReleased` event.
    *
    * @param id The token ID to burn.
    * @param amount The amount to burn.
@@ -603,11 +617,11 @@ contract Removal is
   }
 
   /**
-   * @dev Burns `amount` of token ID `id` from the Certificate's balance. Updates the internal accounting in
+   * @notice Burns `amount` of token ID `id` from the Certificate's balance. Updates the internal accounting in
    * Certificate that maps removal IDs and amounts to the certificates in which they were included by iteratively
    * releasing from affected certificates (`Certficiate.releaseRemoval`) until `amount` removals have been released.
    *
-   * Emits a {RemovalReleased} event.
+   * Emits a `RemovalReleased` event.
    *
    * @param id The token ID to burn.
    * @param amount The amount to burn.
@@ -666,6 +680,8 @@ contract Removal is
     bytes memory data
   ) internal virtual override whenNotPaused {
     address market = address(_market);
+    bool isToAllowed = to == market ||
+      (to == address(_certificate) || to == address(0));
     for (uint256 i = 0; i < ids.length; ++i) {
       uint256 id = ids[i];
       if (amounts[i] == 0) {
@@ -677,12 +693,7 @@ contract Removal is
       if (from == market) {
         _currentMarketBalance -= amounts[i];
       }
-      if (
-        to != id.supplierAddress() &&
-        to != market &&
-        to != address(_certificate) &&
-        to != address(0)
-      ) {
+      if (!isToAllowed && to != id.supplierAddress()) {
         revert ForbiddenTransfer();
       }
     }
@@ -690,7 +701,7 @@ contract Removal is
   }
 
   /**
-   * @dev Hook that is called after any token transfer. This includes minting
+   * @notice Hook that is called after any token transfer. This includes minting
    * and burning, as well as batched variants.
    * Updates the mapping from address to set of owned token IDs.
    *
@@ -722,7 +733,7 @@ contract Removal is
   }
 
   /**
-   * @dev Updates the mapping from address to set of owned token IDs.
+   * @notice Updates the mapping from address to set of owned token IDs.
    * Called during `_afterTokenTransfer`.
    *
    * @param from The address from which tokens were transferred.
@@ -751,7 +762,7 @@ contract Removal is
   }
 
   /**
-   * @dev Validates that the provided `id` should be minted.
+   * @notice Validates that the provided `id` should be minted.
    * Reverts if a project id has already been set for `id`.
    *
    * @param id The ID to validate.
