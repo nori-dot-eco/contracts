@@ -682,3 +682,75 @@ contract Market__multicall_empty_bytes_reverts is UpgradeableMarket {
     _market.multicall(multicallArg);
   }
 }
+
+contract Market_getActiveSuppliers is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function test_no_suppliers() external {
+    assertEq(_market.getActiveSuppliers(), new address[](0));
+  }
+
+  function test_1_supplier() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    assertEq(
+      _market.getActiveSuppliers(),
+      new address[](1).fill(_namedAccounts.supplier)
+    );
+  }
+
+  function test_3_suppliers() external {
+    address[] memory expectedSuppliers = new address[](3);
+    expectedSuppliers[0] = _namedAccounts.supplier;
+    expectedSuppliers[1] = _namedAccounts.supplier2;
+    expectedSuppliers[2] = _namedAccounts.supplier3;
+
+    for (uint256 i = 0; i < expectedSuppliers.length; i++) {
+      uint256[] memory localRemovalIds = _seedRemovals({
+        to: expectedSuppliers[i],
+        count: 1,
+        list: true
+      });
+      _removalIds.push(localRemovalIds[0]);
+    }
+    assertEq(_market.getActiveSuppliers(), expectedSuppliers);
+  }
+}
+
+contract Market_getRemovalIdsForSupplier is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function test_no_removals() external {
+    assertEq(
+      _market.getRemovalIdsForSupplier(_namedAccounts.supplier),
+      _removalIds
+    );
+  }
+
+  function test_1_removal() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    assertEq(
+      _market.getRemovalIdsForSupplier(_namedAccounts.supplier),
+      _removalIds
+    );
+  }
+
+  function test_3_removals() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 3,
+      list: true
+    });
+    assertEq(
+      _market.getRemovalIdsForSupplier(_namedAccounts.supplier),
+      _removalIds
+    );
+  }
+}
