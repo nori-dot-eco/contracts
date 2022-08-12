@@ -197,7 +197,7 @@ contract Removal is
    * @notice Registers the market and certificate contracts so that they can be referenced in this contract.
    * Called as part of the market contract system deployment process.
    *
-   * Emits a {ContractAddressesRegistered} event.
+   * Emits a `ContractAddressesRegistered` event.
    *
    * @param market The address of the `Market` contract.
    * @param certificate The address of the `Certificate` contract.

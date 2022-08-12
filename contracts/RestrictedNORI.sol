@@ -141,7 +141,7 @@ contract RestrictedNORI is
     keccak256("SCHEDULE_CREATOR_ROLE");
 
   /**
-   * @notice Role conferring sending of bpNori to this contract.
+   * @notice Role conferring sending of bridgedPolygonNORI to this contract.
    *
    * @dev The Market contract is granted this role after deployments.
    */
@@ -431,27 +431,26 @@ contract RestrictedNORI is
   // External functions ===================================================
 
   /**
-   * @notice Registers the addresses of the market, bpNori, and removal contracts in this contract.
+   * @notice Registers the addresses of the market, bridgedPolygonNORI, and removal contracts in this contract.
    *
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    *
-   * @param bpNori The address of the BridgedPolygonNORI contract for which this contract governs restricted tokens
+   * @param bridgedPolygonNORI The address of the BridgedPolygonNORI contract for which this contract wraps tokens
    * @param removal The address of the Removal contract that accounts for Nori's issued carbon removals
    */
-  function registerContractAddresses(BridgedPolygonNORI bpNori, Removal removal)
-    external
-    whenNotPaused
-    onlyRole(DEFAULT_ADMIN_ROLE)
-  {
-    _bridgedPolygonNORI = BridgedPolygonNORI(bpNori);
+  function registerContractAddresses(
+    BridgedPolygonNORI bridgedPolygonNORI,
+    Removal removal
+  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+    _bridgedPolygonNORI = BridgedPolygonNORI(bridgedPolygonNORI);
     _removal = Removal(removal);
   }
 
   /**
-   * @dev Sets the duration in seconds that should be applied to schedules created on behalf of removals
+   * @notice Sets the duration in seconds that should be applied to schedules created on behalf of removals
    * originating from the given methodology and methodology version.
    *
    * ##### Requirements:
@@ -511,7 +510,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * @dev Mints `amount` of RestrictedNORI to the schedule (token ID) that corresponds to the provided `removalId`.
+   * @notice Mints `amount` of RestrictedNORI to the schedule (token ID) that corresponds to the provided `removalId`.
    * The schedule ID for this removal is looked up in the Removal contract.
    * The underlying BridgedPolygonNORI asset is sent to this contract from the buyer by the Market contract
    * during a purchase, so this function only concerns itself with minting the RestrictedNORI token for the
@@ -541,14 +540,15 @@ contract RestrictedNORI is
    * @dev This function burns `amount` of `RestrictedNORI` for the given schedule id
    * and transfers `amount` of `BridgedPolygonNORI` from the `RestrictedNORI` contract's
    * balance to `recipient`'s balance.
-   *
    * Enforcement of the availability of claimable tokens for the `_burn` call happens in `_beforeTokenTransfer`
+   *
+   * Emits a `TokensClaimed` event.
    *
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
    *
-   * @param recipient The address to which the underlying BridgedPolygonNORI will be sent
+   * @param recipient The address receiving the underlying BridgedPolygonNORI
    * @param scheduleId The schedule from which to withdraw
    * @param amount The amount to withdraw
    */
@@ -637,6 +637,8 @@ contract RestrictedNORI is
    * treasury or an address of Nori's choosing (the *toAccount* address).
    * The *claimedAmount* is not changed because this is not a claim operation.
    *
+   * Emits a `TokensRevoked` event.
+   *
    * ##### Requirements:
    *
    * - Can only be used when the caller has the `TOKEN_REVOKER_ROLE`
@@ -724,6 +726,8 @@ contract RestrictedNORI is
    * Revert strings are used instead of custom errors here for proper surfacing
    * from within the market contract `onERC1155BatchReceived` hook.
    *
+   * Emits a `ScheduleCreated` event.
+   *
    * @param projectId The id that will be used as the new schedule's id
    * @param startTime The schedule start time in seconds since the unix epoch
    * @param restrictionDuration The duration of the schedule in seconds since the unix epoch
@@ -741,7 +745,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * @dev Validates that the schedule start time and duration are non-zero.
+   * @notice Validates that the schedule start time and duration are non-zero.
    */
   function _validateSchedule(uint256 startTime, uint256 restrictionDuration)
     internal
@@ -813,7 +817,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * @dev Calculates the quantity that should be revoked from a given token holder and schedule based on their
+   * @notice Calculates the quantity that should be revoked from a given token holder and schedule based on their
    * proportion of ownership of the schedule's tokens and the total number of tokens being revoked.
    *
    * @param totalQuantityToRevoke The total quantity of tokens being revoked from this schedule
