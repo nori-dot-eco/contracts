@@ -61,7 +61,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  *
- * todo Consider adding getters for number of active suppliers (and actually just getting all suppliers in the list)
  * todo consistency in variables/fns that use "supply" vs "removal" nomenclature (which means what?)
  */
 contract Market is
@@ -417,14 +416,43 @@ contract Market is
     return this.onERC1155Received.selector;
   }
 
-  // todo write test for this
+  /**
+   * @notice Returns an array of all suppliers that currently have removals listed in the market.
+   *
+   * @return suppliers All currently active suppliers in the market.
+   */
+  function getActiveSuppliers()
+    external
+    view
+    returns (address[] memory suppliers)
+  {
+    uint256 supplierCount;
+    if (_suppliers[_currentSupplierAddress].next != address(0)) {
+      supplierCount = 1;
+      address nextSupplier = _suppliers[_currentSupplierAddress].next;
+      while (nextSupplier != _currentSupplierAddress) {
+        nextSupplier = _suppliers[nextSupplier].next;
+        supplierCount += 1;
+      }
+    }
+    address[] memory supplierArray = new address[](supplierCount);
+    address currentSupplier = _currentSupplierAddress;
+    LinkedListNode memory currentSupplierNode = _suppliers[currentSupplier];
+    for (uint256 i = 0; i < supplierCount; ++i) {
+      supplierArray[i] = currentSupplier;
+      currentSupplier = currentSupplierNode.next;
+      currentSupplierNode = _suppliers[currentSupplier];
+    }
+    return supplierArray;
+  }
+
   /**
    * @notice Gets all listed removal IDs for a given supplier.
    *
    * @param supplier the supplier for which to return listed removal IDs.
    * @return removalIds the listed removal IDs for this supplier.
    */
-  function getAllRemovalIds(address supplier)
+  function getRemovalIdsForSupplier(address supplier)
     external
     view
     returns (uint256[] memory removalIds)
