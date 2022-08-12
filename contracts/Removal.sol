@@ -135,7 +135,7 @@ contract Removal is
   mapping(uint256 => uint256) private _removalIdToProjectId;
   // todo Test accounting for `_addressToOwnedTokenIds` is maintained correctly (assuming we need it)
   mapping(address => EnumerableSetUpgradeable.UintSet)
-    private _addressToOwnedTokenIds; // TODO expose getter for the list of ids for an address
+    private _addressToOwnedTokenIds;
   uint256 private _currentMarketBalance;
 
   /**
@@ -201,6 +201,19 @@ contract Removal is
     _market = market;
     _certificate = certificate;
     emit ContractAddressesRegistered(market, certificate);
+  }
+
+  /**
+   * @notice Returns an array of all token IDs currently owned by `owner`.
+   *
+   * @param owner The account for which to retrieve owned token IDs.
+   */
+  function getOwnedTokenIds(address owner)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    return _addressToOwnedTokenIds[owner].values();
   }
 
   /**
@@ -550,6 +563,8 @@ contract Removal is
     bytes memory data
   ) internal virtual override whenNotPaused {
     address market = address(_market);
+    bool isToAllowed = to == market ||
+      (to == address(_certificate) || to == address(0));
     for (uint256 i = 0; i < ids.length; ++i) {
       uint256 id = ids[i];
       if (amounts[i] == 0) {
@@ -561,12 +576,7 @@ contract Removal is
       if (from == market) {
         _currentMarketBalance -= amounts[i];
       }
-      if (
-        to != id.supplierAddress() &&
-        to != market &&
-        to != address(_certificate) &&
-        to != address(0)
-      ) {
+      if (!isToAllowed && to != id.supplierAddress()) {
         revert ForbiddenTransfer();
       }
     }

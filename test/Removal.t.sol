@@ -3,7 +3,6 @@
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import {InvalidTokenTransfer} from "@/contracts/Errors.sol";
-
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
 
@@ -18,6 +17,28 @@ contract Removal_mintBatch is UpgradeableMarket {
 contract Removal_mintBatch_list is UpgradeableMarket {
   function test() external {
     _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
+  }
+}
+
+contract Removal_mintBatch_multiple is UpgradeableMarket {
+  function test_2() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 2, list: true});
+  }
+
+  function test_4() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 4, list: true});
+  }
+
+  function test_8() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 8, list: true});
+  }
+
+  function test_16() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 16, list: true});
+  }
+
+  function test_32() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 32, list: true});
   }
 }
 
@@ -898,5 +919,67 @@ contract Removal_revokeRole is UpgradeableMarket {
   function test_reverts_when_paused() external {
     vm.expectRevert("Pausable: paused");
     _removal.revokeRole(adminRole, _namedAccounts.supplier);
+  }
+}
+
+contract Removal_getOwnedTokenIds is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function test_no_tokens() external {
+    assertEq(
+      _removal.getOwnedTokenIds(_namedAccounts.supplier),
+      new uint256[](0)
+    );
+  }
+
+  function test_multiple_tokens_with_transfer() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 3,
+      list: false
+    });
+    assertEq(_removal.getOwnedTokenIds(_namedAccounts.supplier), _removalIds);
+    // list one token
+    _removal.consign({
+      from: _namedAccounts.supplier,
+      id: _removalIds[0],
+      amount: 1 ether
+    });
+    uint256[] memory expectedSupplierIds = _removalIds.slice(1, 3);
+    uint256[] memory retrievedSupplierTokens = _removal.getOwnedTokenIds(
+      _namedAccounts.supplier
+    );
+    // ordering no longer guaranteed the same because of set usage, so compare with contains
+    for (uint256 i = 0; i < expectedSupplierIds.length; i++) {
+      assertContains(retrievedSupplierTokens, expectedSupplierIds[i]);
+    }
+    assertEq(
+      _removal.getOwnedTokenIds(address(_market)),
+      _removalIds.slice(0, 1)
+    );
+    // list the rest of the tokens
+    _removal.consign({
+      from: _namedAccounts.supplier,
+      id: _removalIds[1],
+      amount: 1 ether
+    });
+    _removal.consign({
+      from: _namedAccounts.supplier,
+      id: _removalIds[2],
+      amount: 1 ether
+    });
+    // expect no tokens owned by supplier
+    assertEq(
+      _removal.getOwnedTokenIds(_namedAccounts.supplier),
+      new uint256[](0)
+    );
+    uint256[] memory retrievedMarketTokens = _removal.getOwnedTokenIds(
+      address(_market)
+    );
+    // all tokens belong to market
+    // ordering no longer guaranteed the same because of set usage, so compare with contains
+    for (uint256 i = 0; i < _removalIds.length; i++) {
+      assertContains(retrievedMarketTokens, _removalIds[i]);
+    }
   }
 }
