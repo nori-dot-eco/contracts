@@ -3,7 +3,6 @@
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import {InvalidTokenTransfer} from "@/contracts/Errors.sol";
-import "forge-std/console2.sol";
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
 
