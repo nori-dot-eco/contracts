@@ -127,7 +127,7 @@ export const deployRemovalContract = async ({
     contractName: 'Removal',
     // TODO:sw from config by environment
     args: ['https://registry.nori.com/removals/'],
-    options: { initializer: 'initialize(string)', unsafeAllow: ['delegatecall'] },
+    options: { initializer: 'initialize(string memory)', unsafeAllow: ['delegatecall'] },
   });
 };
 
@@ -152,8 +152,8 @@ export const deployCertificateContract = async ({
   return hre.deployOrUpgradeProxy<Certificate, Certificate__factory>({
     contractName: 'Certificate',
     // TODO:sw from config by environment
-    args: ['https://registry.nori.com/removals/'],
-    options: { initializer: 'initialize(string)', unsafeAllow: ['delegatecall'] },
+    args: ['https://registry.nori.com/certificates/'],
+    options: { initializer: 'initialize(string memory)', unsafeAllow: ['delegatecall'] },
   });
 };
 

@@ -16,7 +16,10 @@ abstract contract UpgradeableCertificate is Upgradeable, UpgradeableRemoval {
   function _deployCertificate() internal returns (Certificate) {
     Certificate impl = new Certificate();
     vm.label(address(impl), "Certificate Implementation");
-    bytes memory initializer = abi.encodeWithSelector(impl.initialize.selector);
+    bytes memory initializer = abi.encodeWithSelector(
+      impl.initialize.selector,
+      "https://registry.test.nori.com/certificates"
+    );
     Certificate proxy = Certificate(_deployProxy(address(impl), initializer));
     proxy.registerContractAddresses(Removal(_removal)); // todo consider simple registry pattern
     vm.label(address(proxy), "Certificate Proxy");

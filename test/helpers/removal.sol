@@ -73,7 +73,8 @@ abstract contract UpgradeableRemoval is Upgradeable {
     _removalImplementation = new Removal();
     vm.label(address(_removalImplementation), "Removal Implementation");
     bytes memory initializer = abi.encodeWithSelector(
-      _removalImplementation.initialize.selector
+      _removalImplementation.initialize.selector,
+      'https://registry.test.nori.com/removals'
     );
     Removal removalProxy = Removal(
       _deployProxy(address(_removalImplementation), initializer)
