@@ -1,8 +1,8 @@
 /* eslint-disable unicorn/prevent-abbreviations -- this file will eventually be replaced by foundry tests */
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import type {
-  UnpackedRemovalIdV0Struct,
-  UnpackedRemovalIdV0StructOutput,
+  DecodedRemovalIdV0Struct,
+  DecodedRemovalIdV0StructOutput,
 } from '@/typechain-types/artifacts/contracts/Removal';
 import { asciiStringToHexString, hexStringToAsciiString } from '@/utils/bytes';
 import { expect, setupTest } from '@/test/helpers';
@@ -14,26 +14,26 @@ describe('RemovalIdLib', () => {
     const { removalTestHarness: harness } = await setupTest();
     const countryCodeString = 'US';
     const subdivisionCodeString = 'IA';
-    const removalData: UnpackedRemovalIdV0Struct = defaultRemovalTokenIdFixture;
+    const removalData: DecodedRemovalIdV0Struct = defaultRemovalTokenIdFixture;
     const removalId = await harness.createRemovalId(removalData);
-    const unpackedRemovalId: UnpackedRemovalIdV0StructOutput =
-      await harness.unpackRemovalIdV0(removalId);
-    expect(unpackedRemovalId.idVersion).equal(removalData.idVersion);
-    expect(unpackedRemovalId.methodology).equal(removalData.methodology);
-    expect(unpackedRemovalId.methodologyVersion).equal(
+    const decodedRemovalId: DecodedRemovalIdV0StructOutput =
+      await harness.decodeRemovalIdV0(removalId);
+    expect(decodedRemovalId.idVersion).equal(removalData.idVersion);
+    expect(decodedRemovalId.methodology).equal(removalData.methodology);
+    expect(decodedRemovalId.methodologyVersion).equal(
       removalData.methodologyVersion
     );
-    expect(unpackedRemovalId.vintage).equal(removalData.vintage);
-    expect(unpackedRemovalId.country).equal(removalData.country);
-    expect(unpackedRemovalId.subdivision).equal(removalData.subdivision);
-    expect(unpackedRemovalId.supplierAddress).equal(
+    expect(decodedRemovalId.vintage).equal(removalData.vintage);
+    expect(decodedRemovalId.country).equal(removalData.country);
+    expect(decodedRemovalId.subdivision).equal(removalData.subdivision);
+    expect(decodedRemovalId.supplierAddress).equal(
       removalData.supplierAddress
     );
-    expect(unpackedRemovalId.subIdentifier).equal(removalData.subIdentifier);
-    expect(hexStringToAsciiString(unpackedRemovalId.country)).equal(
+    expect(decodedRemovalId.subIdentifier).equal(removalData.subIdentifier);
+    expect(hexStringToAsciiString(decodedRemovalId.country)).equal(
       countryCodeString
     );
-    expect(hexStringToAsciiString(unpackedRemovalId.subdivision)).equal(
+    expect(hexStringToAsciiString(decodedRemovalId.subdivision)).equal(
       subdivisionCodeString
     );
   });
@@ -42,7 +42,7 @@ describe('RemovalIdLib', () => {
 
   //   const countryCodeString = 'ZZ';
   //   const subdivisionCodeString = 'ZZ';
-  //   const removalData: UnpackedRemovalIdV0Struct = {
+  //   const removalData: DecodedRemovalIdV0Struct = {
   //     idVersion: 0, // can't max this field out bc 0 is only supported id version otherwise will revert
   //     methodology: 2 ** 4 - 1,
   //     methodologyVersion: 2 ** 4 - 1,
@@ -57,25 +57,25 @@ describe('RemovalIdLib', () => {
   //     formatRemovalIdData({ removalData, hre })
   //   );
 
-  //   const unpackedRemovalId: UnpackedRemovalIdV0StructOutput =
-  //     await harness.unpackRemovalIdV0(removalId);
+  //   const decodedRemovalId: DecodedRemovalIdV0StructOutput =
+  //     await harness.decodeRemovalIdV0(removalId);
 
-  //   expect(unpackedRemovalId.idVersion).equal(removalData.idVersion);
-  //   expect(unpackedRemovalId.methodology).equal(removalData.methodology);
-  //   expect(unpackedRemovalId.methodologyVersion).equal(
+  //   expect(decodedRemovalId.idVersion).equal(removalData.idVersion);
+  //   expect(decodedRemovalId.methodology).equal(removalData.methodology);
+  //   expect(decodedRemovalId.methodologyVersion).equal(
   //     removalData.methodologyVersion
   //   );
-  //   expect(unpackedRemovalId.vintage).equal(removalData.vintage);
-  //   expect(unpackedRemovalId.country).equal(removalData.country);
-  //   expect(unpackedRemovalId.subdivision).equal(removalData.subdivision);
-  //   expect(unpackedRemovalId.supplierAddress).equal(
+  //   expect(decodedRemovalId.vintage).equal(removalData.vintage);
+  //   expect(decodedRemovalId.country).equal(removalData.country);
+  //   expect(decodedRemovalId.subdivision).equal(removalData.subdivision);
+  //   expect(decodedRemovalId.supplierAddress).equal(
   //     removalData.supplierAddress
   //   );
-  //   expect(unpackedRemovalId.subIdentifier).equal(removalData.subIdentifier);
-  //   expect(hexStringToAsciiString(unpackedRemovalId.country)).equal(
+  //   expect(decodedRemovalId.subIdentifier).equal(removalData.subIdentifier);
+  //   expect(hexStringToAsciiString(decodedRemovalId.country)).equal(
   //     countryCodeString
   //   );
-  //   expect(hexStringToAsciiString(unpackedRemovalId.subdivision)).equal(
+  //   expect(hexStringToAsciiString(decodedRemovalId.subdivision)).equal(
   //     subdivisionCodeString
   //   );
   // });
@@ -100,7 +100,7 @@ describe('RemovalIdLib', () => {
     const { removalTestHarness: harness } = await setupTest();
     const countryCodeString = 'US';
     const subdivisionCodeString = 'IA';
-    const removalData: UnpackedRemovalIdV0Struct = {
+    const removalData: DecodedRemovalIdV0Struct = {
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 16, // too large
@@ -116,7 +116,7 @@ describe('RemovalIdLib', () => {
     const { removalTestHarness: harness, hre } = await setupTest();
     const countryCodeString = 'uS'; // lowercase letter
     const subdivisionCodeString = 'IA';
-    const removalData: UnpackedRemovalIdV0Struct = {
+    const removalData: DecodedRemovalIdV0Struct = {
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 0,

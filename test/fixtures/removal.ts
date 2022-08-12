@@ -1,8 +1,8 @@
 import { BigNumber } from 'ethers';
 
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
+import type { DecodedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
 
-export const defaultRemovalTokenIdFixture: UnpackedRemovalIdV0Struct = {
+export const defaultRemovalTokenIdFixture: DecodedRemovalIdV0Struct = {
   idVersion: 0,
   methodology: 1,
   methodologyVersion: 0,

@@ -14,7 +14,7 @@ export const docgen: HardhatUserConfig['docgen'] = {
       'BridgedPolygonNORI',
       'ERC20Preset',
       'LockedNORILib',
-      'RemovalQueue',
+      'RemovalsByYearLib',
       'RemovalIdLib',
       'RestrictedNORI',
     ].includes((item as any)?.canonicalName)

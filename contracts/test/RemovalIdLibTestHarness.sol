@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import {RemovalIdLib, UnpackedRemovalIdV0} from "../RemovalIdLib.sol";
+import {RemovalIdLib, DecodedRemovalIdV0} from "../RemovalIdLib.sol";
 
 /**
  * @dev Testbed contract for testing RemovalIdLib library.
@@ -9,7 +9,7 @@ import {RemovalIdLib, UnpackedRemovalIdV0} from "../RemovalIdLib.sol";
  * Not intended for deployment in productionish environments.
  */
 contract RemovalTestHarness {
-  function createRemovalId(UnpackedRemovalIdV0 memory removalData)
+  function createRemovalId(DecodedRemovalIdV0 memory removalData)
     public
     pure
     returns (uint256)
@@ -17,11 +17,11 @@ contract RemovalTestHarness {
     return RemovalIdLib.createRemovalId(removalData);
   }
 
-  function unpackRemovalIdV0(uint256 removalId)
+  function decodeRemovalIdV0(uint256 removalId)
     public
     pure
-    returns (UnpackedRemovalIdV0 memory)
+    returns (DecodedRemovalIdV0 memory)
   {
-    return RemovalIdLib.unpackRemovalIdV0(removalId);
+    return RemovalIdLib.decodeRemovalIdV0(removalId);
   }
 }

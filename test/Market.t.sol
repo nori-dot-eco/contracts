@@ -375,14 +375,14 @@ contract Market__validatePrioritySupply is NonUpgradeableMarket {
   {
     _validatePrioritySupply({
       certificateAmount: 0.5 ether,
-      activeSupply: 1 ether
+      availableSupply: 1 ether
     });
   }
 
   function test_supplyAfterPurchaseIsZero() external view {
     _validatePrioritySupply({
       certificateAmount: 1 ether,
-      activeSupply: 1 ether
+      availableSupply: 1 ether
     });
   }
 }
@@ -400,7 +400,7 @@ contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriori
   function test() external view {
     _validatePrioritySupply({
       certificateAmount: 1 ether,
-      activeSupply: 1 ether
+      availableSupply: 1 ether
     });
   }
 }
@@ -418,7 +418,7 @@ contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
     vm.expectRevert(LowSupplyAllowlistRequired.selector);
     _validatePrioritySupply({
       certificateAmount: 1 ether,
-      activeSupply: 1 ether
+      availableSupply: 1 ether
     });
   }
 }
@@ -433,26 +433,20 @@ contract Market__addActiveRemoval is NonUpgradeableMarket, UpgradeableRemoval {
   function test__list1VintageFor1Supplier() external {
     _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
     address supplier = RemovalIdLib.supplierAddress(REMOVAL_ID_FIXTURE);
-    uint256 earliestYear = _activeSupply[supplier].earliestYear;
+    uint256 earliestYear = _listedSupply[supplier].earliestYear;
     assertEq(earliestYear, REMOVAL_DATA_FIXTURE.vintage);
-    assertEq(_activeSupply[supplier].latestYear, REMOVAL_DATA_FIXTURE.vintage);
-    EnumerableSetUpgradeable.UintSet storage queueByVintage = _activeSupply[
+    assertEq(_listedSupply[supplier].latestYear, REMOVAL_DATA_FIXTURE.vintage);
+    EnumerableSetUpgradeable.UintSet storage yearToRemovals = _listedSupply[
       supplier
-    ].queueByVintage[earliestYear];
-    assertEq(queueByVintage.length(), 1);
-    assertEq(queueByVintage.at(0), REMOVAL_ID_FIXTURE);
-    assertEq(
-      _suppliersInRoundRobinOrder[supplier].nextSupplierAddress,
-      supplier
-    );
-    assertEq(
-      _suppliersInRoundRobinOrder[supplier].previousSupplierAddress,
-      supplier
-    );
+    ].yearToRemovals[earliestYear];
+    assertEq(yearToRemovals.length(), 1);
+    assertEq(yearToRemovals.at(0), REMOVAL_ID_FIXTURE);
+    assertEq(_suppliers[supplier].next, supplier);
+    assertEq(_suppliers[supplier].previous, supplier);
   }
 
   function test__list2VintagesFor1SupplierFor1SubIdentifier() external {
-    UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
+    DecodedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
     secondRemovalsData.vintage = REMOVAL_DATA_FIXTURE.vintage + 1;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
     _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
@@ -460,91 +454,79 @@ contract Market__addActiveRemoval is NonUpgradeableMarket, UpgradeableRemoval {
     uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
     uint256 latestYear = secondRemovalsData.vintage;
     address supplier = RemovalIdLib.supplierAddress(secondRemovalsId);
-    EnumerableSetUpgradeable.UintSet storage queueByVintage = _activeSupply[
+    EnumerableSetUpgradeable.UintSet storage yearToRemovals = _listedSupply[
       supplier
-    ].queueByVintage[latestYear];
-    assertEq(_activeSupply[supplier].earliestYear, earliestYear);
-    assertEq(_activeSupply[supplier].latestYear, latestYear);
-    assertEq(queueByVintage.length(), 1);
-    assertEq(queueByVintage.at(0), secondRemovalsId);
-    assertEq(
-      _suppliersInRoundRobinOrder[supplier].nextSupplierAddress,
-      supplier
-    );
-    assertEq(
-      _suppliersInRoundRobinOrder[supplier].previousSupplierAddress,
-      supplier
-    );
+    ].yearToRemovals[latestYear];
+    assertEq(_listedSupply[supplier].earliestYear, earliestYear);
+    assertEq(_listedSupply[supplier].latestYear, latestYear);
+    assertEq(yearToRemovals.length(), 1);
+    assertEq(yearToRemovals.at(0), secondRemovalsId);
+    assertEq(_suppliers[supplier].next, supplier);
+    assertEq(_suppliers[supplier].previous, supplier);
   }
 
   function test__lis2VintagesFor1SupplierFor2SubIdentifiers() external {
-    UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
+    DecodedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
     secondRemovalsData.subIdentifier = REMOVAL_DATA_FIXTURE.subIdentifier + 1;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
     _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
     _addActiveRemoval({removalId: secondRemovalsId});
     uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
     uint256 latestYear = secondRemovalsData.vintage;
-    EnumerableSetUpgradeable.UintSet storage queueByVintage = _activeSupply[
+    EnumerableSetUpgradeable.UintSet storage yearToRemovals = _listedSupply[
       _namedAccounts.supplier
-    ].queueByVintage[latestYear];
-    assertEq(_activeSupply[_namedAccounts.supplier].earliestYear, earliestYear);
-    assertEq(_activeSupply[_namedAccounts.supplier].latestYear, latestYear);
-    assertEq(queueByVintage.length(), 2);
-    assertEq(queueByVintage.at(0), REMOVAL_ID_FIXTURE);
-    assertEq(queueByVintage.at(1), secondRemovalsId);
+    ].yearToRemovals[latestYear];
+    assertEq(_listedSupply[_namedAccounts.supplier].earliestYear, earliestYear);
+    assertEq(_listedSupply[_namedAccounts.supplier].latestYear, latestYear);
+    assertEq(yearToRemovals.length(), 2);
+    assertEq(yearToRemovals.at(0), REMOVAL_ID_FIXTURE);
+    assertEq(yearToRemovals.at(1), secondRemovalsId);
+    assertEq(_suppliers[_namedAccounts.supplier].next, _namedAccounts.supplier);
     assertEq(
-      _suppliersInRoundRobinOrder[_namedAccounts.supplier].nextSupplierAddress,
-      _namedAccounts.supplier
-    );
-    assertEq(
-      _suppliersInRoundRobinOrder[_namedAccounts.supplier]
-        .previousSupplierAddress,
+      _suppliers[_namedAccounts.supplier].previous,
       _namedAccounts.supplier
     );
   }
 
   function test__list1VintageFor2Suppliers() external {
-    UnpackedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
+    DecodedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
     secondRemovalsData.supplierAddress = _namedAccounts.supplier2;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
     _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
     _addActiveRemoval({removalId: secondRemovalsId});
     uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
     uint256 latestYear = REMOVAL_DATA_FIXTURE.vintage;
-    EnumerableSetUpgradeable.UintSet storage queueByVintage = _activeSupply[
+    EnumerableSetUpgradeable.UintSet storage yearToRemovals = _listedSupply[
       _namedAccounts.supplier
-    ].queueByVintage[earliestYear];
-    EnumerableSetUpgradeable.UintSet storage queueByVintage2 = _activeSupply[
+    ].yearToRemovals[earliestYear];
+    EnumerableSetUpgradeable.UintSet storage queueByVintage2 = _listedSupply[
       _namedAccounts.supplier2
-    ].queueByVintage[earliestYear];
-    assertEq(_activeSupply[_namedAccounts.supplier].earliestYear, earliestYear);
-    assertEq(_activeSupply[_namedAccounts.supplier].latestYear, latestYear);
+    ].yearToRemovals[earliestYear];
+    assertEq(_listedSupply[_namedAccounts.supplier].earliestYear, earliestYear);
+    assertEq(_listedSupply[_namedAccounts.supplier].latestYear, latestYear);
     assertEq(
-      _activeSupply[_namedAccounts.supplier2].earliestYear,
+      _listedSupply[_namedAccounts.supplier2].earliestYear,
       earliestYear
     );
-    assertEq(_activeSupply[_namedAccounts.supplier2].latestYear, latestYear);
-    assertEq(queueByVintage.length(), 1);
+    assertEq(_listedSupply[_namedAccounts.supplier2].latestYear, latestYear);
+    assertEq(yearToRemovals.length(), 1);
     assertEq(queueByVintage2.length(), 1);
-    assertEq(queueByVintage.at(0), REMOVAL_ID_FIXTURE);
+    assertEq(yearToRemovals.at(0), REMOVAL_ID_FIXTURE);
     assertEq(queueByVintage2.at(0), secondRemovalsId);
     assertEq(
-      _suppliersInRoundRobinOrder[_namedAccounts.supplier].nextSupplierAddress,
+      _suppliers[_namedAccounts.supplier].next,
       _namedAccounts.supplier2
     );
     assertEq(
-      _suppliersInRoundRobinOrder[_namedAccounts.supplier]
-        .previousSupplierAddress,
+      _suppliers[_namedAccounts.supplier].previous,
       _namedAccounts.supplier2
     );
     assertEq(
-      _suppliersInRoundRobinOrder[_namedAccounts.supplier2].nextSupplierAddress,
+      _suppliers[_namedAccounts.supplier2].next,
       _namedAccounts.supplier
     );
     assertEq(
-      _suppliersInRoundRobinOrder[_namedAccounts.supplier2]
-        .previousSupplierAddress,
+      _suppliers[_namedAccounts.supplier2].previous,
       _namedAccounts.supplier
     );
   }
@@ -663,31 +645,14 @@ contract Market_onERC1155BatchReceived_reverts_SenderNotRemovalContract is
   }
 }
 
-contract Market__validateSuppliersSupply is
-  NonUpgradeableMarket,
-  UpgradeableRemoval
-{
-  function test() external pure {
-    _validateSuppliersSupply({
-      certificateAmount: 0.5 ether,
-      activeSupplyOfSupplier: 1 ether
-    });
-  }
-
-  function test_reverts_OutOfStock() external {
-    vm.expectRevert(InsufficientSupply.selector);
-    _validateSuppliersSupply({certificateAmount: 1, activeSupplyOfSupplier: 0});
-  }
-}
-
 contract Market__validateSupply is NonUpgradeableMarket, UpgradeableRemoval {
   function test() external pure {
-    _validateSupply({certificateAmount: 1 ether, activeSupply: 1 ether});
+    _validateSupply({certificateAmount: 1 ether, availableSupply: 1 ether});
   }
 
   function test_reverts_OutOfSupply() external {
     vm.expectRevert(InsufficientSupply.selector);
-    _validateSupply({certificateAmount: 1 ether, activeSupply: 0.9 ether});
+    _validateSupply({certificateAmount: 1 ether, availableSupply: 0.9 ether});
   }
 }
 
