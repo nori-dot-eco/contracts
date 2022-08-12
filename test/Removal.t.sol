@@ -21,8 +21,24 @@ contract Removal_mintBatch_list is UpgradeableMarket {
   }
 }
 
-contract Removal_mintBatch_many is UpgradeableMarket {
-  function test() external {
+contract Removal_mintBatch_multiple is UpgradeableMarket {
+  function test_2() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 30, list: true});
+  }
+
+  function test_4() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 30, list: true});
+  }
+
+  function test_8() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 30, list: true});
+  }
+
+  function test_16() external {
+    _seedRemovals({to: _namedAccounts.supplier, count: 30, list: true});
+  }
+
+  function test_32() external {
     _seedRemovals({to: _namedAccounts.supplier, count: 30, list: true});
   }
 }
