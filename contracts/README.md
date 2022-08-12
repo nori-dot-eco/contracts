@@ -1,6 +1,6 @@
 # Nori Smart Contracts
 
-Nori's product is the NRT or Nori _Removal_ Tonne. This can be understood as a carbon removal credit granted to a supplier for the CO2 they have removed from the atmosphere. The supplier consigns their NRTs to Nori's marketplace for sale and gets paid in _NORI_ token. A buyer of NRTs is minted a non-transferrable _Certificate_ (NCCR) which in ultimately owns the sold NRTs.
+Nori's product is the NRT or Nori _Removal_ Tonne. This can be understood as a carbon removal credit granted to a supplier for the CO2 they have removed from the atmosphere. The supplier consigns their NRTs to Nori's marketplace for sale and gets paid in _NORI_ token. A buyer of NRTs is minted a non-transferrable _Certificate_ (NCCR) which ultimately owns the sold NRTs.
 
 Nori collects a configurable marketplace fee (currently 15%) from each transaction and additionally restricts a percentage of the proceeds of each swap to be held in an insurance reserve and released linearly over the supplier's ten year contract with Nori. _RestrictedNORI_ implements this restriction and scheduled release mechanism with support for transfer of restricted token blocks between wallets.
 
@@ -41,7 +41,7 @@ ERC1155 token representing the NRTs (carbon removal credits) issued to a supplie
 
 Each token ID encodes the wallet address of the supplier to which the NRTs were issued in addition to information about the source and location of the carbon removed. See [RemovalIdLib](./RemovalIdLib.sol) for details.
 
-The total supply of each Removal token ID represents the estimated amount of NRTs granted on a specific parcel of land in a specific year.
+The total supply of each Removal token ID represents the amount of NRTs granted for a specific parcel of land in a specific year.
 
 Lifecycle of a Removal:
 
