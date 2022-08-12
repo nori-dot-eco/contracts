@@ -2,7 +2,7 @@ import { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 import { add } from '@nori-dot-com/math';
 
-import type { UnpackedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
+import type { DecodedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import { sum } from '@/utils/math';
 import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
@@ -126,7 +126,7 @@ export const createBatchMintData = async ({
 
 // todo helpers/removal.ts
 interface RemovalDataFromListing {
-  listedRemovalIds: UnpackedRemovalIdV0Struct[];
+  listedRemovalIds: DecodedRemovalIdV0Struct[];
   totalAmountOfSupply: BigNumber; // todo bignumber ?
   totalAmountOfSuppliers: number;
   totalAmountOfRemovals: number;
@@ -142,7 +142,7 @@ interface RemovalDataForListing {
   scheduleStartTime?: number;
   holdbackPercentage?: BigNumber;
   listNow?: boolean;
-  removals: (Partial<UnpackedRemovalIdV0Struct> & {
+  removals: (Partial<DecodedRemovalIdV0Struct> & {
     tokenId?: BigNumber;
     amount: number; // todo bignumber
     projectId?: number;
@@ -183,9 +183,9 @@ export const batchMintAndListRemovalsForSale = async (options: {
   };
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
-  const removals: UnpackedRemovalIdV0Struct[] = [];
+  const removals: DecodedRemovalIdV0Struct[] = [];
   for (const [index, removalData] of removalDataToList.removals.entries()) {
-    const removalTokenId: UnpackedRemovalIdV0Struct = {
+    const removalTokenId: DecodedRemovalIdV0Struct = {
       ...defaultRemovalTokenIdFixture,
       supplierAddress: removalData.supplierAddress ?? supplier,
       vintage: removalData.vintage ?? defaultStartingVintage + index,
@@ -250,7 +250,7 @@ export const setupTest = global.hre.deployments.createFixture(
         await (contracts[contract] as any).pause();
       }
     }
-    let removals: UnpackedRemovalIdV0Struct[] = [];
+    let removals: DecodedRemovalIdV0Struct[] = [];
     let totalAmountOfSupply = Zero;
     let totalAmountOfSuppliers = 0;
     let totalAmountOfRemovals = 0;

@@ -9,7 +9,7 @@ error InsufficientUnreleasedTokens(uint256 scheduleId);
 error InsufficientClaimableBalance(address account, uint256 scheduleId);
 error InvalidMinter(address account);
 error InvalidZeroDuration();
-error RemovalNotInQueue(uint256 removalId, uint256 queueVintage);
+error RemovalNotFoundInYear(uint256 removalId, uint256 year);
 error UncapitalizedString(bytes2 country, bytes2 subdivision);
 error MethodologyVersionTooLarge(uint8 methodologyVersion);
 error UnsupportedIdVersion(uint8 idVersion);

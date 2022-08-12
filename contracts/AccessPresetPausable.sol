@@ -4,7 +4,7 @@ pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
-contract PausableAccessPreset is
+contract AccessPresetPausable is
   PausableUpgradeable,
   AccessControlEnumerableUpgradeable
 {

@@ -219,7 +219,7 @@ the previous supplier to the new supplier._
 ### \_removeActiveSupplier
 
 ```solidity
-function _removeActiveSupplier(address addressToRemove) private
+function _removeActiveSupplier(address supplierToRemove) private
 ```
 
 Removes a supplier to the active supplier queue
@@ -449,7 +449,7 @@ the previous supplier to the new supplier._
 ### \_removeActiveSupplier
 
 ```solidity
-function _removeActiveSupplier(address addressToRemove) private
+function _removeActiveSupplier(address supplierToRemove) private
 ```
 
 Removes a supplier to the active supplier queue
@@ -681,7 +681,7 @@ the previous supplier to the new supplier._
 ### \_removeActiveSupplier
 
 ```solidity
-function _removeActiveSupplier(address addressToRemove) private
+function _removeActiveSupplier(address supplierToRemove) private
 ```
 
 Removes a supplier to the active supplier queue

@@ -25,8 +25,8 @@ contract Removal_mintBatch_list is UpgradeableMarket {
 contract Removal_mintBatch_list_sequential is UpgradeableMarket {
   function test() external {
     _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
-    UnpackedRemovalIdV0[] memory ids = new UnpackedRemovalIdV0[](1);
-    ids[0] = UnpackedRemovalIdV0({
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 0,
@@ -49,8 +49,8 @@ contract Removal_mintBatch_list_sequential is UpgradeableMarket {
 
 contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
   function test() external {
-    UnpackedRemovalIdV0[] memory ids = new UnpackedRemovalIdV0[](1);
-    ids[0] = UnpackedRemovalIdV0({
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 0,
@@ -97,7 +97,7 @@ contract Removal_addBalance is UpgradeableMarket {
 contract Removal_addBalance_reverts_RemovalNotYetMinted is UpgradeableMarket {
   function test() external {
     uint256 unmintedTokenId = RemovalIdLib.createRemovalId({
-      removal: UnpackedRemovalIdV0({
+      removal: DecodedRemovalIdV0({
         idVersion: 0,
         methodology: 1,
         methodologyVersion: 0,
@@ -139,15 +139,15 @@ contract Removal__createRemovalDataBatch is NonUpgradeableRemoval {
   /** @dev allows using the `calldata` type for the `removalIds` param as this function is external  */
 
   function createRemovalDataBatch(
-    UnpackedRemovalIdV0[] calldata removals,
+    DecodedRemovalIdV0[] calldata removals,
     uint256 projectId
   ) external {
-    _createRemovalDataBatch({removals: removals, projectId: projectId});
+    _createRemovals({removals: removals, projectId: projectId});
   }
 
   function test() external {
-    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](1);
-    removals[0] = UnpackedRemovalIdV0({
+    DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
+    removals[0] = DecodedRemovalIdV0({
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 0,
@@ -161,8 +161,8 @@ contract Removal__createRemovalDataBatch is NonUpgradeableRemoval {
   }
 
   function test_reverts_InvalidData2() external {
-    UnpackedRemovalIdV0[] memory removals = new UnpackedRemovalIdV0[](1);
-    removals[0] = UnpackedRemovalIdV0({
+    DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
+    removals[0] = DecodedRemovalIdV0({
       idVersion: 0,
       methodology: 1,
       methodologyVersion: 0,
@@ -180,19 +180,19 @@ contract Removal__createRemovalDataBatch is NonUpgradeableRemoval {
 
 contract Removal__createRemovalData is NonUpgradeableRemoval {
   function test() external {
-    _createRemovalData({removalId: 1, projectId: 1});
+    _createRemoval({id: 1, projectId: 1});
   }
 
   function test_reverts_InvalidData() external {
-    _createRemovalData({removalId: 1, projectId: 1});
+    _createRemoval({id: 1, projectId: 1});
     vm.expectRevert(InvalidData.selector);
-    _createRemovalData({removalId: 1, projectId: 1});
+    _createRemoval({id: 1, projectId: 1});
   }
 }
 
 contract Removal__validateRemoval is NonUpgradeableRemoval {
   function setUp() external {
-    _createRemovalData({removalId: 1, projectId: 1});
+    _createRemoval({id: 1, projectId: 1});
   }
 
   function test() external view {
@@ -211,7 +211,7 @@ contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
   uint8[] private _retrievedHoldbackPercentages;
 
   function setUp() external {
-    UnpackedRemovalIdV0[] memory removalBatch = new UnpackedRemovalIdV0[](1);
+    DecodedRemovalIdV0[] memory removalBatch = new DecodedRemovalIdV0[](1);
     removalBatch[0] = REMOVAL_DATA_FIXTURE;
     _removal.mintBatch({
       to: _namedAccounts.supplier,
@@ -251,8 +251,8 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
   uint8[] private _retrievedHoldbackPercentages;
 
   function setUp() external {
-    UnpackedRemovalIdV0[]
-      memory firstRemovalBatchFixture = new UnpackedRemovalIdV0[](1);
+    DecodedRemovalIdV0[]
+      memory firstRemovalBatchFixture = new DecodedRemovalIdV0[](1);
     firstRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
     _removal.mintBatch(
       _namedAccounts.supplier,
@@ -262,8 +262,8 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
       block.timestamp,
       _firstHoldbackPercentage
     );
-    UnpackedRemovalIdV0[]
-      memory secondRemovalBatchFixture = new UnpackedRemovalIdV0[](1);
+    DecodedRemovalIdV0[]
+      memory secondRemovalBatchFixture = new DecodedRemovalIdV0[](1);
     secondRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
     secondRemovalBatchFixture[0].subIdentifier =
       REMOVAL_DATA_FIXTURE.subIdentifier +
@@ -360,7 +360,7 @@ contract Removal_release_retired_burned is UpgradeableMarket {
     });
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
-    uint256 checkoutTotal = _market.getCheckoutTotal(1 ether); // todo replace other test usage of _market.getNoriFee
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(1 ether); // todo replace other test usage of _market.calculateNoriFee
     vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -408,7 +408,7 @@ contract Removal_release_retired is UpgradeableMarket {
     });
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
-    uint256 checkoutTotal = _market.getCheckoutTotal(1 ether); // todo replace other test usage of _market.getNoriFee
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(1 ether); // todo replace other test usage of _market.calculateNoriFee
     vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -455,11 +455,11 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
     });
     uint256 ownerPrivateKey = 0xA11CE; // todo use named accounts
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
-    uint256 cumulativeCheckoutTotal = _market.getCheckoutTotal(100 ether);
+    uint256 cumulativeCheckoutTotal = _market.calculateCheckoutTotal(100 ether);
     vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
     _bpNori.deposit(owner, abi.encode(cumulativeCheckoutTotal));
     for (uint256 i = 0; i < 100; i++) {
-      uint256 checkoutTotal = _market.getCheckoutTotal(1 ether); // todo replace other test usage of _market.getNoriFee
+      uint256 checkoutTotal = _market.calculateCheckoutTotal(1 ether); // todo replace other test usage of _market.calculateNoriFee
       SignedPermit memory signedPermit = _signatureUtils.generatePermit(
         ownerPrivateKey,
         address(_market),
@@ -554,7 +554,7 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
     assertEq(_removal.balanceOf(address(_market), _removalIds[0]), 0.5 ether);
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
-    uint256 checkoutTotal = _market.getCheckoutTotal(0.25 ether);
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(0.25 ether);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -602,7 +602,7 @@ contract Removal_release_retired_2x is UpgradeableMarket {
     assertEq(_removal.balanceOf(address(_market), _removalIds[0]), 1 ether);
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
-    uint256 checkoutTotal = _market.getCheckoutTotal(0.5 ether);
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(0.5 ether);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal * 2));
     for (uint256 i = 0; i < 2; i++) {
@@ -702,7 +702,7 @@ contract Removal_getMarketBalance is UpgradeableMarket {
     assertEq(_removal.getMarketBalance(), amountToList);
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
-    uint256 checkoutTotal = _market.getCheckoutTotal(amountToSell);
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(amountToSell);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -732,7 +732,7 @@ contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
 
   function setUp() external {
     _removalId = RemovalIdLib.createRemovalId(
-      UnpackedRemovalIdV0({
+      DecodedRemovalIdV0({
         idVersion: 0,
         methodology: 1,
         methodologyVersion: 0,

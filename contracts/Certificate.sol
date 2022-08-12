@@ -5,7 +5,7 @@ import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol"
 import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
 import "./Errors.sol";
 import "./Removal.sol";
-import "./PausableAccessPreset.sol";
+import "./AccessPresetPausable.sol";
 
 /**
  * todo document burning behavior
@@ -69,7 +69,7 @@ contract Certificate is
   ERC721ABurnableUpgradeable,
   ERC721AQueryableUpgradeable,
   MulticallUpgradeable,
-  PausableAccessPreset
+  AccessPresetPausable
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 

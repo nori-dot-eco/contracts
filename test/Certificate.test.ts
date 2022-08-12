@@ -26,7 +26,7 @@ describe('Certificate', () => {
       listedRemovalIds[0]
     );
     const purchaseAmount = formatTokenAmount(1);
-    const value = await market.getCheckoutTotal(purchaseAmount); // todo use getCheckoutTotal globally
+    const value = await market.calculateCheckoutTotal(purchaseAmount); // todo use calculateCheckoutTotal globally
     const { buyer } = hre.namedSigners;
     const { v, r, s } = await buyer.permit({
       verifyingContract: bpNori,
@@ -35,7 +35,7 @@ describe('Certificate', () => {
     });
     await market
       .connect(buyer)
-      .swapFromSpecificSupplier(
+      .swapFromSupplier(
         buyer.address,
         value,
         hre.namedAccounts.supplier,
@@ -68,7 +68,7 @@ describe('Certificate', () => {
       },
     });
     const purchaseAmount = formatTokenAmount(1);
-    const value = await market.getCheckoutTotal(purchaseAmount); // todo use getCheckoutTotal globally
+    const value = await market.calculateCheckoutTotal(purchaseAmount); // todo use calculateCheckoutTotal globally
     const { buyer } = hre.namedSigners;
     const { v, r, s } = await buyer.permit({
       verifyingContract: bpNori,
@@ -81,7 +81,7 @@ describe('Certificate', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSpecificSupplier(
+        .swapFromSupplier(
           buyer.address,
           value,
           hre.namedAccounts.supplier,
