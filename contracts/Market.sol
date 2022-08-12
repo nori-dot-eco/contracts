@@ -398,7 +398,6 @@ contract Market is
    *
    * @param amount The amount of carbon removals for the purchase.
    * @return fee the amount of the fee for Nori.
-   * todo consider renaming calculateNoriFee to something like `calculateNoriFee`
    */
   function calculateNoriFee(uint256 amount) external view returns (uint256) {
     return (amount * _noriFeePercentage) / 100;
