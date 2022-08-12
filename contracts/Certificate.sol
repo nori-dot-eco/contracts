@@ -9,7 +9,6 @@ import "./AccessPresetPausable.sol";
 
 /**
  * todo document burning behavior
- * todo ERC721a exposes both _msgSender and _msgSenderERC721A -- what are the differences and implications?
  * todo check that all transfer functions (including those not exposed in this file) call _beforeTokenTransfers
  *
  * @title An ERC721a contract that issues non-transferable certificates of carbon removal.
@@ -200,7 +199,6 @@ contract Certificate is
     emit ContractAddressesRegistered(removal);
   }
 
-  // todo is whenNotPaused redundant since it's only called from a pausable function on the removal contract?
   /**
    * @notice Removes `amount` of this `removalId` from the specified `certificateId` in the internal accounting
    * that keeps track of which removals belong to a given certificate.
@@ -469,7 +467,7 @@ contract Certificate is
     _validateReceivedRemovalBatch(removalIds, removalAmounts);
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
-    _mint(recipient, 1); // todo should we be using _mint or _safeMint for ERC721A
+    _mint(recipient, 1);
     for (uint256 i = 0; i < removalIds.length; ++i) {
       _removalBalancesOfCertificate[certificateId][
         removalIds[i]
