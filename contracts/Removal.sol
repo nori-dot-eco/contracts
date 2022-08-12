@@ -166,10 +166,10 @@ contract Removal is
     _disableInitializers();
   }
 
-  function initialize() external initializer {
+  function initialize(string memory baseURI) external initializer {
     __Context_init_unchained();
     __ERC165_init_unchained();
-    __ERC1155_init_unchained("https://nori.com/api/removal/{id}.json");
+    __ERC1155_init_unchained(string(abi.encodePacked(baseURI, "{id}")));
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
     __AccessControl_init_unchained();

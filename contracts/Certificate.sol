@@ -123,6 +123,11 @@ contract Certificate is
   Removal private _removal;
 
   /**
+   * @notice Base URI for token metadata
+   */
+  string private _baseURIValue;
+
+  /**
    * @notice Emitted when a batch of removals is recieved to create a Certificate.
    * @param from Address removals were sent from.
    * @param recipient Address to send the certificate token to.
@@ -164,7 +169,12 @@ contract Certificate is
     _disableInitializers();
   }
 
-  function initialize() external initializerERC721A initializer {
+  function initialize(string memory baseURI)
+    external
+    initializerERC721A
+    initializer
+  {
+    _baseURIValue = baseURI;
     __Context_init_unchained();
     __ERC165_init_unchained();
     __ERC721A_init_unchained("Certificate", "NCCR");
@@ -525,7 +535,7 @@ contract Certificate is
    * @dev Base URI for computing `tokenURI`. If set, the resulting URI for each token will be the concatenation of the
    * `baseURI` and the `tokenId`. Empty by default, it can be overridden in child contracts.
    */
-  function _baseURI() internal pure override returns (string memory) {
-    return "https://nori.com/"; // todo
+  function _baseURI() internal view override returns (string memory) {
+    return _baseURIValue;
   }
 }
