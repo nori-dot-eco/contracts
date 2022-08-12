@@ -125,8 +125,12 @@ export const deployRemovalContract = async ({
 }): Promise<InstanceOfContract<Removal>> => {
   return hre.deployOrUpgradeProxy<Removal, Removal__factory>({
     contractName: 'Removal',
-    args: [],
-    options: { initializer: 'initialize()', unsafeAllow: ['delegatecall'] },
+    // TODO:sw from config by environment
+    args: ['https://registry.nori.com/removals/'],
+    options: {
+      initializer: 'initialize(string)',
+      unsafeAllow: ['delegatecall'],
+    },
   });
 };
 
@@ -150,8 +154,12 @@ export const deployCertificateContract = async ({
 }): Promise<InstanceOfContract<Certificate>> => {
   return hre.deployOrUpgradeProxy<Certificate, Certificate__factory>({
     contractName: 'Certificate',
-    args: [],
-    options: { initializer: 'initialize()', unsafeAllow: ['delegatecall'] },
+    // TODO:sw from config by environment
+    args: ['https://registry.nori.com/certificates/'],
+    options: {
+      initializer: 'initialize(string)',
+      unsafeAllow: ['delegatecall'],
+    },
   });
 };
 
@@ -179,7 +187,6 @@ export const deployMarketContract = async ({
       initializer:
         'initialize(address,address,address,address,address,uint256)',
       unsafeAllow: ['delegatecall'],
-
     },
   });
 };
@@ -195,7 +202,6 @@ export const deployRestrictedNORI = async ({
     options: {
       initializer: 'initialize()',
       unsafeAllow: ['delegatecall'],
-
     },
   });
 };
