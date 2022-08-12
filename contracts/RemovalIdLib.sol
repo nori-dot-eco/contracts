@@ -14,7 +14,7 @@ struct DecodedRemovalIdV0 {
 }
 
 uint256 constant _BITS_PER_BYTE = 8;
-uint256 constant _ENCODED_LENGTH_BYTES_UNPACKED_ID_V0 = 256;
+uint256 constant _ENCODED_LENGTH_BYTES_DECODED_ID_V0 = 256;
 
 uint256 constant _ID_VERSION_FIELD_LENGTH = 1;
 uint256 constant _METHODOLOGY_DATA_FIELD_LENGTH = 1;

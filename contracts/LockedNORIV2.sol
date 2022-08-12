@@ -167,7 +167,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
   /**
    * @notice The BridgedPolygonNORI contract that this contract wraps tokens for
    */
-  BridgedPolygonNORI private _bridgedPolygonNORI;
+  BridgedPolygonNORI private _bridgedPolygonNori;
 
   /**
    * @notice The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection registry
@@ -227,7 +227,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
    *
    * @dev If `startTime` is zero no grant is set up. Satisfies situations where funding of the grant happens over time.
    *
-   * @param amount uint256 Quantity of `_bridgedPolygonNORI` to deposit
+   * @param amount uint256 Quantity of `_bridgedPolygonNori` to deposit
    */
   function depositFor(address recipient, uint256 amount)
     external
@@ -235,7 +235,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     returns (bool)
   {
     require(_grants[recipient].exists, "lNORI: Cannot deposit without a grant");
-    if (_bridgedPolygonNORI.transferFrom(_msgSender(), address(this), amount)) {
+    if (_bridgedPolygonNori.transferFrom(_msgSender(), address(this), amount)) {
       super._mint(recipient, amount, "", "");
       return true;
     }
@@ -264,7 +264,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     TokenGrant storage grant = _grants[_msgSender()];
     super._burn(_msgSender(), amount, "", "");
     grant.claimedAmount += amount;
-    if (_bridgedPolygonNORI.transfer(recipient, amount)) {
+    if (_bridgedPolygonNori.transfer(recipient, amount)) {
       emit TokensClaimed(_msgSender(), recipient, amount);
       return true;
     }
@@ -293,7 +293,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
       super._mint(recipient, amounts[i], "", "");
     }
     emit TokenGrantCreatedBatch(totalAmount);
-    _bridgedPolygonNORI.permit(
+    _bridgedPolygonNori.permit(
       _msgSender(),
       address(this),
       totalAmount,
@@ -302,7 +302,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
       r,
       s
     );
-    _bridgedPolygonNORI.transferFrom(_msgSender(), address(this), totalAmount);
+    _bridgedPolygonNori.transferFrom(_msgSender(), address(this), totalAmount);
   }
 
   /**
@@ -469,7 +469,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     __Pausable_init_unchained();
     __ERC777PresetPausablePermissioned_init_unchained();
     __ERC777_init_unchained("Locked NORI", "lNORI", operators);
-    _bridgedPolygonNORI = bridgedPolygonNoriAddress;
+    _bridgedPolygonNori = bridgedPolygonNoriAddress;
     _grantRole(TOKEN_GRANTER_ROLE, _msgSender());
   }
 
@@ -483,12 +483,12 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
-    address old = address(_bridgedPolygonNORI);
+    address old = address(_bridgedPolygonNori);
     require(
       old != address(newUnderlying),
       "lNORI: updating underlying address to existing address"
     );
-    _bridgedPolygonNORI = newUnderlying;
+    _bridgedPolygonNori = newUnderlying;
     emit UnderlyingTokenAddressUpdated(old, address(newUnderlying));
   }
 
@@ -651,7 +651,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
     grant.lastRevocationTime = revocationTime;
     grant.lastQuantityRevoked = quantityRevoked;
     super._burn(from, quantityRevoked, "", "");
-    if (!_bridgedPolygonNORI.transfer(to, quantityRevoked)) {
+    if (!_bridgedPolygonNori.transfer(to, quantityRevoked)) {
       revert("lNORI: transfer of underlying asset failed.");
     }
     emit UnvestedTokensRevoked(revocationTime, from, quantityRevoked);
