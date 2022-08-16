@@ -1886,7 +1886,7 @@ exports.handler = async function (event) {
   const { v, r, s } = ethers.utils.splitSignature(signature);
 
   const { hash: transactionHash } = await marketContract.swap(
-    hexZeroPad(buyerWalletAddress || RELAYER_WALLET, 32),
+    buyerWalletAddress || RELAYER_WALLET,
     parseUnits(amount.toString(), 18).toString(),
     deadline,
     v,
@@ -1897,3 +1897,4 @@ exports.handler = async function (event) {
   await store.put(transactionHash, graphqlEndpoint);
   return { transactionHash };
 };
+
