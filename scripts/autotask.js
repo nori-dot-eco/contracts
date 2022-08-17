@@ -1832,8 +1832,9 @@ const BPNORI_ABI = [
   },
 ];
 
-const BPNORI_ADDRESS = `0x8D7713C76A2A6Ec517FB3C032524dd86425E24f4`;
+// const BPNORI_ADDRESS = `0x8D7713C76A2A6Ec517FB3C032524dd86425E24f4`;
 
+const BPNORI_ADDRESS = "0xBD16B6880F76CA8A3543dd7A2a60d375d0485dBB";
 const MARKET_ADDRESS = `0x53D76F0d411F8Fc5278999Ae7929C163Dbeac7d7`;
 
 const RELAYER_WALLET = `0x6dc772f80495f47d8000530a59ee975b67b7c646`;
@@ -1871,20 +1872,21 @@ exports.handler = async function (event) {
   const name = await bpNoriContract.name();
   const nonce = await bpNoriContract.nonces(owner);
   const latestBlockTime = (await provider.getBlock('latest')).timestamp;
-  const deadline = latestBlockTime + 3600; // 1 hour into future
+  // const deadline = latestBlockTime + 3600; // 1 hour into future
+  const deadline = ethers.constants.MaxUint256;
   const signature = await signer._signTypedData(
-    { name, version: '1', chainId, verifyingContract: bpNoriContract.address },
+    { name, version: '1', chainId, verifyingContract: BPNORI_ADDRESS },
     eip712Domain,
     {
       owner,
-      spender: marketContract.address,
+      spender: MARKET_ADDRESS,
       value: parseUnits(amount.toString(), 18).toString(),
       nonce,
       deadline,
     }
   );
   const { v, r, s } = ethers.utils.splitSignature(signature);
-
+  console.log({ owner, name, nonce, chainId, signature, v, r, s });
   const { hash: transactionHash } = await marketContract.swap(
     buyerWalletAddress || RELAYER_WALLET,
     parseUnits(amount.toString(), 18).toString(),
@@ -1897,4 +1899,3 @@ exports.handler = async function (event) {
   await store.put(transactionHash, graphqlEndpoint);
   return { transactionHash };
 };
-

@@ -26,7 +26,7 @@ contract MintAndListRemovals is Script {
         idVersion: 0,
         methodology: 1,
         methodologyVersion: 0,
-        vintage: 2018,
+        vintage: 2019,
         country: "AA",
         subdivision: "ZZ",
         supplierAddress: mockSupplierAddress,
@@ -35,7 +35,7 @@ contract MintAndListRemovals is Script {
       removals[i] = removalData;
       _removal.mintBatch({
         to: listInMarketNow ? _removal.marketAddress() : mockSupplierAddress,
-        amounts: new uint256[](numberOfRemovalsToCreate).fill(1 ether),
+        amounts: new uint256[](numberOfRemovalsToCreate).fill(100 ether),
         removals: removals,
         projectId: 1_234_567_890,
         scheduleStartTime: block.timestamp,

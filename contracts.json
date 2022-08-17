@@ -93,7 +93,7 @@
   },
   "mumbai": {
     "BridgedPolygonNORI": {
-      "proxyAddress": "0x8D7713C76A2A6Ec517FB3C032524dd86425E24f4"
+      "proxyAddress": "0xBD16B6880F76CA8A3543dd7A2a60d375d0485dBB"
     },
     "Removal": {
       "proxyAddress": "0xa051E9EeaC803d2fCA1DbF415b78AD9BfEB723b0"
