@@ -42,6 +42,12 @@ export const getConfig = (
         'legacy-artifacts/contracts/LockedNORI.sol/LockedNORI.json',
       ],
     },
+    contractSizer: {
+      alphaSort: true,
+      disambiguatePaths: false,
+      runOnCompile: true,
+      strict: true,
+    }
   };
   return config;
 };

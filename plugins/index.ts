@@ -15,6 +15,7 @@ import 'solidity-docgen';
 import '@nomiclabs/hardhat-solhint';
 import 'solidity-coverage';
 import 'hardhat-tracer';
+import 'hardhat-contract-sizer';
 import '@/config/environment';
 import '@/tasks/index';
 import { extendEnvironment } from 'hardhat/config';
@@ -78,6 +79,7 @@ const deployOrUpgradeProxy = async <
     }
   }
   const [signer] = await hre.getSigners();
+  console.log("-----",await hre.getSigners())
   hre.trace(
     `deployOrUpgrade: ${contractName} from address ${await signer.getAddress()}`
   );
@@ -154,6 +156,7 @@ const deployOrUpgradeProxy = async <
       }) as InstanceOfContract<TContract>;
     }
   }
+  await contract.deployed();
   return contract;
 };
 
