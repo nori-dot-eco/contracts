@@ -75,7 +75,7 @@ export const verifyContracts = async ({
 }): Promise<void> => {
   if (hre.network.name !== 'hardhat') {
     hre.trace('Verifying contracts');
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       Object.entries(contracts)
         .filter((_, value) => value !== undefined)
         .map(async ([_name, { address }]) => {
@@ -87,6 +87,15 @@ export const verifyContracts = async ({
           } as any);
         })
     );
+    (
+      results.filter(
+        ({ status }) => status === 'rejected'
+      ) as PromiseRejectedResult[]
+    ).forEach(({ reason }) => {
+      if (!reason.message.includes('already verified')) {
+        throw new Error(reason);
+      }
+    });
     hre.trace('Verified contracts');
   }
 };

@@ -99,13 +99,22 @@
       "proxyAddress": "0xa051E9EeaC803d2fCA1DbF415b78AD9BfEB723b0"
     },
     "Certificate": {
-      "proxyAddress": "0xF5bafc8B26Fb38ea788Bc6eAf3d84ba3bc4Ca91C"
+      "proxyAddress": "0xe77534eF840B83b715994Bf339b04F81997b9477"
     },
     "Market": {
       "proxyAddress": "0x53D76F0d411F8Fc5278999Ae7929C163Dbeac7d7"
     },
     "LockedNORI": {
       "proxyAddress": "0xCdcB43CB7B668F0C1cA04FE4b60DA7F8C62Be393"
+    },
+    "RestrictedNORI": {
+      "proxyAddress": "0x0924196d683daBe242216Eb3e27bcf8FccCeCaD1"
+    },
+    "LockedNORIV2": {
+      "proxyAddress": "0x5C7AE13c9ceEC5F8889ad53A00ebC4D03Df9564C"
+    },
+    "NORI": {
+      "proxyAddress": "0xb5ea4cCdd74B07Fc5D645Fd4bb6C932b1b2CFdD8"
     }
   },
   "goerli": {
