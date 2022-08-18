@@ -41,7 +41,7 @@
     "eslint": "^8.15.0",
     "ethereum-waffle": "^3.4.4",
     "ethernal": "^0.13.2",
-    "ethers": "^5.6.8",
+    "ethers": "^5.6.9",
     "fireblocks-defi-sdk": "^1.1.0",
     "fireblocks-sdk": "^2.2.0",
     "fs-extra": "^10.0.1",

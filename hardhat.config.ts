@@ -46,8 +46,8 @@ export const getConfig = (
       alphaSort: true,
       disambiguatePaths: false,
       runOnCompile: true,
-      strict: true,
-    }
+      strict: false,
+    },
   };
   return config;
 };
