@@ -18,5 +18,5 @@ deploy.tags = ['NORI', 'assets'];
 deploy.dependencies = ['preconditions'];
 deploy.skip = async (hre) =>
   Promise.resolve(
-    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+    !['mainnet', 'goerli', 'localhost', 'hardhat'].includes(hre.network.name)
   );
