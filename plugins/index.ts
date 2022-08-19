@@ -79,7 +79,6 @@ const deployOrUpgradeProxy = async <
     }
   }
   const [signer] = await hre.getSigners();
-  console.log("-----",await hre.getSigners())
   hre.trace(
     `deployOrUpgrade: ${contractName} from address ${await signer.getAddress()}`
   );
