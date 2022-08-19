@@ -38,7 +38,7 @@ import type {
   BridgedPolygonNORI,
   Certificate,
   Market,
-  LockedNORIV2,
+  LockedNORI,
   RestrictedNORI,
   NORI,
   Removal,
@@ -196,7 +196,7 @@ declare global {
     NORI?: NORI;
     BridgedPolygonNORI?: BridgedPolygonNORI;
     Market?: Market;
-    LockedNORIV2?: LockedNORIV2;
+    LockedNORI?: LockedNORI;
     RestrictedNORI?: RestrictedNORI;
     Certificate?: Certificate;
     LockedNORILibTestHarness?: LockedNORILibTestHarness;

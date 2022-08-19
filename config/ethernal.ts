@@ -7,8 +7,7 @@ export const getEthernalConfig = (
   const ethernal: HardhatUserConfig['ethernal'] =
     ETHERNAL &&
     typeof ETHERNAL_EMAIL === 'string' &&
-    typeof ETHERNAL_PASSWORD === 'string' &&
-    ['localhost', 'hardhat'].includes(hre.network.name)
+    typeof ETHERNAL_PASSWORD === 'string'
       ? {
           email: ETHERNAL_EMAIL,
           password: ETHERNAL_PASSWORD,
