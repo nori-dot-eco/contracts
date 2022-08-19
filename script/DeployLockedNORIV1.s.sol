@@ -52,7 +52,7 @@ contract DeployLockedNORIV1 is Script {
 
   function _deployMockERC777() internal returns (MockERC777) {
     MockERC777 impl = new MockERC777();
-    bytes memory initializer = abi.encodeWithSignature("initialize()");
+abi.encodeWithSelector(impl.initialize.selector);
     return MockERC777(_deployProxy(address(impl), initializer));
   }
 }
