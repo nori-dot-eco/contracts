@@ -97,7 +97,7 @@ import {LockedNORILib, Schedule, Cliff} from "../LockedNORILib.sol";
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  */
-contract LockedNORI is
+contract LockedNORIV1 is
   IERC777RecipientUpgradeable,
   ERC777PresetPausablePermissioned
 {

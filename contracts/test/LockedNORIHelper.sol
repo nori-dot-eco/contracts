@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.15;
 
-import "../LockedNORIV2.sol";
+import "../LockedNORI.sol";
 
-contract LockedNORIV2Helper {
+contract LockedNORIHelper {
   function createFixtureGrant(
     address lnori,
     uint256 amount,
@@ -15,7 +15,7 @@ contract LockedNORIV2Helper {
     uint256 vestCliff1Amount,
     uint256 unlockCliff1Amount
   ) public {
-    LockedNORIV2(lnori).createGrant(
+    LockedNORI(lnori).createGrant(
       amount,
       recipient,
       startTime,
@@ -106,27 +106,26 @@ contract LockedNORIV2Helper {
 
   function assertSimplePastGrant(
     address lnori,
-    LockedNORIV2.TokenGrantDetail calldata expectedGrantDetails
+    LockedNORI.TokenGrantDetail calldata expectedGrantDetails
   ) public view {
-    LockedNORIV2.TokenGrantDetail memory actualGrantDetails = LockedNORIV2(
-      lnori
-    ).getGrant(expectedGrantDetails.recipient);
+    LockedNORI.TokenGrantDetail memory actualGrantDetails = LockedNORI(lnori)
+      .getGrant(expectedGrantDetails.recipient);
     assertEq(actualGrantDetails, expectedGrantDetails);
   }
 
-  event logNamedTokenGrant(string, LockedNORIV2.TokenGrantDetail grant);
+  event logNamedTokenGrant(string, LockedNORI.TokenGrantDetail grant);
 
   function get(address lnori, address recipient)
     public
     view
-    returns (LockedNORIV2.TokenGrantDetail memory)
+    returns (LockedNORI.TokenGrantDetail memory)
   {
-    return LockedNORIV2(lnori).getGrant(recipient);
+    return LockedNORI(lnori).getGrant(recipient);
   }
 
   function assertEq(
-    LockedNORIV2.TokenGrantDetail memory a,
-    LockedNORIV2.TokenGrantDetail memory b
+    LockedNORI.TokenGrantDetail memory a,
+    LockedNORI.TokenGrantDetail memory b
   ) internal pure {
     if (
       a.grantAmount != b.grantAmount ||

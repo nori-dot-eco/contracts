@@ -8,8 +8,8 @@ import { defaultRemovalTokenIdFixture } from '../test/fixtures/removal';
 import { generateRandomSubIdentifier } from './removal';
 
 import type {
-  LockedNORIV2,
-  LockedNORIV2__factory,
+  LockedNORI,
+  LockedNORI__factory,
   RestrictedNORI,
   RestrictedNORI__factory,
   Certificate,
@@ -73,7 +73,7 @@ export const verifyContracts = async ({
   hre: CustomHardHatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
-  if (hre.network.name !== 'hardhat') {
+  if (!['localhost', 'hardhat'].includes(hre.network.name)) {
     hre.trace('Verifying contracts');
     const results = await Promise.allSettled(
       Object.entries(contracts)
@@ -253,9 +253,9 @@ export const deployLockedNORIContract = async ({
   hre,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
-}): Promise<InstanceOfContract<LockedNORIV2>> => {
-  return hre.deployOrUpgradeProxy<LockedNORIV2, LockedNORIV2__factory>({
-    contractName: 'LockedNORIV2',
+}): Promise<InstanceOfContract<LockedNORI>> => {
+  return hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
+    contractName: 'LockedNORI',
     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
     options: {
       initializer: 'initialize(address)',

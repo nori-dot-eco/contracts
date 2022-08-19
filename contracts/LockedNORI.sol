@@ -92,7 +92,7 @@ import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  */
-contract LockedNORIV2 is ERC777PresetPausablePermissioned {
+contract LockedNORI is ERC777PresetPausablePermissioned {
   using LockedNORILib for Schedule;
 
   struct TokenGrant {
@@ -150,11 +150,7 @@ contract LockedNORIV2 is ERC777PresetPausablePermissioned {
 
   /**
    * @notice Used to register the ERC777TokensRecipient recipient interface in the
-   * ERC-1820 registry
-   *
-   * @dev Registering that LockedNORI implements the ERC777TokensRecipient interface with the registry is a
-   * requiremnt to be able to receive ERC-777 BridgedPolygonNORI tokens. Once registered, sending BridgedPolygonNORI
-   * tokens to this contract will trigger tokensReceived as part of the lifecycle of the BridgedPolygonNORI transaction
+   * ERC-1820 registry.  No longer used, retained to maintain storage layout.
    */
   bytes32 public constant ERC777_TOKENS_RECIPIENT_HASH =
     keccak256("ERC777TokensRecipient");
