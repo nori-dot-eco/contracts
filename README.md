@@ -191,6 +191,63 @@ hardhat node
 
 ### Foundry
 
+#### Solidity Scripting
+
+See tutorial [here](https://book.getfoundry.sh/tutorials/solidity-scripting)
+
+Foundry offers the ability to write scripts in solidity that foundry can run to create real transactions and submit
+them to the specified network. Note that for these scripts to work, some environment variables must be set:
+
+```
+MUMBAI_RPC_URL
+PRIVATE_KEY
+```
+
+where the PRIVATE_KEY is the private key of whatever address want to sign your transaction with (so needs to be funded with MATIC, have the correct permissions to make the contract calls being submitted, etc.).
+Note that our on-chain market on mumbai was deployed with a fireblocks signer, so we have been using the fireblocks signer from the command line with hardhat tasks or cast commands to grant necessary permissions to other addresses that we may want to use.
+
+Here are the hardhat commands for granting roles to whatever address you're going to admin with (in this example the 0x465... staging mnemonic address):
+
+```bash
+hardhat --network mumbai Removal --func grantRole 0xa269776b75ac4c5fa422bb11bec3ed3cee626848d07687372583174b209261fb 0x465d5a3fFeA4CD109043499Fa576c3E16f918463
+```
+
+(note that the role hash `0xa26977...` has was gotten from viewing the contract on polygonscan and selecting "Read as proxy")
+
+Here's an example of making a BridgedPolygonNORI deposit from command line:
+
+```bash
+hardhat --network mumbai BridgedPolygonNORI --func deposit 0x6dc772f80495f47d8000530a59ee975b67b7c646 "0x0000000000000000000000000000000000000000000000056bc75e2d63100000"
+```
+
+(note that the final argument is the bytes encoded version of the equivalent of 100 NORI as a uint256)
+
+And here's some code for generating the private key to add to the .env from a mnemonic:
+
+```javascript
+let mnemonic = 'dont expost or commit your mnemonic!!';
+let mnemonicWallet = hre.ethers.Wallet.fromMnemonic(mnemonic);
+console.log(mnemonicWallet.privateKey);
+```
+
+Scripts can then be run as follows:
+(for minting and listing new removals)
+
+```bash
+forge script script/MintAndListRemovals.s.sol:MintAndListRemovals --rpc-url $MUMBAI_RPC_URL --private-key $PRIVATE_KEY --broadcast -vvvv
+```
+
+(for directly minting BridgedPolygonNORI)
+
+```bash
+forge script script/MintBPNori.s.sol:MintBPNori.sol --rpc-url $MUMBAI_RPC_URL --private-key $PRIVATE_KEY --broadcast -vvvv
+```
+
+NOTE: Transactions for minting removals have at times seemed really slow on mumbai... (taking almost 15 minutes to get included).
+These script commands can take a `--gas-price` flag and it might be worth setting to whatever fast is on polygonscan.
+
+See `forge script --help` for many more command line options to the scripting.
+
 #### Autocomplete
 
 Follow the instructions [here](https://book.getfoundry.sh/config/shell-autocompletion.html)
