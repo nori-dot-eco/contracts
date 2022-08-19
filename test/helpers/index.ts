@@ -11,7 +11,7 @@ import type {
   Removal,
   Certificate,
   Market,
-  LockedNORIV2,
+  LockedNORI,
   RestrictedNORI,
   NORI,
   BridgedPolygonNORI,
@@ -30,7 +30,7 @@ interface ContractInstances {
   removal: Removal;
   certificate: Certificate;
   market: Market;
-  lNori: LockedNORIV2;
+  lNori: LockedNORI;
   rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
 }
@@ -239,7 +239,7 @@ export const setupTest = global.hre.deployments.createFixture(
     const contractFixtures: ContractFixtures = {
       ...options?.contractFixtures,
     };
-    await hre.deployments.fixture(['assets', 'market', 'test']);
+    await hre.deployments.fixture(['assets', 'market', 'LockedNORI', 'test']);
     const contracts = await getContractsFromDeployments(hre);
     for (const [contract, fixture] of Object.entries(contractFixtures) as [
       keyof Contracts,
@@ -324,7 +324,7 @@ export const setupTest = global.hre.deployments.createFixture(
       removal: contracts.Removal,
       certificate: contracts.Certificate,
       market: contracts.Market,
-      lNori: contracts.LockedNORIV2,
+      lNori: contracts.LockedNORI,
       rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
       userFixtures,

@@ -5,8 +5,8 @@ import "@/test/helpers/test.sol";
 import "@/contracts/test/MockERC777.sol";
 import "@/contracts/test/MockERC20Permit.sol";
 import "@/contracts/test/PermitSigner.sol";
-import "@/contracts/test/LockedNORIV2Helper.sol";
-import "@/contracts/LockedNORIV2.sol";
+import "@/contracts/test/LockedNORIHelper.sol";
+import "@/contracts/LockedNORI.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeable.sol";
@@ -49,7 +49,7 @@ contract Recipient {
   uint256 internal _sendCounter;
   bool internal _shouldAttackToSend;
   bool internal _shouldAttackReceived;
-  LockedNORIV2 internal _lNori;
+  LockedNORI internal _lNori;
   MockERC777 internal _bpNori;
 
   constructor(
@@ -63,7 +63,7 @@ contract Recipient {
     IERC1820RegistryUpgradeable _registry = IERC1820RegistryUpgradeable(
       _ERC1820_REGISTRY_ADDRESS
     );
-    _lNori = LockedNORIV2(lNoriAddress);
+    _lNori = LockedNORI(lNoriAddress);
     _registry.setInterfaceImplementer(
       address(this),
       keccak256("ERC777TokensSender"),
@@ -134,10 +134,10 @@ contract LockedNORITest is
   uint256 internal constant _GRANT_AMOUNT = 100_000_000_000_000_000;
   IERC1820RegistryUpgradeable internal _registry;
   address internal _admin = vm.addr(69); // todo use named accounts
-  LockedNORIV2 internal _lNori;
+  LockedNORI internal _lNori;
   MockERC777 internal _erc777;
   MockERC20Permit internal _erc20;
-  LockedNORIV2Helper internal _helper;
+  LockedNORIHelper internal _helper;
   PermitSigner internal _signer;
 
   event Approval(address indexed owner, address indexed spender, uint256 value); // todo
@@ -209,8 +209,8 @@ contract LockedNORITest is
     );
     _erc777 = _deployMockERC777(); // todo
     _erc20 = _deployMockERC20(); // todo
-    _lNori = _deployLockedNORIV2(address(_erc20)); // todo
-    _helper = new LockedNORIV2Helper(); // todo
+    _lNori = _deployLockedNORI(address(_erc20)); // todo
+    _helper = new LockedNORIHelper(); // todo
     _signer = new PermitSigner(); // todo
     // if (bpNori.balanceOf(address(this)) != _SEED_AMOUNT) { // todo
     //   revert("Seed amount does not equal balance");
@@ -332,13 +332,13 @@ contract LockedNORITest is
     return address(proxy);
   }
 
-  function _deployLockedNORIV2(address erc20_) internal returns (LockedNORIV2) {
-    LockedNORIV2 impl = new LockedNORIV2();
+  function _deployLockedNORI(address erc20_) internal returns (LockedNORI) {
+    LockedNORI impl = new LockedNORI();
     bytes memory initializer = abi.encodeWithSelector(
       impl.initialize.selector,
       erc20_
     );
-    return LockedNORIV2(_deployProxy(address(impl), initializer));
+    return LockedNORI(_deployProxy(address(impl), initializer));
   }
 
   function _deployMockERC20() internal returns (MockERC20Permit) {
