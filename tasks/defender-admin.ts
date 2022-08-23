@@ -2,30 +2,10 @@ import path from 'path';
 
 import { types, task } from 'hardhat/config';
 import { AdminClient } from 'defender-admin-client';
-import type { Network } from 'defender-base-client/lib/utils/network';
 import { readJsonSync } from 'fs-extra';
+import { isDefenderNetwork } from './utils/defender';
 
-const isDefenderNetwork = (network: string): network is Network => {
-  return [
-    'mainnet',
-    'ropsten',
-    'rinkeby',
-    'kovan',
-    'goerli',
-    'xdai',
-    'sokol',
-    'fuse',
-    'bsc',
-    'bsctest',
-    'fantom',
-    'fantomtest',
-    'moonbase',
-    'matic',
-    'mumbai',
-  ].includes(network);
-};
-
-const addContractsToDefender = async (
+const addContractsToDefenderAdmin = async (
   {
     contractNames,
   }: {
@@ -82,16 +62,16 @@ const addContractsToDefender = async (
   }
 };
 
-export const DEFENDER_ADD_TASK = {
-  name: 'defender:add',
-  description: 'Adds contracts to defender',
-  run: addContractsToDefender,
+export const DEFENDER_ADMIN_ADD_TASK = {
+  name: 'defender-admin:add',
+  description: 'Adds contracts to Defender Admin',
+  run: addContractsToDefenderAdmin,
 } as const;
 
 task(
-  DEFENDER_ADD_TASK.name,
-  DEFENDER_ADD_TASK.description,
-  DEFENDER_ADD_TASK.run
+  DEFENDER_ADMIN_ADD_TASK.name,
+  DEFENDER_ADMIN_ADD_TASK.description,
+  DEFENDER_ADMIN_ADD_TASK.run
 ).addVariadicPositionalParam(
   'contractNames',
   'the list of contracts to add',

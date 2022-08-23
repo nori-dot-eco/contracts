@@ -86,6 +86,7 @@
   /** END SOLIDITY OPTIONS */
 
   /** BEGIN TYPE CHECKING OPTIONS */
-  "js/ts.implicitProjectConfig.checkJs": true
+  "js/ts.implicitProjectConfig.checkJs": true,
+  "cSpell.words": ["Autotask", "AUTOTASKS", "Ethernal", "kvstore", "NORI"]
   /** END TYPE CHECKING OPTIONS */
 }

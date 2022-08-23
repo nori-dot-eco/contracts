@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
+    "noImplicitAny": false,
     "target": "es2022",
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
@@ -22,5 +24,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["**/*.ts", "**/*.d.ts", "./.eslintrc.js", ".solcover.js"]
+  "include": ["**/*.ts", "**/*.d.ts", "./.eslintrc.js", ".solcover.js"],
+  "exclude": ["node_modules", "dist"]
 }

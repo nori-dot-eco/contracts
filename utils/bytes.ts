@@ -4,7 +4,7 @@
  * @returns The hex representation of an ascii string.
  */
 export const asciiStringToHexString = (asciiString: string): string => {
-  const bytes = [];
+  const bytes: number[] = [];
   for (let index = 0; index < asciiString.length; index += 1) {
     bytes.push(asciiString.charCodeAt(index));
   }

@@ -20,7 +20,8 @@ import { TASK as MARKET_TASK } from './market';
 import { TASK as NORI_TASK } from './nori';
 // import { TASK as LOCKED_NORI_TASK } from './locked-nori'; // todo make work with forked repo
 import { TASK as BRIDGED_POLYGON_NORI_TASK } from './bridged-polygon-nori';
-import { DEFENDER_ADD_TASK } from './defender';
+import { DEFENDER_ADMIN_ADD_TASK } from './defender-admin';
+import { DEFENDER_AUTOTASKS_ADD_TASK } from './defender-autotasks';
 // import { GET_VESTING_TASK } from './vesting';  // todo make work with forked repo
 import { TASK as FORCE_UPGRADE_TASK } from './force-ugrade';
 import { TASK as SIGN_MESSAGE_TASK } from './sign-message';
@@ -70,7 +71,8 @@ export const TASKS = {
   [NORI_TASK.name]: { ...NORI_TASK },
   // [LOCKED_NORI_TASK.name]: { ...LOCKED_NORI_TASK },  // todo make work with forked repo
   [BRIDGED_POLYGON_NORI_TASK.name]: { ...BRIDGED_POLYGON_NORI_TASK },
-  [DEFENDER_ADD_TASK.name]: { ...DEFENDER_ADD_TASK },
+  [DEFENDER_ADMIN_ADD_TASK.name]: { ...DEFENDER_ADMIN_ADD_TASK },
+  [DEFENDER_AUTOTASKS_ADD_TASK.name]: { ...DEFENDER_AUTOTASKS_ADD_TASK },
   // [VESTING_TASK.name]: { ...VESTING_TASK },  // todo make work with forked repo
   [FORCE_UPGRADE_TASK.name]: { ...FORCE_UPGRADE_TASK },
   [SIGN_MESSAGE_TASK.name]: { ...SIGN_MESSAGE_TASK },

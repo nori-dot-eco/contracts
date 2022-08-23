@@ -299,7 +299,7 @@ export const pushContractsToEthernal = async ({
   }
 };
 
-export const addContractsToDefender = async ({
+export const addContractsToDefenderAdmin = async ({
   hre,
   contracts,
 }: {
@@ -307,10 +307,24 @@ export const addContractsToDefender = async ({
   contracts: Contracts;
 }): Promise<void> => {
   if (hre.network.name !== 'hardhat') {
-    await hre.run('defender:add', {
+    await hre.run('defender-admin:add', {
       contractNames: Object.entries(contracts)
         .filter(([_, value]) => value !== undefined)
         .map(([name, _]) => name), // todo Upsert contracts to OZ defender (otherwise they are added twice)
+    } as any);
+  }
+};
+
+export const addAutotasksToDefender = async ({
+  hre,
+  contracts,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  contracts: Contracts;
+}): Promise<void> => {
+  if (hre.network.name !== 'hardhat') {
+    await hre.run('defender-autotasks:add', {
+      autotaskNames: ['start', 'fulfill'],
     } as any);
   }
 };
@@ -430,7 +444,7 @@ export const finalizeDeployments = async ({
 }): Promise<void> => {
   await pushContractsToEthernal({ hre, contracts });
   writeContractsConfig({ contracts });
-  await addContractsToDefender({ hre, contracts });
+  await addContractsToDefenderAdmin({ hre, contracts });
   await verifyContracts({ hre, contracts });
   await saveDeployments({
     hre,
