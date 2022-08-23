@@ -191,6 +191,16 @@ hardhat node
 
 ### Foundry
 
+#### Using cast to send transactions
+
+##### Examples
+
+Deposit (mint) 100 bpNORI (at `BP_NORI_ADDRESS`) to `TO_ADDRESS` on mumbai (the PRIVATE_KEY **must** have the depositor role)
+
+```bash
+cast send --rpc-url WEB3_RPC_ENDPOINT --private-key PRIVATE_KEY --chain 80001 TO_ADDRESS "deposit(address,bytes)" BP_NORI_ADDRESS `cast --to-uint256 100000000000000000000`
+```
+
 #### Solidity Scripting
 
 See tutorial [here](https://book.getfoundry.sh/tutorials/solidity-scripting)
