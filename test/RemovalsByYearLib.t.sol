@@ -58,20 +58,16 @@ contract RemovalQueue_getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
   function getTotalBalance(RemovalsByYear storage collection)
     internal
     view
-    returns (uint256 totalBalance)
+    returns (uint256)
   {
-    uint256 latestYear = collection.latestYear;
-    for (uint256 year = collection.earliestYear; year <= latestYear; ++year) {
-      EnumerableSetUpgradeable.UintSet storage removalIdSet = collection
-        .yearToRemovals[year];
-      uint256[] memory removalIds = collection.getAllRemovalIds();
-      totalBalance += _removal
+    uint256[] memory removalIds = collection.getAllRemovalIds();
+    return
+      _removal
         .balanceOfBatch(
           new address[](removalIds.length).fill(address(this)),
           removalIds
         )
         .sum();
-    }
   }
 
   function test() external {
