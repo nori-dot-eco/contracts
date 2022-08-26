@@ -92,7 +92,7 @@ describe('Market', () => {
         const roleId = await market[role]();
         expect(await market.hasRole(roleId, namedAccounts[accountWithRole])).to
           .be.true;
-        const newNoriFeePercentage = formatTokenAmount(40);
+        const newNoriFeePercentage = 40;
         await expect(
           market
             .connect(namedSigners[accountWithRole])
