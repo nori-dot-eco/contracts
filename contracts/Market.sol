@@ -335,6 +335,9 @@ contract Market is
     onlyRole(MARKET_ADMIN_ROLE)
     whenNotPaused
   {
+    if (noriFeePercentage_ > 100) {
+      revert InvalidNoriFeePercentage();
+    }
     _noriFeePercentage = noriFeePercentage_;
     emit NoriFeePercentageUpdated(noriFeePercentage_);
   }
