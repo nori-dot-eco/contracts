@@ -39,6 +39,78 @@ describe('Removal', () => {
   });
   describe('mintBatch', () => {
     describe('success', () => {
+      it('events parsing sandbox', async () => {
+        const { removal, market, hre, removalTestHarness } = await setupTest();
+        const removalBalances = [100, 200, 300, 400].map((balance) =>
+          formatTokenAmount(balance)
+        );
+        const { supplier, admin } = hre.namedAccounts;
+
+        const mintRemovals = async (toAddress: string) => {
+          const defaultStartingVintage = 2016;
+          const tokenIds = await Promise.all(
+            removalBalances.map((_, index) => {
+              return {
+                ...defaultRemovalTokenIdFixture,
+                supplierAddress: toAddress,
+                vintage: defaultStartingVintage + index,
+              };
+            })
+          );
+          const data = await createBatchMintData({
+            hre,
+          });
+          await removal.mintBatch(
+            toAddress,
+            removalBalances,
+            tokenIds,
+            data.projectId,
+            data.scheduleStartTime,
+            data.holdbackPercentage
+          );
+        };
+
+        await mintRemovals(supplier);
+        await mintRemovals(admin);
+        await mintRemovals(market.address);
+
+        const filter = removal.filters.TransferBatch(); // todo try filtering on transaction hash instead of block hash
+        // todo use metamask in nori-admin and just pass the tx hash to nori-graphql to prevent halting nori-graphql on long transactions
+        const batchTransferEvents = await removal.queryFilter(filter);
+        console.log({ batchTransferEvents });
+        const idsFromFirstEvent = batchTransferEvents[0].args.ids.map((id) =>
+          id.toHexString()
+        );
+        // const amountsFromFirstEvent = (
+        //   batchTransferEvents[0].args.values as any as BigNumber[]
+        // ).map((amount) => ethers.utils.parseEther(amount.toString()));
+        // console.log({ idsFromFirstEvent, amountsFromFirstEvent });
+        console.log({ idsFromFirstEvent });
+        // TODO iterator code not quite there!
+        // const firstEventValuesIterator = batchTransferEvents[0].args.values();
+        // const firstEventValues = [];
+        // let nextValue = firstEventValuesIterator.next();
+        // const done = nextValue.done;
+        // while (!done) {
+        //   firstEventValues.push(nextValue.value);
+        //   nextValue = firstEventValuesIterator.next();
+        // }
+        // console.log({
+        //   firstEventValues,
+        // });
+
+        // THOUGHTS on getting total issued
+        // ^^ fix my iterator code?
+        // to figure out how much a single supplier has had issued:
+        // - grab all events filtered on having from == address(0) <-- solidity syntax? ethers.utils.constants.zeroAddress
+        //    and that have a to == supplier we care about OR the market contract
+        // go through all of the ids that come from all of these events:
+        // - grab the supplier address out of all the token ids
+        // only keep the ones + amounts that are the supplier we care about
+        // sum it up
+
+        expect(batchTransferEvents).not.to.be.empty;
+      });
       it('should mint a batch of removals without listing any', async () => {
         const { removal, hre, removalTestHarness } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
