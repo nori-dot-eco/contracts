@@ -46,14 +46,19 @@ describe('Removal', () => {
         );
         const { supplier, admin } = hre.namedAccounts;
 
-        const mintRemovals = async (toAddress: string) => {
+        const mintRemovals = async (toAddress: string, optionalSupplierAddress: string | undefined = undefined) => {
+          // allow us to pass in an optional supplier address, so we can mint
+          // batches to the market but still have a supplier
+          const supplierAddress = optionalSupplierAddress || toAddress;
+          console.log({ supplierAddress });
           const defaultStartingVintage = 2016;
           const tokenIds = await Promise.all(
             removalBalances.map((_, index) => {
               return {
                 ...defaultRemovalTokenIdFixture,
-                supplierAddress: toAddress,
+                supplierAddress,
                 vintage: defaultStartingVintage + index,
+                subIdentifier: Math.floor(Math.random() * 1000),
               };
             })
           );
@@ -72,44 +77,60 @@ describe('Removal', () => {
 
         await mintRemovals(supplier);
         await mintRemovals(admin);
-        await mintRemovals(market.address);
+        await mintRemovals(market.address, supplier);
+        await mintRemovals(market.address, admin);
 
-        const filter = removal.filters.TransferBatch(); // todo try filtering on transaction hash instead of block hash
+        // todo try filtering on transaction hash instead of block hash
+        const supplierFilter = removal.filters.TransferBatch(null, ethers.constants.AddressZero, supplier);
+        const marketFilter = removal.filters.TransferBatch(null, ethers.constants.AddressZero, market.address);
+
         // todo use metamask in nori-admin and just pass the tx hash to nori-graphql to prevent halting nori-graphql on long transactions
-        const batchTransferEvents = await removal.queryFilter(filter);
-        console.log({ batchTransferEvents });
-        const idsFromFirstEvent = batchTransferEvents[0].args.ids.map((id) =>
+        const supplierBatchTransferEvents = await removal.queryFilter(supplierFilter);
+        const marketBatchTransferEvents = await removal.queryFilter(marketFilter);
+
+        console.log({ supplierBatchTransferEvents });
+        console.log({ marketBatchTransferEvents });
+        console.log({ supplier });
+        console.log({ marketAddress: market.address });
+
+        const idsFromFirstSupplierEvent = supplierBatchTransferEvents[0].args.ids.map((id) =>
           id.toHexString()
         );
-        // const amountsFromFirstEvent = (
-        //   batchTransferEvents[0].args.values as any as BigNumber[]
-        // ).map((amount) => ethers.utils.parseEther(amount.toString()));
-        // console.log({ idsFromFirstEvent, amountsFromFirstEvent });
-        console.log({ idsFromFirstEvent });
-        // TODO iterator code not quite there!
-        // const firstEventValuesIterator = batchTransferEvents[0].args.values();
-        // const firstEventValues = [];
-        // let nextValue = firstEventValuesIterator.next();
-        // const done = nextValue.done;
-        // while (!done) {
-        //   firstEventValues.push(nextValue.value);
-        //   nextValue = firstEventValuesIterator.next();
-        // }
-        // console.log({
-        //   firstEventValues,
-        // });
+        const idsFromFirstMarketEvent = marketBatchTransferEvents[0].args.ids.map((id) =>
+          id.toHexString()
+        );
+        const idsFromSecondMarketEvent = marketBatchTransferEvents[1].args.ids.map((id) =>
+          id.toHexString()
+        );
+        console.log({ idsFromFirstSupplierEvent });
+        console.log({ idsFromFirstMarketEvent });
+        console.log({ idsFromSecondMarketEvent });
 
-        // THOUGHTS on getting total issued
-        // ^^ fix my iterator code?
-        // to figure out how much a single supplier has had issued:
-        // - grab all events filtered on having from == address(0) <-- solidity syntax? ethers.utils.constants.zeroAddress
-        //    and that have a to == supplier we care about OR the market contract
-        // go through all of the ids that come from all of these events:
-        // - grab the supplier address out of all the token ids
-        // only keep the ones + amounts that are the supplier we care about
-        // sum it up
+        /*
+          Batch args[4] is args.values. Because the type is effectively Array & TransferBatchEventObject,
+          the .values member has a naming collision with Array.prototype.values(), and is inaccessible.
+        */
+        const amountForSupplierBatches = supplierBatchTransferEvents.map((batch) => batch.args[4])
+          .flat()
+          .reduce((amount1, amount2) => amount1.add(amount2));
 
-        expect(batchTransferEvents).not.to.be.empty;
+        // filter by supplier address
+        const amountForMarketBatches = marketBatchTransferEvents.map((batch) => {
+          const batchArgs = batch.args;
+          const tokens = batchArgs.ids.map((id, index) => ({
+            supplierAddress: '0x' + id.toHexString().substring(16, 56),
+            amount: batchArgs[4][index],
+          }));
+          return tokens.filter((token) => token.supplierAddress.toLowerCase() === supplier.toLowerCase());
+        }).flat()
+          .map((token) => token.amount)
+          .reduce((amount1, amount2) => amount1.add(amount2));
+
+        const totalAmount = amountForSupplierBatches.add(amountForMarketBatches)
+        const totalAsInt = parseInt(ethers.utils.formatEther(totalAmount));
+
+        // each batch minted == 1000, one directly to the supplier, one to the market owned by supplier
+        expect(totalAsInt).to.equal(2000);
       });
       it('should mint a batch of removals without listing any', async () => {
         const { removal, hre, removalTestHarness } = await setupTest();
