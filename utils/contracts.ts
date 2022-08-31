@@ -4,7 +4,7 @@ import type {
   BridgedPolygonNORI,
   Certificate,
   Market,
-  LockedNORIV2,
+  LockedNORI,
   RestrictedNORI,
   NORI,
   Removal,
@@ -60,15 +60,15 @@ export const getNORI = async ({
     signer,
   });
 
-export const getLockedNORIV2 = ({
+export const getLockedNORI = ({
   hre,
   signer,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<LockedNORIV2> =>
+}): Promise<LockedNORI> =>
   getContract({
-    contractName: 'LockedNORIV2',
+    contractName: 'LockedNORI',
     hre,
     signer,
   });
@@ -147,8 +147,8 @@ export const getContractsFromDeployments = async (
     BridgedPolygonNORI: deployments.BridgedPolygonNORI?.address
       ? await getBridgedPolygonNori({ hre })
       : undefined,
-    LockedNORIV2: deployments.LockedNORIV2?.address
-      ? await getLockedNORIV2({ hre })
+    LockedNORI: deployments.LockedNORI?.address
+      ? await getLockedNORI({ hre })
       : undefined,
     RestrictedNORI: deployments.RestrictedNORI?.address
       ? await getRestrictedNORI({ hre })

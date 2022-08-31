@@ -54,6 +54,15 @@ abstract contract MarketBalanceTestHelper is UpgradeableMarket {
   }
 }
 
+contract Market_setNoriFeePercentage_revertsInvalidPercentage is
+  UpgradeableMarket
+{
+  function test() external {
+    vm.expectRevert(InvalidNoriFeePercentage.selector);
+    _market.setNoriFeePercentage(150);
+  }
+}
+
 contract Market_setPriorityRestrictedThreshold is MarketBalanceTestHelper {
   function setUp() external {
     _removalIds = _seedRemovals({
@@ -747,6 +756,19 @@ contract Market_getRemovalIdsForSupplier is UpgradeableMarket {
       to: _namedAccounts.supplier,
       count: 3,
       list: true
+    });
+    assertEq(
+      _market.getRemovalIdsForSupplier(_namedAccounts.supplier),
+      _removalIds
+    );
+  }
+
+  function test_3_removals_different_vintages() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 3,
+      list: true,
+      uniqueVintages: true
     });
     assertEq(
       _market.getRemovalIdsForSupplier(_namedAccounts.supplier),

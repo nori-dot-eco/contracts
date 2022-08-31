@@ -494,6 +494,9 @@ contract RestrictedNORI is
     uint8 methodology,
     uint8 methodologyVersion
   ) external whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
+    if (this.scheduleExists(projectId)) {
+      revert ScheduleExists({scheduleId: projectId});
+    }
     uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion({
         methodology: methodology,
         methodologyVersion: methodologyVersion
@@ -561,6 +564,9 @@ contract RestrictedNORI is
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     schedule.totalClaimedAmount += amount;
     schedule.claimedAmountsByAddress[_msgSender()] += amount;
+    if (balanceOf(recipient, scheduleId) == 0) {
+      schedule.tokenHolders.remove(recipient);
+    }
     emit TokensClaimed(_msgSender(), recipient, scheduleId, amount);
     _bridgedPolygonNORI.transfer(recipient, amount);
     return true;

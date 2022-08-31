@@ -3,9 +3,9 @@ import { upgrades } from 'hardhat';
 import { expect, setupTest, advanceTime } from '@/test/helpers';
 import type {
   LockedNORI,
-  LockedNORIV2,
+  LockedNORIV1,
   MockERC777,
-  LockedNORIV2Helper,
+  LockedNORIHelper,
 } from '@/typechain-types';
 
 describe('LockedNORI V1 to V2 upgrade', () => {
@@ -16,9 +16,9 @@ describe('LockedNORI V1 to V2 upgrade', () => {
     const GRANT_AMOUNT = ethers.utils.parseEther('100');
 
     const helperFactory = await hre.ethers.getContractFactory(
-      'LockedNORIV2Helper'
+      'LockedNORIHelper'
     );
-    const helper = (await helperFactory.deploy()) as LockedNORIV2Helper;
+    const helper = (await helperFactory.deploy()) as LockedNORIHelper;
     await helper.deployed();
 
     const MockERC777Factory = await hre.ethers.getContractFactory('MockERC777');
@@ -30,12 +30,12 @@ describe('LockedNORI V1 to V2 upgrade', () => {
       }
     )) as any as MockERC777;
 
-    const LockedNORIFactory = await hre.ethers.getContractFactory('LockedNORI');
+    const LockedNORIFactory = await hre.ethers.getContractFactory('LockedNORIV1');
     const lNori = (await upgrades.deployProxy(
       LockedNORIFactory as any, // todo
       [erc777.address],
       { initializer: 'initialize(address)' }
-    )) as any as LockedNORI;
+    )) as any as LockedNORIV1;
     await lNori.grantRole(await lNori.TOKEN_GRANTER_ROLE(), helper.address);
 
     // Create state in LockedNORI v1
@@ -44,7 +44,7 @@ describe('LockedNORI V1 to V2 upgrade', () => {
       ethers.utils.parseEther('100'),
       recipient
     );
-    const createdGrantDetail: LockedNORIV2.TokenGrantDetailStruct =
+    const createdGrantDetail: LockedNORI.TokenGrantDetailStruct =
       await helper.get(lNori.address, recipient);
     await helper.assertSimplePastGrant(lNori.address, createdGrantDetail);
     expect(await lNori.balanceOf(recipient)).to.eq(0);
@@ -64,12 +64,12 @@ describe('LockedNORI V1 to V2 upgrade', () => {
 
     // Now we upgrade
 
-    const LockedNORIV2Factory = await ethers.getContractFactory('LockedNORIV2');
+    const LockedNORIV2Factory = await ethers.getContractFactory('LockedNORI');
     const lNoriV2 = (await upgrades.upgradeProxy(
       lNori.address,
       LockedNORIV2Factory as any,
       { unsafeAllow: ['constructor'] }
-    )) as any as LockedNORIV2;
+    )) as any as LockedNORI;
     await lNoriV2.updateUnderlying(bpNori.address);
     expect(await lNoriV2.balanceOf(recipient)).to.eq(GRANT_AMOUNT);
     await bpNori.transfer(lNoriV2.address, GRANT_AMOUNT);

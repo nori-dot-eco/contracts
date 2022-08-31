@@ -74,7 +74,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
     vm.label(address(_removalImplementation), "Removal Implementation");
     bytes memory initializer = abi.encodeWithSelector(
       _removalImplementation.initialize.selector,
-      'https://registry.test.nori.com/removals'
+      "https://registry.test.nori.com/removals"
     );
     Removal removalProxy = Removal(
       _deployProxy(address(_removalImplementation), initializer)
@@ -112,6 +112,38 @@ abstract contract UpgradeableRemoval is Upgradeable {
       scheduleStartTime: block.timestamp,
       holdbackPercentage: 50
     });
+    return _removalIds;
+  }
+
+  function _seedRemovals(
+    address to,
+    uint32 count,
+    bool list,
+    bool uniqueVintages
+  ) internal returns (uint256[] memory) {
+    DecodedRemovalIdV0[] memory _removals = new DecodedRemovalIdV0[](count);
+    uint256[] memory _removalIds = new uint256[](count);
+    for (uint32 i = 0; i < count; i++) {
+      _removals[i] = DecodedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: uniqueVintages ? 2018 + uint16(i) : 2018,
+        country: "AA",
+        subdivision: "ZZ",
+        supplierAddress: to,
+        subIdentifier: count + i
+      });
+      _removalIds[i] = RemovalIdLib.createRemovalId(_removals[i]);
+    }
+    _removal.mintBatch(
+      list ? _marketAddress : to,
+      new uint256[](count).fill(1 ether),
+      _removals,
+      1_234_567_890,
+      block.timestamp,
+      50
+    );
     return _removalIds;
   }
 
