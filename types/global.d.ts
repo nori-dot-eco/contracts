@@ -274,6 +274,7 @@ declare global {
       REPORT_GAS_FILE?: string;
       TENDERLY: boolean;
       FAIL: boolean;
+      NODE_ENV: 'test' | 'development' | 'production';
       VIA_IR: boolean;
       OPTIMIZER_RUNS: number;
       OPTIMIZER: boolean;

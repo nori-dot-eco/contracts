@@ -43,6 +43,7 @@ export const getLatestBlockTime = async ({
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<number> => {
   const block = await hre.ethers.provider.getBlock('latest');
+  console.log({ block });
   return block.timestamp;
 };
 

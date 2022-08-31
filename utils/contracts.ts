@@ -1,5 +1,7 @@
 import type { Contract } from 'ethers';
+import { defineReadOnly } from 'ethers/lib/utils';
 
+import { TenderlySimulationSigner } from '@/signers/simulator';
 import type {
   BridgedPolygonNORI,
   Certificate,
@@ -28,6 +30,19 @@ export const getContract = async <TContractName extends keyof Contracts>({
   if (!contract) {
     throw new Error(`Unsupported network: ${hre.network.name}`);
   }
+  defineReadOnly(
+    contract,
+    'simulate',
+    Object.fromEntries(
+      Object.keys(contract.functions).map((name) => [
+        name,
+        async (...args: any[]) =>
+          contract
+            .connect(new TenderlySimulationSigner(contract.signer))
+            [name](...args),
+      ])
+    )
+  );
   return (
     signer != undefined ? contract.connect(signer) : contract
   ) as Required<Contracts>[TContractName];
