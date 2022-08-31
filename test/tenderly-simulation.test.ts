@@ -1,10 +1,10 @@
 import { MaxUint256 } from '../constants/units';
 import { formatTokenAmount } from '../utils/units';
+import { BridgedPolygonNORI } from '../typechain-types/contracts';
 
 import type { Market } from '@/typechain-types';
 import { getContract } from '@/utils/contracts';
 import { expect } from '@/test/helpers';
-import { BridgedPolygonNORI } from '../typechain-types/contracts';
 
 describe('TEMPORARY AREA FOR SIMULATOR TESTS', () => {
   it('SIMULATOR Reverts', async () => {
@@ -65,11 +65,19 @@ describe('TEMPORARY AREA FOR SIMULATOR TESTS', () => {
       contractName: 'RestrictedNORI',
       hre,
     });
-    const value = await market.calculateCheckoutTotal(formatTokenAmount(1));
+    const value = await market.calculateCheckoutTotal(
+      formatTokenAmount(0.000_01)
+    );
     const { v, r, s } = await admin.permit({
       verifyingContract: bpNori,
       spender: market.address,
       value,
+    });
+    console.log({
+      value: value.toString(),
+      balance: (await bpNori.balanceOf(admin.address)).toString(),
+      adminAddress: admin.address,
+      bpNori: bpNori.address,
     });
     const simulatedTx = (await ((market as any).simulate as Market).swap(
       admin.address,
