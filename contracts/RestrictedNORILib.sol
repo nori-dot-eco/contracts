@@ -58,7 +58,7 @@ library RestrictedNORILib {
     uint256 linearAmountAvailable;
     /* solhint-disable not-rely-on-time, this is time-dependent */
     if (block.timestamp >= schedule.endTime) {
-      linearAmountAvailable = totalSupply;
+      linearAmountAvailable = schedule._scheduleTrueTotal(totalSupply);
     } else {
       uint256 rampTotalTime = schedule.endTime - schedule.startTime;
       linearAmountAvailable = block.timestamp < schedule.startTime
