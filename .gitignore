@@ -18,7 +18,10 @@ lib-cov
 coverage
 coverage.json
 
-# nyc test coverage
+## lcov coverage
+lcov.info
+
+## nyc test coverage
 .nyc_output
 
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
@@ -109,3 +112,4 @@ broadcast
 
 # interfaces
 contracts/interfaces/
+
