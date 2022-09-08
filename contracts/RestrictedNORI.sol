@@ -494,6 +494,9 @@ contract RestrictedNORI is
     uint8 methodology,
     uint8 methodologyVersion
   ) external whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
+    if (this.scheduleExists(projectId)) {
+      revert ScheduleExists({scheduleId: projectId});
+    }
     uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion({
         methodology: methodology,
         methodologyVersion: methodologyVersion

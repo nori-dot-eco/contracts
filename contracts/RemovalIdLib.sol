@@ -70,6 +70,9 @@ library RemovalIdLib {
         methodologyVersion: removal.methodologyVersion
       });
     }
+    if (removal.methodology > 15) {
+      revert MethodologyTooLarge({methodology: removal.methodology});
+    }
     if (
       !(isCapitalized(removal.country) && isCapitalized(removal.subdivision))
     ) {

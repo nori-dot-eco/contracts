@@ -39,6 +39,29 @@ contract RestrictedNORI__linearReleaseAmountAvailable is
   }
 }
 
+contract RestrictedNORI_createSchedule is UpgradeableMarket {
+  uint256[] removalIds;
+
+  function setUp() external {
+    removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+  }
+
+  function test() external {
+    uint256 projectId = _removal.getProjectId(removalIds[0]);
+    vm.expectRevert(abi.encodeWithSelector(ScheduleExists.selector, projectId));
+    _rNori.createSchedule({
+      projectId: projectId,
+      startTime: 999_999_999,
+      methodology: 2,
+      methodologyVersion: 1
+    });
+  }
+}
+
 contract RestrictedNORI_scheduleExists is UpgradeableMarket {
   function setUp() external {
     _seedRemovals({to: _namedAccounts.supplier, count: 1, list: false});

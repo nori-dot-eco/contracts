@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
 
-import type { LockedNORIV2 } from '@/typechain-types';
+import type { LockedNORI } from '@/typechain-types';
 import {
   expect,
   setupTest,
@@ -36,7 +36,7 @@ type BuildTokenGrantOptionFunction = (
 ) => DeepPartial<TokenGrantOptions>;
 
 interface PausableFunctionParameters {
-  lNori: LockedNORIV2;
+  lNori: LockedNORI;
   hre: CustomHardHatRuntimeEnvironment;
 }
 
@@ -217,7 +217,7 @@ const setupWithGrant = async (
   return { bpNori, lNori, grant, grantAmount, hre, ...rest };
 };
 
-describe('LockedNORIV2', () => {
+describe('LockedNORI', () => {
   // todo test supported interfaces
   describe('when paused', () => {
     for (const { method, pausableFunction, postSetupHook } of [

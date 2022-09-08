@@ -152,10 +152,10 @@ library RemovalsByYearLib {
   }
 
   /**
-   * @notice Gets the total balance of all removals across all years.
+   * @notice Gets all removal IDs belonging to all vintages for a collection.
    *
    * @param collection the collection from storage.
-   * @return removalIds the total balance of the collection.
+   * @return removalIds an array of all removal IDs in the collection.
    */
   function getAllRemovalIds(RemovalsByYear storage collection)
     internal
@@ -163,18 +163,23 @@ library RemovalsByYearLib {
     returns (uint256[] memory removalIds)
   {
     uint256 latestYear = collection.latestYear;
+    EnumerableSetUpgradeable.UintSet storage removalIdSet;
+    uint256 totalNumberOfRemovals = 0;
+    uint256 nextInsertIndex = 0;
     for (uint256 year = collection.earliestYear; year <= latestYear; ++year) {
-      EnumerableSetUpgradeable.UintSet storage removalIdSet = collection
-        .yearToRemovals[year];
-      uint256[] memory ids = new uint256[](removalIdSet.length());
-      uint256 numberOfRemovals = ids.length;
+      removalIdSet = collection.yearToRemovals[year];
+      totalNumberOfRemovals += removalIdSet.length();
+    }
+    uint256[] memory ids = new uint256[](totalNumberOfRemovals);
+    for (uint256 year = collection.earliestYear; year <= latestYear; ++year) {
+      removalIdSet = collection.yearToRemovals[year];
       // Skip overflow check as for loop is indexed starting at zero.
       unchecked {
-        for (uint256 i = 0; i < numberOfRemovals; ++i) {
-          ids[i] = removalIdSet.at(i);
+        for (uint256 i = 0; i < removalIdSet.length(); ++i) {
+          ids[nextInsertIndex++] = removalIdSet.at(i);
         }
       }
-      return ids;
     }
+    return ids;
   }
 }

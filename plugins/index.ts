@@ -91,7 +91,7 @@ const deployOrUpgradeProxy = async <
   const shouldDeployProxy =
     contractCode === '0x' ||
     process.env.FORCE_PROXY_DEPLOYMENT ||
-    maybeProxyAddress !== 'string';
+    typeof maybeProxyAddress !== 'string';
   if (shouldDeployProxy) {
     hre.trace('Deploying proxy and instance', contractName);
     const fireblocksSigner = signer as FireblocksSigner;
@@ -105,6 +105,7 @@ const deployOrUpgradeProxy = async <
       args,
       options
     );
+    await contract.deployed();
     hre.log(
       'Deployed proxy and instance',
       contractName,
@@ -155,7 +156,6 @@ const deployOrUpgradeProxy = async <
       }) as InstanceOfContract<TContract>;
     }
   }
-  await contract.deployed();
   return contract;
 };
 
