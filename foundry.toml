@@ -9,9 +9,13 @@ libs = [
 ]
 test = 'test'
 solc_version = '0.8.15'
+optimizer = true
+optimizer_runs = 200
 via_ir = false
 gas_reports = [ '*' ]
 
 [profile.production]
 via_ir = true
-optimizer_runs = 18325
+optimizer_runs = 18_325
+
+# See more config options https://github.com/foundry-rs/fo undry/tree/master/config
