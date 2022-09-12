@@ -13,7 +13,7 @@ contract RestrictedNORI_initialize is UpgradableRestrictedNORI {
   }
 }
 
-contract RestrictedNORI__linearReleaseAmountAvailable is
+contract RestrictedNORI_linearReleaseAmountAvailable is
   NonUpgradableRestrictedNORI
 {
   using RestrictedNORILib for Schedule;
@@ -34,7 +34,7 @@ contract RestrictedNORI__linearReleaseAmountAvailable is
   function test() external {
     assertEq(
       totalSupplyValue / 2,
-      schedules[scheduleKey]._linearReleaseAmountAvailable(totalSupplyValue)
+      schedules[scheduleKey].linearReleaseAmountAvailable(totalSupplyValue)
     );
   }
 }

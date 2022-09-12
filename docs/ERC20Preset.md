@@ -1,10 +1,7 @@
 ## ERC20Preset
 
 
-TODO question for the auditors:
-The OZ upgrades plugin flags the use of &#x60;delegatecall&#x60; as unsafe to use with upgradeable contracts,
-but this is necessary to use if inheriting from Multicall because multicall uses it.
-Is this a false positive? And is it ok that we specify explicit &#x60;unsafeAllow&#x60; for &#x60;delegatecall&#x60;?
+
 
 
 

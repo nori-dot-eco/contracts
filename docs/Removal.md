@@ -180,7 +180,7 @@ Maps from an address to an EnumerableSet of the token ids for which that address
 uint256 _currentMarketBalance
 ```
 
-
+The current balance of across all removals listed in the market contract.
 
 
 
@@ -273,7 +273,7 @@ _If &#x60;to&#x60; is the market address, the removals are listed for sale in th
 | removals | struct DecodedRemovalIdV0[] | The removals to mint (represented as an array of &#x60;DecodedRemovalIdV0&#x60;). These removals are used to encode the removal IDs. |
 | projectId | uint256 | The project id for this batch of removals. |
 | scheduleStartTime | uint256 | The start time of the schedule for this batch of removals. |
-| holdbackPercentage | uint8 | The holdback percentage for this batch of removals. ##### Requirements: - Can only be used when the caller has the &#x60;CONSIGNER_ROLE&#x60; - Enforces the rules of &#x60;Removal._beforeTokenTransfer&#x60; - Can only be used when this contract is not paused - Cannot mint to a removal ID that already exists (use &#x60;addBalance&#x60; instead) |
+| holdbackPercentage | uint8 | The holdback percentage for this batch of removals. ##### Requirements: - Can only be used when the caller has the &#x60;CONSIGNOR_ROLE&#x60; - Enforces the rules of &#x60;Removal._beforeTokenTransfer&#x60; - Can only be used when this contract is not paused - Cannot mint to a removal ID that already exists (use &#x60;addBalance&#x60; instead) |
 
 
 ### addBalance
@@ -290,7 +290,7 @@ _If &#x60;to&#x60; is the market address, the removals are listed for sale in th
 | ---- | ---- | ----------- |
 | to | address | The supplier address or market address. |
 | amounts | uint256[] | Each removal&#x27;s additional tonnes of CO2 formatted. |
-| ids | uint256[] | The removal IDs to add balance for. ##### Requirements: - Can only be used when the caller has the &#x60;CONSIGNER_ROLE&#x60; - Can only be used when this contract is not paused - IDs must already have been minted via &#x60;mintBatch&#x60;. - Enforces the rules of &#x60;Removal._beforeTokenTransfer&#x60;. |
+| ids | uint256[] | The removal IDs to add balance for. ##### Requirements: - Can only be used when the caller has the &#x60;CONSIGNOR_ROLE&#x60; - Can only be used when this contract is not paused - IDs must already have been minted via &#x60;mintBatch&#x60;. - Enforces the rules of &#x60;Removal._beforeTokenTransfer&#x60;. |
 
 
 ### consign
@@ -322,6 +322,8 @@ the atmosphere prematurely.
 
 _Releases &#x60;amount&#x60; of removal &#x60;id&#x60; by burning it. The replacement of released removals that had
 already been included in certificates is beyond the scope of this version of the contracts.
+
+If a removal is used across a large number of certificates it may run into gas limits.
 
 ##### Requirements:
 
@@ -500,7 +502,7 @@ acceptance magic value.
 function setApprovalForAll(address operator, bool approved) public
 ```
 
-Grants or revokes permission to &#x60;operator&#x60; to transfer the caller&#x27;s tokens, according to &#x60;approved&#x60;,
+Grants or revokes permission to &#x60;operator&#x60; to transfer the caller&#x27;s tokens, according to &#x60;approved&#x60;.
 
 Emits an &#x60;ApprovalForAll&#x60; event.
 
@@ -606,7 +608,7 @@ function _releaseFromCertificate(uint256 id, uint256 amount) internal
 
 Burns &#x60;amount&#x60; of token ID &#x60;id&#x60; from the Certificate&#x27;s balance. Updates the internal accounting in
 Certificate that maps removal IDs and amounts to the certificates in which they were included by iteratively
-releasing from affected certificates (&#x60;Certficiate.releaseRemoval&#x60;) until &#x60;amount&#x60; removals have been released.
+releasing from affected certificates (&#x60;Certificate.releaseRemoval&#x60;) until &#x60;amount&#x60; removals have been released.
 
 Emits a &#x60;RemovalReleased&#x60; event.
 

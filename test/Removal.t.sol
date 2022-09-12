@@ -7,6 +7,7 @@ using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
 
 // todo fuzz RemovalIdLib
+// todo test that checks Removal.consign can happen using multi call with mix-match project ids
 
 contract Removal_mintBatch is UpgradeableMarket {
   function test() external {

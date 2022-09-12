@@ -1,9 +1,6 @@
 ## Certificate
 
 
-todo document burning behavior
-todo check that all transfer functions (including those not exposed in this file) call _beforeTokenTransfers
-
 This contract issues sequentially increasing ERC721 token ids to purchasers of certificates of carbon
 removal in Nori&#x27;s marketplace. The carbon removals that supply each certificate are accounted for using ERC1155
 tokens in the Removal contract. Upon purchase, ownership of the relevant Removal token ids and balances is
@@ -49,7 +46,7 @@ tokens and balances that belong to each specific certificate id.
 ##### Uses
 
 - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
-  for EnumerableSetUpgradeable.Uintset
+  for EnumerableSetUpgradeable.UintSet
 - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
 
 
@@ -277,7 +274,8 @@ function onERC1155BatchReceived(address, address, uint256[] removalIds, uint256[
 
 Receives a batch of child tokens, the certificate recipient and amount must be encoded in the field data.
 
-_See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver-onERC1155BatchReceived-address-address-uint256---uint256---bytes-] for more.
+_See [IERC1155Receiver](
+https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
 
 ##### Requirements:
 - Can only be used when the contract is not paused (enforced by &#x60;_beforeTokenTransfers&#x60;).
@@ -491,6 +489,19 @@ https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/uti
 | ---- | ---- | ----------- |
 | [0] | address | For regular transactions it returns msg.sender and for meta transactions it *can* be used to return the end user (rather than the relayer) |
 
+### _baseURI
+
+```solidity
+function _baseURI() internal view returns (string)
+```
+
+The baseUri for the certificate token.
+
+_Base URI for computing &#x60;tokenURI&#x60;. If set, the resulting URI for each token will be the concatenation of the
+&#x60;baseURI&#x60; and the &#x60;tokenId&#x60;. Empty by default, it can be overridden in child contracts._
+
+
+
 ### _validateReceivedRemovalBatch
 
 ```solidity
@@ -505,19 +516,6 @@ _Reverts if the array lengths do not match._
 | ---- | ---- | ----------- |
 | removalIds | uint256[] | Array of removal token ids. |
 | removalAmounts | uint256[] | Array of amounts. |
-
-
-### _baseURI
-
-```solidity
-function _baseURI() internal view returns (string)
-```
-
-The baseUri for the certificate token.
-
-_Base URI for computing &#x60;tokenURI&#x60;. If set, the resulting URI for each token will be the concatenation of the
-&#x60;baseURI&#x60; and the &#x60;tokenId&#x60;. Empty by default, it can be overridden in child contracts._
-
 
 
 

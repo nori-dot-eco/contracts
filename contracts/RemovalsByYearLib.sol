@@ -12,7 +12,6 @@ struct RemovalsByYear {
   uint256 latestYear;
 }
 
-// todo rename RemovalsByYearLib to RemovalQueueLib
 library RemovalsByYearLib {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalIdLib for uint256;
@@ -24,7 +23,7 @@ library RemovalsByYearLib {
 
   /**
    * @notice Inserts a new removal into the collection.
-   * @dev The removal is added to the Enumberable Set that maps to the year of its year.
+   * @dev The removal is added to the Enumerable Set that maps to the year of its year.
    * @param collection the collection from storage.
    * @param removalId a new removal to insert.
    */

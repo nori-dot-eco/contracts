@@ -3,7 +3,6 @@ pragma solidity =0.8.15;
 
 import "./ERC20Preset.sol";
 
-// todo Security audit item: https://github.com/nori-dot-eco/contracts/security/code-scanning/499
 contract BridgedPolygonNORI is ERC20Preset {
   bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
 
