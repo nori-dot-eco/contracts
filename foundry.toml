@@ -1,7 +1,6 @@
 [profile.default]
 sender = "0x465d5a3fFeA4CD109043499Fa576c3E16f918463"
 tx_origin = "0x465d5a3fFeA4CD109043499Fa576c3E16f918463"
-via_ir = false # todo enable via_ir for deployments
 src = 'contracts'
 out = 'out'
 libs = [
@@ -10,11 +9,9 @@ libs = [
 ]
 test = 'test'
 solc_version = '0.8.15'
-optimizer_runs = 5000000 # todo configure foundry settings via process.env
+via_ir = false
 gas_reports = [ '*' ]
 
 [profile.production]
 via_ir = true
-optimizer_runs = 5000000
-
-# See more config options https://github.com/foundry-rs/fo undry/tree/master/config
+optimizer_runs = 18325
