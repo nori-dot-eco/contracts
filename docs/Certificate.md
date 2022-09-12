@@ -3,12 +3,16 @@
 
 todo document burning behavior
 todo check that all transfer functions (including those not exposed in this file) call _beforeTokenTransfers
+
 This contract issues sequentially increasing ERC721 token ids to purchasers of certificates of carbon
 removal in Nori&#x27;s marketplace. The carbon removals that supply each certificate are accounted for using ERC1155
 tokens in the Removal contract. Upon purchase, ownership of the relevant Removal token ids and balances is
 transfered to this contract.  Internally, &#x60;_removalBalancesOfCertificate&#x60; tracks the subset of those Removal
 tokens and balances that belong to each specific certificate id.
+
+
 ###### Additional behaviors and features
+
 - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
 - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
 - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
@@ -22,7 +26,9 @@ tokens and balances that belong to each specific certificate id.
      - This is the only role that can add/revoke other accounts to any of the roles
 - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
   - A certificate is minted and internal accounting ties the certificate to the ERC1155 tokens upon receipt.
+
 ##### Inherits
+
 - [ERC721Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721)
 - [ERC721Burnable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#ERC721Burnable)
 - [MulticallUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Multicall)
@@ -31,13 +37,17 @@ tokens and balances that belong to each specific certificate id.
 - [ContextUpgradeable](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable)
 - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
 - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
+
 ##### Implements
+
 - [IERC721](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721)
 - [IERC721Metadata](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721Metadata)
 - [IERC721Enumerable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721Enumerable)
 - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
 - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
+
 ##### Uses
+
 - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
   for EnumerableSetUpgradeable.Uintset
 - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
@@ -221,7 +231,9 @@ Registers the address of the Removal contract.
 
 _This function is called as part of the market deployment process to register relevant contract
 addresses among market contracts.
+
 Emits a &#x60;ContractAddressesRegistered&#x60; event.
+
 ##### Requirements:
 - Can only be used when the contract is not paused.
 - Can only be used when the caller has the &#x60;DEFAULT_ADMIN_ROLE&#x60;_
@@ -243,7 +255,9 @@ that keeps track of which removals belong to a given certificate.
 _This function can only ever be called by the Removal contract, and should be called in the course of
 executing Removal.release. Burning the corresponding removal balance from the Certificate contract happens
 in Removal.release.
+
 Emits a &#x60;RemovalReleased&#x60; event.
+
 ##### Requirements:
 - Can only be called by the Removal contract.
 - Can only be used when contract is not paused._
@@ -264,6 +278,7 @@ function onERC1155BatchReceived(address, address, uint256[] removalIds, uint256[
 Receives a batch of child tokens, the certificate recipient and amount must be encoded in the field data.
 
 _See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver-onERC1155BatchReceived-address-address-uint256---uint256---bytes-] for more.
+
 ##### Requirements:
 - Can only be used when the contract is not paused (enforced by &#x60;_beforeTokenTransfers&#x60;).
 - &#x60;_msgSender&#x60; must be the removal contract._
@@ -428,7 +443,9 @@ certificate-operator (conferred by the &#x60;CERTIFICATE_OPERATOR_ROLE&#x60; rol
 
 _Follows the rules of hooks defined [here](
  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks).
+
 ##### Requirements:
+
 - Can only be used when this contract is not paused
 - Can only be used when the caller has the &#x60;CERTIFICATE_OPERATOR_ROLE&#x60;_
 
@@ -445,6 +462,7 @@ Creates a new certificate for a batch of removals.
 _Called when a batch of ERC1155 Removal tokens are sent to this contract.
 Mints a new certificate token to the next sequential ID and updates the internal data structures
 that track the relationship between the certificate and its constituent removal tokens and balances.
+
 Emits a &#x60;ReceiveRemovalBatch&#x60; event._
 
 | Name | Type | Description |
@@ -499,121 +517,6 @@ The baseUri for the certificate token.
 
 _Base URI for computing &#x60;tokenURI&#x60;. If set, the resulting URI for each token will be the concatenation of the
 &#x60;baseURI&#x60; and the &#x60;tokenId&#x60;. Empty by default, it can be overridden in child contracts._
-
-
-
-
-
-## Certificate
-
-
-
-
-
-
-
----
-
-### Source
-
-
-
-
-
-
-
-```solidity
-struct Source {
-  uint256 removalId;
-  uint256 amount;
-}
-```
-
-### CertificateCreated
-
-```solidity
-event CertificateCreated(address recipient, uint256 certificateId, uint256[] removalIds, uint256[] amounts)
-```
-
-Emitted on creation of a certificate of carbon removal.
-
-
-
-
-### _sources
-
-```solidity
-mapping(uint256 &#x3D;&gt; struct Certificate.Source[]) _sources
-```
-
-
-
-_a mapping of the certificate token ID -&gt; sources_
-
-
-
-### _latestTokenId
-
-```solidity
-uint256 _latestTokenId
-```
-
-
-
-_auto incrementing token ID_
-
-
-
-### initialize
-
-```solidity
-function initialize() external
-```
-
-
-
-
-
-
-### mintBatch
-
-```solidity
-function mintBatch(address to, uint256[] removalIds, uint256[] removalAmounts, bytes data) public
-```
-
-
-
-_mints the certificate (using a batch of certificate sources)_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| to | address | The supplier address |
-| removalIds | uint256[] | the removal source ids |
-| removalAmounts | uint256[] | the removal source amount |
-| data | bytes | Additional data with no specified format, MUST be sent unaltered in call to &#x60;onERC1155Received&#x60; on &#x60;_to&#x60; |
-
-
-### mint
-
-```solidity
-function mint(address, uint256, uint256, bytes) public pure
-```
-
-
-
-_Use the &#x60;mintBatch&#x60; function instead._
-
-
-
-### sources
-
-```solidity
-function sources(uint256 certificateId) public view returns (struct Certificate.Source[])
-```
-
-
-
-_returns the removal IDs and the amounts of the sources_
 
 
 

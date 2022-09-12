@@ -7,21 +7,28 @@ removed carbon (see RemovalIdLib.sol for encoding details), and each token repre
 carbon removal accounting.  For example, in an agricultural methodology, a specific token ID represents one
 parcel of land in a specific year.  The total supply of that token ID is the number of tonnes of carbon
 removed.
+
 ##### Behaviors and features
+
 ##### Minting
 - Only accounts with the CONSIGNOR_ROLE can mint removal tokens, which should only be account(s) controlled by Nori.
+
 - When removal tokens are minted, additional data about those removals are stored in a mapping keyed by the token ID,
 such as a projectId and a holdback percentage (which determines the percentage of the sale proceeds from the token
 that will be routed to the RestrictedNORI contract). A restriction schedule is created per projectId (if necessary)
 in RestrictedNORI. (see RestrictedNORI.sol)
 - Minting reverts when attempting to mint a token ID that already exists.
 - The function &#x60;addBalance&#x60; can be used to mint additional balance to a token ID that already exists.
+
+
 ##### Listing
 - _Listing_ refers to the process of listing removal tokens for sale in Nori&#x27;s marketplace (Market.sol)
 - Removals are listed for sale by transferring ownership of the tokens to the Market contract via
 &#x60;consign&#x60;. Alternatively, If the &#x60;to&#x60; argument to &#x60;mintBatch&#x60; is the address of the Market contract,
 removal tokens will be listed in the same transaction that they are minted.
 - Only accounts with the CONSIGNOR_ROLE can list removals for sale in the market.
+
+
 ##### Releasing
 - _Releasing_ refers to the process of accounting for carbon that has failed to meet its permanence guarantee
 and has been released into the atmosphere prematurely.
@@ -32,13 +39,17 @@ has been accounted for: Releasing burns first from unlisted balances, second fro
 from any certificates in which this removal may have already been included. (see &#x60;Removal.release&#x60; for more)
 - Affected certificates will have any released balances replaced by new removals purchased by Nori, though an
 automated implementation of this process is beyond the scope of this version of the contracts.
+
+
 ##### Token ID encoding and decoding
 - This contract uses the inlined library RemovalIdLib.sol for uint256.
 - When minting tokens, an array of structs containing information about each removal is passed as an argument to
 &#x60;mintBatch&#x60; and that data is used to generate the encoded token IDs for each removal.
 - &#x60;decodeRemovalIdV0&#x60; is exposed externally for encoding and decoding removal token IDs that contain uniquely
 identifying information about the removal. See RemovalIdLib.sol for encoding details.
+
 ###### Additional behaviors and features
+
 - [ERC-1155 functionality](https://eips.ethereum.org/EIPS/eip-1155)
 - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
 - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
@@ -53,7 +64,9 @@ identifying information about the removal. See RemovalIdLib.sol for encoding det
      - Can pause and unpause the contract
    - DEFAULT_ADMIN_ROLE
      - This is the only role that can add/revoke other accounts to any of the roles
+
 ##### Inherits
+
 - [ERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc11555)
 - [ERC1155Supply](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Supply)
 - [MulticallUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Multicall)
@@ -62,12 +75,16 @@ identifying information about the removal. See RemovalIdLib.sol for encoding det
 - [ContextUpgradeable](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable)
 - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
 - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
+
 ##### Implements
+
 - [IERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155)
 - [IERC1155MetadataURI](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155MetadataURI)
 - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
 - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
+
 ##### Uses
+
 - [RemovalIdLib](./RemovalIdLib.md) for uint256
 - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
 
@@ -229,6 +246,7 @@ function registerContractAddresses(contract Market market, contract Certificate 
 
 Registers the market and certificate contracts so that they can be referenced in this contract.
 Called as part of the market contract system deployment process.
+
 Emits a &#x60;ContractAddressesRegistered&#x60; event.
 
 
@@ -304,7 +322,9 @@ the atmosphere prematurely.
 
 _Releases &#x60;amount&#x60; of removal &#x60;id&#x60; by burning it. The replacement of released removals that had
 already been included in certificates is beyond the scope of this version of the contracts.
+
 ##### Requirements:
+
 - Releasing burns first from unlisted balances, second from listed balances and third from certificates.
 - If there is unlisted balance for this removal (e.g., owned by the supplier address encoded in the token ID),
 that balance is burned up to &#x60;amount&#x60;.
@@ -315,6 +335,7 @@ certificates. The remaining released amount is burned from the Certificate contr
 balances are decremented iteratively across each certificate until the amount is exhausted (e.g., if a removal
 of amount 3 releases an amount of 2.5 and that removal is owned by 3 certificates containing an amount of 1 each
 from the released removal, the resulting certificate&#x27;s removal balances for this removal are: 0, 0, and 0.5).
+
 - The caller must have the &#x60;RELEASER_ROLE&#x60;.
 - The rules of &#x60;_burn&#x60; are enforced.
 - Can only be used when the contract is not paused._
@@ -439,8 +460,11 @@ function safeTransferFrom(address from, address to, uint256 id, uint256 amount, 
 Transfers &#x60;amount&#x60; tokens of token type &#x60;id&#x60; from &#x60;from&#x60; to &#x60;to&#x60;.
 
 _Calls &#x60;ERC1155Upgradeable.safeTransferFrom&#x60;
+
 Emits a &#x60;TransferSingle&#x60; event.
+
 ##### Requirements:
+
 - Can only be called by the &#x60;Market&#x60; contract.
 - &#x60;to&#x60; cannot be the zero address.
 - If the caller is not &#x60;from&#x60;, it must have been approved to spend &#x60;&#x60;from&#x60;&#x60;&#x27;s tokens via &#x60;setApprovalForAll&#x60;.
@@ -457,8 +481,11 @@ function safeBatchTransferFrom(address from, address to, uint256[] ids, uint256[
 ```
 
 Batched version of &#x60;safeTransferFrom&#x60;.
+
 Emits a &#x60;TransferBatch&#x60; event.
+
 Requirements:
+
 - Can only be called by the &#x60;Market&#x60; contract.
 - &#x60;ids&#x60; and &#x60;amounts&#x60; must have the same length.
 - If &#x60;to&#x60; refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
@@ -474,7 +501,9 @@ function setApprovalForAll(address operator, bool approved) public
 ```
 
 Grants or revokes permission to &#x60;operator&#x60; to transfer the caller&#x27;s tokens, according to &#x60;approved&#x60;,
+
 Emits an &#x60;ApprovalForAll&#x60; event.
+
 ##### Requirements:
 - Can only be used when the contract is not paused.
 - &#x60;operator&#x60; cannot be the caller.
@@ -542,6 +571,7 @@ function _releaseFromSupplier(uint256 id, uint256 amount) internal
 ```
 
 Burns &#x60;amount&#x60; of token ID &#x60;id&#x60; from the supplier address encoded in the ID.
+
 Emits a &#x60;RemovalReleased&#x60; event.
 
 
@@ -558,6 +588,7 @@ function _releaseFromMarket(uint256 id, uint256 amount) internal
 ```
 
 Burns &#x60;amount&#x60; of token ID &#x60;id&#x60; from the Market&#x27;s balance.
+
 Emits a &#x60;RemovalReleased&#x60; event.
 
 
@@ -576,6 +607,7 @@ function _releaseFromCertificate(uint256 id, uint256 amount) internal
 Burns &#x60;amount&#x60; of token ID &#x60;id&#x60; from the Certificate&#x27;s balance. Updates the internal accounting in
 Certificate that maps removal IDs and amounts to the certificates in which they were included by iteratively
 releasing from affected certificates (&#x60;Certficiate.releaseRemoval&#x60;) until &#x60;amount&#x60; removals have been released.
+
 Emits a &#x60;RemovalReleased&#x60; event.
 
 
@@ -597,7 +629,9 @@ address (for burning), or the supplier address that is encoded in the token ID i
 
 _Follows the rules of hooks defined [here](
  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+
 ##### Requirements:
+
 - The contract must not be paused.
 - Enforces the rules of &#x60;ERC1155Upgradeable._beforeTokenTransfer&#x60;.
 - Enforces the rules of &#x60;ERC1155SupplyUpgradeable._beforeTokenTransfer&#x60;._
@@ -613,9 +647,12 @@ function _afterTokenTransfer(address operator, address from, address to, uint256
 Hook that is called after any token transfer. This includes minting
 and burning, as well as batched variants.
 Updates the mapping from address to set of owned token IDs.
+
 The same hook is called on both single and batched variants. For single
 transfers, the length of the &#x60;id&#x60; and &#x60;amount&#x60; arrays will be 1.
+
 Calling conditions (for each &#x60;id&#x60; and &#x60;amount&#x60; pair):
+
 - When &#x60;from&#x60; and &#x60;to&#x60; are both non-zero, &#x60;amount&#x60; of &#x60;&#x60;from&#x60;&#x60;&#x27;s tokens
 of token type &#x60;id&#x60; will be  transferred to &#x60;to&#x60;.
 - When &#x60;from&#x60; is zero, &#x60;amount&#x60; tokens of token type &#x60;id&#x60; will be minted
@@ -658,336 +695,6 @@ Reverts if a project id has already been set for &#x60;id&#x60;.
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | id | uint256 | The ID to validate. |
-
-
-
-
-## Removal
-
-
-
-
-
-
-
----
-
-### TokenIdExists
-
-```solidity
-error TokenIdExists(uint256 tokenId)
-```
-
-
-
-
-
-
-### ArrayLengthMismatch
-
-```solidity
-error ArrayLengthMismatch(string array1Name, string array2Name)
-```
-
-
-
-
-
-
-### InvalidProjectId
-
-```solidity
-error InvalidProjectId(uint256 projectId)
-```
-
-
-
-
-
-
-### BatchMintRemovalsData
-
-
-
-
-
-
-
-```solidity
-struct BatchMintRemovalsData {
-  uint256 projectId;
-  uint256 scheduleStartTime;
-  address marketAddress;
-  bool list;
-}
-```
-
-### ScheduleData
-
-
-
-
-
-
-
-```solidity
-struct ScheduleData {
-  uint256 startTime;
-  address supplierAddress;
-  uint256 methodology;
-  uint256 methodologyVersion;
-}
-```
-
-### _restrictedNori
-
-```solidity
-contract RestrictedNORI _restrictedNori
-```
-
-The RestrictedNORI contract that manages restricted tokens.
-
-
-
-
-### tokenIdCounter
-
-```solidity
-uint256 tokenIdCounter
-```
-
-
-
-
-
-
-### name
-
-```solidity
-string name
-```
-
-
-
-
-
-
-### indexToTokenId
-
-```solidity
-mapping(uint256 &#x3D;&gt; uint256) indexToTokenId
-```
-
-
-
-
-
-
-### _tokenIdExists
-
-```solidity
-mapping(uint256 &#x3D;&gt; bool) _tokenIdExists
-```
-
-
-
-
-
-
-### _removalIdToProjectId
-
-```solidity
-mapping(uint256 &#x3D;&gt; uint256) _removalIdToProjectId
-```
-
-
-
-
-
-
-### _projectIdToScheduleData
-
-```solidity
-mapping(uint256 &#x3D;&gt; struct Removal.ScheduleData) _projectIdToScheduleData
-```
-
-
-
-
-
-
-### initialize
-
-```solidity
-function initialize() external virtual
-```
-
-
-
-
-
-
-### registerRestrictedNORIAddress
-
-```solidity
-function registerRestrictedNORIAddress(address restrictedNORIAddress) external
-```
-
-
-
-
-
-
-### setApprovalForAll
-
-```solidity
-function setApprovalForAll(address owner, address operator, bool approved) public virtual
-```
-
-
-
-_See {IERC1155-setApprovalForAll}._
-
-
-
-### createRemovalId
-
-```solidity
-function createRemovalId(bytes removalData) public pure returns (uint256)
-```
-
-Packs data about a removal into a 256-bit token id for the removal.
-
-_Performs some possible validations on the data before attempting to create the id._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| removalData | bytes | removal data encoded as bytes, with the first byte storing the version. |
-
-
-### unpackRemovalIdV0
-
-```solidity
-function unpackRemovalIdV0(uint256 removalId) public pure returns (struct UnpackedRemovalIdV0)
-```
-
-Unpacks a V0 removal id into its component data.
-
-
-
-
-### getProjectIdForRemoval
-
-```solidity
-function getProjectIdForRemoval(uint256 removalId) external view returns (uint256)
-```
-
-Get the restriction schedule id (which is the removal&#x27;s project id) for a given removal id.
-
-
-
-
-### getScheduleDataForRemovalId
-
-```solidity
-function getScheduleDataForRemovalId(uint256 removalId) external view returns (struct Removal.ScheduleData)
-```
-
-Get the restriction schedule data for a given removal id.
-
-
-
-
-### getScheduleDataForProjectId
-
-```solidity
-function getScheduleDataForProjectId(uint256 projectId) external view returns (struct Removal.ScheduleData)
-```
-
-Get the restriction schedule data for a given project id.
-
-
-
-
-### mintBatch
-
-```solidity
-function mintBatch(address to, uint256[] amounts, uint256[] ids, bytes data) public
-```
-
-
-
-_mints multiple removals at once (for a single supplier).
-If &#x60;list&#x60; is true in the decoded BatchMintRemovalsData, also lists those removals for sale in the market.
-amounts: [100 * (10 ** 18), 10 * (10 ** 18), 50 * (10 ** 18)] &lt;- 100 tonnes, 10 tonnes, 50 tonnes in standard erc20 units (wei)
-token id 0 URI points to vintage information (e.g., 2018) nori.com/api/removal/0 -&gt; { amount: 100, supplier: 1, vintage: 2018, ... }
-token id 1 URI points to vintage information (e.g., 2019) nori.com/api/removal/1 -&gt; { amount: 10, supplier: 1, vintage: 2019, ... }
-token id 2 URI points to vintage information (e.g., 2020) nori.com/api/removal/2 -&gt; { amount: 50, supplier: 1, vintage: 2020, ... }_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| to | address | The supplier address |
-| amounts | uint256[] | Each removal&#x27;s tonnes of CO2 formatted as wei |
-| ids | uint256[] | The token ids to use for this batch of removals. The id itself encodes the supplier&#x27;s ethereum address, a parcel identifier, the vintage, country code, state code, methodology identifer, methodology version, and id format. |
-| data | bytes | Encodes the project id and schedule start time for this batch of removals, the market contract address and a boolean that indicates whether to list these removals for sale now. |
-
-
-### mint
-
-```solidity
-function mint(address, uint256, uint256, bytes) public pure
-```
-
-
-
-
-
-
-### safeBatchTransferFrom
-
-```solidity
-function safeBatchTransferFrom(address from, address to, uint256[] ids, uint256[] amounts, bytes data) public
-```
-
-
-
-_used to list removals for sale by transferring the removals to the market contract
-### Requirements:
- - all removals being listed must belong to the same project id._
-
-
-
-### supportsInterface
-
-```solidity
-function supportsInterface(bytes4 interfaceId) public view returns (bool)
-```
-
-
-
-
-
-
-### _beforeTokenTransfer
-
-```solidity
-function _beforeTokenTransfer(address operator, address from, address to, uint256[] ids, uint256[] amounts, bytes data) internal
-```
-
-
-
-
-
-
-### balanceOfIds
-
-```solidity
-function balanceOfIds(address account, uint256[] ids) external view returns (uint256[])
-```
-
-
-
-
 
 
 

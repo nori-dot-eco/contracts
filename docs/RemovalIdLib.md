@@ -4,11 +4,14 @@
 
 
 _Library encapsulating the logic around encoding and decoding removal token ids.
+
 The token IDs used for a given ERC1155 token in Removal encode information about the carbon removal in the following
 format(s), where the first byte encodes the format version:
+
 Version 0:
 [1byte][1byte][--2 bytes--][--2 bytes--][--2 bytes--][----------- 20 bytes------------- ][------4 bytes------]
 tokIdV--meth&amp;v---vintage------country------subdivision------------ supplier address --------------subidentifier--
+
 For methodology 1 (regenerative ag), the subidentifier serves as a parcel identifier._
 
 
