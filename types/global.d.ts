@@ -278,6 +278,7 @@ declare global {
       OPTIMIZER_RUNS: number;
       OPTIMIZER: boolean;
       CI: boolean;
+      SOLC_PROFILE: "default" | "production";
     }
   }
 }
