@@ -86,7 +86,7 @@ library RestrictedNORILib {
   /**
    * @notice Released balance less the total claimed amount at current block timestamp for a schedule.
    */
-  function _claimableBalanceForSchedule(
+  function claimableBalanceForSchedule(
     Schedule storage schedule,
     uint256 scheduleId,
     uint256 totalSupply
@@ -113,21 +113,21 @@ library RestrictedNORILib {
     uint256 totalSupply,
     uint256 balanceOfAccount
   ) internal view returns (uint256) {
-    uint256 scheduleTrueTotal = schedule.scheduleTrueTotal(totalSupply);
+    uint256 scheduleTotal = schedule.scheduleTrueTotal(totalSupply);
     uint256 claimableForAccount;
     // avoid division by or of 0
-    if (scheduleTrueTotal == 0 || balanceOfAccount == 0) {
+    if (scheduleTotal == 0 || balanceOfAccount == 0) {
       claimableForAccount = 0;
     } else {
       uint256 claimedAmountForAccount = schedule.claimedAmountsByAddress[
         account
       ];
       uint256 claimableBalanceForFullSchedule = schedule
-        ._claimableBalanceForSchedule(scheduleId, totalSupply);
+        .claimableBalanceForSchedule(scheduleId, totalSupply);
       claimableForAccount =
         ((claimedAmountForAccount + balanceOfAccount) *
           (claimableBalanceForFullSchedule + schedule.totalClaimedAmount)) /
-        scheduleTrueTotal -
+        scheduleTotal -
         claimedAmountForAccount;
     }
 

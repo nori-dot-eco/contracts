@@ -329,10 +329,7 @@ contract RestrictedNORI is
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
-      schedule._claimableBalanceForSchedule(
-        scheduleId,
-        totalSupply(scheduleId)
-      );
+      schedule.claimableBalanceForSchedule(scheduleId, totalSupply(scheduleId));
   }
 
   /**
@@ -391,7 +388,7 @@ contract RestrictedNORI is
         schedule.startTime,
         schedule.endTime,
         totalSupply(scheduleId),
-        schedule._claimableBalanceForSchedule(
+        schedule.claimableBalanceForSchedule(
           scheduleId,
           totalSupply(scheduleId)
         ),
