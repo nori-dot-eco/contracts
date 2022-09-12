@@ -87,15 +87,13 @@ export const verifyContracts = async ({
           } as any);
         })
     );
-    (
-      results.filter(
-        ({ status }) => status === 'rejected'
-      ) as PromiseRejectedResult[]
-    ).forEach(({ reason }) => {
+    for (const { reason } of results.filter(
+      ({ status }) => status === 'rejected'
+    ) as PromiseRejectedResult[]) {
       if (!reason.message.includes('already verified')) {
         throw new Error(reason);
       }
-    });
+    }
     hre.trace('Verified contracts');
   }
 };
@@ -124,6 +122,21 @@ export const configureDeploymentSettings = async ({
 }): Promise<void> => {
   if (hre.network.name === 'hardhat' || hre.network.name === 'localhost') {
     await hre.run('deploy:erc1820');
+  }
+};
+
+export const validateDeploymentSettings = ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): void => {
+  if (
+    ['mumbai', 'goerli', 'polygon', 'mainnet'].includes(hre.network.name) &&
+    process.env.SOLC_PROFILE !== 'production'
+  ) {
+    throw new Error(
+      'Please use the production solc profile (by setting the environment variable "SOLC_PROFILE" to "production") for production networks'
+    );
   }
 };
 
