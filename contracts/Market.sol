@@ -61,7 +61,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * ##### Uses
  *
  * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
- *   for EnumerableSetUpgradeable.Uintset
+ *   for EnumerableSetUpgradeable.UintSet
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  *
@@ -261,6 +261,28 @@ contract Market is
   }
 
   /**
+   * @notice Releases a removal from the market.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   * - The caller must be the Removal contract.
+   *
+   * @param removalId The ID of the removal to release.
+   * @param amount The amount of that removal to release.
+   */
+  function release(uint256 removalId, uint256 amount) external whenNotPaused {
+    if (_msgSender() != address(_removal)) {
+      revert SenderNotRemovalContract();
+    }
+    address supplierAddress = removalId.supplierAddress();
+    uint256 removalBalance = _removal.balanceOf(address(this), removalId);
+    if (amount == removalBalance) {
+      _removeActiveRemoval(removalId, supplierAddress);
+    }
+  }
+
+  /**
    * @dev Registers the `removal`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
    * can be referenced in this contract. Called as part of the market contract system deployment process.
    *
@@ -365,6 +387,232 @@ contract Market is
     }
     _noriFeeWallet = noriFeeWalletAddress;
     emit NoriFeeWalletAddressUpdated(noriFeeWalletAddress);
+  }
+
+  /**
+   * @notice Handles the receipt of multiple ERC1155 token types. This function is called at the end of a
+   * `safeBatchTransferFrom` after the balances have been updated. To accept the transfer(s), this must return
+   * `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`
+   * (i.e. 0xbc197c81, or its own function selector).
+   *
+   * @dev See [IERC1155Receiver](
+   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
+   *
+   * ##### Requirements:
+   *
+   * - Can only receive ERC1155 tokens from the Removal contract.
+   * - Can only be used when this contract is not paused.
+   *
+   * @param ids An array containing ids of each token being transferred (order and length must match values array)
+   * @return bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
+   * if transfer is allowed
+   */
+  function onERC1155BatchReceived(
+    address,
+    address,
+    uint256[] calldata ids,
+    uint256[] calldata,
+    bytes calldata
+  ) external whenNotPaused returns (bytes4) {
+    require(_msgSender() == address(_removal), "Sender not Removal contract");
+    for (uint256 i = 0; i < ids.length; ++i) {
+      _addActiveRemoval(ids[i]);
+    }
+    return this.onERC1155BatchReceived.selector;
+  }
+
+  /**
+   * @notice Handles the receipt of an ERC1155 token. This function is called at the end of a
+   * `safeTransferFrom` after the balances have been updated. To accept the transfer(s), this must return
+   * `bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))`
+   * (i.e. 0xf23a6e61, or its own function selector).
+   *
+   * @dev See [IERC1155Receiver](
+   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
+   *
+   * ##### Requirements:
+   *
+   * - Can only receive an ERC1155 token from the Removal contract.
+   * - Can only be used when this contract is not paused.
+   *
+   * @param id The id of the token being transferred
+   * @return bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)")) if transfer is allowed
+   */
+  function onERC1155Received(
+    address,
+    address,
+    uint256 id,
+    uint256,
+    bytes calldata
+  ) external whenNotPaused returns (bytes4) {
+    require(_msgSender() == address(_removal), "Sender not Removal contract");
+    _addActiveRemoval({removalId: id});
+    return this.onERC1155Received.selector;
+  }
+
+  /**
+   * @notice Exchanges NORI tokens for an ERC721 certificate token and transfers ownership of removal tokens to
+   * that certificate.
+   *
+   * @dev See [https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit](ERC20Permit) for more.
+   * The message sender must present a valid permit to this contract to temporarily authorize this market
+   * to transfer the sender's NORI to complete the purchase. A certificate is issued by Certificate.sol
+   * to the specified recipient and NORI is distributed to the supplier of the carbon removal,
+   * to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
+   * to Nori Inc. as a market operator fee.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   *
+   * @param recipient The address to which the certificate will be issued.
+   * @param amount The total purchase amount in NORI. This is the combined total of the number of removals being
+   * purchased and the fee paid to Nori.
+   * @param deadline The EIP2612 permit deadline in Unix time.
+   * @param v The recovery identifier for the permit's secp256k1 signature
+   * @param r The r value for the permit's secp256k1 signature
+   * @param s The s value for the permit's secp256k1 signature
+   */
+  function swap(
+    address recipient,
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external whenNotPaused {
+    uint256 certificateAmount = this
+      .calculateCertificateAmountFromPurchaseTotal(amount);
+    uint256 availableSupply = _removal.getMarketBalance();
+    _validateSupply({
+      certificateAmount: certificateAmount,
+      availableSupply: availableSupply
+    });
+    _validatePrioritySupply({
+      certificateAmount: certificateAmount,
+      availableSupply: availableSupply
+    });
+    (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    ) = _allocateSupply(certificateAmount);
+    _bridgedPolygonNORI.permit(
+      _msgSender(),
+      address(this),
+      amount,
+      deadline,
+      v,
+      r,
+      s
+    );
+    _fulfillOrder({
+      certificateAmount: certificateAmount,
+      operator: _msgSender(),
+      recipient: recipient,
+      countOfRemovalsAllocated: countOfRemovalsAllocated,
+      ids: ids,
+      amounts: amounts,
+      suppliers: suppliers
+    });
+  }
+
+  /**
+   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange NORI
+   * tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
+   * supplier to that certificate. If the specified supplier does not have enough carbon removals for sale to fulfill
+   * the order the transaction will revert.
+   *
+   * @dev See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
+   * The message sender must present a valid permit to this contract to temporarily authorize this market
+   * to transfer the sender's NORI to complete the purchase. A certificate is issued by Certificate.sol
+   * to the specified recipient and NORI is distributed to the supplier of the carbon removal,
+   * to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
+   * to Nori Inc. as a market operator fee.
+   *
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   *
+   * @param recipient The address to which the certificate will be issued.
+   * @param amount The total purchase amount in NORI. This is the combined total of the number of removals being
+   * purchased and the fee paid to Nori.
+   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
+   * @param deadline The EIP2612 permit deadline in Unix time.
+   * @param v The recovery identifier for the permit's secp256k1 signature
+   * @param r The r value for the permit's secp256k1 signature
+   * @param s The s value for the permit's secp256k1 signature
+   */
+  function swapFromSupplier(
+    address recipient,
+    uint256 amount,
+    address supplier,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external whenNotPaused {
+    uint256 certificateAmount = this
+      .calculateCertificateAmountFromPurchaseTotal(amount);
+    _validatePrioritySupply({
+      certificateAmount: certificateAmount,
+      availableSupply: _removal.getMarketBalance()
+    });
+    (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts
+    ) = _allocateSupplySingleSupplier(certificateAmount, supplier);
+    address[] memory suppliers = new address[](countOfRemovalsAllocated).fill(
+      supplier
+    );
+    _bridgedPolygonNORI.permit(
+      _msgSender(),
+      address(this),
+      amount,
+      deadline,
+      v,
+      r,
+      s
+    );
+    _fulfillOrder({
+      certificateAmount: certificateAmount,
+      operator: _msgSender(),
+      recipient: recipient,
+      countOfRemovalsAllocated: countOfRemovalsAllocated,
+      ids: ids,
+      amounts: amounts,
+      suppliers: suppliers
+    });
+  }
+
+  /**
+   * @notice Withdraws a removal to the supplier.
+   *
+   * @dev Withdraws a removal to the supplier address encoded in the removal ID.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   *
+   * @param removalId The id of the removal to withdraw from the market.
+   */
+  function withdraw(uint256 removalId) external whenNotPaused {
+    address supplierAddress = removalId.supplierAddress();
+    if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
+      _removeActiveRemoval(removalId, supplierAddress);
+      _removal.safeTransferFrom({
+        from: address(this),
+        to: supplierAddress,
+        id: removalId,
+        amount: _removal.balanceOf(address(this), removalId),
+        data: ""
+      });
+    } else {
+      revert UnauthorizedWithdrawal();
+    }
   }
 
   /**
@@ -531,245 +779,104 @@ contract Market is
   }
 
   /**
-   * @notice Handles the receipt of multiple ERC1155 token types. This function is called at the end of a
-   * `safeBatchTransferFrom` after the balances have been updated. To accept the transfer(s), this must return
-   * `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`
-   * (i.e. 0xbc197c81, or its own function selector).
+   * @notice Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
+   * `RestrictedNORI` contract, pays Nori the order fee, updates accounting, and mints the `Certificate`.
    *
-   * @dev See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver-onERC1155BatchReceived-address-address-uint256---uint256---bytes-] for more.
+   * @param certificateAmount The total amount for the certificate.
+   * @param operator The message sender.
+   * @param recipient The recipient of the certificate.
+   * @param countOfRemovalsAllocated The number of distinct removal ids that are involved in fulfilling this order.
+   * @param ids An array of removal token ids involved in fulfilling this order.
+   * @param amounts An array of amounts being allocated from each corresponding removal token.
+   * @param suppliers An array of suppliers
    *
-   * ##### Requirements:
-   *
-   * - Can only receive ERC1155 tokens from the Removal contract.
-   * - Can only be used when this contract is not paused.
-   *
-   * @param ids An array containing ids of each token being transferred (order and length must match values array)
-   * @return bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
-   * if transfer is allowed
+   * todo use correct check-effects pattern in `fulfillOrder`
    */
-  function onERC1155BatchReceived(
-    address,
-    address,
-    uint256[] calldata ids,
-    uint256[] calldata,
-    bytes calldata
-  ) external whenNotPaused returns (bytes4) {
-    require(_msgSender() == address(_removal), "Sender not Removal contract");
-    for (uint256 i = 0; i < ids.length; ++i) {
-      _addActiveRemoval(ids[i]);
+  function _fulfillOrder(
+    uint256 certificateAmount,
+    address operator,
+    address recipient,
+    uint256 countOfRemovalsAllocated,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    address[] memory suppliers
+  ) internal {
+    uint256[] memory removalIds = ids.slice(0, countOfRemovalsAllocated);
+    uint256[] memory removalAmounts = amounts.slice(
+      0,
+      countOfRemovalsAllocated
+    );
+    uint8 holdbackPercentage;
+    uint256 restrictedSupplierFee;
+    uint256 unrestrictedSupplierFee;
+    for (uint256 i = 0; i < countOfRemovalsAllocated; i++) {
+      unrestrictedSupplierFee = removalAmounts[i];
+      holdbackPercentage = _removal.getHoldbackPercentage(removalIds[i]);
+      if (holdbackPercentage > 0) {
+        restrictedSupplierFee =
+          (unrestrictedSupplierFee * holdbackPercentage) /
+          100;
+        unrestrictedSupplierFee -= restrictedSupplierFee;
+        _restrictedNORI.mint(restrictedSupplierFee, removalIds[i]);
+        _bridgedPolygonNORI.transferFrom(
+          operator,
+          address(_restrictedNORI),
+          restrictedSupplierFee
+        );
+      }
+      _bridgedPolygonNORI.transferFrom(
+        operator,
+        _noriFeeWallet,
+        this.calculateNoriFee(removalAmounts[i])
+      );
+      _bridgedPolygonNORI.transferFrom(
+        operator,
+        suppliers[i],
+        unrestrictedSupplierFee
+      );
     }
-    return this.onERC1155BatchReceived.selector;
-  }
-
-  /**
-   * @notice Handles the receipt of an ERC1155 token. This function is called at the end of a
-   * `safeTransferFrom` after the balances have been updated. To accept the transfer(s), this must return
-   * `bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))`
-   * (i.e. 0xf23a6e61, or its own function selector).
-   *
-   * @dev See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver-onERC1155Received-address-address-uint256-uint256-bytes-] for more.
-   *
-   * ##### Requirements:
-   *
-   * - Can only receive an ERC1155 token from the Removal contract.
-   * - Can only be used when this contract is not paused.
-   *
-   * @param id The id of the token being transferred
-   * @return bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)")) if transfer is allowed
-   */
-  function onERC1155Received(
-    address,
-    address,
-    uint256 id,
-    uint256,
-    bytes calldata
-  ) external whenNotPaused returns (bytes4) {
-    require(_msgSender() == address(_removal), "Sender not Removal contract");
-    _addActiveRemoval({removalId: id});
-    return this.onERC1155Received.selector;
-  }
-
-  /**
-   * @notice Exchanges NORI tokens for an ERC721 certificate token and transfers ownership of removal tokens to
-   * that certificate.
-   *
-   * @dev See [https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit](ERC20Permit) for more.
-   * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's NORI to complete the purchase. A certificate is issued by Certificate.sol
-   * to the specified recipient and NORI is distributed to the supplier of the carbon removal,
-   * to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
-   * to Nori Inc. as a market operator fee.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   *
-   * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in NORI. This is the combined total of the number of removals being
-   * purchased and the fee paid to Nori.
-   * @param deadline The EIP2612 permit deadline in Unix time.
-   * @param v The recovery identifier for the permit's secp256k1 signature
-   * @param r The r value for the permit's secp256k1 signature
-   * @param s The s value for the permit's secp256k1 signature
-   */
-  function swap(
-    address recipient,
-    uint256 amount,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal(amount);
-    uint256 availableSupply = _removal.getMarketBalance();
-    _validateSupply({
-      certificateAmount: certificateAmount,
-      availableSupply: availableSupply
-    });
-    _validatePrioritySupply({
-      certificateAmount: certificateAmount,
-      availableSupply: availableSupply
-    });
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateSupply(certificateAmount);
-    _bridgedPolygonNORI.permit(
-      _msgSender(),
+    bytes memory data = abi.encode(recipient, certificateAmount);
+    _removal.safeBatchTransferFrom(
       address(this),
-      amount,
-      deadline,
-      v,
-      r,
-      s
+      address(_certificate),
+      removalIds,
+      removalAmounts,
+      data
     );
-    _fulfillOrder({
-      certificateAmount: certificateAmount,
-      operator: _msgSender(),
-      recipient: recipient,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: ids,
-      amounts: amounts,
-      suppliers: suppliers
-    });
   }
 
   /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange NORI
-   * tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
-   * supplier to that certificate. If the specified supplier does not have enough carbon removals for sale to fulfill
-   * the order the transaction will revert.
+   * @dev Adds the specified removal ID to the _listedSupply data structure. If this is the supplier's
+   * first listed removal, the supplier is also added to the active supplier queue.
    *
-   * @dev See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
-   * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's NORI to complete the purchase. A certificate is issued by Certificate.sol
-   * to the specified recipient and NORI is distributed to the supplier of the carbon removal,
-   * to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
-   * to Nori Inc. as a market operator fee.
+   * Emits a `RemovalAdded` event.
    *
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   *
-   * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in NORI. This is the combined total of the number of removals being
-   * purchased and the fee paid to Nori.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   * @param deadline The EIP2612 permit deadline in Unix time.
-   * @param v The recovery identifier for the permit's secp256k1 signature
-   * @param r The r value for the permit's secp256k1 signature
-   * @param s The s value for the permit's secp256k1 signature
-   *
-   * todo make `swapFromSupplier` and `swap` re-use more of the same logic to de-dupe code
+   * @param removalId The ID of the removal to add
    */
-  function swapFromSupplier(
-    address recipient,
-    uint256 amount,
-    address supplier,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal(amount);
-    _validatePrioritySupply({
-      certificateAmount: certificateAmount,
-      availableSupply: _removal.getMarketBalance()
-    });
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts
-    ) = _allocateSupplySingleSupplier(certificateAmount, supplier);
-    address[] memory suppliers = new address[](countOfRemovalsAllocated).fill(
-      supplier
-    );
-    _bridgedPolygonNORI.permit(
-      _msgSender(),
-      address(this),
-      amount,
-      deadline,
-      v,
-      r,
-      s
-    );
-    _fulfillOrder({
-      certificateAmount: certificateAmount,
-      operator: _msgSender(),
-      recipient: recipient,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: ids,
-      amounts: amounts,
-      suppliers: suppliers
-    });
-  }
-
-  /**
-   * @notice Withdraws a removal to the supplier.
-   *
-   * @dev Withdraws a removal to the supplier address encoded in the removal ID.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   *
-   * @param removalId The id of the removal to withdraw from the market.
-   */
-  function withdraw(uint256 removalId) external whenNotPaused {
+  function _addActiveRemoval(uint256 removalId) internal {
     address supplierAddress = removalId.supplierAddress();
-    if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
-      _removeActiveRemoval(removalId, supplierAddress);
-      _removal.safeTransferFrom({
-        from: address(this),
-        to: supplierAddress,
-        id: removalId,
-        amount: _removal.balanceOf(address(this), removalId),
-        data: ""
-      });
-    } else {
-      revert UnauthorizedWithdrawal();
+    _listedSupply[supplierAddress].insert(removalId);
+    if (
+      _suppliers[supplierAddress].next == address(0) // If the supplier has sold out our a new supplier has been added
+    ) {
+      _addActiveSupplier(supplierAddress);
     }
+    emit RemovalAdded(removalId, supplierAddress);
   }
 
   /**
-   * @notice Validates if there is enough supply to fulfill the order.
+   * @dev Removes the specified removal ID from the listed supply data structure. If this is the supplier's last
+   * listed removal, the supplier is also removed from the active supplier queue.
    *
-   * @dev Reverts if total available supply in the market is not enough to fulfill the purchase.
-   *
-   * @param certificateAmount The number of carbon removals being purchased
-   * @param availableSupply The amount of listed supply in the market
+   * @param removalId The ID of the removal to remove
+   * @param supplierAddress The address of the supplier of the removal
    */
-  function _validateSupply(uint256 certificateAmount, uint256 availableSupply)
+  function _removeActiveRemoval(uint256 removalId, address supplierAddress)
     internal
-    pure
   {
-    if (certificateAmount > availableSupply) {
-      revert InsufficientSupply();
+    _listedSupply[supplierAddress].remove(removalId);
+    if (_listedSupply[supplierAddress].isEmpty()) {
+      _removeActiveSupplier(supplierAddress);
     }
   }
 
@@ -797,6 +904,35 @@ contract Market is
   }
 
   /**
+   * @dev Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
+   * does not have the role `MARKET_ADMIN_ROLE`.
+   *
+   * @param owner The owner of the removal
+   */
+  function _isAuthorizedWithdrawal(address owner) internal view returns (bool) {
+    return (_msgSender() == owner ||
+      hasRole({role: MARKET_ADMIN_ROLE, account: _msgSender()}) ||
+      _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
+  }
+
+  /**
+   * @notice Validates if there is enough supply to fulfill the order.
+   *
+   * @dev Reverts if total available supply in the market is not enough to fulfill the purchase.
+   *
+   * @param certificateAmount The number of carbon removals being purchased
+   * @param availableSupply The amount of listed supply in the market
+   */
+  function _validateSupply(uint256 certificateAmount, uint256 availableSupply)
+    internal
+    pure
+  {
+    if (certificateAmount > availableSupply) {
+      revert InsufficientSupply();
+    }
+  }
+
+  /**
    * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase.
    *
    * @param certificateAmount The number of carbon removals to purchase.
@@ -816,7 +952,7 @@ contract Market is
   {
     uint256 remainingAmountToFill = certificateAmount;
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress(
-      address(this) // todo are we making external calls throughout the contract? if so can we pass values down?
+      address(this)
     );
     uint256[] memory ids = new uint256[](countOfListedRemovals);
     uint256[] memory amounts = new uint256[](countOfListedRemovals);
@@ -874,7 +1010,6 @@ contract Market is
    * @return amounts An array of amounts being allocated from each corresponding removal token.
    */
   function _allocateSupplySingleSupplier(
-    // todo address code-complexity solhint issue
     uint256 certificateAmount,
     address supplier
   )
@@ -947,142 +1082,6 @@ contract Market is
   }
 
   /**
-   * @notice Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
-   * `RestrictedNORI` contract, pays Nori the order fee, updates accounting, and mints the `Certificate`.
-   *
-   * @param certificateAmount The total amount for the certificate.
-   * @param operator The message sender.
-   * @param recipient The recipient of the certificate.
-   * @param countOfRemovalsAllocated The number of distinct removal token ids that are involved in fulfilling this order.
-   * @param ids An array of removal token ids involved in fulfilling this order.
-   * @param amounts An array of amounts being allocated from each corresponding removal token.
-   * @param suppliers An array of suppliers
-   *
-   * todo use correct check-effects pattern in `fulfillOrder`
-   */
-  function _fulfillOrder(
-    uint256 certificateAmount,
-    address operator,
-    address recipient,
-    uint256 countOfRemovalsAllocated,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    address[] memory suppliers
-  ) internal {
-    uint256[] memory removalIds = ids.slice(0, countOfRemovalsAllocated);
-    uint256[] memory removalAmounts = amounts.slice(
-      0,
-      countOfRemovalsAllocated
-    );
-    uint8 holdbackPercentage;
-    uint256 restrictedSupplierFee;
-    uint256 unrestrictedSupplierFee;
-    for (uint256 i = 0; i < countOfRemovalsAllocated; i++) {
-      unrestrictedSupplierFee = removalAmounts[i];
-      holdbackPercentage = _removal.getHoldbackPercentage(removalIds[i]);
-      if (holdbackPercentage > 0) {
-        restrictedSupplierFee =
-          (unrestrictedSupplierFee * holdbackPercentage) /
-          100;
-        unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNORI.mint(restrictedSupplierFee, removalIds[i]);
-        _bridgedPolygonNORI.transferFrom(
-          operator,
-          address(_restrictedNORI),
-          restrictedSupplierFee
-        );
-      }
-      _bridgedPolygonNORI.transferFrom(
-        operator,
-        _noriFeeWallet,
-        this.calculateNoriFee(removalAmounts[i])
-      );
-      _bridgedPolygonNORI.transferFrom(
-        operator,
-        suppliers[i],
-        unrestrictedSupplierFee
-      );
-    }
-    bytes memory data = abi.encode(recipient, certificateAmount);
-    _removal.safeBatchTransferFrom(
-      address(this),
-      address(_certificate),
-      removalIds,
-      removalAmounts,
-      data
-    );
-  }
-
-  /**
-   * @dev Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
-   * does not have the role `MARKET_ADMIN_ROLE`.
-   *
-   * @param owner The owner of the removal
-   */
-  function _isAuthorizedWithdrawal(address owner) internal view returns (bool) {
-    return (_msgSender() == owner ||
-      hasRole({role: MARKET_ADMIN_ROLE, account: _msgSender()}) ||
-      _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
-  }
-
-  /**
-   * @dev Adds the specified removal ID to the _listedSupply data structure. If this is the supplier's
-   * first listed removal, the supplier is also added to the active supplier queue.
-   *
-   * Emits a `RemovalAdded` event.
-   *
-   * @param removalId The ID of the removal to add
-   */
-  function _addActiveRemoval(uint256 removalId) internal {
-    address supplierAddress = removalId.supplierAddress();
-    _listedSupply[supplierAddress].insert(removalId);
-    if (
-      _suppliers[supplierAddress].next == address(0) // If a new supplier has been added, or if the supplier had previously sold out
-    ) {
-      _addActiveSupplier(supplierAddress);
-    }
-    emit RemovalAdded(removalId, supplierAddress);
-  }
-
-  /**
-   * @dev Removes the specified removal ID from the listed supply data structure. If this is the supplier's last
-   * listed removal, the supplier is also removed from the active supplier queue.
-   *
-   * @param removalId The ID of the removal to remove
-   * @param supplierAddress The address of the supplier of the removal
-   */
-  function _removeActiveRemoval(uint256 removalId, address supplierAddress)
-    internal
-  {
-    _listedSupply[supplierAddress].remove(removalId);
-    if (_listedSupply[supplierAddress].isEmpty()) {
-      _removeActiveSupplier(supplierAddress);
-    }
-  }
-
-  /**
-   * @notice Releases a removal from the market.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - The caller must be the Removal contract.
-   *
-   * @param removalId The ID of the removal to release.
-   * @param amount The amount of that removal to release.
-   */
-  function release(uint256 removalId, uint256 amount) external whenNotPaused {
-    if (_msgSender() != address(_removal)) {
-      revert SenderNotRemovalContract();
-    }
-    address supplierAddress = removalId.supplierAddress();
-    uint256 removalBalance = _removal.balanceOf(address(this), removalId);
-    if (amount == removalBalance) {
-      _removeActiveRemoval(removalId, supplierAddress);
-    }
-  }
-
-  /**
    * @dev Updates `_currentSupplierAddress` to the next of whatever is the current supplier.
    * Used to iterate in a round-robin way through the linked list of active suppliers.
    */
@@ -1144,8 +1143,8 @@ contract Market is
 
   /**
    * @dev Removes a supplier from the active supplier queue. Called when a supplier's last removal is used for an order.
-   * If the last supplier, resets the pointer for the currentSupplierAddress. Otherwise, from the position of the supplier
-   * to be removed, update the previous supplier to point to the next of the removed supplier, and the next of
+   * If the last supplier, resets the pointer for the currentSupplierAddress. Otherwise, from the position of the
+   * supplier to be removed, update the previous supplier to point to the next of the removed supplier, and the next of
    * the removed supplier to point to the previous of the remove supplier. Then, set the next and previous
    * pointers of the removed supplier to the 0x address.
    *

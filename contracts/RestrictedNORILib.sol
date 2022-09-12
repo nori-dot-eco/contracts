@@ -4,7 +4,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "./Errors.sol";
 
-/** The internal governing parameters and data for a schedule */
+/** @notice The internal governing parameters and data for a schedule */
 struct Schedule {
   uint256 startTime;
   uint256 endTime;
@@ -16,11 +16,10 @@ struct Schedule {
   mapping(address => uint256) quantitiesRevokedByAddress;
 }
 
-// todo Finish RestrictedNORILib docs
 /**
  * @dev Library encapsulating the logic around restriction schedules.
  *
- * All time parameters are in unixtime for ease of comparison with block.timestamp.
+ * All time parameters are in unix time for ease of comparison with `block.timestamp`.
  *
  * NOTE: All methods are internal so this library gets inlined into the consuming
  * contract and does not need to be deployed separately.
@@ -36,13 +35,13 @@ library RestrictedNORILib {
    * or the released amount floor, which is set at the current released amount whenever the balance of a
    * schedule is decreased through revocation or withdrawal.
    */
-  function _releasedBalanceOfSingleSchedule(
+  function releasedBalanceOfSingleSchedule(
     Schedule storage schedule,
     uint256 totalSupply
   ) internal view returns (uint256) {
     return
       MathUpgradeable.max(
-        schedule._linearReleaseAmountAvailable(totalSupply),
+        schedule.linearReleaseAmountAvailable(totalSupply),
         schedule.releasedAmountFloor
       );
   }
@@ -51,19 +50,19 @@ library RestrictedNORILib {
    * @notice Linearly released balance for a single schedule at the current block timestamp, ignoring any
    * released amount floor that has been set for the schedule.
    */
-  function _linearReleaseAmountAvailable(
+  function linearReleaseAmountAvailable(
     Schedule storage schedule,
     uint256 totalSupply
   ) internal view returns (uint256) {
     uint256 linearAmountAvailable;
     /* solhint-disable not-rely-on-time, this is time-dependent */
     if (block.timestamp >= schedule.endTime) {
-      linearAmountAvailable = schedule._scheduleTrueTotal(totalSupply);
+      linearAmountAvailable = schedule.scheduleTrueTotal(totalSupply);
     } else {
       uint256 rampTotalTime = schedule.endTime - schedule.startTime;
       linearAmountAvailable = block.timestamp < schedule.startTime
         ? 0
-        : (schedule._scheduleTrueTotal(totalSupply) *
+        : (schedule.scheduleTrueTotal(totalSupply) *
           (block.timestamp - schedule.startTime)) / rampTotalTime;
     }
     /* solhint-enable not-rely-on-time */
@@ -76,7 +75,7 @@ library RestrictedNORILib {
    * @dev claiming burns the ERC1155 token, so the true total of a schedule has to be reconstructed
    * from the `totalSupply` and any claimed amount.
    */
-  function _scheduleTrueTotal(Schedule storage schedule, uint256 totalSupply)
+  function scheduleTrueTotal(Schedule storage schedule, uint256 totalSupply)
     internal
     view
     returns (uint256)
@@ -92,11 +91,11 @@ library RestrictedNORILib {
     uint256 scheduleId,
     uint256 totalSupply
   ) internal view returns (uint256) {
-    if (!schedule._doesExist()) {
+    if (!schedule.doesExist()) {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
     return
-      schedule._releasedBalanceOfSingleSchedule(totalSupply) -
+      schedule.releasedBalanceOfSingleSchedule(totalSupply) -
       schedule.totalClaimedAmount;
   }
 
@@ -107,14 +106,14 @@ library RestrictedNORILib {
    * using totals constructed from current balances and claimed amounts, and then subtract anything that
    * account has already claimed.
    */
-  function _claimableBalanceForScheduleForAccount(
+  function claimableBalanceForScheduleForAccount(
     Schedule storage schedule,
     uint256 scheduleId,
     address account,
     uint256 totalSupply,
     uint256 balanceOfAccount
   ) internal view returns (uint256) {
-    uint256 scheduleTrueTotal = schedule._scheduleTrueTotal(totalSupply);
+    uint256 scheduleTrueTotal = schedule.scheduleTrueTotal(totalSupply);
     uint256 claimableForAccount;
     // avoid division by or of 0
     if (scheduleTrueTotal == 0 || balanceOfAccount == 0) {
@@ -138,23 +137,23 @@ library RestrictedNORILib {
   /**
    * @notice Returns the current number of revocable tokens for a given schedule at the current block timestamp.
    */
-  function _revocableQuantityForSchedule(
+  function revocableQuantityForSchedule(
     Schedule storage schedule,
     uint256 scheduleId,
     uint256 totalSupply
   ) internal view returns (uint256) {
-    if (!schedule._doesExist()) {
+    if (!schedule.doesExist()) {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
     return
-      schedule._scheduleTrueTotal(totalSupply) -
-      schedule._releasedBalanceOfSingleSchedule(totalSupply);
+      schedule.scheduleTrueTotal(totalSupply) -
+      schedule.releasedBalanceOfSingleSchedule(totalSupply);
   }
 
   /**
    * @notice Returns the existence of a schedule
    */
-  function _doesExist(Schedule storage schedule) internal view returns (bool) {
+  function doesExist(Schedule storage schedule) internal view returns (bool) {
     return schedule.endTime != 0;
   }
 }

@@ -210,7 +210,7 @@ contract RestrictedNORI is
 
   function initialize() external initializer {
     __ERC1155_init_unchained(
-      "https://nori.com/api/restrictionschedule/{id}.json" // todo finalize rNori uri if it needs one
+      "https://nori.com/api/restrictionschedule/{id}.json"
     );
     __Context_init_unchained();
     __ERC165_init_unchained();
@@ -262,7 +262,7 @@ contract RestrictedNORI is
         account,
         scheduleId,
         balanceOf(account, scheduleId),
-        schedule._claimableBalanceForScheduleForAccount(
+        schedule.claimableBalanceForScheduleForAccount(
           scheduleId,
           account,
           totalSupply(scheduleId),
@@ -285,7 +285,7 @@ contract RestrictedNORI is
         scheduleIds.length
       );
     for (uint256 i = 0; i < scheduleIds.length; ++i) {
-      if (_scheduleIdToScheduleStruct[scheduleIds[i]]._doesExist()) {
+      if (_scheduleIdToScheduleStruct[scheduleIds[i]].doesExist()) {
         scheduleDetails[i] = this.getScheduleDetailForAccount(
           account,
           scheduleIds[i]
@@ -299,7 +299,7 @@ contract RestrictedNORI is
    * @notice Returns the existence of a schedule
    */
   function scheduleExists(uint256 scheduleId) external view returns (bool) {
-    return _scheduleIdToScheduleStruct[scheduleId]._doesExist();
+    return _scheduleIdToScheduleStruct[scheduleId].doesExist();
   }
 
   /**
@@ -348,7 +348,7 @@ contract RestrictedNORI is
   ) external view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
-      schedule._claimableBalanceForScheduleForAccount(
+      schedule.claimableBalanceForScheduleForAccount(
         scheduleId,
         account,
         totalSupply(scheduleId),
@@ -366,7 +366,7 @@ contract RestrictedNORI is
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 supply = totalSupply(scheduleId);
-    return schedule._revocableQuantityForSchedule(scheduleId, supply);
+    return schedule.revocableQuantityForSchedule(scheduleId, supply);
   }
 
   /**
@@ -657,10 +657,10 @@ contract RestrictedNORI is
     address toAccount
   ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
-    if (!schedule._doesExist()) {
+    if (!schedule.doesExist()) {
       revert NonexistentSchedule({scheduleId: projectId});
     }
-    uint256 quantityRevocable = schedule._revocableQuantityForSchedule(
+    uint256 quantityRevocable = schedule.revocableQuantityForSchedule(
       projectId,
       totalSupply(projectId)
     );
@@ -754,7 +754,6 @@ contract RestrictedNORI is
     internal
     pure
   {
-    // todo this can probably be moved to the rNoriLib along with _createSchedule (if not, some schedule creator lib)
     require(startTime != 0, "rNORI: Invalid start time");
     require(restrictionDuration != 0, "rNORI: duration not set");
   }
@@ -799,7 +798,7 @@ contract RestrictedNORI is
         if (isWithdrawing) {
           if (
             amounts[i] >
-            schedule._claimableBalanceForScheduleForAccount(
+            schedule.claimableBalanceForScheduleForAccount(
               id,
               from,
               totalSupply(id),
@@ -812,8 +811,9 @@ contract RestrictedNORI is
             });
           }
         }
-        schedule.releasedAmountFloor = schedule
-          ._releasedBalanceOfSingleSchedule(totalSupply(id));
+        schedule.releasedAmountFloor = schedule.releasedBalanceOfSingleSchedule(
+          totalSupply(id)
+        );
       }
     }
     return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
@@ -836,7 +836,7 @@ contract RestrictedNORI is
     address account,
     uint256 balanceOfAccount
   ) private view returns (uint256) {
-    uint256 scheduleTrueTotal = schedule._scheduleTrueTotal(
+    uint256 scheduleTrueTotal = schedule.scheduleTrueTotal(
       totalSupply(scheduleId)
     );
     uint256 quantityToRevokeForAccount;
