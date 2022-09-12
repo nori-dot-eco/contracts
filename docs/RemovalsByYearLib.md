@@ -38,7 +38,7 @@ function insert(struct RemovalsByYear collection, uint256 removalId) internal
 
 Inserts a new removal into the collection.
 
-_The removal is added to the Enumberable Set that maps to the year of its year._
+_The removal is added to the Enumerable Set that maps to the year of its year._
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

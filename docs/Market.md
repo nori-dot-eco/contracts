@@ -46,7 +46,7 @@ this threshold will revert without the correct role.
 ##### Uses
 
 - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
-  for EnumerableSetUpgradeable.Uintset
+  for EnumerableSetUpgradeable.UintSet
 - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)_
 
 
@@ -339,6 +339,26 @@ _Reverts if NoriFeeWallet is not set._
 | noriFeePercentage_ | uint256 | The percentage for Nori&#x27;s fees. |
 
 
+### release
+
+```solidity
+function release(uint256 removalId, uint256 amount) external
+```
+
+Releases a removal from the market.
+
+##### Requirements:
+
+- Can only be used when this contract is not paused.
+- The caller must be the Removal contract.
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| removalId | uint256 | The ID of the removal to release. |
+| amount | uint256 | The amount of that removal to release. |
+
+
 ### registerContractAddresses
 
 ```solidity
@@ -426,6 +446,151 @@ _##### Requirements:
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | noriFeeWalletAddress | address | The wallet address where Nori collects market fees. |
+
+
+### onERC1155BatchReceived
+
+```solidity
+function onERC1155BatchReceived(address, address, uint256[] ids, uint256[], bytes) external returns (bytes4)
+```
+
+Handles the receipt of multiple ERC1155 token types. This function is called at the end of a
+&#x60;safeBatchTransferFrom&#x60; after the balances have been updated. To accept the transfer(s), this must return
+&#x60;bytes4(keccak256(&quot;onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)&quot;))&#x60;
+(i.e. 0xbc197c81, or its own function selector).
+
+_See [IERC1155Receiver](
+https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
+
+##### Requirements:
+
+- Can only receive ERC1155 tokens from the Removal contract.
+- Can only be used when this contract is not paused._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+|  | address |  |
+|  | address |  |
+| ids | uint256[] | An array containing ids of each token being transferred (order and length must match values array) |
+|  | uint256[] |  |
+|  | bytes |  |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bytes4 | bytes4(keccak256(&quot;onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)&quot;)) if transfer is allowed |
+
+### onERC1155Received
+
+```solidity
+function onERC1155Received(address, address, uint256 id, uint256, bytes) external returns (bytes4)
+```
+
+Handles the receipt of an ERC1155 token. This function is called at the end of a
+&#x60;safeTransferFrom&#x60; after the balances have been updated. To accept the transfer(s), this must return
+&#x60;bytes4(keccak256(&quot;onERC1155Received(address,address,uint256,uint256,bytes)&quot;))&#x60;
+(i.e. 0xf23a6e61, or its own function selector).
+
+_See [IERC1155Receiver](
+https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
+
+##### Requirements:
+
+- Can only receive an ERC1155 token from the Removal contract.
+- Can only be used when this contract is not paused._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+|  | address |  |
+|  | address |  |
+| id | uint256 | The id of the token being transferred |
+|  | uint256 |  |
+|  | bytes |  |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bytes4 | bytes4(keccak256(&quot;onERC1155Received(address,address,uint256,uint256,bytes)&quot;)) if transfer is allowed |
+
+### swap
+
+```solidity
+function swap(address recipient, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
+```
+
+Exchanges NORI tokens for an ERC721 certificate token and transfers ownership of removal tokens to
+that certificate.
+
+_See [https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit](ERC20Permit) for more.
+The message sender must present a valid permit to this contract to temporarily authorize this market
+to transfer the sender&#x27;s NORI to complete the purchase. A certificate is issued by Certificate.sol
+to the specified recipient and NORI is distributed to the supplier of the carbon removal,
+to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
+to Nori Inc. as a market operator fee.
+
+##### Requirements:
+
+- Can only be used when this contract is not paused._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| recipient | address | The address to which the certificate will be issued. |
+| amount | uint256 | The total purchase amount in NORI. This is the combined total of the number of removals being purchased and the fee paid to Nori. |
+| deadline | uint256 | The EIP2612 permit deadline in Unix time. |
+| v | uint8 | The recovery identifier for the permit&#x27;s secp256k1 signature |
+| r | bytes32 | The r value for the permit&#x27;s secp256k1 signature |
+| s | bytes32 | The s value for the permit&#x27;s secp256k1 signature |
+
+
+### swapFromSupplier
+
+```solidity
+function swapFromSupplier(address recipient, uint256 amount, address supplier, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
+```
+
+An overloaded version of &#x60;swap&#x60; that additionally accepts a supplier address and will exchange NORI
+tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
+supplier to that certificate. If the specified supplier does not have enough carbon removals for sale to fulfill
+the order the transaction will revert.
+
+_See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
+The message sender must present a valid permit to this contract to temporarily authorize this market
+to transfer the sender&#x27;s NORI to complete the purchase. A certificate is issued by Certificate.sol
+to the specified recipient and NORI is distributed to the supplier of the carbon removal,
+to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
+to Nori Inc. as a market operator fee.
+
+
+##### Requirements:
+
+- Can only be used when this contract is not paused._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| recipient | address | The address to which the certificate will be issued. |
+| amount | uint256 | The total purchase amount in NORI. This is the combined total of the number of removals being purchased and the fee paid to Nori. |
+| supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
+| deadline | uint256 | The EIP2612 permit deadline in Unix time. |
+| v | uint8 | The recovery identifier for the permit&#x27;s secp256k1 signature |
+| r | bytes32 | The r value for the permit&#x27;s secp256k1 signature |
+| s | bytes32 | The s value for the permit&#x27;s secp256k1 signature |
+
+
+### withdraw
+
+```solidity
+function withdraw(uint256 removalId) external
+```
+
+Withdraws a removal to the supplier.
+
+_Withdraws a removal to the supplier address encoded in the removal ID.
+
+##### Requirements:
+
+- Can only be used when this contract is not paused._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| removalId | uint256 | The id of the removal to withdraw from the market. |
 
 
 ### priorityRestrictedThreshold
@@ -624,163 +789,60 @@ https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-
 
 
 
-### onERC1155BatchReceived
+### _fulfillOrder
 
 ```solidity
-function onERC1155BatchReceived(address, address, uint256[] ids, uint256[], bytes) external returns (bytes4)
+function _fulfillOrder(uint256 certificateAmount, address operator, address recipient, uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers) internal
 ```
 
-Handles the receipt of multiple ERC1155 token types. This function is called at the end of a
-&#x60;safeBatchTransferFrom&#x60; after the balances have been updated. To accept the transfer(s), this must return
-&#x60;bytes4(keccak256(&quot;onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)&quot;))&#x60;
-(i.e. 0xbc197c81, or its own function selector).
+Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
+&#x60;RestrictedNORI&#x60; contract, pays Nori the order fee, updates accounting, and mints the &#x60;Certificate&#x60;.
 
-_See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver-onERC1155BatchReceived-address-address-uint256---uint256---bytes-] for more.
-
-##### Requirements:
-
-- Can only receive ERC1155 tokens from the Removal contract.
-- Can only be used when this contract is not paused._
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-|  | address |  |
-|  | address |  |
-| ids | uint256[] | An array containing ids of each token being transferred (order and length must match values array) |
-|  | uint256[] |  |
-|  | bytes |  |
+| certificateAmount | uint256 | The total amount for the certificate. |
+| operator | address | The message sender. |
+| recipient | address | The recipient of the certificate. |
+| countOfRemovalsAllocated | uint256 | The number of distinct removal ids that are involved in fulfilling this order. |
+| ids | uint256[] | An array of removal token ids involved in fulfilling this order. |
+| amounts | uint256[] | An array of amounts being allocated from each corresponding removal token. |
+| suppliers | address[] | An array of suppliers todo use correct check-effects pattern in &#x60;fulfillOrder&#x60; |
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bytes4 | bytes4(keccak256(&quot;onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)&quot;)) if transfer is allowed |
 
-### onERC1155Received
+### _addActiveRemoval
 
 ```solidity
-function onERC1155Received(address, address, uint256 id, uint256, bytes) external returns (bytes4)
+function _addActiveRemoval(uint256 removalId) internal
 ```
 
-Handles the receipt of an ERC1155 token. This function is called at the end of a
-&#x60;safeTransferFrom&#x60; after the balances have been updated. To accept the transfer(s), this must return
-&#x60;bytes4(keccak256(&quot;onERC1155Received(address,address,uint256,uint256,bytes)&quot;))&#x60;
-(i.e. 0xf23a6e61, or its own function selector).
 
-_See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver-onERC1155Received-address-address-uint256-uint256-bytes-] for more.
 
-##### Requirements:
+_Adds the specified removal ID to the _listedSupply data structure. If this is the supplier&#x27;s
+first listed removal, the supplier is also added to the active supplier queue.
 
-- Can only receive an ERC1155 token from the Removal contract.
-- Can only be used when this contract is not paused._
+Emits a &#x60;RemovalAdded&#x60; event._
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-|  | address |  |
-|  | address |  |
-| id | uint256 | The id of the token being transferred |
-|  | uint256 |  |
-|  | bytes |  |
+| removalId | uint256 | The ID of the removal to add |
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bytes4 | bytes4(keccak256(&quot;onERC1155Received(address,address,uint256,uint256,bytes)&quot;)) if transfer is allowed |
 
-### swap
+### _removeActiveRemoval
 
 ```solidity
-function swap(address recipient, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
+function _removeActiveRemoval(uint256 removalId, address supplierAddress) internal
 ```
 
-Exchanges NORI tokens for an ERC721 certificate token and transfers ownership of removal tokens to
-that certificate.
 
-_See [https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit](ERC20Permit) for more.
-The message sender must present a valid permit to this contract to temporarily authorize this market
-to transfer the sender&#x27;s NORI to complete the purchase. A certificate is issued by Certificate.sol
-to the specified recipient and NORI is distributed to the supplier of the carbon removal,
-to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
-to Nori Inc. as a market operator fee.
 
-##### Requirements:
-
-- Can only be used when this contract is not paused._
+_Removes the specified removal ID from the listed supply data structure. If this is the supplier&#x27;s last
+listed removal, the supplier is also removed from the active supplier queue._
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| recipient | address | The address to which the certificate will be issued. |
-| amount | uint256 | The total purchase amount in NORI. This is the combined total of the number of removals being purchased and the fee paid to Nori. |
-| deadline | uint256 | The EIP2612 permit deadline in Unix time. |
-| v | uint8 | The recovery identifier for the permit&#x27;s secp256k1 signature |
-| r | bytes32 | The r value for the permit&#x27;s secp256k1 signature |
-| s | bytes32 | The s value for the permit&#x27;s secp256k1 signature |
-
-
-### swapFromSupplier
-
-```solidity
-function swapFromSupplier(address recipient, uint256 amount, address supplier, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
-```
-
-An overloaded version of &#x60;swap&#x60; that additionally accepts a supplier address and will exchange NORI
-tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
-supplier to that certificate. If the specified supplier does not have enough carbon removals for sale to fulfill
-the order the transaction will revert.
-
-_See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
-The message sender must present a valid permit to this contract to temporarily authorize this market
-to transfer the sender&#x27;s NORI to complete the purchase. A certificate is issued by Certificate.sol
-to the specified recipient and NORI is distributed to the supplier of the carbon removal,
-to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
-to Nori Inc. as a market operator fee.
-
-
-##### Requirements:
-
-- Can only be used when this contract is not paused._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| recipient | address | The address to which the certificate will be issued. |
-| amount | uint256 | The total purchase amount in NORI. This is the combined total of the number of removals being purchased and the fee paid to Nori. |
-| supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
-| deadline | uint256 | The EIP2612 permit deadline in Unix time. |
-| v | uint8 | The recovery identifier for the permit&#x27;s secp256k1 signature |
-| r | bytes32 | The r value for the permit&#x27;s secp256k1 signature |
-| s | bytes32 | The s value for the permit&#x27;s secp256k1 signature todo make &#x60;swapFromSupplier&#x60; and &#x60;swap&#x60; re-use more of the same logic to de-dupe code |
-
-
-### withdraw
-
-```solidity
-function withdraw(uint256 removalId) external
-```
-
-Withdraws a removal to the supplier.
-
-_Withdraws a removal to the supplier address encoded in the removal ID.
-
-##### Requirements:
-
-- Can only be used when this contract is not paused._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| removalId | uint256 | The id of the removal to withdraw from the market. |
-
-
-### _validateSupply
-
-```solidity
-function _validateSupply(uint256 certificateAmount, uint256 availableSupply) internal pure
-```
-
-Validates if there is enough supply to fulfill the order.
-
-_Reverts if total available supply in the market is not enough to fulfill the purchase._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| certificateAmount | uint256 | The number of carbon removals being purchased |
-| availableSupply | uint256 | The amount of listed supply in the market |
+| removalId | uint256 | The ID of the removal to remove |
+| supplierAddress | address | The address of the supplier of the removal |
 
 
 ### _validatePrioritySupply
@@ -797,6 +859,38 @@ _Reverts if available stock is being reserved for priority buyers and buyer is n
 | ---- | ---- | ----------- |
 | certificateAmount | uint256 | The number of carbon removals being purchased. |
 | availableSupply | uint256 | The amount of listed supply in the market. |
+
+
+### _isAuthorizedWithdrawal
+
+```solidity
+function _isAuthorizedWithdrawal(address owner) internal view returns (bool)
+```
+
+
+
+_Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
+does not have the role &#x60;MARKET_ADMIN_ROLE&#x60;._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| owner | address | The owner of the removal |
+
+
+### _validateSupply
+
+```solidity
+function _validateSupply(uint256 certificateAmount, uint256 availableSupply) internal pure
+```
+
+Validates if there is enough supply to fulfill the order.
+
+_Reverts if total available supply in the market is not enough to fulfill the purchase._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| certificateAmount | uint256 | The number of carbon removals being purchased |
+| availableSupply | uint256 | The amount of listed supply in the market |
 
 
 ### _allocateSupply
@@ -838,98 +932,6 @@ Allocates supply for an amount using only a single supplier&#x27;s removals.
 | [0] | uint256 | numberOfRemovalForOrder The number of distinct removal token ids used to fulfill this order. |
 | [1] | uint256[] | ids An array of the removal token ids being drawn from to fulfill this order. |
 | [2] | uint256[] | amounts An array of amounts being allocated from each corresponding removal token. |
-
-### _fulfillOrder
-
-```solidity
-function _fulfillOrder(uint256 certificateAmount, address operator, address recipient, uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers) internal
-```
-
-Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
-&#x60;RestrictedNORI&#x60; contract, pays Nori the order fee, updates accounting, and mints the &#x60;Certificate&#x60;.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| certificateAmount | uint256 | The total amount for the certificate. |
-| operator | address | The message sender. |
-| recipient | address | The recipient of the certificate. |
-| countOfRemovalsAllocated | uint256 | The number of distinct removal token ids that are involved in fulfilling this order. |
-| ids | uint256[] | An array of removal token ids involved in fulfilling this order. |
-| amounts | uint256[] | An array of amounts being allocated from each corresponding removal token. |
-| suppliers | address[] | An array of suppliers todo use correct check-effects pattern in &#x60;fulfillOrder&#x60; |
-
-
-### _isAuthorizedWithdrawal
-
-```solidity
-function _isAuthorizedWithdrawal(address owner) internal view returns (bool)
-```
-
-
-
-_Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
-does not have the role &#x60;MARKET_ADMIN_ROLE&#x60;._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| owner | address | The owner of the removal |
-
-
-### _addActiveRemoval
-
-```solidity
-function _addActiveRemoval(uint256 removalId) internal
-```
-
-
-
-_Adds the specified removal ID to the _listedSupply data structure. If this is the supplier&#x27;s
-first listed removal, the supplier is also added to the active supplier queue.
-
-Emits a &#x60;RemovalAdded&#x60; event._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| removalId | uint256 | The ID of the removal to add |
-
-
-### _removeActiveRemoval
-
-```solidity
-function _removeActiveRemoval(uint256 removalId, address supplierAddress) internal
-```
-
-
-
-_Removes the specified removal ID from the listed supply data structure. If this is the supplier&#x27;s last
-listed removal, the supplier is also removed from the active supplier queue._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| removalId | uint256 | The ID of the removal to remove |
-| supplierAddress | address | The address of the supplier of the removal |
-
-
-### release
-
-```solidity
-function release(uint256 removalId, uint256 amount) external
-```
-
-Releases a removal from the market.
-
-##### Requirements:
-
-- Can only be used when this contract is not paused.
-- The caller must be the Removal contract.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| removalId | uint256 | The ID of the removal to release. |
-| amount | uint256 | The amount of that removal to release. |
-
 
 ### _incrementCurrentSupplierAddress
 
@@ -974,8 +976,8 @@ function _removeActiveSupplier(address supplierToRemove) private
 
 
 _Removes a supplier from the active supplier queue. Called when a supplier&#x27;s last removal is used for an order.
-If the last supplier, resets the pointer for the currentSupplierAddress. Otherwise, from the position of the supplier
-to be removed, update the previous supplier to point to the next of the removed supplier, and the next of
+If the last supplier, resets the pointer for the currentSupplierAddress. Otherwise, from the position of the
+supplier to be removed, update the previous supplier to point to the next of the removed supplier, and the next of
 the removed supplier to point to the previous of the remove supplier. Then, set the next and previous
 pointers of the removed supplier to the 0x address.
 
