@@ -9,8 +9,8 @@ import {PRBTest} from "@prb/test/PRBTest.sol";
 
 abstract contract Global is PRBTest {
   struct NamedAccounts {
-    address deployer; // the default sender account for transactions configured in foundry.toml
-    address admin;
+    address deployer; // 0x465d5a3fFeA4CD109043499Fa576c3E16f918463 -- default account for tx configured in foundry.toml
+    address admin; // 0x05127efcd2fc6a781bfed49188da1081670b22d8
     address supplier;
     address supplier2;
     address supplier3;

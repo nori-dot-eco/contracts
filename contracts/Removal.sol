@@ -2,6 +2,7 @@
 pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
 import "./Market.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
 import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
@@ -106,6 +107,7 @@ contract Removal is
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalIdLib for uint256;
+  using UInt256ArrayLib for uint256[]; // todo needed?
 
   /**
    * @notice Role conferring the ability to mint removals as well as the ability to list minted removals that have yet
@@ -317,6 +319,81 @@ contract Removal is
   }
 
   /**
+   * @notice Transfers the provided `amounts` of the specified removal `ids` directly to the Certificate contract to
+   * mint a legacy certificate.
+   *
+   * @dev The Certificate contract implements `onERC1155BatchReceived`, which is invoked upon receipt of any removals.
+   * This function circumvents the market contract's lifecycle. This function first transfers the removals from the
+   * supplier accounts to a single account that has the consignor role-- this is necessary because
+   * `_safeBatchTransferFrom` only accepts one `from` address and `Certificate.onERC1155BatchReceived` will mint a *new*
+   * certificate every time an additional batch is received.
+   *
+   * ##### Requirements:
+   * - Can only be used when the caller has the `CONSIGNOR_ROLE`
+   * - Can only be used when this contract is not paused
+   * - IDs must already have been minted via `mintBatch`.
+   * - Enforces the rules of `Removal._beforeTokenTransfer`.
+   *
+   * @param owners The owners of the specified removal IDs to transfer from.
+   * @param ids 2D array of the removal IDs to add to transfer to the Certificate contract. Each row in the array
+   * represents a list of one owners removal IDs.
+   * @param amounts 2D array of the balances of each token ID to transfer to the Certificate contract. Each row in the
+   * array represents a list of one owner's removal amounts, each of which corresponds to the same row and column
+   * defined in `ids`.
+   * @param certificateRecipient The recipient of the certificate to be minted.
+   * @param certificateAmount TThe total amount of the certificate.
+   */
+  function migrate(
+    address[] calldata owners,
+    uint256[][] calldata ids,
+    uint256[][] calldata amounts,
+    address certificateRecipient,
+    uint256 certificateAmount
+  ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
+    uint256 numberOfRemovals = 0;
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < owners.length; ++i) {
+        // Batch transfers removals from the supplier to the consignor
+        _safeBatchTransferFrom({
+          from: owners[i],
+          to: _msgSender(),
+          ids: ids[i],
+          amounts: amounts[i],
+          data: ""
+        });
+        numberOfRemovals += ids[i].length;
+      }
+    }
+    uint256[] memory flattenedAmounts = new uint256[](numberOfRemovals);
+    uint256[] memory flattenedIds = new uint256[](numberOfRemovals);
+    uint256 removalsTotal = 0;
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < flattenedAmounts.length; ++i) {
+        for (uint256 j = 0; j < amounts[i].length; ++j) {
+          removalsTotal += amounts[i][j];
+          flattenedAmounts[i] = amounts[i][j];
+          flattenedIds[i] = ids[i][j];
+        }
+      }
+    }
+    if (certificateAmount != removalsTotal) {
+      revert InvalidCall();
+    }
+
+    // todo emit event
+
+    _safeBatchTransferFrom({
+      from: _msgSender(),
+      to: address(_certificate),
+      ids: flattenedIds,
+      amounts: flattenedAmounts,
+      data: abi.encode(certificateRecipient, certificateAmount)
+    });
+  }
+
+  /**
    * @notice Accounts for carbon that has failed to meet its permanence guarantee and has been released into
    * the atmosphere prematurely.
    *
@@ -337,7 +414,6 @@ contract Removal is
    * balances are decremented iteratively across each certificate until the amount is exhausted (e.g., if a removal
    * of amount 3 releases an amount of 2.5 and that removal is owned by 3 certificates containing an amount of 1 each
    * from the released removal, the resulting certificate's removal balances for this removal are: 0, 0, and 0.5).
-   *
    * - The caller must have the `RELEASER_ROLE`.
    * - The rules of `_burn` are enforced.
    * - Can only be used when the contract is not paused.
@@ -483,7 +559,10 @@ contract Removal is
     uint256 amount,
     bytes memory data
   ) public override whenNotPaused {
-    if (_msgSender() != address(_market)) {
+    if (
+      _msgSender() != address(_market)
+      //&& hasRole({account: from, role: CONSIGNOR_ROLE})
+    ) {
       revert ForbiddenTransfer();
     }
     super.safeTransferFrom(from, to, id, amount, data);
@@ -684,7 +763,8 @@ contract Removal is
   ) internal virtual override whenNotPaused {
     address market = address(_market);
     bool isToAllowed = to == market ||
-      (to == address(_certificate) || to == address(0));
+      (to == address(_certificate) || to == address(0)) ||
+      hasRole({role: CONSIGNOR_ROLE, account: _msgSender()});
     for (uint256 i = 0; i < ids.length; ++i) {
       uint256 id = ids[i];
       if (amounts[i] == 0) {

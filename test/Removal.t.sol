@@ -9,6 +9,61 @@ using AddressArrayLib for address[];
 // todo fuzz RemovalIdLib
 // todo test that checks Removal.consign can happen using multi call with mix-match project ids
 
+contract Removal_migrate is UpgradeableMarket {
+  function test() external {
+    _removal.registerContractAddresses({
+      market: _market,
+      certificate: _certificate
+    });
+    _removal.grantRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: _namedAccounts.admin
+    });
+    uint256 numberOfSuppliers = 3;
+    uint256[][] memory amountsForAllSuppliers = new uint256[][](
+      numberOfSuppliers
+    );
+    uint256[][] memory idsForAllSuppliers = new uint256[][](numberOfSuppliers);
+    address[] memory suppliers = new address[](numberOfSuppliers);
+    uint256[] memory amountsPerSupplier = new uint256[](1).fill(1 ether);
+    for (uint256 i = 0; i < idsForAllSuppliers.length; ++i) {
+      amountsForAllSuppliers[i] = amountsPerSupplier;
+      address supplier = i == 0 ? _namedAccounts.supplier : i == 1
+        ? _namedAccounts.supplier2
+        : _namedAccounts.supplier3;
+      idsForAllSuppliers[i] = _seedRemovals({
+        to: supplier,
+        count: 1,
+        list: false
+      });
+      suppliers[i] = supplier;
+    }
+    vm.prank(_namedAccounts.admin);
+    _removal.migrate({
+      owners: suppliers,
+      ids: idsForAllSuppliers,
+      amounts: amountsForAllSuppliers,
+      certificateRecipient: _namedAccounts.buyer,
+      certificateAmount: 3 ether
+    });
+    for (uint256 i = 0; i < numberOfSuppliers; ++i) {
+      assertEq(
+        _certificate.balanceOfRemoval(0, idsForAllSuppliers[i][0]),
+        amountsPerSupplier[i]
+      );
+      assertEq(_certificate.ownerOf({tokenId: i}), _namedAccounts.buyer);
+      assertEq(
+        _certificate.purchaseAmount({certificateId: i}),
+        amountsPerSupplier[i]
+      );
+      // _purchaseAmounts
+      // _removalBalancesOfCertificate
+      // _removalsOfCertificate
+      // _certificatesOfRemoval
+    }
+  }
+}
+
 contract Removal_mintBatch is UpgradeableMarket {
   function test() external {
     _seedRemovals({to: _namedAccounts.supplier, count: 1, list: false});
