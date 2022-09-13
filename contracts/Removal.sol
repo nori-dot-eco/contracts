@@ -128,26 +128,26 @@ contract Removal is
    */
   Certificate private _certificate;
 
-  // todo Test accounting for `_projectIdToHoldbackPercentage` is maintained correctly (assuming we need it)
   /**
    * @dev Maps from a given project id to the holdback percentage that will be used to determine what percentage of
    * proceeds are routed to `RestrictedNORI` when removals from this project are sold.
    */
   mapping(uint256 => uint8) private _projectIdToHoldbackPercentage;
 
-  // todo Test accounting for `_removalIdToProjectId` is maintained correctly (assuming we need it)
-  // todo consider moving `Removal._removalIdToProjectId` to _restrictedNORI
   /**
    * @dev Maps from a removal id to the project id it belongs to.
    */
   mapping(uint256 => uint256) private _removalIdToProjectId;
 
-  // todo Test accounting for `_addressToOwnedTokenIds` is maintained correctly (assuming we need it)
   /**
-   * Maps from an address to an EnumerableSet of the token ids for which that address has a non-zero balance.
+   * @notice Maps from an address to an EnumerableSet of the token ids for which that address has a non-zero balance.
    */
   mapping(address => EnumerableSetUpgradeable.UintSet)
     private _addressToOwnedTokenIds;
+
+  /**
+   * @notice The current balance of across all removals listed in the market contract.
+   */
   uint256 private _currentMarketBalance;
 
   /**
@@ -231,7 +231,7 @@ contract Removal is
    * @param holdbackPercentage The holdback percentage for this batch of removals.
    *
    * ##### Requirements:
-   * - Can only be used when the caller has the `CONSIGNER_ROLE`
+   * - Can only be used when the caller has the `CONSIGNOR_ROLE`
    * - Enforces the rules of `Removal._beforeTokenTransfer`
    * - Can only be used when this contract is not paused
    * - Cannot mint to a removal ID that already exists (use `addBalance` instead)
@@ -258,7 +258,7 @@ contract Removal is
       _restrictedNORI.createSchedule({
         projectId: projectId,
         startTime: scheduleStartTime,
-        methodology: removals[0].methodology, // todo enforce same methodology+version across ids?
+        methodology: removals[0].methodology,
         methodologyVersion: removals[0].methodologyVersion
       });
     }
@@ -274,7 +274,7 @@ contract Removal is
    * @param ids The removal IDs to add balance for.
    *
    * ##### Requirements:
-   * - Can only be used when the caller has the `CONSIGNER_ROLE`
+   * - Can only be used when the caller has the `CONSIGNOR_ROLE`
    * - Can only be used when this contract is not paused
    * - IDs must already have been minted via `mintBatch`.
    * - Enforces the rules of `Removal._beforeTokenTransfer`.
@@ -307,7 +307,6 @@ contract Removal is
     uint256 id,
     uint256 amount
   ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
-    // todo test that checks consignment can happen using multi call with mix-match project ids
     _safeTransferFrom({
       from: from,
       to: address(_market),
@@ -323,6 +322,8 @@ contract Removal is
    *
    * @dev Releases `amount` of removal `id` by burning it. The replacement of released removals that had
    * already been included in certificates is beyond the scope of this version of the contracts.
+   *
+   * If a removal is used across a large number of certificates it may run into gas limits.
    *
    * ##### Requirements:
    *
@@ -349,7 +350,6 @@ contract Removal is
     whenNotPaused
     onlyRole(RELEASER_ROLE)
   {
-    // todo might need to add pagination/incremental if removal spans a ton of certificates and reaches max gas
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
       account: id.supplierAddress(),
@@ -515,7 +515,7 @@ contract Removal is
   }
 
   /**
-   * @notice Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`,
+   * @notice Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`.
    *
    * Emits an `ApprovalForAll` event.
    *
@@ -622,7 +622,7 @@ contract Removal is
   /**
    * @notice Burns `amount` of token ID `id` from the Certificate's balance. Updates the internal accounting in
    * Certificate that maps removal IDs and amounts to the certificates in which they were included by iteratively
-   * releasing from affected certificates (`Certficiate.releaseRemoval`) until `amount` removals have been released.
+   * releasing from affected certificates (`Certificate.releaseRemoval`) until `amount` removals have been released.
    *
    * Emits a `RemovalReleased` event.
    *

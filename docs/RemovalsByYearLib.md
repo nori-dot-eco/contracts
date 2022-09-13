@@ -38,7 +38,7 @@ function insert(struct RemovalsByYear collection, uint256 removalId) internal
 
 Inserts a new removal into the collection.
 
-_The removal is added to the Enumberable Set that maps to the year of its year._
+_The removal is added to the Enumerable Set that maps to the year of its year._
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -141,7 +141,7 @@ _Gets the size of the Enumerable Set that corresponds to the given year._
 function getAllRemovalIds(struct RemovalsByYear collection) internal view returns (uint256[] removalIds)
 ```
 
-Gets the total balance of all removals across all years.
+Gets all removal IDs belonging to all vintages for a collection.
 
 
 | Name | Type | Description |
@@ -150,7 +150,7 @@ Gets the total balance of all removals across all years.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| removalIds | uint256[] | the total balance of the collection. |
+| removalIds | uint256[] | an array of all removal IDs in the collection. |
 
 
 

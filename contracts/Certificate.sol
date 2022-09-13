@@ -8,9 +8,6 @@ import "./Removal.sol";
 import "./AccessPresetPausable.sol";
 
 /**
- * todo document burning behavior
- * todo check that all transfer functions (including those not exposed in this file) call _beforeTokenTransfers
- *
  * @title An ERC721a contract that issues non-transferable certificates of carbon removal.
  *
  * @author Nori Inc.
@@ -60,7 +57,7 @@ import "./AccessPresetPausable.sol";
  * ##### Uses
  *
  * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
- *   for EnumerableSetUpgradeable.Uintset
+ *   for EnumerableSetUpgradeable.UintSet
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  *
  */
@@ -98,11 +95,7 @@ contract Certificate is
   /**
    * @notice Keeps track of the original purchase amount for a certificate.
    */
-  mapping(uint256 => uint256) private _purchaseAmounts; // todo naming consistency for mappings (e.g, plural/non-plural)
-
-  /*
-   * todo Add tests that ensure _removalsOfCertificate/_certificatesOfRemoval can't deviate from Removal.sol balances
-   */
+  mapping(uint256 => uint256) private _purchaseAmounts;
 
   /**
    * @notice Keeps track of the removals used for a given certificate.
@@ -237,7 +230,6 @@ contract Certificate is
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    // todo decrease number of storage reads
     _removalBalancesOfCertificate[certificateId][removalId] -= amount;
     if (_removalBalancesOfCertificate[certificateId][removalId] == 0) {
       _removalsOfCertificate[certificateId].remove(removalId);
@@ -249,7 +241,8 @@ contract Certificate is
   /**
    * @notice Receives a batch of child tokens, the certificate recipient and amount must be encoded in the field data.
    *
-   * @dev See (IERC1155Receiver)[https://docs.openzeppelin.com/contracts/3.x/api/token/erc1155#IERC1155Receiver-onERC1155BatchReceived-address-address-uint256---uint256---bytes-] for more.
+   * @dev See [IERC1155Receiver](
+   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused (enforced by `_beforeTokenTransfers`).
@@ -516,6 +509,16 @@ contract Certificate is
   }
 
   /**
+   * @notice The baseUri for the certificate token.
+   *
+   * @dev Base URI for computing `tokenURI`. If set, the resulting URI for each token will be the concatenation of the
+   * `baseURI` and the `tokenId`. Empty by default, it can be overridden in child contracts.
+   */
+  function _baseURI() internal view override returns (string memory) {
+    return _baseURIValue;
+  }
+
+  /**
    * @notice Validates the incoming batch of removal token data by comparing the lengths of ids and amounts.
    *
    * @dev Reverts if the array lengths do not match.
@@ -527,19 +530,8 @@ contract Certificate is
     uint256[] memory removalIds,
     uint256[] memory removalAmounts
   ) internal pure {
-    // todo De-duplicate code that checks array-length (e.g., library or base contract)
     if (removalIds.length != removalAmounts.length) {
       revert ArrayLengthMismatch("removalIds", "removalAmounts");
     }
-  }
-
-  /**
-   * @notice The baseUri for the certificate token.
-   *
-   * @dev Base URI for computing `tokenURI`. If set, the resulting URI for each token will be the concatenation of the
-   * `baseURI` and the `tokenId`. Empty by default, it can be overridden in child contracts.
-   */
-  function _baseURI() internal view override returns (string memory) {
-    return _baseURIValue;
   }
 }

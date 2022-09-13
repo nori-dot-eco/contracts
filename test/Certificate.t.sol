@@ -4,6 +4,8 @@ pragma solidity =0.8.15;
 import "@/test/helpers/certificate.sol";
 import "@/test/helpers/removal.sol";
 
+// todo Add tests that ensure _removalsOfCertificate/_certificatesOfRemoval can't deviate from Removal.sol balances
+
 contract Certificate_name is UpgradeableCertificate {
   function test() external {
     assertEq(_certificate.name(), "Certificate");
