@@ -3,6 +3,7 @@
 pragma solidity =0.8.15;
 import "@/test/helpers/market.sol";
 import {InvalidTokenTransfer} from "@/contracts/Errors.sol";
+
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
 
@@ -10,6 +11,11 @@ using AddressArrayLib for address[];
 // todo test that checks Removal.consign can happen using multi call with mix-match project ids
 
 contract Removal_migrate is UpgradeableMarket {
+  uint256 constant NUMBER_OF_SUPPLIERS = 3;
+  uint256 constant AMOUNT_PER_REMOVAL = 1 ether;
+  uint32 constant NUMBER_OF_REMOVALS_PER_SUPPLIER = 1;
+  uint256 constant EXPECTED_CERTIFICATE_ID = 0;
+
   function test() external {
     _removal.registerContractAddresses({
       market: _market,
@@ -19,13 +25,19 @@ contract Removal_migrate is UpgradeableMarket {
       role: _removal.CONSIGNOR_ROLE(),
       account: _namedAccounts.admin
     });
-    uint256 numberOfSuppliers = 3;
     uint256[][] memory amountsForAllSuppliers = new uint256[][](
-      numberOfSuppliers
+      NUMBER_OF_SUPPLIERS
     );
-    uint256[][] memory idsForAllSuppliers = new uint256[][](numberOfSuppliers);
-    address[] memory suppliers = new address[](numberOfSuppliers);
-    uint256[] memory amountsPerSupplier = new uint256[](1).fill(1 ether);
+    uint256[][] memory idsForAllSuppliers = new uint256[][](
+      NUMBER_OF_SUPPLIERS
+    );
+    address[] memory suppliers = new address[](NUMBER_OF_SUPPLIERS);
+    uint256 numberOfRemovals = NUMBER_OF_SUPPLIERS *
+      NUMBER_OF_REMOVALS_PER_SUPPLIER;
+    uint256[] memory amountsPerSupplier = new uint256[](
+      NUMBER_OF_REMOVALS_PER_SUPPLIER
+    ).fill(AMOUNT_PER_REMOVAL);
+    uint256 certificateAmount = numberOfRemovals * AMOUNT_PER_REMOVAL;
     for (uint256 i = 0; i < idsForAllSuppliers.length; ++i) {
       amountsForAllSuppliers[i] = amountsPerSupplier;
       address supplier = i == 0 ? _namedAccounts.supplier : i == 1
@@ -33,34 +45,74 @@ contract Removal_migrate is UpgradeableMarket {
         : _namedAccounts.supplier3;
       idsForAllSuppliers[i] = _seedRemovals({
         to: supplier,
-        count: 1,
+        count: NUMBER_OF_REMOVALS_PER_SUPPLIER,
         list: false
       });
       suppliers[i] = supplier;
     }
+    vm.recordLogs();
     vm.prank(_namedAccounts.admin);
     _removal.migrate({
       owners: suppliers,
       ids: idsForAllSuppliers,
       amounts: amountsForAllSuppliers,
       certificateRecipient: _namedAccounts.buyer,
-      certificateAmount: 3 ether
+      certificateAmount: certificateAmount
     });
-    for (uint256 i = 0; i < numberOfSuppliers; ++i) {
-      assertEq(
-        _certificate.balanceOfRemoval(0, idsForAllSuppliers[i][0]),
-        amountsPerSupplier[i]
-      );
-      assertEq(_certificate.ownerOf({tokenId: i}), _namedAccounts.buyer);
-      assertEq(
-        _certificate.purchaseAmount({certificateId: i}),
-        amountsPerSupplier[i]
-      );
-      // _purchaseAmounts
-      // _removalBalancesOfCertificate
-      // _removalsOfCertificate
-      // _certificatesOfRemoval
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 7);
+    assertEq(
+      entries[3].topics[0],
+      keccak256("Migration(address,uint256,uint256,uint256[],uint256[])")
+    );
+    assertEq(entries[3].topics.length, 4);
+    assertEq(
+      entries[3].topics[1],
+      bytes32(uint256(uint160(_namedAccounts.buyer)))
+    );
+    assertEq(entries[3].topics[2], bytes32(certificateAmount));
+    assertEq(entries[3].topics[3], bytes32(EXPECTED_CERTIFICATE_ID));
+    uint256[] memory flattenedAmounts = new uint256[](numberOfRemovals);
+    uint256[] memory flattenedIds = new uint256[](numberOfRemovals);
+    for (uint256 i = 0; i < numberOfRemovals; ++i) {
+      for (uint256 j = 0; j < NUMBER_OF_REMOVALS_PER_SUPPLIER; ++j) {
+        flattenedAmounts[i] = AMOUNT_PER_REMOVAL;
+        flattenedIds[i] = idsForAllSuppliers[i][j];
+      }
     }
+    (uint256[] memory decodedIds, uint256[] memory decodedAmounts) = abi.decode(
+      entries[3].data,
+      (uint256[], uint256[])
+    );
+    assertEq(decodedIds, flattenedIds);
+    assertEq(decodedAmounts, flattenedAmounts);
+    Certificate.Balance[] memory removalBalancesOfCertificate = _certificate
+      .removalsOfCertificate({certificateId: EXPECTED_CERTIFICATE_ID});
+    assertEq(
+      _certificate.ownerOf({tokenId: EXPECTED_CERTIFICATE_ID}),
+      _namedAccounts.buyer
+    );
+    assertEq(
+      _certificate.purchaseAmount({certificateId: EXPECTED_CERTIFICATE_ID}),
+      certificateAmount
+    );
+    for (uint256 i = 0; i < NUMBER_OF_SUPPLIERS; ++i) {
+      assertEq(
+        _certificate.balanceOfRemoval({
+          certificateTokenId: EXPECTED_CERTIFICATE_ID,
+          removalTokenId: flattenedIds[i]
+        }),
+        AMOUNT_PER_REMOVAL
+      );
+      assertEq(removalBalancesOfCertificate[i].id, idsForAllSuppliers[i][0]);
+      assertEq(removalBalancesOfCertificate[i].amount, AMOUNT_PER_REMOVAL);
+      Certificate.Balance[] memory certificatesOfRemoval = _certificate
+        .certificatesOfRemoval({removalId: flattenedIds[i]});
+      assertEq(certificatesOfRemoval.length, 1);
+      assertEq(certificatesOfRemoval[0].amount, AMOUNT_PER_REMOVAL);
+      assertEq(certificatesOfRemoval[0].id, EXPECTED_CERTIFICATE_ID);
+    }
+    assertEq(_certificate.totalMinted(), EXPECTED_CERTIFICATE_ID + 1);
   }
 }
 

@@ -3,9 +3,8 @@
 pragma solidity =0.8.15;
 
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "forge-std/Test.sol";
 import "forge-std/console2.sol";
-import {PRBTest} from "@prb/test/PRBTest.sol";
+import "@prb/test/PRBTest.sol";
 
 abstract contract Global is PRBTest {
   struct NamedAccounts {
@@ -28,11 +27,11 @@ abstract contract Global is PRBTest {
       buyer: account("buyer")
     });
 
+  event LogNamedArray(string key, uint8[] value);
+
   constructor() {
     vm.label(msg.sender, "Deployer");
   }
-
-  event LogNamedArray(string key, uint8[] value);
 
   /** @dev Checks if `a` equals `b`. */
   function eq(uint8[] memory a, uint8[] memory b)

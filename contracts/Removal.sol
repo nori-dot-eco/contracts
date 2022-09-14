@@ -174,6 +174,23 @@ contract Removal is
   );
 
   /**
+   * @notice Emitted when legacy removals are minted and then immediately used to migrate a legacy certificate.
+   *
+   * @param certificateRecipient The recipient of the certificate to mint via migration.
+   * @param certificateAmount The total amount of a the certificate to mint via migration.
+   * @param certificateId The ID of the certificate to mint via migration.
+   * @param removalIds The removal IDs to use to mint the certificate via migration.
+   * @param removalAmounts The amounts for each corresponding removal ID to use to mint the certificate via migration.
+   */
+  event Migration(
+    address indexed certificateRecipient,
+    uint256 indexed certificateAmount,
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] removalAmounts
+  );
+
+  /**
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
@@ -381,9 +398,13 @@ contract Removal is
     if (certificateAmount != removalsTotal) {
       revert InvalidCall();
     }
-
-    // todo emit event
-
+    emit Migration({
+      certificateRecipient: certificateRecipient,
+      certificateAmount: certificateAmount,
+      certificateId: _certificate.totalMinted(),
+      removalIds: flattenedIds,
+      removalAmounts: flattenedAmounts
+    });
     _safeBatchTransferFrom({
       from: _msgSender(),
       to: address(_certificate),
