@@ -187,7 +187,7 @@ contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
       country: "US",
       subdivision: "IA",
       supplierAddress: _namedAccounts.supplier,
-      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
     });
     vm.expectRevert(ForbiddenTransfer.selector);
     _removal.mintBatch({

@@ -783,9 +783,12 @@ contract Removal is
     bytes memory data
   ) internal virtual override whenNotPaused {
     address market = address(_market);
+    address certificate = address(_certificate);
     bool isToAllowed = to == market ||
-      (to == address(_certificate) || to == address(0)) ||
-      hasRole({role: CONSIGNOR_ROLE, account: _msgSender()});
+      to == certificate ||
+      to == address(0) ||
+      (hasRole({role: CONSIGNOR_ROLE, account: _msgSender()}) &&
+        (to == certificate || hasRole({role: CONSIGNOR_ROLE, account: to})));
     for (uint256 i = 0; i < ids.length; ++i) {
       uint256 id = ids[i];
       if (to == market) {
