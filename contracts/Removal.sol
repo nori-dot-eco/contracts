@@ -581,8 +581,8 @@ contract Removal is
     bytes memory data
   ) public override whenNotPaused {
     if (
-      _msgSender() != address(_market)
-      //&& hasRole({account: from, role: CONSIGNOR_ROLE})
+      _msgSender() != address(_market) &&
+      hasRole({account: from, role: CONSIGNOR_ROLE})
     ) {
       revert ForbiddenTransfer();
     }
