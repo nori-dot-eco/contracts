@@ -201,6 +201,60 @@ contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
   }
 }
 
+contract Removal_mintBatch_zero_amount_removal is UpgradeableMarket {
+  function test() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
+    });
+    _removal.mintBatch({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(0 ether),
+      removals: ids,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+  }
+}
+
+contract Removal_mintBatch_zero_amount_removal_to_market_reverts is
+  UpgradeableMarket
+{
+  function test() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
+    });
+    uint256 removalId = RemovalIdLib.createRemovalId(ids[0]);
+    vm.expectRevert(
+      abi.encodeWithSelector(InvalidTokenTransfer.selector, removalId)
+    );
+    _removal.mintBatch({
+      to: address(_market),
+      amounts: new uint256[](1).fill(0 ether),
+      removals: ids,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+  }
+}
+
 contract Removal_addBalance is UpgradeableMarket {
   uint256[] _removalIds;
 
@@ -896,20 +950,6 @@ contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
       _namedAccounts.admin,
       _asSingletonUintArray(1),
       _asSingletonUintArray(1),
-      ""
-    );
-  }
-
-  function test_zeroValueTransferToMarket_reverts_InvalidTokenTransfer()
-    external
-  {
-    vm.expectRevert(abi.encodeWithSelector(InvalidTokenTransfer.selector, 1));
-    super._beforeTokenTransfer(
-      _namedAccounts.admin,
-      _namedAccounts.admin,
-      vm.addr(1),
-      _asSingletonUintArray(1),
-      _asSingletonUintArray(0),
       ""
     );
   }
