@@ -105,7 +105,7 @@ contract Removal_mintBatch_zero_amount_removal is UpgradeableMarket {
       country: "US",
       subdivision: "IA",
       supplierAddress: _namedAccounts.supplier,
-      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
     });
     _removal.mintBatch({
       to: _namedAccounts.supplier,
@@ -131,7 +131,7 @@ contract Removal_mintBatch_zero_amount_removal_to_market_reverts is
       country: "US",
       subdivision: "IA",
       supplierAddress: _namedAccounts.supplier,
-      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
     });
     uint256 removalId = RemovalIdLib.createRemovalId(ids[0]);
     vm.expectRevert(
