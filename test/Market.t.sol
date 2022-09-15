@@ -1,6 +1,6 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.15;
+pragma solidity =0.8.17;
 import "@/test/helpers/market.sol";
 import "@/test/helpers/removal.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";

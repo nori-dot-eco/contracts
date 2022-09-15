@@ -1,6 +1,6 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, reason-string */
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.15;
+pragma solidity =0.8.17;
 import "@/test/helpers/market.sol";
 import {InvalidTokenTransfer} from "@/contracts/Errors.sol";
 using UInt256ArrayLib for uint256[];
