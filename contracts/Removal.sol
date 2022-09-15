@@ -687,10 +687,10 @@ contract Removal is
       (to == address(_certificate) || to == address(0));
     for (uint256 i = 0; i < ids.length; ++i) {
       uint256 id = ids[i];
-      if (amounts[i] == 0) {
-        revert InvalidTokenTransfer({tokenId: id});
-      }
       if (to == market) {
+        if (amounts[i] == 0) {
+          revert InvalidTokenTransfer({tokenId: id});
+        }
         _currentMarketBalance += amounts[i];
       }
       if (from == market) {
