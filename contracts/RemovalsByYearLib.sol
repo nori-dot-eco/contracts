@@ -14,7 +14,6 @@ struct RemovalsByYear {
 
 library RemovalsByYearLib {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-  using RemovalIdLib for uint256;
   using AddressArrayLib for address[];
   using UInt256ArrayLib for uint256[];
 
@@ -30,7 +29,7 @@ library RemovalsByYearLib {
   function insert(RemovalsByYear storage collection, uint256 removalId)
     internal
   {
-    uint256 year = removalId.vintage();
+    uint256 year = RemovalIdLib.vintage(removalId);
     if (isEmpty(collection)) {
       collection.earliestYear = year;
       collection.latestYear = year;
@@ -51,7 +50,7 @@ library RemovalsByYearLib {
   function remove(RemovalsByYear storage collection, uint256 removalId)
     internal
   {
-    uint256 year = removalId.vintage();
+    uint256 year = RemovalIdLib.vintage(removalId);
     if (!collection.yearToRemovals[year].remove(removalId)) {
       revert RemovalNotFoundInYear({removalId: removalId, year: year});
     }
@@ -94,7 +93,7 @@ library RemovalsByYearLib {
    * @dev Uses the latestYear property to check if any years have been set.
    *
    * @param collection the collection from storage.
-   * @return bool true if empty, false otherwise.
+   * @return True if empty, false otherwise.
    */
   function isEmpty(RemovalsByYear storage collection)
     internal
@@ -109,7 +108,7 @@ library RemovalsByYearLib {
    *
    * @param collection the collection from storage.
    * @param year the year to check.
-   * @return bool true if empty, false otherwise.
+   * @return True if empty, false otherwise.
    */
   function isEmptyForYear(RemovalsByYear storage collection, uint256 year)
     internal
@@ -124,7 +123,7 @@ library RemovalsByYearLib {
    * @dev Gets the first item from the Enumerable Set that corresponds to the earliest year.
    *
    * @param collection the collection from storage.
-   * @return uint256 the next removal to sell.
+   * @return The next removal to sell.
    */
   function getNextRemovalForSale(RemovalsByYear storage collection)
     internal

@@ -2,23 +2,23 @@
 
 {{#if signature}}
 ```solidity
-{{signature}}
+{{{signature}}}
 ```
 {{/if}}
 
 {{#if natspec.notice}}
-{{natspec.notice}}
+{{{natspec.notice}}}
 {{/if}}
 
 {{#if natspec.dev}}
-<i>{{natspec.dev}}</i>
+<i>{{{natspec.dev}}}</i>
 {{/if}}
 
 {{#if natspec.params}}
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 {{#each params}}
-| {{name}} | {{type}} | {{joinLines natspec}} |
+| {{name}} | {{type}} | {{{joinLines natspec}}} |
 {{/each}}
 {{/if}}
 

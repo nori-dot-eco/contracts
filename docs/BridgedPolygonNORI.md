@@ -39,8 +39,8 @@ Deposit NORI on the root chain (Ethereum) to the child chain (Polygon) as bpNORI
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| user | address | The address of the user which deposited on the root chain (Ethereum) and which is receiving the bpNORI.  @param depositData The ABI encoded deposit amount. |
-| depositData | bytes |  |
+| user | address | The address of the user which deposited on the root chain (Ethereum) and which is receiving the bpNORI. |
+| depositData | bytes | The ABI encoded deposit amount. |
 
 
 ### withdraw
@@ -51,7 +51,7 @@ function withdraw(uint256 amount) external
 
 Withdraw bpNORI tokens from the child chain (Polygon) to the root chain (Ethereum) as NORI.
 
-<i>Burns user&#x27;s tokens on polygon. This transaction will be verified when exiting on root chain. See [here](  https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.</i>
+<i>Burns user's tokens on polygon. This transaction will be verified when exiting on root chain. See [here](  https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

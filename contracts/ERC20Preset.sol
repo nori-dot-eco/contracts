@@ -21,8 +21,8 @@ abstract contract ERC20Preset is
   /**
    * @notice A hook that is called before a token transfer occurs.
    *
-   * @dev When the contract is paused, these functions will not be callable. Follows the rules of hooks defined
-   * [here](https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+   * @dev Follows the rules of hooks defined [here](
+   * https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
    *
    * ##### Requirements:
    *
@@ -47,7 +47,7 @@ abstract contract ERC20Preset is
    *
    * - The contract must not be paused.
    * - Accounts cannot have allowance issued by their operators.
-   * - If `value` is the maximum `uint256`, the allowance is not updated on `transferFrom`. This is semantically
+   * - If `value` is the maximum `uint256`, the allowance does not update `transferFrom`. This is semantically
    * equivalent to an infinite approval.
    * - `owner` cannot be the zero address.
    * - The `spender` cannot be the zero address.

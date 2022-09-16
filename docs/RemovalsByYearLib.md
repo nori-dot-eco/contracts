@@ -39,8 +39,8 @@ Inserts a new removal into the collection.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage.  @param removalId a new removal to insert. |
-| removalId | uint256 |  |
+| collection | struct RemovalsByYear | the collection from storage. |
+| removalId | uint256 | a new removal to insert. |
 
 
 ### remove
@@ -55,8 +55,8 @@ Removes a removal from the collection.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection to search through.  @param removalId the removal to remove. |
-| removalId | uint256 |  |
+| collection | struct RemovalsByYear | the collection to search through. |
+| removalId | uint256 | the removal to remove. |
 
 
 ### isEmpty
@@ -71,8 +71,11 @@ Checks if the collection is empty across all years.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage.  @return bool true if empty, false otherwise. |
+| collection | struct RemovalsByYear | the collection from storage. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | True if empty, false otherwise. |
 
 ### isEmptyForYear
 
@@ -85,9 +88,12 @@ Checks if the collection is empty for a particular year.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage.  @param year the year to check.  @return bool true if empty, false otherwise. |
-| year | uint256 |  |
+| collection | struct RemovalsByYear | the collection from storage. |
+| year | uint256 | the year to check. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | True if empty, false otherwise. |
 
 ### getNextRemovalForSale
 
@@ -101,8 +107,11 @@ Gets the next removal in the collection for sale.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage.  @return uint256 the next removal to sell. |
+| collection | struct RemovalsByYear | the collection from storage. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The next removal to sell. |
 
 ### getCountForYear
 
@@ -116,9 +125,12 @@ Gets the count of unique removal IDs for a particular year.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage.  @param year the year to check.  @return uint256 the size of the collection. |
-| year | uint256 |  |
+| collection | struct RemovalsByYear | the collection from storage. |
+| year | uint256 | the year to check. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | uint256 the size of the collection. |
 
 ### getAllRemovalIds
 
@@ -131,8 +143,11 @@ Gets all removal IDs belonging to all vintages for a collection.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage.  @return removalIds an array of all removal IDs in the collection. |
+| collection | struct RemovalsByYear | the collection from storage. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| removalIds | uint256[] | an array of all removal IDs in the collection. |
 
 
 
