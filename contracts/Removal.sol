@@ -177,7 +177,7 @@ contract Removal is
    * @notice Emitted when legacy removals are minted and then immediately used to migrate a legacy certificate.
    *
    * @param certificateRecipient The recipient of the certificate to mint via migration.
-   * @param certificateAmount The total amount of a the certificate to mint via migration.
+   * @param certificateAmount The total amount of the certificate to mint via migration (denominated in NRTs).
    * @param certificateId The ID of the certificate to mint via migration.
    * @param removalIds The removal IDs to use to mint the certificate via migration.
    * @param removalAmounts The amounts for each corresponding removal ID to use to mint the certificate via migration.
@@ -336,12 +336,15 @@ contract Removal is
   }
 
   /**
-   * @notice Transfers the provided `amounts` of the specified removal `ids` directly to the Certificate contract to
-   * mint a legacy certificate.
+   * @notice Transfers the provided `amounts` (denominated in NRTs) of the specified removal `ids` directly to the
+   * Certificate contract to mint a legacy certificate. This function provides Nori the ability to execute a one-off
+   * migration of legacy certificates and removals (legacy certificates and removals are those which existed prior to
+   * our deployment to Polygon and covers all historic issuances and purchases up until the date that we start using the
+   * Market contract).
    *
    * @dev The Certificate contract implements `onERC1155BatchReceived`, which is invoked upon receipt of any removals.
-   * This function circumvents the market contract's lifecycle. This function first transfers the removals from the
-   * supplier accounts to a single account that has the consignor role-- this is necessary because
+   * This function circumvents the market contract's lifecycle by transferring the removals from the supplier accounts
+   * to a single account that has the consignor role-- this is necessary because
    * `_safeBatchTransferFrom` only accepts one `from` address and `Certificate.onERC1155BatchReceived` will mint a *new*
    * certificate every time an additional batch is received.
    *
@@ -385,13 +388,15 @@ contract Removal is
     uint256[] memory flattenedAmounts = new uint256[](numberOfRemovals);
     uint256[] memory flattenedIds = new uint256[](numberOfRemovals);
     uint256 removalsTotal = 0;
+    uint256 index = 0;
     // Skip overflow check as for loop is indexed starting at zero.
     unchecked {
-      for (uint256 i = 0; i < flattenedAmounts.length; ++i) {
+      for (uint256 i = 0; i < owners.length; ++i) {
         for (uint256 j = 0; j < amounts[i].length; ++j) {
           removalsTotal += amounts[i][j];
-          flattenedAmounts[i] = amounts[i][j];
-          flattenedIds[i] = ids[i][j];
+          flattenedAmounts[index] = amounts[i][j];
+          flattenedIds[index] = ids[i][j];
+          index += 1;
         }
       }
     }
@@ -580,10 +585,7 @@ contract Removal is
     uint256 amount,
     bytes memory data
   ) public override whenNotPaused {
-    if (
-      _msgSender() != address(_market) &&
-      hasRole({account: from, role: CONSIGNOR_ROLE})
-    ) {
+    if (_msgSender() != address(_market)) {
       revert ForbiddenTransfer();
     }
     super.safeTransferFrom(from, to, id, amount, data);
@@ -784,7 +786,7 @@ contract Removal is
   ) internal virtual override whenNotPaused {
     address market = address(_market);
     address certificate = address(_certificate);
-    bool isToAllowed = to == market ||
+    bool isValidTransfer = to == market ||
       to == certificate ||
       to == address(0) ||
       (hasRole({role: CONSIGNOR_ROLE, account: _msgSender()}) &&
@@ -800,7 +802,7 @@ contract Removal is
       if (from == market) {
         _currentMarketBalance -= amounts[i];
       }
-      if (!isToAllowed && to != id.supplierAddress()) {
+      if (!isValidTransfer && to != id.supplierAddress()) {
         revert ForbiddenTransfer();
       }
     }

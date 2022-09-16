@@ -11,12 +11,12 @@ using AddressArrayLib for address[];
 // todo test that checks Removal.consign can happen using multi call with mix-match project ids
 
 contract Removal_migrate is UpgradeableMarket {
-  uint256 constant NUMBER_OF_SUPPLIERS = 3;
+  uint256 constant NUMBER_OF_SUPPLIERS = 2;
   uint256 constant AMOUNT_PER_REMOVAL = 1 ether;
-  uint32 constant NUMBER_OF_REMOVALS_PER_SUPPLIER = 1;
+  uint32 constant NUMBER_OF_REMOVALS_PER_SUPPLIER = 5;
   uint256 constant EXPECTED_CERTIFICATE_ID = 0;
 
-  function test() external {
+  function setUp() external {
     _removal.registerContractAddresses({
       market: _market,
       certificate: _certificate
@@ -25,6 +25,9 @@ contract Removal_migrate is UpgradeableMarket {
       role: _removal.CONSIGNOR_ROLE(),
       account: _namedAccounts.admin
     });
+  }
+
+  function test() external {
     uint256[][] memory amountsForAllSuppliers = new uint256[][](
       NUMBER_OF_SUPPLIERS
     );
@@ -60,34 +63,24 @@ contract Removal_migrate is UpgradeableMarket {
       certificateAmount: certificateAmount
     });
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    assertEq(entries.length, 7);
+    assertEq(entries.length, 6);
     assertEq(
-      entries[3].topics[0],
+      entries[2].topics[0],
       keccak256("Migration(address,uint256,uint256,uint256[],uint256[])")
     );
-    assertEq(entries[3].topics.length, 4);
+    assertEq(entries[2].topics.length, 4);
     assertEq(
-      entries[3].topics[1],
+      entries[2].topics[1],
       bytes32(uint256(uint160(_namedAccounts.buyer)))
     );
-    assertEq(entries[3].topics[2], bytes32(certificateAmount));
-    assertEq(entries[3].topics[3], bytes32(EXPECTED_CERTIFICATE_ID));
+    assertEq(entries[2].topics[2], bytes32(certificateAmount));
+    assertEq(entries[2].topics[3], bytes32(EXPECTED_CERTIFICATE_ID));
     uint256[] memory flattenedAmounts = new uint256[](numberOfRemovals);
     uint256[] memory flattenedIds = new uint256[](numberOfRemovals);
-    for (uint256 i = 0; i < numberOfRemovals; ++i) {
-      for (uint256 j = 0; j < NUMBER_OF_REMOVALS_PER_SUPPLIER; ++j) {
-        flattenedAmounts[i] = AMOUNT_PER_REMOVAL;
-        flattenedIds[i] = idsForAllSuppliers[i][j];
-      }
-    }
     (uint256[] memory decodedIds, uint256[] memory decodedAmounts) = abi.decode(
-      entries[3].data,
+      entries[2].data,
       (uint256[], uint256[])
     );
-    assertEq(decodedIds, flattenedIds);
-    assertEq(decodedAmounts, flattenedAmounts);
-    Certificate.Balance[] memory removalBalancesOfCertificate = _certificate
-      .removalsOfCertificate({certificateId: EXPECTED_CERTIFICATE_ID});
     assertEq(
       _certificate.ownerOf({tokenId: EXPECTED_CERTIFICATE_ID}),
       _namedAccounts.buyer
@@ -96,22 +89,38 @@ contract Removal_migrate is UpgradeableMarket {
       _certificate.purchaseAmount({certificateId: EXPECTED_CERTIFICATE_ID}),
       certificateAmount
     );
+    Certificate.Balance[] memory removalBalancesOfCertificate = _certificate
+      .removalsOfCertificate({certificateId: EXPECTED_CERTIFICATE_ID});
+    uint256 index = 0;
     for (uint256 i = 0; i < NUMBER_OF_SUPPLIERS; ++i) {
-      assertEq(
-        _certificate.balanceOfRemoval({
-          certificateTokenId: EXPECTED_CERTIFICATE_ID,
-          removalTokenId: flattenedIds[i]
-        }),
-        AMOUNT_PER_REMOVAL
-      );
-      assertEq(removalBalancesOfCertificate[i].id, idsForAllSuppliers[i][0]);
-      assertEq(removalBalancesOfCertificate[i].amount, AMOUNT_PER_REMOVAL);
-      Certificate.Balance[] memory certificatesOfRemoval = _certificate
-        .certificatesOfRemoval({removalId: flattenedIds[i]});
-      assertEq(certificatesOfRemoval.length, 1);
-      assertEq(certificatesOfRemoval[0].amount, AMOUNT_PER_REMOVAL);
-      assertEq(certificatesOfRemoval[0].id, EXPECTED_CERTIFICATE_ID);
+      for (uint256 j = 0; j < NUMBER_OF_REMOVALS_PER_SUPPLIER; ++j) {
+        flattenedAmounts[index] = AMOUNT_PER_REMOVAL;
+        flattenedIds[index] = idsForAllSuppliers[i][j];
+        assertEq(
+          _certificate.balanceOfRemoval({
+            certificateTokenId: EXPECTED_CERTIFICATE_ID,
+            removalTokenId: flattenedIds[index]
+          }),
+          AMOUNT_PER_REMOVAL
+        );
+        assertEq(
+          removalBalancesOfCertificate[index].id,
+          idsForAllSuppliers[i][j]
+        );
+        assertEq(
+          removalBalancesOfCertificate[index].amount,
+          AMOUNT_PER_REMOVAL
+        );
+        Certificate.Balance[] memory certificatesOfRemoval = _certificate
+          .certificatesOfRemoval({removalId: flattenedIds[index]});
+        assertEq(certificatesOfRemoval.length, 1);
+        assertEq(certificatesOfRemoval[0].amount, AMOUNT_PER_REMOVAL);
+        assertEq(certificatesOfRemoval[0].id, EXPECTED_CERTIFICATE_ID);
+        index += 1;
+      }
     }
+    assertEq(decodedIds, flattenedIds);
+    assertEq(decodedAmounts, flattenedAmounts);
     assertEq(_certificate.totalMinted(), EXPECTED_CERTIFICATE_ID + 1);
   }
 }
