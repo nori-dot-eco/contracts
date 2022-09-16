@@ -14,10 +14,11 @@ contract BridgedPolygonNORI is ERC20Preset {
   }
 
   /**
-   * @notice Called when token is deposited on root chain.
-   * @dev Should be callable only by ChildChainManager. See [here](
-   * https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more
-   * @param user The user address for whom deposit is being done.
+   * @notice Deposit NORI on the root chain (Ethereum) to the child chain (Polygon) as bpNori.
+   * @dev A deposit of NORI on the root chain (Ethereum) will trigger this function and mint bpNORI on the child chain
+   * (Polygon). This function can only be called by the ChildChainManager. See [here](
+   * https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.
+   * @param user The address of the user which deposited on the root chain (Ethereum) and which is receiving the bpNORI.
    * @param depositData The ABI encoded deposit amount.
    */
   function deposit(address user, bytes calldata depositData)
@@ -29,9 +30,9 @@ contract BridgedPolygonNORI is ERC20Preset {
   }
 
   /**
-   * @notice Called when user wants to withdraw tokens back to root chain.
+   * @notice Withdraw bpNORI tokens from the child chain (Polygon) to the root chain (Ethereum) as NORI.
    * @dev Burns user's tokens on polygon. This transaction will be verified when exiting on root chain. See [here](
-   * https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more
+   * https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.
    * @param amount The amount of tokens to withdraw from polygon as NORI on layer one.
    */
   function withdraw(uint256 amount) external {
@@ -39,7 +40,7 @@ contract BridgedPolygonNORI is ERC20Preset {
   }
 
   /**
-   * @notice Initializes the BridgedPolygonNORI contract.
+   * @notice Initialize the BridgedPolygonNORI contract.
    */
   function initialize(address childChainManagerProxy) external initializer {
     __Context_init_unchained();
