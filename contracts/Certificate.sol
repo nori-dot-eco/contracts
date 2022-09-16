@@ -19,23 +19,20 @@ import "./AccessPresetPausable.sol";
  * tokens and balances that belong to each specific certificate id.
  *
  *
- * ###### Additional behaviors and features
+ * ##### Additional behaviors and features:
  *
  * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
  * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
- * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
- *   - all functions that mutate state are pausable
+ * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
+ * pausable
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- *    - CERTIFICATE_OPERATOR_ROLE
- *      - The only role that can transfer certificates after they are minted
- *    - PAUSER_ROLE
- *      - Can pause and unpause the contract
- *    - DEFAULT_ADMIN_ROLE
- *      - This is the only role that can add/revoke other accounts to any of the roles
- * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
- *   - A certificate is minted and internal accounting ties the certificate to the ERC1155 tokens upon receipt.
+ *    - `CERTIFICATE_OPERATOR_ROLE`: The only role that can transfer certificates after they are minted
+ *    - `PAUSER_ROLE`: Can pause and unpause the contract
+ *    - `DEFAULT_ADMIN_ROLE`: This is the only role that can add/revoke other accounts to any of the roles
+ * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver): A
+ * certificate is minted and internal accounting ties the certificate to the ERC1155 tokens upon receipt.
  *
- * ##### Inherits
+ * ##### Inherits:
  *
  * - [ERC721Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721)
  * - [ERC721Burnable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#ERC721Burnable)
@@ -46,7 +43,7 @@ import "./AccessPresetPausable.sol";
  * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
  * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
  *
- * ##### Implements
+ * ##### Implements:
  *
  * - [IERC721](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721)
  * - [IERC721Metadata](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721Metadata)
@@ -54,7 +51,7 @@ import "./AccessPresetPausable.sol";
  * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
  * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
  *
- * ##### Uses
+ * ##### Uses:
  *
  * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
  *   for EnumerableSetUpgradeable.UintSet

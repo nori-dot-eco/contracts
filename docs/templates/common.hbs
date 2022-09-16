@@ -6,10 +6,12 @@
 ```
 {{/if}}
 
+{{#if natspec.notice}}
 {{natspec.notice}}
+{{/if}}
 
 {{#if natspec.dev}}
-_{{natspec.dev}}_
+<i>{{natspec.dev}}</i>
 {{/if}}
 
 {{#if natspec.params}}

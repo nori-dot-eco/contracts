@@ -5,7 +5,6 @@
 
 
 
-
 ---
 
 ### _DEFAULT_EARLIEST_YEAR
@@ -13,7 +12,6 @@
 ```solidity
 uint256 _DEFAULT_EARLIEST_YEAR
 ```
-
 
 
 
@@ -29,7 +27,6 @@ uint256 _DEFAULT_LATEST_YEAR
 
 
 
-
 ### insert
 
 ```solidity
@@ -38,12 +35,12 @@ function insert(struct RemovalsByYear collection, uint256 removalId) internal
 
 Inserts a new removal into the collection.
 
-_The removal is added to the Enumerable Set that maps to the year of its year._
+<i>The removal is added to the Enumerable Set that maps to the year of its year.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage. |
-| removalId | uint256 | a new removal to insert. |
+| collection | struct RemovalsByYear | the collection from storage.  @param removalId a new removal to insert. |
+| removalId | uint256 |  |
 
 
 ### remove
@@ -54,12 +51,12 @@ function remove(struct RemovalsByYear collection, uint256 removalId) internal
 
 Removes a removal from the collection.
 
-_Removes the removal from the Enumerable Set that corresponds to its year._
+<i>Removes the removal from the Enumerable Set that corresponds to its year.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection to search through. |
-| removalId | uint256 | the removal to remove. |
+| collection | struct RemovalsByYear | the collection to search through.  @param removalId the removal to remove. |
+| removalId | uint256 |  |
 
 
 ### isEmpty
@@ -70,15 +67,12 @@ function isEmpty(struct RemovalsByYear collection) internal view returns (bool)
 
 Checks if the collection is empty across all years.
 
-_Uses the latestYear property to check if any years have been set._
+<i>Uses the latestYear property to check if any years have been set.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage. |
+| collection | struct RemovalsByYear | the collection from storage.  @return bool true if empty, false otherwise. |
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | bool true if empty, false otherwise. |
 
 ### isEmptyForYear
 
@@ -91,12 +85,9 @@ Checks if the collection is empty for a particular year.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage. |
-| year | uint256 | the year to check. |
+| collection | struct RemovalsByYear | the collection from storage.  @param year the year to check.  @return bool true if empty, false otherwise. |
+| year | uint256 |  |
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | bool true if empty, false otherwise. |
 
 ### getNextRemovalForSale
 
@@ -106,15 +97,12 @@ function getNextRemovalForSale(struct RemovalsByYear collection) internal view r
 
 Gets the next removal in the collection for sale.
 
-_Gets the first item from the Enumerable Set that corresponds to the earliest year._
+<i>Gets the first item from the Enumerable Set that corresponds to the earliest year.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage. |
+| collection | struct RemovalsByYear | the collection from storage.  @return uint256 the next removal to sell. |
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | uint256 the next removal to sell. |
 
 ### getCountForYear
 
@@ -124,16 +112,13 @@ function getCountForYear(struct RemovalsByYear collection, uint256 year) interna
 
 Gets the count of unique removal IDs for a particular year.
 
-_Gets the size of the Enumerable Set that corresponds to the given year._
+<i>Gets the size of the Enumerable Set that corresponds to the given year.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage. |
-| year | uint256 | the year to check. |
+| collection | struct RemovalsByYear | the collection from storage.  @param year the year to check.  @return uint256 the size of the collection. |
+| year | uint256 |  |
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | uint256 the size of the collection. |
 
 ### getAllRemovalIds
 
@@ -146,11 +131,8 @@ Gets all removal IDs belonging to all vintages for a collection.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| collection | struct RemovalsByYear | the collection from storage. |
+| collection | struct RemovalsByYear | the collection from storage.  @return removalIds an array of all removal IDs in the collection. |
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| removalIds | uint256[] | an array of all removal IDs in the collection. |
 
 
 

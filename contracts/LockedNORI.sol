@@ -765,7 +765,11 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
     return balance;
   }
 
-  function _beforeOperatorChange(address, uint256) internal pure override {
+  function _beforeOperatorChange(address operator, uint256 value)
+    internal
+    pure
+    override
+  {
     revert("lNORI: operator actions disabled");
   }
 

@@ -5,7 +5,6 @@
 
 
 
-
 ---
 
 ### constructor
@@ -18,13 +17,11 @@ constructor() public
 
 
 
-
 ### initialize
 
 ```solidity
 function initialize() external virtual
 ```
-
 
 
 

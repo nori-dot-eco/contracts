@@ -14,7 +14,7 @@ contract BridgedPolygonNORI is ERC20Preset {
   }
 
   /**
-   * @notice Deposit NORI on the root chain (Ethereum) to the child chain (Polygon) as bpNori.
+   * @notice Deposit NORI on the root chain (Ethereum) to the child chain (Polygon) as bpNORI.
    * @dev A deposit of NORI on the root chain (Ethereum) will trigger this function and mint bpNORI on the child chain
    * (Polygon). This function can only be called by the ChildChainManager. See [here](
    * https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.

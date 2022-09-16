@@ -269,15 +269,15 @@ contract Removal is
    *
    * @dev If `to` is the market address, the removals are listed for sale in the market.
    *
-   * @param to The supplier address or market address.
-   * @param amounts Each removal's additional tonnes of CO2 formatted.
-   * @param ids The removal IDs to add balance for.
-   *
    * ##### Requirements:
    * - Can only be used when the caller has the `CONSIGNOR_ROLE`
    * - Can only be used when this contract is not paused
    * - IDs must already have been minted via `mintBatch`.
    * - Enforces the rules of `Removal._beforeTokenTransfer`.
+   *
+   * @param to The supplier address or market address.
+   * @param amounts Each removal's additional tonnes of CO2 formatted.
+   * @param ids The removal IDs to add balance for.
    */
   function addBalance(
     address to,

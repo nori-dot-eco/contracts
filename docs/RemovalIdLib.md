@@ -2,17 +2,11 @@
 
 
 
-
-_Library encapsulating the logic around encoding and decoding removal token ids.
-
-The token IDs used for a given ERC1155 token in Removal encode information about the carbon removal in the following
-format(s), where the first byte encodes the format version:
-
-Version 0:
-[1byte][1byte][--2 bytes--][--2 bytes--][--2 bytes--][----------- 20 bytes------------- ][------4 bytes------]
-tokIdV--meth&amp;v---vintage------country------subdivision------------ supplier address --------------subidentifier--
-
-For methodology 1 (regenerative ag), the subidentifier serves as a parcel identifier._
+<i>Library encapsulating the logic around encoding and decoding removal token ids.  The token IDs used for a given ERC1155 token in Removal encode information about the carbon removal in the following  format(s), where the first byte encodes the format version:  Version 0:  [1byte][1byte][--2 bytes--][--2 bytes--][--2 bytes--][----------
+- 20 bytes------------
+- ][------4 bytes------]  tokIdV--meth&amp;v---vintage------country------subdivision-----------
+- supplier address --------------subidentifier-
+- For methodology 1 (regenerative ag), the subidentifier serves as a parcel identifier.</i>
 
 
 
@@ -28,13 +22,11 @@ function isCapitalized(bytes2 characters) internal pure returns (bool valid)
 
 
 
-
 ### validate
 
 ```solidity
 function validate(struct DecodedRemovalIdV0 removal) internal pure
 ```
-
 
 
 
@@ -48,7 +40,7 @@ function createRemovalId(struct DecodedRemovalIdV0 removal) internal pure return
 
 Packs data about a removal into a 256-bit token id for the removal.
 
-_Performs some possible validations on the data before attempting to create the id._
+<i>Performs some possible validations on the data before attempting to create the id.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -161,8 +153,7 @@ function _extractValue(uint256 removalId, uint256 numBytesFieldLength, uint256 n
 ```
 
 
-
-_Extracts a field of the specified length in bytes, at the specified location, from a removal id._
+<i>Extracts a field of the specified length in bytes, at the specified location, from a removal id.</i>
 
 
 
