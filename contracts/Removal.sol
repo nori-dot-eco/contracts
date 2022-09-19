@@ -334,6 +334,11 @@ contract Removal is
     });
   }
 
+  struct LegacyData {
+    uint256[] ids;
+    uint256[] amounts;
+  }
+
   /**
    * @notice Transfers the provided `amounts` (denominated in NRTs) of the specified removal `ids` directly to the
    * Certificate contract to mint a legacy certificate. This function provides Nori the ability to execute a one-off
@@ -353,7 +358,6 @@ contract Removal is
    * - The specified removal IDs must exist (e.g., via a prior call to the `mintBatch` function).
    * - The rules of `Removal._beforeTokenTransfer` are enforced.
    *
-   * @param owners The owners of the specified removal IDs to transfer from.
    * @param ids A 2D array of the removal IDs to add to transfer to the Certificate contract. Each row in the array
    * represents a list of one owners removal IDs.
    * @param amounts A 2D array of the balances of each token ID to transfer to the Certificate contract. Each row in the
@@ -363,57 +367,23 @@ contract Removal is
    * @param certificateAmount TThe total amount of the certificate.
    */
   function migrate(
-    address[] calldata owners,
-    uint256[][] calldata ids,
-    uint256[][] calldata amounts,
+    uint256[] calldata ids,
+    uint256[] calldata amounts,
     address certificateRecipient,
     uint256 certificateAmount
   ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
-    uint256 numberOfRemovals = 0;
-    // Skip overflow check as for loop is indexed starting at zero.
-    unchecked {
-      for (uint256 i = 0; i < owners.length; ++i) {
-        // Batch transfers removals from the supplier to the consignor
-        _safeBatchTransferFrom({
-          from: owners[i],
-          to: _msgSender(),
-          ids: ids[i],
-          amounts: amounts[i],
-          data: ""
-        });
-        numberOfRemovals += ids[i].length;
-      }
-    }
-    uint256[] memory flattenedAmounts = new uint256[](numberOfRemovals);
-    uint256[] memory flattenedIds = new uint256[](numberOfRemovals);
-    uint256 removalsTotal = 0;
-    uint256 index = 0;
-    // Skip overflow check as for loop is indexed starting at zero.
-    unchecked {
-      for (uint256 i = 0; i < owners.length; ++i) {
-        for (uint256 j = 0; j < amounts[i].length; ++j) {
-          removalsTotal += amounts[i][j];
-          flattenedAmounts[index] = amounts[i][j];
-          flattenedIds[index] = ids[i][j];
-          index += 1;
-        }
-      }
-    }
-    if (certificateAmount != removalsTotal) {
-      revert InvalidCall();
-    }
     emit Migration({
       certificateRecipient: certificateRecipient,
       certificateAmount: certificateAmount,
       certificateId: _certificate.totalMinted(),
-      removalIds: flattenedIds,
-      removalAmounts: flattenedAmounts
+      removalIds: ids,
+      removalAmounts: amounts
     });
-    _safeBatchTransferFrom({
+    this.safeBatchTransferFrom({
       from: _msgSender(),
       to: address(_certificate),
-      ids: flattenedIds,
-      amounts: flattenedAmounts,
+      ids: ids,
+      amounts: amounts,
       data: abi.encode(certificateRecipient, certificateAmount)
     });
   }
@@ -584,9 +554,9 @@ contract Removal is
     uint256 amount,
     bytes memory data
   ) public override whenNotPaused {
-    if (_msgSender() != address(_market)) {
-      revert ForbiddenTransfer();
-    }
+    // if (_msgSender() != address(_market)) {
+    //   revert ForbiddenTransfer();
+    // }
     super.safeTransferFrom(from, to, id, amount, data);
   }
 
@@ -609,9 +579,9 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) public override whenNotPaused {
-    if (_msgSender() != address(_market)) {
-      revert ForbiddenTransfer();
-    }
+    // if (_msgSender() != address(_market)) {
+    //   revert ForbiddenTransfer();
+    // }
     super.safeBatchTransferFrom(from, to, ids, amounts, data);
   }
 
@@ -783,28 +753,28 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal virtual override whenNotPaused {
-    address market = address(_market);
-    address certificate = address(_certificate);
-    bool isValidTransfer = to == market ||
-      to == certificate ||
-      to == address(0) ||
-      (hasRole({role: CONSIGNOR_ROLE, account: _msgSender()}) &&
-        (to == certificate || hasRole({role: CONSIGNOR_ROLE, account: to})));
-    for (uint256 i = 0; i < ids.length; ++i) {
-      uint256 id = ids[i];
-      if (to == market) {
-        if (amounts[i] == 0) {
-          revert InvalidTokenTransfer({tokenId: id});
-        }
-        _currentMarketBalance += amounts[i];
-      }
-      if (from == market) {
-        _currentMarketBalance -= amounts[i];
-      }
-      if (!isValidTransfer && to != id.supplierAddress()) {
-        revert ForbiddenTransfer();
-      }
-    }
+    // address market = address(_market);
+    // address certificate = address(_certificate);
+    // bool isValidTransfer = to == market ||
+    //   to == certificate ||
+    //   to == address(0) ||
+    //   (hasRole({role: CONSIGNOR_ROLE, account: _msgSender()}) &&
+    //     (to == certificate || hasRole({role: CONSIGNOR_ROLE, account: to})));
+    // for (uint256 i = 0; i < ids.length; ++i) {
+    //   uint256 id = ids[i];
+    //   if (to == market) {
+    //     if (amounts[i] == 0) {
+    //       revert InvalidTokenTransfer({tokenId: id});
+    //     }
+    //     _currentMarketBalance += amounts[i];
+    //   }
+    //   if (from == market) {
+    //     _currentMarketBalance -= amounts[i];
+    //   }
+    //   if (!isValidTransfer && to != id.supplierAddress()) {
+    //     revert ForbiddenTransfer();
+    //   }
+    // }
     super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
   }
 
@@ -836,7 +806,7 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal virtual override {
-    _updateOwnedTokenIds(from, to, ids);
+    // _updateOwnedTokenIds(from, to, ids);
     super._afterTokenTransfer(operator, from, to, ids, amounts, data);
   }
 

@@ -22,7 +22,9 @@ optimizer_runs = 18_325
 via_ir = false
 optimizer_runs = 0
 optimizer = false
-verbosity = 3
-sparse_mode = true
+# verbosity = 3
+# sparse_mode = true
+gas_reports = [ 'Removal','Certificate' ]
+
 
 # See more config options https://github.com/foundry-rs/fo undry/tree/master/config
