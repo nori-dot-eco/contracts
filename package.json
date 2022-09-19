@@ -83,7 +83,7 @@
   "scripts": {
     "test": "yarn run test:hardhat && yarn run test:forge",
     "test:hardhat": "hardhat test",
-    "test:forge": "forge test",
+    "test:forge": "FOUNDRY_PROFILE=test forge test",
     "test:gas": "REPORT_GAS=true hardhat test --deploy-fixture",
     "test:coverage": "CI=true hardhat coverage --solcoverjs ./.solcover.js",
     "test:unsafe": "TS_NODE_TRANSPILE_ONLY=1 yarn test:unoptimized --no-compile",

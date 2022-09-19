@@ -2,7 +2,7 @@
 pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
+import {AddressArrayLib} from "./ArrayLib.sol";
 import "./Market.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
 import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
@@ -107,7 +107,6 @@ contract Removal is
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using RemovalIdLib for uint256;
-  using UInt256ArrayLib for uint256[]; // todo needed?
 
   /**
    * @notice Role conferring the ability to mint removals as well as the ability to list minted removals that have yet
@@ -349,15 +348,15 @@ contract Removal is
    * certificate every time an additional batch is received.
    *
    * ##### Requirements:
-   * - Can only be used when the caller has the `CONSIGNOR_ROLE`
-   * - Can only be used when this contract is not paused
-   * - IDs must already have been minted via `mintBatch`.
-   * - Enforces the rules of `Removal._beforeTokenTransfer`.
+   * - The caller must have the `CONSIGNOR_ROLE` role.
+   * - The contract must not be paused.
+   * - The specified removal IDs must exist (e.g., via a prior call to the `mintBatch` function).
+   * - The rules of `Removal._beforeTokenTransfer` are enforced.
    *
    * @param owners The owners of the specified removal IDs to transfer from.
-   * @param ids 2D array of the removal IDs to add to transfer to the Certificate contract. Each row in the array
+   * @param ids A 2D array of the removal IDs to add to transfer to the Certificate contract. Each row in the array
    * represents a list of one owners removal IDs.
-   * @param amounts 2D array of the balances of each token ID to transfer to the Certificate contract. Each row in the
+   * @param amounts A 2D array of the balances of each token ID to transfer to the Certificate contract. Each row in the
    * array represents a list of one owner's removal amounts, each of which corresponds to the same row and column
    * defined in `ids`.
    * @param certificateRecipient The recipient of the certificate to be minted.
