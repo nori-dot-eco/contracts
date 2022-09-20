@@ -470,19 +470,25 @@ contract Certificate is
   function _receiveRemovalBatch(
     address recipient,
     uint256 certificateAmount,
-    uint256[] memory removalIds,
-    uint256[] memory removalAmounts
+    uint256[] calldata removalIds,
+    uint256[] calldata removalAmounts
   ) internal {
     _validateReceivedRemovalBatch(removalIds, removalAmounts);
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
     _mint(recipient, 1);
-    for (uint256 i = 0; i < removalIds.length; ++i) {
-      _removalBalancesOfCertificate[certificateId][
-        removalIds[i]
-      ] += removalAmounts[i];
-      _removalsOfCertificate[certificateId].add(removalIds[i]);
-      _certificatesOfRemoval[removalIds[i]].add(certificateId);
+    mapping(uint256 => uint256)
+      storage certificatesRemovalBalances = _removalBalancesOfCertificate[
+        certificateId
+      ];
+    EnumerableSetUpgradeable.UintSet
+      storage certificatesRemovals = _removalsOfCertificate[certificateId];
+    uint256 countOfRemovals = removalIds.length;
+    for (uint256 i = 0; i < countOfRemovals; ++i) {
+      uint256 removalId = removalIds[i];
+      certificatesRemovalBalances[removalId] += removalAmounts[i];
+      certificatesRemovals.add(removalId);
+      _certificatesOfRemoval[removalId].add(certificateId);
     }
     emit ReceiveRemovalBatch(
       _msgSender(),

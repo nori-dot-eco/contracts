@@ -181,7 +181,7 @@ contract Removal is
    * @param removalIds The removal IDs to use to mint the certificate via migration.
    * @param removalAmounts The amounts for each corresponding removal ID to use to mint the certificate via migration.
    */
-  event Migration(
+  event Migrate(
     address indexed certificateRecipient,
     uint256 indexed certificateAmount,
     uint256 indexed certificateId,
@@ -334,11 +334,6 @@ contract Removal is
     });
   }
 
-  struct LegacyData {
-    uint256[] ids;
-    uint256[] amounts;
-  }
-
   /**
    * @notice Transfers the provided `amounts` (denominated in NRTs) of the specified removal `ids` directly to the
    * Certificate contract to mint a legacy certificate. This function provides Nori the ability to execute a one-off
@@ -346,11 +341,15 @@ contract Removal is
    * our deployment to Polygon and covers all historic issuances and purchases up until the date that we start using the
    * Market contract).
    *
-   * @dev The Certificate contract implements `onERC1155BatchReceived`, which is invoked upon receipt of any removals.
-   * This function circumvents the market contract's lifecycle by transferring the removals from the supplier accounts
-   * to a single account that has the consignor role-- this is necessary because
-   * `_safeBatchTransferFrom` only accepts one `from` address and `Certificate.onERC1155BatchReceived` will mint a *new*
-   * certificate every time an additional batch is received.
+   * @dev The Certificate contract implements `onERC1155BatchReceived`, which is invoked upon receipt of a batch of
+   * removals (triggered via `_safeBatchTransferFrom`). This function circumvents the market contract's lifecycle by
+   * transferring the removals from an account with the `CONSIGNOR_ROLE` role.
+   *
+   * It is necessary that the consignor holds the removals because of the following:
+   * - `ids` can be composed of a list of removal IDs that belong to one or more suppliers.
+   * - `_safeBatchTransferFrom` only accepts one `from` address.
+   * - `Certificate.onERC1155BatchReceived` will mint a *new* certificate every time an additional batch is received so
+   * we must ensure that all the removals comprising the certificate to be migrated come from a single batch.
    *
    * ##### Requirements:
    * - The caller must have the `CONSIGNOR_ROLE` role.
@@ -358,11 +357,10 @@ contract Removal is
    * - The specified removal IDs must exist (e.g., via a prior call to the `mintBatch` function).
    * - The rules of `Removal._beforeTokenTransfer` are enforced.
    *
-   * @param ids A 2D array of the removal IDs to add to transfer to the Certificate contract. Each row in the array
-   * represents a list of one owners removal IDs.
-   * @param amounts A 2D array of the balances of each token ID to transfer to the Certificate contract. Each row in the
-   * array represents a list of one owner's removal amounts, each of which corresponds to the same row and column
-   * defined in `ids`.
+   * @param ids An array of the removal IDs to add to transfer to the Certificate contract. This array can contain IDs
+   * of removals that belong to one or more supplier address (designated in the encoding of the removal ID).
+   * @param amounts An array of the removal amounts to add to transfer to the Certificate contract. Each amount in this
+   * array corresponds to the removal ID with the same index in the `ids` parameter.
    * @param certificateRecipient The recipient of the certificate to be minted.
    * @param certificateAmount TThe total amount of the certificate.
    */
@@ -372,14 +370,14 @@ contract Removal is
     address certificateRecipient,
     uint256 certificateAmount
   ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
-    emit Migration({
+    emit Migrate({
       certificateRecipient: certificateRecipient,
       certificateAmount: certificateAmount,
       certificateId: _certificate.totalMinted(),
       removalIds: ids,
       removalAmounts: amounts
     });
-    this.safeBatchTransferFrom({
+    _safeBatchTransferFrom({
       from: _msgSender(),
       to: address(_certificate),
       ids: ids,
@@ -753,29 +751,37 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal virtual override whenNotPaused {
-    // address market = address(_market);
-    // address certificate = address(_certificate);
-    // bool isValidTransfer = to == market ||
-    //   to == certificate ||
-    //   to == address(0) ||
-    //   (hasRole({role: CONSIGNOR_ROLE, account: _msgSender()}) &&
-    //     (to == certificate || hasRole({role: CONSIGNOR_ROLE, account: to})));
-    // for (uint256 i = 0; i < ids.length; ++i) {
-    //   uint256 id = ids[i];
-    //   if (to == market) {
-    //     if (amounts[i] == 0) {
-    //       revert InvalidTokenTransfer({tokenId: id});
-    //     }
-    //     _currentMarketBalance += amounts[i];
-    //   }
-    //   if (from == market) {
-    //     _currentMarketBalance -= amounts[i];
-    //   }
-    //   if (!isValidTransfer && to != id.supplierAddress()) {
-    //     revert ForbiddenTransfer();
-    //   }
-    // }
-    super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+    address market = address(_market);
+    address certificate = address(_certificate);
+    bool isValidTransfer = to == market ||
+      to == certificate ||
+      to == address(0) ||
+      (hasRole({role: CONSIGNOR_ROLE, account: _msgSender()}) &&
+        (to == certificate || hasRole({role: CONSIGNOR_ROLE, account: to})));
+    // Skip overflow check as for loop is indexed starting at zero.
+    for (uint256 i = 0; i < ids.length; ++i) {
+      uint256 id = ids[i];
+      if (to == market) {
+        if (amounts[i] == 0) {
+          revert InvalidTokenTransfer({tokenId: id});
+        }
+        _currentMarketBalance += amounts[i];
+      }
+      if (from == market) {
+        _currentMarketBalance -= amounts[i];
+      }
+      if (!isValidTransfer && to != id.supplierAddress()) {
+        revert ForbiddenTransfer();
+      }
+    }
+    super._beforeTokenTransfer({
+      operator: operator,
+      from: from,
+      to: to,
+      ids: ids,
+      amounts: amounts,
+      data: data
+    });
   }
 
   /**
@@ -806,8 +812,15 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal virtual override {
-    // _updateOwnedTokenIds(from, to, ids);
-    super._afterTokenTransfer(operator, from, to, ids, amounts, data);
+    _updateOwnedTokenIds({from: from, to: to, ids: ids});
+    super._afterTokenTransfer({
+      operator: operator,
+      from: from,
+      to: to,
+      ids: ids,
+      amounts: amounts,
+      data: data
+    });
   }
 
   /**
@@ -823,17 +836,21 @@ contract Removal is
     address to,
     uint256[] memory ids
   ) internal {
+    EnumerableSetUpgradeable.UintSet
+      storage receiversOwnedRemovalIds = _addressToOwnedTokenIds[to];
+    EnumerableSetUpgradeable.UintSet
+      storage sendersOwnedRemovalIds = _addressToOwnedTokenIds[from];
     // Skip overflow check as for loop is indexed starting at zero.
     unchecked {
       for (uint256 i = 0; i < ids.length; ++i) {
         uint256 id = ids[i];
         if (from != address(0)) {
-          if (balanceOf(from, id) == 0) {
-            _addressToOwnedTokenIds[from].remove(id);
+          if (balanceOf({account: from, id: id}) == 0) {
+            sendersOwnedRemovalIds.remove({value: id});
           }
         }
         if (to != address(0)) {
-          _addressToOwnedTokenIds[to].add(id);
+          receiversOwnedRemovalIds.add({value: id});
         }
       }
     }

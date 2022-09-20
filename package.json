@@ -66,7 +66,8 @@
     "tsconfig-paths": "^3.12.0",
     "typechain": "^8.1.0",
     "typescript": "^4.6.2",
-    "yup": "1.0.0-beta.3"
+    "yup": "1.0.0-beta.3",
+    "hardhat-contract-sizer": "^2.6.1"
   },
   "resolutions": {
     "@openzeppelin/**/@openzeppelin/upgrades-core": "^1.14.1",
@@ -94,8 +95,5 @@
     "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
     "deploy": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat deploy",
     "node:verbose": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat node"
-  },
-  "dependencies": {
-    "hardhat-contract-sizer": "^2.6.1"
   }
 }
