@@ -552,9 +552,9 @@ contract Removal is
     uint256 amount,
     bytes memory data
   ) public override whenNotPaused {
-    // if (_msgSender() != address(_market)) {
-    //   revert ForbiddenTransfer();
-    // }
+    if (_msgSender() != address(_market)) {
+      revert ForbiddenTransfer();
+    }
     super.safeTransferFrom(from, to, id, amount, data);
   }
 
@@ -577,9 +577,9 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) public override whenNotPaused {
-    // if (_msgSender() != address(_market)) {
-    //   revert ForbiddenTransfer();
-    // }
+    if (_msgSender() != address(_market)) {
+      revert ForbiddenTransfer();
+    }
     super.safeBatchTransferFrom(from, to, ids, amounts, data);
   }
 
@@ -758,7 +758,6 @@ contract Removal is
       to == address(0) ||
       (hasRole({role: CONSIGNOR_ROLE, account: _msgSender()}) &&
         (to == certificate || hasRole({role: CONSIGNOR_ROLE, account: to})));
-    // Skip overflow check as for loop is indexed starting at zero.
     for (uint256 i = 0; i < ids.length; ++i) {
       uint256 id = ids[i];
       if (to == market) {
