@@ -49,10 +49,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
-    assertEq(
-      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
-      0
-    );
+    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -75,7 +72,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
     assertEq(
-      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
+      _removal.balanceOf(address(_certificate), _removalIds[0]),
       certificateAmount
     );
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
@@ -124,10 +121,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
     );
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
-    assertEq(
-      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
-      0
-    );
+    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
   }
 
   function test() external {
@@ -151,21 +145,21 @@ contract Checkout_buyingFromTenRemovals is Checkout {
       "Expected the certificate to own the removals"
     );
     assertEq(
-      _certificate.removalsOfCertificate(0).length,
+      _removal.numberOfTokensOwnedByAddress(address(_certificate)),
       _removalIds.length,
       "Expected the number removals held by the certificate to be equal to the number of removal IDs"
     );
     for (uint256 i = 0; i < 10; i++) {
       assertContains(
         _removalIds,
-        _certificate.removalsOfCertificate(0)[i].id,
+        _removal.getOwnedTokenIds(address(_certificate))[i],
         "Expected the certificate to hold the removal"
       );
     }
     assertEq(
-      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
-      _expectedCertificateAmount / _removalIds.length,
-      "Removal balance is wrong"
+      _certificate.purchaseAmount(_certificateTokenId),
+      _expectedCertificateAmount,
+      "Certificate balance is wrong"
     );
     assertEq(
       _certificate.ownerOf(_certificateTokenId),
@@ -217,9 +211,11 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
     );
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
+    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
     assertEq(
-      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
-      0
+      _certificate.purchaseAmount(_certificateTokenId),
+      _expectedCertificateAmount,
+      "Certificate balance is wrong"
     );
   }
 
@@ -245,21 +241,21 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
       "Expected the certificate to own the removals"
     );
     assertEq(
-      _certificate.removalsOfCertificate(0).length,
+      _removal.numberOfTokensOwnedByAddress(address(_certificate)),
       _removalIds.length,
       "Expected the number removals held by the certificate to be equal to the number of removal IDs"
     );
     for (uint256 i = 0; i < 10; i++) {
       assertContains(
         _removalIds,
-        _certificate.removalsOfCertificate(0)[i].id,
+        _removal.getOwnedTokenIds(address(_certificate))[i],
         "Expected the certificate to hold the removal"
       );
     }
     assertEq(
-      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
-      _expectedCertificateAmount / _removalIds.length,
-      "Removal balance is wrong"
+      _certificate.purchaseAmount(_certificateTokenId),
+      _expectedCertificateAmount,
+      "Certificate balance is wrong"
     );
     assertEq(
       _certificate.ownerOf(_certificateTokenId),
@@ -315,8 +311,9 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(
-      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
-      0
+      _certificate.purchaseAmount(_certificateTokenId),
+      _expectedCertificateAmount,
+      "Certificate balance is wrong"
     );
   }
 
@@ -341,21 +338,21 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
       "Expected the certificate to own the removals"
     );
     assertEq(
-      _certificate.removalsOfCertificate(0).length,
+      _removal.numberOfTokensOwnedByAddress(address(_certificate)),
       _removalIds.length,
       "Expected the number removals held by the certificate to be equal to the number of removal IDs"
     );
     for (uint256 i = 0; i < 10; i++) {
       assertContains(
         _removalIds,
-        _certificate.removalsOfCertificate(0)[i].id,
+        _removal.getOwnedTokenIds(address(_certificate))[i],
         "Expected the certificate to hold the removal"
       );
     }
     assertEq(
-      _certificate.balanceOfRemoval(_certificateTokenId, _removalIds[0]),
-      _expectedCertificateAmount / _removalIds.length,
-      "Removal balance is wrong"
+      _certificate.purchaseAmount(_certificateTokenId),
+      _expectedCertificateAmount,
+      "Certificate balance is wrong"
     );
     assertEq(
       _certificate.ownerOf(_certificateTokenId),

@@ -37,14 +37,16 @@ import "./AccessPresetPausable.sol";
  *
  * ##### Inherits
  *
- * - [ERC721Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721)
- * - [ERC721Burnable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#ERC721Burnable)
+ * - [ERC721AUpgradeable](https://github.com/chiru-labs/ERC721A/blob/v4.2.3/contracts/ERC721A.sol)
+ * - [ERC721ABurnableUpgradeable](
+ * https://github.com/chiru-labs/ERC721A/blob/v4.2.3/contracts/extensions/ERC721ABurnable.sol)
  * - [MulticallUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Multicall)
  * - [PausableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
  * - [AccessControlEnumerableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/access)
  * - [ContextUpgradeable](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable)
  * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
  * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
+ * - [AccessPresetPausable](../docs/AccessPresetPausable.md)
  *
  * ##### Implements
  *
@@ -54,12 +56,6 @@ import "./AccessPresetPausable.sol";
  * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
  * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
  *
- * ##### Uses
- *
- * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
- *   for EnumerableSetUpgradeable.UintSet
- * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
- *
  */
 contract Certificate is
   ERC721ABurnableUpgradeable,
@@ -67,16 +63,6 @@ contract Certificate is
   MulticallUpgradeable,
   AccessPresetPausable
 {
-  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-
-  /**
-   * @notice The amount of balance and the removal ID that was used for a certificate.
-   */
-  struct Balance {
-    uint256 id;
-    uint256 amount;
-  }
-
   /**
    * @notice Role conferring operator permissions.
    *
@@ -85,29 +71,10 @@ contract Certificate is
    */
   bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
     keccak256("CERTIFICATE_OPERATOR_ROLE");
-
-  /**
-   * @notice Keeps track of the balances for each removal of a certificate.
-   */
-  mapping(uint256 => mapping(uint256 => uint256))
-    private _removalBalancesOfCertificate;
-
   /**
    * @notice Keeps track of the original purchase amount for a certificate.
    */
   mapping(uint256 => uint256) private _purchaseAmounts;
-
-  /**
-   * @notice Keeps track of the removals used for a given certificate.
-   */
-  mapping(uint256 => EnumerableSetUpgradeable.UintSet)
-    private _removalsOfCertificate;
-
-  /**
-   * @notice Keeps track of the certificates created from a given removal.
-   */
-  mapping(uint256 => EnumerableSetUpgradeable.UintSet)
-    private _certificatesOfRemoval;
 
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
@@ -133,18 +100,6 @@ contract Certificate is
     uint256 indexed certificateId,
     uint256[] removalIds,
     uint256[] removalAmounts
-  );
-
-  /**
-   * @notice Emitted when a removal is released from a Certificate.
-   * @param certificatedId The certificate to connected to the removal.
-   * @param removalId The removal to update the balance for.
-   * @param amount The amount removed from the certificate.
-   */
-  event RemovalReleased(
-    uint256 indexed certificatedId,
-    uint256 indexed removalId,
-    uint256 amount
   );
 
   /**
@@ -201,41 +156,7 @@ contract Certificate is
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     _removal = removal;
-    emit ContractAddressesRegistered(removal);
-  }
-
-  /**
-   * @notice Removes `amount` of this `removalId` from the specified `certificateId` in the internal accounting
-   * that keeps track of which removals belong to a given certificate.
-   *
-   * @dev This function can only ever be called by the Removal contract, and should be called in the course of
-   * executing Removal.release. Burning the corresponding removal balance from the Certificate contract happens
-   * in Removal.release.
-   *
-   * Emits a `RemovalReleased` event.
-   *
-   * ##### Requirements:
-   * - Can only be called by the Removal contract.
-   * - Can only be used when contract is not paused.
-   *
-   * @param certificateId The id of the certificate from which this removal is being released.
-   * @param removalId The removal token to release.
-   * @param amount The balance of the removal token to release.
-   */
-  function releaseRemoval(
-    uint256 certificateId,
-    uint256 removalId,
-    uint256 amount
-  ) external whenNotPaused {
-    if (_msgSender() != address(_removal)) {
-      revert SenderNotRemovalContract();
-    }
-    _removalBalancesOfCertificate[certificateId][removalId] -= amount;
-    if (_removalBalancesOfCertificate[certificateId][removalId] == 0) {
-      _removalsOfCertificate[certificateId].remove(removalId);
-      _certificatesOfRemoval[removalId].remove(certificateId);
-    }
-    emit RemovalReleased(certificateId, removalId, amount);
+    emit ContractAddressesRegistered({removal: removal});
   }
 
   /**
@@ -277,21 +198,6 @@ contract Certificate is
   }
 
   /**
-   * @notice Returns the balance of a removal token underlying a certificate.
-   *
-   * @param certificateTokenId The certificate token to retrieve the balance for.
-   * @param removalTokenId The removal token for which to retrieve the balance for this certificate.
-   * @return balance The balance of a removal used for this certificate.
-   */
-  function balanceOfRemoval(uint256 certificateTokenId, uint256 removalTokenId)
-    external
-    view
-    returns (uint256)
-  {
-    return _removalBalancesOfCertificate[certificateTokenId][removalTokenId];
-  }
-
-  /**
    * @notice Returns the address of the `Removal` contract.
    *
    * @return removalAddress address of the `Removal` contract.
@@ -324,63 +230,6 @@ contract Certificate is
     returns (uint256)
   {
     return _purchaseAmounts[certificateId];
-  }
-
-  /**
-   * @notice Returns the list of removal IDs that comprise the given certificate ID.
-   *
-   * @param certificateId The certificate ID for which to retrieve underlying removal IDs.
-   * @return removals The removals comprising the certificate.
-   */
-  function removalsOfCertificate(uint256 certificateId)
-    external
-    view
-    returns (Balance[] memory)
-  {
-    EnumerableSetUpgradeable.UintSet
-      storage removalIds = _removalsOfCertificate[certificateId];
-    uint256 numberOfRemovals = removalIds.length();
-    Balance[] memory removals = new Balance[](numberOfRemovals);
-    // Skip overflow check as for loop is indexed starting at zero.
-    unchecked {
-      for (uint256 i = 0; i < numberOfRemovals; ++i) {
-        uint256 removalId = removalIds.at(i);
-        removals[i] = Balance({
-          id: removalId,
-          amount: _removalBalancesOfCertificate[certificateId][removalId]
-        });
-      }
-    }
-    return removals;
-  }
-
-  /**
-   * @notice Returns the list of certificate IDs the given removal ID has been included in, and the balance included
-   * in each certificate.
-   *
-   * @param removalId The removal token ID for which to retrieve all relevant certificate IDs and balances.
-   * @return certificates An array of Balance structs, each of which includes an `id` and `amount`.
-   */
-  function certificatesOfRemoval(uint256 removalId)
-    external
-    view
-    returns (Balance[] memory)
-  {
-    EnumerableSetUpgradeable.UintSet
-      storage certificateIds = _certificatesOfRemoval[removalId];
-    uint256 numberOfCertificates = certificateIds.length();
-    Balance[] memory certificates = new Balance[](numberOfCertificates);
-    // Skip overflow check as for loop is indexed starting at zero.
-    unchecked {
-      for (uint256 i = 0; i < numberOfCertificates; ++i) {
-        uint256 certificateId = certificateIds.at(i);
-        certificates[i] = Balance({
-          id: certificateId,
-          amount: _removalBalancesOfCertificate[certificateId][removalId]
-        });
-      }
-    }
-    return certificates;
   }
 
   /**
@@ -477,19 +326,6 @@ contract Certificate is
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
     _mint(recipient, 1);
-    mapping(uint256 => uint256)
-      storage certificatesRemovalBalances = _removalBalancesOfCertificate[
-        certificateId
-      ];
-    EnumerableSetUpgradeable.UintSet
-      storage certificatesRemovals = _removalsOfCertificate[certificateId];
-    uint256 countOfRemovals = removalIds.length;
-    for (uint256 i = 0; i < countOfRemovals; ++i) {
-      uint256 removalId = removalIds[i];
-      certificatesRemovalBalances[removalId] += removalAmounts[i];
-      certificatesRemovals.add(removalId);
-      _certificatesOfRemoval[removalId].add(certificateId);
-    }
     emit ReceiveRemovalBatch(
       _msgSender(),
       recipient,

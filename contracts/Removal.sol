@@ -393,8 +393,6 @@ contract Removal is
    * @dev Releases `amount` of removal `id` by burning it. The replacement of released removals that had
    * already been included in certificates is beyond the scope of this version of the contracts.
    *
-   * If a removal is used across a large number of certificates it may run into gas limits.
-   *
    * ##### Requirements:
    *
    * - Releasing burns first from unlisted balances, second from listed balances and third from certificates.
@@ -403,10 +401,7 @@ contract Removal is
    * - If the released amount has not yet been fully burned and the removal is listed, it is delisted from the market
    * and up to any remaining released amount is burned from the Market's balance.
    * - Finally, if the released amount is still not fully accounted for, the removal must be owned by one or more
-   * certificates. The remaining released amount is burned from the Certificate contract's balance and certificate
-   * balances are decremented iteratively across each certificate until the amount is exhausted (e.g., if a removal
-   * of amount 3 releases an amount of 2.5 and that removal is owned by 3 certificates containing an amount of 1 each
-   * from the released removal, the resulting certificate's removal balances for this removal are: 0, 0, and 0.5).
+   * certificates. The remaining released amount is burned from the Certificate contract's balance.
    * - The caller must have the `RELEASER_ROLE`.
    * - The rules of `_burn` are enforced.
    * - Can only be used when the contract is not paused.
@@ -689,44 +684,17 @@ contract Removal is
   }
 
   /**
-   * @notice Burns `amount` of token ID `id` from the Certificate's balance. Updates the internal accounting in
-   * Certificate that maps removal IDs and amounts to the certificates in which they were included by iteratively
-   * releasing from affected certificates (`Certificate.releaseRemoval`) until `amount` removals have been released.
+   * @notice Burns `amount` of token ID `id` from the Certificate's balance.
    *
-   * Emits a `RemovalReleased` event.
+   * @dev Emits a `RemovalReleased` event.
    *
-   * @param id The token ID to burn.
+   * @param id The removal ID to burn.
    * @param amount The amount to burn.
    */
   function _releaseFromCertificate(uint256 id, uint256 amount) internal {
-    uint256 amountReleased = 0;
-    Certificate.Balance[] memory certificatesOfRemoval = _certificate
-      .certificatesOfRemoval(id);
-    uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
-    for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
-      Certificate.Balance memory certificateBalance = certificatesOfRemoval[i];
-      uint256 amountToReleaseFromCertificate = MathUpgradeable.min(
-        amount - amountReleased,
-        certificateBalance.amount
-      );
-      amountReleased += amountToReleaseFromCertificate;
-      super._burn(
-        this.certificateAddress(),
-        id,
-        amountToReleaseFromCertificate
-      );
-      _certificate.releaseRemoval({
-        certificateId: certificateBalance.id,
-        removalId: id,
-        amount: amountToReleaseFromCertificate
-      });
-      emit RemovalReleased(
-        id,
-        this.certificateAddress(),
-        amountToReleaseFromCertificate
-      );
-      if (amountReleased == amount) break;
-    }
+    address certificateAddress_ = this.certificateAddress();
+    super._burn(certificateAddress_, id, amount);
+    emit RemovalReleased(id, certificateAddress_, amount);
   }
 
   /**

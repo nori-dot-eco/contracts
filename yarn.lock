@@ -6473,10 +6473,10 @@ env-paths@^2.2.0, env-paths@^2.2.1:
   resolved "https://registry.yarnpkg.com/env-paths/-/env-paths-2.2.1.tgz#420399d416ce1fbe9bc0a07c62fa68d67fd0f8f2"
   integrity sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==
 
-erc721a-upgradeable@4.2.1:
-  version "4.2.1"
-  resolved "https://registry.yarnpkg.com/erc721a-upgradeable/-/erc721a-upgradeable-4.2.1.tgz#e6b1ee93e8cce52c3a51bbc3be648cae80343da5"
-  integrity sha512-jMrHD3T2QarU5Pxj0hUZR/rpCSdcYA05P7da/tjsVKOCjDMgKkbTqA9PmTUM7kvcfbG0h9vxbqINzN7Ip01S0w==
+erc721a-upgradeable@4.2.2:
+  version "4.2.2"
+  resolved "https://registry.yarnpkg.com/erc721a-upgradeable/-/erc721a-upgradeable-4.2.2.tgz#667c4d30ab1e6bbb5c9cd4909eaf75c8d308938e"
+  integrity sha512-STEkDBS3aVUXTog+044rvh8BqNfIbytkzgp8k11cXvK0WVbT1ssi56aFmOv2FKm25pHVlHZYBLKq6nE+HklB9g==
 
 errno@^0.1.3, errno@~0.1.1:
   version "0.1.8"
