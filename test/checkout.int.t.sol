@@ -214,7 +214,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
     assertEq(
       _certificate.purchaseAmount(_certificateTokenId),
-      _expectedCertificateAmount,
+      0,
       "Certificate balance is wrong"
     );
   }
@@ -312,7 +312,7 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(
       _certificate.purchaseAmount(_certificateTokenId),
-      _expectedCertificateAmount,
+      0,
       "Certificate balance is wrong"
     );
   }

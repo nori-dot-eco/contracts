@@ -704,7 +704,6 @@ contract Removal_release_retired is UpgradeableMarket {
   function test() external {
     _removal.release(_removalIds[0], 1 ether);
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
-    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
     assertEq(_removal.totalSupply(_removalIds[0]), 0);
     assertEq(_removal.exists(_removalIds[0]), false);
   }
@@ -747,11 +746,11 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
         signedPermit.r,
         signedPermit.s
       );
-      assertEq(
-        _removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE),
-        1 ether
-      );
     }
+    assertEq(
+      _removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE),
+      100 ether
+    );
   }
 
   function test() external {
