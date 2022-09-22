@@ -10,7 +10,7 @@ import type {
   TransactionRequest,
   TransactionResponse,
 } from '@ethersproject/providers';
-import type { UnsignedTransaction } from 'ethers/lib/utils';
+import { UnsignedTransaction, _TypedDataEncoder } from 'ethers/lib/utils';
 import {
   resolveProperties,
   Logger,
@@ -106,7 +106,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
    * @returns Message signature.
    */
   async _signMessage(message: Bytes): Promise<string> {
-    const txInfo = await this._bridge.sendRawTransaction(
+    const txInfo = await this._bridge.sendRawSigningRequest(
       keccak256(message).slice(2),
       this.memo
     );
@@ -116,7 +116,9 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     );
     if (txDetail.status !== TransactionStatus.COMPLETED) {
       log.debug(txDetail);
-      throw new Error(`Transaction failed: ${JSON.stringify(txDetail)}`);
+      throw new Error(
+        `Raw message signing failed: ${JSON.stringify(txDetail)}`
+      );
     }
     const sig = await txDetail.signedMessages![0].signature;
     return ethers.utils.joinSignature({
@@ -237,7 +239,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       value: transaction.value,
     };
     const unsignedTx = ethers.utils.serializeTransaction(baseTx);
-    const txInfo = await this._bridge.sendRawTransaction(
+    const txInfo = await this._bridge.sendRawSigningRequest(
       keccak256(unsignedTx).slice(2),
       this.memo
     );
@@ -326,15 +328,50 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     };
   }
 
-  _signTypedData(
-    _domain: TypedDataDomain,
-    _types: Record<string, Array<TypedDataField>>,
-    _value: Record<string, any>
+  async _signTypedData(
+    domain: TypedDataDomain,
+    types: Record<string, Array<TypedDataField>>,
+    value: Record<string, any>
   ): Promise<string> {
-    return this._fail(
-      'FireblocksSigner cannot sign typed data',
-      'signTypedData'
+    // Based on jsonrpc signer implementation: https://github.com/ethers-io/ethers.js/blob/master/packages/providers/src.ts/json-rpc-provider.ts#L334
+    // See also https://support.fireblocks.io/hc/en-us/articles/4413379762450-Off-Chain-Message-Signing#h_01FE9VKBH6SG9EFT9G097ZV3ET
+    // Attempt to populate any ENS names (in-place)
+    let populated = { domain, value };
+    if (this.chain === Chain.MAINNET) {
+      populated = await _TypedDataEncoder.resolveNames(
+        domain,
+        types,
+        value,
+        (name: string) => {
+          return this.provider!.resolveName(name).then(
+            (value) => value || name
+          );
+        }
+      );
+    }
+    const payload = 
+      _TypedDataEncoder.getPayload(populated.domain, types, populated.value)
+    const payloadString = JSON.stringify(payload);
+    const txInfo = await this._bridge.sendTypedSigningRequest(
+      payloadString,
+      `${this.memo} ${payload.primaryType} ${JSON.stringify(payload.message)}`
     );
+    await this._bridge.waitForTxHash(txInfo.id);
+    const txDetail = await this.fireblocksApiClient.getTransactionById(
+      txInfo.id
+    );
+    if (txDetail.status !== TransactionStatus.COMPLETED) {
+      log.debug(txDetail);
+      throw new Error(
+        `Typed signing request failed: ${JSON.stringify(txDetail)}`
+      );
+    }
+    const sig = await txDetail.signedMessages![0].signature;
+    return ethers.utils.joinSignature({
+      r: `0x${sig.r!}`,
+      v: 27 + sig.v!,
+      s: `0x${sig.s}`,
+    });
   }
 
   connect(provider: JsonRpcProvider): FireblocksSigner {
