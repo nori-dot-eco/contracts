@@ -18,11 +18,10 @@ import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol
  * parcel of land in a specific year.  The total supply of that token ID is the number of tonnes of carbon
  * removed.
  *
- * ##### Behaviors and features
+ * ##### Additional behaviors and features:
  *
- * ##### Minting
+ * ###### Minting
  * - Only accounts with the CONSIGNOR_ROLE can mint removal tokens, which should only be account(s) controlled by Nori.
- *
  * - When removal tokens are minted, additional data about those removals are stored in a mapping keyed by the token ID,
  * such as a projectId and a holdback percentage (which determines the percentage of the sale proceeds from the token
  * that will be routed to the RestrictedNORI contract). A restriction schedule is created per projectId (if necessary)
@@ -31,7 +30,7 @@ import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol
  * - The function `addBalance` can be used to mint additional balance to a token ID that already exists.
  *
  *
- * ##### Listing
+ * ###### Listing
  * - _Listing_ refers to the process of listing removal tokens for sale in Nori's marketplace (Market.sol)
  * - Removals are listed for sale by transferring ownership of the tokens to the Market contract via
  * `consign`. Alternatively, If the `to` argument to `mintBatch` is the address of the Market contract,
@@ -39,7 +38,7 @@ import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol
  * - Only accounts with the CONSIGNOR_ROLE can list removals for sale in the market.
  *
  *
- * ##### Releasing
+ * ###### Releasing
  * - _Releasing_ refers to the process of accounting for carbon that has failed to meet its permanence guarantee
  * and has been released into the atmosphere prematurely.
  * - This accounting is performed by burning the affected balance of a removal that has been released.
@@ -51,7 +50,7 @@ import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol
  * automated implementation of this process is beyond the scope of this version of the contracts.
  *
  *
- * ##### Token ID encoding and decoding
+ * ###### Token ID encoding and decoding
  * - This contract uses the inlined library RemovalIdLib.sol for uint256.
  * - When minting tokens, an array of structs containing information about each removal is passed as an argument to
  * `mintBatch` and that data is used to generate the encoded token IDs for each removal.
@@ -63,19 +62,15 @@ import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol
  * - [ERC-1155 functionality](https://eips.ethereum.org/EIPS/eip-1155)
  * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
  * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
- * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
- *   - all functions that mutate state are pausable
+ * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
+ * pausable
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- *    - CONSIGNOR_ROLE
- *      - Can mint removal tokens and list them for sale in the Market contract
- *    - RELEASER_ROLE
- *      - Can release partial or full removal balances
- *    - PAUSER_ROLE
- *      - Can pause and unpause the contract
- *    - DEFAULT_ADMIN_ROLE
- *      - This is the only role that can add/revoke other accounts to any of the roles
+ * - `CONSIGNOR_ROLE`: Can mint removal tokens and list them for sale in the Market contract.
+ * - `RELEASER_ROLE`: Can release partial or full removal balances.
+ * - `PAUSER_ROLE`: Can pause and unpause the contract.
+ * - `DEFAULT_ADMIN_ROLE`: This is the only role that can add/revoke other accounts to any of the roles.
  *
- * ##### Inherits
+ * ##### Inherits:
  *
  * - [ERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc11555)
  * - [ERC1155Supply](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Supply)
@@ -86,18 +81,18 @@ import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol
  * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
  * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
  *
- * ##### Implements
+ * ##### Implements:
  *
  * - [IERC1155Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155)
  * - [IERC1155MetadataURI](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155MetadataURI)
  * - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
  * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
  *
- * ##### Uses
+ * ##### Uses:
  *
- * - [RemovalIdLib](./RemovalIdLib.md) for uint256
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
- *
+ * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet) for
+ * `EnumerableSetUpgradeable.UintSet`
  */
 contract Removal is
   ERC1155SupplyUpgradeable,
@@ -105,7 +100,6 @@ contract Removal is
   MulticallUpgradeable
 {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
-  using RemovalIdLib for uint256;
 
   /**
    * @notice Role conferring the ability to mint removals as well as the ability to list minted removals that have yet
@@ -213,16 +207,15 @@ contract Removal is
   /**
    * @notice Registers the market and certificate contracts so that they can be referenced in this contract.
    * Called as part of the market contract system deployment process.
-   *
-   * Emits a `ContractAddressesRegistered` event.
-   *
-   * @param market The address of the `Market` contract.
-   * @param certificate The address of the `Certificate` contract.
+   * @dev Emits a `ContractAddressesRegistered` event.
    *
    * ##### Requirements:
    *
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    * - Can only be used when this contract is not paused
+   *
+   * @param market The address of the `Market` contract.
+   * @param certificate The address of the `Certificate` contract.
    */
   function registerContractAddresses(Market market, Certificate certificate)
     external
@@ -239,6 +232,12 @@ contract Removal is
    *
    * @dev If `to` is the market address, the removals are listed for sale in the market.
    *
+   * ##### Requirements:
+   * - Can only be used when the caller has the `CONSIGNOR_ROLE`
+   * - Enforces the rules of `Removal._beforeTokenTransfer`
+   * - Can only be used when this contract is not paused
+   * - Cannot mint to a removal ID that already exists (use `addBalance` instead)
+   *
    * @param to The recipient of this batch of removals. Should be the supplier's address or the market address.
    * @param amounts Each removal's tonnes of CO2 formatted.
    * @param removals The removals to mint (represented as an array of `DecodedRemovalIdV0`). These removals are used
@@ -246,13 +245,6 @@ contract Removal is
    * @param projectId The project id for this batch of removals.
    * @param scheduleStartTime The start time of the schedule for this batch of removals.
    * @param holdbackPercentage The holdback percentage for this batch of removals.
-   *
-   * ##### Requirements:
-   * - Can only be used when the caller has the `CONSIGNOR_ROLE`
-   * - Enforces the rules of `Removal._beforeTokenTransfer`
-   * - Can only be used when this contract is not paused
-   * - Cannot mint to a removal ID that already exists (use `addBalance` instead)
-   *
    */
   function mintBatch(
     address to,
@@ -286,15 +278,15 @@ contract Removal is
    *
    * @dev If `to` is the market address, the removals are listed for sale in the market.
    *
-   * @param to The supplier address or market address.
-   * @param amounts Each removal's additional tonnes of CO2 formatted.
-   * @param ids The removal IDs to add balance for.
-   *
    * ##### Requirements:
    * - Can only be used when the caller has the `CONSIGNOR_ROLE`
    * - Can only be used when this contract is not paused
    * - IDs must already have been minted via `mintBatch`.
    * - Enforces the rules of `Removal._beforeTokenTransfer`.
+   *
+   * @param to The supplier address or market address.
+   * @param amounts Each removal's additional tonnes of CO2 formatted.
+   * @param ids The removal IDs to add balance for.
    */
   function addBalance(
     address to,
@@ -415,7 +407,7 @@ contract Removal is
   {
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
-      account: id.supplierAddress(),
+      account: RemovalIdLib.supplierAddress(id),
       id: id
     });
     if (unlistedBalance > 0) {
@@ -513,14 +505,14 @@ contract Removal is
   /**
    * @notice Decodes a V0 removal ID into its component data.
    *
-   * @param id The token ID to decode.
+   * @param id The removal ID to decode.
    */
   function decodeRemovalIdV0(uint256 id)
     external
     pure
     returns (DecodedRemovalIdV0 memory)
   {
-    return id.decodeRemovalIdV0();
+    return RemovalIdLib.decodeRemovalIdV0(id);
   }
 
   /**
@@ -554,10 +546,9 @@ contract Removal is
 
   /**
    * @notice Batched version of `safeTransferFrom`.
+   * @dev Emits a `TransferBatch` event.
    *
-   * Emits a `TransferBatch` event.
-   *
-   * Requirements:
+   * ##### Requirements:
    *
    * - Can only be called by the `Market` contract.
    * - `ids` and `amounts` must have the same length.
@@ -580,7 +571,7 @@ contract Removal is
   /**
    * @notice Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`.
    *
-   * Emits an `ApprovalForAll` event.
+   * @dev Emits an `ApprovalForAll` event.
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
@@ -603,12 +594,13 @@ contract Removal is
 
   /**
    * @notice Returns true if this contract implements the interface defined by
-   * `interfaceId`. See the corresponding
-   * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
-   * to learn more about how these ids are created.
+   * `interfaceId`.
+   * @dev See the corresponding [EIP section](https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified) to
+   * learn more about how these ids are created.
    * See [IERC165.supportsInterface](
    * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
-   * This function call must use less than 30 000 gas.
+   * This function call must use less than 30,000 gas.
+   * @param interfaceId A bytes4 value which represents an interface ID.
    */
   function supportsInterface(bytes4 interfaceId)
     public
@@ -663,7 +655,7 @@ contract Removal is
    * @param amount The amount to burn.
    */
   function _releaseFromSupplier(uint256 id, uint256 amount) internal {
-    address supplierAddress = id.supplierAddress();
+    address supplierAddress = RemovalIdLib.supplierAddress(id);
     super._burn(supplierAddress, id, amount);
     emit RemovalReleased(id, supplierAddress, amount);
   }
@@ -737,7 +729,7 @@ contract Removal is
       if (from == market) {
         _currentMarketBalance -= amounts[i];
       }
-      if (!isValidTransfer && to != id.supplierAddress()) {
+      if (!isValidTransfer && to != RemovalIdLib.supplierAddress(id)) {
         revert ForbiddenTransfer();
       }
     }
@@ -769,7 +761,6 @@ contract Removal is
    * will be burned.
    * - `from` and `to` are never both zero.
    * - `ids` and `amounts` have the same, non-zero length.
-   *
    */
   function _afterTokenTransfer(
     address operator,

@@ -1,33 +1,30 @@
 ## Market
 
 
-Facilitates the exchange of NORI tokens for a non-transferrable certificate of carbon removal.
+Facilitates the exchange of bpNORI tokens for a non-transferrable certificate of carbon removal.
 
-_Carbon removals are represented by ERC1155 tokens in the Removal.sol contract, where the balance of a
+<i>Carbon removals are represented by ERC1155 tokens in the Removal.sol contract, where the balance of a
 given token represents the number of tonnes of carbon that were removed from the atmosphere for that specific
 removal (different token ids are used to represent different slices of carbon removal projects and years).
-This contract facilitates the exchange of NORI tokens for ERC721 tokens managed by the Certificate.sol contract.
+This contract facilitates the exchange of bpNORI tokens for ERC721 tokens managed by the Certificate.sol contract.
 Each of these certificates is a non-transferrable, non-fungible token that owns the specific removal tokens
 and token balances that comprise the specific certificate for the amount purchased.
 
-The market maintains a &quot;priority restricted threshold&quot;, which is a configurable threshold of supply that is
-always reserved to sell only to buyers who have the &#x60;ALLOWLIST_ROLE&#x60;.  Purchases that would drop supply below
+The market maintains a "priority restricted threshold", which is a configurable threshold of supply that is
+always reserved to sell only to buyers who have the `ALLOWLIST_ROLE`.  Purchases that would drop supply below
 this threshold will revert without the correct role.
 
 ###### Additional behaviors and features
 
 - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
-- [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
-  - all external functions that mutate state are pausable
+- [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all external functions that mutate
+state are pausable.
 - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
-   - MARKET_ADMIN_ROLE
-     - Can set the fee percentage, fee wallet address, and priority restricted threshold
-     - This is the only role that can add/revoke other accounts to any of the roles
-   - ALLOWLIST_ROLE
-     - Can purchase from priority restricted supply
+- `MARKET_ADMIN_ROLE`: Can set the fee percentage, fee wallet address, and priority restricted threshold.
+- `ALLOWLIST_ROLE`: Can purchase from priority restricted supply.
 - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
 
-##### Inherits
+##### Inherits:
 
 - [IERC1155ReceiverUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
 - [MulticallUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Multicall)
@@ -37,24 +34,25 @@ this threshold will revert without the correct role.
 - [Initializable](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable)
 - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
 
-##### Implements
+##### Implements:
 
 - [IERC1155](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155)
 - [IAccessControlEnumerable](https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
 - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
 
-##### Uses
+##### Uses:
 
 - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
-  for EnumerableSetUpgradeable.UintSet
-- [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)_
+for `EnumerableSetUpgradeable.UintSet`
+- [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
+- `UInt256ArrayLib` for `uint256[]`
+- `AddressArrayLib` for `address[]`</i>
 
 
 
 ---
 
 ### LinkedListNode
-
 
 
 
@@ -118,7 +116,7 @@ The RestrictedNORI contract.
 address _noriFeeWallet
 ```
 
-Wallet address used for Nori&#x27;s transaction fees.
+Wallet address used for Nori's transaction fees.
 
 
 
@@ -159,7 +157,7 @@ Address of the supplier currently selling in the queue.
 ### _suppliers
 
 ```solidity
-mapping(address &#x3D;&gt; struct Market.LinkedListNode) _suppliers
+mapping(address => struct Market.LinkedListNode) _suppliers
 ```
 
 Linked list of active suppliers.
@@ -170,12 +168,12 @@ Linked list of active suppliers.
 ### _listedSupply
 
 ```solidity
-mapping(address &#x3D;&gt; struct RemovalsByYear) _listedSupply
+mapping(address => struct RemovalsByYear) _listedSupply
 ```
 
 All listed removal tokens in the market.
 
-_Top-level keys are supplier addresses, RemovalsByYear further organizes removals by vintage._
+<i>Top-level keys are supplier addresses, `RemovalsByYear` further organizes removals by vintage.</i>
 
 
 
@@ -208,7 +206,7 @@ Role conferring the ability to purchase supply when inventory is below the prior
 event PriorityRestrictedThresholdSet(uint256 threshold)
 ```
 
-Emitted on setting of &#x60;_priorityRestrictedThreshold&#x60;.
+Emitted on setting of `_priorityRestrictedThreshold`.
 
 
 | Name | Type | Description |
@@ -227,10 +225,10 @@ Emitted on updating the addresses for contracts.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| removal | contract Removal | The address of the new &#x60;removal&#x60; contract. |
-| certificate | contract Certificate | The address of the new &#x60;certificate&#x60; contract. |
-| bridgedPolygonNORI | contract BridgedPolygonNORI | The address of the new &#x60;bridgedPolygonNORI&#x60; contract. |
-| restrictedNORI | contract RestrictedNORI | The address of the new &#x60;restrictedNORI&#x60; contract. |
+| removal | contract Removal | The address of the new `removal` contract. |
+| certificate | contract Certificate | The address of the new `certificate` contract. |
+| bridgedPolygonNORI | contract BridgedPolygonNORI | The address of the new `bridgedPolygonNORI` contract. |
+| restrictedNORI | contract RestrictedNORI | The address of the new `restrictedNORI` contract. |
 
 
 ### NoriFeeWalletAddressUpdated
@@ -239,7 +237,7 @@ Emitted on updating the addresses for contracts.
 event NoriFeeWalletAddressUpdated(address updatedWalletAddress)
 ```
 
-Emitted on setting of &#x60;_noriFeeWalletAddress&#x60;.
+Emitted on setting of `_noriFeeWalletAddress`.
 
 
 | Name | Type | Description |
@@ -253,7 +251,7 @@ Emitted on setting of &#x60;_noriFeeWalletAddress&#x60;.
 event NoriFeePercentageUpdated(uint256 updatedFeePercentage)
 ```
 
-Emitted on setting of &#x60;_noriFeePercentage&#x60;.
+Emitted on setting of `_noriFeePercentage`.
 
 
 | Name | Type | Description |
@@ -267,14 +265,14 @@ Emitted on setting of &#x60;_noriFeePercentage&#x60;.
 event SupplierAdded(address added, address next, address previous)
 ```
 
-Emitted when adding a supplier to &#x60;_listedSupply&#x60;.
+Emitted when adding a supplier to `_listedSupply`.
 
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | added | address | The supplier that was added. |
-| next | address | The next of the supplier that was added, updated to point to &#x60;addedSupplierAddress&#x60; as previous. |
-| previous | address | The previous of the supplier that was added, updated to point to &#x60;addedSupplierAddress&#x60; as next. |
+| next | address | The next of the supplier that was added, updated to point to `addedSupplierAddress` as previous. |
+| previous | address | the previous address of the supplier that was added, updated to point to `addedSupplierAddress` as next. |
 
 
 ### SupplierRemoved
@@ -283,14 +281,14 @@ Emitted when adding a supplier to &#x60;_listedSupply&#x60;.
 event SupplierRemoved(address removed, address next, address previous)
 ```
 
-Emitted when removing a supplier from &#x60;_listedSupply&#x60;.
+Emitted when removing a supplier from `_listedSupply`.
 
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | removed | address | The supplier that was removed. |
-| next | address | The next of the supplier that was removed, updated to point to &#x60;previous&#x60; as previous. |
-| previous | address | The previous of the supplier that was removed, updated to point to &#x60;next&#x60; as next. |
+| next | address | The next of the supplier that was removed, updated to point to `previous` as previous. |
+| previous | address | the previous address of the supplier that was removed, updated to point to `next` as next. |
 
 
 ### RemovalAdded
@@ -299,7 +297,7 @@ Emitted when removing a supplier from &#x60;_listedSupply&#x60;.
 event RemovalAdded(uint256 id, address supplierAddress)
 ```
 
-Emitted when a removal is added to &#x60;_listedSupply&#x60;.
+Emitted when a removal is added to `_listedSupply`.
 
 
 | Name | Type | Description |
@@ -318,7 +316,6 @@ constructor() public
 
 
 
-
 ### initialize
 
 ```solidity
@@ -327,16 +324,16 @@ function initialize(contract Removal removal, contract BridgedPolygonNORI bridge
 
 Initializes the Market contract.
 
-_Reverts if NoriFeeWallet is not set._
+<i>Reverts if NoriFeeWallet is not set.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| removal | contract Removal | The address of the &#x60;removal&#x60; contract. |
-| bridgedPolygonNori | contract BridgedPolygonNORI | The address of the &#x60;bridgedPolygonNORI&#x60; contract. |
-| certificate | contract Certificate | The address of the &#x60;certificate&#x60; contract. |
-| restrictedNori | contract RestrictedNORI | The address of the &#x60;restrictedNORI&#x60; contract. |
-| noriFeeWalletAddress | address | The address for Nori&#x27;s fee wallet. |
-| noriFeePercentage_ | uint256 | The percentage for Nori&#x27;s fees. |
+| removal | contract Removal | The address of the `removal` contract. |
+| bridgedPolygonNori | contract BridgedPolygonNORI | The address of the `bridgedPolygonNORI` contract. |
+| certificate | contract Certificate | The address of the `certificate` contract. |
+| restrictedNori | contract RestrictedNORI | The address of the `restrictedNORI` contract. |
+| noriFeeWalletAddress | address | The address for Nori's fee wallet. |
+| noriFeePercentage_ | uint256 | The percentage for Nori's fees. |
 
 
 ### release
@@ -366,22 +363,21 @@ function registerContractAddresses(contract Removal removal, contract Certificat
 ```
 
 
-
-_Registers the &#x60;removal&#x60;, &#x60;certificate&#x60;, &#x60;bridgedPolygonNORI&#x60;, and &#x60;restrictedNORI&#x60; contracts so that they
+<i>Registers the `removal`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
 can be referenced in this contract. Called as part of the market contract system deployment process.
 
-Emits a &#x60;ContractAddressesRegistered&#x60; event.
+Emits a `ContractAddressesRegistered` event.
 
 ##### Requirements:
 
-- Can only be used when the caller has the &#x60;DEFAULT_ADMIN_ROLE&#x60;.
-- Can only be used when this contract is not paused._
+- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| removal | contract Removal | The address of the &#x60;removal&#x60; contract. |
-| certificate | contract Certificate | The address of the &#x60;certificate&#x60; contract. |
-| bridgedPolygonNORI | contract BridgedPolygonNORI | The address of the &#x60;bridgedPolygonNORI&#x60; contract. |
+| removal | contract Removal | The address of the `removal` contract. |
+| certificate | contract Certificate | The address of the `certificate` contract. |
+| bridgedPolygonNORI | contract BridgedPolygonNORI | The address of the `bridgedPolygonNORI` contract. |
 | restrictedNORI | contract RestrictedNORI | The address of the market contract. |
 
 
@@ -392,14 +388,14 @@ function setPriorityRestrictedThreshold(uint256 threshold) external
 ```
 
 Sets the current value of the priority restricted threshold, which is the amount of inventory
-that will always be reserved to sell only to buyers with the &#x60;ALLOWLIST_ROLE&#x60;.
+that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
 
-Emits a &#x60;PriorityRestrictedThresholdSet&#x60; event.
+Emits a `PriorityRestrictedThresholdSet` event.
 
-_##### Requirements:
+<i>##### Requirements:
 
 - Can only receive ERC1155 tokens from the Removal contract.
-- Can only be used when this contract is not paused._
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -415,12 +411,12 @@ function setNoriFeePercentage(uint256 noriFeePercentage_) external
 Sets the Nori fee percentage (as an integer) which is the percentage of
 each purchase that will be paid to Nori as the marketplace operator.
 
-Emits a &#x60;NoriFeePercentageUpdated&#x60; event.
+Emits a `NoriFeePercentageUpdated` event.
 
-_##### Requirements:
+<i>##### Requirements:
 
 - Can only be used when the caller has the MARKET_ADMIN_ROLE
-- Can only be used when this contract is not paused_
+- Can only be used when this contract is not paused</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -436,12 +432,12 @@ function setNoriFeeWallet(address noriFeeWalletAddress) external
 Sets the Nori fee wallet address (as an integer) which is the address to which the
 marketplace operator fee will be routed during each purchase.
 
-Emits a &#x60;NoriFeeWalletAddressUpdated&#x60; event.
+Emits a `NoriFeeWalletAddressUpdated` event.
 
-_##### Requirements:
+<i>##### Requirements:
 
 - Can only be used when the caller has the MARKET_ADMIN_ROLE
-- Can only be used when this contract is not paused_
+- Can only be used when this contract is not paused</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -455,29 +451,29 @@ function onERC1155BatchReceived(address, address, uint256[] ids, uint256[], byte
 ```
 
 Handles the receipt of multiple ERC1155 token types. This function is called at the end of a
-&#x60;safeBatchTransferFrom&#x60; after the balances have been updated. To accept the transfer(s), this must return
-&#x60;bytes4(keccak256(&quot;onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)&quot;))&#x60;
-(i.e. 0xbc197c81, or its own function selector).
+`safeBatchTransferFrom` after the balances have been updated. To accept the transfer(s), this must return
+`bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`
+(i.e., 0xbc197c81, or its own function selector).
 
-_See [IERC1155Receiver](
+<i>See [IERC1155Receiver](
 https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
 
 ##### Requirements:
 
 - Can only receive ERC1155 tokens from the Removal contract.
-- Can only be used when this contract is not paused._
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 |  | address |  |
 |  | address |  |
-| ids | uint256[] | An array containing ids of each token being transferred (order and length must match values array) |
+| ids | uint256[] | An array containing the IDs of each removal being transferred (order and length must match values array) |
 |  | uint256[] |  |
 |  | bytes |  |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | bytes4 | bytes4(keccak256(&quot;onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)&quot;)) if transfer is allowed |
+| [0] | bytes4 | &#x60;bytes4(keccak256(&quot;onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)&quot;))&#x60; if transfer is allowed |
 
 ### onERC1155Received
 
@@ -486,29 +482,29 @@ function onERC1155Received(address, address, uint256 id, uint256, bytes) externa
 ```
 
 Handles the receipt of an ERC1155 token. This function is called at the end of a
-&#x60;safeTransferFrom&#x60; after the balances have been updated. To accept the transfer(s), this must return
-&#x60;bytes4(keccak256(&quot;onERC1155Received(address,address,uint256,uint256,bytes)&quot;))&#x60;
-(i.e. 0xf23a6e61, or its own function selector).
+`safeTransferFrom` after the balances have been updated. To accept the transfer(s), this must return
+`bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))`
+(i.e., 0xf23a6e61, or its own function selector).
 
-_See [IERC1155Receiver](
+<i>See [IERC1155Receiver](
 https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
 
 ##### Requirements:
 
 - Can only receive an ERC1155 token from the Removal contract.
-- Can only be used when this contract is not paused._
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 |  | address |  |
 |  | address |  |
-| id | uint256 | The id of the token being transferred |
+| id | uint256 | The ID of the received removal. |
 |  | uint256 |  |
 |  | bytes |  |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | bytes4 | bytes4(keccak256(&quot;onERC1155Received(address,address,uint256,uint256,bytes)&quot;)) if transfer is allowed |
+| [0] | bytes4 | &#x60;bytes4(keccak256(&quot;onERC1155Received(address,address,uint256,uint256,bytes)&quot;))&#x60; if the transfer is allowed. |
 
 ### swap
 
@@ -516,28 +512,28 @@ https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) f
 function swap(address recipient, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
 ```
 
-Exchanges NORI tokens for an ERC721 certificate token and transfers ownership of removal tokens to
+Exchanges bpNORI tokens for an ERC721 certificate token and transfers ownership of removal tokens to
 that certificate.
 
-_See [https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit](ERC20Permit) for more.
+<i>See [https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit](ERC20Permit) for more.
 The message sender must present a valid permit to this contract to temporarily authorize this market
-to transfer the sender&#x27;s NORI to complete the purchase. A certificate is issued by Certificate.sol
-to the specified recipient and NORI is distributed to the supplier of the carbon removal,
-to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
+to transfer the sender's bpNORI to complete the purchase. A certificate is issued by `Certificate.sol`
+to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
+to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
 to Nori Inc. as a market operator fee.
 
 ##### Requirements:
 
-- Can only be used when this contract is not paused._
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
-| amount | uint256 | The total purchase amount in NORI. This is the combined total of the number of removals being purchased and the fee paid to Nori. |
+| amount | uint256 | The total purchase amount in bpNORI. This is the combined total of the number of removals being purchased, and the fee paid to Nori. |
 | deadline | uint256 | The EIP2612 permit deadline in Unix time. |
-| v | uint8 | The recovery identifier for the permit&#x27;s secp256k1 signature |
-| r | bytes32 | The r value for the permit&#x27;s secp256k1 signature |
-| s | bytes32 | The s value for the permit&#x27;s secp256k1 signature |
+| v | uint8 | The recovery identifier for the permit's secp256k1 signature. |
+| r | bytes32 | The r value for the permit's secp256k1 signature. |
+| s | bytes32 | The s value for the permit's secp256k1 signature. |
 
 
 ### swapFromSupplier
@@ -546,32 +542,32 @@ to Nori Inc. as a market operator fee.
 function swapFromSupplier(address recipient, uint256 amount, address supplier, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
 ```
 
-An overloaded version of &#x60;swap&#x60; that additionally accepts a supplier address and will exchange NORI
+An overloaded version of `swap` that additionally accepts a supplier address and will exchange bpNORI
 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
 supplier to that certificate. If the specified supplier does not have enough carbon removals for sale to fulfill
 the order the transaction will revert.
 
-_See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
+<i>See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
 The message sender must present a valid permit to this contract to temporarily authorize this market
-to transfer the sender&#x27;s NORI to complete the purchase. A certificate is issued by Certificate.sol
-to the specified recipient and NORI is distributed to the supplier of the carbon removal,
-to the RestrictedNORI.sol contract that controls any restricted NORI owed to the supplier, and finally
+to transfer the sender's bpNORI to complete the purchase. A certificate is issued by Certificate.sol
+to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
+to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
 to Nori Inc. as a market operator fee.
 
 
 ##### Requirements:
 
-- Can only be used when this contract is not paused._
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
-| amount | uint256 | The total purchase amount in NORI. This is the combined total of the number of removals being purchased and the fee paid to Nori. |
+| amount | uint256 | The total purchase amount in bpNORI. This is the combined total of the number of removals being purchased, and the fee paid to Nori. |
 | supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
 | deadline | uint256 | The EIP2612 permit deadline in Unix time. |
-| v | uint8 | The recovery identifier for the permit&#x27;s secp256k1 signature |
-| r | bytes32 | The r value for the permit&#x27;s secp256k1 signature |
-| s | bytes32 | The s value for the permit&#x27;s secp256k1 signature |
+| v | uint8 | The recovery identifier for the permit's secp256k1 signature |
+| r | bytes32 | The r value for the permit's secp256k1 signature |
+| s | bytes32 | The s value for the permit's secp256k1 signature |
 
 
 ### withdraw
@@ -582,15 +578,15 @@ function withdraw(uint256 removalId) external
 
 Withdraws a removal to the supplier.
 
-_Withdraws a removal to the supplier address encoded in the removal ID.
+<i>Withdraws a removal to the supplier address encoded in the removal ID.
 
 ##### Requirements:
 
-- Can only be used when this contract is not paused._
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| removalId | uint256 | The id of the removal to withdraw from the market. |
+| removalId | uint256 | The ID of the removal to withdraw from the market. |
 
 
 ### priorityRestrictedThreshold
@@ -600,7 +596,7 @@ function priorityRestrictedThreshold() external view returns (uint256)
 ```
 
 Returns the current value of the priority restricted threshold, which is the amount of inventory
-that will always be reserved to sell only to buyers with the ALLOWLIST_ROLE.
+that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
 
 
 
@@ -643,7 +639,7 @@ Returns the address to which the marketplace operator fee will be routed during 
 function calculateNoriFee(uint256 amount) external view returns (uint256)
 ```
 
-Calculates the Nori fee required for a purchase of &#x60;amount&#x60; tonnes of carbon removals.
+Calculates the Nori fee required for a purchase of `amount` tonnes of carbon removals.
 
 
 | Name | Type | Description |
@@ -660,7 +656,7 @@ Calculates the Nori fee required for a purchase of &#x60;amount&#x60; tonnes of 
 function calculateCheckoutTotal(uint256 amount) external view returns (uint256)
 ```
 
-Calculates the total quantity of NORI required to make a purchase of &#x60;amount&#x60; tonnes of carbon removals.
+Calculates the total quantity of bpNORI required to make a purchase of `amount` tonnes of carbon removals.
 
 
 | Name | Type | Description |
@@ -669,7 +665,7 @@ Calculates the total quantity of NORI required to make a purchase of &#x60;amoun
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | totalAmount total quantity of NORI required to make the purchase, including the fee. |
+| [0] | uint256 | totalAmount total quantity of bpNORI required to make the purchase, including the fee. |
 
 ### calculateCertificateAmountFromPurchaseTotal
 
@@ -695,7 +691,7 @@ percentage of that purchase total that is due to Nori as a transaction fee.
 function removalAddress() external view returns (address)
 ```
 
-Returns the address of the &#x60;Removal&#x60; contract.
+Returns the address of the `Removal` contract.
 
 
 
@@ -709,7 +705,7 @@ Returns the address of the &#x60;Removal&#x60; contract.
 function restrictedNoriAddress() external view returns (address)
 ```
 
-Returns address of the &#x60;RestrictedNORI&#x60; contract.
+Returns address of the `RestrictedNORI` contract.
 
 
 
@@ -723,7 +719,7 @@ Returns address of the &#x60;RestrictedNORI&#x60; contract.
 function certificateAddress() external view returns (address)
 ```
 
-Returns the address of the &#x60;Certificate&#x60; contract.
+Returns the address of the `Certificate` contract.
 
 
 
@@ -737,7 +733,7 @@ Returns the address of the &#x60;Certificate&#x60; contract.
 function bridgedPolygonNoriAddress() external view returns (address)
 ```
 
-Returns the address of the &#x60;BridgedPolygonNori&#x60; contract.
+Returns the address of the `BridgedPolygonNori` contract.
 
 
 
@@ -783,9 +779,8 @@ function supportsInterface(bytes4 interfaceId) public view virtual returns (bool
 ```
 
 
-
-_See [IERC165.supportsInterface](
-https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more._
+<i>See [IERC165.supportsInterface](
+https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.</i>
 
 
 
@@ -796,7 +791,7 @@ function _fulfillOrder(uint256 certificateAmount, address operator, address reci
 ```
 
 Completes order fulfillment for specified supply allocation. Pays suppliers, routes tokens to the
-&#x60;RestrictedNORI&#x60; contract, pays Nori the order fee, updates accounting, and mints the &#x60;Certificate&#x60;.
+`RestrictedNORI` contract, pays Nori the order fee, updates accounting, and mints the `Certificate`.
 
 
 | Name | Type | Description |
@@ -805,9 +800,9 @@ Completes order fulfillment for specified supply allocation. Pays suppliers, rou
 | operator | address | The message sender. |
 | recipient | address | The recipient of the certificate. |
 | countOfRemovalsAllocated | uint256 | The number of distinct removal ids that are involved in fulfilling this order. |
-| ids | uint256[] | An array of removal token ids involved in fulfilling this order. |
+| ids | uint256[] | An array of removal IDs involved in fulfilling this order. |
 | amounts | uint256[] | An array of amounts being allocated from each corresponding removal token. |
-| suppliers | address[] | An array of suppliers todo use correct check-effects pattern in &#x60;fulfillOrder&#x60; |
+| suppliers | address[] | An array of suppliers. |
 
 
 ### _addActiveRemoval
@@ -817,11 +812,10 @@ function _addActiveRemoval(uint256 removalId) internal
 ```
 
 
-
-_Adds the specified removal ID to the _listedSupply data structure. If this is the supplier&#x27;s
+<i>Adds the specified removal ID to the `_listedSupply` data structure. If this is the supplier's
 first listed removal, the supplier is also added to the active supplier queue.
 
-Emits a &#x60;RemovalAdded&#x60; event._
+Emits a `RemovalAdded` event.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -835,9 +829,8 @@ function _removeActiveRemoval(uint256 removalId, address supplierAddress) intern
 ```
 
 
-
-_Removes the specified removal ID from the listed supply data structure. If this is the supplier&#x27;s last
-listed removal, the supplier is also removed from the active supplier queue._
+<i>Removes the specified removal ID from the listed supply data structure. If this is the supplier's last
+listed removal, the supplier is also removed from the active supplier queue.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -853,7 +846,7 @@ function _validatePrioritySupply(uint256 certificateAmount, uint256 availableSup
 
 Validates that the listed supply is enough to fulfill the purchase given the priority restricted threshold.
 
-_Reverts if available stock is being reserved for priority buyers and buyer is not priority._
+<i>Reverts if available stock is being reserved for priority buyers and buyer is not priority.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -868,9 +861,8 @@ function _isAuthorizedWithdrawal(address owner) internal view returns (bool)
 ```
 
 
-
-_Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
-does not have the role &#x60;MARKET_ADMIN_ROLE&#x60;._
+<i>Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
+does not have the role `MARKET_ADMIN_ROLE`.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -885,7 +877,7 @@ function _validateSupply(uint256 certificateAmount, uint256 availableSupply) int
 
 Validates if there is enough supply to fulfill the order.
 
-_Reverts if total available supply in the market is not enough to fulfill the purchase._
+<i>Reverts if total available supply in the market is not enough to fulfill the purchase.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -908,8 +900,8 @@ Allocates the removals, amounts, and suppliers needed to fulfill the purchase.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | numberOfRemovalForOrder The number of distinct removal token ids used to fulfill this order. |
-| [1] | uint256[] | ids An array of the removal token ids being drawn from to fulfill this order. |
+| [0] | uint256 | numberOfRemovalForOrder The number of distinct removal IDs used to fulfill this order. |
+| [1] | uint256[] | ids An array of the removal IDs being drawn from to fulfill this order. |
 | [2] | uint256[] | amounts An array of amounts being allocated from each corresponding removal token. |
 | [3] | address[] | suppliers The address of the supplier who owns each corresponding removal token. |
 
@@ -919,7 +911,7 @@ Allocates the removals, amounts, and suppliers needed to fulfill the purchase.
 function _allocateSupplySingleSupplier(uint256 certificateAmount, address supplier) private returns (uint256, uint256[], uint256[])
 ```
 
-Allocates supply for an amount using only a single supplier&#x27;s removals.
+Allocates supply for an amount using only a single supplier's removals.
 
 
 | Name | Type | Description |
@@ -929,8 +921,8 @@ Allocates supply for an amount using only a single supplier&#x27;s removals.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | numberOfRemovalForOrder The number of distinct removal token ids used to fulfill this order. |
-| [1] | uint256[] | ids An array of the removal token ids being drawn from to fulfill this order. |
+| [0] | uint256 | numberOfRemovalForOrder The number of distinct removal IDs used to fulfill this order. |
+| [1] | uint256[] | ids An array of the removal IDs being drawn from to fulfill this order. |
 | [2] | uint256[] | amounts An array of amounts being allocated from each corresponding removal token. |
 
 ### _incrementCurrentSupplierAddress
@@ -940,9 +932,8 @@ function _incrementCurrentSupplierAddress() private
 ```
 
 
-
-_Updates &#x60;_currentSupplierAddress&#x60; to the next of whatever is the current supplier.
-Used to iterate in a round-robin way through the linked list of active suppliers._
+<i>Updates `_currentSupplierAddress` to the next of whatever is the current supplier.
+Used to iterate in a round-robin way through the linked list of active suppliers.</i>
 
 
 
@@ -953,14 +944,13 @@ function _addActiveSupplier(address newSupplierAddress) private
 ```
 
 
-
-_Adds a supplier to the active supplier queue. Called when a new supplier is added to the marketplace.
-If the first supplier, initializes a cicularly doubly-linked list, where initially the first supplier points
+<i>Adds a supplier to the active supplier queue. Called when a new supplier is added to the marketplace.
+If the first supplier, initializes a circularly doubly-linked list, where initially the first supplier points
 to itself as next and previous. When a new supplier is added, at the position of the current supplier, update
 the previous pointer of the current supplier to point to the new supplier, and update the next pointer of the
 previous supplier to the new supplier.
 
-Emits a &#x60;SupplierAdded&#x60; event._
+Emits a `SupplierAdded` event.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -974,14 +964,13 @@ function _removeActiveSupplier(address supplierToRemove) private
 ```
 
 
-
-_Removes a supplier from the active supplier queue. Called when a supplier&#x27;s last removal is used for an order.
-If the last supplier, resets the pointer for the currentSupplierAddress. Otherwise, from the position of the
+<i>Removes a supplier from the active supplier queue. Called when a supplier's last removal is used for an order.
+If the last supplier, resets the pointer for the `_currentSupplierAddress`. Otherwise, from the position of the
 supplier to be removed, update the previous supplier to point to the next of the removed supplier, and the next of
-the removed supplier to point to the previous of the remove supplier. Then, set the next and previous
+the removed supplier to point to the previous address of the remove supplier. Then, set the next and previous
 pointers of the removed supplier to the 0x address.
 
-Emits a &#x60;SupplierRemoved&#x60; event._
+Emits a `SupplierRemoved` event.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

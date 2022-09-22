@@ -18,6 +18,17 @@ const DEFAULT_SOLC_CONFIG: SolcUserConfig = {
   },
 };
 
+const TEST_SOLC_CONFIG: SolcUserConfig = {
+  ...DEFAULT_SOLC_CONFIG,
+  settings: {
+    viaIR: false,
+    optimizer: {
+      enabled: false,
+      runs: 0,
+    },
+  },
+};
+
 const PRODUCTION_SOLC_CONFIG: SolcUserConfig = {
   ...DEFAULT_SOLC_CONFIG,
   settings: {
@@ -32,6 +43,7 @@ const PRODUCTION_SOLC_CONFIG: SolcUserConfig = {
 const SOLC_PROFILES: Record<typeof process.env.SOLC_PROFILE, SolcUserConfig> = {
   default: DEFAULT_SOLC_CONFIG,
   production: PRODUCTION_SOLC_CONFIG,
+  test: TEST_SOLC_CONFIG,
 };
 
 export const solidity: HardhatUserConfig['solidity'] = {

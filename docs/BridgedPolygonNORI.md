@@ -5,7 +5,6 @@
 
 
 
-
 ---
 
 ### DEPOSITOR_ROLE
@@ -13,7 +12,6 @@
 ```solidity
 bytes32 DEPOSITOR_ROLE
 ```
-
 
 
 
@@ -29,21 +27,21 @@ constructor() public
 
 
 
-
 ### deposit
 
 ```solidity
 function deposit(address user, bytes depositData) external
 ```
 
-Called when token is deposited on root chain.
+Deposit NORI on the root chain (Ethereum) to the child chain (Polygon) as bpNORI.
 
-_Should be callable only by ChildChainManager. See [here](
-https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more_
+<i>A deposit of NORI on the root chain (Ethereum) will trigger this function and mint bpNORI on the child chain
+(Polygon). This function can only be called by the ChildChainManager. See [here](
+https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| user | address | The user address for whom deposit is being done. |
+| user | address | The address of the user which deposited on the root chain (Ethereum) and which is receiving the bpNORI. |
 | depositData | bytes | The ABI encoded deposit amount. |
 
 
@@ -53,10 +51,10 @@ https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets
 function withdraw(uint256 amount) external
 ```
 
-Called when user wants to withdraw tokens back to root chain.
+Withdraw bpNORI tokens from the child chain (Polygon) to the root chain (Ethereum) as NORI.
 
-_Burns user&#x27;s tokens on polygon. This transaction will be verified when exiting on root chain. See [here](
-https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more_
+<i>Burns user's tokens on polygon. This transaction will be verified when exiting on root chain. See [here](
+https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -69,7 +67,7 @@ https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets
 function initialize(address childChainManagerProxy) external
 ```
 
-Initializes the BridgedPolygonNORI contract.
+Initialize the BridgedPolygonNORI contract.
 
 
 

@@ -15,27 +15,23 @@ import "./AccessPresetPausable.sol";
  * @notice This contract issues sequentially increasing ERC721 token ids to purchasers of certificates of carbon
  * removal in Nori's marketplace. The carbon removals that supply each certificate are accounted for using ERC1155
  * tokens in the Removal contract. Upon purchase, ownership of the relevant Removal token ids and balances is
- * transfered to this contract.  Internally, `_removalBalancesOfCertificate` tracks the subset of those Removal
- * tokens and balances that belong to each specific certificate id.
+ * transfered to this contract.
  *
  *
- * ###### Additional behaviors and features
+ * ##### Additional behaviors and features:
  *
  * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
  * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
- * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
- *   - all functions that mutate state are pausable
+ * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
+ * pausable
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- *    - CERTIFICATE_OPERATOR_ROLE
- *      - The only role that can transfer certificates after they are minted
- *    - PAUSER_ROLE
- *      - Can pause and unpause the contract
- *    - DEFAULT_ADMIN_ROLE
- *      - This is the only role that can add/revoke other accounts to any of the roles
- * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
- *   - A certificate is minted and internal accounting ties the certificate to the ERC1155 tokens upon receipt.
+ *    - `CERTIFICATE_OPERATOR_ROLE`: The only role that can transfer certificates after they are minted
+ *    - `PAUSER_ROLE`: Can pause and unpause the contract
+ *    - `DEFAULT_ADMIN_ROLE`: This is the only role that can add/revoke other accounts to any of the roles
+ * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver): A
+ * certificate is minted and internal accounting ties the certificate to the ERC1155 tokens upon receipt.
  *
- * ##### Inherits
+ * ##### Inherits:
  *
  * - [ERC721AUpgradeable](https://github.com/chiru-labs/ERC721A/blob/v4.2.3/contracts/ERC721A.sol)
  * - [ERC721ABurnableUpgradeable](
@@ -48,7 +44,7 @@ import "./AccessPresetPausable.sol";
  * - [ERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#ERC165)
  * - [AccessPresetPausable](../docs/AccessPresetPausable.md)
  *
- * ##### Implements
+ * ##### Implements:
  *
  * - [IERC721](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721)
  * - [IERC721Metadata](https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721Metadata)
@@ -66,7 +62,7 @@ contract Certificate is
   /**
    * @notice Role conferring operator permissions.
    *
-   * @dev This role is assigned to operators which are the only addresses which can transfer certificates outside of
+   * @dev Assigned to operators which are the only addresses which can transfer certificates outside of
    * minting and burning.
    */
   bytes32 public constant CERTIFICATE_OPERATOR_ROLE =
@@ -87,10 +83,10 @@ contract Certificate is
   string private _baseURIValue;
 
   /**
-   * @notice Emitted when a batch of removals is recieved to create a Certificate.
-   * @param from Address removals were sent from.
-   * @param recipient Address to send the certificate token to.
-   * @param certificateId The ID of the certificate the removals were used for.
+   * @notice Emitted when a batch of removals is received to create a Certificate.
+   * @param from The sender's address.
+   * @param recipient The recipient address.
+   * @param certificateId The ID of the certificate that the removals mint.
    * @param removalIds The removal IDs used for the certificate.
    * @param removalAmounts The amounts from each removal used for the certificate.
    */
@@ -139,9 +135,6 @@ contract Certificate is
   /**
    * @notice Registers the address of the Removal contract.
    *
-   * @dev This function is called as part of the market deployment process to register relevant contract
-   * addresses among market contracts.
-   *
    * Emits a `ContractAddressesRegistered` event.
    *
    * ##### Requirements:
@@ -166,13 +159,13 @@ contract Certificate is
    * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
    *
    * ##### Requirements:
-   * - Can only be used when the contract is not paused (enforced by `_beforeTokenTransfers`).
+   * - This contract must not be paused (enforced by `_beforeTokenTransfers`).
    * - `_msgSender` must be the removal contract.
    *
-   * @param removalIds The array of ERC1155 Removal token ids being received in this batch.
-   * @param removalAmounts The array of balances being received for each corresponding token id.
-   * @param data Bytes that encode the certificate's recipient address and total amount.
-   * @return selector the selector of the function.
+   * @param removalIds The array of ERC1155 Removal IDs received.
+   * @param removalAmounts The removal amounts per each removal ID.
+   * @param data The bytes that encode the certificate's recipient address and total amount.
+   * @return The selector of the function.
    */
   function onERC1155BatchReceived(
     address,
@@ -218,11 +211,10 @@ contract Certificate is
   }
 
   /**
-   * @notice Returns the original number of tonnes of carbon removals purchased when the specified certificate
-   * was created.
+   * @notice Returns the original number of tonnes of carbon removals purchased at the time of the purchase.
    *
    * @param certificateId The certificate to retrieve the original amount for.
-   * @return purchaseAmount The tonnes of carbon removal purchased for the certificate.
+   * @return The tonnes of carbon removal purchased for the certificate.
    */
   function purchaseAmount(uint256 certificateId)
     external
@@ -280,7 +272,7 @@ contract Certificate is
    *
    * ##### Requirements:
    *
-   * - Can only be used when this contract is not paused
+   * - This contract must not be paused.
    * - Can only be used when the caller has the `CERTIFICATE_OPERATOR_ROLE`
    *
    */
@@ -305,8 +297,7 @@ contract Certificate is
   /**
    * @notice Creates a new certificate for a batch of removals.
    *
-   * @dev Called when a batch of ERC1155 Removal tokens are sent to this contract.
-   * Mints a new certificate token to the next sequential ID and updates the internal data structures
+   * @dev Mints a new certificate token to the next sequential ID and updates the internal data structures
    * that track the relationship between the certificate and its constituent removal tokens and balances.
    *
    * Emits a `ReceiveRemovalBatch` event.
@@ -339,7 +330,7 @@ contract Certificate is
    * @notice Returns the sender of the transaction.
    *
    * @dev In all cases currently, we expect that the `_msgSender()`, `_msgSenderERC721A()` and `msg.sender` all return
-   * the same value. As such, this function is provided solely for compatibility with OpenZeppelin and ERC721A
+   * the same value. As such, this function exists solely for compatibility with OpenZeppelin and ERC721A
    * contracts. For more, see [here](https://github.com/chiru-labs/ERC721A/pull/281) and [here](
    * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Context.sol).
    *
@@ -361,12 +352,12 @@ contract Certificate is
   }
 
   /**
-   * @notice Validates the incoming batch of removal token data by comparing the lengths of ids and amounts.
+   * @notice Validates the incoming batch of removal token data by comparing the lengths of IDs and amounts.
    *
    * @dev Reverts if the array lengths do not match.
    *
-   * @param removalIds Array of removal token ids.
-   * @param removalAmounts Array of amounts.
+   * @param removalIds Array of removal IDs.
+   * @param removalAmounts Array of removal amounts.
    */
   function _validateReceivedRemovalBatch(
     uint256[] calldata removalIds,

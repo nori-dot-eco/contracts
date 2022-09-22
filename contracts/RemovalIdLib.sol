@@ -36,15 +36,14 @@ uint256 constant _ASCII_CAP_LETTER_MIN_VAL = 65;
 uint256 constant _ASCII_CAP_LETTER_MAX_VAL = 90;
 
 /**
- * @dev Library encapsulating the logic around encoding and decoding removal token ids.
+ * @notice Library encapsulating the logic around encoding and decoding removal IDs.
  *
- * The token IDs used for a given ERC1155 token in Removal encode information about the carbon removal in the following
- * format(s), where the first byte encodes the format version:
+ * @dev The token IDs used for a given ERC1155 token in Removal encode information about the carbon removal in the
+ * following format(s), where the first byte encodes the format version:
  *
- * Version 0:
- * [1byte][1byte][--2 bytes--][--2 bytes--][--2 bytes--][----------- 20 bytes------------- ][------4 bytes------]
- * tokIdV--meth&v---vintage------country------subdivision------------ supplier address --------------subidentifier--
- *
+ * ###### Version 0:
+ * ```[1byte][1byte][--2 bytes--][--2 bytes--][--2 bytes--][-----------20 bytes-------------][------4 bytes------]```
+ * ```tokIdV--meth&v---vintage------country------subdivision------------supplier address--------------subidentifier--```
  * For methodology 1 (regenerative ag), the subidentifier serves as a parcel identifier.
  */
 library RemovalIdLib {
@@ -84,10 +83,10 @@ library RemovalIdLib {
   }
 
   /**
-   * @notice Packs data about a removal into a 256-bit token id for the removal.
-   * @dev Performs some possible validations on the data before attempting to create the id.
+   * @notice Packs data about a removal into a 256-bit removal ID for the removal.
+   * @dev Performs some possible validations on the data before attempting to create the ID.
    *
-   * @param removal removal data struct to be packed into a uint256 ID
+   * @param removal A removal in `DecodedRemovalIdV0` notation.
    */
   function createRemovalId(
     DecodedRemovalIdV0 memory removal // todo rename create
@@ -110,7 +109,7 @@ library RemovalIdLib {
   }
 
   /**
-   * @notice Unpacks a V0 removal id into its component data.
+   * @notice Unpacks a V0 removal ID into its component data.
    */
   function decodeRemovalIdV0(uint256 removalId)
     internal
@@ -131,7 +130,7 @@ library RemovalIdLib {
   }
 
   /**
-   * @notice Extracts and returns the version field of a removal token id.
+   * @notice Extracts and returns the version field of a removal ID.
    */
   function version(uint256 removalId) internal pure returns (uint8) {
     return
@@ -141,7 +140,7 @@ library RemovalIdLib {
   }
 
   /**
-   * @notice Extracts and returns the methodology field of a removal token id.
+   * @notice Extracts and returns the methodology field of a removal ID.
    */
   function methodology(uint256 removalId) internal pure returns (uint8) {
     return
@@ -155,7 +154,7 @@ library RemovalIdLib {
   }
 
   /**
-   * @notice Extracts and returns the methodology version field of a removal token id.
+   * @notice Extracts and returns the methodology version field of a removal ID.
    */
   function methodologyVersion(uint256 removalId) internal pure returns (uint8) {
     return
@@ -169,7 +168,7 @@ library RemovalIdLib {
   }
 
   /**
-   * @notice Extracts and returns the vintage field of a removal token id.
+   * @notice Extracts and returns the vintage field of a removal ID.
    */
   function vintage(uint256 removalId) internal pure returns (uint16) {
     return
@@ -177,7 +176,7 @@ library RemovalIdLib {
   }
 
   /**
-   * @notice Extracts and returns the country code field of a removal token id.
+   * @notice Extracts and returns the country code field of a removal ID.
    */
   function countryCode(uint256 removalId) internal pure returns (bytes2) {
     return
@@ -193,7 +192,7 @@ library RemovalIdLib {
   }
 
   /**
-   * @notice Extracts and returns the subdivision field of a removal token id.
+   * @notice Extracts and returns the subdivision field of a removal ID.
    */
   function subdivisionCode(uint256 removalId) internal pure returns (bytes2) {
     return
@@ -209,7 +208,7 @@ library RemovalIdLib {
   }
 
   /**
-   * @notice Extracts and returns the supplier address field of a removal token ID.
+   * @notice Extracts and returns the supplier address field of a removal ID.
    */
   function supplierAddress(uint256 removalId) internal pure returns (address) {
     return
@@ -221,14 +220,14 @@ library RemovalIdLib {
   }
 
   /**
-   * @notice Extracts and returns the subIdentifier field of a removal token id.
+   * @notice Extracts and returns the `subIdentifier` field of a removal ID.
    */
   function subIdentifier(uint256 removalId) internal pure returns (uint32) {
     return uint32(_extractValue(removalId, _SUBID_FIELD_LENGTH, _SUBID_OFFSET));
   }
 
   /**
-   * @dev Extracts a field of the specified length in bytes, at the specified location, from a removal id.
+   * @dev Extracts a field of the specified length in bytes, at the specified location, from a removal ID.
    */
   function _extractValue(
     uint256 removalId,

@@ -5,7 +5,6 @@
 
 
 
-
 ---
 
 ### _DEFAULT_EARLIEST_YEAR
@@ -13,7 +12,6 @@
 ```solidity
 uint256 _DEFAULT_EARLIEST_YEAR
 ```
-
 
 
 
@@ -29,7 +27,6 @@ uint256 _DEFAULT_LATEST_YEAR
 
 
 
-
 ### insert
 
 ```solidity
@@ -38,7 +35,7 @@ function insert(struct RemovalsByYear collection, uint256 removalId) internal
 
 Inserts a new removal into the collection.
 
-_The removal is added to the Enumerable Set that maps to the year of its year._
+<i>The removal is added to the Enumerable Set that maps to the year of its year.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -54,7 +51,7 @@ function remove(struct RemovalsByYear collection, uint256 removalId) internal
 
 Removes a removal from the collection.
 
-_Removes the removal from the Enumerable Set that corresponds to its year._
+<i>Removes the removal from the Enumerable Set that corresponds to its year.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -70,7 +67,7 @@ function isEmpty(struct RemovalsByYear collection) internal view returns (bool)
 
 Checks if the collection is empty across all years.
 
-_Uses the latestYear property to check if any years have been set._
+<i>Uses the latestYear property to check if any years have been set.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -78,7 +75,7 @@ _Uses the latestYear property to check if any years have been set._
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | bool | bool true if empty, false otherwise. |
+| [0] | bool | True if empty, false otherwise. |
 
 ### isEmptyForYear
 
@@ -96,7 +93,7 @@ Checks if the collection is empty for a particular year.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | bool | bool true if empty, false otherwise. |
+| [0] | bool | True if empty, false otherwise. |
 
 ### getNextRemovalForSale
 
@@ -106,7 +103,7 @@ function getNextRemovalForSale(struct RemovalsByYear collection) internal view r
 
 Gets the next removal in the collection for sale.
 
-_Gets the first item from the Enumerable Set that corresponds to the earliest year._
+<i>Gets the first item from the Enumerable Set that corresponds to the earliest year.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -114,7 +111,7 @@ _Gets the first item from the Enumerable Set that corresponds to the earliest ye
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | uint256 the next removal to sell. |
+| [0] | uint256 | The next removal to sell. |
 
 ### getCountForYear
 
@@ -124,7 +121,7 @@ function getCountForYear(struct RemovalsByYear collection, uint256 year) interna
 
 Gets the count of unique removal IDs for a particular year.
 
-_Gets the size of the Enumerable Set that corresponds to the given year._
+<i>Gets the size of the Enumerable Set that corresponds to the given year.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

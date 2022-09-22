@@ -8,8 +8,6 @@ If a supplier is found to have released the sequestered carbon the corresponding
 
 Investors and employees have received token grants bound by vesting and lockup terms. These grants are implemented by _LockedNORI_ which does not currently support transfer of locked tokens and allows a maxaimum of one grant schedule per wallet address.
 
-Detailed documentation on these contracts is available [here](../docs)
-
 ## ERC20 Token
 
 ### NORI (NORI)
