@@ -2,8 +2,14 @@ import type { NetworksUserConfig, NetworkUserConfig } from 'hardhat/types';
 
 import { accounts } from '@/config/accounts';
 
-const { INFURA_STAGING_KEY, INFURA_PROD_KEY, MNEMONIC, LOG_HARDHAT_NETWORK } =
-  process.env;
+const {
+  ETHEREUM_RPC_URL,
+  GOERLI_RPC_URL,
+  MUMBAI_RPC_URL,
+  POLYGON_RPC_URL,
+  MNEMONIC,
+  LOG_HARDHAT_NETWORK,
+} = process.env;
 
 const hardhat: NetworksUserConfig['hardhat'] = {
   blockGasLimit: 20_000_000,
@@ -34,7 +40,7 @@ const localhost: NetworkUserConfig = {
 
 const goerli: NetworkUserConfig = {
   chainId: 5,
-  url: `https://goerli.infura.io/v3/${INFURA_STAGING_KEY}`,
+  url: GOERLI_RPC_URL,
   gas: 2_100_000,
   gasPrice: 8_000_000_000,
   live: true,
@@ -43,7 +49,7 @@ const goerli: NetworkUserConfig = {
 
 const mumbai: NetworkUserConfig = {
   chainId: 80_001,
-  url: `https://polygon-mumbai.infura.io/v3/${INFURA_STAGING_KEY}`,
+  url: MUMBAI_RPC_URL,
   gasPrice: 35_000_000_000,
   live: true,
   tags: ['polygon', 'staging'],
@@ -51,7 +57,7 @@ const mumbai: NetworkUserConfig = {
 
 const polygon: NetworkUserConfig = {
   chainId: 137,
-  url: `https://polygon-mainnet.infura.io/v3/${INFURA_PROD_KEY}`,
+  url: POLYGON_RPC_URL,
   gasPrice: 50_000_000_000,
   live: true,
   tags: ['polygon', 'prod'],
@@ -59,7 +65,7 @@ const polygon: NetworkUserConfig = {
 
 const mainnet: NetworkUserConfig = {
   chainId: 1,
-  url: `https://mainnet.infura.io/v3/${INFURA_PROD_KEY}`,
+  url: ETHEREUM_RPC_URL,
   gasPrice: 50_000_000_000,
   live: true,
   tags: ['mainnet', 'prod'],
@@ -68,6 +74,8 @@ const mainnet: NetworkUserConfig = {
 export const networks = {
   hardhat,
   ...(Boolean(MNEMONIC) && { localhost }),
-  ...(Boolean(INFURA_STAGING_KEY) && { goerli, mumbai }),
-  ...(Boolean(INFURA_STAGING_KEY) && { mainnet, polygon }),
+  ...(Boolean(GOERLI_RPC_URL) && { goerli }),
+  ...(Boolean(MUMBAI_RPC_URL) && { mumbai }),
+  ...(Boolean(ETHEREUM_RPC_URL) && { mainnet }),
+  ...(Boolean(POLYGON_RPC_URL) && { polygon }),
 } as const;
