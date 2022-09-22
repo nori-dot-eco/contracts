@@ -29,7 +29,7 @@ contract AccessPresetPausable is
   /**
    * @notice Unpauses all token transfers.
    *
-   * @dev
+   * @dev Re-enables functionality that was paused by `pause`.
    *
    * ##### Requirements:
    *

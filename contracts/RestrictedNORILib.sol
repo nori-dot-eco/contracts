@@ -20,10 +20,6 @@ struct Schedule {
  * @dev Library encapsulating the logic around restriction schedules.
  *
  * All time parameters are in unix time for ease of comparison with `block.timestamp`.
- *
- * NOTE: All methods are internal so this library gets inlined into the consuming
- * contract and does not need to be deployed separately.
- *
  */
 library RestrictedNORILib {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
@@ -72,7 +68,7 @@ library RestrictedNORILib {
   /**
    * @notice Reconstructs a schedule's true total based on claimed and unclaimed tokens.
    *
-   * @dev claiming burns the ERC1155 token, so the true total of a schedule has to be reconstructed
+   * @dev Claiming burns the ERC1155 token, so the true total of a schedule has to be reconstructed
    * from the `totalSupply` and any claimed amount.
    */
   function scheduleTrueTotal(Schedule storage schedule, uint256 totalSupply)
@@ -100,9 +96,9 @@ library RestrictedNORILib {
   }
 
   /**
-   * @notice A single account's claimable balance at current block timestamp for a schedule
+   * @notice A single account's claimable balance at current `block.timestamp` for a schedule.
    *
-   * @dev calculations have to consider an account's total proportional claim to the schedule's released tokens,
+   * @dev Calculations have to consider an account's total proportional claim to the schedule's released tokens,
    * using totals constructed from current balances and claimed amounts, and then subtract anything that
    * account has already claimed.
    */
@@ -151,7 +147,7 @@ library RestrictedNORILib {
   }
 
   /**
-   * @notice Returns the existence of a schedule
+   * @notice Returns the existence of a schedule.
    */
   function doesExist(Schedule storage schedule) internal view returns (bool) {
     return schedule.endTime != 0;

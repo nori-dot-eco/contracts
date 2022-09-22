@@ -37,6 +37,30 @@ export function hsection(
   hsublevel: number | HelperOptions,
   options?: HelperOptions
 ) {
+  if ((this as any)?.documentation?.text) {
+    (this as any).documentation.text = (this as any).documentation?.text
+      .replace(/\n+/g, ' ')
+      .replace(/##### Requirements:/, '\n ##### Requirements:\n')
+      .replace(/##### Inherits:/, '\n ##### Inherits:\n')
+      .replace(/##### Implements:/, '\n ##### Implements:\n')
+      .replace(/##### Uses:/, '\n ##### Uses:\n')
+      .replace(/###### /g, '\n ###### ')
+      .replace(
+        /##### Additional behaviors and features:/,
+        '\n ##### Additional behaviors and features:\n'
+      ).replace(
+        /##### Behaviors and features:/,
+        '\n #### Behaviors and features:\n'
+      )
+      .replace(/@title/, '\n @title')
+      .replace(/@author/, '\n @author')
+      .replace(/@notice/, '\n @notice')
+      .replace(/@dev/, '\n @dev')
+      .replace(/- +/g, '\n - ')
+      .replace(/@param/g, '\n @param')
+      .replace(/@return/g, '\n @return')
+      .replace(/```/g, '\n ```\n');
+  }
   ({ hsublevel, opts: options } = getHSublevel(hsublevel, options));
   const hlevel = getHLevel(this) + hsublevel;
   const context = Utils.extend({}, this, { hlevel });
