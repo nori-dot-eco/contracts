@@ -18,11 +18,9 @@ error UnsupportedIdVersion(uint8 idVersion);
 error ForbiddenTransferAfterMinting();
 error InsufficientSupply();
 error UnauthorizedWithdrawal(); // todo consider allowing operators
-error OutOfStock();
 error LowSupplyAllowlistRequired();
 error Unauthorized(); // todo perhaps use this for any authorization error
 error InvalidData();
-error InvalidCall();
 error InvalidTokenTransfer(uint256 tokenId);
 error InvalidNoriFeePercentage();
 error ForbiddenTransfer();
