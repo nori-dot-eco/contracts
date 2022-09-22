@@ -30,7 +30,9 @@ describe('LockedNORI V1 to V2 upgrade', () => {
       }
     )) as any as MockERC777;
 
-    const LockedNORIFactory = await hre.ethers.getContractFactory('LockedNORIV1');
+    const LockedNORIFactory = await hre.ethers.getContractFactory(
+      'LockedNORIV1'
+    );
     const lNori = (await upgrades.deployProxy(
       LockedNORIFactory as any, // todo
       [erc777.address],
