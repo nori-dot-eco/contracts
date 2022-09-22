@@ -878,17 +878,17 @@ contract Removal_release_retired_2x is UpgradeableMarket {
       _removal.balanceOf(address(_certificate), _removalIds[0]),
       1 ether
     );
-    // todo test 2 certs exist
+    assertEq(_certificate.totalMinted(), 2);
   }
 
   function test() external {
     _removal.release(_removalIds[0], 0.9 ether);
-    // todo test other side-effects (events, number of tokens by address etc. using a helper)
+    // todo test for RemovalReleased events with two certificate IDs
+    assertEq(_removal.totalSupply(_removalIds[0]), 0.1 ether);
     assertEq(
       _removal.balanceOf(address(_certificate), _removalIds[0]),
       0.1 ether
     );
-    // todo test other side-effects (events, number of tokens by address etc. using a helper)
   }
 }
 

@@ -699,7 +699,7 @@ contract Removal is
   /**
    * @notice Hook that is called before before any token transfer. This includes minting and burning, as well as
    * batched variants. Disables transfers to any address that is not the `Market` or `Certificate` contracts, the zero
-   * address (for burning), or the supplier address that is encoded in the token ID itself.
+   * address (for burning), the supplier address that is encoded in the token ID itself, or between consignors.
    *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
