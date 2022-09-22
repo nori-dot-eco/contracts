@@ -24,9 +24,9 @@ import type { PopulatedTransaction } from 'ethers';
 import { BigNumber, ethers, constants } from 'ethers';
 import { TransactionStatus } from 'fireblocks-sdk';
 import type { FireblocksSDK } from 'fireblocks-sdk';
+import { Chain } from 'fireblocks-defi-sdk';
 
 import { EthersCustomBridge } from './from-upstream/fireblocks-bridge';
-import { Chain } from './from-upstream/chain';
 
 const log = new Logger('fireblocks signer');
 

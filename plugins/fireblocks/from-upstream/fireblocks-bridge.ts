@@ -7,9 +7,9 @@ import {
 import { PeerType, TransactionOperation } from 'fireblocks-sdk';
 import { formatEther, formatUnits } from 'ethers/lib/utils';
 
-import { BaseBridge } from './base-bridge';
+import { EthersBridge } from 'fireblocks-defi-sdk';
 
-export class EthersCustomBridge extends BaseBridge {
+export class EthersCustomBridge extends EthersBridge {
   async sendTransaction(
     transaction: Deferrable<PopulatedTransaction>,
     txNote?: string
