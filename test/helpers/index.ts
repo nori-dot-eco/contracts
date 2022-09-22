@@ -53,7 +53,9 @@ export const advanceTime = async ({
   hre: CustomHardHatRuntimeEnvironment;
   timestamp: number;
 }): Promise<void> => {
-  await hre.network.provider.send('evm_setNextBlockTimestamp', [Math.round(timestamp)]);
+  await hre.network.provider.send('evm_setNextBlockTimestamp', [
+    Math.round(timestamp),
+  ]);
   await hre.network.provider.send('hardhat_mine');
 };
 

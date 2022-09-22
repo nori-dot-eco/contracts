@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/prevent-abbreviations -- this file will eventually be replaced by foundry tests */
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import type {
   DecodedRemovalIdV0Struct,
@@ -26,9 +25,7 @@ describe('RemovalIdLib', () => {
     expect(decodedRemovalId.vintage).equal(removalData.vintage);
     expect(decodedRemovalId.country).equal(removalData.country);
     expect(decodedRemovalId.subdivision).equal(removalData.subdivision);
-    expect(decodedRemovalId.supplierAddress).equal(
-      removalData.supplierAddress
-    );
+    expect(decodedRemovalId.supplierAddress).equal(removalData.supplierAddress);
     expect(decodedRemovalId.subIdentifier).equal(removalData.subIdentifier);
     expect(hexStringToAsciiString(decodedRemovalId.country)).equal(
       countryCodeString

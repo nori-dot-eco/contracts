@@ -39,8 +39,7 @@ export const TASK = {
     }
     return CONTRACT_FUNCTION_TASK_RUN({
       contractAddress: contractsConfig[network].Market.proxyAddress,
-      contractAbi: (await require('@/artifacts/Market.sol/Market.json'))
-        .abi,
+      contractAbi: (await require('@/artifacts/Market.sol/Market.json')).abi,
       from,
       func,
       args,
