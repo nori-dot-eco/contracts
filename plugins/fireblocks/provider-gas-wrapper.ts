@@ -1,5 +1,5 @@
 import { JsonRpcBatchProvider } from '@ethersproject/providers';
-import { FeeData } from '@ethersproject/abstract-provider';
+import type { FeeData } from '@ethersproject/abstract-provider';
 import { BigNumber } from 'ethers';
 
 /**
@@ -74,7 +74,8 @@ async function getFeeDataForChain(
 ): Promise<FeeData> {
   if (chainId === 137) {
     return await polygonGasStation(level, POLYGON_MAINNET_URL);
-  } else if (chainId === 80001) {
+  }
+  if (chainId === 80_001) {
     return await polygonGasStation(level, POLYGON_MUMBAI_URL);
   }
   return Promise.resolve({
