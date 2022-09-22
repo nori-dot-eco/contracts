@@ -1,7 +1,8 @@
+import sinon from 'sinon';
+
 import { MaxUint256 } from '@/constants/units';
 import { expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
-import sinon from 'sinon';
 
 describe('Certificate', () => {
   it('should emit a RemovalReleased event when a removal is released from the Certificate', async () => {
