@@ -778,6 +778,29 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
     uint256(0),
     uint256(0.1 ether)
   ];
+  uint256[] private _expectedInitialBalances = [
+    0.5 ether,
+    0.25 ether,
+    0.25 ether
+  ];
+  uint256[] private _expectedReleasedBalances = [
+    _expectedInitialBalances[0],
+    _expectedInitialBalances[1],
+    _expectedInitialBalances[_expectedInitialBalances.length - 1] -
+      _expectedBalances[_expectedBalances.length - 1]
+  ];
+  bytes32 constant TRANSFER_SINGLE_EVENT_SELECTOR =
+    keccak256("TransferSingle(address,address,address,uint256,uint256)");
+  bytes32 constant REMOVAL_RELEASED_EVENT_SELECTOR =
+    keccak256("RemovalReleased(uint256,address,uint256)");
+  bytes32[] expectedReleaseEventSelectors = [
+    TRANSFER_SINGLE_EVENT_SELECTOR,
+    REMOVAL_RELEASED_EVENT_SELECTOR,
+    TRANSFER_SINGLE_EVENT_SELECTOR,
+    REMOVAL_RELEASED_EVENT_SELECTOR,
+    TRANSFER_SINGLE_EVENT_SELECTOR,
+    REMOVAL_RELEASED_EVENT_SELECTOR
+  ];
 
   function setUp() external {
     _expectedOwners = [
@@ -822,13 +845,58 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
       signedPermit.s
     );
     assertEq(
-      _removal.balanceOf(address(_certificate), _removalIds[0]),
-      0.25 ether
+      _removal.balanceOfBatch(
+        _expectedOwners,
+        new uint256[](_expectedOwners.length).fill(_removalIds[0])
+      ),
+      _expectedInitialBalances
     );
+    vm.recordLogs();
+  }
+
+  /**
+   * @dev Assert that the `TransferSingle` and `RemovalReleased` events are emitted in alternation with the
+   * correct arguments (e.g., every second call to each event respectively iterates through `_expectedOwners` and
+   * `_expectedReleasedBalances`)
+   */
+  function validateReleaseEvents() private {
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, expectedReleaseEventSelectors.length);
+    for (uint256 i = 0; i < entries.length; ++i) {
+      assertEq(entries[i].topics[0], expectedReleaseEventSelectors[i]);
+      if (i % 2 == 1) {
+        assertEq(entries[i].topics[1], bytes32(_removalIds[0]));
+        assertEq(
+          entries[i].topics[2],
+          bytes32(uint256(uint160(_expectedOwners[i / 2])))
+        );
+        assertEq(
+          abi.decode(entries[i].data, (uint256)),
+          _expectedReleasedBalances[i / 2]
+        );
+      } else {
+        assertEq(
+          entries[i].topics[1],
+          bytes32(uint256(uint160(address(this))))
+        );
+        assertEq(
+          entries[i].topics[2],
+          bytes32(uint256(uint160(_expectedOwners[i / 2])))
+        );
+        assertEq(entries[i].topics[3], bytes32(uint256(uint160(address(0)))));
+        (uint256 id, uint256 value) = abi.decode(
+          entries[i].data,
+          (uint256, uint256)
+        );
+        assertEq(id, _removalIds[0]);
+        assertEq(value, _expectedReleasedBalances[i / 2]);
+      }
+    }
   }
 
   function test() external {
     _removal.release(_removalIds[0], 0.9 ether);
+    validateReleaseEvents();
     assertEq(
       _removal.balanceOfBatch(
         _expectedOwners,

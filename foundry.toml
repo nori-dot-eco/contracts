@@ -24,5 +24,4 @@ optimizer_runs = 0
 optimizer = false
 sparse_mode = true
 
-
 # See more config options https://github.com/foundry-rs/fo undry/tree/master/config

@@ -664,8 +664,8 @@ contract Removal is
    */
   function _releaseFromSupplier(uint256 id, uint256 amount) internal {
     address supplierAddress = id.supplierAddress();
-    emit RemovalReleased(id, supplierAddress, amount);
     super._burn(supplierAddress, id, amount);
+    emit RemovalReleased(id, supplierAddress, amount);
   }
 
   /**
