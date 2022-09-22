@@ -328,13 +328,25 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     };
   }
 
+  /**
+   * Implements typed signing following the ethers TypedDataSigner interface.
+   * 
+   * Ethers 6.x will rename this to signTypedData and fold TypedDataSigner
+   * into the standard Signer interface.
+   * 
+   * Based on jsonrpc signer implementation: https://github.com/ethers-io/ethers.js/blob/master/packages/providers/src.ts/json-rpc-provider.ts#L334
+   * See also https://support.fireblocks.io/hc/en-us/articles/4413379762450-Off-Chain-Message-Signing#h_01FE9VKBH6SG9EFT9G097ZV3ET
+   * 
+   * @param domain 
+   * @param types 
+   * @param value 
+   * @returns Signature string
+   */
   async _signTypedData(
     domain: TypedDataDomain,
     types: Record<string, Array<TypedDataField>>,
     value: Record<string, any>
   ): Promise<string> {
-    // Based on jsonrpc signer implementation: https://github.com/ethers-io/ethers.js/blob/master/packages/providers/src.ts/json-rpc-provider.ts#L334
-    // See also https://support.fireblocks.io/hc/en-us/articles/4413379762450-Off-Chain-Message-Signing#h_01FE9VKBH6SG9EFT9G097ZV3ET
     // Attempt to populate any ENS names (in-place)
     let populated = { domain, value };
     if (this.chain === Chain.MAINNET) {
