@@ -2,10 +2,9 @@
 pragma solidity =0.8.15;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import {AddressArrayLib} from "./ArrayLib.sol";
 import "./Market.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
-import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
+import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
 
 /**
  * @title An extended ERC1155 token contract for carbon removal accounting.
@@ -46,8 +45,8 @@ import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from 
  * - This accounting is performed by burning the affected balance of a removal that has been released.
  * - Only accounts with the RELEASER_ROLE can initiate a release.
  * - When a removal token is released, balances are burned in a specific order until the released amount
- * has been accounted for: Releasing burns first from unlisted balances, second from listed balances and third
- * from any certificates in which this removal may have already been included. (see `Removal.release` for more)
+ * has been accounted for: Releasing burns first from unlisted balances, second from listed balances and third from the
+ * certificate contract (see `Removal.release` for more)
  * - Affected certificates will have any released balances replaced by new removals purchased by Nori, though an
  * automated implementation of this process is beyond the scope of this version of the contracts.
  *
@@ -726,7 +725,8 @@ contract Removal is
       to == address(0) ||
       (hasRole({role: CONSIGNOR_ROLE, account: _msgSender()}) &&
         (to == certificate || hasRole({role: CONSIGNOR_ROLE, account: to})));
-    for (uint256 i = 0; i < ids.length; ++i) {
+    uint256 countOfRemovals = ids.length;
+    for (uint256 i = 0; i < countOfRemovals; ++i) {
       uint256 id = ids[i];
       if (to == market) {
         if (amounts[i] == 0) {

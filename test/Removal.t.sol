@@ -63,74 +63,49 @@ contract Removal_migrate is UpgradeableMarket {
     vm.startPrank(_namedAccounts.admin);
   }
 
+  event Migrate(
+    address indexed certificateRecipient,
+    uint256 indexed certificateAmount,
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] removalAmounts
+  );
+
   function test() external {
-    // vm.recordLogs();
+    vm.recordLogs();
     _removal.migrate({
       ids: idsForAllSuppliers,
       amounts: amountsForAllSuppliers,
       certificateRecipient: _namedAccounts.buyer,
       certificateAmount: CERTIFICATE_AMOUNT
     });
-    // Vm.Log[] memory entries = vm.getRecordedLogs();
-    // assertEq(entries.length, 6);
-    // assertEq(
-    //   entries[2].topics[0],
-    //   keccak256("Migration(address,uint256,uint256,uint256[],uint256[])")
-    // );
-    // assertEq(entries[2].topics.length, 4);
-    // assertEq(
-    //   entries[2].topics[1],
-    //   bytes32(uint256(uint160(_namedAccounts.buyer)))
-    // );
-    // assertEq(entries[2].topics[2], bytes32(CERTIFICATE_AMOUNT));
-    // assertEq(entries[2].topics[3], bytes32(EXPECTED_CERTIFICATE_ID));
-    // uint256[] memory flattenedAmounts = new uint256[](NUMBER_OF_REMOVALS);
-    // uint256[] memory flattenedIds = new uint256[](NUMBER_OF_REMOVALS);
-    // (uint256[] memory decodedIds, uint256[] memory decodedAmounts) = abi.decode(
-    //   entries[2].data,
-    //   (uint256[], uint256[])
-    // );
-    // assertEq(
-    //   _certificate.ownerOf({tokenId: EXPECTED_CERTIFICATE_ID}),
-    //   _namedAccounts.buyer
-    // );
-    // assertEq(
-    //   _certificate.purchaseAmount({certificateId: EXPECTED_CERTIFICATE_ID}),
-    //   CERTIFICATE_AMOUNT
-    // );
-    // Certificate.Balance[] memory removalBalancesOfCertificate = _certificate
-    //   .removalsOfCertificate({certificateId: EXPECTED_CERTIFICATE_ID});
-    // assertEq(decodedIds, flattenedIds);
-    // assertEq(decodedAmounts, flattenedAmounts);
-    // assertEq(_certificate.totalMinted(), EXPECTED_CERTIFICATE_ID + 1);
-    // uint256 index = 0;
-    // for (uint256 i = 0; i < NUMBER_OF_SUPPLIERS; ++i) {
-    //   for (uint256 j = 0; j < NUMBER_OF_REMOVALS_PER_SUPPLIER; ++j) {
-    //     flattenedAmounts[index] = AMOUNT_PER_REMOVAL;
-    //     flattenedIds[index] = idsForAllSuppliers[i][j];
-    //     assertEq(
-    //       _certificate.balanceOfRemoval({
-    //         certificateTokenId: EXPECTED_CERTIFICATE_ID,
-    //         removalTokenId: flattenedIds[index]
-    //       }),
-    //       AMOUNT_PER_REMOVAL
-    //     );
-    //     assertEq(
-    //       removalBalancesOfCertificate[index].id,
-    //       idsForAllSuppliers[i][j]
-    //     );
-    //     assertEq(
-    //       removalBalancesOfCertificate[index].amount,
-    //       AMOUNT_PER_REMOVAL
-    //     );
-    //     Certificate.Balance[] memory certificatesOfRemoval = _certificate
-    //       .certificatesOfRemoval({removalId: flattenedIds[index]});
-    //     assertEq(certificatesOfRemoval.length, 1);
-    //     assertEq(certificatesOfRemoval[0].amount, AMOUNT_PER_REMOVAL);
-    //     assertEq(certificatesOfRemoval[0].id, EXPECTED_CERTIFICATE_ID);
-    //     index += 1;
-    //   }
-    // }
+    assertEq(
+      _certificate.ownerOf({tokenId: EXPECTED_CERTIFICATE_ID}),
+      _namedAccounts.buyer
+    );
+    assertEq(
+      _certificate.purchaseAmount({certificateId: EXPECTED_CERTIFICATE_ID}),
+      CERTIFICATE_AMOUNT
+    );
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 4);
+    assertEq(
+      entries[0].topics[0],
+      keccak256("Migrate(address,uint256,uint256,uint256[],uint256[])") // todo if we move contract events to interfaces we can use IRemoval.Migrate.selector instead
+    );
+    assertEq(entries[0].topics.length, 4);
+    assertEq(
+      entries[0].topics[1],
+      bytes32(uint256(uint160(_namedAccounts.buyer)))
+    );
+    assertEq(entries[0].topics[2], bytes32(CERTIFICATE_AMOUNT));
+    assertEq(entries[0].topics[3], bytes32(EXPECTED_CERTIFICATE_ID));
+    (uint256[] memory decodedIds, uint256[] memory decodedAmounts) = abi.decode(
+      entries[0].data,
+      (uint256[], uint256[])
+    );
+    assertEq(decodedAmounts, amountsForAllSuppliers);
+    assertEq(decodedIds, idsForAllSuppliers);
   }
 }
 
