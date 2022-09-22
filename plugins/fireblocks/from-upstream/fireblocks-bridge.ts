@@ -7,9 +7,9 @@ import type {
 } from 'fireblocks-sdk';
 import { formatEther, formatUnits } from 'ethers/lib/utils';
 
-import { BaseBridge } from './base-bridge';
+import { EthersBridge } from 'fireblocks-defi-sdk';
 
-export class EthersCustomBridge extends BaseBridge {
+export class EthersCustomBridge extends EthersBridge {
   async sendTransaction(
     transaction: Deferrable<PopulatedTransaction>,
     txNote?: string
@@ -57,7 +57,7 @@ export class EthersCustomBridge extends BaseBridge {
     return this.params.fireblocksApiClient.createTransaction(txArguments);
   }
 
-  async sendRawTransaction(
+  async sendRawSigningRequest(
     transaction: string,
     txNote?: string
   ): Promise<CreateTransactionResponse> {
@@ -74,6 +74,33 @@ export class EthersCustomBridge extends BaseBridge {
           messages: [
             {
               content: transaction,
+            },
+          ],
+        },
+      },
+    };
+    return this.params.fireblocksApiClient.createTransaction(txArguments);
+  }
+
+  async sendTypedSigningRequest(
+    payload: string,
+    txNote?: string
+  ): Promise<CreateTransactionResponse> {
+    const txArguments: TransactionArguments = {
+      operation: TransactionOperation.TYPED_MESSAGE,
+      assetId: this.assetId,
+      source: {
+        type: PeerType.VAULT_ACCOUNT,
+        id: this.params.vaultAccountId,
+      },
+      note: txNote || '',
+      extraParameters: {
+        rawMessageData: {
+          messages: [
+            {
+              content: Buffer.from(payload).toString("hex"),
+              index: 0,
+              type: "ETH_MESSAGE"
             },
           ],
         },
