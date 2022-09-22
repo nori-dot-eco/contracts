@@ -11,7 +11,7 @@ import type {
   ContractFactory,
   ethers as defaultEthers,
 } from 'ethers';
-import type { Signer } from '@ethersproject/abstract-signer';
+import type { Signer, TypedDataSigner } from '@ethersproject/abstract-signer';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
   FactoryOptions,
@@ -227,7 +227,7 @@ declare global {
     upgrades: CustomHardhatUpgrades;
     network: Omit<Network, 'name'> & { name: keyof typeof networks };
     ethers: typeof ethers;
-    getSigners: () => Promise<Signer[]>;
+    getSigners: () => Promise<(Signer & TypedDataSigner)[]>;
     deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
     deployNonUpgradeable: DeployNonUpgradeableFunction;
     log: Console['log'];
