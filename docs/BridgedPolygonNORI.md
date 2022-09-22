@@ -35,7 +35,9 @@ function deposit(address user, bytes depositData) external
 
 Deposit NORI on the root chain (Ethereum) to the child chain (Polygon) as bpNORI.
 
-<i>A deposit of NORI on the root chain (Ethereum) will trigger this function and mint bpNORI on the child chain  (Polygon). This function can only be called by the ChildChainManager. See [here](  https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.</i>
+<i>A deposit of NORI on the root chain (Ethereum) will trigger this function and mint bpNORI on the child chain
+(Polygon). This function can only be called by the ChildChainManager. See [here](
+https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -51,7 +53,8 @@ function withdraw(uint256 amount) external
 
 Withdraw bpNORI tokens from the child chain (Polygon) to the root chain (Ethereum) as NORI.
 
-<i>Burns user's tokens on polygon. This transaction will be verified when exiting on root chain. See [here](  https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.</i>
+<i>Burns user's tokens on polygon. This transaction will be verified when exiting on root chain. See [here](
+https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/mapping-assets/) for more.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

@@ -2,7 +2,9 @@
 
 
 
-<i>Library encapsulating the logic around restriction schedules.  All time parameters are in unix time for ease of comparison with `block.timestamp`.</i>
+<i>Library encapsulating the logic around restriction schedules.
+
+All time parameters are in unix time for ease of comparison with `block.timestamp`.</i>
 
 
 
@@ -15,7 +17,10 @@ function releasedBalanceOfSingleSchedule(struct Schedule schedule, uint256 total
 ```
 
 
-<i>The total amount of released tokens available at the current block timestamp for the schedule.  Takes the maximum of either the calculated linearly released amount based on the schedule parameters,  or the released amount floor, which is set at the current released amount whenever the balance of a  schedule is decreased through revocation or withdrawal.</i>
+<i>The total amount of released tokens available at the current block timestamp for the schedule.
+Takes the maximum of either the calculated linearly released amount based on the schedule parameters,
+or the released amount floor, which is set at the current released amount whenever the balance of a
+schedule is decreased through revocation or withdrawal.</i>
 
 
 
@@ -25,7 +30,8 @@ function releasedBalanceOfSingleSchedule(struct Schedule schedule, uint256 total
 function linearReleaseAmountAvailable(struct Schedule schedule, uint256 totalSupply) internal view returns (uint256)
 ```
 
-Linearly released balance for a single schedule at the current block timestamp, ignoring any  released amount floor that has been set for the schedule.
+Linearly released balance for a single schedule at the current block timestamp, ignoring any
+released amount floor that has been set for the schedule.
 
 
 
@@ -38,7 +44,8 @@ function scheduleTrueTotal(struct Schedule schedule, uint256 totalSupply) intern
 
 Reconstructs a schedule's true total based on claimed and unclaimed tokens.
 
-<i>Claiming burns the ERC1155 token, so the true total of a schedule has to be reconstructed  from the `totalSupply` and any claimed amount.</i>
+<i>Claiming burns the ERC1155 token, so the true total of a schedule has to be reconstructed
+from the `totalSupply` and any claimed amount.</i>
 
 
 
@@ -61,7 +68,9 @@ function claimableBalanceForScheduleForAccount(struct Schedule schedule, uint256
 
 A single account's claimable balance at current `block.timestamp` for a schedule.
 
-<i>Calculations have to consider an account's total proportional claim to the schedule's released tokens,  using totals constructed from current balances and claimed amounts, and then subtract anything that  account has already claimed.</i>
+<i>Calculations have to consider an account's total proportional claim to the schedule's released tokens,
+using totals constructed from current balances and claimed amounts, and then subtract anything that
+account has already claimed.</i>
 
 
 

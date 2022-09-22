@@ -221,7 +221,7 @@ contract RestrictedNORI is
     _grantRole(PAUSER_ROLE, _msgSender());
     _grantRole(SCHEDULE_CREATOR_ROLE, _msgSender());
     _grantRole(TOKEN_REVOKER_ROLE, _msgSender());
-    this.setRestrictionDurationForMethodologyAndVersion({
+    setRestrictionDurationForMethodologyAndVersion({
       methodology: 1,
       methodologyVersion: 0,
       durationInSeconds: 315_569_520 // Seconds in 10 years (accounts for leap years)
@@ -344,33 +344,6 @@ contract RestrictedNORI is
   ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     _bridgedPolygonNORI = BridgedPolygonNORI(bridgedPolygonNORI);
     _removal = Removal(removal);
-  }
-
-  /**
-   * @notice Sets the duration in seconds that should be applied to schedules created on behalf of removals
-   * originating from the given methodology and methodology version.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
-   *
-   * @param methodology The methodology of carbon removal
-   * @param methodologyVersion The version of the methodology
-   * @param durationInSeconds The duration in seconds that insurance funds should be restricted for this
-   * methodology and version
-   */
-  function setRestrictionDurationForMethodologyAndVersion(
-    uint256 methodology,
-    uint256 methodologyVersion,
-    uint256 durationInSeconds
-  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
-    if (durationInSeconds == 0) {
-      revert InvalidZeroDuration();
-    }
-    _methodologyAndVersionToScheduleDuration[methodology][
-      methodologyVersion
-    ] = durationInSeconds;
   }
 
   /**
@@ -598,6 +571,33 @@ contract RestrictedNORI is
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 supply = totalSupply(scheduleId);
     return schedule.revocableQuantityForSchedule(scheduleId, supply);
+  }
+
+  /**
+   * @notice Sets the duration in seconds that should be applied to schedules created on behalf of removals
+   * originating from the given methodology and methodology version.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the contract is not paused.
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
+   *
+   * @param methodology The methodology of carbon removal
+   * @param methodologyVersion The version of the methodology
+   * @param durationInSeconds The duration in seconds that insurance funds should be restricted for this
+   * methodology and version
+   */
+  function setRestrictionDurationForMethodologyAndVersion(
+    uint256 methodology,
+    uint256 methodologyVersion,
+    uint256 durationInSeconds
+  ) public whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+    if (durationInSeconds == 0) {
+      revert InvalidZeroDuration();
+    }
+    _methodologyAndVersionToScheduleDuration[methodology][
+      methodologyVersion
+    ] = durationInSeconds;
   }
 
   /**
