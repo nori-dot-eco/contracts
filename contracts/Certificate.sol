@@ -369,8 +369,8 @@ contract Certificate is
    * @param removalAmounts Array of amounts.
    */
   function _validateReceivedRemovalBatch(
-    uint256[] memory removalIds,
-    uint256[] memory removalAmounts
+    uint256[] calldata removalIds,
+    uint256[] calldata removalAmounts
   ) internal pure {
     if (removalIds.length != removalAmounts.length) {
       revert ArrayLengthMismatch("removalIds", "removalAmounts");

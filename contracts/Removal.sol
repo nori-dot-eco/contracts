@@ -807,17 +807,18 @@ contract Removal is
       storage receiversOwnedRemovalIds = _addressToOwnedTokenIds[to];
     EnumerableSetUpgradeable.UintSet
       storage sendersOwnedRemovalIds = _addressToOwnedTokenIds[from];
+    uint256 countOfRemovals = ids.length;
     // Skip overflow check as for loop is indexed starting at zero.
     unchecked {
-      for (uint256 i = 0; i < ids.length; ++i) {
+      for (uint256 i = 0; i < countOfRemovals; ++i) {
         uint256 id = ids[i];
         if (from != address(0)) {
-          if (balanceOf({account: from, id: id}) == 0) {
-            sendersOwnedRemovalIds.remove({value: id});
+          if (balanceOf(from, id) == 0) {
+            sendersOwnedRemovalIds.remove(id);
           }
         }
         if (to != address(0)) {
-          receiversOwnedRemovalIds.add({value: id});
+          receiversOwnedRemovalIds.add(id);
         }
       }
     }
