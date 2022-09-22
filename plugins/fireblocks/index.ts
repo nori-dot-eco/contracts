@@ -12,7 +12,7 @@ import type {
 import './type-extensions';
 import { FireblocksSDK } from 'fireblocks-sdk';
 
-import { Chain } from './from-upstream/chain';
+import { Chain } from 'fireblocks-defi-sdk';
 import { FireblocksSigner } from './fireblocks-signer';
 import { JsonRpcBatchProviderWithGasFees } from './provider-gas-wrapper';
 
