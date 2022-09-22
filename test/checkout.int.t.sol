@@ -1,6 +1,6 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, not-rely-on-time */
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.15;
+pragma solidity =0.8.17;
 import "@/test/helpers/market.sol";
 import {DecodedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
 import {AddressArrayLib, UInt256ArrayLib} from "@/contracts/ArrayLib.sol";

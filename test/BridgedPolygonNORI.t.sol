@@ -1,6 +1,6 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.15;
+pragma solidity =0.8.17;
 import "@/test/helpers/bridged-polygon-nori.sol";
 import {SignedPermit} from "@/test/helpers/signature-utils.sol";
 

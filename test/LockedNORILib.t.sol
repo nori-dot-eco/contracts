@@ -1,6 +1,6 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, reason-string */
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.15;
+pragma solidity =0.8.17;
 import "@/test/helpers/test.sol";
 import {LockedNORILib, Schedule, Cliff} from "@/contracts/LockedNORILib.sol";
 
