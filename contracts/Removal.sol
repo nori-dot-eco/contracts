@@ -4,7 +4,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Supp
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "./Market.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
-import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
+import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
 
 /**
  * @title An extended ERC1155 token contract for carbon removal accounting.
@@ -45,8 +45,8 @@ import {InvalidCall, InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from 
  * - This accounting is performed by burning the affected balance of a removal that has been released.
  * - Only accounts with the RELEASER_ROLE can initiate a release.
  * - When a removal token is released, balances are burned in a specific order until the released amount
- * has been accounted for: Releasing burns first from unlisted balances, second from listed balances and third
- * from any certificates in which this removal may have already been included. (see `Removal.release` for more)
+ * has been accounted for: Releasing burns first from unlisted balances, second from listed balances and third from the
+ * certificate contract (see `Removal.release` for more)
  * - Affected certificates will have any released balances replaced by new removals purchased by Nori, though an
  * automated implementation of this process is beyond the scope of this version of the contracts.
  *
@@ -169,6 +169,23 @@ contract Removal is
     uint256 indexed id,
     address indexed fromAddress,
     uint256 amount
+  );
+
+  /**
+   * @notice Emitted when legacy removals are minted and then immediately used to migrate a legacy certificate.
+   *
+   * @param certificateRecipient The recipient of the certificate to mint via migration.
+   * @param certificateAmount The total amount of the certificate to mint via migration (denominated in NRTs).
+   * @param certificateId The ID of the certificate to mint via migration.
+   * @param removalIds The removal IDs to use to mint the certificate via migration.
+   * @param removalAmounts The amounts for each corresponding removal ID to use to mint the certificate via migration.
+   */
+  event Migrate(
+    address indexed certificateRecipient,
+    uint256 indexed certificateAmount,
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] removalAmounts
   );
 
   /**
@@ -317,13 +334,63 @@ contract Removal is
   }
 
   /**
+   * @notice Transfers the provided `amounts` (denominated in NRTs) of the specified removal `ids` directly to the
+   * Certificate contract to mint a legacy certificate. This function provides Nori the ability to execute a one-off
+   * migration of legacy certificates and removals (legacy certificates and removals are those which existed prior to
+   * our deployment to Polygon and covers all historic issuances and purchases up until the date that we start using the
+   * Market contract).
+   *
+   * @dev The Certificate contract implements `onERC1155BatchReceived`, which is invoked upon receipt of a batch of
+   * removals (triggered via `_safeBatchTransferFrom`). This function circumvents the market contract's lifecycle by
+   * transferring the removals from an account with the `CONSIGNOR_ROLE` role.
+   *
+   * It is necessary that the consignor holds the removals because of the following:
+   * - `ids` can be composed of a list of removal IDs that belong to one or more suppliers.
+   * - `_safeBatchTransferFrom` only accepts one `from` address.
+   * - `Certificate.onERC1155BatchReceived` will mint a *new* certificate every time an additional batch is received so
+   * we must ensure that all the removals comprising the certificate to be migrated come from a single batch.
+   *
+   * ##### Requirements:
+   * - The caller must have the `CONSIGNOR_ROLE` role.
+   * - The contract must not be paused.
+   * - The specified removal IDs must exist (e.g., via a prior call to the `mintBatch` function).
+   * - The rules of `Removal._beforeTokenTransfer` are enforced.
+   *
+   * @param ids An array of the removal IDs to add to transfer to the Certificate contract. This array can contain IDs
+   * of removals that belong to one or more supplier address (designated in the encoding of the removal ID).
+   * @param amounts An array of the removal amounts to add to transfer to the Certificate contract. Each amount in this
+   * array corresponds to the removal ID with the same index in the `ids` parameter.
+   * @param certificateRecipient The recipient of the certificate to be minted.
+   * @param certificateAmount TThe total amount of the certificate.
+   */
+  function migrate(
+    uint256[] calldata ids,
+    uint256[] calldata amounts,
+    address certificateRecipient,
+    uint256 certificateAmount
+  ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
+    emit Migrate({
+      certificateRecipient: certificateRecipient,
+      certificateAmount: certificateAmount,
+      certificateId: _certificate.totalMinted(),
+      removalIds: ids,
+      removalAmounts: amounts
+    });
+    _safeBatchTransferFrom({
+      from: _msgSender(),
+      to: address(_certificate),
+      ids: ids,
+      amounts: amounts,
+      data: abi.encode(certificateRecipient, certificateAmount)
+    });
+  }
+
+  /**
    * @notice Accounts for carbon that has failed to meet its permanence guarantee and has been released into
    * the atmosphere prematurely.
    *
    * @dev Releases `amount` of removal `id` by burning it. The replacement of released removals that had
    * already been included in certificates is beyond the scope of this version of the contracts.
-   *
-   * If a removal is used across a large number of certificates it may run into gas limits.
    *
    * ##### Requirements:
    *
@@ -333,11 +400,7 @@ contract Removal is
    * - If the released amount has not yet been fully burned and the removal is listed, it is delisted from the market
    * and up to any remaining released amount is burned from the Market's balance.
    * - Finally, if the released amount is still not fully accounted for, the removal must be owned by one or more
-   * certificates. The remaining released amount is burned from the Certificate contract's balance and certificate
-   * balances are decremented iteratively across each certificate until the amount is exhausted (e.g., if a removal
-   * of amount 3 releases an amount of 2.5 and that removal is owned by 3 certificates containing an amount of 1 each
-   * from the released removal, the resulting certificate's removal balances for this removal are: 0, 0, and 0.5).
-   *
+   * certificates. The remaining released amount is burned from the Certificate contract's balance.
    * - The caller must have the `RELEASER_ROLE`.
    * - The rules of `_burn` are enforced.
    * - Can only be used when the contract is not paused.
@@ -601,8 +664,8 @@ contract Removal is
    */
   function _releaseFromSupplier(uint256 id, uint256 amount) internal {
     address supplierAddress = id.supplierAddress();
-    emit RemovalReleased(id, supplierAddress, amount);
     super._burn(supplierAddress, id, amount);
+    emit RemovalReleased(id, supplierAddress, amount);
   }
 
   /**
@@ -620,50 +683,23 @@ contract Removal is
   }
 
   /**
-   * @notice Burns `amount` of token ID `id` from the Certificate's balance. Updates the internal accounting in
-   * Certificate that maps removal IDs and amounts to the certificates in which they were included by iteratively
-   * releasing from affected certificates (`Certificate.releaseRemoval`) until `amount` removals have been released.
+   * @notice Burns `amount` of token ID `id` from the Certificate's balance.
    *
-   * Emits a `RemovalReleased` event.
+   * @dev Emits a `RemovalReleased` event.
    *
-   * @param id The token ID to burn.
+   * @param id The removal ID to burn.
    * @param amount The amount to burn.
    */
   function _releaseFromCertificate(uint256 id, uint256 amount) internal {
-    uint256 amountReleased = 0;
-    Certificate.Balance[] memory certificatesOfRemoval = _certificate
-      .certificatesOfRemoval(id);
-    uint256 numberOfCertificatesForRemoval = certificatesOfRemoval.length;
-    for (uint256 i = 0; i < numberOfCertificatesForRemoval; ++i) {
-      Certificate.Balance memory certificateBalance = certificatesOfRemoval[i];
-      uint256 amountToReleaseFromCertificate = MathUpgradeable.min(
-        amount - amountReleased,
-        certificateBalance.amount
-      );
-      amountReleased += amountToReleaseFromCertificate;
-      super._burn(
-        this.certificateAddress(),
-        id,
-        amountToReleaseFromCertificate
-      );
-      _certificate.releaseRemoval({
-        certificateId: certificateBalance.id,
-        removalId: id,
-        amount: amountToReleaseFromCertificate
-      });
-      emit RemovalReleased(
-        id,
-        this.certificateAddress(),
-        amountToReleaseFromCertificate
-      );
-      if (amountReleased == amount) break;
-    }
+    address certificateAddress_ = this.certificateAddress();
+    super._burn(certificateAddress_, id, amount);
+    emit RemovalReleased(id, certificateAddress_, amount);
   }
 
   /**
    * @notice Hook that is called before before any token transfer. This includes minting and burning, as well as
    * batched variants. Disables transfers to any address that is not the `Market` or `Certificate` contracts, the zero
-   * address (for burning), or the supplier address that is encoded in the token ID itself.
+   * address (for burning), the supplier address that is encoded in the token ID itself, or between consignors.
    *
    * @dev Follows the rules of hooks defined [here](
    *  https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
@@ -683,9 +719,14 @@ contract Removal is
     bytes memory data
   ) internal virtual override whenNotPaused {
     address market = address(_market);
-    bool isToAllowed = to == market ||
-      (to == address(_certificate) || to == address(0));
-    for (uint256 i = 0; i < ids.length; ++i) {
+    address certificate = address(_certificate);
+    bool isValidTransfer = to == market ||
+      to == certificate ||
+      to == address(0) ||
+      (hasRole({role: CONSIGNOR_ROLE, account: _msgSender()}) &&
+        (to == certificate || hasRole({role: CONSIGNOR_ROLE, account: to})));
+    uint256 countOfRemovals = ids.length;
+    for (uint256 i = 0; i < countOfRemovals; ++i) {
       uint256 id = ids[i];
       if (to == market) {
         if (amounts[i] == 0) {
@@ -696,11 +737,18 @@ contract Removal is
       if (from == market) {
         _currentMarketBalance -= amounts[i];
       }
-      if (!isToAllowed && to != id.supplierAddress()) {
+      if (!isValidTransfer && to != id.supplierAddress()) {
         revert ForbiddenTransfer();
       }
     }
-    super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+    super._beforeTokenTransfer({
+      operator: operator,
+      from: from,
+      to: to,
+      ids: ids,
+      amounts: amounts,
+      data: data
+    });
   }
 
   /**
@@ -731,8 +779,15 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) internal virtual override {
-    _updateOwnedTokenIds(from, to, ids);
-    super._afterTokenTransfer(operator, from, to, ids, amounts, data);
+    _updateOwnedTokenIds({from: from, to: to, ids: ids});
+    super._afterTokenTransfer({
+      operator: operator,
+      from: from,
+      to: to,
+      ids: ids,
+      amounts: amounts,
+      data: data
+    });
   }
 
   /**
@@ -748,17 +803,22 @@ contract Removal is
     address to,
     uint256[] memory ids
   ) internal {
+    EnumerableSetUpgradeable.UintSet
+      storage receiversOwnedRemovalIds = _addressToOwnedTokenIds[to];
+    EnumerableSetUpgradeable.UintSet
+      storage sendersOwnedRemovalIds = _addressToOwnedTokenIds[from];
+    uint256 countOfRemovals = ids.length;
     // Skip overflow check as for loop is indexed starting at zero.
     unchecked {
-      for (uint256 i = 0; i < ids.length; ++i) {
+      for (uint256 i = 0; i < countOfRemovals; ++i) {
         uint256 id = ids[i];
         if (from != address(0)) {
           if (balanceOf(from, id) == 0) {
-            _addressToOwnedTokenIds[from].remove(id);
+            sendersOwnedRemovalIds.remove(id);
           }
         }
         if (to != address(0)) {
-          _addressToOwnedTokenIds[to].add(id);
+          receiversOwnedRemovalIds.add(id);
         }
       }
     }

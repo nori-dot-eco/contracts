@@ -60,7 +60,7 @@ Every purchase in the market mints a new _Certificate_ token with a unique ID. _
 
 Certificates are non-transferable. It is a fundamental tenet of the Nori market design that Removals and their Certificates cannot change hands after the purchase transaction.
 
-A certificate's balance of underlying Removals may fall below the original amount it was minted with if its underlying removals were released (burned). Those burned removals will be replaced by sending additional removals to the certificate. Automated replacement of burned removals is out of scope in this iteration of the contracts.
+A certificate's balance of underlying Removals may fall below the original amount it was minted with if its underlying removals were released. Those released removals will be replaced by sending additional removals to the certificate. Automated replacement of burned removals is out of scope in this iteration of the contracts.
 
 ### Market
 
