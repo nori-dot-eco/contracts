@@ -1,10 +1,10 @@
 import type { PopulatedTransaction } from '@ethersproject/contracts';
 import type { Deferrable } from '@ethersproject/properties';
-import {
+import { PeerType, TransactionOperation } from 'fireblocks-sdk';
+import type {
   CreateTransactionResponse,
   TransactionArguments,
 } from 'fireblocks-sdk';
-import { PeerType, TransactionOperation } from 'fireblocks-sdk';
 import { formatEther, formatUnits } from 'ethers/lib/utils';
 
 import { BaseBridge } from './base-bridge';
