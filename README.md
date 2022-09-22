@@ -1,10 +1,18 @@
-# About
+# The Ethereum smart contracts that power [Nori](https://nori.com)
 
-The Ethereum smart contracts that power [nori](https://nori.com)
+![This is an image](https://myoctocat.com/assets/images/base-octocat.svg)
 
 ---
 
-# Setup
+## Docs
+
+- [Contracts](./contracts/README.m)
+
+---
+
+## Development
+
+### Setup
 
 Make sure to initialize submodules
 
@@ -17,54 +25,6 @@ Then install dependencies
 ```
 yarn install
 ```
-
-## Supported Networks and their Contracts
-
-### polygon
-
-- BridgedPolygonNORI
-  - 0x8cf6E82919f69aE382DEf8f94e581a43Ce1E70C1
-- LockedNORI
-  - 0xCcFfFA6c2a030821331cC113b63babDC60BfF82A
-- Certificate
-- Removal
-- Market
-
-### mumbai (polygon testnet)
-
-- BridgedPolygonNORI
-- LockedNORI
-- Certificate
-- Removal
-- Market
-
-### mainnet (ethereum L1)
-
-- NORI
-  - 0x961760Ad1bEd52bf4d79aa4b1558E7F9d72071e4
-
-### goerli (ethereum L1 testnet)
-
-- NORI
-
-### localhost (hardhat standalone)
-
-- BridgedPolygonNORI
-- LockedNORI
-- Certificate
-- Removal
-- Market
-- NORI
-
-NB: hardhat running locally in a separate process (see `Running and deploying to a local testnet`)
-
-### hardhat (hardhat in-process)
-
-Same contracts as _localhost_
-
-You would rarely target this network from the CLI except when running tests because it starts a fresh in-process hardhat node that exits when the CLI command completes.
-
-## Development
 
 ### Running and deploying to a local testnet
 
@@ -88,7 +48,7 @@ yarn test
 
 ### Reporting gas usage from tests
 
-> Note that gas reporting is disabled by default because it slows tests down significantly.
+:information_source: Note that gas reporting is disabled by default because it slows tests down significantly.
 
 First, in a first terminal, run the following:
 
@@ -134,12 +94,24 @@ hardhat NORI --func mint  "0x321af43416f670ce8b4ba214dfb87c4199e2a77f" 100000000
 Generate docs using
 
 ```
-hardhat docgen
+yarn docgen # runs hardhat docgen
+```
+
+### Accounts
+
+Print the named accounts used for development and testing
+
+```
+hardhat accounts
 ```
 
 ---
 
 ## Contracts
+
+### Supported Networks and their Contracts
+
+See [contracts.json](./contracts.json) for a comprehensive list of all contracts deployed to each network.
 
 ### Upgradeability
 
@@ -159,33 +131,13 @@ Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openz
 [Ethernal](https://app.tryethernal.com/) is an etherscan style interface for your local hardhat node. Sign up for a free account and run your local node with the following extra variables to have contract ABIs and transactions synced there for viewing / interacting with.
 
 ```
+
 ETHERNAL=true \
 ETHERNAL_EMAIL="you@nori.com" \
 ETHERNAL_PASSWORD="xxxxxx_yyyyyyyy" \
 hardhat node
+
 ```
-
-### Standard test addresses
-
-- Account #0 (admin): 0x465d5a3ffea4cd109043499fa576c3e16f918463 (1000000 ETH)
-
-- Account #1: 0x8eb185e20a9b7b31bd48da19e834b93be952795e (1000000 ETH)
-
-- Account #2 (supplier): 0x6b9d03759e9f14a641f0703fbd84f1f726159b6b (1000000 ETH)
-
-- Account #3: 0xbd6e6a75c7a51cfdf08ddf2f538ceb221835839b (1000000 ETH)
-
-- Account #4 (investor1): 0x8abfd8375da1521e70d23988eb5a6efa799c15ea (1000000 ETH)
-
-- Account #5 (investor2): 0x6029424b26feffe2879e88c62e8130dc418e64d9 (1000000 ETH)
-
-- Account #6 (buyer): 0x0ee3e1d93121c989c94f3e9cf9f9b655ad2cd3cf (1000000 ETH)
-
-- Account #7 (employee): 0x533df4b74a18a84f5d9287ed9c5afcbb59dbed1f (0 ETH)
-
-- Account #8 (mockPolygonBridge): 0x9b9add2d2f759219c60b89a859ef658b8b8280c9 (1000000 ETH)
-
-- Account #9 (noriWallet): 0xf31c29b01ef18a3d9726b99ad0e9692e498cf5f8 (0 ETH)
 
 ## Tips and tricks
 
@@ -195,11 +147,23 @@ hardhat node
 
 ##### Examples
 
-Deposit (mint) 100 bpNORI (at `BP_NORI_ADDRESS`) to `TO_ADDRESS` on mumbai (the PRIVATE_KEY **must** have the depositor role)
+<details>
+<summary>
+<b>Deposit/mint bpNORI</b>
+</summary>
+
+Deposit (mint) 100 bpNORI (at `BP_NORI_ADDRESS`) to `TO_ADDRESS` on mumbai (the `PRIVATE_KEY` **must** have the depositor role)
 
 ```bash
-cast send --rpc-url WEB3_RPC_ENDPOINT --private-key PRIVATE_KEY --chain 80001 TO_ADDRESS "deposit(address,bytes)" BP_NORI_ADDRESS `cast --to-uint256 100000000000000000000`
+cast send --rpc-url WEB3_RPC_ENDPOINT \
+  --private-key PRIVATE_KEY --chain 80001 \
+  TO_ADDRESS \
+  "deposit(address,bytes)" \
+  BP_NORI_ADDRESS \
+  `cast --to-uint256 100000000000000000000`
 ```
+
+</details>
 
 #### Solidity Scripting
 
@@ -214,12 +178,18 @@ PRIVATE_KEY
 ```
 
 where the PRIVATE_KEY is the private key of whatever address want to sign your transaction with (so needs to be funded with MATIC, have the correct permissions to make the contract calls being submitted, etc.).
+
 Note that our on-chain market on mumbai was deployed with a fireblocks signer, so we have been using the fireblocks signer from the command line with hardhat tasks or cast commands to grant necessary permissions to other addresses that we may want to use.
 
 Here are the hardhat commands for granting roles to whatever address you're going to admin with (in this example the 0x465... staging mnemonic address):
 
 ```bash
-hardhat --network mumbai Removal --func grantRole 0xa269776b75ac4c5fa422bb11bec3ed3cee626848d07687372583174b209261fb 0x465d5a3fFeA4CD109043499Fa576c3E16f918463
+hardhat \
+  --network mumbai \
+  Removal \
+  --func grantRole \
+  0xa269776b75ac4c5fa422bb11bec3ed3cee626848d07687372583174b209261fb \
+  0x465d5a3fFeA4CD109043499Fa576c3E16f918463
 ```
 
 (note that the role hash `0xa26977...` has was gotten from viewing the contract on polygonscan and selecting "Read as proxy")
@@ -260,13 +230,13 @@ See `forge script --help` for many more command line options to the scripting.
 
 #### Autocomplete
 
-Follow the instructions [here](https://book.getfoundry.sh/config/shell-autocompletion.html)
+Follow the instructions [here](https://book.getfoundry.sh/config/shell-autocompletion.html).
 
 ### Hardhat
 
-#### Shorthand and autocomplete
+#### Autocomplete
 
-- [Docs](https://hardhat.org/guides/shorthand.html)
+Follow the instructions in the [docs](https://hardhat.org/guides/shorthand.html).
 
 ### Tenderly
 
@@ -311,7 +281,7 @@ tenderly export TRANSACTION_HASH --debug
 git checkout origin/master deployments
 ```
 
-#### Tenderly autocomplete
+#### Autocomplete
 
 For ZSH (omz), add the following to your zsh config file (requires [zsh-completions](https://github.com/zsh-users/zsh-completions))
 
