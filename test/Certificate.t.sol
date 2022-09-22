@@ -5,6 +5,7 @@ import "@/test/helpers/certificate.sol";
 import "@/test/helpers/removal.sol";
 
 // todo Add tests that ensure _removalsOfCertificate/_certificatesOfRemoval can't deviate from Removal.sol balances
+// todo write better _burn tests that ensure removal AND certificate balances are updated correctly
 
 contract Certificate_name is UpgradeableCertificate {
   function test() external {
@@ -43,11 +44,7 @@ contract Certificate_burn is UpgradeableCertificate {
       1,
       "Total supply should be incremented after minting"
     );
-    assertEq(
-      _certificate.purchaseAmount(0),
-      1 ether,
-      "Total supply should be incremented after minting"
-    );
+    assertEq(_certificate.purchaseAmount(0), 1 ether);
   }
 
   function test() external {
@@ -63,25 +60,17 @@ contract Certificate_burn is UpgradeableCertificate {
       0,
       "Total supply should be decremented after burning"
     );
-    assertEq(
-      _asSingletonUintArray(
-        _certificate.removalsOfCertificate(_certificateId)[0].id
-      ),
-      _removalIds,
-      "Certificate does not have underlying removals"
-    );
-    assertEq(
-      _certificate.certificatesOfRemoval(_removalIds[0])[0].id,
-      _certificateId,
-      "Removal is not used for certificate"
-    );
     assertTrue(
       _certificate.explicitOwnershipOf(_removalIds[0]).burned,
       "Certificate was not burned"
     );
-
+    assertEq(
+      _certificate.purchaseAmount(0),
+      1 ether,
+      "Certificate purchase amount should never change"
+    );
     // token IDs continue at the next ID despite burning previous IDs
-    // todo refactor to seperate test
+    // todo refactor to separate test
     vm.prank(address(_removal));
     _certificate.onERC1155BatchReceived(
       address(0),
@@ -105,16 +94,8 @@ contract Certificate_burn is UpgradeableCertificate {
       _certificateId + 1,
       "Total supply should be incremented after minting"
     );
-    assertEq(
-      _certificate.certificatesOfRemoval(_removalIds2[0])[0].id,
-      _certificateId + 1,
-      "Removal is not used for certificate"
-    );
-    assertEq(
-      _certificate.purchaseAmount(0),
-      1 ether,
-      "Certificate original balance should be unchanged after burning"
-    );
+    assertEq(_certificate.purchaseAmount(0), 1 ether);
+    assertEq(_certificate.purchaseAmount(1), 1 ether);
   }
 
   function test_reverts_when_paused() external {

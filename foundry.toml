@@ -18,4 +18,10 @@ gas_reports = [ '*' ]
 via_ir = true
 optimizer_runs = 18_325
 
+[profile.test]
+via_ir = false
+optimizer_runs = 0
+optimizer = false
+sparse_mode = true
+
 # See more config options https://github.com/foundry-rs/fo undry/tree/master/config
