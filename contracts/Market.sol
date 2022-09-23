@@ -262,7 +262,7 @@ contract Market is
   /**
    * @notice Releases a removal from the market.
    *
-   * @dev
+   * @dev This function is called by the Removal contract when releasing removals.
    *
    * ##### Requirements:
    *
@@ -323,9 +323,7 @@ contract Market is
    * @notice Sets the current value of the priority restricted threshold, which is the amount of inventory
    * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
    *
-   * @dev
-   *
-   * Emits a `PriorityRestrictedThresholdSet` event.
+   * @dev Emits a `PriorityRestrictedThresholdSet` event.
    *
    * ##### Requirements:
    *
@@ -372,9 +370,7 @@ contract Market is
    * @notice Sets the Nori fee wallet address (as an integer) which is the address to which the
    * marketplace operator fee will be routed during each purchase.
    *
-   * @dev
-   *
-   * Emits a `NoriFeeWalletAddressUpdated` event.
+   * @dev Emits a `NoriFeeWalletAddressUpdated` event.
    *
    * ##### Requirements:
    *

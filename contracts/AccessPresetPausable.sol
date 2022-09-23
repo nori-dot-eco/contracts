@@ -12,7 +12,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
  * @notice This preset contract affords an inheriting contract a set of standard functionality that allows role-based
  * access control and pausable functions.
  *
- * @dev
+ * @dev This contract is inherited by most of the other contracts in this project.
  *
  * ##### Inherits:
  *
@@ -58,7 +58,7 @@ abstract contract AccessPresetPausable is
   /**
    * @notice Grants a role to an account.
    *
-   * @dev
+   * @dev This function allows the role's admin to grant the role to other accounts.
    *
    * ##### Requirements:
    *
@@ -79,7 +79,7 @@ abstract contract AccessPresetPausable is
   /**
    * @notice Revokes a role from an account.
    *
-   * @dev
+   * @dev This function allows the role's admin to revoke the role from other accounts.
    *
    * ##### Requirements:
    *

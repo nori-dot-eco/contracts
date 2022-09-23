@@ -4,14 +4,13 @@
 This preset contract affords an inheriting contract a set of standard functionality that allows role-based
 access control and pausable functions.
 
-@dev
+<i>This contract is inherited by most of the other contracts in this project.
 
 ##### Inherits:
 
 - [PausableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
 - [AccessControlEnumerableUpgradeable](
-https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)
-
+https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)</i>
 
 
 
@@ -68,12 +67,11 @@ function _grantRole(bytes32 role, address account) internal virtual
 
 Grants a role to an account.
 
-@dev
+<i>This function allows the role's admin to grant the role to other accounts.
 
 ##### Requirements:
 
-- The contract must not be paused.
-
+- The contract must not be paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -89,12 +87,11 @@ function _revokeRole(bytes32 role, address account) internal virtual
 
 Revokes a role from an account.
 
-@dev
+<i>This function allows the role's admin to revoke the role from other accounts.
 
 ##### Requirements:
 
-- The contract must not be paused.
-
+- The contract must not be paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

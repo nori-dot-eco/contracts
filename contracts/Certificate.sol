@@ -140,9 +140,7 @@ contract Certificate is
   /**
    * @notice Registers the address of the Removal contract.
    *
-   * @dev
-   *
-   * Emits a `ContractAddressesRegistered` event.
+   * @dev This function emits a `ContractAddressesRegistered` event.
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.

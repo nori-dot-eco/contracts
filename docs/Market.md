@@ -346,13 +346,12 @@ function release(uint256 removalId, uint256 amount) external
 
 Releases a removal from the market.
 
-@dev
+<i>This function is called by the Removal contract when releasing removals.
 
 ##### Requirements:
 
 - Can only be used when this contract is not paused.
-- The caller must be the Removal contract.
-
+- The caller must be the Removal contract.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -395,15 +394,12 @@ function setPriorityRestrictedThreshold(uint256 threshold) external
 Sets the current value of the priority restricted threshold, which is the amount of inventory
 that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
 
-@dev
-
-Emits a `PriorityRestrictedThresholdSet` event.
+<i>Emits a `PriorityRestrictedThresholdSet` event.
 
 ##### Requirements:
 
 - Can only receive ERC1155 tokens from the Removal contract.
-- Can only be used when this contract is not paused.
-
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -440,15 +436,12 @@ function setNoriFeeWallet(address noriFeeWalletAddress) external
 Sets the Nori fee wallet address (as an integer) which is the address to which the
 marketplace operator fee will be routed during each purchase.
 
-@dev
-
-Emits a `NoriFeeWalletAddressUpdated` event.
+<i>Emits a `NoriFeeWalletAddressUpdated` event.
 
 ##### Requirements:
 
 - Can only be used when the caller has the MARKET_ADMIN_ROLE
-- Can only be used when this contract is not paused
-
+- Can only be used when this contract is not paused</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

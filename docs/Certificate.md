@@ -158,14 +158,11 @@ function registerContractAddresses(contract Removal removal) external
 
 Registers the address of the Removal contract.
 
-@dev
-
-Emits a `ContractAddressesRegistered` event.
+<i>This function emits a `ContractAddressesRegistered` event.
 
 ##### Requirements:
 - Can only be used when the contract is not paused.
-- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
-
+- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
