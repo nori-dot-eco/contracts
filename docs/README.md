@@ -8,6 +8,14 @@ If a supplier is found to have released the sequestered carbon the corresponding
 
 Investors and employees have received token grants bound by vesting and lockup terms. These grants are implemented by _LockedNORI_ which does not currently support transfer of locked tokens and allows a maxaimum of one grant schedule per wallet address.
 
+### Supported Networks
+
+See [contracts.json](../contracts.json) for a comprehensive list of all contracts deployed to each network.
+
+### Upgradeability
+
+Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openzeppelin.com/upgrades-plugins/1.x/) to manage upgradeability
+
 ## ERC20 Token
 
 ### NORI (NORI)
