@@ -61,7 +61,7 @@
     "solhint": "^3.3.7",
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.8.2",
-    "solidity-docgen": "^0.6.0-beta.4",
+    "solidity-docgen": "0.6.0-beta.27",
     "ts-node": "^10.6.0",
     "tsconfig-paths": "^3.12.0",
     "typechain": "^8.1.0",

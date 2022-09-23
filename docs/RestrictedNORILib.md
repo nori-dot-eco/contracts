@@ -2,9 +2,6 @@
 
 
 
-<i>Library encapsulating the logic around restriction schedules.
-
-All time parameters are in unix time for ease of comparison with `block.timestamp`.</i>
 
 
 

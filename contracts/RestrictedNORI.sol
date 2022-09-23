@@ -10,7 +10,9 @@ import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "./Errors.sol";
 
-/** View information for the current state of one schedule. */
+/**
+ * @notice View information for the current state of one schedule.
+ */
 struct ScheduleSummary {
   uint256 scheduleTokenId;
   uint256 startTime;
@@ -22,7 +24,9 @@ struct ScheduleSummary {
   address[] tokenHolders;
 }
 
-/** View information for one account's ownership of a schedule. */
+/**
+ * @notice View information for one account's ownership of a schedule.
+ */
 struct ScheduleDetailForAddress {
   address tokenHolder;
   uint256 scheduleTokenId;
@@ -200,7 +204,8 @@ contract RestrictedNORI is
   );
 
   /**
-   * @custom:oz-upgrades-unsafe-allow constructor
+   * @notice Locks the contract, preventing any future re-initialization.
+   * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    */
   constructor() {
     _disableInitializers();

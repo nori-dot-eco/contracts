@@ -15,7 +15,7 @@ import "./AccessPresetPausable.sol";
  * @notice This contract issues sequentially increasing ERC721 token ids to purchasers of certificates of carbon
  * removal in Nori's marketplace. The carbon removals that supply each certificate are accounted for using ERC1155
  * tokens in the Removal contract. Upon purchase, ownership of the relevant Removal token ids and balances is
- * transfered to this contract.
+ * transferred to this contract.
  *
  *
  * ##### Additional behaviors and features:
@@ -78,12 +78,12 @@ contract Certificate is
   Removal private _removal;
 
   /**
-   * @notice Base URI for token metadata
+   * @notice Base URI for token metadata.
    */
   string private _baseURIValue;
 
   /**
-   * @notice Emitted when a batch of removals is received to create a Certificate.
+   * @notice Emitted when a batch of removals is received to create a certificate.
    * @param from The sender's address.
    * @param recipient The recipient address.
    * @param certificateId The ID of the certificate that the removals mint.
@@ -106,12 +106,17 @@ contract Certificate is
   event ContractAddressesRegistered(Removal removal);
 
   /**
-   * @custom:oz-upgrades-unsafe-allow constructor
+   * @notice Locks the contract, preventing any future re-initialization.
+   * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    */
   constructor() {
     _disableInitializers();
   }
 
+  /**
+   * @notice Initialize the BridgedPolygonNORI contract.
+   * @param baseURI the base URI for all certificate NFTs.
+   */
   function initialize(string memory baseURI)
     external
     initializerERC721A
@@ -135,6 +140,8 @@ contract Certificate is
   /**
    * @notice Registers the address of the Removal contract.
    *
+   * @dev
+   *
    * Emits a `ContractAddressesRegistered` event.
    *
    * ##### Requirements:
@@ -153,7 +160,7 @@ contract Certificate is
   }
 
   /**
-   * @notice Receives a batch of child tokens, the certificate recipient and amount must be encoded in the field data.
+   * @notice Receive a batch of child tokens.
    *
    * @dev See [IERC1155Receiver](
    * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
@@ -161,6 +168,7 @@ contract Certificate is
    * ##### Requirements:
    * - This contract must not be paused (enforced by `_beforeTokenTransfers`).
    * - `_msgSender` must be the removal contract.
+   * - The certificate recipient and amount must be encoded in the `data` parameter.
    *
    * @param removalIds The array of ERC1155 Removal IDs received.
    * @param removalAmounts The removal amounts per each removal ID.
@@ -191,9 +199,9 @@ contract Certificate is
   }
 
   /**
-   * @notice Returns the address of the `Removal` contract.
+   * @notice Returns the address of the Removal contract.
    *
-   * @return removalAddress address of the `Removal` contract.
+   * @return removalAddress address of the Removal contract.
    */
   function removalAddress() external view returns (address) {
     return address(_removal);
@@ -211,9 +219,9 @@ contract Certificate is
   }
 
   /**
-   * @notice Returns the original number of tonnes of carbon removals purchased at the time of the purchase.
+   * @notice Returns the number of tonnes of carbon removals purchased.
    *
-   * @param certificateId The certificate to retrieve the original amount for.
+   * @param certificateId The certificate for which to retrieve the original amount.
    * @return The tonnes of carbon removal purchased for the certificate.
    */
   function purchaseAmount(uint256 certificateId)
@@ -227,6 +235,8 @@ contract Certificate is
   /**
    * @dev See [IERC165.supportsInterface](
    * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
+   * @param interfaceId The interface ID to check for support.
+   * @return Returns true if the interface is supported, false otherwise.
    */
   function supportsInterface(bytes4 interfaceId)
     public
@@ -242,6 +252,7 @@ contract Certificate is
   }
 
   /**
+   * @notice This function is unsupported and will always revert.
    * @dev Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.
    */
   function setApprovalForAll(address, bool)
@@ -253,6 +264,7 @@ contract Certificate is
   }
 
   /**
+   * @notice This function is unsupported and will always revert.
    * @dev Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.
    */
   function approve(address, uint256)
@@ -275,6 +287,10 @@ contract Certificate is
    * - This contract must not be paused.
    * - Can only be used when the caller has the `CERTIFICATE_OPERATOR_ROLE`
    *
+   * @param from The address of the sender.
+   * @param to The address of the recipient.
+   * @param startTokenId The ID of the first certificate in the transfer.
+   * @param quantity The number of certificates in the transfer.
    */
   function _beforeTokenTransfers(
     address from,

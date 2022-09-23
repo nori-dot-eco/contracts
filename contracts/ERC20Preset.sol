@@ -6,12 +6,33 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20Pe
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "./AccessPresetPausable.sol";
 
+/**
+ * @title A preset contract that enables pausable access control.
+ *
+ * @author Nori Inc.
+ *
+ * @notice This preset contract affords an inheriting contract a set of standard functionality that allows role-based
+ * access control and pausable functions.
+ *
+ * @dev
+ *
+ * ##### Inherits:
+ *
+ * - [ERC20BurnableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Burnable)
+ * - [ERC20PermitUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit)
+ * - [MulticallUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Multicall)
+ * - [AccessPresetPausable](../docs/AccessPresetPausable.md)
+ */
 abstract contract ERC20Preset is
   ERC20BurnableUpgradeable,
   ERC20PermitUpgradeable,
   MulticallUpgradeable,
   AccessPresetPausable
 {
+  /**
+   * @notice Initializes the contract.
+   * @dev Grants the `DEFAULT_ADMIN_ROLE` and `PAUSER_ROLE` to the initializer.
+   */
   function __ERC20Preset_init_unchained() internal onlyInitializing {
     // solhint-disable-previous-line func-name-mixedcase
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
@@ -27,6 +48,10 @@ abstract contract ERC20Preset is
    * ##### Requirements:
    *
    * - The contract must not be paused.
+   *
+   * @param from The address of the sender.
+   * @param to The address of the recipient.
+   * @param amount The amount of tokens to transfer.
    */
   function _beforeTokenTransfer(
     address from,
@@ -51,6 +76,11 @@ abstract contract ERC20Preset is
    * equivalent to an infinite approval.
    * - `owner` cannot be the zero address.
    * - The `spender` cannot be the zero address.
+   *
+   * @param owner The owner of the tokens.
+   * @param spender The address of the designated spender. This address is allowed to spend the tokens on behalf of the
+   * `owner` up to the `amount` value.
+   * @param amount The amount of tokens to afford the `spender`.
    */
   function _approve(
     address owner,

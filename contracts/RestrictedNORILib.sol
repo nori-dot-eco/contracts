@@ -4,7 +4,9 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "./Errors.sol";
 
-/** @notice The internal governing parameters and data for a schedule */
+/**
+ * @notice The internal governing parameters and data for a rNORI schedule.
+ */
 struct Schedule {
   uint256 startTime;
   uint256 endTime;
@@ -17,9 +19,23 @@ struct Schedule {
 }
 
 /**
- * @dev Library encapsulating the logic around restriction schedules.
+ * @title Library encapsulating the logic around restriction schedules.
+ *
+ * @author Nori Inc.
+ *
+ * @notice
+ *
+ * ##### Behaviors and features:
+ *
+ * ###### Time
  *
  * All time parameters are in unix time for ease of comparison with `block.timestamp`.
+ *
+ * ##### Uses:
+ *
+ * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
+ * for `EnumerableSetUpgradeable.UintSet`
+ * - RestrictedNORILib for `Schedule`
  */
 library RestrictedNORILib {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;

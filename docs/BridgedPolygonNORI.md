@@ -1,6 +1,28 @@
 ## BridgedPolygonNORI
 
 
+This token is a layer-2 (L2) equivalent of the respective layer-1 (L1) NORI contract with extended
+functionality to enable deposits and withdrawals between L1 and L2.
+
+@dev
+
+##### Behaviors and features:
+
+###### Deposits
+
+A user can bridge their L1 Ethereum NORI in return for layer-2 bpNORI by depositing NORI on the L1
+bridge. The user will receive an equivalent amount of bpNORI on L2. Deposits on L1 do not change the toal supply of
+NORI and instead escrow their tokens to the bridge address.
+
+###### Withdrawals
+
+A user can withdraw their L2 bpNORI in return for L1 NORI by burning their bpNORI on L2 and submitting a withdrawal.
+A withdraw decreases the L2 supply of bpNORI in a value equivalent to the amount withdrawn. The user will receive
+NORI on L1 in a value equivalent to the amount withdrawn.
+
+##### Inherits:
+
+- [ERC20Preset](../docs/ERC20Preset.md)
 
 
 
@@ -13,6 +35,7 @@
 bytes32 DEPOSITOR_ROLE
 ```
 
+A role conferring the ability to mint/deposit bpNORI on Polygon.
 
 
 
@@ -23,7 +46,9 @@ bytes32 DEPOSITOR_ROLE
 constructor() public
 ```
 
+Locks the contract, preventing any future re-initialization.
 
+<i>See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).</i>
 
 
 
@@ -70,6 +95,9 @@ function initialize(address childChainManagerProxy) external
 Initialize the BridgedPolygonNORI contract.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| childChainManagerProxy | address | the address of the child chain manager proxy which can mint/deposit bpNORI on L2. |
 
 
 

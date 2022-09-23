@@ -12,6 +12,20 @@ struct RemovalsByYear {
   uint256 latestYear;
 }
 
+/**
+ * @title A library that provides a set of functions for managing removals by year.
+ *
+ * @author Nori Inc.
+ *
+ * @dev
+ *
+ * ##### Uses:
+ *
+ * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet) for
+ * EnumerableSetUpgradeable.UintSet
+ * - [AddressArrayLib](../docs/AddressArrayLib.md) for `address[]`
+ * - [UInt256ArrayLib](../docs/UInt256ArrayLib.md) for `uint256[]`
+ */
 library RemovalsByYearLib {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
   using AddressArrayLib for address[];

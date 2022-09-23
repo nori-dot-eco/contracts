@@ -4,7 +4,7 @@
 This contract issues sequentially increasing ERC721 token ids to purchasers of certificates of carbon
 removal in Nori's marketplace. The carbon removals that supply each certificate are accounted for using ERC1155
 tokens in the Removal contract. Upon purchase, ownership of the relevant Removal token ids and balances is
-transfered to this contract.
+transferred to this contract.
 
 
 ##### Additional behaviors and features:
@@ -87,7 +87,7 @@ The Removal contract that accounts for carbon removal supply.
 string _baseURIValue
 ```
 
-Base URI for token metadata
+Base URI for token metadata.
 
 
 
@@ -98,7 +98,7 @@ Base URI for token metadata
 event ReceiveRemovalBatch(address from, address recipient, uint256 certificateId, uint256[] removalIds, uint256[] removalAmounts)
 ```
 
-Emitted when a batch of removals is received to create a Certificate.
+Emitted when a batch of removals is received to create a certificate.
 
 
 | Name | Type | Description |
@@ -130,7 +130,9 @@ Emitted on updating the addresses for contracts.
 constructor() public
 ```
 
+Locks the contract, preventing any future re-initialization.
 
+<i>See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).</i>
 
 
 
@@ -140,8 +142,12 @@ constructor() public
 function initialize(string baseURI) external
 ```
 
+Initialize the BridgedPolygonNORI contract.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| baseURI | string | the base URI for all certificate NFTs. |
 
 
 ### registerContractAddresses
@@ -151,6 +157,8 @@ function registerContractAddresses(contract Removal removal) external
 ```
 
 Registers the address of the Removal contract.
+
+@dev
 
 Emits a `ContractAddressesRegistered` event.
 
@@ -170,14 +178,15 @@ Emits a `ContractAddressesRegistered` event.
 function onERC1155BatchReceived(address, address, uint256[] removalIds, uint256[] removalAmounts, bytes data) external returns (bytes4)
 ```
 
-Receives a batch of child tokens, the certificate recipient and amount must be encoded in the field data.
+Receive a batch of child tokens.
 
 <i>See [IERC1155Receiver](
 https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
 
 ##### Requirements:
 - This contract must not be paused (enforced by `_beforeTokenTransfers`).
-- `_msgSender` must be the removal contract.</i>
+- `_msgSender` must be the removal contract.
+- The certificate recipient and amount must be encoded in the `data` parameter.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -197,13 +206,13 @@ https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) f
 function removalAddress() external view returns (address)
 ```
 
-Returns the address of the `Removal` contract.
+Returns the address of the Removal contract.
 
 
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | address | removalAddress address of the &#x60;Removal&#x60; contract. |
+| [0] | address | removalAddress address of the Removal contract. |
 
 ### totalMinted
 
@@ -226,12 +235,12 @@ Returns the total number of certificates that have been minted.
 function purchaseAmount(uint256 certificateId) external view returns (uint256)
 ```
 
-Returns the original number of tonnes of carbon removals purchased at the time of the purchase.
+Returns the number of tonnes of carbon removals purchased.
 
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| certificateId | uint256 | The certificate to retrieve the original amount for. |
+| certificateId | uint256 | The certificate for which to retrieve the original amount. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -247,7 +256,13 @@ function supportsInterface(bytes4 interfaceId) public view returns (bool)
 <i>See [IERC165.supportsInterface](
 https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| interfaceId | bytes4 | The interface ID to check for support. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | Returns true if the interface is supported, false otherwise. |
 
 ### setApprovalForAll
 
@@ -255,6 +270,7 @@ https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-
 function setApprovalForAll(address, bool) public pure
 ```
 
+This function is unsupported and will always revert.
 
 <i>Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.</i>
 
@@ -266,6 +282,7 @@ function setApprovalForAll(address, bool) public pure
 function approve(address, uint256) public pure
 ```
 
+This function is unsupported and will always revert.
 
 <i>Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.</i>
 
@@ -288,6 +305,12 @@ certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfe
 - This contract must not be paused.
 - Can only be used when the caller has the `CERTIFICATE_OPERATOR_ROLE`</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| from | address | The address of the sender. |
+| to | address | The address of the recipient. |
+| startTokenId | uint256 | The ID of the first certificate in the transfer. |
+| quantity | uint256 | The number of certificates in the transfer. |
 
 
 ### _receiveRemovalBatch

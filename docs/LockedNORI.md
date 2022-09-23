@@ -285,9 +285,9 @@ Emitted when the underlying token contract address is updated due to migration.
 constructor() public
 ```
 
+Locks the contract, preventing any future re-initialization.
 
-<i>Ensure implementation contract is minimally initialized. See more [here](
-https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract).</i>
+<i>See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).</i>
 
 
 

@@ -208,8 +208,8 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
   event UnderlyingTokenAddressUpdated(address from, address to);
 
   /**
-   * @dev Ensure implementation contract is minimally initialized. See more [here](
-   * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract).
+   * @notice Locks the contract, preventing any future re-initialization.
+   * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    */
   constructor() {
     _disableInitializers();

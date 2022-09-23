@@ -3,9 +3,29 @@ pragma solidity =0.8.17;
 
 import "./ERC20Preset.sol";
 
+/**
+ * @title
+ *
+ * @author Nori Inc.
+ *
+ * @notice
+ *
+ * ##### Behaviors and features:
+ *
+ * ###### TODO
+ *
+ * ##### Inherits:
+ *
+ * - TODO
+ *
+ * ##### Uses:
+ *
+ * - TODO
+ */
 contract NORI is ERC20Preset {
   /**
-   * @custom:oz-upgrades-unsafe-allow constructor
+   * @notice Locks the contract, preventing any future re-initialization.
+   * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    */
   constructor() {
     _disableInitializers();
