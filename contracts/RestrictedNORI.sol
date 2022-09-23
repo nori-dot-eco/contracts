@@ -608,9 +608,7 @@ contract RestrictedNORI is
   /**
    * @notice Transfers `amount` tokens of token type `id` from `from` to `to`.
    *
-   * @dev [See the OZ ERC1155 documentation for more] (
-   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
-   * #ERC1155-safeTransferFrom-address-address-uint256-uint256-bytes-)
+   * @dev [See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155)
    */
   function safeTransferFrom(
     address from,
@@ -632,9 +630,7 @@ contract RestrictedNORI is
   /**
    * @notice Batched version of `safeTransferFrom`.
    *
-   * @dev [See the OZ ERC1155 documentation for more] (
-   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
-   * #IERC1155-safeBatchTransferFrom-address-address-uint256---uint256---bytes-)
+   * @dev [See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155)
    */
   function safeBatchTransferFrom(
     address from,
@@ -749,9 +745,7 @@ contract RestrictedNORI is
    * @dev Follows the rules of hooks defined [here](
    * https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
    *
-   * See the ERC1155 specific version [here](
-   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
-   * #ERC1155-_beforeTokenTransfer-address-address-address-uint256---uint256---bytes-).
+   * See the ERC1155 specific version [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155).
    *
    * ##### Requirements:
    *

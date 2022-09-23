@@ -457,7 +457,7 @@ contract Market is
    * @notice Exchange bpNORI tokens for an ERC721 certificate by transferring ownership of the removals to the
    * certificate.
    *
-   * @dev See [https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit](ERC20Permit) for more.
+   * @dev See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
    * to transfer the sender's bpNORI to complete the purchase. A certificate is issued by `Certificate.sol`
    * to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
@@ -527,7 +527,7 @@ contract Market is
    * supplier to that certificate. If the specified supplier does not have enough carbon removals for sale to fulfill
    * the order the transaction will revert.
    *
-   * @dev See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
+   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
    * to transfer the sender's bpNORI to complete the purchase. A certificate is issued by Certificate.sol
    * to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,

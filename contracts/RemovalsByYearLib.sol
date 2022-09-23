@@ -17,7 +17,7 @@ struct RemovalsByYear {
  *
  * @author Nori Inc.
  *
- * @dev
+ * @dev This library is used to manage the market's removal vintages.
  *
  * ##### Uses:
  *

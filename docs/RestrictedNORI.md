@@ -487,9 +487,7 @@ function safeTransferFrom(address from, address to, uint256 id, uint256 amount, 
 
 Transfers `amount` tokens of token type `id` from `from` to `to`.
 
-<i>[See the OZ ERC1155 documentation for more] (
-https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
-#ERC1155-safeTransferFrom-address-address-uint256-uint256-bytes-)</i>
+<i>[See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155)</i>
 
 
 
@@ -501,9 +499,7 @@ function safeBatchTransferFrom(address from, address to, uint256[] ids, uint256[
 
 Batched version of `safeTransferFrom`.
 
-<i>[See the OZ ERC1155 documentation for more] (
-https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
-#IERC1155-safeBatchTransferFrom-address-address-uint256---uint256---bytes-)</i>
+<i>[See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155)</i>
 
 
 
@@ -581,9 +577,7 @@ variants.
 <i>Follows the rules of hooks defined [here](
 https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
 
-See the ERC1155 specific version [here](
-https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
-#ERC1155-_beforeTokenTransfer-address-address-address-uint256---uint256---bytes-).
+See the ERC1155 specific version [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155).
 
 ##### Requirements:
 

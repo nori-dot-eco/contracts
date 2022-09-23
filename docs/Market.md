@@ -519,7 +519,7 @@ function swap(address recipient, uint256 amount, uint256 deadline, uint8 v, byte
 Exchange bpNORI tokens for an ERC721 certificate by transferring ownership of the removals to the
 certificate.
 
-<i>See [https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit](ERC20Permit) for more.
+<i>See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
 The message sender must present a valid permit to this contract to temporarily authorize this market
 to transfer the sender's bpNORI to complete the purchase. A certificate is issued by `Certificate.sol`
 to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
@@ -551,7 +551,7 @@ tokens for an ERC721 certificate token and transfers ownership of removal tokens
 supplier to that certificate. If the specified supplier does not have enough carbon removals for sale to fulfill
 the order the transaction will revert.
 
-<i>See {https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit}
+<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
 The message sender must present a valid permit to this contract to temporarily authorize this market
 to transfer the sender's bpNORI to complete the purchase. A certificate is issued by Certificate.sol
 to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,

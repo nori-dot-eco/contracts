@@ -8,10 +8,10 @@ import "./ERC20Preset.sol";
  *
  * @author Nori Inc.
  *
- * @notice This token is a layer-2 (L2) equivalent of the respective layer-1 (L1) NORI contract with extended
- * functionality to enable deposits and withdrawals between L1 and L2.
+ * @notice The NORI (bpNORI) token on Polygon is a wrapped version of the NORI token on Ethereum.
  *
- * @dev
+ * @dev This token is a layer-2 (L2) equivalent of the respective layer-1 (L1) NORI contract with extended
+ * functionality to enable deposits and withdrawals between L1 and L2.
  *
  * ##### Behaviors and features:
  *

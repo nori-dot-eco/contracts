@@ -1,10 +1,10 @@
 ## BridgedPolygonNORI
 
 
-This token is a layer-2 (L2) equivalent of the respective layer-1 (L1) NORI contract with extended
-functionality to enable deposits and withdrawals between L1 and L2.
+The NORI (bpNORI) token on Polygon is a wrapped version of the NORI token on Ethereum.
 
-@dev
+<i>This token is a layer-2 (L2) equivalent of the respective layer-1 (L1) NORI contract with extended
+functionality to enable deposits and withdrawals between L1 and L2.
 
 ##### Behaviors and features:
 
@@ -22,8 +22,7 @@ NORI on L1 in a value equivalent to the amount withdrawn.
 
 ##### Inherits:
 
-- [ERC20Preset](../docs/ERC20Preset.md)
-
+- [ERC20Preset](../docs/ERC20Preset.md)</i>
 
 
 

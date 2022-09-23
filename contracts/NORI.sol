@@ -4,23 +4,21 @@ pragma solidity =0.8.17;
 import "./ERC20Preset.sol";
 
 /**
- * @title
+ * @title The NORI token on Ethereum.
  *
  * @author Nori Inc.
  *
- * @notice
+ * @notice The NORI token is an unwrapped version of the BridgedPolygonNORI (bpNORI) token for use on Ethereum.
+ *
+ * @dev This token is a layer-1 (L1) equivalent of the respective layer-1 (L2) bpNORI token.
  *
  * ##### Behaviors and features:
  *
- * ###### TODO
+ * - Check the [bpNORI docs](../docs/BridgedPolygonNORI.md) for more.
  *
  * ##### Inherits:
  *
- * - TODO
- *
- * ##### Uses:
- *
- * - TODO
+ * - [ERC20Preset](../docs/ERC20Preset.md)
  */
 contract NORI is ERC20Preset {
   /**
@@ -31,6 +29,9 @@ contract NORI is ERC20Preset {
     _disableInitializers();
   }
 
+  /**
+   * @notice Initialize the NORI contract
+   */
   function initialize() external virtual initializer {
     __Context_init_unchained();
     __ERC165_init_unchained();
