@@ -58,11 +58,10 @@ function _grantRole(bytes32 role, address account) internal virtual
 
 Grants a role to an account.
 
-<i>Grants `role` to `account` if the `_beforeRoleGranted` hook is satisfied
-
 ##### Requirements:
 
-- The contract must not be paused.</i>
+- The contract must not be paused.
+
 
 
 
@@ -74,11 +73,10 @@ function _revokeRole(bytes32 role, address account) internal virtual
 
 Revokes a role from an account.
 
-<i>Revokes `role` from `account` if the `_beforeRoleGranted` hook is satisfied
-
 ##### Requirements:
 
-- The contract must not be paused.</i>
+- The contract must not be paused.
+
 
 
 

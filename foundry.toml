@@ -24,4 +24,10 @@ optimizer_runs = 0
 optimizer = false
 sparse_mode = true
 
+[rpc_endpoints]
+mumbai = "${MUMBAI_RPC_URL}"
+mainnet = "${ETHEREUM_RPC_URL}"
+goerli = "${GOERLI_RPC_URL}"
+polygon = "${POLYGON_RPC_URL}"
+
 # See more config options https://github.com/foundry-rs/fo undry/tree/master/config

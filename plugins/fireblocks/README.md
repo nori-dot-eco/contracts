@@ -28,5 +28,5 @@ TODO:
 To enable fireblocks signing please set the following env vars:
 
 - FIREBLOCKS_API_KEY
-- FIREBLOCKS_API_SECRET_PATH
+- FIREBLOCKS_SECRET_KEY_PATH
 - FIREBLOCKS_VAULT_ID

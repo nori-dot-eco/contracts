@@ -42,8 +42,6 @@ contract AccessPresetPausable is
   /**
    * @notice Grants a role to an account.
    *
-   * @dev Grants `role` to `account` if the `_beforeRoleGranted` hook is satisfied
-   *
    * ##### Requirements:
    *
    * - The contract must not be paused.
@@ -59,8 +57,6 @@ contract AccessPresetPausable is
 
   /**
    * @notice Revokes a role from an account.
-   *
-   * @dev Revokes `role` from `account` if the `_beforeRoleGranted` hook is satisfied
    *
    * ##### Requirements:
    *
