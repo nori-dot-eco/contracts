@@ -8,14 +8,6 @@ If a supplier is found to have released the sequestered carbon the corresponding
 
 Investors and employees have received token grants bound by vesting and lockup terms. These grants are implemented by _LockedNORI_ which does not currently support transfer of locked tokens and allows a maxaimum of one grant schedule per wallet address.
 
-### Supported Networks
-
-See [contracts.json](../contracts.json) for a comprehensive list of all contracts deployed to each network.
-
-### Upgradeability
-
-Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openzeppelin.com/upgrades-plugins/1.x/) to manage upgradeability
-
 ## ERC20 Token
 
 ### NORI (NORI)
@@ -138,6 +130,35 @@ The schedule logic used in _RestrictedNORI_
 
 ### ERC777PresetPausablePermissioned
 
-## Prior Audit
+### Supported Networks
 
-[Omniscia](https://omniscia.io/nori-multiple-token-implementations/) audited NORI, BridgedPolygonNORI and LockedNORI in March of 2022.
+See [contracts.json](../contracts.json) for a comprehensive list of all contracts deployed to each network.
+
+### Upgradeability
+
+Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openzeppelin.com/upgrades-plugins/1.x/) to manage upgradeability
+
+### Contract APIs
+
+For additional documentation about any given smart contract, refer to that contract's markdown documentation page.
+
+- [AccessPresetPausable](AccessPresetPausable.md)
+- [AddressArrayLib](AddressArrayLib.md)
+- [BridgedPolygonNORI](BridgedPolygonNORI.md)
+- [Certificate](Certificate.md)
+- [ERC20Preset](ERC20Preset.md)
+- [Errors](Errors.md)
+- [LockedNORI](LockedNORI.md)
+- [LockedNORILib](LockedNORILib.md)
+- [Market](Market.md)
+- [NORI](NORI.md)
+- [Removal](Removal.md)
+- [RemovalIdLib](RemovalIdLib.md)
+- [RemovalsByYearLib](RemovalsByYearLib.md)
+- [RestrictedNORI](RestrictedNORI.md)
+- [RestrictedNORILib](RestrictedNORILib.md)
+- [UInt256ArrayLib](UInt256ArrayLib.md)
+
+## Prior Audits
+
+- [Omniscia](https://omniscia.io/nori-multiple-token-implementations/) audited NORI, BridgedPolygonNORI and LockedNORI in March of 2022.
