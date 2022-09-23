@@ -130,10 +130,7 @@ export const validateDeploymentSettings = ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
 }): void => {
-  if (
-    ['mumbai', 'goerli', 'polygon', 'mainnet'].includes(hre.network.name) &&
-    process.env.SOLC_PROFILE !== 'production'
-  ) {
+  if (hre.network.live === true && process.env.SOLC_PROFILE !== 'production') {
     throw new Error(
       'Please use the production solc profile (by setting the environment variable "SOLC_PROFILE" to "production") for production networks'
     );
