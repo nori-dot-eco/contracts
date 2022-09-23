@@ -109,6 +109,7 @@ scripts/tenderly.ts
 out
 cache_hardhat
 broadcast
+.gas-snapshot-test
 
 # interfaces
 contracts/interfaces/
