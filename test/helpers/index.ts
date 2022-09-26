@@ -1,6 +1,5 @@
 import { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
-import { add } from '@nori-dot-com/math';
 
 import type { DecodedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
@@ -293,14 +292,8 @@ export const setupTest = global.hre.deployments.createFixture(
         removals = [...removals, ...mintResultData.listedRemovalIds];
         totalAmountOfSupply =
           mintResultData.totalAmountOfSupply.add(totalAmountOfSupply);
-        totalAmountOfSuppliers = add(
-          mintResultData.totalAmountOfSuppliers,
-          totalAmountOfSuppliers
-        );
-        totalAmountOfRemovals = add(
-          mintResultData.totalAmountOfRemovals,
-          totalAmountOfRemovals
-        );
+        totalAmountOfSuppliers = mintResultData.totalAmountOfSuppliers + totalAmountOfSuppliers;
+        totalAmountOfRemovals = mintResultData.totalAmountOfRemovals + totalAmountOfRemovals;
         projectId = mintResultData.projectId; // todo allow multiple schedules/projects/percentages per fixture
         scheduleStartTime = mintResultData.scheduleStartTime; // todo allow multiple schedules/projects/percentages per fixture
         holdbackPercentage = mintResultData.holdbackPercentage; // todo allow multiple schedules/projects/percentages per fixture
