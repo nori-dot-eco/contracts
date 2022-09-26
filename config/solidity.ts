@@ -10,11 +10,6 @@ const DEFAULT_SOLC_CONFIG: SolcUserConfig = {
         runs: process.env.OPTIMIZER_RUNS,
       },
     }),
-    outputSelection: {
-      '*': {
-        '*': ['storageLayout'],
-      },
-    },
   },
 };
 
