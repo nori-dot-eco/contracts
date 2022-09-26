@@ -233,6 +233,7 @@ contract RestrictedNORI is
   );
 
   /**
+   * @custom:oz-upgrades-unsafe-allow constructor
    * @notice Locks the contract, preventing any future re-initialization.
    * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    */
