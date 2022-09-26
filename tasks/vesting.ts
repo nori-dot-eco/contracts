@@ -817,10 +817,17 @@ const CREATE_SUBTASK = {
       );
     };
     if (grantDiffs.length > 0) {
+      let totalAmount = BigNumber.from(0);
       const recipients = grantDiffs.map((_) => lNori.address);
-      const amounts = grantDiffs.map((grant) =>
-        BigNumber.from(grant.originalAmount.__new ?? grant.originalAmount)
-      );
+      const amounts = grantDiffs.map((grant) => {
+        const grantAmount = BigNumber.from(
+          grant.originalAmount.__new ?? grant.originalAmount
+        );
+        totalAmount = totalAmount.add(grantAmount);
+        return BigNumber.from(
+          grant.originalAmount.__new ?? grant.originalAmount
+        );
+      });
       const userData = grantDiffs.map((grant) => buildUserData({ grant }));
       const operatorData = grantDiffs.map((_) => '0x');
       const requireReceptionAck = grantDiffs.map((_) => true);
@@ -829,19 +836,53 @@ const CREATE_SUBTASK = {
           amounts.reduce((accumulator, v) => accumulator.add(v))
         )}`
       );
+      const eip712Domain = {
+        Permit: [
+          { name: 'owner', type: 'address' },
+          { name: 'spender', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
+        ],
+      };
+      const fireblocksSigner = bpNori.signer as FireblocksSigner;
+      const latestBlock = await fireblocksSigner.provider?.getBlock('latest');
+      // TODO error handling on undefined latest block
+      const deadline = latestBlock!.timestamp + 3600; // one hour into the future
+      const owner = await fireblocksSigner.getAddress();
+      const name = await bpNori.name();
+      const nonce = await bpNori.nonces(owner);
+      const chainId = await fireblocksSigner.getChainId();
+      const signature = await fireblocksSigner._signTypedData(
+        {
+          name,
+          version: '1',
+          chainId,
+          verifyingContract: bpNori.address,
+        },
+        eip712Domain,
+        {
+          owner,
+          spender: lNori.address,
+          value: totalAmount,
+          nonce,
+          deadline,
+        }
+      );
+      const { v, r, s } = ethers.utils.splitSignature(signature);
       if (!dryRun) {
-        const fireblocksSigner = bpNori.signer as FireblocksSigner;
         if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
           fireblocksSigner.setNextTransactionMemo(
             `Vesting Create: ${memo || ''}`
           );
         }
-        const batchCreateGrantsTx = await bpNori.batchSend(
-          recipients,
+        const batchCreateGrantsTx = await lNori.batchCreateGrants(
           amounts,
           userData,
-          operatorData,
-          requireReceptionAck
+          deadline,
+          v,
+          r,
+          s
         );
         const result = await batchCreateGrantsTx.wait();
         hre.log(
@@ -862,12 +903,13 @@ const CREATE_SUBTASK = {
         }
       } else {
         try {
-          await bpNori.callStatic.batchSend(
-            recipients,
+          await lNori.callStatic.batchCreateGrants(
             amounts,
             userData,
-            operatorData,
-            requireReceptionAck
+            deadline,
+            v,
+            r,
+            s
           );
           hre.log(chalk.bold.bgWhiteBright.black(`🎉 Dry run was successful!`));
         } catch (error) {
