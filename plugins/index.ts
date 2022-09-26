@@ -198,6 +198,7 @@ extendEnvironment((hre) => {
   hre.log = lazyFunction(() => log);
   hre.trace = lazyFunction(() => trace);
   hre.debug = lazyFunction(() => debug);
+  hre.ethernalSync = false;
   // All live networks will try to use fireblocks
   if (Boolean(hre.config.fireblocks.apiKey) && hre.network.config.live) {
     hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
