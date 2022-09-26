@@ -6,12 +6,9 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 
 /**
  * @title A preset contract that enables pausable access control.
- *
  * @author Nori Inc.
- *
  * @notice This preset contract affords an inheriting contract a set of standard functionality that allows role-based
  * access control and pausable functions.
- *
  * @dev This contract is inherited by most of the other contracts in this project.
  *
  * ##### Inherits:
@@ -31,12 +28,11 @@ abstract contract AccessPresetPausable is
 
   /**
    * @notice Pauses all functions that can mutate state.
-   *
    * @dev Used to effectively freeze a contract so that no state updates can occur.
    *
    * ##### Requirements:
    *
-   * - The caller must have the `PAUSER_ROLE`.
+   * - The caller must have the `PAUSER_ROLE` role.
    */
   function pause() external onlyRole(PAUSER_ROLE) {
     _pause();
@@ -44,12 +40,11 @@ abstract contract AccessPresetPausable is
 
   /**
    * @notice Unpauses all token transfers.
-   *
    * @dev Re-enables functionality that was paused by `pause`.
    *
    * ##### Requirements:
    *
-   * - The caller must have the `PAUSER_ROLE`.
+   * - The caller must have the `PAUSER_ROLE` role.
    */
   function unpause() external onlyRole(PAUSER_ROLE) {
     _unpause();
@@ -57,7 +52,6 @@ abstract contract AccessPresetPausable is
 
   /**
    * @notice Grants a role to an account.
-   *
    * @dev This function allows the role's admin to grant the role to other accounts.
    *
    * ##### Requirements:
@@ -78,9 +72,7 @@ abstract contract AccessPresetPausable is
 
   /**
    * @notice Revokes a role from an account.
-   *
    * @dev This function allows the role's admin to revoke the role from other accounts.
-   *
    * ##### Requirements:
    *
    * - The contract must not be paused.

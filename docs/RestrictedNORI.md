@@ -106,7 +106,7 @@ Role conferring creation of schedules.
 bytes32 MINTER_ROLE
 ```
 
-Role conferring sending of bridgedPolygonNORI to this contract.
+Role conferring sending of BridgedPolygonNORI to this contract.
 
 <i>The Market contract is granted this role after deployments.</i>
 
@@ -130,6 +130,7 @@ Role conferring revocation of restricted tokens.
 mapping(uint256 => mapping(uint256 => uint256)) _methodologyAndVersionToScheduleDuration
 ```
 
+A mapping of methodology to version to schedule duration.
 
 
 
@@ -140,6 +141,7 @@ mapping(uint256 => mapping(uint256 => uint256)) _methodologyAndVersionToSchedule
 mapping(uint256 => struct Schedule) _scheduleIdToScheduleStruct
 ```
 
+A mapping of schedule ID to schedule.
 
 
 
@@ -150,6 +152,7 @@ mapping(uint256 => struct Schedule) _scheduleIdToScheduleStruct
 struct EnumerableSetUpgradeable.UintSet _allScheduleIds
 ```
 
+An enumerable set containing all schedule IDs.
 
 
 
@@ -185,6 +188,11 @@ event ScheduleCreated(uint256 projectId, uint256 startTime, uint256 endTime)
 Emitted on successful creation of a new schedule.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| projectId | uint256 | The ID of the project for which the schedule was created. |
+| startTime | uint256 | The start time of the schedule. |
+| endTime | uint256 | The end time of the schedule. |
 
 
 ### TokensRevoked
@@ -196,6 +204,13 @@ event TokensRevoked(uint256 atTime, uint256 scheduleId, uint256 quantity, addres
 Emitted when unreleased tokens of an active schedule are revoked.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| atTime | uint256 | The time at which the revocation occurred. |
+| scheduleId | uint256 | The ID of the schedule from which tokens were revoked. |
+| quantity | uint256 | The quantity of tokens revoked. |
+| scheduleOwners | address[] | The addresses of the schedule owners from which tokens were revoked. |
+| quantitiesBurned | uint256[] | The quantities of tokens burned from each schedule owner. |
 
 
 ### TokensClaimed
@@ -207,6 +222,12 @@ event TokensClaimed(address from, address to, uint256 scheduleId, uint256 quanti
 Emitted on withdrawal of released tokens.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| from | address | The address from which tokens were withdrawn. |
+| to | address | The address to which tokens were withdrawn. |
+| scheduleId | uint256 | The ID of the schedule from which tokens were withdrawn. |
+| quantity | uint256 | The quantity of tokens withdrawn. |
 
 
 ### constructor
@@ -227,6 +248,7 @@ Locks the contract, preventing any future re-initialization.
 function initialize() external
 ```
 
+Initialize the RestrictedNORI contract.
 
 
 
@@ -252,8 +274,8 @@ Once the tokens have been revoked, the current released amount can never fall be
 its current level, even if the linear release schedule of the new amount would cause
 the released amount to be lowered at the current timestamp (a floor is established).
 
-Unlike in the `withdrawFromSchedule` function, here we burn `RestrictedNORI`
-from the schedule owner but send that `BridgedPolygonNORI` back to Nori's
+Unlike in the `withdrawFromSchedule` function, here we burn RestrictedNORI
+from the schedule owner but send that BridgedPolygonNORI back to Nori's
 treasury or an address of Nori's choosing (the `toAccount` address).
 The `claimedAmount` is not changed because this is not a claim operation.
 
@@ -261,7 +283,7 @@ Emits a `TokensRevoked` event.
 
 ##### Requirements:
 
-- Can only be used when the caller has the `TOKEN_REVOKER_ROLE`.
+- Can only be used when the caller has the `TOKEN_REVOKER_ROLE` role.
 - The requirements of `_beforeTokenTransfer` apply to this function.</i>
 
 | Name | Type | Description |
@@ -277,13 +299,14 @@ Emits a `TokensRevoked` event.
 function registerContractAddresses(contract BridgedPolygonNORI bridgedPolygonNORI, contract Removal removal) external
 ```
 
-Registers the addresses of the Market, BridgedPolygonNORI, and Removal contracts in this contract.
+Register the underlying assets used by this contract.
+
+<i>Register the addresses of the Market, BridgedPolygonNORI, and Removal contracts in this contract.
 
 ##### Requirements:
 
 - Can only be used when the contract is not paused.
-- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
-
+- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -299,10 +322,12 @@ function createSchedule(uint256 projectId, uint256 startTime, uint8 methodology,
 
 Sets up a restriction schedule with parameters determined from the project ID.
 
-##### Requirements:
-- Can only be used when the contract is not paused.
-- Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role.
+<i>Create a schedule for a project ID and set the parameters of the schedule.
 
+##### Requirements:
+
+- Can only be used when the contract is not paused.
+- Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -318,17 +343,17 @@ Sets up a restriction schedule with parameters determined from the project ID.
 function mint(uint256 amount, uint256 removalId) external
 ```
 
-Mints `amount` of RestrictedNORI to the schedule (token ID) that corresponds to the provided `removalId`.
-The schedule ID for this removal is looked up in the Removal contract.
-The underlying BridgedPolygonNORI asset is sent to this contract from the buyer by the Market contract
-during a purchase, so this function only concerns itself with minting the RestrictedNORI token for the
-correct token ID.
+Mint RestrictedNORI tokens for a schedule.
+
+<i>Mint `amount` of RestrictedNORI to the schedule ID that corresponds to the provided `removalId`.
+The schedule ID for this removal is looked up in the Removal contract. The underlying BridgedPolygonNORI asset is
+ sent to this contract from the buyer by the Market contract during a purchase, so this function only concerns
+itself with minting the RestrictedNORI token for the correct token ID.
 
 ##### Requirements:
 
-- Can only be used if the caller has the `MINTER_ROLE`.
-- The rules of `_beforeTokenTransfer` apply.
-
+- Can only be used if the caller has the `MINTER_ROLE` role.
+- The rules of `_beforeTokenTransfer` apply.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -344,8 +369,8 @@ function withdrawFromSchedule(address recipient, uint256 scheduleId, uint256 amo
 
 Claim sender's released tokens and withdraw them to `recipient` address.
 
-<i>This function burns `amount` of `RestrictedNORI` for the given schedule ID
-and transfers `amount` of `BridgedPolygonNORI` from the `RestrictedNORI` contract's
+<i>This function burns `amount` of RestrictedNORI for the given schedule ID
+and transfers `amount` of BridgedPolygonNORI from the RestrictedNORI contract's
 balance to `recipient`'s balance.
 Enforcement of the availability of claimable tokens for the `_burn` call happens in `_beforeTokenTransfer`.
 
@@ -361,6 +386,9 @@ Emits a `TokensClaimed` event.
 | scheduleId | uint256 | The schedule from which to withdraw. |
 | amount | uint256 | The amount to withdraw. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | Whether or not the tokens were successfully withdrawn. |
 
 ### getAllScheduleIds
 
@@ -368,10 +396,13 @@ Emits a `TokensClaimed` event.
 function getAllScheduleIds() external view returns (uint256[])
 ```
 
-Returns an array of all existing schedule IDs, regardless of the status of the schedule.
+Get all schedule IDs.
 
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256[] | Returns an array of all existing schedule IDs, regardless of the status of the schedule. |
 
 ### getScheduleDetailForAccount
 
@@ -387,6 +418,9 @@ Returns an account-specific view of the details of a specific schedule.
 | account | address | The account for which to provide schedule details. |
 | scheduleId | uint256 | The token ID of the schedule for which to retrieve details. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | struct ScheduleDetailForAddress | Returns a &#x60;ScheduleDetails&#x60; struct containing the details of the schedule. |
 
 ### batchGetScheduleDetailsForAccount
 
@@ -397,7 +431,14 @@ function batchGetScheduleDetailsForAccount(address account, uint256[] scheduleId
 Batch version of `getScheduleDetailForAccount`.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| account | address | The account for which to provide schedule details. |
+| scheduleIds | uint256[] | The token IDs of the schedules for which to retrieve details. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | struct ScheduleDetailForAddress[] | Returns an array of &#x60;ScheduleDetails&#x60; structs containing the details of the schedules |
 
 ### scheduleExists
 
@@ -405,10 +446,16 @@ Batch version of `getScheduleDetailForAccount`.
 function scheduleExists(uint256 scheduleId) external view returns (bool)
 ```
 
-Returns the existence of a schedule.
+Check the existence of a schedule.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| scheduleId | uint256 | The token ID of the schedule for which to check existence. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | Returns a boolean indicating whether or not the schedule exists. |
 
 ### batchGetScheduleSummaries
 
@@ -419,7 +466,13 @@ function batchGetScheduleSummaries(uint256[] scheduleIds) external view returns 
 Returns an array of summary structs for the specified schedules.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| scheduleIds | uint256[] | The token IDs of the schedules for which to retrieve details. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | struct ScheduleSummary[] | Returns an array of &#x60;ScheduleSummary&#x60; structs containing the summary of the schedules. |
 
 ### claimableBalanceForSchedule
 
@@ -430,7 +483,13 @@ function claimableBalanceForSchedule(uint256 scheduleId) external view returns (
 Released balance less the total claimed amount at current block timestamp for a schedule.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| scheduleId | uint256 | The token ID of the schedule for which to retrieve details. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | Returns the claimable amount for the schedule. |
 
 ### claimableBalanceForScheduleForAccount
 
@@ -444,7 +503,14 @@ A single account's claimable balance at current block timestamp for a schedule.
 using totals constructed from current balances and claimed amounts, and then subtract anything that
 account has already claimed.</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| scheduleId | uint256 | The token ID of the schedule for which to retrieve details. |
+| account | address | The account for which to retrieve details. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | Returns the claimable amount for an account&#x27;s schedule. |
 
 ### revocableQuantityForSchedule
 
@@ -452,10 +518,16 @@ account has already claimed.</i>
 function revocableQuantityForSchedule(uint256 scheduleId) external view returns (uint256)
 ```
 
-Returns the current number of revocable tokens for a given schedule at the current block timestamp.
+Get the current number of revocable tokens for a given schedule at the current block timestamp.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| scheduleId | uint256 | The schedule ID for which to revoke tokens. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | Returns the number of revocable tokens for a given schedule at the current block timestamp. |
 
 ### setRestrictionDurationForMethodologyAndVersion
 
@@ -463,20 +535,21 @@ Returns the current number of revocable tokens for a given schedule at the curre
 function setRestrictionDurationForMethodologyAndVersion(uint256 methodology, uint256 methodologyVersion, uint256 durationInSeconds) public
 ```
 
-Sets the duration in seconds that should be applied to schedules created on behalf of removals
+Set the restriction duration for a methodology and version.
+
+<i>Set the duration in seconds that should be applied to schedules created on behalf of removals
 originating from the given methodology and methodology version.
 
 ##### Requirements:
 
 - Can only be used when the contract is not paused.
-- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
-
+- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| methodology | uint256 | The methodology of carbon removal |
-| methodologyVersion | uint256 | The version of the methodology |
-| durationInSeconds | uint256 | The duration in seconds that insurance funds should be restricted for this methodology and version |
+| methodology | uint256 | The methodology of carbon removal. |
+| methodologyVersion | uint256 | The version of the methodology. |
+| durationInSeconds | uint256 | The duration in seconds that insurance funds should be restricted for this methodology and version. |
 
 
 ### safeTransferFrom
@@ -487,8 +560,15 @@ function safeTransferFrom(address from, address to, uint256 id, uint256 amount, 
 
 Transfers `amount` tokens of token type `id` from `from` to `to`.
 
-<i>[See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155)</i>
+<i>[See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155).</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| from | address | The address to transfer from. |
+| to | address | The address to transfer to. |
+| id | uint256 | The token ID to transfer. |
+| amount | uint256 | The amount of the token `id` to transfer. |
+| data | bytes | The data to pass to the receiver contract. |
 
 
 ### safeBatchTransferFrom
@@ -499,8 +579,15 @@ function safeBatchTransferFrom(address from, address to, uint256[] ids, uint256[
 
 Batched version of `safeTransferFrom`.
 
-<i>[See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155)</i>
+<i>[See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155).</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| from | address | The address to transfer from. |
+| to | address | The address to transfer to. |
+| ids | uint256[] | The token IDs to transfer. |
+| amounts | uint256[] | The amounts of the token `id`s to transfer. |
+| data | bytes | The data to pass to the receiver contract. |
 
 
 ### getScheduleSummary
@@ -509,10 +596,16 @@ Batched version of `safeTransferFrom`.
 function getScheduleSummary(uint256 scheduleId) public view returns (struct ScheduleSummary)
 ```
 
-Returns summary struct for a schedule.
+Get a summary for a schedule.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| scheduleId | uint256 | The token ID of the schedule for which to retrieve details. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | struct ScheduleSummary | Returns the schedule summary. |
 
 ### supportsInterface
 
@@ -524,7 +617,13 @@ function supportsInterface(bytes4 interfaceId) public view returns (bool)
 <i>See [IERC165.supportsInterface](
 https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| interfaceId | bytes4 | The interface ID to check for support. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | Returns true if the interface is supported, false otherwise. |
 
 ### getRestrictionDurationForMethodologyAndVersion
 
@@ -532,7 +631,7 @@ https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-
 function getRestrictionDurationForMethodologyAndVersion(uint256 methodology, uint256 methodologyVersion) public view returns (uint256)
 ```
 
-Returns the schedule duration in seconds that has been set for a given methodology and methodology version.
+Get the schedule duration (in seconds) that has been set for a given methodology and methodology version.
 
 
 | Name | Type | Description |
@@ -540,6 +639,9 @@ Returns the schedule duration in seconds that has been set for a given methodolo
 | methodology | uint256 | The methodology of carbon removal. |
 | methodologyVersion | uint256 | The version of the methodology. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | Returns the schedule duration in seconds. |
 
 ### _createSchedule
 
@@ -560,9 +662,9 @@ Emits a `ScheduleCreated` event.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| projectId | uint256 | The ID that will be used as the new schedule's ID |
-| startTime | uint256 | The schedule start time in seconds since the unix epoch |
-| restrictionDuration | uint256 | The duration of the schedule in seconds since the unix epoch |
+| projectId | uint256 | The ID that will be used as the new schedule's ID. |
+| startTime | uint256 | The schedule start time in seconds since the unix epoch. |
+| restrictionDuration | uint256 | The duration of the schedule in seconds since the unix epoch. |
 
 
 ### _beforeTokenTransfer
@@ -591,6 +693,14 @@ See the ERC1155 specific version [here](https://docs.openzeppelin.com/contracts/
      - The operator is operating on their own balance (enforced in the inherited contract).
      - The operator has sufficient balance to transfer (enforced in the inherited contract).</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| operator | address | The address which initiated the transfer (i.e. msg.sender). |
+| from | address | The address to transfer from. |
+| to | address | The address to transfer to. |
+| ids | uint256[] | The token IDs to transfer. |
+| amounts | uint256[] | The amounts of the token `id`s to transfer. |
+| data | bytes | The data to pass to the receiver contract. |
 
 
 ### _validateSchedule
@@ -602,6 +712,10 @@ function _validateSchedule(uint256 startTime, uint256 restrictionDuration) inter
 Validates that the schedule start time and duration are non-zero.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| startTime | uint256 | The schedule start time in seconds since the unix epoch. |
+| restrictionDuration | uint256 | The duration of the schedule in seconds since the unix epoch. |
 
 
 ### _quantityToRevokeForTokenHolder
@@ -622,6 +736,9 @@ proportion of ownership of the schedule's tokens and the total number of tokens 
 | account | address | The token holder for which to calculate the quantity that should be revoked. |
 | balanceOfAccount | uint256 | The total balance of this token ID owned by `account`. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The quantity of tokens that should be revoked from &#x60;account&#x60; for the given schedule. |
 
 
 

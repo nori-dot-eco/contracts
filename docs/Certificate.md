@@ -1,9 +1,9 @@
 ## Certificate
 
 
-This contract issues sequentially increasing ERC721 token ids to purchasers of certificates of carbon
+This contract issues sequentially increasing ERC721 token IDs to purchasers of certificates of carbon
 removal in Nori's marketplace. The carbon removals that supply each certificate are accounted for using ERC1155
-tokens in the Removal contract. Upon purchase, ownership of the relevant Removal token ids and balances is
+tokens in the Removal contract. Upon purchase, ownership of the relevant Removal token IDs and balances is
 transferred to this contract.
 
 
@@ -12,11 +12,11 @@ transferred to this contract.
 - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
 - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
 - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
-pausable
+pausable.
 - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
-   - `CERTIFICATE_OPERATOR_ROLE`: The only role that can transfer certificates after they are minted
-   - `PAUSER_ROLE`: Can pause and unpause the contract
-   - `DEFAULT_ADMIN_ROLE`: This is the only role that can add/revoke other accounts to any of the roles
+   - `CERTIFICATE_OPERATOR_ROLE`: The only role that can transfer certificates after they are minted.
+   - `PAUSER_ROLE`: Can pause and unpause the contract.
+   - `DEFAULT_ADMIN_ROLE`: This is the only role that can add/revoke other accounts to any of the roles.
 - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver): A
 certificate is minted and internal accounting ties the certificate to the ERC1155 tokens upon receipt.
 
@@ -54,7 +54,7 @@ bytes32 CERTIFICATE_OPERATOR_ROLE
 
 Role conferring operator permissions.
 
-<i>Assigned to operators which are the only addresses which can transfer certificates outside of
+<i>Assigned to operators which are the only addresses which can transfer certificates outside
 minting and burning.</i>
 
 
@@ -121,7 +121,7 @@ Emitted on updating the addresses for contracts.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| removal | contract Removal | The address of the new `market` contract. |
+| removal | contract Removal | The address of the new Removal contract. |
 
 
 ### constructor
@@ -147,7 +147,7 @@ Initialize the BridgedPolygonNORI contract.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| baseURI | string | the base URI for all certificate NFTs. |
+| baseURI | string | The base URI for all certificate NFTs. |
 
 
 ### registerContractAddresses
@@ -156,13 +156,13 @@ Initialize the BridgedPolygonNORI contract.
 function registerContractAddresses(contract Removal removal) external
 ```
 
-Registers the address of the Removal contract.
+Register the address of the Removal contract.
 
 <i>This function emits a `ContractAddressesRegistered` event.
 
 ##### Requirements:
 - Can only be used when the contract is not paused.
-- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`</i>
+- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -209,7 +209,7 @@ Returns the address of the Removal contract.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | address | removalAddress address of the Removal contract. |
+| [0] | address | The address of the Removal contract. |
 
 ### totalMinted
 
@@ -224,7 +224,7 @@ Returns the total number of certificates that have been minted.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | totalMinted Total number of certificates that have been minted. |
+| [0] | uint256 | Total number of certificates that have been minted. |
 
 ### purchaseAmount
 
@@ -259,7 +259,7 @@ https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | bool | Returns true if the interface is supported, false otherwise. |
+| [0] | bool | True if the interface is supported, false otherwise. |
 
 ### setApprovalForAll
 
@@ -300,7 +300,7 @@ certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfe
 ##### Requirements:
 
 - This contract must not be paused.
-- Can only be used when the caller has the `CERTIFICATE_OPERATOR_ROLE`</i>
+- Can only be used when the caller has the `CERTIFICATE_OPERATOR_ROLE` role.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -327,7 +327,7 @@ Emits a `ReceiveRemovalBatch` event.</i>
 | ---- | ---- | ----------- |
 | recipient | address | The address receiving the new certificate. |
 | certificateAmount | uint256 | The total number of tonnes of carbon removals represented by the new certificate. |
-| removalIds | uint256[] | The removal token IDs that are being included in the certificate. |
+| removalIds | uint256[] | The Removal token IDs that are being included in the certificate. |
 | removalAmounts | uint256[] | The balances of each corresponding removal token that are being included in the certificate. |
 
 
@@ -347,7 +347,7 @@ https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/uti
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | address | For regular transactions it returns msg.sender and for meta transactions it *can* be used to return the end user (rather than the relayer) |
+| [0] | address | For regular transactions it returns &#x60;msg.sender&#x60; and for meta transactions it *can* be used to return the end-user (rather than the relayer). |
 
 ### _baseURI
 
@@ -361,6 +361,9 @@ The baseUri for the certificate token.
 `baseURI` and the `tokenId`. Empty by default, it can be overridden in child contracts.</i>
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | string | The base URI for the certificate. |
 
 ### _validateReceivedRemovalBatch
 

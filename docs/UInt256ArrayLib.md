@@ -18,7 +18,7 @@ function fill(uint256[] from, uint256 val) internal pure returns (uint256[] arr)
 
 Fill an array.
 
-<i>Sums all of the elements of a `uint256[]` array.
+<i>Sums all the elements of a `uint256[]` array.
 
 ##### Equivalence:
 
@@ -36,7 +36,7 @@ new uint256[](3).fill(1).sum(); // returns: [1, 1, 1]
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | from | uint256[] | The array to fill. |
-| val | uint256 | The value to fill all of the indexes of the array with. |
+| val | uint256 | The value to fill all the indexes of the array with. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -50,7 +50,7 @@ function sum(uint256[] data) internal pure returns (uint256 total)
 
 Sum an array.
 
-<i>Sums all of the elements of a `uint256[]` array.
+<i>Sums all the elements of a `uint256[]` array.
 
 ##### Equivalence:
 

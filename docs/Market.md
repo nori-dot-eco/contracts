@@ -183,7 +183,7 @@ All listed removal tokens in the market.
 bytes32 MARKET_ADMIN_ROLE
 ```
 
-Role conferring the ability to configure the Nori fee wallet, the Nori fee percentage, and the priority
+Role conferring the ability to configure Nori's fee wallet, the fee percentage, and the priority
 restricted threshold.
 
 
@@ -225,10 +225,10 @@ Emitted on updating the addresses for contracts.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| removal | contract Removal | The address of the new `removal` contract. |
-| certificate | contract Certificate | The address of the new `certificate` contract. |
-| bridgedPolygonNORI | contract BridgedPolygonNORI | The address of the new `bridgedPolygonNORI` contract. |
-| restrictedNORI | contract RestrictedNORI | The address of the new `restrictedNORI` contract. |
+| removal | contract Removal | The address of the new Removal contract. |
+| certificate | contract Certificate | The address of the new Certificate contract. |
+| bridgedPolygonNORI | contract BridgedPolygonNORI | The address of the new BridgedPolygonNORI contract. |
+| restrictedNORI | contract RestrictedNORI | The address of the new RestrictedNORI contract. |
 
 
 ### NoriFeeWalletAddressUpdated
@@ -242,7 +242,7 @@ Emitted on setting of `_noriFeeWalletAddress`.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| updatedWalletAddress | address | The updated address of the Nori fee wallet. |
+| updatedWalletAddress | address | The updated address of Nori's fee wallet. |
 
 
 ### NoriFeePercentageUpdated
@@ -367,21 +367,21 @@ function registerContractAddresses(contract Removal removal, contract Certificat
 
 Register the market contract's asset addresses.
 
-<i>Register the `removal`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
+<i>Register the Removal, Certificate, BridgedPolygonNORI, and RestrictedNORI contracts so that they
 can be referenced in this contract. Called as part of the market contract system deployment process.
 
 Emits a `ContractAddressesRegistered` event.
 
 ##### Requirements:
 
-- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
+- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
 - Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| removal | contract Removal | The address of the `removal` contract. |
-| certificate | contract Certificate | The address of the `certificate` contract. |
-| bridgedPolygonNORI | contract BridgedPolygonNORI | The address of the `bridgedPolygonNORI` contract. |
+| removal | contract Removal | The address of the Removal contract. |
+| certificate | contract Certificate | The address of the Certificate contract. |
+| bridgedPolygonNORI | contract BridgedPolygonNORI | The address of the BridgedPolygonNORI contract. |
 | restrictedNORI | contract RestrictedNORI | The address of the market contract. |
 
 
@@ -392,7 +392,7 @@ function setPriorityRestrictedThreshold(uint256 threshold) external
 ```
 
 Sets the current value of the priority restricted threshold, which is the amount of inventory
-that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
+that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
 
 <i>Emits a `PriorityRestrictedThresholdSet` event.
 
@@ -412,15 +412,15 @@ that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
 function setNoriFeePercentage(uint256 noriFeePercentage_) external
 ```
 
-Sets the Nori fee percentage (as an integer) which is the percentage of
+Sets the fee percentage (as an integer) which is the percentage of
 each purchase that will be paid to Nori as the marketplace operator.
 
 Emits a `NoriFeePercentageUpdated` event.
 
 <i>##### Requirements:
 
-- Can only be used when the caller has the MARKET_ADMIN_ROLE
-- Can only be used when this contract is not paused</i>
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -433,15 +433,15 @@ Emits a `NoriFeePercentageUpdated` event.
 function setNoriFeeWallet(address noriFeeWalletAddress) external
 ```
 
-Sets the Nori fee wallet address (as an integer) which is the address to which the
+Sets Nori's fee wallet address (as an integer) which is the address to which the
 marketplace operator fee will be routed during each purchase.
 
 <i>Emits a `NoriFeeWalletAddressUpdated` event.
 
 ##### Requirements:
 
-- Can only be used when the caller has the MARKET_ADMIN_ROLE
-- Can only be used when this contract is not paused</i>
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -521,7 +521,7 @@ certificate.
 
 <i>See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
 The message sender must present a valid permit to this contract to temporarily authorize this market
-to transfer the sender's bpNORI to complete the purchase. A certificate is issued by `Certificate.sol`
+to transfer the sender's bpNORI to complete the purchase. A certificate is minted in the Certificate contract
 to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
 to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
 to Nori Inc. as a market operator fee.
@@ -553,7 +553,7 @@ the order the transaction will revert.
 
 <i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
 The message sender must present a valid permit to this contract to temporarily authorize this market
-to transfer the sender's bpNORI to complete the purchase. A certificate is issued by Certificate.sol
+to transfer the sender's bpNORI to complete the purchase. A certificate is issued by the Certificate contract
 to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
 to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
 to Nori Inc. as a market operator fee.
@@ -600,13 +600,13 @@ function priorityRestrictedThreshold() external view returns (uint256)
 ```
 
 Returns the current value of the priority restricted threshold, which is the amount of inventory
-that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
+that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
 
 
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | priorityRestrictedThreshold The threshold of supply allowed for priority customers only. |
+| [0] | uint256 | The threshold of supply allowed for priority customers only. |
 
 ### noriFeePercentage
 
@@ -614,14 +614,14 @@ that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE`.
 function noriFeePercentage() external view returns (uint256)
 ```
 
-Returns the current value of the Nori fee percentage, as an integer, which is the percentage of
+Returns the current value of the fee percentage, as an integer, which is the percentage of
 each purchase that will be paid to Nori as the marketplace operator.
 
 
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | noriFeePercentage The percentage of each purchase that will be paid to Nori as the marketplace operator. |
+| [0] | uint256 | The percentage of each purchase that will be paid to Nori as the marketplace operator. |
 
 ### noriFeeWallet
 
@@ -635,7 +635,7 @@ Returns the address to which the marketplace operator fee will be routed during 
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | address | walletAddress the wallet address used for Nori&#x27;s fees. |
+| [0] | address | The wallet address used for Nori&#x27;s fees. |
 
 ### calculateNoriFee
 
@@ -652,7 +652,7 @@ Calculates the Nori fee required for a purchase of `amount` tonnes of carbon rem
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | fee the amount of the fee for Nori. |
+| [0] | uint256 | The amount of the fee for Nori. |
 
 ### calculateCheckoutTotal
 
@@ -670,7 +670,7 @@ carbon removals).
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | totalAmount total quantity of bpNORI required to make the purchase, including the fee. |
+| [0] | uint256 | The total quantity of bpNORI required to make the purchase, including the fee. |
 
 ### calculateCertificateAmountFromPurchaseTotal
 
@@ -688,7 +688,7 @@ percentage of that purchase total that is due to Nori as a transaction fee.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | certificateAmount The amount for the certificate, excluding the transaction fee. |
+| [0] | uint256 | The amount for the certificate, excluding the transaction fee. |
 
 ### removalAddress
 
@@ -812,7 +812,7 @@ the order fee, updating accounting, and minting the Certificate.</i>
 | certificateAmount | uint256 | The total amount for the certificate. |
 | operator | address | The message sender. |
 | recipient | address | The recipient of the certificate. |
-| countOfRemovalsAllocated | uint256 | The number of distinct removal ids that are involved in fulfilling this order. |
+| countOfRemovalsAllocated | uint256 | The number of distinct removal IDs that are involved in fulfilling this order. |
 | ids | uint256[] | An array of removal IDs involved in fulfilling this order. |
 | amounts | uint256[] | An array of amounts being allocated from each corresponding removal token. |
 | suppliers | address[] | An array of suppliers. |

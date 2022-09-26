@@ -18,7 +18,7 @@ function fill(address[] from, address val) internal pure returns (address[] arr)
 
 Fill an array.
 
-<i>Fills all of the elements of an `address` array with a value.
+<i>Fills all the elements of an `address` array with a value.
 
 ##### Equivalence:
 
@@ -36,7 +36,7 @@ new address[](3).fill(address(0); // returns: [address(0), address(0), address(0
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | from | address[] | The array to fill. |
-| val | address | The value to fill all of the indexes of the array with. |
+| val | address | The value to fill all the indexes of the array with. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

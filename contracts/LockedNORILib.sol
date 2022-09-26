@@ -18,8 +18,9 @@ struct Schedule {
 }
 
 /**
+ * @title Library encapsulating the logic around vesting schedules.
+ * @author Nori Inc.
  * @notice Library encapsulating the logic around timed release schedules with cliffs.
- *
  * @dev Supports an arbitrary number of stepwise cliff releases beyond which the remaining amount is released linearly
  * from the time of the final cliff to the end date.
  *

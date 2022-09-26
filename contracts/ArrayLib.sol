@@ -3,18 +3,15 @@ pragma solidity =0.8.17;
 
 /**
  * @title An library for `uint256[]`.
- *
  * @author Nori Inc.
- *
  * @notice This library provides a set of functions to manipulate `uint256` arrays.
- *
  * @dev The functions in this library use gas-efficient and concise syntax to improve both DX (via concision) and UX
  * (via gas efficiency).
  */
 library UInt256ArrayLib {
   /**
    * @notice Fill an array.
-   * @dev Sums all of the elements of a `uint256[]` array.
+   * @dev Sums all the elements of a `uint256[]` array.
    *
    * ##### Equivalence:
    *
@@ -29,7 +26,7 @@ library UInt256ArrayLib {
    * ```
    * -
    * @param from The array to fill.
-   * @param val The value to fill all of the indexes of the array with.
+   * @param val The value to fill all the indexes of the array with.
    * @return arr An array filled with the value of `val`.
    */
   function fill(uint256[] memory from, uint256 val)
@@ -53,7 +50,7 @@ library UInt256ArrayLib {
 
   /**
    * @notice Sum an array.
-   * @dev Sums all of the elements of a `uint256[]` array.
+   * @dev Sums all the elements of a `uint256[]` array.
    *
    * ##### Equivalence:
    *
@@ -128,18 +125,15 @@ library UInt256ArrayLib {
 
 /**
  * @title A library for `address[]`.
- *
  * @author Nori Inc.
- *
  * @notice This library provides a set of functions to manipulate `address` arrays.
- *
  * @dev The functions in this library use gas-efficient and concise syntax to improve both DX (via concision) and UX
  * (via gas efficiency).
  */
 library AddressArrayLib {
   /**
    * @notice Fill an array.
-   * @dev Fills all of the elements of an `address` array with a value.
+   * @dev Fills all the elements of an `address` array with a value.
    *
    * ##### Equivalence:
    *
@@ -154,7 +148,7 @@ library AddressArrayLib {
    * ```
    * -
    * @param from The array to fill.
-   * @param val The value to fill all of the indexes of the array with.
+   * @param val The value to fill all the indexes of the array with.
    * @return arr An array filled with the value of `val`.
    */
   function fill(address[] memory from, address val)

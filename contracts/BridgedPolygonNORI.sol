@@ -5,11 +5,8 @@ import "./ERC20Preset.sol";
 
 /**
  * @title The NORI token (wrapped as bpNORI) on Polygon.
- *
  * @author Nori Inc.
- *
  * @notice The NORI (bpNORI) token on Polygon is a wrapped version of the NORI token on Ethereum.
- *
  * @dev This token is a layer-2 (L2) equivalent of the respective layer-1 (L1) NORI contract with extended
  * functionality to enable deposits and withdrawals between L1 and L2.
  *
@@ -18,13 +15,13 @@ import "./ERC20Preset.sol";
  * ###### Deposits
  *
  * A user can bridge their L1 Ethereum NORI in return for layer-2 bpNORI by depositing NORI on the L1
- * bridge. The user will receive an equivalent amount of bpNORI on L2. Deposits on L1 do not change the toal supply of
+ * bridge. The user will receive an equivalent amount of bpNORI on L2. Deposits on L1 do not change the total supply of
  * NORI and instead escrow their tokens to the bridge address.
  *
  * ###### Withdrawals
  *
  * A user can withdraw their L2 bpNORI in return for L1 NORI by burning their bpNORI on L2 and submitting a withdrawal.
- * A withdraw decreases the L2 supply of bpNORI in a value equivalent to the amount withdrawn. The user will receive
+ * A withdrawal decreases the L2 supply of bpNORI in a value equivalent to the amount withdrawn. The user will receive
  * NORI on L1 in a value equivalent to the amount withdrawn.
  *
  * ##### Inherits:

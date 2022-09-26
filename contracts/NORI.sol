@@ -5,11 +5,8 @@ import "./ERC20Preset.sol";
 
 /**
  * @title The NORI token on Ethereum.
- *
  * @author Nori Inc.
- *
  * @notice The NORI token is an unwrapped version of the BridgedPolygonNORI (bpNORI) token for use on Ethereum.
- *
  * @dev This token is a layer-1 (L1) equivalent of the respective layer-1 (L2) bpNORI token.
  *
  * ##### Behaviors and features:

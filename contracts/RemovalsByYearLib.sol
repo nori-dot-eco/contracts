@@ -6,6 +6,12 @@ import {AddressArrayLib, UInt256ArrayLib} from "./ArrayLib.sol";
 import "./Removal.sol";
 import "./Errors.sol";
 
+/**
+ * @notice A data structure that stores the removals for a given year.
+ * @param yearToRemovals A mapping from a year to the removals for that year.
+ * @param earliestYear The earliest year for which there are removals.
+ * @param latestYear The latest year for which there are removals.
+ */
 struct RemovalsByYear {
   mapping(uint256 => EnumerableSetUpgradeable.UintSet) yearToRemovals;
   uint256 earliestYear;
@@ -14,9 +20,7 @@ struct RemovalsByYear {
 
 /**
  * @title A library that provides a set of functions for managing removals by year.
- *
  * @author Nori Inc.
- *
  * @dev This library is used to manage the market's removal vintages.
  *
  * ##### Uses:
@@ -105,7 +109,6 @@ library RemovalsByYearLib {
   /**
    * @notice Checks if the collection is empty across all years.
    * @dev Uses the latestYear property to check if any years have been set.
-   *
    * @param collection the collection from storage.
    * @return True if empty, false otherwise.
    */
@@ -119,7 +122,6 @@ library RemovalsByYearLib {
 
   /**
    * @notice Checks if the collection is empty for a particular year.
-   *
    * @param collection the collection from storage.
    * @param year the year to check.
    * @return True if empty, false otherwise.
@@ -135,7 +137,6 @@ library RemovalsByYearLib {
   /**
    * @notice Gets the next removal in the collection for sale.
    * @dev Gets the first item from the Enumerable Set that corresponds to the earliest year.
-   *
    * @param collection the collection from storage.
    * @return The next removal to sell.
    */
@@ -150,7 +151,6 @@ library RemovalsByYearLib {
   /**
    * @notice Gets the count of unique removal IDs for a particular year.
    * @dev Gets the size of the Enumerable Set that corresponds to the given year.
-   *
    * @param collection the collection from storage.
    * @param year the year to check.
    * @return uint256 the size of the collection.
@@ -165,7 +165,6 @@ library RemovalsByYearLib {
 
   /**
    * @notice Gets all removal IDs belonging to all vintages for a collection.
-   *
    * @param collection the collection from storage.
    * @return removalIds an array of all removal IDs in the collection.
    */

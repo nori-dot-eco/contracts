@@ -8,12 +8,9 @@ import "./AccessPresetPausable.sol";
 
 /**
  * @title A preset contract that enables pausable access control.
- *
  * @author Nori Inc.
- *
  * @notice This preset contract affords an inheriting contract a set of standard functionality that allows role-based
  * access control and pausable functions.
- *
  * @dev This preset contract is used by all ERC20 tokens in this project.
  *
  * ##### Inherits:
@@ -31,7 +28,7 @@ abstract contract ERC20Preset is
 {
   /**
    * @notice Initializes the contract.
-   * @dev Grants the `DEFAULT_ADMIN_ROLE` and `PAUSER_ROLE` to the initializer.
+   * @dev Grants the `DEFAULT_ADMIN_ROLE` role and `PAUSER_ROLE` role to the initializer.
    */
   function __ERC20Preset_init_unchained() internal onlyInitializing {
     // solhint-disable-previous-line func-name-mixedcase
@@ -41,14 +38,12 @@ abstract contract ERC20Preset is
 
   /**
    * @notice A hook that is called before a token transfer occurs.
-   *
    * @dev Follows the rules of hooks defined [here](
-   * https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
+   * https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks).
    *
    * ##### Requirements:
    *
    * - The contract must not be paused.
-   *
    * @param from The address of the sender.
    * @param to The address of the recipient.
    * @param amount The amount of tokens to transfer.
@@ -63,8 +58,7 @@ abstract contract ERC20Preset is
 
   /**
    * @notice See ERC20-approve for more details [here](
-   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20-approve-address-uint256-)
-   *
+   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20-approve-address-uint256-).
    * @dev This override applies the `whenNotPaused` to the `approve`, `increaseAllowance`, `decreaseAllowance`,
    * and `_spendAllowance` (used by `transferFrom`) functions.
    *
@@ -76,7 +70,6 @@ abstract contract ERC20Preset is
    * equivalent to an infinite approval.
    * - `owner` cannot be the zero address.
    * - The `spender` cannot be the zero address.
-   *
    * @param owner The owner of the tokens.
    * @param spender The address of the designated spender. This address is allowed to spend the tokens on behalf of the
    * `owner` up to the `amount` value.

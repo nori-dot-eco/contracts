@@ -3,6 +3,8 @@ pragma solidity =0.8.17;
 
 /**
  * @notice Thrown when two arrays are not of equal length.
+ * @param array1Name The name of the first array variable.
+ * @param array2Name The name of the second array variable.
  */
 error ArrayLengthMismatch(string array1Name, string array2Name);
 /**
@@ -16,22 +18,28 @@ error FunctionDisabled();
 error SenderNotRemovalContract();
 /**
  * @notice Thrown when a non-existent rNORI schedule is requested.
+ * @param scheduleId The schedule ID that does not exist.
  */
 error NonexistentSchedule(uint256 scheduleId);
 /**
  * @notice Thrown when an rNORI schedule already exists for the given `scheduleId`.
+ * @param scheduleId The schedule ID that already exists.
  */
 error ScheduleExists(uint256 scheduleId);
 /**
  * @notice Thrown when rNORI does not have enough unreleased tokens to fulfill a request.
+ * @param scheduleId The schedule ID that does not have enough unreleased tokens.
  */
 error InsufficientUnreleasedTokens(uint256 scheduleId);
 /**
  * @notice Thrown when rNORI does not have enough claimable tokens to fulfill a withdrawal.
+ * @param account The account that does not have enough claimable tokens.
+ * @param scheduleId The schedule ID that does not have enough claimable tokens.
  */
 error InsufficientClaimableBalance(address account, uint256 scheduleId);
 /**
  * @notice Thrown when the caller does not have the role required to mint the tokens.
+ * @param account the account that does not have the role.
  */
 error InvalidMinter(address account);
 /**
@@ -40,22 +48,29 @@ error InvalidMinter(address account);
 error InvalidZeroDuration();
 /**
  * @notice Thrown when a `removalId` does not have removals for the specified `year`.
+ * @param removalId The removal ID that does not have removals for the specified `year`.
+ * @param year The year that does not have removals for the specified `removalId`.
  */
 error RemovalNotFoundInYear(uint256 removalId, uint256 year);
 /**
- * @notice Thrown when the bytes contains unexpected uncapitalized characters.
+ * @notice Thrown when the bytes contain unexpected uncapitalized characters.
+ * @param country the country that contains unexpected uncapitalized characters.
+ * @param subdivision the subdivision that contains unexpected uncapitalized characters.
  */
 error UncapitalizedString(bytes2 country, bytes2 subdivision);
 /**
  * @notice Thrown when a methodology is greater than the maximum allowed value.
+ * @param methodology the methodology that is greater than the maximum allowed value.
  */
 error MethodologyTooLarge(uint8 methodology);
 /**
  * @notice Thrown when a methodology version is greater than the maximum allowed value.
+ * @param methodologyVersion the methodology version that is greater than the maximum allowed value.
  */
 error MethodologyVersionTooLarge(uint8 methodologyVersion);
 /**
  * @notice Thrown when a removal ID uses an unsupported version.
+ * @param idVersion the removal ID version that is not supported.
  */
 error UnsupportedIdVersion(uint8 idVersion);
 /**
@@ -63,7 +78,7 @@ error UnsupportedIdVersion(uint8 idVersion);
  */
 error ForbiddenTransferAfterMinting();
 /**
- * @notice Thrown when their is insufficient supply in the market.
+ * @notice Thrown when there is insufficient supply in the market.
  */
 error InsufficientSupply();
 /**
@@ -84,7 +99,8 @@ error Unauthorized();
  */
 error InvalidData();
 /**
- * @notice Thrown when the token specified by `tokenId` is transferred but the type of transfer is unsupported.
+ * @notice Thrown when the token specified by `tokenId` is transferred, but the type of transfer is unsupported.
+ * @param tokenId The token ID that is used in the invalid transfer.
  */
 error InvalidTokenTransfer(uint256 tokenId);
 /**
@@ -92,11 +108,12 @@ error InvalidTokenTransfer(uint256 tokenId);
  */
 error InvalidNoriFeePercentage();
 /**
- * @notice Thrown when a token is transferred but the type of transfer is unsupported.
+ * @notice Thrown when a token is transferred, but the type of transfer is unsupported.
  */
 error ForbiddenTransfer();
 /**
- * @notice Thrown when a the removal specified by `tokenId` has not been minted yet.
+ * @notice Thrown when the removal specified by `tokenId` has not been minted yet.
+ * @param tokenId The removal token ID that is not minted yet.
  */
 error RemovalNotYetMinted(uint256 tokenId);
 /**

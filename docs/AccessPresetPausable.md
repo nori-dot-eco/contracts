@@ -39,7 +39,7 @@ Pauses all functions that can mutate state.
 
 ##### Requirements:
 
-- The caller must have the `PAUSER_ROLE`.</i>
+- The caller must have the `PAUSER_ROLE` role.</i>
 
 
 
@@ -55,7 +55,7 @@ Unpauses all token transfers.
 
 ##### Requirements:
 
-- The caller must have the `PAUSER_ROLE`.</i>
+- The caller must have the `PAUSER_ROLE` role.</i>
 
 
 
@@ -88,7 +88,6 @@ function _revokeRole(bytes32 role, address account) internal virtual
 Revokes a role from an account.
 
 <i>This function allows the role's admin to revoke the role from other accounts.
-
 ##### Requirements:
 
 - The contract must not be paused.</i>

@@ -8,9 +8,7 @@ import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
 
 /**
  * @title A wrapped BridgedPolygonNORI token contract for vesting and lockup.
- *
  * @author Nori Inc.
- *
  * @notice Based on the mechanics of a wrapped ERC-20 token, this contract layers schedules over the withdrawal
  * functionality to implement _vesting_ (a revocable grant) and _lockup_ (an irrevocable time-lock on utility).
  *
@@ -87,7 +85,6 @@ import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
  *
  * - [LockedNORILib](./LockedNORILib.md) for `Schedule`
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
- *
  */
 contract LockedNORI is ERC777PresetPausablePermissioned {
   using LockedNORILib for Schedule;
