@@ -36,7 +36,7 @@
     "erc721a-upgradeable": "4.2.2",
     "eslint": "^8.15.0",
     "ethereum-waffle": "^3.4.4",
-    "ethernal": "^0.13.2",
+    "ethernal": "^1.0.0",
     "ethers": "^5.7.1",
     "fireblocks-defi-sdk": "1.2.5",
     "fireblocks-sdk": "^2.3.2",
@@ -44,7 +44,7 @@
     "handlebars": "^4.7.7",
     "hardhat": "2.11.2",
     "hardhat-deploy": "^0.11.15",
-    "hardhat-ethernal": "^1.1.1",
+    "hardhat-ethernal": "^2.1.0",
     "hardhat-gas-reporter": "^1.0.9",
     "hardhat-tracer": "^1.1.0-rc.9",
     "json-diff": "^0.9.0",
@@ -64,6 +64,9 @@
     "typescript": "^4.6.2",
     "yup": "1.0.0-beta.7",
     "hardhat-contract-sizer": "^2.6.1"
+  },
+  "resolutions": {
+    "firebase": "9.10.0"
   },
   "files": [
     "build",
