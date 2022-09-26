@@ -13,10 +13,10 @@ import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol
  *
  * @notice This contract uses ERC1155 tokens as an accounting system for keeping track of carbon that Nori has
  * verified to have been removed from the atmosphere. Each token ID encodes information about the source of the
- * removed carbon (see RemovalIdLib.sol for encoding details), and each token represents the smallest unit of
- * carbon removal accounting.  For example, in an agricultural methodology, a specific token ID represents one
- * parcel of land in a specific year.  The total supply of that token ID is the number of tonnes of carbon
- * removed.
+ * removed carbon (see the [RemovalIdLib docs](../docs/RemovalIdLib.md) for encoding details), and each token represents
+ * the smallest unit of carbon removal accounting.  For example, in an agricultural methodology, a specific token ID
+ * represents one parcel of land in a specific year.  The total supply of that token ID is the number of tonnes of
+ * carbon removed.
  *
  * ##### Additional behaviors and features:
  *
@@ -25,13 +25,13 @@ import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol
  * - When removal tokens are minted, additional data about those removals are stored in a mapping keyed by the token ID,
  * such as a projectId and a holdback percentage (which determines the percentage of the sale proceeds from the token
  * that will be routed to the RestrictedNORI contract). A restriction schedule is created per projectId (if necessary)
- * in RestrictedNORI. (see RestrictedNORI.sol)
+ * in RestrictedNORI (see the [RestrictedNORI docs](../docs/RestrictedNORI.md)).
  * - Minting reverts when attempting to mint a token ID that already exists.
  * - The function `addBalance` can be used to mint additional balance to a token ID that already exists.
  *
  *
  * ###### Listing
- * - _Listing_ refers to the process of listing removal tokens for sale in Nori's marketplace (Market.sol)
+ * - _Listing_ refers to the process of listing removal tokens for sale in Nori's marketplace (the Market contract).
  * - Removals are listed for sale by transferring ownership of the tokens to the Market contract via
  * `consign`. Alternatively, If the `to` argument to `mintBatch` is the address of the Market contract,
  * removal tokens will be listed in the same transaction that they are minted.
@@ -43,19 +43,19 @@ import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol
  * and has been released into the atmosphere prematurely.
  * - This accounting is performed by burning the affected balance of a removal that has been released.
  * - Only accounts with the RELEASER_ROLE can initiate a release.
- * - When a removal token is released, balances are burned in a specific order until the released amount
+ * - When a removal token is released, balances are burned in a specific order until the released amount.
  * has been accounted for: Releasing burns first from unlisted balances, second from listed balances and third from the
- * certificate contract (see `Removal.release` for more)
+ * certificate contract (see `Removal.release` for more).
  * - Affected certificates will have any released balances replaced by new removals purchased by Nori, though an
  * automated implementation of this process is beyond the scope of this version of the contracts.
  *
  *
  * ###### Token ID encoding and decoding
- * - This contract uses the inlined library RemovalIdLib.sol for uint256.
+ * - This contract uses the inlined library RemovalIdLib for uint256.
  * - When minting tokens, an array of structs containing information about each removal is passed as an argument to
  * `mintBatch` and that data is used to generate the encoded token IDs for each removal.
  * - `decodeRemovalIdV0` is exposed externally for encoding and decoding removal token IDs that contain uniquely
- * identifying information about the removal. See RemovalIdLib.sol for encoding details.
+ * identifying information about the removal. See the [RemovalIdLib docs](../docs/RemovalIdLib.md) for encoding details.
  *
  * ###### Additional behaviors and features
  *
@@ -113,18 +113,18 @@ contract Removal is
   bytes32 public constant RELEASER_ROLE = keccak256("RELEASER_ROLE");
 
   /**
-   * @notice The `Market` contract that removals can be bought and sold from.
+   * @notice The Market contract that removals can be bought and sold from.
    */
   Market internal _market;
 
   /**
-   * @notice The `Certificate` contract that removals are retired into.
+   * @notice The Certificate contract that removals are retired into.
    */
   Certificate private _certificate;
 
   /**
    * @dev Maps from a given project id to the holdback percentage that will be used to determine what percentage of
-   * proceeds are routed to `RestrictedNORI` when removals from this project are sold.
+   * proceeds are routed to the RestrictedNORI contract when removals from this project are sold.
    */
   mapping(uint256 => uint8) private _projectIdToHoldbackPercentage;
 
@@ -147,8 +147,8 @@ contract Removal is
   /**
    * @notice Emitted on updating the addresses for contracts.
    *
-   * @param market The address of the new `market` contract.
-   * @param certificate The address of the new `certificate` contract.
+   * @param market The address of the new market contract.
+   * @param certificate The address of the new certificate contract.
    */
   event ContractAddressesRegistered(Market market, Certificate certificate);
 
@@ -215,8 +215,8 @@ contract Removal is
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
    * - Can only be used when this contract is not paused
    *
-   * @param market The address of the `Market` contract.
-   * @param certificate The address of the `Certificate` contract.
+   * @param market The address of the Market contract.
+   * @param certificate The address of the Certificate contract.
    */
   function registerContractAddresses(Market market, Certificate certificate)
     external
@@ -437,14 +437,14 @@ contract Removal is
   }
 
   /**
-   * @notice The address of the `Market` contract.
+   * @notice The address of the Market contract.
    */
   function marketAddress() external view returns (address) {
     return address(_market);
   }
 
   /**
-   * @notice The address of the `Certificate` contract.
+   * @notice The address of the Certificate contract.
    */
   function certificateAddress() external view returns (address) {
     return address(_certificate);
@@ -469,7 +469,7 @@ contract Removal is
   }
 
   /**
-   * @notice The current total balance of all removal tokens owned by the `Market` contract.
+   * @notice The current total balance of all removal tokens owned by the Market contract.
    * This sum is maintained as a running total for efficient lookup during purchases.
    */
   function getMarketBalance() external view returns (uint256) {
@@ -525,7 +525,7 @@ contract Removal is
    *
    * ##### Requirements:
    *
-   * - Can only be called by the `Market` contract.
+   * - Can only be called by the Market contract.
    * - `to` cannot be the zero address.
    * - If the caller is not `from`, it must have been approved to spend ``from``'s tokens via `setApprovalForAll`.
    * - `from` must have a balance of tokens of type `id` of at least `amount`.
@@ -551,7 +551,7 @@ contract Removal is
    *
    * ##### Requirements:
    *
-   * - Can only be called by the `Market` contract.
+   * - Can only be called by the Market contract.
    * - `ids` and `amounts` must have the same length.
    * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
    * acceptance magic value.
@@ -691,7 +691,7 @@ contract Removal is
 
   /**
    * @notice Hook that is called before before any token transfer. This includes minting and burning, as well as
-   * batched variants. Disables transfers to any address that is not the `Market` or `Certificate` contracts, the zero
+   * batched variants. Disables transfers to any address that is not the Market or Certificate contracts, the zero
    * address (for burning), the supplier address that is encoded in the token ID itself, or between consignors.
    *
    * @dev Follows the rules of hooks defined [here](

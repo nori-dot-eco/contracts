@@ -249,8 +249,8 @@ contract RestrictedNORI is
    * its current level, even if the linear release schedule of the new amount would cause
    * the released amount to be lowered at the current timestamp (a floor is established).
    *
-   * Unlike in the `withdrawFromSchedule` function, here we burn `RestrictedNORI`
-   * from the schedule owner but send that `BridgedPolygonNORI` back to Nori's
+   * Unlike in the `withdrawFromSchedule` function, here we burn RestrictedNORI
+   * from the schedule owner but send that BridgedPolygonNORI back to Nori's
    * treasury or an address of Nori's choosing (the `toAccount` address).
    * The `claimedAmount` is not changed because this is not a claim operation.
    *
@@ -415,8 +415,8 @@ contract RestrictedNORI is
   /**
    * @notice Claim sender's released tokens and withdraw them to `recipient` address.
    *
-   * @dev This function burns `amount` of `RestrictedNORI` for the given schedule ID
-   * and transfers `amount` of `BridgedPolygonNORI` from the `RestrictedNORI` contract's
+   * @dev This function burns `amount` of RestrictedNORI for the given schedule ID
+   * and transfers `amount` of BridgedPolygonNORI from the RestrictedNORI contract's
    * balance to `recipient`'s balance.
    * Enforcement of the availability of claimable tokens for the `_burn` call happens in `_beforeTokenTransfer`.
    *
@@ -587,10 +587,10 @@ contract RestrictedNORI is
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
    *
-   * @param methodology The methodology of carbon removal
-   * @param methodologyVersion The version of the methodology
+   * @param methodology The methodology of carbon removal.
+   * @param methodologyVersion The version of the methodology.
    * @param durationInSeconds The duration in seconds that insurance funds should be restricted for this
-   * methodology and version
+   * methodology and version.
    */
   function setRestrictionDurationForMethodologyAndVersion(
     uint256 methodology,
@@ -722,9 +722,9 @@ contract RestrictedNORI is
    *
    * Emits a `ScheduleCreated` event.
    *
-   * @param projectId The ID that will be used as the new schedule's ID
-   * @param startTime The schedule start time in seconds since the unix epoch
-   * @param restrictionDuration The duration of the schedule in seconds since the unix epoch
+   * @param projectId The ID that will be used as the new schedule's ID.
+   * @param startTime The schedule start time in seconds since the unix epoch.
+   * @param restrictionDuration The duration of the schedule in seconds since the unix epoch.
    */
   function _createSchedule(
     uint256 projectId,

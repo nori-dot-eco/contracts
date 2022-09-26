@@ -23,11 +23,11 @@ import "./AccessPresetPausable.sol";
  * - [Upgradeable](https://docs.openzeppelin.com/contracts/4.x/upgradeable)
  * - [Initializable](https://docs.openzeppelin.com/contracts/4.x/upgradeable#multiple-inheritance)
  * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
- * pausable
+ * pausable.
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- *    - `CERTIFICATE_OPERATOR_ROLE`: The only role that can transfer certificates after they are minted
- *    - `PAUSER_ROLE`: Can pause and unpause the contract
- *    - `DEFAULT_ADMIN_ROLE`: This is the only role that can add/revoke other accounts to any of the roles
+ *    - `CERTIFICATE_OPERATOR_ROLE`: The only role that can transfer certificates after they are minted.
+ *    - `PAUSER_ROLE`: Can pause and unpause the contract.
+ *    - `DEFAULT_ADMIN_ROLE`: This is the only role that can add/revoke other accounts to any of the roles.
  * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver): A
  * certificate is minted and internal accounting ties the certificate to the ERC1155 tokens upon receipt.
  *
@@ -101,7 +101,7 @@ contract Certificate is
   /**
    * @notice Emitted on updating the addresses for contracts.
    *
-   * @param removal The address of the new `market` contract.
+   * @param removal The address of the new Removal contract.
    */
   event ContractAddressesRegistered(Removal removal);
 
@@ -144,7 +144,7 @@ contract Certificate is
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
    *
    * @param removal The address of the Removal contract.
    */
@@ -283,7 +283,7 @@ contract Certificate is
    * ##### Requirements:
    *
    * - This contract must not be paused.
-   * - Can only be used when the caller has the `CERTIFICATE_OPERATOR_ROLE`
+   * - Can only be used when the caller has the `CERTIFICATE_OPERATOR_ROLE`.
    *
    * @param from The address of the sender.
    * @param to The address of the recipient.

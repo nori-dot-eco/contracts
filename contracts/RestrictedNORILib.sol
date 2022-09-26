@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeab
 import "./Errors.sol";
 
 /**
- * @notice The internal governing parameters and data for a rNORI schedule.
+ * @notice The internal governing parameters and data for a RestrictedNORI schedule.
  */
 struct Schedule {
   uint256 startTime;
@@ -147,7 +147,8 @@ library RestrictedNORILib {
   }
 
   /**
-   * @notice Returns the current number of revocable tokens for a given schedule at the current block timestamp.
+   * @notice Check the revocable balance of a schedule.
+   * @return The current number of revocable tokens for a given schedule at the current block timestamp.
    */
   function revocableQuantityForSchedule(
     Schedule storage schedule,
@@ -163,7 +164,8 @@ library RestrictedNORILib {
   }
 
   /**
-   * @notice Returns the existence of a schedule.
+   * @notice Check if a schedule exists.
+   * @return True if the schedule exists, false otherwise.
    */
   function doesExist(Schedule storage schedule) internal view returns (bool) {
     return schedule.endTime != 0;

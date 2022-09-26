@@ -152,10 +152,10 @@ contract Market is
   /**
    * @notice Emitted on updating the addresses for contracts.
    *
-   * @param removal The address of the new `removal` contract.
-   * @param certificate The address of the new `certificate` contract.
-   * @param bridgedPolygonNORI The address of the new `bridgedPolygonNORI` contract.
-   * @param restrictedNORI The address of the new `restrictedNORI` contract.
+   * @param removal The address of the new Removal contract.
+   * @param certificate The address of the new Certificate contract.
+   * @param bridgedPolygonNORI The address of the new BridgedPolygonNORI contract.
+   * @param restrictedNORI The address of the new RestrictedNORI contract.
    */
   event ContractAddressesRegistered(
     Removal removal,
@@ -285,7 +285,7 @@ contract Market is
 
   /**
    * @notice Register the market contract's asset addresses.
-   * @dev Register the `removal`, `certificate`, `bridgedPolygonNORI`, and `restrictedNORI` contracts so that they
+   * @dev Register the Removal, Certificate, BridgedPolygonNORI, and RestrictedNORI contracts so that they
    * can be referenced in this contract. Called as part of the market contract system deployment process.
    *
    * Emits a `ContractAddressesRegistered` event.
@@ -295,9 +295,9 @@ contract Market is
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
    * - Can only be used when this contract is not paused.
    *
-   * @param removal The address of the `removal` contract.
-   * @param certificate The address of the `certificate` contract.
-   * @param bridgedPolygonNORI The address of the `bridgedPolygonNORI` contract.
+   * @param removal The address of the Removal contract.
+   * @param certificate The address of the Certificate contract.
+   * @param bridgedPolygonNORI The address of the BridgedPolygonNORI contract.
    * @param restrictedNORI The address of the market contract.
    *
    */
@@ -459,7 +459,7 @@ contract Market is
    *
    * @dev See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's bpNORI to complete the purchase. A certificate is issued by `Certificate.sol`
+   * to transfer the sender's bpNORI to complete the purchase. A certificate is minted in the Certificate contract
    * to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
    * to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
    * to Nori Inc. as a market operator fee.

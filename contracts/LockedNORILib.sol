@@ -24,7 +24,7 @@ struct Schedule {
  * from the time of the final cliff to the end date.
  *
  * All time parameters are in unix time for ease of comparison with `block.timestamp` although all methods on
- *`LockedNORILib` take `atTime` as a parameter and do not directly reason about the current `block.timestamp`.
+ * LockedNORILib take `atTime` as a parameter and do not directly reason about the current `block.timestamp`.
  */
 library LockedNORILib {
   /**
