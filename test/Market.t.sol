@@ -591,7 +591,7 @@ contract Market_onERC1155Received_reverts_SenderNotRemovalContract is
   }
 
   function test() external {
-    vm.expectRevert("Sender not Removal contract");
+    vm.expectRevert("Market: Sender not Removal");
     _unregisteredRemovalDuplicate.consign({
       from: _namedAccounts.supplier,
       id: _removalIds[0],
@@ -644,7 +644,7 @@ contract Market_onERC1155BatchReceived_reverts_SenderNotRemovalContract is
   }
 
   function test() external {
-    vm.expectRevert("Sender not Removal contract");
+    vm.expectRevert("Market: Sender not Removal");
     _removalIds = _unregisteredRemovalDuplicate.seedRemovals({
       to: address(_market),
       count: 2,

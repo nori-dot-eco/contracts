@@ -58,7 +58,7 @@ contract BridgedPolygonNORI is ERC20Preset {
     onlyRole(DEPOSITOR_ROLE)
   {
     uint256 amount = abi.decode(depositData, (uint256));
-    _mint(user, amount);
+    _mint({account: user, amount: amount});
   }
 
   /**
@@ -68,7 +68,7 @@ contract BridgedPolygonNORI is ERC20Preset {
    * @param amount The amount of tokens to withdraw from polygon as NORI on layer one.
    */
   function withdraw(uint256 amount) external {
-    _burn(_msgSender(), amount);
+    _burn({account: _msgSender(), amount: amount});
   }
 
   /**
@@ -82,11 +82,11 @@ contract BridgedPolygonNORI is ERC20Preset {
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
     __EIP712_init_unchained("NORI", "1");
-    __ERC20_init_unchained("NORI", "NORI");
+    __ERC20_init_unchained({name_: "NORI", symbol_: "NORI"});
     __ERC20Permit_init_unchained("NORI");
     __ERC20Burnable_init_unchained();
     __ERC20Preset_init_unchained();
     __Multicall_init_unchained();
-    _grantRole(DEPOSITOR_ROLE, childChainManagerProxy);
+    _grantRole({role: DEPOSITOR_ROLE, account: childChainManagerProxy});
   }
 }

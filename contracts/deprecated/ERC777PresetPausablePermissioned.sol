@@ -39,18 +39,18 @@ contract ERC777PresetPausablePermissioned is
   /**
    * @notice Batches multiple transfers into a single transaction
    *
+   * @dev Emits a SendBatch event.
+   *
+   * ##### Requirements:
+   *
+   * - The contract must not be paused.
+   *
    * @param recipients address[] list of recipient addresses
    * @param amounts uint256[] list of amounts to transfer
    * @param userData bytes[] list of extra information provided by the token holder (if any)
    * @param operatorData bytes[] list of extra information provided by the operator (if any)
    * @param requireReceptionAck list of requirements (if true, contract recipients are required to implement
    * ERC777TokensRecipient)
-   *
-   * Emits a SendBatch event.
-   *
-   * ##### Requirements:
-   *
-   * - The contract must not be paused.
    */
   function batchSend(
     address[] memory recipients,

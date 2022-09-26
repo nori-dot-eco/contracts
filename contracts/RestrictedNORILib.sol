@@ -52,10 +52,10 @@ library RestrictedNORILib {
     uint256 totalSupply
   ) internal view returns (uint256) {
     return
-      MathUpgradeable.max(
-        schedule.linearReleaseAmountAvailable(totalSupply),
-        schedule.releasedAmountFloor
-      );
+      MathUpgradeable.max({
+        a: schedule.linearReleaseAmountAvailable({totalSupply: totalSupply}),
+        b: schedule.releasedAmountFloor
+      });
   }
 
   /**
@@ -69,12 +69,14 @@ library RestrictedNORILib {
     uint256 linearAmountAvailable;
     /* solhint-disable not-rely-on-time, this is time-dependent */
     if (block.timestamp >= schedule.endTime) {
-      linearAmountAvailable = schedule.scheduleTrueTotal(totalSupply);
+      linearAmountAvailable = schedule.scheduleTrueTotal({
+        totalSupply: totalSupply
+      });
     } else {
       uint256 rampTotalTime = schedule.endTime - schedule.startTime;
       linearAmountAvailable = block.timestamp < schedule.startTime
         ? 0
-        : (schedule.scheduleTrueTotal(totalSupply) *
+        : (schedule.scheduleTrueTotal({totalSupply: totalSupply}) *
           (block.timestamp - schedule.startTime)) / rampTotalTime;
     }
     /* solhint-enable not-rely-on-time */
@@ -107,7 +109,7 @@ library RestrictedNORILib {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
     return
-      schedule.releasedBalanceOfSingleSchedule(totalSupply) -
+      schedule.releasedBalanceOfSingleSchedule({totalSupply: totalSupply}) -
       schedule.totalClaimedAmount;
   }
 
@@ -125,7 +127,9 @@ library RestrictedNORILib {
     uint256 totalSupply,
     uint256 balanceOfAccount
   ) internal view returns (uint256) {
-    uint256 scheduleTotal = schedule.scheduleTrueTotal(totalSupply);
+    uint256 scheduleTotal = schedule.scheduleTrueTotal({
+      totalSupply: totalSupply
+    });
     uint256 claimableForAccount;
     // avoid division by or of 0
     if (scheduleTotal == 0 || balanceOfAccount == 0) {
@@ -135,7 +139,10 @@ library RestrictedNORILib {
         account
       ];
       uint256 claimableBalanceForFullSchedule = schedule
-        .claimableBalanceForSchedule(scheduleId, totalSupply);
+        .claimableBalanceForSchedule({
+          scheduleId: scheduleId,
+          totalSupply: totalSupply
+        });
       claimableForAccount =
         ((claimedAmountForAccount + balanceOfAccount) *
           (claimableBalanceForFullSchedule + schedule.totalClaimedAmount)) /
@@ -159,8 +166,8 @@ library RestrictedNORILib {
       revert NonexistentSchedule({scheduleId: scheduleId});
     }
     return
-      schedule.scheduleTrueTotal(totalSupply) -
-      schedule.releasedBalanceOfSingleSchedule(totalSupply);
+      schedule.scheduleTrueTotal({totalSupply: totalSupply}) -
+      schedule.releasedBalanceOfSingleSchedule({totalSupply: totalSupply});
   }
 
   /**

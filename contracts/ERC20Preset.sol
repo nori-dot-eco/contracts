@@ -35,8 +35,8 @@ abstract contract ERC20Preset is
    */
   function __ERC20Preset_init_unchained() internal onlyInitializing {
     // solhint-disable-previous-line func-name-mixedcase
-    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _grantRole(PAUSER_ROLE, _msgSender());
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
   }
 
   /**
@@ -58,7 +58,7 @@ abstract contract ERC20Preset is
     address to,
     uint256 amount
   ) internal virtual override whenNotPaused {
-    super._beforeTokenTransfer(from, to, amount);
+    super._beforeTokenTransfer({from: from, to: to, amount: amount});
   }
 
   /**
@@ -87,6 +87,6 @@ abstract contract ERC20Preset is
     address spender,
     uint256 amount
   ) internal virtual override whenNotPaused {
-    return super._approve(owner, spender, amount);
+    return super._approve({owner: owner, spender: spender, amount: amount});
   }
 }

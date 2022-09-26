@@ -254,9 +254,9 @@ contract Market is
     _noriFeeWallet = noriFeeWalletAddress;
     _priorityRestrictedThreshold = 0;
     _currentSupplierAddress = address(0);
-    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _grantRole(ALLOWLIST_ROLE, _msgSender());
-    _grantRole(MARKET_ADMIN_ROLE, _msgSender());
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: ALLOWLIST_ROLE, account: _msgSender()});
+    _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
   }
 
   /**
@@ -276,10 +276,18 @@ contract Market is
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    uint256 removalBalance = _removal.balanceOf(address(this), removalId);
+    address supplierAddress = RemovalIdLib.supplierAddress({
+      removalId: removalId
+    });
+    uint256 removalBalance = _removal.balanceOf({
+      account: address(this),
+      id: removalId
+    });
     if (amount == removalBalance) {
-      _removeActiveRemoval(removalId, supplierAddress);
+      _removeActiveRemoval({
+        removalId: removalId,
+        supplierAddress: supplierAddress
+      });
     }
   }
 
@@ -311,12 +319,12 @@ contract Market is
     _certificate = certificate;
     _bridgedPolygonNORI = bridgedPolygonNORI;
     _restrictedNORI = restrictedNORI;
-    emit ContractAddressesRegistered(
-      _removal,
-      _certificate,
-      _bridgedPolygonNORI,
-      _restrictedNORI
-    );
+    emit ContractAddressesRegistered({
+      removal: _removal,
+      certificate: _certificate,
+      bridgedPolygonNORI: _bridgedPolygonNORI,
+      restrictedNORI: _restrictedNORI
+    });
   }
 
   /**
@@ -338,7 +346,7 @@ contract Market is
     onlyRole(MARKET_ADMIN_ROLE)
   {
     _priorityRestrictedThreshold = threshold;
-    emit PriorityRestrictedThresholdSet(threshold);
+    emit PriorityRestrictedThresholdSet({threshold: threshold});
   }
 
   /**
@@ -363,7 +371,7 @@ contract Market is
       revert InvalidNoriFeePercentage();
     }
     _noriFeePercentage = noriFeePercentage_;
-    emit NoriFeePercentageUpdated(noriFeePercentage_);
+    emit NoriFeePercentageUpdated({updatedFeePercentage: noriFeePercentage_});
   }
 
   /**
@@ -388,7 +396,9 @@ contract Market is
       revert NoriFeeWalletZeroAddress();
     }
     _noriFeeWallet = noriFeeWalletAddress;
-    emit NoriFeeWalletAddressUpdated(noriFeeWalletAddress);
+    emit NoriFeeWalletAddressUpdated({
+      updatedWalletAddress: noriFeeWalletAddress
+    });
   }
 
   /**
@@ -417,9 +427,9 @@ contract Market is
     uint256[] calldata,
     bytes calldata
   ) external whenNotPaused returns (bytes4) {
-    require(_msgSender() == address(_removal), "Sender not Removal contract");
+    require(_msgSender() == address(_removal), "Market: Sender not Removal");
     for (uint256 i = 0; i < ids.length; ++i) {
-      _addActiveRemoval(ids[i]);
+      _addActiveRemoval({removalId: ids[i]});
     }
     return this.onERC1155BatchReceived.selector;
   }
@@ -448,7 +458,7 @@ contract Market is
     uint256,
     bytes calldata
   ) external whenNotPaused returns (bytes4) {
-    require(_msgSender() == address(_removal), "Sender not Removal contract");
+    require(_msgSender() == address(_removal), "Market: Sender not Removal");
     _addActiveRemoval({removalId: id});
     return this.onERC1155Received.selector;
   }
@@ -485,7 +495,7 @@ contract Market is
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal(amount);
+      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
     uint256 availableSupply = _removal.getMarketBalance();
     _validateSupply({
       certificateAmount: certificateAmount,
@@ -501,15 +511,15 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateSupply(certificateAmount);
-    _bridgedPolygonNORI.permit(
-      _msgSender(),
-      address(this),
-      amount,
-      deadline,
-      v,
-      r,
-      s
-    );
+    _bridgedPolygonNORI.permit({
+      owner: _msgSender(),
+      spender: address(this),
+      value: amount,
+      deadline: deadline,
+      v: v,
+      r: r,
+      s: s
+    });
     _fulfillOrder({
       certificateAmount: certificateAmount,
       operator: _msgSender(),
@@ -558,7 +568,7 @@ contract Market is
     bytes32 s
   ) external whenNotPaused {
     uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal(amount);
+      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
     _validatePrioritySupply({
       certificateAmount: certificateAmount,
       availableSupply: _removal.getMarketBalance()
@@ -567,19 +577,22 @@ contract Market is
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
       uint256[] memory amounts
-    ) = _allocateSupplySingleSupplier(certificateAmount, supplier);
-    address[] memory suppliers = new address[](countOfRemovalsAllocated).fill(
-      supplier
-    );
-    _bridgedPolygonNORI.permit(
-      _msgSender(),
-      address(this),
-      amount,
-      deadline,
-      v,
-      r,
-      s
-    );
+    ) = _allocateSupplySingleSupplier({
+        certificateAmount: certificateAmount,
+        supplier: supplier
+      });
+    address[] memory suppliers = new address[](countOfRemovalsAllocated).fill({
+      val: supplier
+    });
+    _bridgedPolygonNORI.permit({
+      owner: _msgSender(),
+      spender: address(this),
+      value: amount,
+      deadline: deadline,
+      v: v,
+      r: r,
+      s: s
+    });
     _fulfillOrder({
       certificateAmount: certificateAmount,
       operator: _msgSender(),
@@ -603,14 +616,19 @@ contract Market is
    * @param removalId The ID of the removal to withdraw from the market.
    */
   function withdraw(uint256 removalId) external whenNotPaused {
-    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
+    address supplierAddress = RemovalIdLib.supplierAddress({
+      removalId: removalId
+    });
     if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
-      _removeActiveRemoval(removalId, supplierAddress);
+      _removeActiveRemoval({
+        removalId: removalId,
+        supplierAddress: supplierAddress
+      });
       _removal.safeTransferFrom({
         from: address(this),
         to: supplierAddress,
         id: removalId,
-        amount: _removal.balanceOf(address(this), removalId),
+        amount: _removal.balanceOf({account: address(this), id: removalId}),
         data: ""
       });
     } else {
@@ -669,7 +687,7 @@ contract Market is
     view
     returns (uint256)
   {
-    return amount + this.calculateNoriFee(amount);
+    return amount + this.calculateNoriFee({amount: amount});
   }
 
   /**
@@ -782,7 +800,7 @@ contract Market is
     override(AccessControlEnumerableUpgradeable, IERC165Upgradeable)
     returns (bool)
   {
-    return super.supportsInterface(interfaceId);
+    return super.supportsInterface({interfaceId: interfaceId});
   }
 
   /**
@@ -807,48 +825,54 @@ contract Market is
     uint256[] memory amounts,
     address[] memory suppliers
   ) internal {
-    uint256[] memory removalIds = ids.slice(0, countOfRemovalsAllocated);
-    uint256[] memory removalAmounts = amounts.slice(
-      0,
-      countOfRemovalsAllocated
-    );
+    uint256[] memory removalIds = ids.slice({
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+    uint256[] memory removalAmounts = amounts.slice({
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
     uint8 holdbackPercentage;
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
     for (uint256 i = 0; i < countOfRemovalsAllocated; i++) {
       unrestrictedSupplierFee = removalAmounts[i];
-      holdbackPercentage = _removal.getHoldbackPercentage(removalIds[i]);
+      holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
       if (holdbackPercentage > 0) {
         restrictedSupplierFee =
           (unrestrictedSupplierFee * holdbackPercentage) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNORI.mint(restrictedSupplierFee, removalIds[i]);
-        _bridgedPolygonNORI.transferFrom(
-          operator,
-          address(_restrictedNORI),
-          restrictedSupplierFee
-        );
+        _restrictedNORI.mint({
+          amount: restrictedSupplierFee,
+          removalId: removalIds[i]
+        });
+        _bridgedPolygonNORI.transferFrom({
+          from: operator,
+          to: address(_restrictedNORI),
+          amount: restrictedSupplierFee
+        });
       }
-      _bridgedPolygonNORI.transferFrom(
-        operator,
-        _noriFeeWallet,
-        this.calculateNoriFee(removalAmounts[i])
-      );
-      _bridgedPolygonNORI.transferFrom(
-        operator,
-        suppliers[i],
-        unrestrictedSupplierFee
-      );
+      _bridgedPolygonNORI.transferFrom({
+        from: operator,
+        to: _noriFeeWallet,
+        amount: this.calculateNoriFee(removalAmounts[i])
+      });
+      _bridgedPolygonNORI.transferFrom({
+        from: operator,
+        to: suppliers[i],
+        amount: unrestrictedSupplierFee
+      });
     }
     bytes memory data = abi.encode(recipient, certificateAmount);
-    _removal.safeBatchTransferFrom(
-      address(this),
-      address(_certificate),
-      removalIds,
-      removalAmounts,
-      data
-    );
+    _removal.safeBatchTransferFrom({
+      from: address(this),
+      to: address(_certificate),
+      ids: removalIds,
+      amounts: removalAmounts,
+      data: data
+    });
   }
 
   /**
@@ -861,14 +885,16 @@ contract Market is
    * @param removalId The ID of the removal to add.
    */
   function _addActiveRemoval(uint256 removalId) internal {
-    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    _listedSupply[supplierAddress].insert(removalId);
+    address supplierAddress = RemovalIdLib.supplierAddress({
+      removalId: removalId
+    });
+    _listedSupply[supplierAddress].insert({removalId: removalId});
     if (
       _suppliers[supplierAddress].next == address(0) // If the supplier has sold out our a new supplier has been added
     ) {
-      _addActiveSupplier(supplierAddress);
+      _addActiveSupplier({newSupplierAddress: supplierAddress});
     }
-    emit RemovalAdded(removalId, supplierAddress);
+    emit RemovalAdded({id: removalId, supplierAddress: supplierAddress});
   }
 
   /**
@@ -882,9 +908,9 @@ contract Market is
   function _removeActiveRemoval(uint256 removalId, address supplierAddress)
     internal
   {
-    _listedSupply[supplierAddress].remove(removalId);
+    _listedSupply[supplierAddress].remove({removalId: removalId});
     if (_listedSupply[supplierAddress].isEmpty()) {
-      _removeActiveSupplier(supplierAddress);
+      _removeActiveSupplier({supplierToRemove: supplierAddress});
     }
   }
 
@@ -900,12 +926,12 @@ contract Market is
     uint256 certificateAmount,
     uint256 availableSupply
   ) internal view {
-    (, uint256 supplyAfterPurchase) = SafeMathUpgradeable.trySub(
-      availableSupply,
-      certificateAmount
-    );
+    (, uint256 supplyAfterPurchase) = SafeMathUpgradeable.trySub({
+      a: availableSupply,
+      b: certificateAmount
+    });
     if (supplyAfterPurchase < _priorityRestrictedThreshold) {
-      if (!hasRole(ALLOWLIST_ROLE, _msgSender())) {
+      if (!hasRole({role: ALLOWLIST_ROLE, account: _msgSender()})) {
         revert LowSupplyAllowlistRequired();
       }
     }
@@ -961,9 +987,9 @@ contract Market is
     )
   {
     uint256 remainingAmountToFill = certificateAmount;
-    uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress(
-      address(this)
-    );
+    uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
+      account: address(this)
+    });
     uint256[] memory ids = new uint256[](countOfListedRemovals);
     uint256[] memory amounts = new uint256[](countOfListedRemovals);
     address[] memory suppliers = new address[](countOfListedRemovals);
@@ -971,7 +997,10 @@ contract Market is
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = _listedSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
-      uint256 removalAmount = _removal.balanceOf(address(this), removalId);
+      uint256 removalAmount = _removal.balanceOf({
+        account: address(this),
+        id: removalId
+      });
       if (remainingAmountToFill < removalAmount) {
         /**
          * The order is complete, not fully using up this removal, don't increment currentSupplierAddress,
@@ -989,7 +1018,10 @@ contract Market is
         amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
         suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
         remainingAmountToFill -= removalAmount;
-        _removeActiveRemoval(removalId, _currentSupplierAddress);
+        _removeActiveRemoval({
+          removalId: removalId,
+          supplierAddress: _currentSupplierAddress
+        });
         if (
           /**
            *  If the supplier is the only supplier remaining with supply, don't bother incrementing.
@@ -1051,7 +1083,10 @@ contract Market is
     uint256 countOfRemovalsAllocated = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
-      uint256 removalAmount = _removal.balanceOf(address(this), removalId);
+      uint256 removalAmount = _removal.balanceOf({
+        account: address(this),
+        id: removalId
+      });
       /**
        * Order complete, not fully using up this removal.
        */
@@ -1072,12 +1107,12 @@ contract Market is
         ids[countOfRemovalsAllocated] = removalId;
         amounts[countOfRemovalsAllocated] = removalAmount; // This removal is getting used up.
         remainingAmountToFill -= removalAmount;
-        supplierRemovalQueue.remove(removalId);
+        supplierRemovalQueue.remove({removalId: removalId});
         /**
          * If the supplier is out of supply, remove them from the active suppliers.
          */
         if (supplierRemovalQueue.isEmpty()) {
-          _removeActiveSupplier(supplier);
+          _removeActiveSupplier({supplierToRemove: supplier});
         }
       }
       ++countOfRemovalsAllocated;
@@ -1118,11 +1153,11 @@ contract Market is
         previous: newSupplierAddress,
         next: newSupplierAddress
       });
-      emit SupplierAdded(
-        newSupplierAddress,
-        newSupplierAddress,
-        newSupplierAddress
-      );
+      emit SupplierAdded({
+        added: newSupplierAddress,
+        next: newSupplierAddress,
+        previous: newSupplierAddress
+      });
     } else {
       address previousOfCurrentSupplierAddress = _suppliers[
         _currentSupplierAddress
@@ -1143,11 +1178,11 @@ contract Market is
        * Update the current supplier to point to the new supplier as previous.
        */
       _suppliers[_currentSupplierAddress].previous = newSupplierAddress;
-      emit SupplierAdded(
-        newSupplierAddress,
-        _currentSupplierAddress,
-        previousOfCurrentSupplierAddress
-      );
+      emit SupplierAdded({
+        added: newSupplierAddress,
+        next: _currentSupplierAddress,
+        previous: previousOfCurrentSupplierAddress
+      });
     }
   }
 
@@ -1200,10 +1235,10 @@ contract Market is
       previous: address(0)
     });
 
-    emit SupplierRemoved(
-      supplierToRemove,
-      nextOfRemovedSupplierAddress,
-      previousOfRemovedSupplierAddress
-    );
+    emit SupplierRemoved({
+      removed: supplierToRemove,
+      next: nextOfRemovedSupplierAddress,
+      previous: previousOfRemovedSupplierAddress
+    });
   }
 }

@@ -73,7 +73,7 @@ abstract contract AccessPresetPausable is
     override
     whenNotPaused
   {
-    super._grantRole(role, account);
+    super._grantRole({role: role, account: account});
   }
 
   /**
@@ -94,6 +94,6 @@ abstract contract AccessPresetPausable is
     override
     whenNotPaused
   {
-    super._revokeRole(role, account);
+    super._revokeRole({role: role, account: account});
   }
 }

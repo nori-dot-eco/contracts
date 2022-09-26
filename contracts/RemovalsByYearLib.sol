@@ -43,8 +43,8 @@ library RemovalsByYearLib {
   function insert(RemovalsByYear storage collection, uint256 removalId)
     internal
   {
-    uint256 year = RemovalIdLib.vintage(removalId);
-    if (isEmpty(collection)) {
+    uint256 year = RemovalIdLib.vintage({removalId: removalId});
+    if (isEmpty({collection: collection})) {
       collection.earliestYear = year;
       collection.latestYear = year;
     } else if (year < collection.earliestYear) {
@@ -52,7 +52,7 @@ library RemovalsByYearLib {
     } else if (year > collection.latestYear) {
       collection.latestYear = year;
     }
-    collection.yearToRemovals[year].add(removalId);
+    collection.yearToRemovals[year].add({value: removalId});
   }
 
   /**
@@ -64,12 +64,12 @@ library RemovalsByYearLib {
   function remove(RemovalsByYear storage collection, uint256 removalId)
     internal
   {
-    uint256 year = RemovalIdLib.vintage(removalId);
-    if (!collection.yearToRemovals[year].remove(removalId)) {
+    uint256 year = RemovalIdLib.vintage({removalId: removalId});
+    if (!collection.yearToRemovals[year].remove({value: removalId})) {
       revert RemovalNotFoundInYear({removalId: removalId, year: year});
     }
     // If all removals were removed, check to see if there are any updates to the struct we need to make.
-    if (isEmptyForYear(collection, year)) {
+    if (isEmptyForYear({collection: collection, year: year})) {
       if (collection.earliestYear == collection.latestYear) {
         // If there was only one year remaining, clear the values for latest and earliest years.
         collection.earliestYear = _DEFAULT_EARLIEST_YEAR;
@@ -129,7 +129,7 @@ library RemovalsByYearLib {
     view
     returns (bool)
   {
-    return getCountForYear(collection, year) == 0;
+    return getCountForYear({collection: collection, year: year}) == 0;
   }
 
   /**
@@ -144,7 +144,7 @@ library RemovalsByYearLib {
     view
     returns (uint256)
   {
-    return collection.yearToRemovals[collection.earliestYear].at(0);
+    return collection.yearToRemovals[collection.earliestYear].at({index: 0});
   }
 
   /**
@@ -188,7 +188,7 @@ library RemovalsByYearLib {
       // Skip overflow check as for loop is indexed starting at zero.
       unchecked {
         for (uint256 i = 0; i < removalIdSet.length(); ++i) {
-          ids[nextInsertIndex++] = removalIdSet.at(i);
+          ids[nextInsertIndex++] = removalIdSet.at({index: i});
         }
       }
     }

@@ -212,9 +212,9 @@ contract RestrictedNORI is
   }
 
   function initialize() external initializer {
-    __ERC1155_init_unchained(
-      "https://nori.com/api/restrictionschedule/{id}.json"
-    );
+    __ERC1155_init_unchained({
+      uri_: "https://nori.com/api/restrictionschedule/{id}.json"
+    });
     __Context_init_unchained();
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
@@ -222,10 +222,10 @@ contract RestrictedNORI is
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
     __Multicall_init_unchained();
-    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _grantRole(PAUSER_ROLE, _msgSender());
-    _grantRole(SCHEDULE_CREATOR_ROLE, _msgSender());
-    _grantRole(TOKEN_REVOKER_ROLE, _msgSender());
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
+    _grantRole({role: SCHEDULE_CREATOR_ROLE, account: _msgSender()});
+    _grantRole({role: TOKEN_REVOKER_ROLE, account: _msgSender()});
     setRestrictionDurationForMethodologyAndVersion({
       methodology: 1,
       methodologyVersion: 0,
@@ -274,10 +274,10 @@ contract RestrictedNORI is
     if (!schedule.doesExist()) {
       revert NonexistentSchedule({scheduleId: projectId});
     }
-    uint256 quantityRevocable = schedule.revocableQuantityForSchedule(
-      projectId,
-      totalSupply(projectId)
-    );
+    uint256 quantityRevocable = schedule.revocableQuantityForSchedule({
+      scheduleId: projectId,
+      totalSupply: totalSupply(projectId)
+    });
     if (!(amount <= quantityRevocable)) {
       revert InsufficientUnreleasedTokens({scheduleId: projectId});
     }
@@ -285,10 +285,15 @@ contract RestrictedNORI is
     uint256 quantityToRevoke = amount > 0 ? amount : quantityRevocable;
     // burn correct proportion from each token holder
     address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
-
     uint256[] memory accountBalances = new uint256[](tokenHoldersLocal.length);
-    for (uint256 i = 0; i < tokenHoldersLocal.length; ++i) {
-      accountBalances[i] = balanceOf(tokenHoldersLocal[i], projectId);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < tokenHoldersLocal.length; ++i) {
+        accountBalances[i] = balanceOf({
+          account: tokenHoldersLocal[i],
+          id: projectId
+        });
+      }
     }
     uint256[] memory quantitiesToBurnForHolders = new uint256[](
       tokenHoldersLocal.length
@@ -298,13 +303,13 @@ contract RestrictedNORI is
     // the total quantity revoked by up to several wei.
     uint256 cumulativeQuantityToBurn = 0;
     for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); ++i) {
-      uint256 quantityToBurnForHolder = _quantityToRevokeForTokenHolder(
-        quantityToRevoke,
-        projectId,
-        schedule,
-        tokenHoldersLocal[i],
-        accountBalances[i]
-      );
+      uint256 quantityToBurnForHolder = _quantityToRevokeForTokenHolder({
+        totalQuantityToRevoke: quantityToRevoke,
+        scheduleId: projectId,
+        schedule: schedule,
+        account: tokenHoldersLocal[i],
+        balanceOfAccount: accountBalances[i]
+      });
       quantitiesToBurnForHolders[i] = quantityToBurnForHolder;
       cumulativeQuantityToBurn += quantityToBurnForHolder;
     }
@@ -312,24 +317,24 @@ contract RestrictedNORI is
       quantityToRevoke -
       cumulativeQuantityToBurn;
     for (uint256 i = 0; i < (tokenHoldersLocal.length); ++i) {
-      super._burn(
-        tokenHoldersLocal[i],
-        projectId,
-        quantitiesToBurnForHolders[i]
-      );
+      super._burn({
+        from: tokenHoldersLocal[i],
+        id: projectId,
+        amount: quantitiesToBurnForHolders[i]
+      });
       schedule.quantitiesRevokedByAddress[
         tokenHoldersLocal[i]
       ] += quantitiesToBurnForHolders[i];
     }
     schedule.totalQuantityRevoked += quantityToRevoke;
-    emit TokensRevoked(
-      block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
-      projectId,
-      quantityToRevoke,
-      tokenHoldersLocal,
-      quantitiesToBurnForHolders
-    );
-    _bridgedPolygonNORI.transfer(toAccount, quantityToRevoke);
+    emit TokensRevoked({
+      atTime: block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
+      scheduleId: projectId,
+      quantity: quantityToRevoke,
+      scheduleOwners: tokenHoldersLocal,
+      quantitiesBurned: quantitiesToBurnForHolders
+    });
+    _bridgedPolygonNORI.transfer({to: toAccount, amount: quantityToRevoke});
   }
 
   /**
@@ -369,7 +374,7 @@ contract RestrictedNORI is
     uint8 methodology,
     uint8 methodologyVersion
   ) external whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
-    if (this.scheduleExists(projectId)) {
+    if (this.scheduleExists({scheduleId: projectId})) {
       revert ScheduleExists({scheduleId: projectId});
     }
     uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion({
@@ -403,13 +408,17 @@ contract RestrictedNORI is
    * @param removalId The removal token ID for which proceeds are being restricted.
    */
   function mint(uint256 amount, uint256 removalId) external {
-    if (!hasRole(MINTER_ROLE, _msgSender())) {
+    if (!hasRole({role: MINTER_ROLE, account: _msgSender()})) {
       revert InvalidMinter({account: _msgSender()});
     }
     uint256 projectId = _removal.getProjectId({id: removalId});
-    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    super._mint(supplierAddress, projectId, amount, "");
-    _scheduleIdToScheduleStruct[projectId].tokenHolders.add(supplierAddress);
+    address supplierAddress = RemovalIdLib.supplierAddress({
+      removalId: removalId
+    });
+    super._mint({to: supplierAddress, id: projectId, amount: amount, data: ""});
+    _scheduleIdToScheduleStruct[projectId].tokenHolders.add({
+      value: supplierAddress
+    });
   }
 
   /**
@@ -435,12 +444,17 @@ contract RestrictedNORI is
     uint256 scheduleId,
     uint256 amount
   ) external returns (bool) {
-    super._burn(_msgSender(), scheduleId, amount);
+    super._burn({from: _msgSender(), id: scheduleId, amount: amount});
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     schedule.totalClaimedAmount += amount;
     schedule.claimedAmountsByAddress[_msgSender()] += amount;
-    emit TokensClaimed(_msgSender(), recipient, scheduleId, amount);
-    _bridgedPolygonNORI.transfer(recipient, amount);
+    emit TokensClaimed({
+      from: _msgSender(),
+      to: recipient,
+      scheduleId: scheduleId,
+      quantity: amount
+    });
+    _bridgedPolygonNORI.transfer({to: recipient, amount: amount});
     return true;
   }
 
@@ -451,8 +465,11 @@ contract RestrictedNORI is
     uint256[] memory allScheduleIdsArray = new uint256[](
       _allScheduleIds.length()
     );
-    for (uint256 i = 0; i < allScheduleIdsArray.length; ++i) {
-      allScheduleIdsArray[i] = _allScheduleIds.at(i);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < allScheduleIdsArray.length; ++i) {
+        allScheduleIdsArray[i] = _allScheduleIds.at({index: i});
+      }
     }
     return allScheduleIdsArray;
   }
@@ -470,19 +487,19 @@ contract RestrictedNORI is
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
-      ScheduleDetailForAddress(
-        account,
-        scheduleId,
-        balanceOf(account, scheduleId),
-        schedule.claimableBalanceForScheduleForAccount(
-          scheduleId,
-          account,
-          totalSupply(scheduleId),
-          balanceOf(account, scheduleId)
-        ),
-        schedule.claimedAmountsByAddress[account],
-        schedule.quantitiesRevokedByAddress[account]
-      );
+      ScheduleDetailForAddress({
+        tokenHolder: account,
+        scheduleTokenId: scheduleId,
+        balance: balanceOf({account: account, id: scheduleId}),
+        claimableAmount: schedule.claimableBalanceForScheduleForAccount({
+          scheduleId: scheduleId,
+          account: account,
+          totalSupply: totalSupply({id: scheduleId}),
+          balanceOfAccount: balanceOf({account: account, id: scheduleId})
+        }),
+        claimedAmount: schedule.claimedAmountsByAddress[account],
+        quantityRevoked: schedule.quantitiesRevokedByAddress[account]
+      });
   }
 
   /**
@@ -496,12 +513,15 @@ contract RestrictedNORI is
       memory scheduleDetails = new ScheduleDetailForAddress[](
         scheduleIds.length
       );
-    for (uint256 i = 0; i < scheduleIds.length; ++i) {
-      if (_scheduleIdToScheduleStruct[scheduleIds[i]].doesExist()) {
-        scheduleDetails[i] = this.getScheduleDetailForAccount(
-          account,
-          scheduleIds[i]
-        );
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < scheduleIds.length; ++i) {
+        if (_scheduleIdToScheduleStruct[scheduleIds[i]].doesExist()) {
+          scheduleDetails[i] = this.getScheduleDetailForAccount({
+            account: account,
+            scheduleId: scheduleIds[i]
+          });
+        }
       }
     }
     return scheduleDetails;
@@ -525,8 +545,11 @@ contract RestrictedNORI is
     ScheduleSummary[] memory scheduleSummaries = new ScheduleSummary[](
       scheduleIds.length
     );
-    for (uint256 i = 0; i < scheduleIds.length; ++i) {
-      scheduleSummaries[i] = getScheduleSummary(scheduleIds[i]);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < scheduleIds.length; ++i) {
+        scheduleSummaries[i] = getScheduleSummary({scheduleId: scheduleIds[i]});
+      }
     }
     return scheduleSummaries;
   }
@@ -541,7 +564,10 @@ contract RestrictedNORI is
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
-      schedule.claimableBalanceForSchedule(scheduleId, totalSupply(scheduleId));
+      schedule.claimableBalanceForSchedule({
+        scheduleId: scheduleId,
+        totalSupply: totalSupply({id: scheduleId})
+      });
   }
 
   /**
@@ -557,12 +583,12 @@ contract RestrictedNORI is
   ) external view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
-      schedule.claimableBalanceForScheduleForAccount(
-        scheduleId,
-        account,
-        totalSupply(scheduleId),
-        balanceOf(account, scheduleId)
-      );
+      schedule.claimableBalanceForScheduleForAccount({
+        scheduleId: scheduleId,
+        account: account,
+        totalSupply: totalSupply({id: scheduleId}),
+        balanceOfAccount: balanceOf({account: account, id: scheduleId})
+      });
   }
 
   /**
@@ -574,8 +600,11 @@ contract RestrictedNORI is
     returns (uint256)
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    uint256 supply = totalSupply(scheduleId);
-    return schedule.revocableQuantityForSchedule(scheduleId, supply);
+    return
+      schedule.revocableQuantityForSchedule({
+        scheduleId: scheduleId,
+        totalSupply: totalSupply({id: scheduleId})
+      });
   }
 
   /**
@@ -617,13 +646,19 @@ contract RestrictedNORI is
     uint256 amount,
     bytes memory data
   ) public override {
-    super.safeTransferFrom(from, to, id, amount, data);
+    super.safeTransferFrom({
+      from: from,
+      to: to,
+      id: id,
+      amount: amount,
+      data: data
+    });
     Schedule storage schedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
-      schedule.tokenHolders.add(to);
+      schedule.tokenHolders.add({value: to});
     }
-    if (balanceOf(from, id) == 0) {
-      schedule.tokenHolders.remove(from);
+    if (balanceOf({account: from, id: id}) == 0) {
+      schedule.tokenHolders.remove({value: from});
     }
   }
 
@@ -639,14 +674,23 @@ contract RestrictedNORI is
     uint256[] memory amounts,
     bytes memory data
   ) public override {
-    super.safeBatchTransferFrom(from, to, ids, amounts, data);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
-      if (amounts[i] != 0) {
-        schedule.tokenHolders.add(to);
-      }
-      if (balanceOf(from, ids[i]) == 0) {
-        schedule.tokenHolders.remove(from);
+    super.safeBatchTransferFrom({
+      from: from,
+      to: to,
+      ids: ids,
+      amounts: amounts,
+      data: data
+    });
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < ids.length; ++i) {
+        Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
+        if (amounts[i] != 0) {
+          schedule.tokenHolders.add({value: to});
+        }
+        if (balanceOf({account: from, id: ids[i]}) == 0) {
+          schedule.tokenHolders.remove({value: from});
+        }
       }
     }
   }
@@ -663,24 +707,28 @@ contract RestrictedNORI is
     uint256 numberOfTokenHolders = schedule.tokenHolders.length();
     address[] memory tokenHoldersArray = new address[](numberOfTokenHolders);
     uint256[] memory scheduleIdArray = new uint256[](numberOfTokenHolders);
-    for (uint256 i = 0; i < schedule.tokenHolders.length(); ++i) {
-      tokenHoldersArray[i] = schedule.tokenHolders.at(i);
-      scheduleIdArray[i] = scheduleId;
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < numberOfTokenHolders; ++i) {
+        tokenHoldersArray[i] = schedule.tokenHolders.at({index: i});
+        scheduleIdArray[i] = scheduleId;
+      }
     }
+    uint256 supply = totalSupply({id: scheduleId});
     return
-      ScheduleSummary(
-        scheduleId,
-        schedule.startTime,
-        schedule.endTime,
-        totalSupply(scheduleId),
-        schedule.claimableBalanceForSchedule(
-          scheduleId,
-          totalSupply(scheduleId)
-        ),
-        schedule.totalClaimedAmount,
-        schedule.totalQuantityRevoked,
-        tokenHoldersArray
-      );
+      ScheduleSummary({
+        scheduleTokenId: scheduleId,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        totalSupply: supply,
+        totalClaimableAmount: schedule.claimableBalanceForSchedule({
+          scheduleId: scheduleId,
+          totalSupply: supply
+        }),
+        totalClaimedAmount: schedule.totalClaimedAmount,
+        totalQuantityRevoked: schedule.totalQuantityRevoked,
+        tokenHolders: tokenHoldersArray
+      });
   }
 
   /**
@@ -693,7 +741,7 @@ contract RestrictedNORI is
     override(ERC1155Upgradeable, AccessControlEnumerableUpgradeable)
     returns (bool)
   {
-    return super.supportsInterface(interfaceId);
+    return super.supportsInterface({interfaceId: interfaceId});
   }
 
   /**
@@ -734,8 +782,12 @@ contract RestrictedNORI is
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     schedule.startTime = startTime;
     schedule.endTime = startTime + restrictionDuration;
-    _allScheduleIds.add(projectId);
-    emit ScheduleCreated(projectId, startTime, schedule.endTime);
+    _allScheduleIds.add({value: projectId});
+    emit ScheduleCreated({
+      projectId: projectId,
+      startTime: startTime,
+      endTime: schedule.endTime
+    });
   }
 
   /**
@@ -770,31 +822,43 @@ contract RestrictedNORI is
     bool isBurning = to == address(0);
     bool isWithdrawing = isBurning && from == operator;
     if (isBurning) {
-      for (uint256 i = 0; i < ids.length; ++i) {
-        uint256 id = ids[i];
-        Schedule storage schedule = _scheduleIdToScheduleStruct[id];
-        if (isWithdrawing) {
-          if (
-            amounts[i] >
-            schedule.claimableBalanceForScheduleForAccount(
-              id,
-              from,
-              totalSupply(id),
-              balanceOf(from, id)
-            )
-          ) {
-            revert InsufficientClaimableBalance({
-              account: from,
-              scheduleId: id
-            });
+      // Skip overflow check as for loop is indexed starting at zero.
+      unchecked {
+        for (uint256 i = 0; i < ids.length; ++i) {
+          uint256 id = ids[i];
+          Schedule storage schedule = _scheduleIdToScheduleStruct[id];
+          if (isWithdrawing) {
+            if (
+              amounts[i] >
+              schedule.claimableBalanceForScheduleForAccount({
+                scheduleId: id,
+                account: from,
+                totalSupply: totalSupply({id: id}),
+                balanceOfAccount: balanceOf({account: from, id: id})
+              })
+            ) {
+              revert InsufficientClaimableBalance({
+                account: from,
+                scheduleId: id
+              });
+            }
           }
+          schedule.releasedAmountFloor = schedule
+            .releasedBalanceOfSingleSchedule({
+              totalSupply: totalSupply({id: id})
+            });
         }
-        schedule.releasedAmountFloor = schedule.releasedBalanceOfSingleSchedule(
-          totalSupply(id)
-        );
       }
     }
-    return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+    return
+      super._beforeTokenTransfer({
+        operator: operator,
+        from: from,
+        to: to,
+        ids: ids,
+        amounts: amounts,
+        data: data
+      });
   }
 
   /**
@@ -825,9 +889,9 @@ contract RestrictedNORI is
     address account,
     uint256 balanceOfAccount
   ) private view returns (uint256) {
-    uint256 scheduleTrueTotal = schedule.scheduleTrueTotal(
-      totalSupply(scheduleId)
-    );
+    uint256 scheduleTrueTotal = schedule.scheduleTrueTotal({
+      totalSupply: totalSupply({id: scheduleId})
+    });
     uint256 quantityToRevokeForAccount;
     // avoid division by or of 0
     if (scheduleTrueTotal == 0 || totalQuantityToRevoke == 0) {

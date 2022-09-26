@@ -193,16 +193,16 @@ contract Removal is
   function initialize(string memory baseURI) external initializer {
     __Context_init_unchained();
     __ERC165_init_unchained();
-    __ERC1155_init_unchained(string(abi.encodePacked(baseURI, "{id}")));
+    __ERC1155_init_unchained({uri_: string(abi.encodePacked(baseURI, "{id}"))});
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Multicall_init_unchained();
-    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _grantRole(PAUSER_ROLE, _msgSender());
-    _grantRole(CONSIGNOR_ROLE, _msgSender());
-    _grantRole(RELEASER_ROLE, _msgSender());
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
+    _grantRole({role: CONSIGNOR_ROLE, account: _msgSender()});
+    _grantRole({role: RELEASER_ROLE, account: _msgSender()});
   }
 
   /**
@@ -225,7 +225,10 @@ contract Removal is
   {
     _market = market;
     _certificate = certificate;
-    emit ContractAddressesRegistered(market, certificate);
+    emit ContractAddressesRegistered({
+      market: market,
+      certificate: certificate
+    });
   }
 
   /**
@@ -412,22 +415,28 @@ contract Removal is
       id: id
     });
     if (unlistedBalance > 0) {
-      uint256 amountToRelease = MathUpgradeable.min(amount, unlistedBalance);
+      uint256 amountToRelease = MathUpgradeable.min({
+        a: amount,
+        b: unlistedBalance
+      });
       _releaseFromSupplier({id: id, amount: amountToRelease});
       amountReleased += amountToRelease;
     }
     if (amountReleased < amount) {
-      uint256 listedBalance = balanceOf(this.marketAddress(), id);
+      uint256 listedBalance = balanceOf({
+        account: this.marketAddress(),
+        id: id
+      });
       if (listedBalance > 0) {
-        uint256 amountToRelease = MathUpgradeable.min(
-          amount - amountReleased,
-          listedBalance
-        );
+        uint256 amountToRelease = MathUpgradeable.min({
+          a: amount - amountReleased,
+          b: listedBalance
+        });
         _releaseFromMarket({amount: amountToRelease, id: id});
         amountReleased += amountToRelease;
       }
       if (amountReleased < amount) {
-        if (balanceOf(this.certificateAddress(), id) > 0) {
+        if (balanceOf({account: this.certificateAddress(), id: id}) > 0) {
           uint256 amountToRelease = amount - amountReleased;
           _releaseFromCertificate({id: id, amount: amount - amountReleased});
           amountReleased += amountToRelease;
@@ -513,7 +522,7 @@ contract Removal is
     pure
     returns (DecodedRemovalIdV0 memory)
   {
-    return RemovalIdLib.decodeRemovalIdV0(id);
+    return RemovalIdLib.decodeRemovalIdV0({removalId: id});
   }
 
   /**
@@ -542,7 +551,13 @@ contract Removal is
     if (_msgSender() != address(_market)) {
       revert ForbiddenTransfer();
     }
-    super.safeTransferFrom(from, to, id, amount, data);
+    super.safeTransferFrom({
+      from: from,
+      to: to,
+      id: id,
+      amount: amount,
+      data: data
+    });
   }
 
   /**
@@ -566,7 +581,13 @@ contract Removal is
     if (_msgSender() != address(_market)) {
       revert ForbiddenTransfer();
     }
-    super.safeBatchTransferFrom(from, to, ids, amounts, data);
+    super.safeBatchTransferFrom({
+      from: from,
+      to: to,
+      ids: ids,
+      amounts: amounts,
+      data: data
+    });
   }
 
   /**
@@ -609,7 +630,7 @@ contract Removal is
     override(ERC1155Upgradeable, AccessControlEnumerableUpgradeable)
     returns (bool)
   {
-    return super.supportsInterface(interfaceId);
+    return super.supportsInterface({interfaceId: interfaceId});
   }
 
   /**
@@ -656,9 +677,13 @@ contract Removal is
    * @param amount The amount to burn.
    */
   function _releaseFromSupplier(uint256 id, uint256 amount) internal {
-    address supplierAddress = RemovalIdLib.supplierAddress(id);
-    super._burn(supplierAddress, id, amount);
-    emit RemovalReleased(id, supplierAddress, amount);
+    address supplierAddress = RemovalIdLib.supplierAddress({removalId: id});
+    super._burn({from: supplierAddress, id: id, amount: amount});
+    emit RemovalReleased({
+      id: id,
+      fromAddress: supplierAddress,
+      amount: amount
+    });
   }
 
   /**
@@ -670,9 +695,13 @@ contract Removal is
    * @param amount The amount to burn.
    */
   function _releaseFromMarket(uint256 id, uint256 amount) internal {
-    super._burn(this.marketAddress(), id, amount);
+    super._burn({from: this.marketAddress(), id: id, amount: amount});
     _market.release(id, amount);
-    emit RemovalReleased(id, this.marketAddress(), amount);
+    emit RemovalReleased({
+      id: id,
+      fromAddress: this.marketAddress(),
+      amount: amount
+    });
   }
 
   /**
@@ -685,8 +714,12 @@ contract Removal is
    */
   function _releaseFromCertificate(uint256 id, uint256 amount) internal {
     address certificateAddress_ = this.certificateAddress();
-    super._burn(certificateAddress_, id, amount);
-    emit RemovalReleased(id, certificateAddress_, amount);
+    super._burn({from: certificateAddress_, id: id, amount: amount});
+    emit RemovalReleased({
+      id: id,
+      fromAddress: certificateAddress_,
+      amount: amount
+    });
   }
 
   /**
@@ -730,7 +763,9 @@ contract Removal is
       if (from == market) {
         _currentMarketBalance -= amounts[i];
       }
-      if (!isValidTransfer && to != RemovalIdLib.supplierAddress(id)) {
+      if (
+        !isValidTransfer && to != RemovalIdLib.supplierAddress({removalId: id})
+      ) {
         revert ForbiddenTransfer();
       }
     }
@@ -805,12 +840,12 @@ contract Removal is
       for (uint256 i = 0; i < countOfRemovals; ++i) {
         uint256 id = ids[i];
         if (from != address(0)) {
-          if (balanceOf(from, id) == 0) {
-            sendersOwnedRemovalIds.remove(id);
+          if (balanceOf({account: from, id: id}) == 0) {
+            sendersOwnedRemovalIds.remove({value: id});
           }
         }
         if (to != address(0)) {
-          receiversOwnedRemovalIds.add(id);
+          receiversOwnedRemovalIds.add({value: id});
         }
       }
     }

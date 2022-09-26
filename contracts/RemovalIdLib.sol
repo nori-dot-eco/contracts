@@ -131,7 +131,8 @@ library RemovalIdLib {
       revert MethodologyTooLarge({methodology: removal.methodology});
     }
     if (
-      !(isCapitalized(removal.country) && isCapitalized(removal.subdivision))
+      !(isCapitalized({characters: removal.country}) &&
+        isCapitalized({characters: removal.subdivision}))
     ) {
       revert UncapitalizedString({
         country: removal.country,
@@ -175,14 +176,14 @@ library RemovalIdLib {
   {
     return
       DecodedRemovalIdV0(
-        version(removalId),
-        methodology(removalId),
-        methodologyVersion(removalId),
-        vintage(removalId),
-        countryCode(removalId),
-        subdivisionCode(removalId),
-        supplierAddress(removalId),
-        subIdentifier(removalId)
+        version({removalId: removalId}),
+        methodology({removalId: removalId}),
+        methodologyVersion({removalId: removalId}),
+        vintage({removalId: removalId}),
+        countryCode({removalId: removalId}),
+        subdivisionCode({removalId: removalId}),
+        supplierAddress({removalId: removalId}),
+        subIdentifier({removalId: removalId})
       );
   }
 
@@ -192,7 +193,11 @@ library RemovalIdLib {
   function version(uint256 removalId) internal pure returns (uint8) {
     return
       uint8(
-        _extractValue(removalId, ID_VERSION_FIELD_LENGTH, ID_VERSION_OFFSET)
+        _extractValue({
+          removalId: removalId,
+          numBytesFieldLength: ID_VERSION_FIELD_LENGTH,
+          numBytesOffsetFromRight: ID_VERSION_OFFSET
+        })
       );
   }
 
@@ -202,11 +207,11 @@ library RemovalIdLib {
   function methodology(uint256 removalId) internal pure returns (uint8) {
     return
       uint8(
-        _extractValue(
-          removalId,
-          METHODOLOGY_DATA_FIELD_LENGTH,
-          METHODOLOGY_DATA_OFFSET
-        ) >> 4
+        _extractValue({
+          removalId: removalId,
+          numBytesFieldLength: METHODOLOGY_DATA_FIELD_LENGTH,
+          numBytesOffsetFromRight: METHODOLOGY_DATA_OFFSET
+        }) >> 4
       ); // methodology encoded in the first nibble
   }
 
@@ -216,11 +221,11 @@ library RemovalIdLib {
   function methodologyVersion(uint256 removalId) internal pure returns (uint8) {
     return
       uint8(
-        _extractValue(
-          removalId,
-          METHODOLOGY_DATA_FIELD_LENGTH,
-          METHODOLOGY_DATA_OFFSET
-        ) & (2**4 - 1)
+        _extractValue({
+          removalId: removalId,
+          numBytesFieldLength: METHODOLOGY_DATA_FIELD_LENGTH,
+          numBytesOffsetFromRight: METHODOLOGY_DATA_OFFSET
+        }) & (2**4 - 1)
       ); // methodology version encoded in the second nibble
   }
 
@@ -229,7 +234,13 @@ library RemovalIdLib {
    */
   function vintage(uint256 removalId) internal pure returns (uint16) {
     return
-      uint16(_extractValue(removalId, VINTAGE_FIELD_LENGTH, VINTAGE_OFFSET));
+      uint16(
+        _extractValue({
+          removalId: removalId,
+          numBytesFieldLength: VINTAGE_FIELD_LENGTH,
+          numBytesOffsetFromRight: VINTAGE_OFFSET
+        })
+      );
   }
 
   /**
@@ -239,11 +250,11 @@ library RemovalIdLib {
     return
       bytes2(
         uint16(
-          _extractValue(
-            removalId,
-            COUNTRY_CODE_FIELD_LENGTH,
-            COUNTRY_CODE_OFFSET
-          )
+          _extractValue({
+            removalId: removalId,
+            numBytesFieldLength: COUNTRY_CODE_FIELD_LENGTH,
+            numBytesOffsetFromRight: COUNTRY_CODE_OFFSET
+          })
         )
       );
   }
@@ -255,7 +266,11 @@ library RemovalIdLib {
     return
       bytes2(
         uint16(
-          _extractValue(removalId, ADMIN1_CODE_FIELD_LENGTH, ADMIN1_CODE_OFFSET)
+          _extractValue({
+            removalId: removalId,
+            numBytesFieldLength: ADMIN1_CODE_FIELD_LENGTH,
+            numBytesOffsetFromRight: ADMIN1_CODE_OFFSET
+          })
         )
       );
   }
@@ -266,7 +281,13 @@ library RemovalIdLib {
   function supplierAddress(uint256 removalId) internal pure returns (address) {
     return
       address(
-        uint160(_extractValue(removalId, ADDRESS_FIELD_LENGTH, ADDRESS_OFFSET))
+        uint160(
+          _extractValue({
+            removalId: removalId,
+            numBytesFieldLength: ADDRESS_FIELD_LENGTH,
+            numBytesOffsetFromRight: ADDRESS_OFFSET
+          })
+        )
       );
   }
 
@@ -274,7 +295,14 @@ library RemovalIdLib {
    * @notice Extracts and returns the `subIdentifier` field of a removal ID.
    */
   function subIdentifier(uint256 removalId) internal pure returns (uint32) {
-    return uint32(_extractValue(removalId, SUBID_FIELD_LENGTH, SUBID_OFFSET));
+    return
+      uint32(
+        _extractValue({
+          removalId: removalId,
+          numBytesFieldLength: SUBID_FIELD_LENGTH,
+          numBytesOffsetFromRight: SUBID_OFFSET
+        })
+      );
   }
 
   /**

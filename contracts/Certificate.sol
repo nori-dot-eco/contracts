@@ -132,9 +132,9 @@ contract Certificate is
     __AccessControl_init_unchained();
     __AccessControlEnumerable_init_unchained();
     __Multicall_init_unchained();
-    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _grantRole(PAUSER_ROLE, _msgSender());
-    _grantRole(CERTIFICATE_OPERATOR_ROLE, _msgSender());
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
+    _grantRole({role: CERTIFICATE_OPERATOR_ROLE, account: _msgSender()});
   }
 
   /**
@@ -246,7 +246,7 @@ contract Certificate is
     )
     returns (bool)
   {
-    return super.supportsInterface(interfaceId);
+    return super.supportsInterface({interfaceId: interfaceId});
   }
 
   /**
@@ -298,14 +298,19 @@ contract Certificate is
   ) internal virtual override whenNotPaused {
     bool isNotMinting = !(from == address(0));
     bool isNotBurning = !(to == address(0));
-    bool isMissingOperatorRole = !hasRole(
-      CERTIFICATE_OPERATOR_ROLE,
-      _msgSender()
-    );
+    bool isMissingOperatorRole = !hasRole({
+      role: CERTIFICATE_OPERATOR_ROLE,
+      account: _msgSender()
+    });
     if (isNotMinting && isNotBurning && isMissingOperatorRole) {
       revert ForbiddenTransferAfterMinting();
     }
-    super._beforeTokenTransfers(from, to, startTokenId, quantity);
+    super._beforeTokenTransfers({
+      from: from,
+      to: to,
+      startTokenId: startTokenId,
+      quantity: quantity
+    });
   }
 
   /**
@@ -327,17 +332,20 @@ contract Certificate is
     uint256[] calldata removalIds,
     uint256[] calldata removalAmounts
   ) internal {
-    _validateReceivedRemovalBatch(removalIds, removalAmounts);
+    _validateReceivedRemovalBatch({
+      removalIds: removalIds,
+      removalAmounts: removalAmounts
+    });
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
     _mint(recipient, 1);
-    emit ReceiveRemovalBatch(
-      _msgSender(),
-      recipient,
-      certificateId,
-      removalIds,
-      removalAmounts
-    );
+    emit ReceiveRemovalBatch({
+      from: _msgSender(),
+      recipient: recipient,
+      certificateId: certificateId,
+      removalIds: removalIds,
+      removalAmounts: removalAmounts
+    });
   }
 
   /**
@@ -378,7 +386,10 @@ contract Certificate is
     uint256[] calldata removalAmounts
   ) internal pure {
     if (removalIds.length != removalAmounts.length) {
-      revert ArrayLengthMismatch("removalIds", "removalAmounts");
+      revert ArrayLengthMismatch({
+        array1Name: "removalIds",
+        array2Name: "removalAmounts"
+      });
     }
   }
 }
