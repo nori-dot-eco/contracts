@@ -341,11 +341,11 @@ contract Market is
   }
 
   /**
-   * @notice Sets the fee percentage (as an integer) which is the percentage of
-   * each purchase that will be paid to Nori as the marketplace operator.
+   * @notice Sets the fee percentage (as an integer) which is the percentage of each purchase that will be paid to Nori
+   * as the marketplace operator.
+   * @dev Emits a `NoriFeePercentageUpdated` event.
    *
-   * Emits a `NoriFeePercentageUpdated` event.
-   * @dev ##### Requirements:
+   * ##### Requirements:
    *
    * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
    * - Can only be used when this contract is not paused.

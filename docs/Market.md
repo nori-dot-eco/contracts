@@ -412,12 +412,12 @@ that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` ro
 function setNoriFeePercentage(uint256 noriFeePercentage_) external
 ```
 
-Sets the fee percentage (as an integer) which is the percentage of
-each purchase that will be paid to Nori as the marketplace operator.
+Sets the fee percentage (as an integer) which is the percentage of each purchase that will be paid to Nori
+as the marketplace operator.
 
-Emits a `NoriFeePercentageUpdated` event.
+<i>Emits a `NoriFeePercentageUpdated` event.
 
-<i>##### Requirements:
+##### Requirements:
 
 - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
 - Can only be used when this contract is not paused.</i>
