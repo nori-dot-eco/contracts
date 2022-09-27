@@ -2644,10 +2644,10 @@
     "@types/sinon-chai" "^3.2.3"
     "@types/web3" "1.0.19"
 
-"@nori-dot-com/eslint-config-nori@^1.6.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@nori-dot-com/eslint-config-nori/-/eslint-config-nori-1.6.0.tgz#1f46cca88ce94a281dc2a4040ca72f7d6560843a"
-  integrity sha512-8a+A0Wyhw6asvhAWIxoY2Pdp+75lsJ+MD+tLf9v+p3+/nuTtgaG3SFHjzjavnNv5d8shuH10RUgb2+fLYvTifg==
+"@nori-dot-com/eslint-config-nori@^1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@nori-dot-com/eslint-config-nori/-/eslint-config-nori-1.7.0.tgz#fb61c1cbd278edc5df3f464c3ff3e75cfdb80ae2"
+  integrity sha512-PKDuFmSsgAX2mtGJpya72tW9YW4RnqrryGW4EvuClT+92VfmTDgDkX9c9kBs5AEejOXaGGdhwvjIghzshdn/ig==
 
 "@octokit/auth-token@^2.4.4":
   version "2.5.0"
@@ -2769,6 +2769,16 @@
     defender-admin-client "^1.29.0-rc.1"
     defender-base-client "^1.3.1"
     ethereumjs-util "^7.1.5"
+
+"@openzeppelin/hardhat-upgrades@1.20.0":
+  version "1.20.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.20.0.tgz#fe1bddc4ab591ccf185caf4cfa269a4851b73599"
+  integrity sha512-ign7fc/ZdPe+KAYCB91619o+wlBr7sIEEt1nqLhoXAJ9f0qVuXkwAaTdLB0MTSWH85TzlUUT2fTJp1ZnZ1o4LQ==
+  dependencies:
+    "@openzeppelin/upgrades-core" "^1.18.0"
+    chalk "^4.1.0"
+    debug "^4.1.1"
+    proper-lockfile "^4.1.1"
 
 "@openzeppelin/hardhat-upgrades@^1.20.0":
   version "1.20.1"
