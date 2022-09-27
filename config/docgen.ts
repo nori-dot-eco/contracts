@@ -8,7 +8,8 @@ export const docgen: HardhatUserConfig['docgen'] = {
   pages: (item, _file) => {
     return [
       'AccessPresetPausable',
-      'ArrayLib',
+      'AddressArrayLib',
+      'UInt256ArrayLib',
       'Market',
       'NORI',
       'Removal',
@@ -24,6 +25,8 @@ export const docgen: HardhatUserConfig['docgen'] = {
       'RestrictedNORILib',
     ].includes((item as any)?.canonicalName)
       ? (item as any)?.canonicalName?.concat('.md')
+      : (item as any)?.nodeType === 'ErrorDefinition'
+      ? 'Errors.md'
       : undefined;
   },
 };

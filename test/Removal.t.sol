@@ -9,7 +9,7 @@ using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
 
 // todo fuzz RemovalIdLib
-// todo test that checks Removal.consign can happen using multi call with mix-match project ids
+// todo test that checks Removal.consign can happen using multi call with mix-match project IDs
 
 contract Removal_migrate is UpgradeableMarket {
   /*//////////////////////////////////////////////////////////////
@@ -248,7 +248,7 @@ contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
     });
     vm.expectRevert(ForbiddenTransfer.selector);
     _removal.mintBatch({
-      to: _namedAccounts.supplier2, // not the supplier encoded in the removal id
+      to: _namedAccounts.supplier2, // not the supplier encoded in the removal ID
       amounts: new uint256[](1).fill(1 ether),
       removals: ids,
       projectId: 1_234_567_890,

@@ -2,6 +2,14 @@
 
 
 
+<i>This library is used to manage the market's removal vintages.
+
+##### Uses:
+
+- [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet) for
+EnumerableSetUpgradeable.UintSet
+- [AddressArrayLib](../docs/AddressArrayLib.md) for `address[]`
+- [UInt256ArrayLib](../docs/UInt256ArrayLib.md) for `uint256[]`</i>
 
 
 

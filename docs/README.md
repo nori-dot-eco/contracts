@@ -2,19 +2,11 @@
 
 Nori's product is the NRT or Nori _Removal_ Tonne. This can be understood as a carbon removal credit granted to a supplier for the CO2 they have removed from the atmosphere. The supplier consigns their NRTs to Nori's marketplace for sale and gets paid in _NORI_ token. A buyer of NRTs is minted a non-transferrable _Certificate_ (NCCR) which ultimately owns the sold NRTs.
 
-Nori collects a configurable marketplace fee (currently 15%) from each transaction and additionally restricts a percentage of the proceeds of each swap to be held in an insurance reserve and released linearly over the supplier's ten year contract with Nori. _RestrictedNORI_ implements this restriction and scheduled release mechanism with support for transfer of restricted token blocks between wallets.
+Nori collects a configurable marketplace fee (currently 15%) from each transaction and additionally restricts a percentage of the proceeds of each swap to be held in an insurance reserve and released linearly over the supplier's ten-year contract with Nori. _RestrictedNORI_ implements this restriction and scheduled release mechanism with support for transfer of restricted token blocks between wallets.
 
 If a supplier is found to have released the sequestered carbon the corresponding Removals will be burned and funds from the insurance reserve used to replace them making the Certificate and buyer whole. Automating the replacement of those burned Removals is on the future roadmap but is not implemented here.
 
-Investors and employees have received token grants bound by vesting and lockup terms. These grants are implemented by _LockedNORI_ which does not currently support transfer of locked tokens and allows a maxaimum of one grant schedule per wallet address.
-
-### Supported Networks
-
-See [contracts.json](../contracts.json) for a comprehensive list of all contracts deployed to each network.
-
-### Upgradeability
-
-Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openzeppelin.com/upgrades-plugins/1.x/) to manage upgradeability
+Investors and employees have received token grants bound by vesting and lockup terms. These grants are implemented by _LockedNORI_ which does not currently support transfer of locked tokens and allows a maximum of one grant schedule per wallet address.
 
 ## ERC20 Token
 
@@ -54,7 +46,7 @@ Lifecycle of a Removal:
 1. Mint to supplier's wallet address.
 2. Transferred to the _Market_ contract to be listed for sale. Often in the scope of the minting transaction.
 3. Sold by the _Market_ and transferred to the _Certificate_ contract with internal bookkeeping mapping ownership of removal token balances to specific certificate tokens.
-4. Possibly burned or partially burned if the carbon is released -- i.e. supplier fails to uphold their contractual obligation to keep the underlying carbon sequestered for the duration of their contract.
+4. Possibly burned or partially burned if the carbon is released -- i.e., supplier fails to uphold their contractual obligation to keep the underlying carbon sequestered for the duration of their contract.
 
 ### Certificate (NCCR)
 
@@ -86,11 +78,11 @@ The NORI tokens transferred from the buyer to this contract are distributed as f
 
 #### Withdrawal Mechanism
 
-An unsold _Removal_ can be withdrawn from the market (de-listed for sale) by the owner as encoded in the removal ID or by an apporpriately permissioned operator address. It may later be re-listed for sale
+An unsold _Removal_ can be withdrawn from the market (de-listed for sale) by the owner as encoded in the removal ID or by an appropriately permissioned operator address. It may later be re-listed for sale.
 
 #### Priority Supply Mechanism
 
-The market may be configured with a priority supply threshold. When supply listed for sale drops below this threshold purchases are restricted to addresses having the ALLOWLIST role. This mechansism gives Nori the ability to reserve supply for pre-committed partnerships or other off-chain arrangements.
+The market may be configured with a priority supply threshold. When supply listed for sale drops below this threshold purchases are restricted to addresses having the `ALLOWLIST_ROLE` role. This mechanism gives Nori the ability to reserve supply for pre-committed partnerships or other off-chain arrangements.
 
 ## Vesting and Lockup
 
@@ -128,7 +120,7 @@ The schedule logic for multiple cliffs followed by linear unlock used by the _Lo
 
 ### RemovalsByYearLib
 
-The queing mechanism used by the _Market_ contract to maintain an ordered list of _Removal_ tokens by year listed for sale on behalf of a given supplier.
+The queuing mechanism used by the _Market_ contract to maintain an ordered list of _Removal_ tokens by year listed for sale on behalf of a given supplier.
 
 ### RestrictedNORILib
 
@@ -138,6 +130,35 @@ The schedule logic used in _RestrictedNORI_
 
 ### ERC777PresetPausablePermissioned
 
-## Prior Audit
+### Supported Networks
 
-[Omniscia](https://omniscia.io/nori-multiple-token-implementations/) audited NORI, BridgedPolygonNORI and LockedNORI in March of 2022.
+See [contracts.json](../contracts.json) for a comprehensive list of all contracts deployed to each network.
+
+### Upgradeability
+
+Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openzeppelin.com/upgrades-plugins/1.x/) to manage upgradeability
+
+### Contract APIs
+
+For additional documentation about any given smart contract, refer to that contract's markdown documentation page.
+
+- [AccessPresetPausable](AccessPresetPausable.md)
+- [AddressArrayLib](AddressArrayLib.md)
+- [BridgedPolygonNORI](BridgedPolygonNORI.md)
+- [Certificate](Certificate.md)
+- [ERC20Preset](ERC20Preset.md)
+- [Errors](Errors.md)
+- [LockedNORI](LockedNORI.md)
+- [LockedNORILib](LockedNORILib.md)
+- [Market](Market.md)
+- [NORI](NORI.md)
+- [Removal](Removal.md)
+- [RemovalIdLib](RemovalIdLib.md)
+- [RemovalsByYearLib](RemovalsByYearLib.md)
+- [RestrictedNORI](RestrictedNORI.md)
+- [RestrictedNORILib](RestrictedNORILib.md)
+- [UInt256ArrayLib](UInt256ArrayLib.md)
+
+## Prior Audits
+
+- [Omniscia](https://omniscia.io/nori-multiple-token-implementations/) audited NORI, BridgedPolygonNORI and LockedNORI in March of 2022.
