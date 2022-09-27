@@ -107,7 +107,7 @@
   },
   "goerli": {
     "NORI": {
-      "proxyAddress": "0x0000000000000000000000000000000000000000"
+      "proxyAddress": "0x38C83572c883334aBfB05F3E46A97A03BE6F0554"
     }
   }
 }
