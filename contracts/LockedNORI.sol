@@ -8,9 +8,7 @@ import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
 
 /**
  * @title A wrapped BridgedPolygonNORI token contract for vesting and lockup.
- *
  * @author Nori Inc.
- *
  * @notice Based on the mechanics of a wrapped ERC-20 token, this contract layers schedules over the withdrawal
  * functionality to implement _vesting_ (a revocable grant) and _lockup_ (an irrevocable time-lock on utility).
  *
@@ -52,20 +50,20 @@ import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
  * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
  * pausable
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- * - `TOKEN_GRANTER_ROLE`: Can create token grants without sending `BridgedPolygonNORI` to the contract `createGrant`
+ * - `TOKEN_GRANTER_ROLE`: Can create token grants without sending BridgedPolygonNORI to the contract `createGrant`
  * - `PAUSER_ROLE`: Can pause and unpause the contract
  * - `DEFAULT_ADMIN_ROLE`: This is the only role that can add/revoke other accounts to any of the roles
- * - [Can receive `BridgedPolygonNORI` ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks):
- * `BridgedPolygonNORI` is wrapped and grants are created upon receipt
+ * - [Can receive BridgedPolygonNORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks):
+ * BridgedPolygonNORI is wrapped and grants are created upon receipt
  * - [Limited ERC-777 functionality](https://eips.ethereum.org/EIPS/eip-777): The `burn` and `operatorBurn` will revert
  * as only the internal variants are expected to be used. Additionally, `mint` is not callable as only the internal
- * variants are expected to be used when wrapping `BridgedPolygonNORI`
+ * variants are expected to be used when wrapping BridgedPolygonNORI
  * - [Limited ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/erc20): `mint` is not callable as only
- * the internal variants are expected to be used when wrapping `BridgedPolygonNORI`. Additionally, `burn` functions are
+ * the internal variants are expected to be used when wrapping BridgedPolygonNORI. Additionally, `burn` functions are
  * not externally callable
  * - [Extended Wrapped ERC-20 functionality](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Wrapper):
  * In absence of a grant `LockedNORI functions` identically to a standard wrapped token. Additionally, when a grant is
- * defined, `LockedNORI` follows the restrictions noted above.
+ * defined, LockedNORI follows the restrictions noted above.
  *
  * ##### Inherits:
  *
@@ -87,7 +85,6 @@ import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
  *
  * - [LockedNORILib](./LockedNORILib.md) for `Schedule`
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
- *
  */
 contract LockedNORI is ERC777PresetPausablePermissioned {
   using LockedNORILib for Schedule;
@@ -208,8 +205,9 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
   event UnderlyingTokenAddressUpdated(address from, address to);
 
   /**
-   * @dev Ensure implementation contract is minimally initialized. See more [here](
-   * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract).
+   * @notice Locks the contract, preventing any future re-initialization.
+   * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
+   * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
     _disableInitializers();
@@ -220,7 +218,7 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
    *
    * @dev If `startTime` is zero no grant is set up. Satisfies situations where funding of the grant happens over time.
    *
-   * @param amount The quantity of `_bridgedPolygonNori` to deposit.
+   * @param amount The quantity of bpNORI to deposit.
    */
   function depositFor(address recipient, uint256 amount)
     external
@@ -238,8 +236,8 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
   /**
    * @notice Claim unlocked tokens and withdraw them to the `to` address.
    *
-   * @dev This function burns `amount` of `LockedNORI` and transfers `amount`
-   * of `BridgedPolygonNORI` from the `LockedNORI` contract's balance to
+   * @dev This function burns `amount` of LockedNORI and transfers `amount`
+   * of BridgedPolygonNORI from the LockedNORI contract's balance to
    * `_msgSender()`'s balance.
    *
    * Enforcement of the availability of wrapped and unlocked tokens
@@ -598,8 +596,8 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
    * play the corresponding balance functions need to take care to never return
    * more than the grant amount less the claimed amount.
    *
-   * Unlike in the `claim` function, here we burn `LockedNORI` from the grant holder but
-   * send that `BridgedPolygonNORI` back to Nori's treasury or an address of Nori's
+   * Unlike in the `claim` function, here we burn LockedNORI from the grant holder but
+   * send that BridgedPolygonNORI back to Nori's treasury or an address of Nori's
    * choosing (the `to` address).  The `claimedAmount` is not changed because this is
    * not a claim operation.
    */

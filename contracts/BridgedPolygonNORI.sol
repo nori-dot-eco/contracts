@@ -3,10 +3,40 @@ pragma solidity =0.8.17;
 
 import "./ERC20Preset.sol";
 
+/**
+ * @title The NORI token (wrapped as bpNORI) on Polygon.
+ * @author Nori Inc.
+ * @notice The NORI (bpNORI) token on Polygon is a wrapped version of the NORI token on Ethereum.
+ * @dev This token is a layer-2 (L2) equivalent of the respective layer-1 (L1) NORI contract with extended
+ * functionality to enable deposits and withdrawals between L1 and L2.
+ *
+ * ##### Behaviors and features:
+ *
+ * ###### Deposits
+ *
+ * A user can bridge their L1 Ethereum NORI in return for layer-2 bpNORI by depositing NORI on the L1
+ * bridge. The user will receive an equivalent amount of bpNORI on L2. Deposits on L1 do not change the total supply of
+ * NORI and instead escrow their tokens to the bridge address.
+ *
+ * ###### Withdrawals
+ *
+ * A user can withdraw their L2 bpNORI in return for L1 NORI by burning their bpNORI on L2 and submitting a withdrawal.
+ * A withdrawal decreases the L2 supply of bpNORI in a value equivalent to the amount withdrawn. The user will receive
+ * NORI on L1 in a value equivalent to the amount withdrawn.
+ *
+ * ##### Inherits:
+ *
+ * - [ERC20Preset](../docs/ERC20Preset.md)
+ */
 contract BridgedPolygonNORI is ERC20Preset {
+  /**
+   * @notice A role conferring the ability to mint/deposit bpNORI on Polygon.
+   */
   bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
 
   /**
+   * @notice Locks the contract, preventing any future re-initialization.
+   * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
@@ -26,7 +56,7 @@ contract BridgedPolygonNORI is ERC20Preset {
     onlyRole(DEPOSITOR_ROLE)
   {
     uint256 amount = abi.decode(depositData, (uint256));
-    _mint(user, amount);
+    _mint({account: user, amount: amount});
   }
 
   /**
@@ -36,11 +66,12 @@ contract BridgedPolygonNORI is ERC20Preset {
    * @param amount The amount of tokens to withdraw from polygon as NORI on layer one.
    */
   function withdraw(uint256 amount) external {
-    _burn(_msgSender(), amount);
+    _burn({account: _msgSender(), amount: amount});
   }
 
   /**
    * @notice Initialize the BridgedPolygonNORI contract.
+   * @param childChainManagerProxy the address of the child chain manager proxy which can mint/deposit bpNORI on L2.
    */
   function initialize(address childChainManagerProxy) external initializer {
     __Context_init_unchained();
@@ -49,11 +80,11 @@ contract BridgedPolygonNORI is ERC20Preset {
     __AccessControlEnumerable_init_unchained();
     __Pausable_init_unchained();
     __EIP712_init_unchained("NORI", "1");
-    __ERC20_init_unchained("NORI", "NORI");
+    __ERC20_init_unchained({name_: "NORI", symbol_: "NORI"});
     __ERC20Permit_init_unchained("NORI");
     __ERC20Burnable_init_unchained();
     __ERC20Preset_init_unchained();
     __Multicall_init_unchained();
-    _grantRole(DEPOSITOR_ROLE, childChainManagerProxy);
+    _grantRole({role: DEPOSITOR_ROLE, account: childChainManagerProxy});
   }
 }

@@ -90,7 +90,7 @@ export const verifyContracts = async ({
     for (const { reason } of results.filter(
       ({ status }) => status === 'rejected'
     ) as PromiseRejectedResult[]) {
-      if (!reason.message.includes('already verified')) {
+      if (!reason.message.toLowerCase().includes('already verified')) {
         throw new Error(reason);
       }
     }

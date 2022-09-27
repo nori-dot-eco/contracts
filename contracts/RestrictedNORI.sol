@@ -10,7 +10,17 @@ import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import "./Errors.sol";
 
-/** View information for the current state of one schedule. */
+/**
+ * @notice View information for the current state of one schedule.
+ * @param scheduleTokenId The schedule token ID.
+ * @param startTime The start time of the schedule.
+ * @param endTime The end time of the schedule.
+ * @param totalSupply The total supply of the schedule.
+ * @param totalClaimableAmount The total amount that can be claimed from the schedule.
+ * @param totalClaimedAmount The total amount that has been claimed from the schedule.
+ * @param totalQuantityRevoked The total quantity that has been revoked from the schedule.
+ * @param tokenHolders The holders of the schedule.
+ */
 struct ScheduleSummary {
   uint256 scheduleTokenId;
   uint256 startTime;
@@ -22,7 +32,15 @@ struct ScheduleSummary {
   address[] tokenHolders;
 }
 
-/** View information for one account's ownership of a schedule. */
+/**
+ * @notice View information for one account's ownership of a schedule.
+ * @param tokenHolder The token holder.
+ * @param scheduleTokenId The schedule token ID.
+ * @param balance The balance of the token holder.
+ * @param claimableAmount The amount that can be claimed from the schedule by the token holder.
+ * @param claimedAmount The amount that has been claimed from the schedule by the token holder.
+ * @param quantityRevoked The quantity that has been revoked from the schedule by the token holder.
+ */
 struct ScheduleDetailForAddress {
   address tokenHolder;
   uint256 scheduleTokenId;
@@ -35,9 +53,7 @@ struct ScheduleDetailForAddress {
 /**
  * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance
  * collateral.
- *
  * @author Nori Inc.
- *
  * @notice Based on the mechanics of a wrapped ERC-20 token, this contract layers schedules over the withdrawal
  * functionality to implement _restriction_, a time-based release of tokens that, until released, can be reclaimed
  * by Nori to enforce the permanence guarantee of carbon removals.
@@ -119,7 +135,6 @@ struct ScheduleDetailForAddress {
  * - [EnumerableSetUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet) for
  * `EnumerableSetUpgradeable.UintSet` and `EnumerableSetUpgradeable.AddressSet`.
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
- *
  */
 contract RestrictedNORI is
   ERC1155SupplyUpgradeable,
@@ -132,31 +147,37 @@ contract RestrictedNORI is
 
   /**
    * @notice Role conferring creation of schedules.
-   *
    * @dev The Market contract is granted this role after deployments.
    */
   bytes32 public constant SCHEDULE_CREATOR_ROLE =
     keccak256("SCHEDULE_CREATOR_ROLE");
 
   /**
-   * @notice Role conferring sending of bridgedPolygonNORI to this contract.
-   *
+   * @notice Role conferring sending of BridgedPolygonNORI to this contract.
    * @dev The Market contract is granted this role after deployments.
    */
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
   /**
    * @notice Role conferring revocation of restricted tokens.
-   *
    * @dev Only Nori admin addresses should have this role.
    */
   bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
 
+  /**
+   * @notice A mapping of methodology to version to schedule duration.
+   */
   mapping(uint256 => mapping(uint256 => uint256))
     private _methodologyAndVersionToScheduleDuration;
 
+  /**
+   * @notice A mapping of schedule ID to schedule.
+   */
   mapping(uint256 => Schedule) private _scheduleIdToScheduleStruct;
 
+  /**
+   * @notice An enumerable set containing all schedule IDs.
+   */
   EnumerableSetUpgradeable.UintSet private _allScheduleIds;
 
   /**
@@ -171,6 +192,9 @@ contract RestrictedNORI is
 
   /**
    * @notice Emitted on successful creation of a new schedule.
+   * @param projectId The ID of the project for which the schedule was created.
+   * @param startTime The start time of the schedule.
+   * @param endTime The end time of the schedule.
    */
   event ScheduleCreated(
     uint256 indexed projectId,
@@ -180,6 +204,11 @@ contract RestrictedNORI is
 
   /**
    * @notice Emitted when unreleased tokens of an active schedule are revoked.
+   * @param atTime The time at which the revocation occurred.
+   * @param scheduleId The ID of the schedule from which tokens were revoked.
+   * @param quantity The quantity of tokens revoked.
+   * @param scheduleOwners The addresses of the schedule owners from which tokens were revoked.
+   * @param quantitiesBurned The quantities of tokens burned from each schedule owner.
    */
   event TokensRevoked(
     uint256 indexed atTime,
@@ -191,6 +220,10 @@ contract RestrictedNORI is
 
   /**
    * @notice Emitted on withdrawal of released tokens.
+   * @param from The address from which tokens were withdrawn.
+   * @param to The address to which tokens were withdrawn.
+   * @param scheduleId The ID of the schedule from which tokens were withdrawn.
+   * @param quantity The quantity of tokens withdrawn.
    */
   event TokensClaimed(
     address indexed from,
@@ -200,16 +233,21 @@ contract RestrictedNORI is
   );
 
   /**
+   * @notice Locks the contract, preventing any future re-initialization.
+   * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    * @custom:oz-upgrades-unsafe-allow constructor
    */
   constructor() {
     _disableInitializers();
   }
 
+  /**
+   * @notice Initialize the RestrictedNORI contract.
+   */
   function initialize() external initializer {
-    __ERC1155_init_unchained(
-      "https://nori.com/api/restrictionschedule/{id}.json"
-    );
+    __ERC1155_init_unchained({
+      uri_: "https://nori.com/api/restrictionschedule/{id}.json"
+    });
     __Context_init_unchained();
     __ERC165_init_unchained();
     __AccessControl_init_unchained();
@@ -217,10 +255,10 @@ contract RestrictedNORI is
     __Pausable_init_unchained();
     __ERC1155Supply_init_unchained();
     __Multicall_init_unchained();
-    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _grantRole(PAUSER_ROLE, _msgSender());
-    _grantRole(SCHEDULE_CREATOR_ROLE, _msgSender());
-    _grantRole(TOKEN_REVOKER_ROLE, _msgSender());
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
+    _grantRole({role: SCHEDULE_CREATOR_ROLE, account: _msgSender()});
+    _grantRole({role: TOKEN_REVOKER_ROLE, account: _msgSender()});
     setRestrictionDurationForMethodologyAndVersion({
       methodology: 1,
       methodologyVersion: 0,
@@ -230,7 +268,6 @@ contract RestrictedNORI is
 
   /**
    * @notice Revokes amount of tokens from the specified project (schedule) ID and transfers to `toAccount`.
-   *
    * @dev The behavior of this function can be used in two specific ways:
    * 1. To revoke a specific number of tokens as specified by the `amount` parameter.
    * 2. To revoke all remaining revokable tokens in a schedule by specifying 0 as the `amount`.
@@ -244,8 +281,8 @@ contract RestrictedNORI is
    * its current level, even if the linear release schedule of the new amount would cause
    * the released amount to be lowered at the current timestamp (a floor is established).
    *
-   * Unlike in the `withdrawFromSchedule` function, here we burn `RestrictedNORI`
-   * from the schedule owner but send that `BridgedPolygonNORI` back to Nori's
+   * Unlike in the `withdrawFromSchedule` function, here we burn RestrictedNORI
+   * from the schedule owner but send that BridgedPolygonNORI back to Nori's
    * treasury or an address of Nori's choosing (the `toAccount` address).
    * The `claimedAmount` is not changed because this is not a claim operation.
    *
@@ -253,9 +290,8 @@ contract RestrictedNORI is
    *
    * ##### Requirements:
    *
-   * - Can only be used when the caller has the `TOKEN_REVOKER_ROLE`.
+   * - Can only be used when the caller has the `TOKEN_REVOKER_ROLE` role.
    * - The requirements of `_beforeTokenTransfer` apply to this function.
-   *
    * @param projectId The schedule ID from which to revoke tokens.
    * @param amount The amount to revoke.
    * @param toAccount The account to which the underlying BridgedPolygonNORI should be sent.
@@ -269,10 +305,10 @@ contract RestrictedNORI is
     if (!schedule.doesExist()) {
       revert NonexistentSchedule({scheduleId: projectId});
     }
-    uint256 quantityRevocable = schedule.revocableQuantityForSchedule(
-      projectId,
-      totalSupply(projectId)
-    );
+    uint256 quantityRevocable = schedule.revocableQuantityForSchedule({
+      scheduleId: projectId,
+      totalSupply: totalSupply(projectId)
+    });
     if (!(amount <= quantityRevocable)) {
       revert InsufficientUnreleasedTokens({scheduleId: projectId});
     }
@@ -280,26 +316,33 @@ contract RestrictedNORI is
     uint256 quantityToRevoke = amount > 0 ? amount : quantityRevocable;
     // burn correct proportion from each token holder
     address[] memory tokenHoldersLocal = schedule.tokenHolders.values();
-
     uint256[] memory accountBalances = new uint256[](tokenHoldersLocal.length);
-    for (uint256 i = 0; i < tokenHoldersLocal.length; ++i) {
-      accountBalances[i] = balanceOf(tokenHoldersLocal[i], projectId);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < tokenHoldersLocal.length; ++i) {
+        accountBalances[i] = balanceOf({
+          account: tokenHoldersLocal[i],
+          id: projectId
+        });
+      }
     }
     uint256[] memory quantitiesToBurnForHolders = new uint256[](
       tokenHoldersLocal.length
     );
-    // Calculate the final holder's quantity to revoke by subtracting the sum of other quantities
-    // from the desired total to revoke, thus avoiding any precision rounding errors from affecting
-    // the total quantity revoked by up to several wei.
+    /**
+     * Calculate the final holder's quantity to revoke by subtracting the sum of other quantities
+     * from the desired total to revoke, thus avoiding any precision rounding errors from affecting
+     * the total quantity revoked by up to several wei.
+     */
     uint256 cumulativeQuantityToBurn = 0;
     for (uint256 i = 0; i < (tokenHoldersLocal.length - 1); ++i) {
-      uint256 quantityToBurnForHolder = _quantityToRevokeForTokenHolder(
-        quantityToRevoke,
-        projectId,
-        schedule,
-        tokenHoldersLocal[i],
-        accountBalances[i]
-      );
+      uint256 quantityToBurnForHolder = _quantityToRevokeForTokenHolder({
+        totalQuantityToRevoke: quantityToRevoke,
+        scheduleId: projectId,
+        schedule: schedule,
+        account: tokenHoldersLocal[i],
+        balanceOfAccount: accountBalances[i]
+      });
       quantitiesToBurnForHolders[i] = quantityToBurnForHolder;
       cumulativeQuantityToBurn += quantityToBurnForHolder;
     }
@@ -307,34 +350,34 @@ contract RestrictedNORI is
       quantityToRevoke -
       cumulativeQuantityToBurn;
     for (uint256 i = 0; i < (tokenHoldersLocal.length); ++i) {
-      super._burn(
-        tokenHoldersLocal[i],
-        projectId,
-        quantitiesToBurnForHolders[i]
-      );
+      super._burn({
+        from: tokenHoldersLocal[i],
+        id: projectId,
+        amount: quantitiesToBurnForHolders[i]
+      });
       schedule.quantitiesRevokedByAddress[
         tokenHoldersLocal[i]
       ] += quantitiesToBurnForHolders[i];
     }
     schedule.totalQuantityRevoked += quantityToRevoke;
-    emit TokensRevoked(
-      block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
-      projectId,
-      quantityToRevoke,
-      tokenHoldersLocal,
-      quantitiesToBurnForHolders
-    );
-    _bridgedPolygonNORI.transfer(toAccount, quantityToRevoke);
+    emit TokensRevoked({
+      atTime: block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
+      scheduleId: projectId,
+      quantity: quantityToRevoke,
+      scheduleOwners: tokenHoldersLocal,
+      quantitiesBurned: quantitiesToBurnForHolders
+    });
+    _bridgedPolygonNORI.transfer({to: toAccount, amount: quantityToRevoke});
   }
 
   /**
-   * @notice Registers the addresses of the Market, BridgedPolygonNORI, and Removal contracts in this contract.
+   * @notice Register the underlying assets used by this contract.
+   * @dev Register the addresses of the Market, BridgedPolygonNORI, and Removal contracts in this contract.
    *
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
-   *
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
    * @param bridgedPolygonNORI The address of the BridgedPolygonNORI contract for which this contract wraps tokens.
    * @param removal The address of the Removal contract that accounts for Nori's issued carbon removals.
    */
@@ -348,11 +391,12 @@ contract RestrictedNORI is
 
   /**
    * @notice Sets up a restriction schedule with parameters determined from the project ID.
+   * @dev Create a schedule for a project ID and set the parameters of the schedule.
    *
    * ##### Requirements:
+   *
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role.
-   *
    * @param projectId The ID that will be used as this schedule's token ID
    * @param startTime The schedule's start time in seconds since the unix epoch
    * @param methodology The methodology of this project, used to look up correct schedule duration
@@ -364,7 +408,7 @@ contract RestrictedNORI is
     uint8 methodology,
     uint8 methodologyVersion
   ) external whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
-    if (this.scheduleExists(projectId)) {
+    if (this.scheduleExists({scheduleId: projectId})) {
       revert ScheduleExists({scheduleId: projectId});
     }
     uint256 restrictionDuration = getRestrictionDurationForMethodologyAndVersion({
@@ -383,35 +427,38 @@ contract RestrictedNORI is
   }
 
   /**
-   * @notice Mints `amount` of RestrictedNORI to the schedule (token ID) that corresponds to the provided `removalId`.
-   * The schedule ID for this removal is looked up in the Removal contract.
-   * The underlying BridgedPolygonNORI asset is sent to this contract from the buyer by the Market contract
-   * during a purchase, so this function only concerns itself with minting the RestrictedNORI token for the
-   * correct token ID.
+   * @notice Mint RestrictedNORI tokens for a schedule.
+   * @dev Mint `amount` of RestrictedNORI to the schedule ID that corresponds to the provided `removalId`.
+   * The schedule ID for this removal is looked up in the Removal contract. The underlying BridgedPolygonNORI asset is
+   *  sent to this contract from the buyer by the Market contract during a purchase, so this function only concerns
+   * itself with minting the RestrictedNORI token for the correct token ID.
    *
    * ##### Requirements:
    *
-   * - Can only be used if the caller has the `MINTER_ROLE`.
+   * - Can only be used if the caller has the `MINTER_ROLE` role.
    * - The rules of `_beforeTokenTransfer` apply.
-   *
    * @param amount The amount of RestrictedNORI to mint.
    * @param removalId The removal token ID for which proceeds are being restricted.
    */
   function mint(uint256 amount, uint256 removalId) external {
-    if (!hasRole(MINTER_ROLE, _msgSender())) {
+    if (!hasRole({role: MINTER_ROLE, account: _msgSender()})) {
       revert InvalidMinter({account: _msgSender()});
     }
     uint256 projectId = _removal.getProjectId({id: removalId});
-    address supplierAddress = RemovalIdLib.supplierAddress(removalId);
-    super._mint(supplierAddress, projectId, amount, "");
-    _scheduleIdToScheduleStruct[projectId].tokenHolders.add(supplierAddress);
+    address supplierAddress = RemovalIdLib.supplierAddress({
+      removalId: removalId
+    });
+    super._mint({to: supplierAddress, id: projectId, amount: amount, data: ""});
+    _scheduleIdToScheduleStruct[projectId].tokenHolders.add({
+      value: supplierAddress
+    });
   }
 
   /**
    * @notice Claim sender's released tokens and withdraw them to `recipient` address.
    *
-   * @dev This function burns `amount` of `RestrictedNORI` for the given schedule ID
-   * and transfers `amount` of `BridgedPolygonNORI` from the `RestrictedNORI` contract's
+   * @dev This function burns `amount` of RestrictedNORI for the given schedule ID
+   * and transfers `amount` of BridgedPolygonNORI from the RestrictedNORI contract's
    * balance to `recipient`'s balance.
    * Enforcement of the availability of claimable tokens for the `_burn` call happens in `_beforeTokenTransfer`.
    *
@@ -420,43 +467,52 @@ contract RestrictedNORI is
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
-   *
    * @param recipient The address receiving the underlying BridgedPolygonNORI.
    * @param scheduleId The schedule from which to withdraw.
    * @param amount The amount to withdraw.
+   * @return Whether or not the tokens were successfully withdrawn.
    */
   function withdrawFromSchedule(
     address recipient,
     uint256 scheduleId,
     uint256 amount
   ) external returns (bool) {
-    super._burn(_msgSender(), scheduleId, amount);
+    super._burn({from: _msgSender(), id: scheduleId, amount: amount});
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     schedule.totalClaimedAmount += amount;
     schedule.claimedAmountsByAddress[_msgSender()] += amount;
-    emit TokensClaimed(_msgSender(), recipient, scheduleId, amount);
-    _bridgedPolygonNORI.transfer(recipient, amount);
+    emit TokensClaimed({
+      from: _msgSender(),
+      to: recipient,
+      scheduleId: scheduleId,
+      quantity: amount
+    });
+    _bridgedPolygonNORI.transfer({to: recipient, amount: amount});
     return true;
   }
 
   /**
-   * @notice Returns an array of all existing schedule IDs, regardless of the status of the schedule.
+   * @notice Get all schedule IDs.
+   * @return Returns an array of all existing schedule IDs, regardless of the status of the schedule.
    */
   function getAllScheduleIds() external view returns (uint256[] memory) {
     uint256[] memory allScheduleIdsArray = new uint256[](
       _allScheduleIds.length()
     );
-    for (uint256 i = 0; i < allScheduleIdsArray.length; ++i) {
-      allScheduleIdsArray[i] = _allScheduleIds.at(i);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < allScheduleIdsArray.length; ++i) {
+        allScheduleIdsArray[i] = _allScheduleIds.at({index: i});
+      }
     }
     return allScheduleIdsArray;
   }
 
   /**
    * @notice Returns an account-specific view of the details of a specific schedule.
-   *
    * @param account The account for which to provide schedule details.
    * @param scheduleId The token ID of the schedule for which to retrieve details.
+   * @return Returns a `ScheduleDetails` struct containing the details of the schedule.
    */
   function getScheduleDetailForAccount(address account, uint256 scheduleId)
     external
@@ -465,23 +521,26 @@ contract RestrictedNORI is
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
-      ScheduleDetailForAddress(
-        account,
-        scheduleId,
-        balanceOf(account, scheduleId),
-        schedule.claimableBalanceForScheduleForAccount(
-          scheduleId,
-          account,
-          totalSupply(scheduleId),
-          balanceOf(account, scheduleId)
-        ),
-        schedule.claimedAmountsByAddress[account],
-        schedule.quantitiesRevokedByAddress[account]
-      );
+      ScheduleDetailForAddress({
+        tokenHolder: account,
+        scheduleTokenId: scheduleId,
+        balance: balanceOf({account: account, id: scheduleId}),
+        claimableAmount: schedule.claimableBalanceForScheduleForAccount({
+          scheduleId: scheduleId,
+          account: account,
+          totalSupply: totalSupply({id: scheduleId}),
+          balanceOfAccount: balanceOf({account: account, id: scheduleId})
+        }),
+        claimedAmount: schedule.claimedAmountsByAddress[account],
+        quantityRevoked: schedule.quantitiesRevokedByAddress[account]
+      });
   }
 
   /**
    * @notice Batch version of `getScheduleDetailForAccount`.
+   * @param account The account for which to provide schedule details.
+   * @param scheduleIds The token IDs of the schedules for which to retrieve details.
+   * @return Returns an array of `ScheduleDetails` structs containing the details of the schedules
    */
   function batchGetScheduleDetailsForAccount(
     address account,
@@ -491,19 +550,24 @@ contract RestrictedNORI is
       memory scheduleDetails = new ScheduleDetailForAddress[](
         scheduleIds.length
       );
-    for (uint256 i = 0; i < scheduleIds.length; ++i) {
-      if (_scheduleIdToScheduleStruct[scheduleIds[i]].doesExist()) {
-        scheduleDetails[i] = this.getScheduleDetailForAccount(
-          account,
-          scheduleIds[i]
-        );
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < scheduleIds.length; ++i) {
+        if (_scheduleIdToScheduleStruct[scheduleIds[i]].doesExist()) {
+          scheduleDetails[i] = this.getScheduleDetailForAccount({
+            account: account,
+            scheduleId: scheduleIds[i]
+          });
+        }
       }
     }
     return scheduleDetails;
   }
 
   /**
-   * @notice Returns the existence of a schedule.
+   * @notice Check the existence of a schedule.
+   * @param scheduleId The token ID of the schedule for which to check existence.
+   * @return Returns a boolean indicating whether or not the schedule exists.
    */
   function scheduleExists(uint256 scheduleId) external view returns (bool) {
     return _scheduleIdToScheduleStruct[scheduleId].doesExist();
@@ -511,6 +575,8 @@ contract RestrictedNORI is
 
   /**
    * @notice Returns an array of summary structs for the specified schedules.
+   * @param scheduleIds The token IDs of the schedules for which to retrieve details.
+   * @return Returns an array of `ScheduleSummary` structs containing the summary of the schedules.
    */
   function batchGetScheduleSummaries(uint256[] calldata scheduleIds)
     external
@@ -520,14 +586,19 @@ contract RestrictedNORI is
     ScheduleSummary[] memory scheduleSummaries = new ScheduleSummary[](
       scheduleIds.length
     );
-    for (uint256 i = 0; i < scheduleIds.length; ++i) {
-      scheduleSummaries[i] = getScheduleSummary(scheduleIds[i]);
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < scheduleIds.length; ++i) {
+        scheduleSummaries[i] = getScheduleSummary({scheduleId: scheduleIds[i]});
+      }
     }
     return scheduleSummaries;
   }
 
   /**
    * @notice Released balance less the total claimed amount at current block timestamp for a schedule.
+   * @param scheduleId The token ID of the schedule for which to retrieve details.
+   * @return Returns the claimable amount for the schedule.
    */
   function claimableBalanceForSchedule(uint256 scheduleId)
     external
@@ -536,15 +607,20 @@ contract RestrictedNORI is
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
-      schedule.claimableBalanceForSchedule(scheduleId, totalSupply(scheduleId));
+      schedule.claimableBalanceForSchedule({
+        scheduleId: scheduleId,
+        totalSupply: totalSupply({id: scheduleId})
+      });
   }
 
   /**
    * @notice A single account's claimable balance at current block timestamp for a schedule.
-   *
    * @dev Calculations have to consider an account's total proportional claim to the schedule's released tokens,
    * using totals constructed from current balances and claimed amounts, and then subtract anything that
    * account has already claimed.
+   * @param scheduleId The token ID of the schedule for which to retrieve details.
+   * @param account The account for which to retrieve details.
+   * @return Returns the claimable amount for an account's schedule.
    */
   function claimableBalanceForScheduleForAccount(
     uint256 scheduleId,
@@ -552,16 +628,18 @@ contract RestrictedNORI is
   ) external view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
-      schedule.claimableBalanceForScheduleForAccount(
-        scheduleId,
-        account,
-        totalSupply(scheduleId),
-        balanceOf(account, scheduleId)
-      );
+      schedule.claimableBalanceForScheduleForAccount({
+        scheduleId: scheduleId,
+        account: account,
+        totalSupply: totalSupply({id: scheduleId}),
+        balanceOfAccount: balanceOf({account: account, id: scheduleId})
+      });
   }
 
   /**
-   * @notice Returns the current number of revocable tokens for a given schedule at the current block timestamp.
+   * @notice Get the current number of revocable tokens for a given schedule at the current block timestamp.
+   * @param scheduleId The schedule ID for which to revoke tokens.
+   * @return Returns the number of revocable tokens for a given schedule at the current block timestamp.
    */
   function revocableQuantityForSchedule(uint256 scheduleId)
     external
@@ -569,23 +647,26 @@ contract RestrictedNORI is
     returns (uint256)
   {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
-    uint256 supply = totalSupply(scheduleId);
-    return schedule.revocableQuantityForSchedule(scheduleId, supply);
+    return
+      schedule.revocableQuantityForSchedule({
+        scheduleId: scheduleId,
+        totalSupply: totalSupply({id: scheduleId})
+      });
   }
 
   /**
-   * @notice Sets the duration in seconds that should be applied to schedules created on behalf of removals
+   * @notice Set the restriction duration for a methodology and version.
+   * @dev Set the duration in seconds that should be applied to schedules created on behalf of removals
    * originating from the given methodology and methodology version.
    *
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`.
-   *
-   * @param methodology The methodology of carbon removal
-   * @param methodologyVersion The version of the methodology
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
+   * @param methodology The methodology of carbon removal.
+   * @param methodologyVersion The version of the methodology.
    * @param durationInSeconds The duration in seconds that insurance funds should be restricted for this
-   * methodology and version
+   * methodology and version.
    */
   function setRestrictionDurationForMethodologyAndVersion(
     uint256 methodology,
@@ -602,10 +683,12 @@ contract RestrictedNORI is
 
   /**
    * @notice Transfers `amount` tokens of token type `id` from `from` to `to`.
-   *
-   * @dev [See the OZ ERC1155 documentation for more] (
-   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
-   * #ERC1155-safeTransferFrom-address-address-uint256-uint256-bytes-)
+   * @dev [See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155).
+   * @param from The address to transfer from.
+   * @param to The address to transfer to.
+   * @param id The token ID to transfer.
+   * @param amount The amount of the token `id` to transfer.
+   * @param data The data to pass to the receiver contract.
    */
   function safeTransferFrom(
     address from,
@@ -614,22 +697,30 @@ contract RestrictedNORI is
     uint256 amount,
     bytes memory data
   ) public override {
-    super.safeTransferFrom(from, to, id, amount, data);
+    super.safeTransferFrom({
+      from: from,
+      to: to,
+      id: id,
+      amount: amount,
+      data: data
+    });
     Schedule storage schedule = _scheduleIdToScheduleStruct[id];
     if (amount != 0) {
-      schedule.tokenHolders.add(to);
+      schedule.tokenHolders.add({value: to});
     }
-    if (balanceOf(from, id) == 0) {
-      schedule.tokenHolders.remove(from);
+    if (balanceOf({account: from, id: id}) == 0) {
+      schedule.tokenHolders.remove({value: from});
     }
   }
 
   /**
    * @notice Batched version of `safeTransferFrom`.
-   *
-   * @dev [See the OZ ERC1155 documentation for more] (
-   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
-   * #IERC1155-safeBatchTransferFrom-address-address-uint256---uint256---bytes-)
+   * @dev [See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155).
+   * @param from The address to transfer from.
+   * @param to The address to transfer to.
+   * @param ids The token IDs to transfer.
+   * @param amounts The amounts of the token `id`s to transfer.
+   * @param data The data to pass to the receiver contract.
    */
   function safeBatchTransferFrom(
     address from,
@@ -638,20 +729,31 @@ contract RestrictedNORI is
     uint256[] memory amounts,
     bytes memory data
   ) public override {
-    super.safeBatchTransferFrom(from, to, ids, amounts, data);
-    for (uint256 i = 0; i < ids.length; ++i) {
-      Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
-      if (amounts[i] != 0) {
-        schedule.tokenHolders.add(to);
-      }
-      if (balanceOf(from, ids[i]) == 0) {
-        schedule.tokenHolders.remove(from);
+    super.safeBatchTransferFrom({
+      from: from,
+      to: to,
+      ids: ids,
+      amounts: amounts,
+      data: data
+    });
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < ids.length; ++i) {
+        Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
+        if (amounts[i] != 0) {
+          schedule.tokenHolders.add({value: to});
+        }
+        if (balanceOf({account: from, id: ids[i]}) == 0) {
+          schedule.tokenHolders.remove({value: from});
+        }
       }
     }
   }
 
   /**
-   * @notice Returns summary struct for a schedule.
+   * @notice Get a summary for a schedule.
+   * @param scheduleId The token ID of the schedule for which to retrieve details.
+   * @return Returns the schedule summary.
    */
   function getScheduleSummary(uint256 scheduleId)
     public
@@ -662,29 +764,35 @@ contract RestrictedNORI is
     uint256 numberOfTokenHolders = schedule.tokenHolders.length();
     address[] memory tokenHoldersArray = new address[](numberOfTokenHolders);
     uint256[] memory scheduleIdArray = new uint256[](numberOfTokenHolders);
-    for (uint256 i = 0; i < schedule.tokenHolders.length(); ++i) {
-      tokenHoldersArray[i] = schedule.tokenHolders.at(i);
-      scheduleIdArray[i] = scheduleId;
+    // Skip overflow check as for loop is indexed starting at zero.
+    unchecked {
+      for (uint256 i = 0; i < numberOfTokenHolders; ++i) {
+        tokenHoldersArray[i] = schedule.tokenHolders.at({index: i});
+        scheduleIdArray[i] = scheduleId;
+      }
     }
+    uint256 supply = totalSupply({id: scheduleId});
     return
-      ScheduleSummary(
-        scheduleId,
-        schedule.startTime,
-        schedule.endTime,
-        totalSupply(scheduleId),
-        schedule.claimableBalanceForSchedule(
-          scheduleId,
-          totalSupply(scheduleId)
-        ),
-        schedule.totalClaimedAmount,
-        schedule.totalQuantityRevoked,
-        tokenHoldersArray
-      );
+      ScheduleSummary({
+        scheduleTokenId: scheduleId,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        totalSupply: supply,
+        totalClaimableAmount: schedule.claimableBalanceForSchedule({
+          scheduleId: scheduleId,
+          totalSupply: supply
+        }),
+        totalClaimedAmount: schedule.totalClaimedAmount,
+        totalQuantityRevoked: schedule.totalQuantityRevoked,
+        tokenHolders: tokenHoldersArray
+      });
   }
 
   /**
    * @dev See [IERC165.supportsInterface](
    * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
+   * @param interfaceId The interface ID to check for support.
+   * @return Returns true if the interface is supported, false otherwise.
    */
   function supportsInterface(bytes4 interfaceId)
     public
@@ -692,14 +800,14 @@ contract RestrictedNORI is
     override(ERC1155Upgradeable, AccessControlEnumerableUpgradeable)
     returns (bool)
   {
-    return super.supportsInterface(interfaceId);
+    return super.supportsInterface({interfaceId: interfaceId});
   }
 
   /**
-   * @notice Returns the schedule duration in seconds that has been set for a given methodology and methodology version.
-   *
+   * @notice Get the schedule duration (in seconds) that has been set for a given methodology and methodology version.
    * @param methodology The methodology of carbon removal.
    * @param methodologyVersion The version of the methodology.
+   * @return Returns the schedule duration in seconds.
    */
   function getRestrictionDurationForMethodologyAndVersion(
     uint256 methodology,
@@ -711,7 +819,6 @@ contract RestrictedNORI is
 
   /**
    * @notice Sets up a schedule for the specified project.
-   *
    * @dev Schedules are created when removal tokens are listed for sale in the market contract,
    * so this should only be invoked during `tokensReceived` in the exceptional case that
    * tokens were sent to this contract without a schedule set up.
@@ -720,10 +827,9 @@ contract RestrictedNORI is
    * from within the market contract `onERC1155BatchReceived` hook.
    *
    * Emits a `ScheduleCreated` event.
-   *
-   * @param projectId The ID that will be used as the new schedule's ID
-   * @param startTime The schedule start time in seconds since the unix epoch
-   * @param restrictionDuration The duration of the schedule in seconds since the unix epoch
+   * @param projectId The ID that will be used as the new schedule's ID.
+   * @param startTime The schedule start time in seconds since the unix epoch.
+   * @param restrictionDuration The duration of the schedule in seconds since the unix epoch.
    */
   function _createSchedule(
     uint256 projectId,
@@ -733,20 +839,21 @@ contract RestrictedNORI is
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     schedule.startTime = startTime;
     schedule.endTime = startTime + restrictionDuration;
-    _allScheduleIds.add(projectId);
-    emit ScheduleCreated(projectId, startTime, schedule.endTime);
+    _allScheduleIds.add({value: projectId});
+    emit ScheduleCreated({
+      projectId: projectId,
+      startTime: startTime,
+      endTime: schedule.endTime
+    });
   }
 
   /**
    * @notice Hook that is called before any token transfer. This includes minting and burning, as well as batched
    * variants.
-   *
    * @dev Follows the rules of hooks defined [here](
    * https://docs.openzeppelin.com/contracts/4.x/extending-contracts#rules_of_hooks)
    *
-   * See the ERC1155 specific version [here](
-   * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155
-   * #ERC1155-_beforeTokenTransfer-address-address-address-uint256---uint256---bytes-).
+   * See the ERC1155 specific version [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155).
    *
    * ##### Requirements:
    *
@@ -759,6 +866,12 @@ contract RestrictedNORI is
    *    - The operation is a transfer and _all_ the following must be true:
    *      - The operator is operating on their own balance (enforced in the inherited contract).
    *      - The operator has sufficient balance to transfer (enforced in the inherited contract).
+   * @param operator The address which initiated the transfer (i.e. msg.sender).
+   * @param from The address to transfer from.
+   * @param to The address to transfer to.
+   * @param ids The token IDs to transfer.
+   * @param amounts The amounts of the token `id`s to transfer.
+   * @param data The data to pass to the receiver contract.
    */
   function _beforeTokenTransfer(
     address operator,
@@ -771,35 +884,49 @@ contract RestrictedNORI is
     bool isBurning = to == address(0);
     bool isWithdrawing = isBurning && from == operator;
     if (isBurning) {
-      for (uint256 i = 0; i < ids.length; ++i) {
-        uint256 id = ids[i];
-        Schedule storage schedule = _scheduleIdToScheduleStruct[id];
-        if (isWithdrawing) {
-          if (
-            amounts[i] >
-            schedule.claimableBalanceForScheduleForAccount(
-              id,
-              from,
-              totalSupply(id),
-              balanceOf(from, id)
-            )
-          ) {
-            revert InsufficientClaimableBalance({
-              account: from,
-              scheduleId: id
-            });
+      // Skip overflow check as for loop is indexed starting at zero.
+      unchecked {
+        for (uint256 i = 0; i < ids.length; ++i) {
+          uint256 id = ids[i];
+          Schedule storage schedule = _scheduleIdToScheduleStruct[id];
+          if (isWithdrawing) {
+            if (
+              amounts[i] >
+              schedule.claimableBalanceForScheduleForAccount({
+                scheduleId: id,
+                account: from,
+                totalSupply: totalSupply({id: id}),
+                balanceOfAccount: balanceOf({account: from, id: id})
+              })
+            ) {
+              revert InsufficientClaimableBalance({
+                account: from,
+                scheduleId: id
+              });
+            }
           }
+          schedule.releasedAmountFloor = schedule
+            .releasedBalanceOfSingleSchedule({
+              totalSupply: totalSupply({id: id})
+            });
         }
-        schedule.releasedAmountFloor = schedule.releasedBalanceOfSingleSchedule(
-          totalSupply(id)
-        );
       }
     }
-    return super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+    return
+      super._beforeTokenTransfer({
+        operator: operator,
+        from: from,
+        to: to,
+        ids: ids,
+        amounts: amounts,
+        data: data
+      });
   }
 
   /**
    * @notice Validates that the schedule start time and duration are non-zero.
+   * @param startTime The schedule start time in seconds since the unix epoch.
+   * @param restrictionDuration The duration of the schedule in seconds since the unix epoch.
    */
   function _validateSchedule(uint256 startTime, uint256 restrictionDuration)
     internal
@@ -812,12 +939,12 @@ contract RestrictedNORI is
   /**
    * @notice Calculates the quantity that should be revoked from a given token holder and schedule based on their
    * proportion of ownership of the schedule's tokens and the total number of tokens being revoked.
-   *
    * @param totalQuantityToRevoke The total quantity of tokens being revoked from this schedule.
    * @param scheduleId The schedule (token ID) from which tokens are being revoked.
    * @param schedule The schedule (struct) from which tokens are being revoked.
    * @param account The token holder for which to calculate the quantity that should be revoked.
    * @param balanceOfAccount The total balance of this token ID owned by `account`.
+   * @return The quantity of tokens that should be revoked from `account` for the given schedule.
    */
   function _quantityToRevokeForTokenHolder(
     uint256 totalQuantityToRevoke,
@@ -826,9 +953,9 @@ contract RestrictedNORI is
     address account,
     uint256 balanceOfAccount
   ) private view returns (uint256) {
-    uint256 scheduleTrueTotal = schedule.scheduleTrueTotal(
-      totalSupply(scheduleId)
-    );
+    uint256 scheduleTrueTotal = schedule.scheduleTrueTotal({
+      totalSupply: totalSupply({id: scheduleId})
+    });
     uint256 quantityToRevokeForAccount;
     // avoid division by or of 0
     if (scheduleTrueTotal == 0 || totalQuantityToRevoke == 0) {

@@ -84,10 +84,9 @@ const deployOrUpgradeProxy = async <
   );
 
   let contract: InstanceOfContract<TContract> | undefined;
-  const contractFactory = await hre.ethers.getContractFactory<TFactory>(
-    contractName,
-    signer
-  );
+  const contractFactory = (
+    await hre.ethers.getContractFactory(contractName, signer)
+  ).connect(signer);
   const shouldDeployProxy =
     contractCode === '0x' ||
     process.env.FORCE_PROXY_DEPLOYMENT ||
