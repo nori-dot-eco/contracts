@@ -2987,10 +2987,10 @@
     "@types/sinon-chai" "^3.2.3"
     "@types/web3" "1.0.19"
 
-"@nori-dot-com/eslint-config-nori@^1.8.0":
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/@nori-dot-com/eslint-config-nori/-/eslint-config-nori-1.8.0.tgz#8325fd796029d8978c4bb63b196d62cd0a6e87cf"
-  integrity sha512-LwvDNC2yZkX4yTMxEydCTLirTtFxYFz25IDsQvGDLiqU5I3gIEx3IlitNfJvaXDU2o0C1l9D7slb1MO9W6yX/Q==
+"@nori-dot-com/eslint-config-nori@^1.9.0":
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/@nori-dot-com/eslint-config-nori/-/eslint-config-nori-1.9.0.tgz#b3bbca94e85ced4a48c63bbec60e1481c1bbe784"
+  integrity sha512-yfJNcP2BxZFzZhNNXtwUQXnsblVJP0YzW0Hb+U4skxG1xcwCyGpKNNPru/9KC9WhUq3cqCWYjneacbWASDKPEg==
   dependencies:
     "@fintechstudios/eslint-plugin-chai-as-promised" "3.1.0"
     "@graphql-eslint/eslint-plugin" "^3.10.3"

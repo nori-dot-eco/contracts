@@ -9,7 +9,7 @@
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@nomiclabs/hardhat-solhint": "^2.0.1",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
-    "@nori-dot-com/eslint-config-nori": "^1.8.0",
+    "@nori-dot-com/eslint-config-nori": "^1.9.0",
     "@octokit/rest": "^18.12.0",
     "@openzeppelin/contracts": "4.7.3",
     "@openzeppelin/contracts-upgradeable": "4.7.3",
