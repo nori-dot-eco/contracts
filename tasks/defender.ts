@@ -48,7 +48,7 @@ const addContractsToDefender = async (
           deployed[networkName][name].proxyAddress
         );
         return {
-          name: name.concat('V2'),
+          name: name.concat('V4'),
           abi: contract.interface.format(
             ethers.utils.FormatTypes.json
           ) as string,

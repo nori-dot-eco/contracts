@@ -84,10 +84,9 @@ const deployOrUpgradeProxy = async <
   );
 
   let contract: InstanceOfContract<TContract> | undefined;
-  const contractFactory = await hre.ethers.getContractFactory<TFactory>(
-    contractName,
-    signer
-  );
+  const contractFactory = (
+    await hre.ethers.getContractFactory(contractName, signer)
+  ).connect(signer);
   const shouldDeployProxy =
     contractCode === '0x' ||
     process.env.FORCE_PROXY_DEPLOYMENT ||
@@ -198,7 +197,6 @@ extendEnvironment((hre) => {
   hre.log = lazyFunction(() => log);
   hre.trace = lazyFunction(() => trace);
   hre.debug = lazyFunction(() => debug);
-  hre.ethernalSync = false;
   // All live networks will try to use fireblocks
   if (Boolean(hre.config.fireblocks.apiKey) && hre.network.config.live) {
     hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
