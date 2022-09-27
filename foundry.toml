@@ -16,7 +16,7 @@ gas_reports = [ '*' ]
 
 [profile.production]
 via_ir = true
-optimizer_runs = 18_325
+optimizer_runs = 20_000
 
 [profile.test]
 via_ir = false

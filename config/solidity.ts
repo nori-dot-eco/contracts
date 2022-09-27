@@ -30,7 +30,7 @@ const PRODUCTION_SOLC_CONFIG: SolcUserConfig = {
     viaIR: true,
     optimizer: {
       enabled: true,
-      runs: 18_325,
+      runs: 20_000,
     },
   },
 };
