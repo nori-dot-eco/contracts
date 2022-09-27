@@ -29,9 +29,6 @@
     },
     "RestrictedNORI": {
       "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
-    },
-    "LockedNORIV2": {
-      "proxyAddress": "0x50562ADF34935aeb8cC86e9bDc66eaBf79097A08"
     }
   },
   "localhost": {
@@ -109,9 +106,6 @@
     },
     "RestrictedNORI": {
       "proxyAddress": "0x0924196d683daBe242216Eb3e27bcf8FccCeCaD1"
-    },
-    "LockedNORIV2": {
-      "proxyAddress": "0x5C7AE13c9ceEC5F8889ad53A00ebC4D03Df9564C"
     },
     "NORI": {
       "proxyAddress": "0xb5ea4cCdd74B07Fc5D645Fd4bb6C932b1b2CFdD8"

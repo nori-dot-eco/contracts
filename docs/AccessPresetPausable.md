@@ -1,7 +1,16 @@
 ## AccessPresetPausable
 
 
+This preset contract affords an inheriting contract a set of standard functionality that allows role-based
+access control and pausable functions.
 
+<i>This contract is inherited by most of the other contracts in this project.
+
+##### Inherits:
+
+- [PausableUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable)
+- [AccessControlEnumerableUpgradeable](
+https://docs.openzeppelin.com/contracts/4.x/api/access#AccessControlEnumerable)</i>
 
 
 
@@ -30,7 +39,7 @@ Pauses all functions that can mutate state.
 
 ##### Requirements:
 
-- The caller must have the `PAUSER_ROLE`.</i>
+- The caller must have the `PAUSER_ROLE` role.</i>
 
 
 
@@ -46,7 +55,7 @@ Unpauses all token transfers.
 
 ##### Requirements:
 
-- The caller must have the `PAUSER_ROLE`.</i>
+- The caller must have the `PAUSER_ROLE` role.</i>
 
 
 
@@ -58,11 +67,16 @@ function _grantRole(bytes32 role, address account) internal virtual
 
 Grants a role to an account.
 
+<i>This function allows the role's admin to grant the role to other accounts.
+
 ##### Requirements:
 
-- The contract must not be paused.
+- The contract must not be paused.</i>
 
-
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| role | bytes32 | The role to grant. |
+| account | address | The account to grant the role to. |
 
 
 ### _revokeRole
@@ -73,11 +87,15 @@ function _revokeRole(bytes32 role, address account) internal virtual
 
 Revokes a role from an account.
 
+<i>This function allows the role's admin to revoke the role from other accounts.
 ##### Requirements:
 
-- The contract must not be paused.
+- The contract must not be paused.</i>
 
-
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| role | bytes32 | The role to revoke. |
+| account | address | The account to revoke the role from. |
 
 
 

@@ -3,25 +3,25 @@
 
 This contract uses ERC1155 tokens as an accounting system for keeping track of carbon that Nori has
 verified to have been removed from the atmosphere. Each token ID encodes information about the source of the
-removed carbon (see RemovalIdLib.sol for encoding details), and each token represents the smallest unit of
-carbon removal accounting.  For example, in an agricultural methodology, a specific token ID represents one
-parcel of land in a specific year.  The total supply of that token ID is the number of tonnes of carbon
-removed.
+removed carbon (see the [RemovalIdLib docs](../docs/RemovalIdLib.md) for encoding details), and each token represents
+the smallest unit of carbon removal accounting.  For example, in an agricultural methodology, a specific token ID
+represents one parcel of land in a specific year.  The total supply of that token ID is the number of tonnes of
+carbon removed.
 
 ##### Additional behaviors and features:
 
 ###### Minting
 - Only accounts with the CONSIGNOR_ROLE can mint removal tokens, which should only be account(s) controlled by Nori.
 - When removal tokens are minted, additional data about those removals are stored in a mapping keyed by the token ID,
-such as a projectId and a holdback percentage (which determines the percentage of the sale proceeds from the token
-that will be routed to the RestrictedNORI contract). A restriction schedule is created per projectId (if necessary)
-in RestrictedNORI. (see RestrictedNORI.sol)
+such as a project ID and a holdback percentage (which determines the percentage of the sale proceeds from the token
+that will be routed to the RestrictedNORI contract). A restriction schedule is created per `projectId` (if necessary)
+in RestrictedNORI (see the [RestrictedNORI docs](../docs/RestrictedNORI.md)).
 - Minting reverts when attempting to mint a token ID that already exists.
 - The function `addBalance` can be used to mint additional balance to a token ID that already exists.
 
 
 ###### Listing
-- _Listing_ refers to the process of listing removal tokens for sale in Nori's marketplace (Market.sol)
+- _Listing_ refers to the process of listing removal tokens for sale in Nori's marketplace (the Market contract).
 - Removals are listed for sale by transferring ownership of the tokens to the Market contract via
 `consign`. Alternatively, If the `to` argument to `mintBatch` is the address of the Market contract,
 removal tokens will be listed in the same transaction that they are minted.
@@ -35,17 +35,17 @@ and has been released into the atmosphere prematurely.
 - Only accounts with the RELEASER_ROLE can initiate a release.
 - When a removal token is released, balances are burned in a specific order until the released amount
 has been accounted for: Releasing burns first from unlisted balances, second from listed balances and third from the
-certificate contract (see `Removal.release` for more)
+certificate contract (see `Removal.release` for more).
 - Affected certificates will have any released balances replaced by new removals purchased by Nori, though an
 automated implementation of this process is beyond the scope of this version of the contracts.
 
 
 ###### Token ID encoding and decoding
-- This contract uses the inlined library RemovalIdLib.sol for uint256.
+- This contract uses the inlined library RemovalIdLib for uint256.
 - When minting tokens, an array of structs containing information about each removal is passed as an argument to
 `mintBatch` and that data is used to generate the encoded token IDs for each removal.
-- `decodeRemovalIdV0` is exposed externally for encoding and decoding removal token IDs that contain uniquely
-identifying information about the removal. See RemovalIdLib.sol for encoding details.
+- `decodeRemovalIdV0` is exposed externally for encoding and decoding Removal token IDs that contain uniquely
+identifying information about the removal. See the [RemovalIdLib docs](../docs/RemovalIdLib.md) for encoding details.
 
 ###### Additional behaviors and features
 
@@ -107,7 +107,7 @@ to be listed for sale.
 bytes32 RELEASER_ROLE
 ```
 
-Role conferring the the ability to mark a removal as released.
+Role conferring the ability to mark a removal as released.
 
 
 
@@ -118,7 +118,7 @@ Role conferring the the ability to mark a removal as released.
 contract Market _market
 ```
 
-The `Market` contract that removals can be bought and sold from.
+The Market contract that removals can be bought and sold from.
 
 
 
@@ -129,7 +129,7 @@ The `Market` contract that removals can be bought and sold from.
 contract Certificate _certificate
 ```
 
-The `Certificate` contract that removals are retired into.
+The Certificate contract that removals are retired into.
 
 
 
@@ -141,8 +141,8 @@ mapping(uint256 => uint8) _projectIdToHoldbackPercentage
 ```
 
 
-<i>Maps from a given project id to the holdback percentage that will be used to determine what percentage of
-proceeds are routed to `RestrictedNORI` when removals from this project are sold.</i>
+<i>Maps from a given project ID to the holdback percentage that will be used to determine what percentage of
+proceeds are routed to the RestrictedNORI contract when removals from this project are sold.</i>
 
 
 
@@ -153,7 +153,7 @@ mapping(uint256 => uint256) _removalIdToProjectId
 ```
 
 
-<i>Maps from a removal id to the project id it belongs to.</i>
+<i>Maps from a removal ID to the project ID it belongs to.</i>
 
 
 
@@ -163,7 +163,7 @@ mapping(uint256 => uint256) _removalIdToProjectId
 mapping(address => struct EnumerableSetUpgradeable.UintSet) _addressToOwnedTokenIds
 ```
 
-Maps from an address to an EnumerableSet of the token ids for which that address has a non-zero balance.
+Maps from an address to an EnumerableSet of the token IDs for which that address has a non-zero balance.
 
 
 
@@ -190,8 +190,8 @@ Emitted on updating the addresses for contracts.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| market | contract Market | The address of the new `market` contract. |
-| certificate | contract Certificate | The address of the new `certificate` contract. |
+| market | contract Market | The address of the new market contract. |
+| certificate | contract Certificate | The address of the new certificate contract. |
 
 
 ### RemovalReleased
@@ -234,7 +234,9 @@ Emitted when legacy removals are minted and then immediately used to migrate a l
 constructor() public
 ```
 
+Locks the contract, preventing any future re-initialization.
 
+<i>See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).</i>
 
 
 
@@ -244,8 +246,12 @@ constructor() public
 function initialize(string baseURI) external
 ```
 
+Initializes the Removal contract.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| baseURI | string | The base URI for the removal NFTs. |
 
 
 ### registerContractAddresses
@@ -261,13 +267,13 @@ Called as part of the market contract system deployment process.
 
 ##### Requirements:
 
-- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE`
-- Can only be used when this contract is not paused</i>
+- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
+- Can only be used when this contract is not paused.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| market | contract Market | The address of the `Market` contract. |
-| certificate | contract Certificate | The address of the `Certificate` contract. |
+| market | contract Market | The address of the Market contract. |
+| certificate | contract Certificate | The address of the Certificate contract. |
 
 
 ### mintBatch
@@ -284,14 +290,14 @@ Mints multiple removals at once (for a single supplier).
 - Can only be used when the caller has the `CONSIGNOR_ROLE`
 - Enforces the rules of `Removal._beforeTokenTransfer`
 - Can only be used when this contract is not paused
-- Cannot mint to a removal ID that already exists (use `addBalance` instead)</i>
+- Cannot mint to a removal ID that already exists (use `addBalance` instead).</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | to | address | The recipient of this batch of removals. Should be the supplier's address or the market address. |
 | amounts | uint256[] | Each removal's tonnes of CO2 formatted. |
 | removals | struct DecodedRemovalIdV0[] | The removals to mint (represented as an array of `DecodedRemovalIdV0`). These removals are used to encode the removal IDs. |
-| projectId | uint256 | The project id for this batch of removals. |
+| projectId | uint256 | The project ID for this batch of removals. |
 | scheduleStartTime | uint256 | The start time of the schedule for this batch of removals. |
 | holdbackPercentage | uint8 | The holdback percentage for this batch of removals. |
 
@@ -307,8 +313,8 @@ Mints additional balance for multiple removals at once.
 <i>If `to` is the market address, the removals are listed for sale in the market.
 
 ##### Requirements:
-- Can only be used when the caller has the `CONSIGNOR_ROLE`
-- Can only be used when this contract is not paused
+- Can only be used when the caller has the `CONSIGNOR_ROLE` role.
+- Can only be used when this contract is not paused.
 - IDs must already have been minted via `mintBatch`.
 - Enforces the rules of `Removal._beforeTokenTransfer`.</i>
 
@@ -356,7 +362,7 @@ transferring the removals from an account with the `CONSIGNOR_ROLE` role.
 It is necessary that the consignor holds the removals because of the following:
 - `ids` can be composed of a list of removal IDs that belong to one or more suppliers.
 - `_safeBatchTransferFrom` only accepts one `from` address.
-- `Certificate.onERC1155BatchReceived` will mint a *new* certificate every time an additional batch is received so
+- `Certificate.onERC1155BatchReceived` will mint a *new* certificate every time an additional batch is received, so
 we must ensure that all the removals comprising the certificate to be migrated come from a single batch.
 
 ##### Requirements:
@@ -370,7 +376,7 @@ we must ensure that all the removals comprising the certificate to be migrated c
 | ids | uint256[] | An array of the removal IDs to add to transfer to the Certificate contract. This array can contain IDs of removals that belong to one or more supplier address (designated in the encoding of the removal ID). |
 | amounts | uint256[] | An array of the removal amounts to add to transfer to the Certificate contract. Each amount in this array corresponds to the removal ID with the same index in the `ids` parameter. |
 | certificateRecipient | address | The recipient of the certificate to be minted. |
-| certificateAmount | uint256 | TThe total amount of the certificate. |
+| certificateAmount | uint256 | The total amount of the certificate. |
 
 
 ### release
@@ -410,10 +416,13 @@ certificates. The remaining released amount is burned from the Certificate contr
 function marketAddress() external view returns (address)
 ```
 
-The address of the `Market` contract.
+Get the address of the Market contract.
 
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | address | The address of the Market contract. |
 
 ### certificateAddress
 
@@ -421,10 +430,13 @@ The address of the `Market` contract.
 function certificateAddress() external view returns (address)
 ```
 
-The address of the `Certificate` contract.
+Get the address of the Certificate contract.
 
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | address | The address of the Certificate contract. |
 
 ### getProjectId
 
@@ -432,13 +444,16 @@ The address of the `Certificate` contract.
 function getProjectId(uint256 id) external view returns (uint256)
 ```
 
-Gets the project id (which is the removal's schedule id in RestrictedNORI) for a given removal ID.
+Get the project ID (which is the removal's schedule ID in RestrictedNORI) for a given removal ID.
 
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| id | uint256 | The removal token ID for which to retrieve the project id |
+| id | uint256 | The removal token ID for which to retrieve the project ID. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The project ID for the removal token ID. |
 
 ### getHoldbackPercentage
 
@@ -453,6 +468,9 @@ Gets the holdback percentage for a removal.
 | ---- | ---- | ----------- |
 | id | uint256 | The removal token ID for which to retrieve the holdback percentage. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint8 | The holdback percentage for the removal token ID. |
 
 ### getMarketBalance
 
@@ -460,11 +478,14 @@ Gets the holdback percentage for a removal.
 function getMarketBalance() external view returns (uint256)
 ```
 
-The current total balance of all removal tokens owned by the `Market` contract.
+The current total balance of all removal tokens owned by the Market contract.
 This sum is maintained as a running total for efficient lookup during purchases.
 
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The total balance of all removal tokens owned by the Market contract. |
 
 ### getOwnedTokenIds
 
@@ -479,6 +500,9 @@ Returns an array of all token IDs currently owned by `owner`.
 | ---- | ---- | ----------- |
 | owner | address | The account for which to retrieve owned token IDs. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256[] | An array of all Removal token IDs currently owned by &#x60;owner&#x60;. |
 
 ### numberOfTokensOwnedByAddress
 
@@ -492,8 +516,11 @@ Maintained for efficient lookup of the number of distinct removal tokens owned b
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| account | address | The account for which to retrieve the unique number of token ids owned. |
+| account | address | The account for which to retrieve the unique number of token IDs owned. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The number of unique Removal token IDs owned by the given &#x60;account&#x60;. |
 
 ### decodeRemovalIdV0
 
@@ -508,6 +535,9 @@ Decodes a V0 removal ID into its component data.
 | ---- | ---- | ----------- |
 | id | uint256 | The removal ID to decode. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | struct DecodedRemovalIdV0 | The decoded removal ID data. |
 
 ### safeTransferFrom
 
@@ -523,13 +553,20 @@ Emits a `TransferSingle` event.
 
 ##### Requirements:
 
-- Can only be called by the `Market` contract.
+- Can only be called by the Market contract.
 - `to` cannot be the zero address.
 - If the caller is not `from`, it must have been approved to spend ``from``'s tokens via `setApprovalForAll`.
 - `from` must have a balance of tokens of type `id` of at least `amount`.
 - If `to` refers to a smart contract, it must implement `IERC1155Receiver.onERC1155Received` and return the
 acceptance magic value.</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| from | address | The address to transfer from. |
+| to | address | The address to transfer to. |
+| id | uint256 | The removal ID to transfer. |
+| amount | uint256 | The amount of removals to transfer. |
+| data | bytes | The data to pass to the receiver contract. |
 
 
 ### safeBatchTransferFrom
@@ -544,11 +581,18 @@ Batched version of `safeTransferFrom`.
 
 ##### Requirements:
 
-- Can only be called by the `Market` contract.
+- Can only be called by the Market contract.
 - `ids` and `amounts` must have the same length.
 - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
 acceptance magic value.</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| from | address | The address to transfer from. |
+| to | address | The address to transfer to. |
+| ids | uint256[] | The removal IDs to transfer. |
+| amounts | uint256[] | The amounts of removals to transfer. |
+| data | bytes | The data to pass to the receiver contract. |
 
 
 ### setApprovalForAll
@@ -590,6 +634,9 @@ This function call must use less than 30,000 gas.</i>
 | ---- | ---- | ----------- |
 | interfaceId | bytes4 | A bytes4 value which represents an interface ID. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | True if this contract implements the interface defined by &#x60;interfaceId&#x60;, otherwise false. |
 
 ### _createRemovals
 
@@ -598,14 +645,17 @@ function _createRemovals(struct DecodedRemovalIdV0[] removals, uint256 projectId
 ```
 
 Called during `mintBatch`, creates the removal IDs from the removal data, validates
-the new IDs to prevent minting a pre-existing ID, stores the project id in a mapping.
+the new IDs to prevent minting a pre-existing ID, stores the project ID in a mapping.
 
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | removals | struct DecodedRemovalIdV0[] | An array of `DecodedRemovalIdV0` structs containing data about each removal |
-| projectId | uint256 | The project identifier for this batch of removals. |
+| projectId | uint256 | The project IDentifier for this batch of removals. |
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256[] | An array of removal IDs that were created. |
 
 ### _createRemoval
 
@@ -614,13 +664,13 @@ function _createRemoval(uint256 id, uint256 projectId) internal
 ```
 
 Called by `_createRemovals`, validates the new IDs to prevent minting a pre-existing ID,
-stores the project id in a mapping.
+stores the project ID in a mapping.
 
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | id | uint256 | The removal ID being minted. |
-| projectId | uint256 | The project id for this removal. |
+| projectId | uint256 | The project ID for this removal. |
 
 
 ### _releaseFromSupplier
@@ -631,8 +681,7 @@ function _releaseFromSupplier(uint256 id, uint256 amount) internal
 
 Burns `amount` of token ID `id` from the supplier address encoded in the ID.
 
-Emits a `RemovalReleased` event.
-
+<i>Emits a `RemovalReleased` event.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -648,8 +697,7 @@ function _releaseFromMarket(uint256 id, uint256 amount) internal
 
 Burns `amount` of token ID `id` from the Market's balance.
 
-Emits a `RemovalReleased` event.
-
+<i>Emits a `RemovalReleased` event.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -679,8 +727,8 @@ Burns `amount` of token ID `id` from the Certificate's balance.
 function _beforeTokenTransfer(address operator, address from, address to, uint256[] ids, uint256[] amounts, bytes data) internal virtual
 ```
 
-Hook that is called before before any token transfer. This includes minting and burning, as well as
-batched variants. Disables transfers to any address that is not the `Market` or `Certificate` contracts, the zero
+Hook that is called before any token transfer. This includes minting and burning, as well as
+batched variants. Disables transfers to any address that is not the Market or Certificate contracts, the zero
 address (for burning), the supplier address that is encoded in the token ID itself, or between consignors.
 
 <i>Follows the rules of hooks defined [here](
@@ -692,6 +740,14 @@ address (for burning), the supplier address that is encoded in the token ID itse
 - Enforces the rules of `ERC1155Upgradeable._beforeTokenTransfer`.
 - Enforces the rules of `ERC1155SupplyUpgradeable._beforeTokenTransfer`.</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| operator | address | The address to transfer from. |
+| from | address | The address to transfer from. |
+| to | address | The address to transfer to. |
+| ids | uint256[] | The removal IDs to transfer. |
+| amounts | uint256[] | The amounts of removals to transfer. |
+| data | bytes | The data to pass to the receiver contract. |
 
 
 ### _afterTokenTransfer
@@ -700,25 +756,30 @@ address (for burning), the supplier address that is encoded in the token ID itse
 function _afterTokenTransfer(address operator, address from, address to, uint256[] ids, uint256[] amounts, bytes data) internal virtual
 ```
 
-Hook that is called after any token transfer. This includes minting
-and burning, as well as batched variants.
-Updates the mapping from address to set of owned token IDs.
+Hook that is called after any token transfer. This includes minting and burning, as well as batched
+variants.
 
-The same hook is called on both single and batched variants. For single
-transfers, the length of the `id` and `amount` arrays will be 1.
+<i>Updates the mapping from address to set of owned token IDs.
 
-Calling conditions (for each `id` and `amount` pair):
+The same hook is called on both single and batched variants. For single transfers, the length of the `id` and
+`amount` arrays will be 1.
 
-- When `from` and `to` are both non-zero, `amount` of ``from``'s tokens
-of token type `id` will be  transferred to `to`.
-- When `from` is zero, `amount` tokens of token type `id` will be minted
-for `to`.
-- when `to` is zero, `amount` of ``from``'s tokens of token type `id`
-will be burned.
+##### Requirements
+
+- When `from` and `to` are both non-zero, `amount`s of `from`'s tokens with IDs `id`s will be transferred to `to`.
+- When `from` is zero, `amount`s tokens of token type `id` will be minted for `to`.
+- When `to` is zero, `amount`s of `from`'s tokens with IDs `id`s will be burned.
 - `from` and `to` are never both zero.
-- `ids` and `amounts` have the same, non-zero length.
+- `ids` and `amounts` have the same, non-zero length.</i>
 
-
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| operator | address | The address to transfer from. |
+| from | address | The address to transfer from. |
+| to | address | The address to transfer to. |
+| ids | uint256[] | The removal IDs to transfer. |
+| amounts | uint256[] | The amounts of removals to transfer. |
+| data | bytes | The data to pass to the receiver contract. |
 
 
 ### _updateOwnedTokenIds
@@ -728,14 +789,14 @@ function _updateOwnedTokenIds(address from, address to, uint256[] ids) internal
 ```
 
 Updates the mapping from address to set of owned token IDs.
-Called during `_afterTokenTransfer`.
 
+<i>Called during `_afterTokenTransfer`.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | from | address | The address from which tokens were transferred. |
 | to | address | The address to which tokens were transferred. |
-| ids | uint256[] | The token ids that were transferred. |
+| ids | uint256[] | The token IDs that were transferred. |
 
 
 ### _validateRemoval
@@ -745,8 +806,8 @@ function _validateRemoval(uint256 id) internal view
 ```
 
 Validates that the provided `id` should be minted.
-Reverts if a project id has already been set for `id`.
 
+<i>Reverts if a project ID has already been set for `id`.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
