@@ -197,15 +197,20 @@ extendEnvironment((hre) => {
   hre.log = lazyFunction(() => log);
   hre.trace = lazyFunction(() => trace);
   hre.debug = lazyFunction(() => debug);
-  // All live networks will try to use fireblocks
-  if (Boolean(hre.config.fireblocks.apiKey) && hre.network.config.live) {
-    hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
-    hre.log('Installed fireblocks signers');
+  // All live networks will try to use fireblocks and fall back to hd wallet
+  if (hre.network.config.live) {
+    if (Boolean(hre.config.fireblocks.apiKey)) {
+        hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
+        hre.log('Using fireblocks signer');
+    } else {
+        hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
+        hre.log('Using alchemy + hd wallet signer');
+    }
   } else {
     hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
     hre.namedSigners = lazyObject(() => getNamedSigners(hre)); // for testing only // todo rename namedHardhatSigners or { hardhat: {...}, fireblocks: {...}}
     hre.namedAccounts = lazyObject(() => namedAccounts); // todo rename namedHardhatAccounts or { hardhat: {...}, fireblocks: {...}}
-    hre.log('Installed hardhat ethers signers');
+    hre.log('Using hardhat signer');
   }
   hre.deployNonUpgradeable = lazyFunction(() => deployNonUpgradeable);
   hre.deployOrUpgradeProxy = lazyFunction(() => deployOrUpgradeProxy);

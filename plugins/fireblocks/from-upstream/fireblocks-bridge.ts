@@ -83,7 +83,7 @@ export class EthersCustomBridge extends EthersBridge {
   }
 
   async sendTypedSigningRequest(
-    payload: string,
+    payload: any,
     txNote?: string
   ): Promise<CreateTransactionResponse> {
     const txArguments: TransactionArguments = {
@@ -98,9 +98,9 @@ export class EthersCustomBridge extends EthersBridge {
         rawMessageData: {
           messages: [
             {
-              content: Buffer.from(payload).toString("hex"),
+              content: payload,
               index: 0,
-              type: "ETH_MESSAGE"
+              type: "EIP712"
             },
           ],
         },

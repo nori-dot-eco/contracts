@@ -45,6 +45,9 @@ const goerli: NetworkUserConfig = {
   gasPrice: 8_000_000_000,
   live: true,
   tags: ['mainnet', 'staging'],
+  ...(typeof MNEMONIC === 'string' && {
+    accounts: { mnemonic: MNEMONIC },
+  }),
 };
 
 const mumbai: NetworkUserConfig = {
@@ -53,6 +56,9 @@ const mumbai: NetworkUserConfig = {
   gasPrice: 35_000_000_000,
   live: true,
   tags: ['polygon', 'staging'],
+  ...(typeof MNEMONIC === 'string' && {
+    accounts: { mnemonic: MNEMONIC },
+  }),
 };
 
 const polygon: NetworkUserConfig = {

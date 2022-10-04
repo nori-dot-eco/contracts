@@ -362,11 +362,10 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       );
     }
     const payload = 
-      _TypedDataEncoder.getPayload(populated.domain, types, populated.value)
-    const payloadString = JSON.stringify(payload);
+      _TypedDataEncoder.getPayload(populated.domain, types, populated.value);
     const txInfo = await this._bridge.sendTypedSigningRequest(
-      payloadString,
-      `${this.memo} ${payload.primaryType} ${JSON.stringify(payload.message)}`
+      payload,
+      `${this.memo} ${payload.primaryType}`
     );
     await this._bridge.waitForTxHash(txInfo.id);
     const txDetail = await this.fireblocksApiClient.getTransactionById(
