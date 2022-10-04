@@ -21,22 +21,23 @@ export const TASK = {
   ): Promise<void> => {
     const [signer] = await hre.getSigners();
     const domain = {
-      name: 'FooToken',
+      name: 'NORI',
       version: '1',
       chainId: hre.network.config.chainId,
+      verifyingContract: '0xB3fe45C08137dD6adACb2918D899e0C0dBB036C8',
     };
-    const addr = "0x465d5a3fFeA4CD109043499Fa576c3E16f918463";
+    const owner = '0x0F032F48fD4b38eA605F438922CA19FA79d0e6A7';
+    const spender = '0xcdcb43cb7b668f0c1ca04fe4b60da7f8c62be393';
     const value = {
-      owner: addr,
-      spender: addr,
-      value: ethers.utils.parseEther('100'),
-      nonce: 1,
-      deadline: 2000000000,
+      owner,
+      spender,
+      value: ethers.BigNumber.from('46425588600000000000000'), // ethers.utils.parseEther('100'),
+      nonce: ethers.BigNumber.from('0'),
+      deadline: 1664492773,
     };
-    console.log(value);
     const signature = await signer._signTypedData(domain, types, value);
-    console.log(`Signature:`, signature);
-    if (ethers.utils.verifyTypedData(domain, types, value, signature)) {
+    const verified = ethers.utils.verifyTypedData(domain, types, value, signature);
+    if (verified == (await signer.getAddress())) {
       console.log(`Verified`);
     } else {
       console.log(`Verification failed`);

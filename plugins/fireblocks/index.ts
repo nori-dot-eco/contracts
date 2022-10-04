@@ -78,10 +78,6 @@ extendConfig(
         undefined,
         2
       );
-      console.warn(
-        `Fireblocks API key and secret are not set.`,
-        `Add the following to your hardhat.config.js exported configuration:\n\n${sampleConfig}\n`
-      );
       config.fireblocks = defaultConfig;
     } else {
       config.fireblocks = {
