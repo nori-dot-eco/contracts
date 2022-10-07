@@ -75,6 +75,9 @@
     },
     "LockedNORI": {
       "proxyAddress": "0xCcFfFA6c2a030821331cC113b63babDC60BfF82A"
+    },
+    "RestrictedNORI": {
+      "proxyAddress": "0x11630f28ACbe4784B4E96f5356f660Dff9a08dDd"
     }
   },
   "mainnet": {
