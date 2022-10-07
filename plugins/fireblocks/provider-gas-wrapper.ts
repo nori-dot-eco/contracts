@@ -12,9 +12,6 @@ import type { BigNumber } from '@ethersproject/bignumber';
  * and have the fireblocks signer take it as a constructor argument
  */
 
-// curl -H "Authorization: xxxx" https://api.blocknative.com/gasprices/blockprices
-// {"system":"ethereum","network":"main","unit":"gwei","maxPrice":55,"currentBlockNumber":14562255,"msSinceLastBlock":29419,"blockPrices":[{"blockNumber":14562256,"estimatedTransactionCount":431,"baseFee":31.171002417,"estimatedPrices":[{"confidence":99,"price":33,"maxPriorityFee":2,"maxFee":64.34},{"confidence":95,"price":32,"maxPriorityFee":1.62,"maxFee":63.96},{"confidence":90,"price":32,"maxPriorityFee":1.51,"maxFee":63.85},{"confidence":80,"price":32,"maxPriorityFee":1.5,"maxFee":63.84},{"confidence":70,"price":32,"maxPriorityFee":1.17,"maxFee":63.51}]}]}%
-
 enum GasSpeed {
   SAFE_LOW = 'safe_low',
   STANDARD = 'standard',
@@ -49,6 +46,7 @@ function parseGwei(value: number | string): BigNumber {
   }
   return ethers.utils.parseUnits(value, 'gwei');
 }
+
 interface GasStationResponse {
   safeLow: { maxFee: number; maxPriorityFee: number };
   standard: { maxFee: number; maxPriorityFee: number };
