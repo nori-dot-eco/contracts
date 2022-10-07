@@ -1,5 +1,6 @@
 import { JsonRpcBatchProvider } from '@ethersproject/providers';
 import type { FeeData } from '@ethersproject/abstract-provider';
+import type { BigNumber } from '@ethersproject/bignumber';
 
 /**
  * This module packages up gas fee estimation logic.
@@ -13,6 +14,12 @@ import type { FeeData } from '@ethersproject/abstract-provider';
 
 // curl -H "Authorization: xxxx" https://api.blocknative.com/gasprices/blockprices
 // {"system":"ethereum","network":"main","unit":"gwei","maxPrice":55,"currentBlockNumber":14562255,"msSinceLastBlock":29419,"blockPrices":[{"blockNumber":14562256,"estimatedTransactionCount":431,"baseFee":31.171002417,"estimatedPrices":[{"confidence":99,"price":33,"maxPriorityFee":2,"maxFee":64.34},{"confidence":95,"price":32,"maxPriorityFee":1.62,"maxFee":63.96},{"confidence":90,"price":32,"maxPriorityFee":1.51,"maxFee":63.85},{"confidence":80,"price":32,"maxPriorityFee":1.5,"maxFee":63.84},{"confidence":70,"price":32,"maxPriorityFee":1.17,"maxFee":63.51}]}]}%
+
+enum GasSpeed {
+  SAFE_LOW = 'safe_low',
+  STANDARD = 'standard',
+  FAST = 'fast',
+}
 
 // Sensible defaults -- all in gwei
 const defaultGasFeeSettings: {
@@ -36,8 +43,12 @@ const defaultGasFeeSettings: {
   },
 };
 
-type GasSpeed = 'safeLow' | 'standard' | 'fast';
-
+function parseGwei(value: number | string): BigNumber {
+  if (typeof value === 'number') {
+    return ethers.utils.parseUnits(value.toFixed(3), 'gwei');
+  }
+  return ethers.utils.parseUnits(value, 'gwei');
+}
 interface GasStationResponse {
   safeLow: { maxFee: number; maxPriorityFee: number };
   standard: { maxFee: number; maxPriorityFee: number };
@@ -57,14 +68,21 @@ const polygonGasStation = async (
   const response = await fetch(url);
   // Gas station data is in gwei
   const fees: GasStationResponse = await response.json();
-  const feeData = fees[level];
+  let feeData;
+  switch (level) {
+    case GasSpeed.SAFE_LOW:
+      feeData = fees.safeLow;
+      break;
+    case GasSpeed.FAST:
+      feeData = fees.fast;
+      break;
+    default:
+      feeData = fees.standard;
+  }
   return {
-    maxFeePerGas: ethers.utils.parseUnits(feeData.maxFee.toFixed(3), 'gwei'),
-    maxPriorityFeePerGas: ethers.utils.parseUnits(
-      feeData.maxPriorityFee.toFixed(3),
-      'gwei'
-    ),
-    gasPrice: ethers.utils.parseUnits(feeData.maxFee.toFixed(3), 'gwei'),
+    maxFeePerGas: parseGwei(feeData.maxFee),
+    maxPriorityFeePerGas: parseGwei(feeData.maxPriorityFee),
+    gasPrice: parseGwei(feeData.maxFee),
   };
 };
 
@@ -114,11 +132,11 @@ const ethereumGasStation = async (
   }
   let feeForLevel: string;
   switch (level) {
-    case 'safeLow': {
+    case GasSpeed.SAFE_LOW: {
       feeForLevel = fees.SafeGasPrice;
       break;
     }
-    case 'fast': {
+    case GasSpeed.FAST: {
       feeForLevel = fees.FastGasPrice;
       break;
     }
@@ -128,20 +146,17 @@ const ethereumGasStation = async (
     }
   }
   return {
-    maxFeePerGas: ethers.utils.parseUnits(feeForLevel, 'gwei'),
-    maxPriorityFeePerGas: ethers.utils.parseUnits(
-      (
-        Number.parseFloat(feeForLevel) - Number.parseFloat(fees.suggestBaseFee)
-      ).toFixed(3),
-      'gwei'
+    maxFeePerGas: parseGwei(feeForLevel),
+    maxPriorityFeePerGas: parseGwei(
+      Number.parseFloat(feeForLevel) - Number.parseFloat(fees.suggestBaseFee)
     ),
-    gasPrice: ethers.utils.parseUnits(feeForLevel, 'gwei'),
+    gasPrice: parseGwei(feeForLevel),
   };
 };
 
 async function getFeeDataForChain(
   chainId: number,
-  level: GasSpeed = 'fast'
+  level: GasSpeed = GasSpeed.FAST
 ): Promise<FeeData> {
   if (chainId === 1) {
     return ethereumGasStation(level, ETHEREUM_MAINNET_URL);
@@ -153,18 +168,11 @@ async function getFeeDataForChain(
     return polygonGasStation(level, POLYGON_MUMBAI_URL);
   }
   return Promise.resolve({
-    maxFeePerGas: ethers.utils.parseUnits(
-      defaultGasFeeSettings[chainId].maxFeePerGas,
-      'gwei'
+    maxFeePerGas: parseGwei(defaultGasFeeSettings[chainId].maxFeePerGas),
+    maxPriorityFeePerGas: parseGwei(
+      defaultGasFeeSettings[chainId].maxPriorityFeePerGas
     ),
-    maxPriorityFeePerGas: ethers.utils.parseUnits(
-      defaultGasFeeSettings[chainId].maxPriorityFeePerGas,
-      'gwei'
-    ),
-    gasPrice: ethers.utils.parseUnits(
-      defaultGasFeeSettings[chainId].maxFeePerGas,
-      'gwei'
-    ),
+    gasPrice: parseGwei(defaultGasFeeSettings[chainId].maxFeePerGas),
   });
 }
 
