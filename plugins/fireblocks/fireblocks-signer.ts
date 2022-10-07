@@ -10,8 +10,9 @@ import type {
   TransactionRequest,
   TransactionResponse,
 } from '@ethersproject/providers';
-import { UnsignedTransaction, _TypedDataEncoder } from 'ethers/lib/utils';
+import type { UnsignedTransaction } from 'ethers/lib/utils';
 import {
+  _TypedDataEncoder,
   resolveProperties,
   Logger,
   keccak256,
@@ -23,7 +24,7 @@ import type { Bytes } from '@ethersproject/bytes';
 import type { PopulatedTransaction } from 'ethers';
 import { BigNumber, ethers, constants } from 'ethers';
 import { TransactionStatus } from 'fireblocks-sdk';
-import type { FireblocksSDK } from 'fireblocks-sdk';
+import type { FireblocksSDK } from 'fireblocks-defi-sdk';
 import { Chain } from 'fireblocks-defi-sdk';
 
 import { EthersCustomBridge } from './from-upstream/fireblocks-bridge';
@@ -43,7 +44,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
 
   constructor(
     fireblocksApiClient: FireblocksSDK,
-    chain: Chain = Chain.POLYGON,
+    chain: Chain,
     provider: JsonRpcProvider,
     vaultAccountId?: string
   ) {
@@ -60,6 +61,23 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     });
   }
 
+  static async _transactionRequestToUnsignedTransaction(
+    tx: Deferrable<TransactionRequest>
+  ): Promise<UnsignedTransaction> {
+    const txResolved = await resolveProperties(tx);
+    return {
+      ...txResolved,
+      chainId: txResolved.chainId || undefined,
+      data: txResolved.data ? ethers.utils.hexlify(txResolved.data) : undefined,
+      nonce:
+        txResolved.nonce !== undefined
+          ? ethers.BigNumber.from(txResolved.nonce).toNumber()
+          : undefined,
+      to: txResolved.to || undefined,
+      value: txResolved.value ? BigNumber.from(txResolved.value) : undefined,
+    };
+  }
+
   async getAddress(): Promise<string> {
     try {
       const addresses = await this.fireblocksApiClient.getDepositAddresses(
@@ -73,7 +91,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       }
       return ethers.utils.getAddress(addresses[0].address);
     } catch (error) {
-      console.log(
+      log.warn(
         `Fireblocks signer: Failed to load addresses for vault ${this.vaultAccountId} and asset ${this._bridge.assetId}`
       );
       throw error;
@@ -84,15 +102,9 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     this.memo = memo;
   }
 
-  async _fail(message: string, operation: string): Promise<any> {
-    log.throwError(message, Logger.errors.UNSUPPORTED_OPERATION, {
-      operation,
-    });
-  }
-
   async signMessage(message: Bytes | string): Promise<string> {
     const data = typeof message === 'string' ? toUtf8Bytes(message) : message;
-    return await this._signMessage(data);
+    return this._signMessage(data);
   }
 
   /**
@@ -157,7 +169,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     const maxPriorityFeePerGas =
       transaction.maxPriorityFeePerGas !== undefined
         ? ethers.utils.parseUnits(
-            `${transaction.maxPriorityFeePerGas!}`,
+            `${await transaction.maxPriorityFeePerGas!}`,
             'gwei'
           )
         : undefined;
@@ -184,24 +196,7 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
         maxPriorityFeePerGas: tx.maxPriorityFeePerGas?.toString(),
       })}`
     );
-    return this._transactionRequestToUnsignedTransaction(tx);
-  }
-
-  async _transactionRequestToUnsignedTransaction(
-    tx: Deferrable<TransactionRequest>
-  ): Promise<UnsignedTransaction> {
-    const txResolved = await resolveProperties(tx);
-    return {
-      ...txResolved,
-      chainId: txResolved.chainId || undefined,
-      data: txResolved.data ? ethers.utils.hexlify(txResolved.data) : undefined,
-      nonce:
-        txResolved.nonce !== undefined
-          ? ethers.BigNumber.from(txResolved.nonce).toNumber()
-          : undefined,
-      to: txResolved.to || undefined,
-      value: txResolved.value ? BigNumber.from(txResolved.value) : undefined,
-    };
+    return FireblocksSigner._transactionRequestToUnsignedTransaction(tx);
   }
 
   async _signTransaction(transaction: UnsignedTransaction): Promise<string> {
@@ -248,8 +243,11 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       txInfo.id
     );
     if (txDetail.status !== TransactionStatus.COMPLETED) {
-      log.debug(txDetail);
-      throw new Error(`Transaction failed: ${JSON.stringify(txDetail)}`);
+      log.throwError(
+        `Transaction failed: ${JSON.stringify(txDetail)}`,
+        Logger.errors.UNKNOWN_ERROR,
+        txDetail
+      );
     }
     const sig = await txDetail.signedMessages![0].signature;
     const signedMessage = ethers.utils.serializeTransaction(transaction, {
@@ -265,15 +263,9 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     transaction: Deferrable<TransactionRequest>
   ): Promise<string> {
     const baseTx = await this._populateTransaction(transaction);
-    let tx;
-    if (transaction.to) {
-      // looks like a contract interaction
-      tx = await this._signTransaction(baseTx);
-    } else {
-      // looks like a deploy
-      tx = await this._signRawTransaction(baseTx);
-    }
-    return tx;
+    return Boolean(transaction.to)
+      ? this._signTransaction(baseTx)
+      : this._signRawTransaction(baseTx);
   }
 
   async sendTransaction(
@@ -285,25 +277,29 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
     const baseTx: UnsignedTransaction = await this._populateTransaction(
       transaction
     );
-    if (transaction.to) {
+    if (Boolean(transaction.to)) {
       // looks like a contract interaction
       txHash = await this._signTransaction(baseTx);
     } else {
       // looks like a deploy
       const tx = await this._signRawTransaction(baseTx);
       try {
-        console.log(`Submitting signed transaction to the network`);
+        log.info(`Submitting signed transaction to the network`);
         const txResponse = await this.provider!.sendTransaction(tx);
         txHash = txResponse.hash;
       } catch (error) {
-        console.log(
+        log.warn(
           `Error forwarding signed raw txn to provider (type: ${typeof error})`
         );
         try {
           const body = JSON.parse((error as any).body);
-          console.log(`Error message: ${body.message}`);
+          log.makeError(`Error message: ${body.message}`);
         } catch {
-          console.log('cannot parse error', error);
+          log.makeError(
+            'cannot parse error',
+            Logger.errors.UNKNOWN_ERROR,
+            error
+          );
         }
         throw error;
       }
@@ -330,16 +326,16 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
 
   /**
    * Implements typed signing following the ethers TypedDataSigner interface.
-   * 
+   *
    * Ethers 6.x will rename this to signTypedData and fold TypedDataSigner
    * into the standard Signer interface.
-   * 
+   *
    * Based on jsonrpc signer implementation: https://github.com/ethers-io/ethers.js/blob/master/packages/providers/src.ts/json-rpc-provider.ts#L334
    * See also https://support.fireblocks.io/hc/en-us/articles/4413379762450-Off-Chain-Message-Signing#h_01FE9VKBH6SG9EFT9G097ZV3ET
-   * 
-   * @param domain 
-   * @param types 
-   * @param value 
+   *
+   * @param domain
+   * @param types
+   * @param value
    * @returns Signature string
    */
   async _signTypedData(
@@ -355,14 +351,15 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
         types,
         value,
         (name: string) => {
-          return this.provider!.resolveName(name).then(
-            (value) => value || name
-          );
+          return this.provider!.resolveName(name).then((v) => v || name);
         }
       );
     }
-    const payload = 
-      _TypedDataEncoder.getPayload(populated.domain, types, populated.value);
+    const payload = _TypedDataEncoder.getPayload(
+      populated.domain,
+      types,
+      populated.value
+    );
     const txInfo = await this._bridge.sendTypedSigningRequest(
       payload,
       `${this.memo} ${payload.primaryType}`
