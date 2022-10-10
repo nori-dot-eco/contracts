@@ -62,19 +62,22 @@
   },
   "polygon": {
     "Removal": {
-      "proxyAddress": "0x0000000000000000000000000000000000000000"
+      "proxyAddress": "0xCBf641EF5578A92fdaB22F869073ff224fB4D74A"
     },
     "Certificate": {
-      "proxyAddress": "0x0000000000000000000000000000000000000000"
+      "proxyAddress": "0x2076bDd93b64db17Cb6bffD517347E5C1ad76035"
     },
     "BridgedPolygonNORI": {
-      "proxyAddress": "0x8cf6E82919f69aE382DEf8f94e581a43Ce1E70C1"
+      "proxyAddress": "0x5922Da38963429b12CA3d7a60f9435AA1f3e8C1D"
     },
     "Market": {
-      "proxyAddress": "0x0000000000000000000000000000000000000000"
+      "proxyAddress": "0xB1a88A8c08670c1e4A76fF0bA567af92D901dE9d"
     },
     "LockedNORI": {
       "proxyAddress": "0xCcFfFA6c2a030821331cC113b63babDC60BfF82A"
+    },
+    "RestrictedNORI": {
+      "proxyAddress": "0xF1dAcBbB0e812368A099f75672752A0e9eA6C32b"
     }
   },
   "mainnet": {
@@ -82,7 +85,7 @@
       "proxyAddress": "0xBBbD7AEBD29360a34ceA492e012B9A2119DEd306"
     },
     "NORI": {
-      "proxyAddress": "0x0000000000000000000000000000000000000000"
+      "proxyAddress": "0xFAdEDFe89B5A530C0a7f69bE442E190751a13093"
     }
   },
   "mumbai": {
