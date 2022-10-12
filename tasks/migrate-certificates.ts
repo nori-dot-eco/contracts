@@ -159,3 +159,5 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
     )
     .addFlag('dryRun', 'simulate the transaction without actually sending it');
 })();
+
+// TODO: add a task to verify the migration was successful?
