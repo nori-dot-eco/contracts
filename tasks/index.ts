@@ -23,6 +23,7 @@ import { TASK as BRIDGED_POLYGON_NORI_TASK } from './bridged-polygon-nori';
 import { DEFENDER_ADD_TASK } from './defender';
 import { GET_VESTING_TASK as VESTING_TASK } from './vesting'; // todo make work with forked repo
 import { GET_MIGRATE_REMOVALS_TASK } from './migrate-removals';
+import { GET_MIGRATE_CERTIFICATES_TASK } from './migrate-certificates';
 import { TASK as FORCE_UPGRADE_TASK } from './force-ugrade';
 import { TASK as SIGN_MESSAGE_TASK } from './sign-message';
 import { TASK as TEST_SIGN_TYPED_TASK } from './test-sign-typed';
@@ -75,6 +76,7 @@ export const TASKS = {
   [DEFENDER_ADD_TASK.name]: { ...DEFENDER_ADD_TASK },
   [VESTING_TASK.name]: { ...VESTING_TASK }, // todo make work with forked repo
   [GET_MIGRATE_REMOVALS_TASK.name]: { ...GET_MIGRATE_REMOVALS_TASK },
+  [GET_MIGRATE_CERTIFICATES_TASK.name]: { ...GET_MIGRATE_CERTIFICATES_TASK },
   [FORCE_UPGRADE_TASK.name]: { ...FORCE_UPGRADE_TASK },
   [SIGN_MESSAGE_TASK.name]: { ...SIGN_MESSAGE_TASK },
   [TEST_SIGN_TYPED_TASK.name]: { ...TEST_SIGN_TYPED_TASK },

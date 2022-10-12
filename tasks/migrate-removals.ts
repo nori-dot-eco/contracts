@@ -7,6 +7,7 @@ import type { BigNumber } from 'ethers';
 import { ethers } from 'ethers';
 import type { Signer } from '@ethersproject/abstract-signer';
 import chalk from 'chalk';
+import { parseTransactionLogs } from '@nori-dot-com/contracts/utils/events';
 
 import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
 
@@ -27,18 +28,6 @@ const asciiStringToHexString = (ascii: string): string => {
     .join('')}`;
 };
 
-const parseTransactionLogs = ({
-  contractInstance,
-  txReceipt,
-}: {
-  contractInstance: ethers.Contract;
-  txReceipt: ethers.providers.TransactionReceipt;
-}): ethers.utils.LogDescription[] => {
-  return txReceipt.logs
-    .filter((log) => log.address === contractInstance.address)
-    .map((log) => contractInstance.interface.parseLog(log));
-};
-
 export const GET_MIGRATE_REMOVALS_TASK = () =>
   ({
     name: 'migrate-removals',
@@ -53,9 +42,11 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         dryRun,
       } = options as ParsedMigrateRemovalsTaskOptions;
       const jsonData = JSON.parse(readFileSync(file, 'utf8'));
-      // console.log({ jsonData });
+      console.log({ jsonData });
 
       const [signer] = await hre.getSigners();
+      const signerAddress = await signer.getAddress();
+      console.log({ signerAddress });
       const { getRemoval } = await import('@/utils/contracts');
       const removalContract = await getRemoval({
         hre,
@@ -64,7 +55,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       hre.log(`Removal contract address: ${removalContract.address}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
 
-      // submit all minting transactions synchronously to avoid nonce collision
+      // submit all mintBatch transactions serially to avoid nonce collision!
       const pendingTransactions = [];
       for (const project of jsonData) {
         const amounts = project.amounts.map((amount: string) =>
@@ -85,10 +76,10 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             subdivision: asciiStringToHexString(
               removal.subdivision.slice(0, 2)
             ), // TODO we only want the state code here
-            supplierAddress: '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667', // TODO
-            subIdentifier: 2_004_318_071 + index, // TODO get from removal
+            supplierAddress: '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667', // TODO need real supplier address on the project
+            subIdentifier: (project.projectId % 1000) + index, // TODO get from removal
           };
-          // console.log({ index, removalData });
+          console.log({ index, removalData });
           return removalData;
         });
 
@@ -96,7 +87,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           let pendingTx: ethers.ContractTransaction;
           try {
             pendingTx = await removalContract.mintBatch(
-              '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667', // TODO need real addresses on the project
+              signerAddress, // mint to the consigner
               amounts,
               removals,
               project.projectId,
@@ -113,7 +104,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           // dry run
           try {
             await removalContract.callStatic.mintBatch(
-              '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667', // TODO need real addresses on the project
+              signerAddress, // mint to the consigner
               amounts,
               removals,
               project.projectId,
@@ -133,8 +124,9 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       }
       if (!dryRun) {
         // asynchronously await the completion of all transactions
+        // TODO - proper error handling for the case where one of the transaction had failed and therefor the pending txn is undefined?
         const txResults = await Promise.all(
-          pendingTransactions.map(async (tx) => {
+          pendingTransactions.map(async (tx, index) => {
             const result = await tx.wait(); // TODO specify more than one confirmation?
             const txReceipt =
               await removalContract.provider.getTransactionReceipt(
