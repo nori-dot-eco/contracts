@@ -42,7 +42,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
-      console.log({ signerAddress });
+      // console.log({ signerAddress });
       const { getRemoval } = await import('@/utils/contracts');
       const removalContract = await getRemoval({
         hre,
@@ -71,15 +71,14 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             pendingTx = await removalContract.migrate(
               certificate.ids,
               amounts,
-              signerAddress, // TODO use Nori admin address
+              signerAddress, // TODO use Nori admin address, which may also be the signer?
               ethers.utils
                 .parseUnits(certificate.data.numberOfNrts.toString())
                 .toString()
             );
             pendingTransactions.push(pendingTx);
           } catch (error) {
-            console.error('Error submitting migrate');
-            console.error(error);
+            console.error('Error submitting migrate transaction', error);
           }
         } else {
           // dry run
@@ -116,22 +115,21 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             })
               .filter((log) => log.name === 'Migrate')
               .flatMap((log) => log.args.certificateId.toNumber());
-            const certificateIdFromReceiveRemovalBatchEvent =
-              parseTransactionLogs({
-                contractInstance: certificateContract,
-                txReceipt,
-              })
-                .filter((log) => log.name === 'ReceiveRemovalBatch')
-                .flatMap((log) => log.args.certificateId.toNumber());
+            // const certificateIdFromReceiveRemovalBatchEvent =
+            //   parseTransactionLogs({
+            //     contractInstance: certificateContract,
+            //     txReceipt,
+            //   })
+            //     .filter((log) => log.name === 'ReceiveRemovalBatch')
+            //     .flatMap((log) => log.args.certificateId.toNumber());
             console.log({
-              certificateIdFromMigrateEvent,
-              certificateIdFromReceiveRemovalBatchEvent,
+              tokenId: certificateIdFromMigrateEvent[0],
+              // certificateIdFromReceiveRemovalBatchEvent,
             });
             // TODO make sure the status on this receipt is 1 (success)?
             return {
               txReceipt,
-              certificateIdFromMigrateEvent,
-              certificateIdFromReceiveRemovalBatchEvent,
+              tokenId: certificateIdFromMigrateEvent[0],
             };
           })
         );

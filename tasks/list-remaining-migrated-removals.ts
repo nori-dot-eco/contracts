@@ -9,8 +9,6 @@ import { parseTransactionLogs } from '@nori-dot-com/contracts/utils/events';
 
 import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
 
-import { getMarket } from '@/utils/contracts';
-
 interface ListMigratedRemovalsTaskOptions {
   file: string;
   outputFile?: string;
@@ -37,7 +35,7 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
         dryRun,
       } = options as ParsedListMigratedRemovalsTaskOptions;
       const jsonData = JSON.parse(readFileSync(file, 'utf8'));
-      console.log({ jsonData });
+      // console.log({ jsonData });
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
@@ -47,13 +45,7 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
         hre,
         signer,
       });
-      const marketContract = await getMarket({
-        hre,
-        signer,
-      });
-      hre.log(`Removal contract address: ${removalContract.address}`);
-      hre.log(`Market contract address: ${marketContract.address}`);
-
+      // hre.log(`Removal contract address: ${removalContract.address}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
 
       // get all token ids that were migrated
@@ -89,24 +81,29 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
               ])
             )
           );
-
-          await removalContract.safeBatchTransferFrom(
-            signerAddress, // mint to the consigner
-            marketContract.address,
-            listableTokenIds,
-            listableBalances,
-            '0x'
-          );
           const result = await pendingTx.wait(); // TODO specify more than one confirmation?
           const txReceipt =
             await removalContract.provider.getTransactionReceipt(
               result.transactionHash
             );
           console.log({ txReceipt });
-          // todo - parse logs? what to write?
+          writeFileSync(
+            outputFile,
+            JSON.stringify(
+              {
+                listedTokenIds: listableTokenIds,
+                listedBalances: listableBalances,
+                txReceipt,
+              },
+              null,
+              2
+            )
+          );
         } catch (error) {
-          console.error('Error submitting safeBatchTransferFrom');
-          console.error(error);
+          console.error(
+            'Error submitting multicall consign transaction',
+            error
+          );
         }
       } else {
         // dry run
@@ -129,7 +126,6 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
           );
         }
       }
-      //     writeFileSync(outputFile, JSON.stringify(mintingResults));
     },
   } as const);
 

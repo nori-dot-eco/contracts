@@ -42,11 +42,11 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         dryRun,
       } = options as ParsedMigrateRemovalsTaskOptions;
       const jsonData = JSON.parse(readFileSync(file, 'utf8'));
-      console.log({ jsonData });
+      // console.log({ jsonData });
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
-      console.log({ signerAddress });
+      // console.log({ signerAddress });
       const { getRemoval } = await import('@/utils/contracts');
       const removalContract = await getRemoval({
         hre,
@@ -79,7 +79,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             supplierAddress: '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667', // TODO need real supplier address on the project
             subIdentifier: (project.projectId % 1000) + index, // TODO get from removal
           };
-          console.log({ index, removalData });
+          // console.log({ index, removalData });
           return removalData;
         });
 
@@ -142,7 +142,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
               .flatMap((log) =>
                 log.args.ids.map((id: BigNumber) => id.toHexString())
               );
-            // console.log({ tokenIds });
+            console.log({ tokenIds });
             return {
               txReceipt,
               tokenIds,
