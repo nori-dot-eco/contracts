@@ -1,15 +1,16 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 import { readFileSync, writeFileSync } from 'fs';
 
-import { divide } from 'mathjs';
+import cliProgress from 'cli-progress';
+import { divide } from '@nori-dot-com/math';
 import { task, types } from 'hardhat/config';
 import type { BigNumber } from 'ethers';
 import { ethers } from 'ethers';
-import type { Signer } from '@ethersproject/abstract-signer';
 import chalk from 'chalk';
 import { parseTransactionLogs } from '@nori-dot-com/contracts/utils/events';
 
 import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
+import { getRemoval } from '../utils/contracts';
 
 interface MigrateRemovalsTaskOptions {
   file: string;
@@ -42,21 +43,35 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         dryRun,
       } = options as ParsedMigrateRemovalsTaskOptions;
       const jsonData = JSON.parse(readFileSync(file, 'utf8'));
-      // console.log({ jsonData });
+      // hre.log({ jsonData });
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
-      // console.log({ signerAddress });
-      const { getRemoval } = await import('@/utils/contracts');
       const removalContract = await getRemoval({
         hre,
         signer,
       });
       hre.log(`Removal contract address: ${removalContract.address}`);
+      hre.log(`Signer address: ${signerAddress}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
 
+      if (!dryRun) {
+        hre.log(
+          chalk.bold.white(
+            `✨ Minting removals for ${jsonData.length} projects...`
+          )
+        );
+        hre.log(chalk.white(`🤞 Submitting transactions...`));
+      } else {
+        hre.log(
+          chalk.bold.white(
+            `DRY RUN 🌵 Minting removals for ${jsonData.length} projects...`
+          )
+        );
+      }
       // submit all mintBatch transactions serially to avoid nonce collision!
       const pendingTransactions = [];
+      let projectIndex = 1;
       for (const project of jsonData) {
         const amounts = project.amounts.map((amount: string) =>
           ethers.utils
@@ -75,11 +90,10 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             country: asciiStringToHexString(removal.country),
             subdivision: asciiStringToHexString(
               removal.subdivision.slice(0, 2)
-            ), // TODO we only want the state code here
+            ), // TODO we only want the state code here, original script was giving full substring
             supplierAddress: '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667', // TODO need real supplier address on the project
             subIdentifier: (project.projectId % 1000) + index, // TODO get from removal
           };
-          // console.log({ index, removalData });
           return removalData;
         });
 
@@ -92,16 +106,28 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
               removals,
               project.projectId,
               // firstProject.scheduleStartTime, // TODO this can't be 0
+              // projectIndex === 1 ? 0 : 1_665_441_893, // <-- to induce a revert
               1_665_441_893,
               project.holdbackPercentage
             );
+
             pendingTransactions.push(pendingTx);
+            hre.log(
+              `(${projectIndex}/${jsonData.length}) projectId: ${
+                project.projectId
+              } txHash: ${chalk.green(pendingTx.hash)}`
+            );
           } catch (error) {
-            console.error('Error submitting mintBatch');
-            console.error(error);
+            hre.log(
+              `(${projectIndex}/${jsonData.length}) projectId: ${
+                project.projectId
+              } ${chalk.red('error')}`
+            );
+            pendingTransactions.push(error);
           }
         } else {
           // dry run
+
           try {
             await removalContract.callStatic.mintBatch(
               signerAddress, // mint to the consigner
@@ -109,55 +135,105 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
               removals,
               project.projectId,
               // firstProject.scheduleStartTime, // TODO this can't be 0
-              1_665_441_893, // default to now
+              // projectIndex === 1 ? 0 : 1_665_441_893, // <-- to induce a revert
+              1_665_441_893,
               project.holdbackPercentage
             );
             hre.log(
-              chalk.bold.bgWhiteBright.black(`🎉  Dry run was successful!`)
+              `(${projectIndex}/${jsonData.length}) projectId: ${project.projectId} 🎉  Dry run was successful!`
             );
-          } catch (error) {
+          } catch {
             hre.log(
-              chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
+              `(${projectIndex}/${jsonData.length}) projectId: ${project.projectId} 💀 Dry run was unsuccessful!`
             );
           }
         }
+        projectIndex += 1;
       }
       if (!dryRun) {
+        hre.log(chalk.white('\n👷 Waiting for transactions to finalize...'));
+        const PROGRESS_BAR = new cliProgress.SingleBar(
+          {},
+          cliProgress.Presets.shades_classic
+        );
+        PROGRESS_BAR.start(pendingTransactions.length, 0);
+
+        hre.log(`\n`);
+        let successfulTxnCount = 0;
+        let failedTxnCount = 0;
+
         // asynchronously await the completion of all transactions
-        // TODO - proper error handling for the case where one of the transaction had failed and therefor the pending txn is undefined?
         const txResults = await Promise.all(
           pendingTransactions.map(async (tx, index) => {
-            const result = await tx.wait(); // TODO specify more than one confirmation?
-            const txReceipt =
-              await removalContract.provider.getTransactionReceipt(
-                result.transactionHash
-              );
-            // TODO make sure the status on this receipt is 1 (success)?
-            // console.log({ txReceipt });
-            const tokenIds = parseTransactionLogs({
-              contractInstance: removalContract,
-              txReceipt,
-            })
-              .filter((log) => log.name === 'TransferBatch')
-              .flatMap((log) =>
-                log.args.ids.map((id: BigNumber) => id.toHexString())
-              );
-            console.log({ tokenIds });
+            let txResult;
+            let tokenIds;
+            if (tx instanceof Error) {
+              txResult = tx;
+              failedTxnCount += 1;
+            } else {
+              const result = await tx.wait(); // TODO specify more than one confirmation?
+              const txReceipt =
+                await removalContract.provider.getTransactionReceipt(
+                  result.transactionHash
+                );
+              tokenIds = parseTransactionLogs({
+                contractInstance: removalContract,
+                txReceipt,
+              })
+                .filter((log) => log.name === 'TransferBatch')
+                .flatMap((log) =>
+                  log.args.ids.map((id: BigNumber) => id.toHexString())
+                );
+              if (txReceipt.status === 1) {
+                successfulTxnCount += 1;
+              } else {
+                failedTxnCount += 1;
+              }
+              txResult = txReceipt;
+            }
+
+            // TODO get rid of this fake asynchronous delay
+            await new Promise((resolve) => {
+              setTimeout(resolve, Math.random() * 6000);
+            });
+            PROGRESS_BAR.increment();
             return {
-              txReceipt,
+              txReceiptOrError: txResult,
               tokenIds,
             };
           })
         );
+        PROGRESS_BAR.stop();
+        hre.log(`\n`);
+        hre.log(
+          chalk.bold.green(
+            `\nMinted ${successfulTxnCount} projects successfully!`
+          )
+        );
+        hre.log(
+          failedTxnCount
+            ? chalk.bold.red(`Failed to mint ${failedTxnCount} projects.`)
+            : chalk.bold.green(`Failed to mint 0 projects.`)
+        );
         const mintingResults = jsonData.map((project, index) => {
           const txResult = txResults[index];
+          hre.log(
+            `(${index + 1}/${jsonData.length}) projectId: ${
+              project.projectId
+            }, Transaction status: ${
+              txResult.txReceiptOrError.status ?? 'error'
+            }`
+          );
+
           return {
             ...project,
-            txReceipt: txResult.txReceipt,
+            txReceiptOrError: txResult.txReceiptOrError,
             tokenIds: txResult.tokenIds,
           };
         });
         writeFileSync(outputFile, JSON.stringify(mintingResults));
+        hre.log(chalk.white(`📝 Wrote results to ${outputFile}`));
+        hre.log(chalk.white.bold(`🎉 Done!`));
       }
     },
   } as const);

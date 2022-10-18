@@ -1,11 +1,8 @@
 import { readFileSync, writeFileSync } from 'fs';
 
-import { divide } from 'mathjs';
 import { task, types } from 'hardhat/config';
-import type { BigNumber, ethers } from 'ethers';
-import type { Signer } from '@ethersproject/abstract-signer';
 import chalk from 'chalk';
-import { parseTransactionLogs } from '@nori-dot-com/contracts/utils/events';
+import { ethers } from 'ethers';
 
 import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
 
@@ -35,24 +32,49 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
         dryRun,
       } = options as ParsedListMigratedRemovalsTaskOptions;
       const jsonData = JSON.parse(readFileSync(file, 'utf8'));
-      // console.log({ jsonData });
+      // hre.log({ jsonData });
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
-      console.log({ signerAddress });
       const { getRemoval } = await import('@/utils/contracts');
       const removalContract = await getRemoval({
         hre,
         signer,
       });
-      // hre.log(`Removal contract address: ${removalContract.address}`);
+      hre.log(`Removal contract address: ${removalContract.address}`);
+      hre.log(`Signer address: ${signerAddress}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
 
-      // get all token ids that were migrated
-      const migratedTokenIds = jsonData.flatMap((project) => project.tokenIds);
-      console.log({ migratedTokenIds });
+      if (!dryRun) {
+        hre.log(
+          chalk.bold.white(
+            `✨ Listing unsold removals for ${jsonData.length} projects...`
+          )
+        );
+      } else {
+        hre.log(
+          chalk.bold.white(
+            `DRY RUN 🌵 Listing unsold removals for ${jsonData.length} projects...`
+          )
+        );
+      }
+
+      const allMigratedRemovalIds = jsonData.flatMap(
+        (project) => project.tokenIds
+      );
+      if (allMigratedRemovalIds.includes(undefined)) {
+        hre.log(
+          chalk.bold.red(
+            `❌ Some migrated projects have undefined token ids. Please check the input file for transaction errors during minting. Exiting...`
+          )
+        );
+        return;
+      }
+
+      hre.log(chalk.white(`👀 Querying unsold removal balances...`));
+
       const remainingBalanceData = await Promise.all(
-        migratedTokenIds.map(async (tokenId) => {
+        allMigratedRemovalIds.map(async (tokenId) => {
           const balance = await removalContract.balanceOf(
             signerAddress,
             tokenId
@@ -60,16 +82,38 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
           return { tokenId, balance };
         })
       );
-      console.log({ remainingBalanceData });
       // filter out token ids that have a balance of 0
       const listableData = remainingBalanceData.filter((data) =>
         data.balance.gt(0)
       );
-      console.log({ listableData });
 
       const listableTokenIds = listableData.map((data) => data.tokenId);
       const listableBalances = listableData.map((data) => data.balance);
+      // sum the listable balances and convert to ether
+      const totalListableBalance = listableBalances.reduce(
+        (accumulator, balance) => accumulator.add(balance),
+        ethers.BigNumber.from(0)
+      );
+      const totalListableBalanceInEther =
+        ethers.utils.formatEther(totalListableBalance);
+
+      hre.log(
+        chalk.white(
+          `🔎 Found ${listableTokenIds.length} removal tokens with a total listable balance of ${totalListableBalanceInEther} NRTs`
+        )
+      );
+      // if there are no listable token ids, exit
+      if (listableTokenIds.length === 0) {
+        hre.log(
+          chalk.white(
+            `👋 No listable token ids found (no non-zero balances), exiting without listing any removals...`
+          )
+        );
+        return;
+      }
       if (!dryRun) {
+        hre.log(chalk.white(`🤞 Submitting multicall consign transaction...`));
+        let txResult;
         let pendingTx: ethers.ContractTransaction;
         try {
           pendingTx = await removalContract.multicall(
@@ -81,30 +125,50 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
               ])
             )
           );
+          hre.log(`txHash: ${chalk.green(pendingTx.hash)}`);
+          hre.log(chalk.white('\n👷 Waiting for transaction to finalize...'));
+
           const result = await pendingTx.wait(); // TODO specify more than one confirmation?
           const txReceipt =
             await removalContract.provider.getTransactionReceipt(
               result.transactionHash
             );
-          console.log({ txReceipt });
-          writeFileSync(
-            outputFile,
-            JSON.stringify(
-              {
-                listedTokenIds: listableTokenIds,
-                listedBalances: listableBalances,
-                txReceipt,
-              },
-              null,
-              2
-            )
-          );
+          // if the status is 1, log a success message, otherwise log a failure
+          if (txReceipt.status === 1) {
+            hre.log(
+              chalk.green(
+                `✅ Successfully listed ${totalListableBalanceInEther} NRTs across ${listableTokenIds.length} removals!`
+              )
+            );
+          } else {
+            hre.log(
+              chalk.red(
+                `❌ Failed to list the removals! Check out the transaction receipt in the output.`
+              )
+            );
+          }
+          txResult = txReceipt;
         } catch (error) {
-          console.error(
-            'Error submitting multicall consign transaction',
+          hre.log(
+            chalk.red('❌ Error submitting multicall consign transaction: '),
             error
           );
+          txResult = error;
         }
+        writeFileSync(
+          outputFile,
+          JSON.stringify(
+            {
+              listedTokenIds: listableTokenIds,
+              listedBalances: listableBalances,
+              txReceiptOrError: txResult,
+            },
+            null,
+            2
+          )
+        );
+        hre.log(chalk.white(`📝 Wrote results to ${outputFile}`));
+        hre.log(chalk.white.bold(`🎉 Done!`));
       } else {
         // dry run
         try {

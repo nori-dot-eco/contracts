@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
+    "cli-progress": "^3.11.2",
     "@codechecks/client": "^0.1.12",
     "@ethersproject/abstract-signer": "5.7.0",
     "@ethersproject/properties": "5.7.0",
