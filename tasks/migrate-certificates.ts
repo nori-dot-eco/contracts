@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import cliProgress from 'cli-progress';
 import { divide } from '@nori-dot-com/math';
 import { task, types } from 'hardhat/config';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import chalk from 'chalk';
 import { parseTransactionLogs } from '@nori-dot-com/contracts/utils/events';
 
@@ -37,7 +37,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         dryRun,
       } = options as ParsedMigrateCertificatesTaskOptions;
       const jsonData = JSON.parse(readFileSync(file, 'utf8'));
-      // hre.log({ jsonData });
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
@@ -55,16 +54,21 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       hre.log(`Signer address: ${signerAddress}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
 
-      // submit all migrate transactions serially to avoid nonce collision!
-      let certificateIndex = 1;
-      const pendingTransactions = [];
+      let PROGRESS_BAR;
+      const outputData = [];
       if (!dryRun) {
         hre.log(
           chalk.bold.white(
             `✨ Migrating ${jsonData.length} legacy certificates...`
           )
         );
-        hre.log(chalk.white(`🤞 Submitting transactions...`));
+        PROGRESS_BAR = new cliProgress.SingleBar(
+          {},
+          cliProgress.Presets.shades_classic
+        );
+        PROGRESS_BAR.start(jsonData.length, 0);
+
+        hre.log(`\n`);
       } else {
         hre.log(
           chalk.bold.white(
@@ -73,10 +77,11 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         );
       }
 
+      let certificateIndex = 1;
       for (const certificate of jsonData) {
         const amounts = certificate.amounts.map((amount: string) =>
           ethers.utils
-            .parseUnits(divide(Number(amount), 1_000_000).toString())
+            .parseUnits(BigNumber.from(amount).div(1_000_000).toString())
             .toString()
         );
 
@@ -91,19 +96,50 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
                 .parseUnits(certificate.data.numberOfNrts.toString())
                 .toString()
             );
-            pendingTransactions.push(pendingTx);
-            hre.log(
-              `(${certificateIndex}/${jsonData.length}) datastore ID: ${
-                certificate.id
-              } txHash: ${chalk.green(pendingTx.hash)}`
+            const result = await pendingTx.wait(); // TODO specify more than one confirmation?
+            const txReceipt =
+              await removalContract.provider.getTransactionReceipt(
+                result.transactionHash
+              );
+            const tokenId = parseTransactionLogs({
+              contractInstance: removalContract,
+              txReceipt,
+            })
+              .filter((log) => log.name === 'Migrate')
+              .flatMap((log) => log.args.certificateId.toNumber())[0];
+
+            if (txReceipt.status !== 1) {
+              // log an error that this transaction hash failed and we are exiting early
+              hre.log(
+                chalk.red(
+                  `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
+                )
+              );
+              return;
+            }
+            // TODO remove this random sleep
+            await new Promise((resolve) =>
+              setTimeout(resolve, Math.floor(Math.random() * 2000))
             );
+            PROGRESS_BAR.increment();
+            outputData.push({
+              ...certificate,
+              txReceipt,
+              tokenId,
+            });
           } catch (error) {
             hre.log(
-              `(${certificateIndex}/${jsonData.length}) datastore ID: ${
-                certificate.id
-              } ${chalk.red('error')}`
+              chalk.red(
+                `❌ Error minting certificate ${certificate.id} (number ${certificateIndex}/${jsonData.length}) - exiting early`
+              )
             );
-            pendingTransactions.push(error);
+            hre.log(error);
+            outputData.push({
+              ...certificate,
+              error,
+            });
+            writeFileSync(outputFile, JSON.stringify(outputData, null, 2));
+            return;
           }
         } else {
           // dry run
@@ -128,85 +164,14 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         certificateIndex += 1;
       }
       if (!dryRun) {
-        hre.log(chalk.white('\n👷 Waiting for transactions to finalize...'));
-        const PROGRESS_BAR = new cliProgress.SingleBar(
-          {},
-          cliProgress.Presets.shades_classic
-        );
-        PROGRESS_BAR.start(pendingTransactions.length, 0);
-
-        hre.log(`\n`);
-        let successfulTxnCount = 0;
-        let failedTxnCount = 0;
-
-        const txResults = await Promise.all(
-          pendingTransactions.map(async (tx) => {
-            let txResult;
-            let tokenId;
-            if (tx instanceof Error) {
-              txResult = tx;
-              failedTxnCount += 1;
-            } else {
-              const result = await tx.wait(); // TODO specify more than one confirmation?
-              const txReceipt =
-                await removalContract.provider.getTransactionReceipt(
-                  result.transactionHash
-                );
-              tokenId = parseTransactionLogs({
-                contractInstance: removalContract,
-                txReceipt,
-              })
-                .filter((log) => log.name === 'Migrate')
-                .flatMap((log) => log.args.certificateId.toNumber())[0];
-
-              if (txReceipt.status === 1) {
-                successfulTxnCount += 1;
-              } else {
-                failedTxnCount += 1;
-              }
-              txResult = txReceipt;
-            }
-            // TODO get rid of this fake asynchronous delay
-            await new Promise((resolve) => {
-              setTimeout(resolve, Math.random() * 6000);
-            });
-            PROGRESS_BAR.increment();
-            return {
-              txReceiptOrError: txResult,
-              tokenId,
-            };
-          })
-        );
         PROGRESS_BAR.stop();
         hre.log(`\n`);
         hre.log(
           chalk.bold.green(
-            `\nMigrated ${successfulTxnCount} certificates successfully!`
+            `\nMigrated ${jsonData.length} certificates successfully!`
           )
         );
-        hre.log(
-          failedTxnCount
-            ? chalk.bold.red(
-                `Failed to migrate ${failedTxnCount} certificates.`
-              )
-            : chalk.bold.green(`Failed to migrate 0 certificates.`)
-        );
-
-        const migrateResults = jsonData.map((certificate, index) => {
-          const resultForCertificate = txResults[index];
-          hre.log(
-            `(${index + 1}/${jsonData.length}) datastoreId: ${
-              certificate.id
-            } Transaction status: ${
-              resultForCertificate.txReceiptOrError.status ?? 'error'
-            } Token ID: ${resultForCertificate.tokenId}`
-          );
-          return {
-            ...certificate,
-            ...resultForCertificate,
-          };
-        });
-        writeFileSync(outputFile, JSON.stringify(migrateResults));
+        writeFileSync(outputFile, JSON.stringify(outputData));
         hre.log(chalk.white(`📝 Wrote results to ${outputFile}`));
         hre.log(chalk.white.bold(`🎉 Done!`));
       }

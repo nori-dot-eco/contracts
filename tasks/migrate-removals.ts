@@ -43,7 +43,6 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         dryRun,
       } = options as ParsedMigrateRemovalsTaskOptions;
       const jsonData = JSON.parse(readFileSync(file, 'utf8'));
-      // hre.log({ jsonData });
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
@@ -55,13 +54,21 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       hre.log(`Signer address: ${signerAddress}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
 
+      let PROGRESS_BAR;
+      const outputData = [];
+
       if (!dryRun) {
         hre.log(
           chalk.bold.white(
             `✨ Minting removals for ${jsonData.length} projects...`
           )
         );
-        hre.log(chalk.white(`🤞 Submitting transactions...`));
+        PROGRESS_BAR = new cliProgress.SingleBar(
+          {},
+          cliProgress.Presets.shades_classic
+        );
+        PROGRESS_BAR.start(jsonData.length, 0);
+        hre.log(`\n`);
       } else {
         hre.log(
           chalk.bold.white(
@@ -70,7 +77,6 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         );
       }
       // submit all mintBatch transactions serially to avoid nonce collision!
-      const pendingTransactions = [];
       let projectIndex = 1;
       for (const project of jsonData) {
         const amounts = project.amounts.map((amount: string) =>
@@ -82,17 +88,15 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         const removals = project.removals.map((removal: any, index) => {
           const removalData = {
             idVersion: Number(removal.idVersion),
-            // methodology: Number(removal.methodology), // TODO
-            // methodologyVersion: Number(removal.methodologyVersion), // TODO
-            methodology: 1,
-            methodologyVersion: 0,
+            methodology: Number(removal.methodology),
+            // methodologyVersion: Number(removal.methodologyVersion),
+            methodologyVersion: 0, // TODO is this ever going to be different across legacy removals? depends on methodology version work
             vintage: Number(removal.vintage),
             country: asciiStringToHexString(removal.country),
-            subdivision: asciiStringToHexString(
-              removal.subdivision.slice(0, 2)
-            ), // TODO we only want the state code here, original script was giving full substring
+            subdivision: asciiStringToHexString(removal.subdivision),
             supplierAddress: '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667', // TODO need real supplier address on the project
-            subIdentifier: (project.projectId % 1000) + index, // TODO get from removal
+            subIdentifier: (project.projectId % 1000) + index,
+            // subIdentifer: removal.subIdentifier,
           };
           return removalData;
         });
@@ -105,38 +109,65 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
               amounts,
               removals,
               project.projectId,
-              // firstProject.scheduleStartTime, // TODO this can't be 0
-              // projectIndex === 1 ? 0 : 1_665_441_893, // <-- to induce a revert
-              1_665_441_893,
+              project.scheduleStartTime,
               project.holdbackPercentage
             );
-
-            pendingTransactions.push(pendingTx);
-            hre.log(
-              `(${projectIndex}/${jsonData.length}) projectId: ${
-                project.projectId
-              } txHash: ${chalk.green(pendingTx.hash)}`
+            const result = await pendingTx.wait(); // TODO specify more than one confirmation?
+            const txReceipt =
+              await removalContract.provider.getTransactionReceipt(
+                result.transactionHash
+              );
+            const tokenIds = parseTransactionLogs({
+              contractInstance: removalContract,
+              txReceipt,
+            })
+              .filter((log) => log.name === 'TransferBatch')
+              .flatMap((log) =>
+                log.args.ids.map((id: BigNumber) => id.toHexString())
+              );
+            if (txReceipt.status !== 1) {
+              // log an error that this transaction hash failed and we are exiting early
+              hre.log(
+                chalk.red(
+                  `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
+                )
+              );
+              return;
+            }
+            // TODO remove this random sleep
+            await new Promise((resolve) =>
+              setTimeout(resolve, Math.floor(Math.random() * 2000))
             );
+            PROGRESS_BAR.increment();
+            outputData.push({
+              ...project,
+              txReceipt,
+              tokenIds,
+            });
           } catch (error) {
             hre.log(
-              `(${projectIndex}/${jsonData.length}) projectId: ${
-                project.projectId
-              } ${chalk.red('error')}`
+              chalk.red(
+                `❌ Error minting project ${project.projectId} (number ${projectIndex}/${jsonData.length}) - exiting early`
+              )
             );
-            pendingTransactions.push(error);
+            PROGRESS_BAR.stop();
+            hre.log(error);
+            outputData.push({
+              ...project,
+              error,
+            });
+            writeFileSync(outputFile, JSON.stringify(outputData, null, 2));
+            return;
           }
         } else {
           // dry run
-
           try {
             await removalContract.callStatic.mintBatch(
               signerAddress, // mint to the consigner
               amounts,
               removals,
               project.projectId,
-              // firstProject.scheduleStartTime, // TODO this can't be 0
-              // projectIndex === 1 ? 0 : 1_665_441_893, // <-- to induce a revert
-              1_665_441_893,
+              project.scheduleStartTime,
               project.holdbackPercentage
             );
             hre.log(
@@ -148,90 +179,18 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             );
           }
         }
+        console.log({ projectIndex });
         projectIndex += 1;
       }
+
       if (!dryRun) {
-        hre.log(chalk.white('\n👷 Waiting for transactions to finalize...'));
-        const PROGRESS_BAR = new cliProgress.SingleBar(
-          {},
-          cliProgress.Presets.shades_classic
-        );
-        PROGRESS_BAR.start(pendingTransactions.length, 0);
-
-        hre.log(`\n`);
-        let successfulTxnCount = 0;
-        let failedTxnCount = 0;
-
-        // asynchronously await the completion of all transactions
-        const txResults = await Promise.all(
-          pendingTransactions.map(async (tx, index) => {
-            let txResult;
-            let tokenIds;
-            if (tx instanceof Error) {
-              txResult = tx;
-              failedTxnCount += 1;
-            } else {
-              const result = await tx.wait(); // TODO specify more than one confirmation?
-              const txReceipt =
-                await removalContract.provider.getTransactionReceipt(
-                  result.transactionHash
-                );
-              tokenIds = parseTransactionLogs({
-                contractInstance: removalContract,
-                txReceipt,
-              })
-                .filter((log) => log.name === 'TransferBatch')
-                .flatMap((log) =>
-                  log.args.ids.map((id: BigNumber) => id.toHexString())
-                );
-              if (txReceipt.status === 1) {
-                successfulTxnCount += 1;
-              } else {
-                failedTxnCount += 1;
-              }
-              txResult = txReceipt;
-            }
-
-            // TODO get rid of this fake asynchronous delay
-            await new Promise((resolve) => {
-              setTimeout(resolve, Math.random() * 6000);
-            });
-            PROGRESS_BAR.increment();
-            return {
-              txReceiptOrError: txResult,
-              tokenIds,
-            };
-          })
-        );
         PROGRESS_BAR.stop();
         hre.log(`\n`);
         hre.log(
-          chalk.bold.green(
-            `\nMinted ${successfulTxnCount} projects successfully!`
-          )
+          chalk.bold.green(`\nMinted ${jsonData.length} projects successfully!`)
         );
-        hre.log(
-          failedTxnCount
-            ? chalk.bold.red(`Failed to mint ${failedTxnCount} projects.`)
-            : chalk.bold.green(`Failed to mint 0 projects.`)
-        );
-        const mintingResults = jsonData.map((project, index) => {
-          const txResult = txResults[index];
-          hre.log(
-            `(${index + 1}/${jsonData.length}) projectId: ${
-              project.projectId
-            }, Transaction status: ${
-              txResult.txReceiptOrError.status ?? 'error'
-            }`
-          );
 
-          return {
-            ...project,
-            txReceiptOrError: txResult.txReceiptOrError,
-            tokenIds: txResult.tokenIds,
-          };
-        });
-        writeFileSync(outputFile, JSON.stringify(mintingResults));
+        writeFileSync(outputFile, JSON.stringify(outputData, undefined, 2));
         hre.log(chalk.white(`📝 Wrote results to ${outputFile}`));
         hre.log(chalk.white.bold(`🎉 Done!`));
       }

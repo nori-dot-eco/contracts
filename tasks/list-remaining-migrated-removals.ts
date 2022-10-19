@@ -3,8 +3,12 @@ import { readFileSync, writeFileSync } from 'fs';
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
 import { ethers } from 'ethers';
+import { readJsonSync, writeJsonSync } from 'fs-extra';
 
 import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
+import { Zero } from '../constants/units';
+
+import { getRemoval } from '@/utils/contracts';
 
 interface ListMigratedRemovalsTaskOptions {
   file: string;
@@ -31,12 +35,10 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
         outputFile = 'listed-migrated-removals.json',
         dryRun,
       } = options as ParsedListMigratedRemovalsTaskOptions;
-      const jsonData = JSON.parse(readFileSync(file, 'utf8'));
-      // hre.log({ jsonData });
+      const jsonData = readJsonSync(file, 'utf8');
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
-      const { getRemoval } = await import('@/utils/contracts');
       const removalContract = await getRemoval({
         hre,
         signer,
@@ -92,7 +94,7 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
       // sum the listable balances and convert to ether
       const totalListableBalance = listableBalances.reduce(
         (accumulator, balance) => accumulator.add(balance),
-        ethers.BigNumber.from(0)
+        Zero
       );
       const totalListableBalanceInEther =
         ethers.utils.formatEther(totalListableBalance);
@@ -113,10 +115,9 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
       }
       if (!dryRun) {
         hre.log(chalk.white(`🤞 Submitting multicall consign transaction...`));
-        let txResult;
-        let pendingTx: ethers.ContractTransaction;
+        let txReceipt: ethers.providers.TransactionReceipt;
         try {
-          pendingTx = await removalContract.multicall(
+          const pendingTx = await removalContract.multicall(
             listableTokenIds.map((id, index) =>
               removalContract.interface.encodeFunctionData('consign', [
                 signerAddress,
@@ -129,10 +130,9 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
           hre.log(chalk.white('\n👷 Waiting for transaction to finalize...'));
 
           const result = await pendingTx.wait(); // TODO specify more than one confirmation?
-          const txReceipt =
-            await removalContract.provider.getTransactionReceipt(
-              result.transactionHash
-            );
+          txReceipt = await removalContract.provider.getTransactionReceipt(
+            result.transactionHash
+          );
           // if the status is 1, log a success message, otherwise log a failure
           if (txReceipt.status === 1) {
             hre.log(
@@ -147,26 +147,23 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
               )
             );
           }
-          txResult = txReceipt;
         } catch (error) {
           hre.log(
             chalk.red('❌ Error submitting multicall consign transaction: '),
             error
           );
-          txResult = error;
+          writeJsonSync(outputFile, {
+            listedTokenIds: listableTokenIds,
+            listedBalances: listableBalances,
+            error,
+          });
+          throw error;
         }
-        writeFileSync(
-          outputFile,
-          JSON.stringify(
-            {
-              listedTokenIds: listableTokenIds,
-              listedBalances: listableBalances,
-              txReceiptOrError: txResult,
-            },
-            null,
-            2
-          )
-        );
+        writeJsonSync(outputFile, {
+          listedTokenIds: listableTokenIds,
+          listedBalances: listableBalances,
+          txReceipt,
+        });
         hre.log(chalk.white(`📝 Wrote results to ${outputFile}`));
         hre.log(chalk.white.bold(`🎉 Done!`));
       } else {
