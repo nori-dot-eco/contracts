@@ -1,16 +1,13 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
-import { readFileSync, writeFileSync } from 'fs';
-
 import cliProgress from 'cli-progress';
-import { divide } from '@nori-dot-com/math';
 import { task, types } from 'hardhat/config';
 import { BigNumber, ethers } from 'ethers';
 import chalk from 'chalk';
 import { parseTransactionLogs } from '@nori-dot-com/contracts/utils/events';
+import { readJsonSync, writeJsonSync } from 'fs-extra';
 
-import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
-
-import { getCertificate } from '@/utils/contracts';
+import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
+import { getCertificate, getRemoval } from '@/utils/contracts';
 
 interface MigrateCertificatesTaskOptions {
   file: string;
@@ -36,11 +33,17 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         outputFile = 'migrated-certificates.json',
         dryRun,
       } = options as ParsedMigrateCertificatesTaskOptions;
-      const jsonData = JSON.parse(readFileSync(file, 'utf8'));
+      const network = await hre.network.name;
+      if (![`localhost`, `mumbai`, `polygon`].includes(network)) {
+        throw new Error(
+          `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
+        );
+      }
+
+      const jsonData = readJsonSync(file);
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
-      const { getRemoval } = await import('@/utils/contracts');
       const removalContract = await getRemoval({
         hre,
         signer,
@@ -53,6 +56,15 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       hre.log(`Certificate contract address: ${certificateContract.address}`);
       hre.log(`Signer address: ${signerAddress}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
+      const signerHasConsignorRole = await removalContract.hasRole(
+        await removalContract.CONSIGNOR_ROLE(),
+        signerAddress
+      );
+      if (!signerHasConsignorRole) {
+        throw new Error(
+          `Signer does not have the CONSIGNOR role in the removal contract`
+        );
+      }
 
       let PROGRESS_BAR;
       const outputData = [];
@@ -67,8 +79,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           cliProgress.Presets.shades_classic
         );
         PROGRESS_BAR.start(jsonData.length, 0);
-
-        hre.log(`\n`);
       } else {
         hre.log(
           chalk.bold.white(
@@ -138,7 +148,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               ...certificate,
               error,
             });
-            writeFileSync(outputFile, JSON.stringify(outputData, null, 2));
+            writeJsonSync(outputFile, outputData);
             return;
           }
         } else {
@@ -165,13 +175,12 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       }
       if (!dryRun) {
         PROGRESS_BAR.stop();
-        hre.log(`\n`);
         hre.log(
           chalk.bold.green(
             `\nMigrated ${jsonData.length} certificates successfully!`
           )
         );
-        writeFileSync(outputFile, JSON.stringify(outputData));
+        writeJsonSync(outputFile, outputData);
         hre.log(chalk.white(`📝 Wrote results to ${outputFile}`));
         hre.log(chalk.white.bold(`🎉 Done!`));
       }

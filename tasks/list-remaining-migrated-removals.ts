@@ -35,6 +35,13 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
         outputFile = 'listed-migrated-removals.json',
         dryRun,
       } = options as ParsedListMigratedRemovalsTaskOptions;
+      const network = await hre.network.name;
+      if (![`localhost`, `mumbai`, `polygon`].includes(network)) {
+        throw new Error(
+          `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
+        );
+      }
+
       const jsonData = readJsonSync(file, 'utf8');
 
       const [signer] = await hre.getSigners();
@@ -46,7 +53,15 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
       hre.log(`Removal contract address: ${removalContract.address}`);
       hre.log(`Signer address: ${signerAddress}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
-
+      const signerHasConsignorRole = await removalContract.hasRole(
+        await removalContract.CONSIGNOR_ROLE(),
+        signerAddress
+      );
+      if (!signerHasConsignorRole) {
+        throw new Error(
+          `Signer does not have the CONSIGNOR role in the removal contract`
+        );
+      }
       if (!dryRun) {
         hre.log(
           chalk.bold.white(

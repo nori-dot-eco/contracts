@@ -1,16 +1,13 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
-import { readFileSync, writeFileSync } from 'fs';
-
 import cliProgress from 'cli-progress';
-import { divide } from '@nori-dot-com/math';
 import { task, types } from 'hardhat/config';
-import type { BigNumber } from 'ethers';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import chalk from 'chalk';
-import { parseTransactionLogs } from '@nori-dot-com/contracts/utils/events';
+import { readJsonSync, writeJsonSync } from 'fs-extra';
 
-import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
-import { getRemoval } from '../utils/contracts';
+import { parseTransactionLogs } from '@/utils/events';
+import { getRemoval } from '@/utils/contracts';
+import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 
 interface MigrateRemovalsTaskOptions {
   file: string;
@@ -42,7 +39,14 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         outputFile = 'migrated-removals.json',
         dryRun,
       } = options as ParsedMigrateRemovalsTaskOptions;
-      const jsonData = JSON.parse(readFileSync(file, 'utf8'));
+      const network = await hre.network.name;
+      if (![`localhost`, `mumbai`, `polygon`].includes(network)) {
+        throw new Error(
+          `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
+        );
+      }
+
+      const jsonData = readJsonSync(file);
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
@@ -53,6 +57,15 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       hre.log(`Removal contract address: ${removalContract.address}`);
       hre.log(`Signer address: ${signerAddress}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
+      const signerHasConsignorRole = await removalContract.hasRole(
+        await removalContract.CONSIGNOR_ROLE(),
+        signerAddress
+      );
+      if (!signerHasConsignorRole) {
+        throw new Error(
+          `Signer does not have the CONSIGNOR role in the removal contract`
+        );
+      }
 
       let PROGRESS_BAR;
       const outputData = [];
@@ -68,7 +81,6 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           cliProgress.Presets.shades_classic
         );
         PROGRESS_BAR.start(jsonData.length, 0);
-        hre.log(`\n`);
       } else {
         hre.log(
           chalk.bold.white(
@@ -81,7 +93,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       for (const project of jsonData) {
         const amounts = project.amounts.map((amount: string) =>
           ethers.utils
-            .parseUnits(divide(Number(amount), 1_000_000).toString())
+            .parseUnits(BigNumber.from(amount).div(1_000_000).toString())
             .toString()
         );
 
@@ -156,8 +168,8 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
               ...project,
               error,
             });
-            writeFileSync(outputFile, JSON.stringify(outputData, null, 2));
-            return;
+            writeJsonSync(outputFile, outputData);
+            throw error;
           }
         } else {
           // dry run
@@ -185,12 +197,11 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
 
       if (!dryRun) {
         PROGRESS_BAR.stop();
-        hre.log(`\n`);
         hre.log(
           chalk.bold.green(`\nMinted ${jsonData.length} projects successfully!`)
         );
 
-        writeFileSync(outputFile, JSON.stringify(outputData, undefined, 2));
+        writeJsonSync(outputFile, outputData);
         hre.log(chalk.white(`📝 Wrote results to ${outputFile}`));
         hre.log(chalk.white.bold(`🎉 Done!`));
       }
