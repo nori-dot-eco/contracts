@@ -138,6 +138,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               tokenId,
             });
           } catch (error) {
+            PROGRESS_BAR.stop();
             hre.log(
               chalk.red(
                 `❌ Error minting certificate ${certificate.id} (number ${certificateIndex}/${jsonData.length}) - exiting early`

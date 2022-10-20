@@ -116,7 +116,7 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
 
       hre.log(
         chalk.white(
-          `🔎 Found ${listableTokenIds.length} removal tokens with a total listable balance of ${totalListableBalanceInEther} NRTs`
+          `🔎 Found ${listableTokenIds.length} listable removal tokens with a total listable balance of ${totalListableBalanceInEther} NRTs`
         )
       );
       // if there are no listable token ids, exit

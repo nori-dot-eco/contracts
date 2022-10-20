@@ -191,7 +191,6 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             );
           }
         }
-        console.log({ projectIndex });
         projectIndex += 1;
       }
 
@@ -200,7 +199,6 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         hre.log(
           chalk.bold.green(`\nMinted ${jsonData.length} projects successfully!`)
         );
-
         writeJsonSync(outputFile, outputData);
         hre.log(chalk.white(`📝 Wrote results to ${outputFile}`));
         hre.log(chalk.white.bold(`🎉 Done!`));
