@@ -87,7 +87,7 @@
     "test:coverage": "CI=true hardhat coverage --solcoverjs ./.solcover.js",
     "test:unsafe": "TS_NODE_TRANSPILE_ONLY=1 yarn test:unoptimized --no-compile",
     "test:unoptimized": "SOLC_PROFILE=test yarn test:hardhat",
-    "prepare": "SOLC_PROFILE=test yarn build",
+    "postinstall": "SOLC_PROFILE=test yarn build",
     "typechain": "TS_NODE_TRANSPILE_ONLY=1 hardhat typechain",
     "build": "yarn run typechain",
     "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
