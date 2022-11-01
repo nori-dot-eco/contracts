@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
+import "./ERC777UpgradeableHooksDisabled.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
 contract ERC777PresetPausablePermissioned is
-  ERC777Upgradeable,
+  ERC777UpgradeableHooksDisabled,
   PausableUpgradeable,
   AccessControlEnumerableUpgradeable
 {

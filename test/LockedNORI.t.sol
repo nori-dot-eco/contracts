@@ -285,8 +285,10 @@ contract LockedNORITest is
     uint256 balance = _lNori.unlockedBalanceOf(address(recipient));
     console2.log("Unlocked balance is: ", balance);
     vm.prank(address(recipient));
-    vm.expectRevert("lNORI: insufficient balance");
     _lNori.withdrawTo(address(recipient), balance);
+    assertEq(_lNori.totalSupply(), 0);
+    assertEq(_lNori.unlockedBalanceOf(address(recipient)), 0);
+    assertEq(_erc20.balanceOf(address(recipient)), balance);
   }
 
   function testNormalWithdrawal() external {
