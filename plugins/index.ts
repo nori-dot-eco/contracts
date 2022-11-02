@@ -67,7 +67,12 @@ const deployOrUpgradeProxy = async <
   args: unknown[];
   options?: DeployProxyOptions;
 }): Promise<InstanceOfContract<TContract>> => {
-  // todo use proposeUpgrade
+  if (options === undefined) {
+    options = {};
+  }
+  if (options.timeout === undefined) {
+    options.timeout = 600e3;
+  }
   const proxy = await hre.deployments.getOrNull(contractName);
   const maybeProxyAddress = proxy?.address;
   let contractCode = '0x';
@@ -200,11 +205,11 @@ extendEnvironment((hre) => {
   // All live networks will try to use fireblocks and fall back to hd wallet
   if (hre.network.config.live) {
     if (Boolean(hre.config.fireblocks.apiKey)) {
-        hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
-        hre.log('Using fireblocks signer');
+      hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
+      hre.log('Using fireblocks signer');
     } else {
-        hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
-        hre.log('Using alchemy + hd wallet signer');
+      hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
+      hre.log('Using alchemy + hd wallet signer');
     }
   } else {
     hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
