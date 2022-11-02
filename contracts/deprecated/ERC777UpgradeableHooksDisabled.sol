@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (token/ERC777/ERC777.sol)
 //
-// Nori duplicated this contract and removed calls to tokensReceive and tokensToSend hooks.
+// Nori duplicated this contract and removed calls to tokensToSend hooks.
 // The relevant fns are not virtual in the upstream version but we need to preserve
 // the storage layout.
 
@@ -409,7 +409,7 @@ contract ERC777UpgradeableHooksDisabled is
     uint256 amount,
     bytes memory userData,
     bytes memory operatorData,
-    bool
+    bool requireReceptionAck
   ) internal virtual {
     require(account != address(0), "ERC777: mint to the zero address");
 
@@ -421,15 +421,15 @@ contract ERC777UpgradeableHooksDisabled is
     _totalSupply += amount;
     _balances[account] += amount;
 
-    // _callTokensReceived(
-    //   operator,
-    //   address(0),
-    //   account,
-    //   amount,
-    //   userData,
-    //   operatorData,
-    //   requireReceptionAck
-    // );
+    _callTokensReceived(
+      operator,
+      address(0),
+      account,
+      amount,
+      userData,
+      operatorData,
+      requireReceptionAck
+    );
 
     emit Minted(operator, account, amount, userData, operatorData);
     emit Transfer(address(0), account, amount);
@@ -449,7 +449,7 @@ contract ERC777UpgradeableHooksDisabled is
     uint256 amount,
     bytes memory userData,
     bytes memory operatorData,
-    bool
+    bool requireReceptionAck
   ) internal virtual {
     require(from != address(0), "ERC777: transfer from the zero address");
     require(to != address(0), "ERC777: transfer to the zero address");
@@ -460,15 +460,15 @@ contract ERC777UpgradeableHooksDisabled is
 
     _move(operator, from, to, amount, userData, operatorData);
 
-    // _callTokensReceived(
-    //   operator,
-    //   from,
-    //   to,
-    //   amount,
-    //   userData,
-    //   operatorData,
-    //   requireReceptionAck
-    // );
+    _callTokensReceived(
+      operator,
+      from,
+      to,
+      amount,
+      userData,
+      operatorData,
+      requireReceptionAck
+    );
   }
 
   /**
@@ -540,6 +540,47 @@ contract ERC777UpgradeableHooksDisabled is
 
     _allowances[holder][spender] = value;
     emit Approval(holder, spender, value);
+  }
+
+  /**
+   * @dev Call to.tokensReceived() if the interface is registered. Reverts if the recipient is a contract but
+   * tokensReceived() was not registered for the recipient
+   * @param operator address operator requesting the transfer
+   * @param from address token holder address
+   * @param to address recipient address
+   * @param amount uint256 amount of tokens to transfer
+   * @param userData bytes extra information provided by the token holder (if any)
+   * @param operatorData bytes extra information provided by the operator (if any)
+   * @param requireReceptionAck if true, contract recipients are required to implement ERC777TokensRecipient
+   */
+  function _callTokensReceived(
+    address operator,
+    address from,
+    address to,
+    uint256 amount,
+    bytes memory userData,
+    bytes memory operatorData,
+    bool requireReceptionAck
+  ) private {
+    address implementer = _ERC1820_REGISTRY.getInterfaceImplementer(
+      to,
+      _TOKENS_RECIPIENT_INTERFACE_HASH
+    );
+    if (implementer != address(0)) {
+      IERC777RecipientUpgradeable(implementer).tokensReceived(
+        operator,
+        from,
+        to,
+        amount,
+        userData,
+        operatorData
+      );
+    } else if (requireReceptionAck) {
+      require(
+        !to.isContract(),
+        "ERC777: token recipient contract has no implementer for ERC777TokensRecipient"
+      );
+    }
   }
 
   /**
