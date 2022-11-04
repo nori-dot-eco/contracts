@@ -4,6 +4,258 @@ pragma solidity =0.8.17;
 import "@/test/helpers/restricted-nori.sol";
 import "@/test/checkout.int.t.sol";
 
+contract Macro_Market_linearReleaseAmountAvailableSingleHolder is
+  UpgradeableMarket
+{
+  uint256[] removalIds;
+  uint256 scheduleId = 1;
+  uint256 removalId;
+
+  using UInt256ArrayLib for uint256[];
+
+  function setUp() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    removalId = RemovalIdLib.createRemovalId(ids[0]);
+
+    _removal.grantRole(_removal.CONSIGNOR_ROLE(), address(this));
+    _removal.mintBatch({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids,
+      projectId: scheduleId,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+
+    _rNori.grantRole(_rNori.MINTER_ROLE(), address(this));
+    _bpNori.grantRole(_bpNori.DEPOSITOR_ROLE(), address(this));
+    _bpNori.deposit(address(_rNori), abi.encode(1 ether));
+  }
+
+  // Audit: The following test shows that 190 tokens (instead of 100) can be claimed.
+  function testClaimableAmountWith1Supplier() external {
+    uint256 blockTimestamp = 1000;
+    vm.warp(blockTimestamp);
+
+    // only 1 supplier in scheduel
+    _rNori.mint(1000, removalId);
+
+    vm.warp(blockTimestamp + 31_556_952); // 315_569_520 == 10 year, 31_556_952 == 1 year
+    uint256 startTotalSupply = _rNori.totalSupply(scheduleId);
+
+    uint256 claimable = _rNori.claimableBalanceForScheduleForAccount(
+      scheduleId,
+      _namedAccounts.supplier
+    );
+    uint256 claimableForSchedule = _rNori.claimableBalanceForSchedule(
+      scheduleId
+    );
+    assertEq(claimable, 100);
+    assertEq(claimableForSchedule, 100);
+
+    vm.startPrank(_namedAccounts.supplier);
+    _rNori.withdrawFromSchedule(_namedAccounts.supplier, scheduleId, claimable);
+    claimable = _rNori.claimableBalanceForScheduleForAccount(
+      scheduleId,
+      _namedAccounts.supplier
+    );
+    claimableForSchedule = _rNori.claimableBalanceForSchedule(scheduleId);
+    assertEq(claimable, 0);
+    assertEq(claimableForSchedule, 0);
+
+    address newSupplier = address(uint160(100));
+    _rNori.safeTransferFrom(
+      _namedAccounts.supplier,
+      newSupplier,
+      scheduleId,
+      _rNori.balanceOf(_namedAccounts.supplier, scheduleId),
+      ""
+    );
+    vm.stopPrank();
+
+    claimable = _rNori.claimableBalanceForScheduleForAccount(
+      scheduleId,
+      newSupplier
+    );
+    assertEq(claimable, 90);
+
+    vm.prank(newSupplier);
+    _rNori.withdrawFromSchedule(_namedAccounts.supplier, scheduleId, 90);
+
+    uint256 endTotalSupply = _rNori.totalSupply(scheduleId);
+    // Eventually, supplier claimed 190 tokens instead of allowed 100
+    assertEq(endTotalSupply, startTotalSupply - 190);
+  }
+}
+
+contract Macro_Market_linearReleaseAmountAvailableMultipleHolders is
+  UpgradeableMarket
+{
+  uint256[] removalIds;
+  uint256 scheduleId = 1;
+  uint256 removalId;
+  uint256 removalId2;
+  uint256 removalId3;
+
+  using UInt256ArrayLib for uint256[];
+
+  function setUp() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    removalId = RemovalIdLib.createRemovalId(ids[0]);
+
+    _removal.grantRole(_removal.CONSIGNOR_ROLE(), address(this));
+    _removal.mintBatch({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids,
+      projectId: scheduleId,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+
+    DecodedRemovalIdV0[] memory ids2 = new DecodedRemovalIdV0[](1);
+    ids2[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier2,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    removalId2 = RemovalIdLib.createRemovalId(ids2[0]);
+
+    _removal.mintBatch({
+      to: _namedAccounts.supplier2,
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids2,
+      projectId: scheduleId,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+
+    DecodedRemovalIdV0[] memory ids3 = new DecodedRemovalIdV0[](1);
+    ids3[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier3,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    removalId3 = RemovalIdLib.createRemovalId(ids3[0]);
+
+    _removal.mintBatch({
+      to: _namedAccounts.supplier3,
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids3,
+      projectId: scheduleId,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+
+    _rNori.grantRole(_rNori.MINTER_ROLE(), address(this));
+    _bpNori.grantRole(_bpNori.DEPOSITOR_ROLE(), address(this));
+    _bpNori.deposit(address(_rNori), abi.encode(1 ether));
+  }
+
+  function testClaimableAmountWithMultipleSuppliers() external {
+    uint256 blockTimestamp = 1000;
+    vm.warp(blockTimestamp);
+
+    _rNori.mint(1000, removalId);
+    _rNori.mint(8000, removalId2);
+    _rNori.mint(1000, removalId3);
+
+    vm.warp(blockTimestamp + 31_556_952); // 315_569_520 == 10 year, 31_556_952 == 1 year
+    uint256 startTotalSupply = _rNori.totalSupply(scheduleId);
+
+    uint256 claimable = _rNori.claimableBalanceForScheduleForAccount(
+      scheduleId,
+      _namedAccounts.supplier
+    );
+    uint256 claimableForSchedule = _rNori.claimableBalanceForSchedule(
+      scheduleId
+    );
+    assertEq(claimable, 100);
+    assertEq(claimableForSchedule, 1000);
+
+    vm.startPrank(_namedAccounts.supplier);
+    _rNori.withdrawFromSchedule(_namedAccounts.supplier, scheduleId, claimable);
+    claimable = _rNori.claimableBalanceForScheduleForAccount(
+      scheduleId,
+      _namedAccounts.supplier
+    );
+    claimableForSchedule = _rNori.claimableBalanceForSchedule(scheduleId);
+    assertEq(claimable, 0);
+    assertEq(claimableForSchedule, 900);
+
+    address newSupplier = address(uint160(100));
+    _rNori.safeTransferFrom(
+      _namedAccounts.supplier,
+      newSupplier,
+      scheduleId,
+      _rNori.balanceOf(_namedAccounts.supplier, scheduleId),
+      ""
+    );
+    vm.stopPrank();
+
+    for (uint256 i = 0; i < 1000; i++) {
+      vm.startPrank(newSupplier);
+      claimable = _rNori.claimableBalanceForScheduleForAccount(
+        scheduleId,
+        newSupplier
+      );
+      if (claimable == 0) {
+        vm.stopPrank();
+        break;
+      }
+      // console.log("-- claimable supplier%s: %s", i+2, claimable);
+      _rNori.withdrawFromSchedule(newSupplier, scheduleId, claimable);
+
+      address nextSupplier = address(uint160(101 + i));
+      _rNori.safeTransferFrom(
+        newSupplier,
+        nextSupplier,
+        scheduleId,
+        _rNori.balanceOf(newSupplier, scheduleId),
+        ""
+      );
+      vm.stopPrank();
+      newSupplier = nextSupplier;
+    }
+
+    uint256 endTotalSupply = _rNori.totalSupply(scheduleId);
+    console2.log("endTotalSupply: %s", endTotalSupply);
+
+    // Eventually, supplier claimed 991 (not 1000 because of rounding inaccuracy) tokens instead of allowed 100
+    assertEq(endTotalSupply, startTotalSupply - 991);
+  }
+}
+
 contract RestrictedNORI_initialize is UpgradableRestrictedNORI {
   function test() external {
     assertEq(
