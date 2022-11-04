@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol";
+import "./ERC777UpgradeableHooksDisabled.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
 contract ERC777PresetPausablePermissioned is
-  ERC777Upgradeable,
+  ERC777UpgradeableHooksDisabled,
   PausableUpgradeable,
   AccessControlEnumerableUpgradeable
 {
@@ -35,65 +35,6 @@ contract ERC777PresetPausablePermissioned is
     bytes[] operatorData,
     bool[] requireReceptionAck
   );
-
-  /**
-   * @notice Batches multiple transfers into a single transaction
-   *
-   * @dev Emits a SendBatch event.
-   *
-   * ##### Requirements:
-   *
-   * - The contract must not be paused.
-   *
-   * @param recipients address[] list of recipient addresses
-   * @param amounts uint256[] list of amounts to transfer
-   * @param userData bytes[] list of extra information provided by the token holder (if any)
-   * @param operatorData bytes[] list of extra information provided by the operator (if any)
-   * @param requireReceptionAck list of requirements (if true, contract recipients are required to implement
-   * ERC777TokensRecipient)
-   */
-  function batchSend(
-    address[] memory recipients,
-    uint256[] memory amounts,
-    bytes[] memory userData,
-    bytes[] memory operatorData,
-    bool[] memory requireReceptionAck
-  ) public {
-    require(
-      recipients.length == amounts.length,
-      "ERC777PresetPausablePermissioned: recipient and amount length mismatch"
-    );
-    require(
-      amounts.length == userData.length,
-      "ERC777PresetPausablePermissioned: amounts and userData length mismatch"
-    );
-    require(
-      userData.length == operatorData.length,
-      "ERC777PresetPausablePermissioned: userData and operatorData length mismatch"
-    );
-    require(
-      operatorData.length == requireReceptionAck.length,
-      "ERC777PresetPausablePermissioned: operatorData and requireReceptionAck length mismatch"
-    );
-    for (uint256 i = 0; i < recipients.length; i++) {
-      _send(
-        _msgSender(),
-        recipients[i],
-        amounts[i],
-        userData[i],
-        operatorData[i],
-        requireReceptionAck[i]
-      );
-    }
-    emit SentBatch(
-      _msgSender(),
-      recipients,
-      amounts,
-      userData,
-      operatorData,
-      requireReceptionAck
-    );
-  }
 
   /**
    * @notice See ERC777-approve for details [here](
