@@ -89,22 +89,45 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
 
       let certificateIndex = 1;
       for (const certificate of jsonData) {
-        const amounts = certificate.amounts.map((amount: string) =>
+        let amounts = certificate.amounts.map((amount: string) =>
           ethers.utils
             .parseUnits(BigNumber.from(amount).div(1_000_000).toString())
             .toString()
         );
+        let ids = certificate.ids;
+        const totalAmount = ethers.utils
+          .parseUnits(
+            BigNumber.from(certificate.data.gramsOfNrts)
+              .div(1_000_000)
+              .toString()
+          )
+          .toString();
+        // TODO - this is just to bypass the 4 empty certificates in the input and double check
+        // that we can migrate certificates with 0-amounts...
+        // for the real deal we need those to have updated certificate sources
+        if (amounts.length === 0) {
+          amounts = [0];
+          // TODO can this token ID just be 0?
+          ids = [
+            // '0x1007e2555349419a232b2f5fbbf857d153af8b85c16cbdb4ffb6678d7e5f93',
+            '0x00000000000000000000000000000000000000000000000000000000000000',
+          ];
+        }
 
         if (!dryRun) {
+          // TODO we probably don't need to do this on a live network
+          // make sure we're using the right gas price
+          const gasPrice = await signer.getGasPrice();
+          // hre.log(`Gas price: ${gasPrice.toString()}`);
+
           let pendingTx: ethers.ContractTransaction;
           try {
             pendingTx = await removalContract.migrate(
-              certificate.ids,
+              ids,
               amounts,
               signerAddress, // TODO use Nori admin address, which may also be the signer?
-              ethers.utils
-                .parseUnits(certificate.data.numberOfNrts.toString())
-                .toString()
+              totalAmount,
+              { gasPrice }
             );
             const result = await pendingTx.wait(); // TODO specify more than one confirmation?
             const txReceipt =
@@ -127,10 +150,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               );
               return;
             }
-            // TODO remove this random sleep
-            await new Promise((resolve) =>
-              setTimeout(resolve, Math.floor(Math.random() * 2000))
-            );
             PROGRESS_BAR.increment();
             outputData.push({
               ...certificate,

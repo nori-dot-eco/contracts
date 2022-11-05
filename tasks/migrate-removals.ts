@@ -1,4 +1,6 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
+import { sign } from 'crypto';
+
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
 import { BigNumber, ethers } from 'ethers';
@@ -107,22 +109,29 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             country: asciiStringToHexString(removal.country),
             subdivision: asciiStringToHexString(removal.subdivision),
             supplierAddress: '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667', // TODO need real supplier address on the project
-            subIdentifier: (project.projectId % 1000) + index,
-            // subIdentifer: removal.subIdentifier,
+            // subIdentifier: (project.projectId % 1000) + index,
+            subIdentifier: removal.subIdentifier,
           };
           return removalData;
         });
-
         if (!dryRun) {
           let pendingTx: ethers.ContractTransaction;
           try {
+            // TODO on a live network we probably don't need to do this??
+            // make sure we're using the right gas price
+            const gasPrice = await signer.getGasPrice();
+            // hre.log(`Gas price: ${gasPrice.toString()}`);
+
             pendingTx = await removalContract.mintBatch(
               signerAddress, // mint to the consigner
               amounts,
               removals,
               project.projectId,
               project.scheduleStartTime,
-              project.holdbackPercentage
+              project.holdbackPercentage,
+              {
+                gasPrice,
+              }
             );
             const result = await pendingTx.wait(); // TODO specify more than one confirmation?
             const txReceipt =
@@ -146,10 +155,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
               );
               return;
             }
-            // TODO remove this random sleep
-            await new Promise((resolve) =>
-              setTimeout(resolve, Math.floor(Math.random() * 2000))
-            );
+
             PROGRESS_BAR.increment();
             outputData.push({
               ...project,
