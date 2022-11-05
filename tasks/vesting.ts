@@ -818,7 +818,6 @@ const CREATE_SUBTASK = {
     };
     if (grantDiffs.length > 0) {
       let totalAmount = BigNumber.from(0);
-      const recipients = grantDiffs.map((_) => lNori.address);
       const amounts = grantDiffs.map((grant) => {
         const grantAmount = BigNumber.from(
           grant.originalAmount.__new ?? grant.originalAmount
@@ -829,8 +828,6 @@ const CREATE_SUBTASK = {
         );
       });
       const userData = grantDiffs.map((grant) => buildUserData({ grant }));
-      const operatorData = grantDiffs.map((_) => '0x');
-      const requireReceptionAck = grantDiffs.map((_) => true);
       hre.log(
         `Total bpNORI to lock: ${ethers.utils.formatEther(
           amounts.reduce((accumulator, v) => accumulator.add(v))
@@ -853,6 +850,11 @@ const CREATE_SUBTASK = {
       const name = await bpNori.name();
       const nonce = await bpNori.nonces(owner);
       const chainId = await fireblocksSigner.getChainId();
+      if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
+        fireblocksSigner.setNextTransactionMemo(
+          `Permit BridgedPolygonNORI Spend by LockedNORI: ${memo || ''}`
+        );
+      }
       const signature = await fireblocksSigner._signTypedData(
         {
           name,
