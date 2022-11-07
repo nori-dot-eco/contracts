@@ -543,6 +543,44 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
   }
 }
 
+contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
+  function test() external {
+    _removal.mintBatch({
+      to: _marketAddress,
+      amounts: _asSingletonUintArray(1),
+      removals: _REMOVAL_FIXTURES,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+    assertEq(
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      0
+    );
+    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 1);
+
+    // Expect the Removal to be listed on the Market
+    assertEq(
+      _market.getRemovalIdsForSupplier(_namedAccounts.supplier).length,
+      1
+    );
+
+    _removal.release(REMOVAL_ID_FIXTURE, 1);
+    assertEq(
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      0
+    );
+    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 0);
+
+    // Expect the Removal to be pulled from the Market
+    assertEq(
+      _market.getRemovalIdsForSupplier(_namedAccounts.supplier).length,
+      0,
+      "Listing not removed from Market"
+    );
+  }
+}
+
 contract Removal_release_reverts_AccessControl is UpgradeableMarket {
   // todo idea: the only one who can burn is nori and therefore this can be tested as part of _beforeTokenTransfer
   function test() external {
