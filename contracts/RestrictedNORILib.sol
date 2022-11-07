@@ -158,11 +158,25 @@ library RestrictedNORILib {
           scheduleId: scheduleId,
           totalSupply: totalSupply
         });
-      claimableForAccount =
-        ((claimedAmountForAccount + balanceOfAccount) *
-          (claimableBalanceForFullSchedule + schedule.totalClaimedAmount)) /
-        scheduleTotal -
-        claimedAmountForAccount;
+      uint256 linearReleasedAmountFullSchedule = schedule
+        .releasedBalanceOfSingleSchedule({totalSupply: totalSupply});
+
+      uint256 accountTrueTotal = balanceOfAccount + claimedAmountForAccount;
+      uint256 theoreticalMaxClaimableForAccount = ((linearReleasedAmountFullSchedule *
+          accountTrueTotal) / scheduleTotal);
+      uint256 actualMaxClaimableForAccount;
+      if (claimedAmountForAccount > theoreticalMaxClaimableForAccount) {
+        actualMaxClaimableForAccount = 0;
+      } else {
+        actualMaxClaimableForAccount =
+          theoreticalMaxClaimableForAccount -
+          claimedAmountForAccount;
+      }
+
+      claimableForAccount = MathUpgradeable.min(
+        actualMaxClaimableForAccount,
+        claimableBalanceForFullSchedule
+      );
     }
 
     return claimableForAccount;
