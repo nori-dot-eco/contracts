@@ -110,7 +110,7 @@ contract Certificate is
   }
 
   /**
-   * @notice Initialize the BridgedPolygonNORI contract.
+   * @notice Initialize the Certificate contract.
    * @param baseURI The base URI for all certificate NFTs.
    */
   function initialize(string memory baseURI)
