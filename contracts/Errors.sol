@@ -124,3 +124,7 @@ error IncorrectSupplyAllocation();
  * @notice Thrown when the caller specifies the zero address for the Nori fee wallet.
  */
 error NoriFeeWalletZeroAddress();
+/**
+ * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate contract.
+ */
+error RemovalAlreadySold(uint256 tokenId);
