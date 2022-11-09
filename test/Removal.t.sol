@@ -56,7 +56,10 @@ contract Removal_consign_revertsForSoldRemovals is UpgradeableMarket {
 
     // should not be able to re-list the sold Removal
     vm.expectRevert(
-      abi.encodeWithSelector(RemovalAlreadySold.selector, _removalIds[0])
+      abi.encodeWithSelector(
+        RemovalAlreadySoldOrConsigned.selector,
+        _removalIds[0]
+      )
     );
     _removal.consign({
       from: address(_certificate),

@@ -125,6 +125,6 @@ error IncorrectSupplyAllocation();
  */
 error NoriFeeWalletZeroAddress();
 /**
- * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate contract.
+ * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market contracts.
  */
-error RemovalAlreadySold(uint256 tokenId);
+error RemovalAlreadySoldOrConsigned(uint256 tokenId);
