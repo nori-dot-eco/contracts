@@ -11,6 +11,71 @@ using AddressArrayLib for address[];
 // todo fuzz RemovalIdLib
 // todo test that checks Removal.consign can happen using multi call with mix-match project IDs
 
+contract Removal_migrate_revertsIfRemovalBalanceSumDifferentFromCertificateAmount is
+  UpgradeableMarket
+{
+  /*//////////////////////////////////////////////////////////////
+                                INPUTS
+    //////////////////////////////////////////////////////////////*/
+  uint256 constant NUMBER_OF_SUPPLIERS = 2;
+  uint256 constant AMOUNT_PER_REMOVAL = 1 ether; // cannot be changed as it is not a parameter of `_seedRemovals`
+  uint32 constant NUMBER_OF_REMOVALS_PER_SUPPLIER = 5;
+  uint256 constant EXPECTED_CERTIFICATE_ID = 0;
+  uint256 constant NUMBER_OF_REMOVALS =
+    NUMBER_OF_SUPPLIERS * NUMBER_OF_REMOVALS_PER_SUPPLIER;
+  uint256 constant CERTIFICATE_AMOUNT = NUMBER_OF_REMOVALS * 1.5 ether; // != sum of removal balances!
+
+  /*//////////////////////////////////////////////////////////////
+                DYNAMIC ARGUMENTS (BUILT FROM INPUTS)
+    //////////////////////////////////////////////////////////////*/
+  uint256[] amountsForAllSuppliers;
+  uint256[] idsForAllSuppliers;
+  uint256[] amountsPerSupplier;
+  address[] suppliers;
+
+  function setUp() external {
+    // todo reuse setup in Removal_migrate_gasLimit
+    _removal.grantRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: _namedAccounts.admin
+    });
+    amountsForAllSuppliers = new uint256[](NUMBER_OF_REMOVALS).fill(
+      AMOUNT_PER_REMOVAL
+    );
+    idsForAllSuppliers = new uint256[](NUMBER_OF_REMOVALS);
+    suppliers = new address[](NUMBER_OF_SUPPLIERS);
+    for (uint256 i = 0; i < NUMBER_OF_SUPPLIERS; ++i) {
+      suppliers[i] = account({
+        name: string.concat("legacySupplier", StringsUpgradeable.toString(i))
+      });
+    }
+    uint256 index = 0;
+    for (uint256 i = 0; i < suppliers.length; ++i) {
+      uint256[] memory idsForSupplier = _seedRemovals({
+        consignor: _namedAccounts.admin,
+        count: NUMBER_OF_REMOVALS_PER_SUPPLIER,
+        supplier: suppliers[i],
+        uniqueVintages: true
+      });
+      for (uint256 j = 0; j < idsForSupplier.length; ++j) {
+        idsForAllSuppliers[index] = idsForSupplier[j];
+        ++index;
+      }
+    }
+    vm.startPrank(_namedAccounts.admin);
+  }
+
+  function test() external {
+    vm.expectRevert("Incorrect supply allocation");
+    _removal.migrate({
+      ids: idsForAllSuppliers,
+      amounts: amountsForAllSuppliers,
+      certificateRecipient: _namedAccounts.buyer,
+      certificateAmount: CERTIFICATE_AMOUNT
+    });
+  }
+}
+
 contract Removal_migrate is UpgradeableMarket {
   /*//////////////////////////////////////////////////////////////
                                 INPUTS

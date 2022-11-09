@@ -993,9 +993,6 @@ contract Market is
         break;
       }
     }
-    if (amounts.sum() != certificateAmount) {
-      revert IncorrectSupplyAllocation();
-    }
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
@@ -1075,9 +1072,6 @@ contract Market is
       if (remainingAmountToFill == 0) {
         break;
       }
-    }
-    if (amounts.sum() != certificateAmount) {
-      revert IncorrectSupplyAllocation();
     }
     return (countOfRemovalsAllocated, ids, amounts);
   }
