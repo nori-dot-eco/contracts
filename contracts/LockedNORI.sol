@@ -691,7 +691,7 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
   }
 
   /**
-   * @notice Vested balance less any claimed amount at `atTime` (implementation)
+   * @notice Returns true if there is a grant for *account* with a vesting schedule.
    *
    * @dev Returns true if the there is a grant for *account* with a vesting schedule.
    */
