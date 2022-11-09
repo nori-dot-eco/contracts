@@ -124,3 +124,7 @@ error IncorrectSupplyAllocation();
  * @notice Thrown when the caller specifies the zero address for the Nori fee wallet.
  */
 error NoriFeeWalletZeroAddress();
+/**
+ * @notice Thrown when a holdback percentage greater than 100 is submitted to `mintBatch`.
+ */
+error InvalidHoldbackPercentage(uint8 holdbackPercentage);
