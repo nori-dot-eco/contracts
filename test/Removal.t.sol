@@ -370,6 +370,40 @@ contract Removal_mintBatch_zero_amount_removal_to_market_reverts is
   }
 }
 
+contract Removal_mintBatch_revertsInvalidHoldbackPercentage is
+  UpgradeableMarket
+{
+  function test() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
+    });
+    uint256 removalId = RemovalIdLib.createRemovalId(ids[0]);
+    uint8 holdbackPercentage = 110;
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        InvalidHoldbackPercentage.selector,
+        holdbackPercentage
+      )
+    );
+    _removal.mintBatch({
+      to: address(_market),
+      amounts: new uint256[](1).fill(0 ether),
+      removals: ids,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: holdbackPercentage
+    });
+  }
+}
+
 contract Removal_addBalance is UpgradeableMarket {
   uint256[] _removalIds;
 
