@@ -6,6 +6,7 @@ import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol
 import "./AccessPresetPausable.sol";
 import "./Errors.sol";
 import "./ICertificate.sol";
+import "./IRemoval.sol";
 
 /**
  * @title An ERC721a contract that issues non-transferable certificates of carbon removal.
@@ -72,7 +73,7 @@ contract Certificate is
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
    */
-  address private _removal;
+  IRemoval private _removal;
 
   /**
    * @notice Base URI for token metadata.
@@ -99,7 +100,7 @@ contract Certificate is
    * @notice Emitted on updating the addresses for contracts.
    * @param removal The address of the new Removal contract.
    */
-  event ContractAddressesRegistered(address removal);
+  event ContractAddressesRegistered(IRemoval removal);
 
   /**
    * @notice Locks the contract, preventing any future re-initialization.
@@ -143,7 +144,7 @@ contract Certificate is
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
    * @param removal The address of the Removal contract.
    */
-  function registerContractAddresses(address removal)
+  function registerContractAddresses(IRemoval removal)
     external
     whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)

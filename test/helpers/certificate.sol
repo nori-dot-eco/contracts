@@ -21,7 +21,7 @@ abstract contract UpgradeableCertificate is Upgradeable, UpgradeableRemoval {
       "https://registry.test.nori.com/certificates"
     );
     Certificate proxy = Certificate(_deployProxy(address(impl), initializer));
-    proxy.registerContractAddresses(address(_removal)); // todo consider simple registry pattern
+    proxy.registerContractAddresses(_removal); // todo consider simple registry pattern
     vm.label(address(proxy), "Certificate Proxy");
     return proxy;
   }
