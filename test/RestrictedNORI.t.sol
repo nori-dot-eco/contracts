@@ -4,469 +4,6 @@ pragma solidity =0.8.17;
 import "@/test/helpers/restricted-nori.sol";
 import "@/test/checkout.int.t.sol";
 
-/** @dev Test correct claimable balance after claiming claimable then transferring remaining tokens, single holder */
-contract RestrictedNORI_withdrawFromSchedule_claimableBalancePostTransferSingleHolder is
-  UpgradeableMarket
-{
-  uint256[] removalIds;
-  uint256 scheduleId = 1;
-  uint256 removalId;
-
-  using UInt256ArrayLib for uint256[];
-
-  function setUp() external {
-    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
-    ids[0] = DecodedRemovalIdV0({
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "IA",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
-    });
-    removalId = RemovalIdLib.createRemovalId(ids[0]);
-
-    _removal.grantRole(_removal.CONSIGNOR_ROLE(), address(this));
-    _removal.mintBatch({
-      to: _namedAccounts.supplier,
-      amounts: new uint256[](1).fill(1 ether),
-      removals: ids,
-      projectId: scheduleId,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
-    });
-
-    _rNori.grantRole(_rNori.MINTER_ROLE(), address(this));
-    _bpNori.grantRole(_bpNori.DEPOSITOR_ROLE(), address(this));
-    _bpNori.deposit(address(_rNori), abi.encode(1 ether));
-  }
-
-  /** @dev Test that after a holder claims all claimable tokens and then transfers remaining schedule balance to
-   * a new account, the new account cannot claim any additional tokens.
-   */
-  function testClaimableAmountAfterFullWithdrawalThenTransfer() external {
-    uint256 blockTimestamp = 1000;
-    vm.warp(blockTimestamp);
-
-    // only 1 supplier in schedule
-    _rNori.mint(1000, removalId);
-
-    vm.warp(blockTimestamp + 31_556_952); // 315_569_520 == 10 year, 31_556_952 == 1 year
-    uint256 startTotalSupply = _rNori.totalSupply(scheduleId);
-
-    uint256 claimable = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-    uint256 claimableForSchedule = _rNori.claimableBalanceForSchedule(
-      scheduleId
-    );
-    assertEq(claimable, 100);
-    assertEq(claimableForSchedule, 100);
-
-    vm.startPrank(_namedAccounts.supplier);
-    _rNori.withdrawFromSchedule(_namedAccounts.supplier, scheduleId, claimable);
-    claimable = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-    claimableForSchedule = _rNori.claimableBalanceForSchedule(scheduleId);
-    assertEq(claimable, 0);
-    assertEq(claimableForSchedule, 0);
-
-    address newSupplier = address(uint160(100));
-    _rNori.safeTransferFrom(
-      _namedAccounts.supplier,
-      newSupplier,
-      scheduleId,
-      _rNori.balanceOf(_namedAccounts.supplier, scheduleId),
-      ""
-    );
-    vm.stopPrank();
-
-    claimable = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      newSupplier
-    );
-    assertEq(claimable, 0);
-
-    vm.prank(newSupplier);
-    vm.expectRevert(
-      abi.encodeWithSelector(
-        InsufficientClaimableBalance.selector,
-        newSupplier,
-        scheduleId
-      )
-    );
-    _rNori.withdrawFromSchedule(_namedAccounts.supplier, scheduleId, 90);
-
-    uint256 endTotalSupply = _rNori.totalSupply(scheduleId);
-    assertEq(endTotalSupply, startTotalSupply - 100);
-  }
-
-  /** @dev Test that after a holder claims most of the claimable tokens and then transfers remaining schedule balance to
-   * a new account, the new account can only claim the remaining claimable tokens and the original account cannot claim
-   * any additional tokens.
-   */
-  function testClaimableAmountAfterMajorityWithdrawalThenTransfer() external {
-    uint256 blockTimestamp = 1000;
-    vm.warp(blockTimestamp);
-
-    // only 1 supplier in schedule
-    _rNori.mint(1000, removalId);
-
-    vm.warp(blockTimestamp + 31_556_952); // 315_569_520 == 10 year, 31_556_952 == 1 year
-    uint256 startTotalSupply = _rNori.totalSupply(scheduleId);
-
-    uint256 claimable = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-    uint256 claimableForSchedule = _rNori.claimableBalanceForSchedule(
-      scheduleId
-    );
-    assertEq(claimable, 100);
-    assertEq(claimableForSchedule, 100);
-
-    vm.startPrank(_namedAccounts.supplier);
-    _rNori.withdrawFromSchedule(_namedAccounts.supplier, scheduleId, 80);
-    claimable = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-    claimableForSchedule = _rNori.claimableBalanceForSchedule(scheduleId);
-    assertEq(claimable, 20);
-    assertEq(claimableForSchedule, 20);
-
-    address newSupplier = address(uint160(100));
-    _rNori.safeTransferFrom(
-      _namedAccounts.supplier,
-      newSupplier,
-      scheduleId,
-      500, // half of schedule total
-      ""
-    );
-    vm.stopPrank();
-    uint256 claimableForNewSupplier = _rNori
-      .claimableBalanceForScheduleForAccount(scheduleId, newSupplier);
-    assertEq(claimableForNewSupplier, 20);
-
-    uint256 claimableForOriginalSupplier = _rNori
-      .claimableBalanceForScheduleForAccount(
-        scheduleId,
-        _namedAccounts.supplier
-      );
-    assertEq(claimableForOriginalSupplier, 0);
-  }
-
-  /** @dev Test that when a holder withdraws half of the claimable tokens, and then transfers half of the
-   * schedule balance to a new account, the new account can claim the remaining tokens and the original
-   * account cannot claim any additional tokens.
-   */
-  function testClaimableAmountAfterHalfWithdrawalThenTransfer() external {
-    uint256 blockTimestamp = 1000;
-    vm.warp(blockTimestamp);
-
-    // only 1 supplier in schedule
-    _rNori.mint(1000, removalId);
-
-    vm.warp(blockTimestamp + 31_556_952); // 315_569_520 == 10 year, 31_556_952 == 1 year
-    uint256 startTotalSupply = _rNori.totalSupply(scheduleId);
-
-    uint256 claimable = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-    uint256 claimableForSchedule = _rNori.claimableBalanceForSchedule(
-      scheduleId
-    );
-    assertEq(claimable, 100);
-    assertEq(claimableForSchedule, 100);
-
-    vm.startPrank(_namedAccounts.supplier);
-    _rNori.withdrawFromSchedule(_namedAccounts.supplier, scheduleId, 50);
-    claimable = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-    claimableForSchedule = _rNori.claimableBalanceForSchedule(scheduleId);
-    assertEq(claimable, 50);
-    assertEq(claimableForSchedule, 50);
-
-    address newSupplier = address(uint160(100));
-    _rNori.safeTransferFrom(
-      _namedAccounts.supplier,
-      newSupplier,
-      scheduleId,
-      500, // half of the schedule total
-      ""
-    );
-    vm.stopPrank();
-
-    uint256 claimableForNewSupplier = _rNori
-      .claimableBalanceForScheduleForAccount(scheduleId, newSupplier);
-    assertEq(claimableForNewSupplier, 50);
-
-    uint256 claimableForOriginalSupplier = _rNori
-      .claimableBalanceForScheduleForAccount(
-        scheduleId,
-        _namedAccounts.supplier
-      );
-    assertEq(claimableForOriginalSupplier, 0);
-
-    vm.prank(newSupplier);
-    _rNori.withdrawFromSchedule(newSupplier, scheduleId, 50);
-
-    uint256 endTotalSupply = _rNori.totalSupply(scheduleId);
-    assertEq(endTotalSupply, startTotalSupply - 100);
-  }
-
-  /** @dev Test that when an original holder claims a small amount of claimable tokens, and then transfers
-   * half of the schedule balance to a new account, the new account can claim their proportion of the claimable
-   * tokens, and the original holder can still claim their remaining portion of claimable tokens.
-   */
-  function testClaimableAmountAfterSmallWithdrawalThenTransfer() external {
-    uint256 blockTimestamp = 1000;
-    vm.warp(blockTimestamp);
-
-    // only 1 supplier in schedule
-    _rNori.mint(1000, removalId);
-
-    vm.warp(blockTimestamp + 31_556_952); // 315_569_520 == 10 year, 31_556_952 == 1 year
-    uint256 startTotalSupply = _rNori.totalSupply(scheduleId);
-
-    uint256 claimable = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-    uint256 claimableForSchedule = _rNori.claimableBalanceForSchedule(
-      scheduleId
-    );
-    assertEq(claimable, 100);
-    assertEq(claimableForSchedule, 100);
-
-    vm.startPrank(_namedAccounts.supplier);
-    _rNori.withdrawFromSchedule(_namedAccounts.supplier, scheduleId, 10);
-    claimable = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-    claimableForSchedule = _rNori.claimableBalanceForSchedule(scheduleId);
-    assertEq(claimable, 90);
-    assertEq(claimableForSchedule, 90);
-
-    address newSupplier = address(uint160(100));
-    _rNori.safeTransferFrom(
-      _namedAccounts.supplier,
-      newSupplier,
-      scheduleId,
-      500, // half of the schedule total
-      ""
-    );
-    vm.stopPrank();
-
-    uint256 claimableForNewSupplier = _rNori
-      .claimableBalanceForScheduleForAccount(scheduleId, newSupplier);
-    assertEq(claimableForNewSupplier, 50); // only their portion is claimable even though 90 is total claimable
-
-    uint256 claimableForOriginalSupplier = _rNori
-      .claimableBalanceForScheduleForAccount(
-        scheduleId,
-        _namedAccounts.supplier
-      );
-    assertEq(claimableForOriginalSupplier, 40); // original supplier can still claim the remainder of their new proportion
-  }
-
-  /** @dev Test that when an original holder makes no withdrawal, and then transfers
-   * all of the schedule balance to a new account, the new account can claim all claimable tokens.
-   */
-  function testClaimableAmountAfterNoWithdrawalThenTransfer() external {
-    uint256 blockTimestamp = 1000;
-    vm.warp(blockTimestamp);
-
-    // only 1 supplier in schedule
-    _rNori.mint(1000, removalId);
-
-    vm.warp(blockTimestamp + 31_556_952); // 315_569_520 == 10 year, 31_556_952 == 1 year
-    uint256 startTotalSupply = _rNori.totalSupply(scheduleId);
-
-    uint256 claimable = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-    uint256 claimableForSchedule = _rNori.claimableBalanceForSchedule(
-      scheduleId
-    );
-    assertEq(claimable, 100);
-    assertEq(claimableForSchedule, 100);
-
-    vm.startPrank(_namedAccounts.supplier);
-    address newSupplier = address(uint160(100));
-    _rNori.safeTransferFrom(
-      _namedAccounts.supplier,
-      newSupplier,
-      scheduleId,
-      _rNori.balanceOf(_namedAccounts.supplier, scheduleId),
-      ""
-    );
-    vm.stopPrank();
-
-    uint256 claimableForNewSupplier = _rNori
-      .claimableBalanceForScheduleForAccount(scheduleId, newSupplier);
-    assertEq(claimableForNewSupplier, 100);
-
-    uint256 claimableForOriginalSupplier = _rNori
-      .claimableBalanceForScheduleForAccount(
-        scheduleId,
-        _namedAccounts.supplier
-      );
-    assertEq(claimableForOriginalSupplier, 0);
-  }
-}
-
-/** @dev Test correct claimable balance after claiming claimable then transferring remaining tokens, multiple holders */
-contract RestrictedNORI_withdrawFromSchedule_claimableBalancePostTransferMultipleHolders is
-  UpgradeableMarket
-{
-  uint256[] removalIds;
-  uint256 scheduleId = 1;
-  uint256 removalId;
-  uint256 removalId2;
-  uint256 removalId3;
-
-  using UInt256ArrayLib for uint256[];
-
-  function setUp() external {
-    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
-    ids[0] = DecodedRemovalIdV0({
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "IA",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
-    });
-    removalId = RemovalIdLib.createRemovalId(ids[0]);
-
-    _removal.grantRole(_removal.CONSIGNOR_ROLE(), address(this));
-    _removal.mintBatch({
-      to: _namedAccounts.supplier,
-      amounts: new uint256[](1).fill(1 ether),
-      removals: ids,
-      projectId: scheduleId,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
-    });
-
-    DecodedRemovalIdV0[] memory ids2 = new DecodedRemovalIdV0[](1);
-    ids2[0] = DecodedRemovalIdV0({
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "IA",
-      supplierAddress: _namedAccounts.supplier2,
-      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
-    });
-    removalId2 = RemovalIdLib.createRemovalId(ids2[0]);
-
-    _removal.mintBatch({
-      to: _namedAccounts.supplier2,
-      amounts: new uint256[](1).fill(1 ether),
-      removals: ids2,
-      projectId: scheduleId,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
-    });
-
-    DecodedRemovalIdV0[] memory ids3 = new DecodedRemovalIdV0[](1);
-    ids3[0] = DecodedRemovalIdV0({
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "IA",
-      supplierAddress: _namedAccounts.supplier3,
-      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
-    });
-    removalId3 = RemovalIdLib.createRemovalId(ids3[0]);
-
-    _removal.mintBatch({
-      to: _namedAccounts.supplier3,
-      amounts: new uint256[](1).fill(1 ether),
-      removals: ids3,
-      projectId: scheduleId,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
-    });
-
-    _rNori.grantRole(_rNori.MINTER_ROLE(), address(this));
-    _bpNori.grantRole(_bpNori.DEPOSITOR_ROLE(), address(this));
-    _bpNori.deposit(address(_rNori), abi.encode(1 ether));
-  }
-
-  function testClaimableAmountWithMultipleSuppliers() external {
-    uint256 blockTimestamp = 1000;
-    vm.warp(blockTimestamp);
-
-    _rNori.mint(1000, removalId);
-    _rNori.mint(8000, removalId2);
-    _rNori.mint(1000, removalId3);
-
-    vm.warp(blockTimestamp + 31_556_952); // 315_569_520 == 10 year, 31_556_952 == 1 year
-    uint256 startTotalSupply = _rNori.totalSupply(scheduleId);
-
-    uint256 claimableForSupplier1 = _rNori
-      .claimableBalanceForScheduleForAccount(
-        scheduleId,
-        _namedAccounts.supplier
-      );
-    uint256 claimableForSchedule = _rNori.claimableBalanceForSchedule(
-      scheduleId
-    );
-    assertEq(claimableForSupplier1, 100);
-    assertEq(claimableForSchedule, 1000);
-
-    vm.startPrank(_namedAccounts.supplier);
-    _rNori.withdrawFromSchedule(_namedAccounts.supplier, scheduleId, 80);
-    claimableForSupplier1 = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-    claimableForSchedule = _rNori.claimableBalanceForSchedule(scheduleId);
-    assertEq(claimableForSupplier1, 20);
-    assertEq(claimableForSchedule, 920);
-
-    address newSupplier = address(uint160(100));
-    _rNori.safeTransferFrom(
-      _namedAccounts.supplier,
-      newSupplier,
-      scheduleId,
-      500, // half of supplier 1's balance
-      ""
-    );
-    vm.stopPrank();
-
-    claimableForSupplier1 = _rNori.claimableBalanceForScheduleForAccount(
-      scheduleId,
-      _namedAccounts.supplier
-    );
-
-    uint256 claimableForNewSupplier = _rNori
-      .claimableBalanceForScheduleForAccount(scheduleId, newSupplier);
-    claimableForSchedule = _rNori.claimableBalanceForSchedule(scheduleId);
-    assertEq(claimableForSupplier1, 0);
-    assertEq(claimableForNewSupplier, 20);
-    assertEq(claimableForSchedule, 920);
-  }
-}
-
 contract RestrictedNORI_initialize is UpgradableRestrictedNORI {
   function test() external {
     assertEq(
@@ -608,6 +145,69 @@ contract RestrictedNORI_revokeUnreleasedTokens is UpgradeableMarket {
   }
 }
 
-//
+contract RestrictedNORI_transfers_revert is UpgradeableMarket {
+  uint256 scheduleId = 1;
+  uint256[] scheduleIds = [scheduleId];
+  uint256 removalId;
+  uint256 amount = 1 ether;
+  uint256[] amounts = [amount];
+
+  using UInt256ArrayLib for uint256[];
+
+  function setUp() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    removalId = RemovalIdLib.createRemovalId(ids[0]);
+    _removal.grantRole(_removal.CONSIGNOR_ROLE(), address(this));
+    _removal.mintBatch({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(amount),
+      removals: ids,
+      projectId: scheduleId,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+
+    _rNori.grantRole(_rNori.MINTER_ROLE(), address(this));
+    _bpNori.grantRole(_bpNori.DEPOSITOR_ROLE(), address(this));
+    _bpNori.deposit(address(_rNori), abi.encode(amount));
+  }
+
+  function testSafeTransferFromReverts() external {
+    address newSupplier = address(uint160(100));
+    vm.startPrank(_namedAccounts.supplier);
+    vm.expectRevert(FunctionDisabled.selector);
+    _rNori.safeTransferFrom(
+      _namedAccounts.supplier,
+      newSupplier,
+      scheduleId,
+      amount,
+      ""
+    );
+  }
+
+  function testSafeBatchTransferFromReverts() external {
+    address newSupplier = address(uint160(100));
+    vm.startPrank(_namedAccounts.supplier);
+    vm.expectRevert(FunctionDisabled.selector);
+    _rNori.safeBatchTransferFrom(
+      _namedAccounts.supplier,
+      newSupplier,
+      scheduleIds,
+      amounts,
+      ""
+    );
+  }
+}
+
 // todo createSchedule
 // todo _createSchedule
