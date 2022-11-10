@@ -567,6 +567,11 @@ contract RestrictedNORI is
     return scheduleDetails;
   }
 
+  /**
+   * @notice Check the existence of a schedule.
+   * @param scheduleId The token ID of the schedule for which to check existence.
+   * @return Returns a boolean indicating whether or not the schedule exists.
+   */
   function scheduleExists(uint256 scheduleId)
     external
     view
