@@ -207,6 +207,17 @@ contract Market is
   event RemovalAdded(uint256 indexed id, address indexed supplierAddress);
 
   /**
+   * @notice Emitted when the call to RestrictedNORI.mint fails during a purchase.
+   * For example, due to sending to a contract address that is not an ERC1155Receiver.
+   * @param amount The amount of RestrictedNORI in the mint attempt.
+   * @param removalId The removal id in the mint attempt.
+   */
+  event RestrictedNORIMintFailed(
+    uint256 indexed amount,
+    uint256 indexed removalId
+  );
+
+  /**
    * @notice Locks the contract, preventing any future re-initialization.
    * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -809,10 +820,18 @@ contract Market is
           (unrestrictedSupplierFee * holdbackPercentage) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNORI.mint({
-          amount: restrictedSupplierFee,
-          removalId: removalIds[i]
-        });
+        try
+          _restrictedNORI.mint({
+            amount: restrictedSupplierFee,
+            removalId: removalIds[i]
+          })
+        {} catch {
+          emit RestrictedNORIMintFailed({
+            amount: restrictedSupplierFee,
+            removalId: removalIds[i]
+          });
+        }
+
         _bridgedPolygonNORI.transferFrom({
           from: operator,
           to: address(_restrictedNORI),
@@ -993,9 +1012,6 @@ contract Market is
         break;
       }
     }
-    if (amounts.sum() != certificateAmount) {
-      revert IncorrectSupplyAllocation();
-    }
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
@@ -1075,9 +1091,6 @@ contract Market is
       if (remainingAmountToFill == 0) {
         break;
       }
-    }
-    if (amounts.sum() != certificateAmount) {
-      revert IncorrectSupplyAllocation();
     }
     return (countOfRemovalsAllocated, ids, amounts);
   }

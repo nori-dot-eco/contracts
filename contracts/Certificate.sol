@@ -56,6 +56,8 @@ contract Certificate is
   MulticallUpgradeable,
   AccessPresetPausable
 {
+  using UInt256ArrayLib for uint256[];
+
   /**
    * @notice Role conferring operator permissions.
    * @dev Assigned to operators which are the only addresses which can transfer certificates outside
@@ -110,7 +112,7 @@ contract Certificate is
   }
 
   /**
-   * @notice Initialize the BridgedPolygonNORI contract.
+   * @notice Initialize the Certificate contract.
    * @param baseURI The base URI for all certificate NFTs.
    */
   function initialize(string memory baseURI)
@@ -321,7 +323,8 @@ contract Certificate is
   ) internal {
     _validateReceivedRemovalBatch({
       removalIds: removalIds,
-      removalAmounts: removalAmounts
+      removalAmounts: removalAmounts,
+      certificateAmount: certificateAmount
     });
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
@@ -363,11 +366,16 @@ contract Certificate is
    * @dev Reverts if the array lengths do not match.
    * @param removalIds Array of removal IDs.
    * @param removalAmounts Array of removal amounts.
+   * @param certificateAmount The total number of tonnes of carbon removals represented by the new certificate.
    */
   function _validateReceivedRemovalBatch(
     uint256[] calldata removalIds,
-    uint256[] calldata removalAmounts
+    uint256[] calldata removalAmounts,
+    uint256 certificateAmount
   ) internal pure {
+    if (removalAmounts.sum() != certificateAmount) {
+      revert("Incorrect supply allocation");
+    }
     if (removalIds.length != removalAmounts.length) {
       revert ArrayLengthMismatch({
         array1Name: "removalIds",
