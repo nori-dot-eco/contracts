@@ -575,7 +575,7 @@ contract Market_onERC1155Received_reverts_SenderNotRemovalContract is
       Certificate(_certificate)
     );
     _rNori.registerContractAddresses(
-      BridgedPolygonNORI(_bpNori),
+      IERC20WithPermit(address(_bpNori)),
       Removal(_unregisteredRemovalDuplicate)
     );
     _rNori.grantRole(
@@ -634,7 +634,7 @@ contract Market_onERC1155BatchReceived_reverts_SenderNotRemovalContract is
       Certificate(_certificate)
     );
     _rNori.registerContractAddresses(
-      BridgedPolygonNORI(_bpNori),
+      IERC20WithPermit(address(_bpNori)),
       Removal(_unregisteredRemovalDuplicate)
     );
     _rNori.grantRole(

@@ -1,15 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "./Certificate.sol";
-import "./RestrictedNORI.sol";
-import "./AccessPresetPausable.sol";
+
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+
+import "./AccessPresetPausable.sol";
+import "./Certificate.sol";
+import "./Errors.sol";
+import "./IERC20WithPermit.sol";
+import "./IMarket.sol";
+import "./Removal.sol";
+import "./RestrictedNORI.sol";
+
 import {RemovalsByYearLib, RemovalsByYear} from "./RemovalsByYearLib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
 import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
-import "./Errors.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
 
 /**
  * @title Nori Inc.'s carbon removal marketplace.
@@ -61,6 +67,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
  * - `AddressArrayLib` for `address[]`
  */
 contract Market is
+  IMarket,
   AccessPresetPausable,
   IERC1155ReceiverUpgradeable,
   MulticallUpgradeable
@@ -93,7 +100,7 @@ contract Market is
   /**
    * @notice The BridgedPolygonNORI contract.
    */
-  BridgedPolygonNORI private _bridgedPolygonNORI;
+  IERC20WithPermit private _bridgedPolygonNORI;
 
   /**
    * @notice The RestrictedNORI contract.
@@ -158,7 +165,7 @@ contract Market is
   event ContractAddressesRegistered(
     Removal removal,
     Certificate certificate,
-    BridgedPolygonNORI bridgedPolygonNORI,
+    IERC20WithPermit bridgedPolygonNORI,
     RestrictedNORI restrictedNORI
   );
 
@@ -228,7 +235,7 @@ contract Market is
    */
   function initialize(
     Removal removal,
-    BridgedPolygonNORI bridgedPolygonNori,
+    IERC20WithPermit bridgedPolygonNori,
     Certificate certificate,
     RestrictedNORI restrictedNori,
     address noriFeeWalletAddress,
@@ -267,7 +274,11 @@ contract Market is
    * @param removalId The ID of the removal to release.
    * @param amount The amount of that removal to release.
    */
-  function release(uint256 removalId, uint256 amount) external whenNotPaused {
+  function release(uint256 removalId, uint256 amount)
+    external
+    override
+    whenNotPaused
+  {
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
@@ -306,7 +317,7 @@ contract Market is
   function registerContractAddresses(
     Removal removal,
     Certificate certificate,
-    BridgedPolygonNORI bridgedPolygonNORI,
+    IERC20WithPermit bridgedPolygonNORI,
     RestrictedNORI restrictedNORI
   ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
     _removal = removal;
@@ -689,7 +700,7 @@ contract Market is
    * @notice Get the RestrictedNORI contract address.
    * @return Returns the address of the RestrictedNORI contract.
    */
-  function restrictedNoriAddress() external view returns (address) {
+  function restrictedNoriAddress() external view override returns (address) {
     return address(_restrictedNORI);
   }
 

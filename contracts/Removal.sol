@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import "./Market.sol";
+import "./AccessPresetPausable.sol";
+import "./IMarket.sol";
+import "./ICertificate.sol";
+import "./IRemoval.sol";
+import "./IRestrictedNORI.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
-import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
+import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer, RemovalNotYetMinted} from "./Errors.sol";
 
 /**
  * @title An extended ERC1155 token contract for carbon removal accounting.
@@ -93,6 +98,7 @@ import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol
  * `EnumerableSetUpgradeable.UintSet`
  */
 contract Removal is
+  IRemoval,
   ERC1155SupplyUpgradeable,
   AccessPresetPausable,
   MulticallUpgradeable
@@ -113,12 +119,12 @@ contract Removal is
   /**
    * @notice The Market contract that removals can be bought and sold from.
    */
-  Market internal _market;
+  IMarket internal _market;
 
   /**
    * @notice The Certificate contract that removals are retired into.
    */
-  Certificate private _certificate;
+  ICertificate private _certificate;
 
   /**
    * @dev Maps from a given project ID to the holdback percentage that will be used to determine what percentage of
@@ -147,7 +153,7 @@ contract Removal is
    * @param market The address of the new market contract.
    * @param certificate The address of the new certificate contract.
    */
-  event ContractAddressesRegistered(Market market, Certificate certificate);
+  event ContractAddressesRegistered(IMarket market, ICertificate certificate);
 
   /**
    * @notice Emitted on releasing a removal from a supplier, the market, or a certificate.
@@ -217,7 +223,7 @@ contract Removal is
    * @param market The address of the Market contract.
    * @param certificate The address of the Certificate contract.
    */
-  function registerContractAddresses(Market market, Certificate certificate)
+  function registerContractAddresses(IMarket market, ICertificate certificate)
     external
     whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
@@ -261,7 +267,7 @@ contract Removal is
     });
     _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
     _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
-    RestrictedNORI _restrictedNORI = RestrictedNORI(
+    IRestrictedNORI _restrictedNORI = IRestrictedNORI(
       _market.restrictedNoriAddress()
     );
     if (!_restrictedNORI.scheduleExists({scheduleId: projectId})) {
@@ -455,7 +461,7 @@ contract Removal is
    * @param id The removal token ID for which to retrieve the project ID.
    * @return The project ID for the removal token ID.
    */
-  function getProjectId(uint256 id) external view returns (uint256) {
+  function getProjectId(uint256 id) external view override returns (uint256) {
     return _removalIdToProjectId[id];
   }
 

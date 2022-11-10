@@ -3,9 +3,9 @@ pragma solidity =0.8.17;
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
-import "./Errors.sol";
-import "./Removal.sol";
 import "./AccessPresetPausable.sol";
+import "./Errors.sol";
+import "./ICertificate.sol";
 
 /**
  * @title An ERC721a contract that issues non-transferable certificates of carbon removal.
@@ -51,6 +51,7 @@ import "./AccessPresetPausable.sol";
  * - [IERC165Upgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165)
  */
 contract Certificate is
+  ICertificate,
   ERC721ABurnableUpgradeable,
   ERC721AQueryableUpgradeable,
   MulticallUpgradeable,
@@ -71,7 +72,7 @@ contract Certificate is
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
    */
-  Removal private _removal;
+  address private _removal;
 
   /**
    * @notice Base URI for token metadata.
@@ -98,7 +99,7 @@ contract Certificate is
    * @notice Emitted on updating the addresses for contracts.
    * @param removal The address of the new Removal contract.
    */
-  event ContractAddressesRegistered(Removal removal);
+  event ContractAddressesRegistered(address removal);
 
   /**
    * @notice Locks the contract, preventing any future re-initialization.
@@ -142,7 +143,7 @@ contract Certificate is
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
    * @param removal The address of the Removal contract.
    */
-  function registerContractAddresses(Removal removal)
+  function registerContractAddresses(address removal)
     external
     whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)
@@ -196,12 +197,7 @@ contract Certificate is
     return address(_removal);
   }
 
-  /**
-   * @notice Returns the total number of certificates that have been minted.
-   * @dev Includes burned certificates.
-   * @return Total number of certificates that have been minted.
-   */
-  function totalMinted() external view returns (uint256) {
+  function totalMinted() external view override returns (uint256) {
     return _totalMinted();
   }
 

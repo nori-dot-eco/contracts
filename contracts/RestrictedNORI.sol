@@ -4,11 +4,13 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "./BridgedPolygonNORI.sol";
-import "./Removal.sol";
+import "./AccessPresetPausable.sol";
+import "./Errors.sol";
+import "./IERC20WithPermit.sol";
+import "./IRemoval.sol";
+import "./IRestrictedNORI.sol";
 import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
-import "./Errors.sol";
 
 /**
  * @notice View information for the current state of one schedule.
@@ -137,6 +139,7 @@ struct ScheduleDetailForAddress {
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  */
 contract RestrictedNORI is
+  IRestrictedNORI,
   ERC1155SupplyUpgradeable,
   AccessPresetPausable,
   MulticallUpgradeable
@@ -183,12 +186,12 @@ contract RestrictedNORI is
   /**
    * @notice The BridgedPolygonNORI contract for which this contract wraps tokens.
    */
-  BridgedPolygonNORI private _bridgedPolygonNORI;
+  IERC20WithPermit private _bridgedPolygonNORI;
 
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
    */
-  Removal private _removal;
+  IRemoval private _removal;
 
   /**
    * @notice Emitted on successful creation of a new schedule.
@@ -382,11 +385,11 @@ contract RestrictedNORI is
    * @param removal The address of the Removal contract that accounts for Nori's issued carbon removals.
    */
   function registerContractAddresses(
-    BridgedPolygonNORI bridgedPolygonNORI,
-    Removal removal
+    IERC20WithPermit bridgedPolygonNORI,
+    IRemoval removal
   ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
-    _bridgedPolygonNORI = BridgedPolygonNORI(bridgedPolygonNORI);
-    _removal = Removal(removal);
+    _bridgedPolygonNORI = IERC20WithPermit(bridgedPolygonNORI);
+    _removal = IRemoval(removal);
   }
 
   /**
@@ -407,7 +410,7 @@ contract RestrictedNORI is
     uint256 startTime,
     uint8 methodology,
     uint8 methodologyVersion
-  ) external whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
+  ) external override whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
     if (this.scheduleExists({scheduleId: projectId})) {
       revert ScheduleExists({scheduleId: projectId});
     }
@@ -564,12 +567,12 @@ contract RestrictedNORI is
     return scheduleDetails;
   }
 
-  /**
-   * @notice Check the existence of a schedule.
-   * @param scheduleId The token ID of the schedule for which to check existence.
-   * @return Returns a boolean indicating whether or not the schedule exists.
-   */
-  function scheduleExists(uint256 scheduleId) external view returns (bool) {
+  function scheduleExists(uint256 scheduleId)
+    external
+    view
+    override
+    returns (bool)
+  {
     return _scheduleIdToScheduleStruct[scheduleId].doesExist();
   }
 
