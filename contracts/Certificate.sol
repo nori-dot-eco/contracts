@@ -58,6 +58,8 @@ contract Certificate is
   MulticallUpgradeable,
   AccessPresetPausable
 {
+  using UInt256ArrayLib for uint256[];
+
   /**
    * @notice Role conferring operator permissions.
    * @dev Assigned to operators which are the only addresses which can transfer certificates outside
@@ -85,6 +87,7 @@ contract Certificate is
    * @param from The sender's address.
    * @param recipient The recipient address.
    * @param certificateId The ID of the certificate that the removals mint.
+   * @param certificateAmount The total number of NRTs retired in this certificate.
    * @param removalIds The removal IDs used for the certificate.
    * @param removalAmounts The amounts from each removal used for the certificate.
    */
@@ -92,6 +95,7 @@ contract Certificate is
     address from,
     address indexed recipient,
     uint256 indexed certificateId,
+    uint256 certificateAmount,
     uint256[] removalIds,
     uint256[] removalAmounts
   );
@@ -112,7 +116,7 @@ contract Certificate is
   }
 
   /**
-   * @notice Initialize the BridgedPolygonNORI contract.
+   * @notice Initialize the Certificate contract.
    * @param baseURI The base URI for all certificate NFTs.
    */
   function initialize(string memory baseURI)
@@ -231,7 +235,10 @@ contract Certificate is
     )
     returns (bool)
   {
-    return super.supportsInterface({interfaceId: interfaceId});
+    return
+      super.supportsInterface({interfaceId: interfaceId}) ||
+      interfaceId == 0x80ac58cd || // interface ID for ERC721
+      interfaceId == 0x5b5e139f; // interface ID for ERC721Metadata
   }
 
   /**
@@ -315,7 +322,8 @@ contract Certificate is
   ) internal {
     _validateReceivedRemovalBatch({
       removalIds: removalIds,
-      removalAmounts: removalAmounts
+      removalAmounts: removalAmounts,
+      certificateAmount: certificateAmount
     });
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
@@ -324,6 +332,7 @@ contract Certificate is
       from: _msgSender(),
       recipient: recipient,
       certificateId: certificateId,
+      certificateAmount: certificateAmount,
       removalIds: removalIds,
       removalAmounts: removalAmounts
     });
@@ -357,11 +366,16 @@ contract Certificate is
    * @dev Reverts if the array lengths do not match.
    * @param removalIds Array of removal IDs.
    * @param removalAmounts Array of removal amounts.
+   * @param certificateAmount The total number of tonnes of carbon removals represented by the new certificate.
    */
   function _validateReceivedRemovalBatch(
     uint256[] calldata removalIds,
-    uint256[] calldata removalAmounts
+    uint256[] calldata removalAmounts,
+    uint256 certificateAmount
   ) internal pure {
+    if (removalAmounts.sum() != certificateAmount) {
+      revert("Incorrect supply allocation");
+    }
     if (removalIds.length != removalAmounts.length) {
       revert ArrayLengthMismatch({
         array1Name: "removalIds",

@@ -690,72 +690,35 @@ contract RestrictedNORI is
   }
 
   /**
-   * @notice Transfers `amount` tokens of token type `id` from `from` to `to`.
-   * @dev [See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155).
-   * @param from The address to transfer from.
-   * @param to The address to transfer to.
-   * @param id The token ID to transfer.
-   * @param amount The amount of the token `id` to transfer.
-   * @param data The data to pass to the receiver contract.
+   * @notice Token transfers disabled.
+   * @dev Transfer is disabled because keeping track of claimable amounts as tokens are
+   * claimed and transferred requires more bookkeeping infrastructure that we don't currently
+   * have time to write but may implement in the future.
    */
   function safeTransferFrom(
-    address from,
-    address to,
-    uint256 id,
-    uint256 amount,
-    bytes memory data
+    address,
+    address,
+    uint256,
+    uint256,
+    bytes memory
   ) public override {
-    super.safeTransferFrom({
-      from: from,
-      to: to,
-      id: id,
-      amount: amount,
-      data: data
-    });
-    Schedule storage schedule = _scheduleIdToScheduleStruct[id];
-    if (amount != 0) {
-      schedule.tokenHolders.add({value: to});
-    }
-    if (balanceOf({account: from, id: id}) == 0) {
-      schedule.tokenHolders.remove({value: from});
-    }
+    revert FunctionDisabled();
   }
 
   /**
-   * @notice Batched version of `safeTransferFrom`.
-   * @dev [See the OZ ERC1155 documentation for more](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155).
-   * @param from The address to transfer from.
-   * @param to The address to transfer to.
-   * @param ids The token IDs to transfer.
-   * @param amounts The amounts of the token `id`s to transfer.
-   * @param data The data to pass to the receiver contract.
+   * @notice Token transfers disabled.
+   * @dev Transfer is disabled because keeping track of claimable amounts as tokens are
+   * claimed and transferred requires more bookkeeping infrastructure that we don't currently
+   * have time to write but may implement in the future.
    */
   function safeBatchTransferFrom(
-    address from,
-    address to,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    bytes memory data
+    address,
+    address,
+    uint256[] memory,
+    uint256[] memory,
+    bytes memory
   ) public override {
-    super.safeBatchTransferFrom({
-      from: from,
-      to: to,
-      ids: ids,
-      amounts: amounts,
-      data: data
-    });
-    // Skip overflow check as for loop is indexed starting at zero.
-    unchecked {
-      for (uint256 i = 0; i < ids.length; ++i) {
-        Schedule storage schedule = _scheduleIdToScheduleStruct[ids[i]];
-        if (amounts[i] != 0) {
-          schedule.tokenHolders.add({value: to});
-        }
-        if (balanceOf({account: from, id: ids[i]}) == 0) {
-          schedule.tokenHolders.remove({value: from});
-        }
-      }
-    }
+    revert FunctionDisabled();
   }
 
   /**
