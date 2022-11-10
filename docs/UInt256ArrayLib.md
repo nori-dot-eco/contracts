@@ -18,7 +18,7 @@ function fill(uint256[] from, uint256 val) internal pure returns (uint256[] arr)
 
 Fill an array.
 
-<i>Sums all the elements of a `uint256[]` array.
+<i>Fills all of the elements of a `uint256[]` with the specified `uint256` value.
 
 ##### Equivalence:
 
@@ -29,7 +29,7 @@ for (let i = 1; i < len + 1; i++) arr[i] = val;
 ##### Example usage:
 
 ```solidity
-new uint256[](3).fill(1).sum(); // returns: [1, 1, 1]
+new uint256[](3).fill(1); // returns: [1, 1, 1]
 ```
 -</i>
 
