@@ -117,10 +117,6 @@ error ForbiddenTransfer();
  */
 error RemovalNotYetMinted(uint256 tokenId);
 /**
- * @notice Thrown when the market encounters a purchase that it does not have enough supply to fulfill.
- */
-error IncorrectSupplyAllocation();
-/**
  * @notice Thrown when the caller specifies the zero address for the Nori fee wallet.
  */
 error NoriFeeWalletZeroAddress();
