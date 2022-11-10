@@ -236,7 +236,10 @@ contract Certificate is
     )
     returns (bool)
   {
-    return super.supportsInterface({interfaceId: interfaceId});
+    return
+      super.supportsInterface({interfaceId: interfaceId}) ||
+      interfaceId == 0x80ac58cd || // interface ID for ERC721
+      interfaceId == 0x5b5e139f; // interface ID for ERC721Metadata
   }
 
   /**
