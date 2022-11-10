@@ -4,6 +4,7 @@ import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721ABurnableUpgradeable.sol";
 import "erc721a-upgradeable/contracts/extensions/ERC721AQueryableUpgradeable.sol";
 import "./AccessPresetPausable.sol";
+import "./ArrayLib.sol";
 import "./Errors.sol";
 import "./ICertificate.sol";
 import "./IRemoval.sol";
