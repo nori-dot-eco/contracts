@@ -145,6 +145,69 @@ contract RestrictedNORI_revokeUnreleasedTokens is UpgradeableMarket {
   }
 }
 
-//
+contract RestrictedNORI_transfers_revert is UpgradeableMarket {
+  uint256 scheduleId = 1;
+  uint256[] scheduleIds = [scheduleId];
+  uint256 removalId;
+  uint256 amount = 1 ether;
+  uint256[] amounts = [amount];
+
+  using UInt256ArrayLib for uint256[];
+
+  function setUp() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    removalId = RemovalIdLib.createRemovalId(ids[0]);
+    _removal.grantRole(_removal.CONSIGNOR_ROLE(), address(this));
+    _removal.mintBatch({
+      to: _namedAccounts.supplier,
+      amounts: new uint256[](1).fill(amount),
+      removals: ids,
+      projectId: scheduleId,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+
+    _rNori.grantRole(_rNori.MINTER_ROLE(), address(this));
+    _bpNori.grantRole(_bpNori.DEPOSITOR_ROLE(), address(this));
+    _bpNori.deposit(address(_rNori), abi.encode(amount));
+  }
+
+  function testSafeTransferFromReverts() external {
+    address newSupplier = address(uint160(100));
+    vm.startPrank(_namedAccounts.supplier);
+    vm.expectRevert(FunctionDisabled.selector);
+    _rNori.safeTransferFrom(
+      _namedAccounts.supplier,
+      newSupplier,
+      scheduleId,
+      amount,
+      ""
+    );
+  }
+
+  function testSafeBatchTransferFromReverts() external {
+    address newSupplier = address(uint160(100));
+    vm.startPrank(_namedAccounts.supplier);
+    vm.expectRevert(FunctionDisabled.selector);
+    _rNori.safeBatchTransferFrom(
+      _namedAccounts.supplier,
+      newSupplier,
+      scheduleIds,
+      amounts,
+      ""
+    );
+  }
+}
+
 // todo createSchedule
 // todo _createSchedule

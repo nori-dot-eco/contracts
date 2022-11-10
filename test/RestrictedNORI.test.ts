@@ -3,6 +3,7 @@ import { defaultRemovalTokenIdFixture } from './fixtures/removal';
 
 import { formatTokenAmount, formatTokenString } from '@/utils/units';
 import { FINNEY, Zero } from '@/constants/units';
+import type { RemovalDataForListing } from '@/test/helpers';
 import {
   expect,
   advanceTime,
@@ -665,7 +666,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 3000, vintage: 2018 }],
+                removals: [{ amount: 1000, vintage: 2018 }],
               },
             },
           },
@@ -673,6 +674,8 @@ describe('RestrictedNORI', () => {
         const {
           rNori,
           bpNori,
+          removal,
+          market,
           hre,
           listedRemovalIds,
           projectId,
@@ -690,24 +693,60 @@ describe('RestrictedNORI', () => {
           ),
           removalAmountsToRestrict: removalAmounts,
         });
-        await rNori
-          .connect(hre.namedSigners.supplier)
-          .safeTransferFrom(
-            supplier,
-            investor1,
-            projectId,
-            formatTokenAmount(1000),
-            '0x'
-          );
-        await rNori
-          .connect(hre.namedSigners.supplier)
-          .safeTransferFrom(
-            supplier,
-            employee,
-            projectId,
-            formatTokenAmount(1000),
-            '0x'
-          );
+        // create some RestrictedNORI for a second holder
+        const investorRemovalData: RemovalDataForListing = {
+          projectId,
+          scheduleStartTime,
+          listNow: false,
+          removals: [
+            { amount: 1000, vintage: 2018, supplierAddress: investor1 },
+          ],
+        };
+        const investorRemovalMintingResults =
+          await batchMintAndListRemovalsForSale({
+            hre,
+            removal,
+            market,
+            removalDataToList: investorRemovalData,
+          });
+        await restrictRemovalProceeds({
+          testSetup,
+          removalIds: await Promise.all(
+            investorRemovalMintingResults.listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
+          removalAmountsToRestrict: [
+            formatTokenAmount(investorRemovalData.removals[0].amount),
+          ],
+        });
+        // create some RestrictedNORI for a third holder
+        const employeeRemovalData: RemovalDataForListing = {
+          projectId,
+          scheduleStartTime,
+          listNow: false,
+          removals: [
+            { amount: 1000, vintage: 2018, supplierAddress: employee },
+          ],
+        };
+        const employeeRemovalMintingResults =
+          await batchMintAndListRemovalsForSale({
+            hre,
+            removal,
+            market,
+            removalDataToList: employeeRemovalData,
+          });
+        await restrictRemovalProceeds({
+          testSetup,
+          removalIds: await Promise.all(
+            employeeRemovalMintingResults.listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
+          removalAmountsToRestrict: [
+            formatTokenAmount(employeeRemovalData.removals[0].amount),
+          ],
+        });
         await advanceTime({
           hre,
           timestamp: scheduleStartTime + SECONDS_IN_5_YEARS,
@@ -723,13 +762,13 @@ describe('RestrictedNORI', () => {
           rNori.claimableBalanceForScheduleForAccount(projectId, employee),
         ]);
         expect(supplierClaimableBalanceBeforeClaim).to.equal(
-          removalAmounts[0].div(3).div(2)
+          formatTokenAmount(500)
         );
         expect(supplierClaimableBalanceBeforeClaim).to.equal(
-          removalAmounts[0].div(3).div(2)
+          formatTokenAmount(500)
         );
         expect(employeeClaimableBalanceBeforeClaim).to.equal(
-          removalAmounts[0].div(3).div(2)
+          formatTokenAmount(500)
         );
         await rNori
           .connect(hre.namedSigners.supplier)
@@ -757,16 +796,16 @@ describe('RestrictedNORI', () => {
           FINNEY
         );
         expect(await rNori.totalSupply(projectId)).to.equal(
-          removalAmounts[0].sub(supplierClaimableBalanceBeforeClaim)
+          formatTokenAmount(3000).sub(supplierClaimableBalanceBeforeClaim)
         );
         expect(await rNori.balanceOf(supplier, projectId)).to.equal(
-          removalAmounts[0].div(3).sub(supplierClaimableBalanceBeforeClaim)
+          formatTokenAmount(1000).sub(supplierClaimableBalanceBeforeClaim)
         );
         expect(await rNori.balanceOf(investor1, projectId)).to.equal(
-          removalAmounts[0].div(3)
+          formatTokenAmount(1000)
         );
         expect(await rNori.balanceOf(employee, projectId)).to.equal(
-          removalAmounts[0].div(3)
+          formatTokenAmount(1000)
         );
         expect(await bpNori.totalSupply()).to.equal(
           bpNoriSupplyBeforeWithdrawl
@@ -828,557 +867,6 @@ describe('RestrictedNORI', () => {
         ).to.be.revertedWith(
           `InsufficientClaimableBalance("${supplier}", ${projectId})`
         );
-      });
-    });
-  });
-  describe('Transferring (safeTransferFrom, batchSafeTransferFrom)', () => {
-    describe('success', () => {
-      describe('safeTransferFrom', () => {
-        it('should transfer some tokens to another account', async () => {
-          const testSetup = await setupTest({
-            userFixtures: {
-              admin: {
-                roles: {
-                  RestrictedNORI: ['MINTER_ROLE'],
-                },
-              },
-              supplier: {
-                removalDataToList: {
-                  removals: [{ amount: 100, vintage: 2018 }],
-                },
-              },
-            },
-          });
-          const {
-            rNori,
-            hre,
-            listedRemovalIds,
-            projectId,
-            removalAmounts,
-            removalTestHarness,
-          } = testSetup;
-          const { supplier, investor1 } = hre.namedAccounts;
-          await restrictRemovalProceeds({
-            testSetup,
-            removalIds: await Promise.all(
-              listedRemovalIds.map(async (r) =>
-                removalTestHarness.createRemovalId(r)
-              )
-            ),
-            removalAmountsToRestrict: removalAmounts,
-          });
-          const supplierScheduleDetailBeforeTransfer =
-            await rNori.getScheduleDetailForAccount(supplier, projectId);
-          expect(supplierScheduleDetailBeforeTransfer.claimableAmount).to.be.gt(
-            0
-          );
-          const expectedScheduleDetailBeforeTransfer = {
-            tokenHolder: supplier,
-            scheduleTokenId: projectId,
-            balance: removalAmounts[0],
-            claimableAmount:
-              supplierScheduleDetailBeforeTransfer.claimableAmount,
-            claimedAmount: Zero,
-            quantityRevoked: Zero,
-            exists: true,
-          };
-          const amountToTransfer = removalAmounts[0].div(2);
-          compareScheduleDetailForAddressStructs(
-            supplierScheduleDetailBeforeTransfer,
-            expectedScheduleDetailBeforeTransfer
-          );
-          await rNori
-            .connect(hre.namedSigners.supplier)
-            .safeTransferFrom(
-              supplier,
-              investor1,
-              projectId,
-              amountToTransfer,
-              '0x'
-            );
-          const supplierScheduleDetailAfterTransfer =
-            await rNori.getScheduleDetailForAccount(supplier, projectId);
-          const investor1ScheduleDetailAfterTransfer =
-            await rNori.getScheduleDetailForAccount(investor1, projectId);
-          const expectedSupplierScheduleDetailAfterTransfer = {
-            tokenHolder: supplier,
-            scheduleTokenId: projectId,
-            balance: amountToTransfer,
-            claimableAmount:
-              supplierScheduleDetailAfterTransfer.claimableAmount,
-            claimedAmount: Zero,
-            quantityRevoked: Zero,
-            exists: true,
-          };
-          const expectedInvestor1ScheduleDetailAfterTransfer = {
-            tokenHolder: investor1,
-            scheduleTokenId: projectId,
-            balance: amountToTransfer,
-            claimableAmount:
-              investor1ScheduleDetailAfterTransfer.claimableAmount,
-            claimedAmount: Zero,
-            quantityRevoked: Zero,
-            exists: true,
-          };
-          compareScheduleDetailForAddressStructs(
-            supplierScheduleDetailAfterTransfer,
-            expectedSupplierScheduleDetailAfterTransfer
-          );
-          compareScheduleDetailForAddressStructs(
-            investor1ScheduleDetailAfterTransfer,
-            expectedInvestor1ScheduleDetailAfterTransfer
-          );
-        });
-        it('should transfer all tokens to another account, resulting holder sets should be correct', async () => {
-          const testSetup = await setupTest({
-            userFixtures: {
-              admin: {
-                roles: {
-                  RestrictedNORI: ['MINTER_ROLE'],
-                },
-              },
-              supplier: {
-                removalDataToList: {
-                  removals: [{ amount: 100, vintage: 2018 }],
-                },
-              },
-            },
-          });
-          const {
-            rNori,
-            hre,
-            listedRemovalIds,
-            projectId,
-            removalAmounts,
-            removalTestHarness,
-          } = testSetup;
-          const { supplier, investor1 } = hre.namedAccounts;
-          await restrictRemovalProceeds({
-            testSetup,
-            removalIds: await Promise.all(
-              listedRemovalIds.map(async (r) =>
-                removalTestHarness.createRemovalId(r)
-              )
-            ),
-            removalAmountsToRestrict: removalAmounts,
-          });
-          const supplierScheduleDetailBeforeTransfer =
-            await rNori.getScheduleDetailForAccount(supplier, projectId);
-          compareScheduleDetailForAddressStructs(
-            supplierScheduleDetailBeforeTransfer,
-            {
-              balance: removalAmounts[0],
-            }
-          );
-          const scheduleSummaryBeforeTransfer = await rNori.getScheduleSummary(
-            projectId
-          );
-          compareScheduleSummaryStructs(scheduleSummaryBeforeTransfer, {
-            tokenHolders: [supplier],
-          });
-          await rNori
-            .connect(hre.namedSigners.supplier)
-            .safeTransferFrom(
-              supplier,
-              investor1,
-              projectId,
-              removalAmounts[0],
-              '0x'
-            );
-          const supplierScheduleDetailAfterTransfer =
-            await rNori.getScheduleDetailForAccount(supplier, projectId);
-          const investor1ScheduleDetailAfterTransfer =
-            await rNori.getScheduleDetailForAccount(investor1, projectId);
-          const scheduleSummaryAfterTransfer = await rNori.getScheduleSummary(
-            projectId
-          );
-          const expectedSupplierScheduleDetailAfterTransfer = {
-            tokenHolder: supplier,
-            balance: Zero,
-            claimableAmount: Zero,
-            claimedAmount: Zero,
-            quantityRevoked: Zero,
-            exists: true,
-          };
-          const expectedInvestor1ScheduleDetailAfterTransfer = {
-            tokenHolder: investor1,
-            balance: removalAmounts[0],
-            claimableAmount:
-              investor1ScheduleDetailAfterTransfer.claimableAmount,
-            claimedAmount: Zero,
-            quantityRevoked: Zero,
-            exists: true,
-          };
-          compareScheduleDetailForAddressStructs(
-            supplierScheduleDetailAfterTransfer,
-            expectedSupplierScheduleDetailAfterTransfer
-          );
-          compareScheduleDetailForAddressStructs(
-            investor1ScheduleDetailAfterTransfer,
-            expectedInvestor1ScheduleDetailAfterTransfer
-          );
-          compareScheduleSummaryStructs(scheduleSummaryAfterTransfer, {
-            tokenHolders: [investor1],
-          });
-        });
-      });
-      describe('safeBatchTransferFrom', () => {
-        it('should transfer some of multiple token types to another account', async () => {
-          const removals = [
-            {
-              amount: 100,
-              vintage: 2018,
-            },
-            {
-              amount: 100,
-              vintage: 2019,
-            },
-          ];
-          const testSetup = await setupTest({
-            userFixtures: {
-              admin: {
-                roles: {
-                  RestrictedNORI: ['MINTER_ROLE'],
-                },
-              },
-            },
-          });
-          const { rNori, hre, removalTestHarness } = testSetup;
-          const { listedRemovalIds: listedRemovalIds1, projectId: projectId1 } =
-            await batchMintAndListRemovalsForSale({
-              ...testSetup,
-              removalDataToList: { removals: [removals[0]] },
-            });
-          const {
-            listedRemovalIds: listedRemovalIds2,
-            projectId: projectId2,
-            scheduleStartTime: scheduleStartTime2,
-          } = await batchMintAndListRemovalsForSale({
-            ...testSetup,
-            removalDataToList: {
-              projectId: 999_999_999,
-              removals: [removals[1]],
-            },
-          });
-          const { supplier, investor1 } = hre.namedAccounts;
-          const restrictedAmounts = removals.map((removalData) =>
-            formatTokenAmount(removalData.amount)
-          );
-          await restrictRemovalProceeds({
-            testSetup,
-            removalIds: [
-              await removalTestHarness.createRemovalId(listedRemovalIds1[0]),
-              await removalTestHarness.createRemovalId(listedRemovalIds2[0]),
-            ],
-            removalAmountsToRestrict: restrictedAmounts,
-          });
-          // just to make the claimable balances easily computable
-          await advanceTime({
-            hre,
-            timestamp: scheduleStartTime2 + SECONDS_IN_10_YEARS,
-          });
-          const supplierScheduleDetailsBeforeTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(supplier, [
-              projectId1,
-              projectId2,
-            ]);
-          const expectedScheduleDetailsBeforeTransfer = [
-            {
-              tokenHolder: supplier,
-              scheduleTokenId: projectId1,
-              balance: restrictedAmounts[0],
-              claimableAmount: restrictedAmounts[0],
-              claimedAmount: Zero,
-              quantityRevoked: Zero,
-              exists: true,
-            },
-            {
-              tokenHolder: supplier,
-              scheduleTokenId: projectId2,
-              balance: restrictedAmounts[1],
-              claimableAmount: restrictedAmounts[1],
-              claimedAmount: Zero,
-              quantityRevoked: Zero,
-              exists: true,
-            },
-          ];
-          for (const [
-            index,
-            scheduleDetail,
-          ] of supplierScheduleDetailsBeforeTransfer.entries()) {
-            compareScheduleDetailForAddressStructs(
-              scheduleDetail,
-              expectedScheduleDetailsBeforeTransfer[index]
-            );
-          }
-          const amountToTransferFirstSchedule = formatTokenAmount(20);
-          const amountToTransferSecondSchedule = formatTokenAmount(30);
-          await rNori
-            .connect(hre.namedSigners.supplier)
-            .safeBatchTransferFrom(
-              supplier,
-              investor1,
-              [projectId1, projectId2],
-              [amountToTransferFirstSchedule, amountToTransferSecondSchedule],
-              '0x'
-            );
-          const supplierScheduleDetailsAfterTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(supplier, [
-              projectId1,
-              projectId2,
-            ]);
-          const investor1ScheduleDetailsAfterTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(investor1, [
-              projectId1,
-              projectId2,
-            ]);
-
-          const expectedSupplierScheduleDetailsAfterTransfer = [
-            {
-              tokenHolder: supplier,
-              scheduleTokenId: projectId1,
-              balance: restrictedAmounts[0].sub(amountToTransferFirstSchedule),
-              claimableAmount: restrictedAmounts[0].sub(
-                amountToTransferFirstSchedule
-              ),
-              claimedAmount: Zero,
-              quantityRevoked: Zero,
-              exists: true,
-            },
-            {
-              tokenHolder: supplier,
-              scheduleTokenId: projectId2,
-              balance: restrictedAmounts[0].sub(amountToTransferSecondSchedule),
-              claimableAmount: restrictedAmounts[1].sub(
-                amountToTransferSecondSchedule
-              ),
-              claimedAmount: Zero,
-              quantityRevoked: Zero,
-              exists: true,
-            },
-          ];
-          const expectedInvestor1ScheduleDetailsAfterTransfer = [
-            {
-              tokenHolder: investor1,
-              scheduleTokenId: projectId1,
-              balance: amountToTransferFirstSchedule,
-              claimableAmount: amountToTransferFirstSchedule,
-              claimedAmount: Zero,
-              quantityRevoked: Zero,
-              exists: true,
-            },
-            {
-              tokenHolder: investor1,
-              scheduleTokenId: projectId2,
-              balance: amountToTransferSecondSchedule,
-              claimableAmount: amountToTransferSecondSchedule,
-              claimedAmount: Zero,
-              quantityRevoked: Zero,
-              exists: true,
-            },
-          ];
-
-          for (const [
-            index,
-            scheduleDetail,
-          ] of supplierScheduleDetailsAfterTransfer.entries()) {
-            compareScheduleDetailForAddressStructs(
-              scheduleDetail,
-              expectedSupplierScheduleDetailsAfterTransfer[index]
-            );
-          }
-
-          for (const [
-            index,
-            scheduleDetail,
-          ] of investor1ScheduleDetailsAfterTransfer.entries()) {
-            compareScheduleDetailForAddressStructs(
-              scheduleDetail,
-              expectedInvestor1ScheduleDetailsAfterTransfer[index]
-            );
-          }
-        });
-
-        it('should transfer the full balance of multiple token types to another account', async () => {
-          const removals = [
-            {
-              amount: 100,
-              vintage: 2018,
-            },
-            {
-              amount: 100,
-              vintage: 2019,
-            },
-          ];
-          const testSetup = await setupTest({
-            userFixtures: {
-              admin: {
-                roles: {
-                  RestrictedNORI: ['MINTER_ROLE'],
-                },
-              },
-            },
-          });
-          const { rNori, hre, removalTestHarness } = testSetup;
-          const { listedRemovalIds: listedRemovalIds1, projectId: projectId1 } =
-            await batchMintAndListRemovalsForSale({
-              ...testSetup,
-              removalDataToList: { removals: [removals[0]] },
-            });
-          const { listedRemovalIds: listedRemovalIds2, projectId: projectId2 } =
-            await batchMintAndListRemovalsForSale({
-              ...testSetup,
-              removalDataToList: {
-                projectId: 999_999_999,
-                removals: [removals[1]],
-              },
-            });
-          const { supplier, investor1 } = hre.namedAccounts;
-          const restrictedAmounts = removals.map((removalData) =>
-            formatTokenAmount(removalData.amount)
-          );
-          await restrictRemovalProceeds({
-            testSetup,
-            removalIds: [
-              await removalTestHarness.createRemovalId(listedRemovalIds1[0]),
-              await removalTestHarness.createRemovalId(listedRemovalIds2[0]),
-            ],
-            removalAmountsToRestrict: restrictedAmounts,
-          });
-          const supplierScheduleDetailsBeforeTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(supplier, [
-              projectId1,
-              projectId2,
-            ]);
-          const expectedScheduleDetailsBeforeTransfer = [
-            {
-              tokenHolder: supplier,
-              scheduleTokenId: projectId1,
-              balance: restrictedAmounts[0],
-            },
-            {
-              tokenHolder: supplier,
-              scheduleTokenId: projectId2,
-              balance: restrictedAmounts[1],
-            },
-          ];
-          for (const [
-            index,
-            scheduleDetail,
-          ] of supplierScheduleDetailsBeforeTransfer.entries()) {
-            compareScheduleDetailForAddressStructs(
-              scheduleDetail,
-              expectedScheduleDetailsBeforeTransfer[index]
-            );
-          }
-          await rNori
-            .connect(hre.namedSigners.supplier)
-            .safeBatchTransferFrom(
-              supplier,
-              investor1,
-              [projectId1, projectId2],
-              [restrictedAmounts[0], restrictedAmounts[0]],
-              '0x'
-            );
-          const supplierScheduleDetailsAfterTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(supplier, [
-              projectId1,
-              projectId2,
-            ]);
-          const investor1ScheduleDetailsAfterTransfer =
-            await rNori.batchGetScheduleDetailsForAccount(investor1, [
-              projectId1,
-              projectId2,
-            ]);
-          const expectedSupplierScheduleDetailsAfterTransfer = [
-            {
-              tokenHolder: supplier,
-              scheduleTokenId: projectId1,
-              balance: Zero,
-            },
-            {
-              tokenHolder: supplier,
-              scheduleTokenId: projectId2,
-              balance: Zero,
-            },
-          ];
-          const expectedInvestor1ScheduleDetailsAfterTransfer = [
-            {
-              tokenHolder: investor1,
-              scheduleTokenId: projectId1,
-              balance: restrictedAmounts[0],
-            },
-            {
-              tokenHolder: investor1,
-              scheduleTokenId: projectId2,
-              balance: restrictedAmounts[1],
-            },
-          ];
-          for (const [
-            index,
-            scheduleDetail,
-          ] of supplierScheduleDetailsAfterTransfer.entries()) {
-            compareScheduleDetailForAddressStructs(
-              scheduleDetail,
-              expectedSupplierScheduleDetailsAfterTransfer[index]
-            );
-          }
-          for (const [
-            index,
-            scheduleDetail,
-          ] of investor1ScheduleDetailsAfterTransfer.entries()) {
-            compareScheduleDetailForAddressStructs(
-              scheduleDetail,
-              expectedInvestor1ScheduleDetailsAfterTransfer[index]
-            );
-          }
-          const scheduleSummariesAfterTransfer =
-            await rNori.batchGetScheduleSummaries([projectId1, projectId2]);
-          for (const scheduleSummary of scheduleSummariesAfterTransfer) {
-            compareScheduleSummaryStructs(scheduleSummary, {
-              tokenHolders: [investor1],
-            });
-          }
-        });
-      });
-    });
-    describe('failure', () => {
-      it('should not allow an unapproved account even with DEFAULT_ADMIN_ROLE or SCHEDULE_CREATOR_ROLE to transfer tokens', async () => {
-        const testSetup = await setupTest({
-          userFixtures: {
-            admin: {
-              roles: {
-                RestrictedNORI: ['MINTER_ROLE'],
-              },
-            },
-            supplier: {
-              removalDataToList: { removals: [{ amount: 100, vintage: 2018 }] },
-            },
-          },
-        });
-        const {
-          rNori,
-          hre,
-          listedRemovalIds,
-          projectId,
-          removalAmounts,
-          removalTestHarness,
-        } = testSetup;
-        const { supplier, investor1 } = hre.namedAccounts;
-        await restrictRemovalProceeds({
-          testSetup,
-          removalIds: await Promise.all(
-            listedRemovalIds.map(async (r) =>
-              removalTestHarness.createRemovalId(r)
-            )
-          ),
-          removalAmountsToRestrict: removalAmounts,
-        });
-        await expect(
-          rNori
-            .connect(hre.namedSigners.admin)
-            .safeTransferFrom(supplier, investor1, projectId, 50, '0x')
-        ).to.be.revertedWith('ERC1155: caller is not token owner nor approved');
       });
     });
   });
@@ -1475,6 +963,10 @@ describe('RestrictedNORI', () => {
         );
       });
       it('should revoke tokens correctly when there are multiple token holders for a schedule', async () => {
+        const supplierAmount = 690;
+        const investorAmount = 310;
+        const restrictedAmount = formatTokenAmount(1000);
+
         const testSetup = await setupTest({
           userFixtures: {
             admin: {
@@ -1484,7 +976,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 1000, vintage: 2018 }],
+                removals: [{ amount: supplierAmount, vintage: 2018 }],
               },
             },
           },
@@ -1492,6 +984,8 @@ describe('RestrictedNORI', () => {
         const {
           rNori,
           bpNori,
+          removal,
+          market,
           hre,
           listedRemovalIds,
           projectId,
@@ -1501,7 +995,7 @@ describe('RestrictedNORI', () => {
         } = testSetup;
         const { supplier, admin, investor1 } = hre.namedAccounts;
         const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
-        const restrictedAmount = await restrictRemovalProceeds({
+        await restrictRemovalProceeds({
           testSetup,
           removalIds: await Promise.all(
             listedRemovalIds.map(async (r) =>
@@ -1510,34 +1004,54 @@ describe('RestrictedNORI', () => {
           ),
           removalAmountsToRestrict: removalAmounts,
         });
-        await hre.network.provider.send('evm_setNextBlockTimestamp', [
-          scheduleStartTime + SECONDS_IN_1_YEAR_AVG,
-        ]);
-        const amountToTransferToInvestor = formatTokenAmount(310);
-        await rNori
-          .connect(hre.namedSigners.supplier)
-          .safeTransferFrom(
-            supplier,
-            investor1,
-            projectId,
-            amountToTransferToInvestor,
-            '0x'
-          );
+        // await hre.network.provider.send('evm_setNextBlockTimestamp', [
+        //   scheduleStartTime + SECONDS_IN_1_YEAR_AVG,
+        // ]);
+        // create some RestrictedNORI for a second holder
+        const investorRemovalData: RemovalDataForListing = {
+          projectId,
+          scheduleStartTime,
+          listNow: false,
+          removals: [
+            {
+              amount: investorAmount,
+              vintage: 2018,
+              supplierAddress: investor1,
+            },
+          ],
+        };
+        const investorRemovalMintingResults =
+          await batchMintAndListRemovalsForSale({
+            hre,
+            removal,
+            market,
+            removalDataToList: investorRemovalData,
+          });
+        await restrictRemovalProceeds({
+          testSetup,
+          removalIds: await Promise.all(
+            investorRemovalMintingResults.listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
+          removalAmountsToRestrict: [
+            formatTokenAmount(investorRemovalData.removals[0].amount),
+          ],
+        });
         const quantityToRevoke = restrictedAmount.div(2);
-        const expectedRevokedFromSupplier = restrictedAmount
-          .sub(amountToTransferToInvestor)
-          .div(2);
-        const expectedRevokedFromInvestor = amountToTransferToInvestor.div(2);
+        const expectedRevokedFromSupplier =
+          formatTokenAmount(supplierAmount).div(2);
+        const expectedRevokedFromInvestor =
+          formatTokenAmount(investorAmount).div(2);
         await hre.network.provider.send('evm_setNextBlockTimestamp', [
           scheduleStartTime + SECONDS_IN_5_YEARS,
         ]);
-
         await expect(
           rNori.revokeUnreleasedTokens(projectId, quantityToRevoke, admin)
         )
           .to.emit(rNori, 'TokensRevoked')
           .withArgs(
-            await getLatestBlockTime({ hre }),
+            scheduleStartTime + SECONDS_IN_5_YEARS,
             projectId,
             quantityToRevoke,
             [supplier, investor1],
@@ -1558,12 +1072,10 @@ describe('RestrictedNORI', () => {
           expectedRevokedFromInvestor
         );
         expect(supplierRestrictionScheduleDetail.balance).to.equal(
-          restrictedAmount
-            .sub(amountToTransferToInvestor)
-            .sub(expectedRevokedFromSupplier)
+          formatTokenAmount(supplierAmount).sub(expectedRevokedFromSupplier)
         );
         expect(investorRestrictionScheduleDetail.balance).to.equal(
-          amountToTransferToInvestor.sub(expectedRevokedFromInvestor)
+          formatTokenAmount(investorAmount).sub(expectedRevokedFromInvestor)
         );
         expect(scheduleSummary.totalQuantityRevoked).to.equal(quantityToRevoke);
         expect(scheduleSummary.totalSupply).to.equal(
@@ -1584,7 +1096,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 3000, vintage: 2018 }],
+                removals: [{ amount: 1000, vintage: 2018 }],
               },
             },
           },
@@ -1592,6 +1104,8 @@ describe('RestrictedNORI', () => {
         const {
           rNori,
           hre,
+          removal,
+          market,
           listedRemovalIds,
           projectId,
           scheduleStartTime,
@@ -1599,7 +1113,7 @@ describe('RestrictedNORI', () => {
           removalTestHarness,
         } = testSetup;
         const { supplier, admin, investor1, employee } = hre.namedAccounts;
-        const restrictedAmount = await restrictRemovalProceeds({
+        await restrictRemovalProceeds({
           testSetup,
           removalIds: await Promise.all(
             listedRemovalIds.map(async (r) =>
@@ -1608,24 +1122,61 @@ describe('RestrictedNORI', () => {
           ),
           removalAmountsToRestrict: removalAmounts,
         });
-        await rNori
-          .connect(hre.namedSigners.supplier)
-          .safeTransferFrom(
-            supplier,
-            investor1,
-            projectId,
-            formatTokenAmount(1000),
-            '0x'
-          );
-        await rNori
-          .connect(hre.namedSigners.supplier)
-          .safeTransferFrom(
-            supplier,
-            employee,
-            projectId,
-            formatTokenAmount(1000),
-            '0x'
-          );
+        // create some RestrictedNORI for a second holder
+        const investorRemovalData: RemovalDataForListing = {
+          projectId,
+          scheduleStartTime,
+          listNow: false,
+          removals: [
+            { amount: 1000, vintage: 2018, supplierAddress: investor1 },
+          ],
+        };
+        const investorRemovalMintingResults =
+          await batchMintAndListRemovalsForSale({
+            hre,
+            removal,
+            market,
+            removalDataToList: investorRemovalData,
+          });
+        await restrictRemovalProceeds({
+          testSetup,
+          removalIds: await Promise.all(
+            investorRemovalMintingResults.listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
+          removalAmountsToRestrict: [
+            formatTokenAmount(investorRemovalData.removals[0].amount),
+          ],
+        });
+        // create some RestrictedNORI for a third holder
+        const employeeRemovalData: RemovalDataForListing = {
+          projectId,
+          scheduleStartTime,
+          listNow: false,
+          removals: [
+            { amount: 1000, vintage: 2018, supplierAddress: employee },
+          ],
+        };
+        const employeeRemovalMintingResults =
+          await batchMintAndListRemovalsForSale({
+            hre,
+            removal,
+            market,
+            removalDataToList: employeeRemovalData,
+          });
+        await restrictRemovalProceeds({
+          testSetup,
+          removalIds: await Promise.all(
+            employeeRemovalMintingResults.listedRemovalIds.map(async (r) =>
+              removalTestHarness.createRemovalId(r)
+            )
+          ),
+          removalAmountsToRestrict: [
+            formatTokenAmount(employeeRemovalData.removals[0].amount),
+          ],
+        });
+        const restrictedAmount = formatTokenAmount(3000);
         await hre.network.provider.send('evm_setNextBlockTimestamp', [
           scheduleStartTime + SECONDS_IN_5_YEARS,
         ]);

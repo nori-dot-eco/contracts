@@ -3,8 +3,8 @@ pragma solidity =0.8.17;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "./Market.sol";
+import "./Errors.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
-import {InvalidData, InvalidTokenTransfer, ForbiddenTransfer} from "./Errors.sol";
 
 /**
  * @title An extended ERC1155 token contract for carbon removal accounting.
@@ -259,6 +259,11 @@ contract Removal is
       removals: removals,
       projectId: projectId
     });
+    if (holdbackPercentage > 100) {
+      revert InvalidHoldbackPercentage({
+        holdbackPercentage: holdbackPercentage
+      });
+    }
     _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
     _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
     RestrictedNORI _restrictedNORI = RestrictedNORI(
@@ -313,6 +318,9 @@ contract Removal is
     uint256 id,
     uint256 amount
   ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
+    if (from == address(_certificate) || from == address(_market)) {
+      revert RemovalAlreadySoldOrConsigned({tokenId: id});
+    }
     _safeTransferFrom({
       from: from,
       to: address(_market),
@@ -690,8 +698,8 @@ contract Removal is
    * @param amount The amount to burn.
    */
   function _releaseFromMarket(uint256 id, uint256 amount) internal {
-    super._burn({from: this.marketAddress(), id: id, amount: amount});
     _market.release(id, amount);
+    super._burn({from: this.marketAddress(), id: id, amount: amount});
     emit RemovalReleased({
       id: id,
       fromAddress: this.marketAddress(),

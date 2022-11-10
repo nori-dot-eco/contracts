@@ -207,6 +207,17 @@ contract Market is
   event RemovalAdded(uint256 indexed id, address indexed supplierAddress);
 
   /**
+   * @notice Emitted when the call to RestrictedNORI.mint fails during a purchase.
+   * For example, due to sending to a contract address that is not an ERC1155Receiver.
+   * @param amount The amount of RestrictedNORI in the mint attempt.
+   * @param removalId The removal id in the mint attempt.
+   */
+  event RestrictedNORIMintFailed(
+    uint256 indexed amount,
+    uint256 indexed removalId
+  );
+
+  /**
    * @notice Locks the contract, preventing any future re-initialization.
    * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -809,10 +820,18 @@ contract Market is
           (unrestrictedSupplierFee * holdbackPercentage) /
           100;
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNORI.mint({
-          amount: restrictedSupplierFee,
-          removalId: removalIds[i]
-        });
+        try
+          _restrictedNORI.mint({
+            amount: restrictedSupplierFee,
+            removalId: removalIds[i]
+          })
+        {} catch {
+          emit RestrictedNORIMintFailed({
+            amount: restrictedSupplierFee,
+            removalId: removalIds[i]
+          });
+        }
+
         _bridgedPolygonNORI.transferFrom({
           from: operator,
           to: address(_restrictedNORI),
@@ -929,18 +948,18 @@ contract Market is
   /**
    * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase.
    * @param certificateAmount The number of carbon removals to purchase.
-   * @return The number of distinct removal IDs used to fulfill this order.
-   * @return An array of the removal IDs being drawn from to fulfill this order.
-   * @return An array of amounts being allocated from each corresponding removal token.
-   * @return The address of the supplier who owns each corresponding removal token.
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @return ids An array of the removal IDs being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
   function _allocateSupply(uint256 certificateAmount)
     private
     returns (
-      uint256,
-      uint256[] memory,
-      uint256[] memory,
-      address[] memory
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
     )
   {
     uint256 remainingAmountToFill = certificateAmount;
@@ -993,9 +1012,6 @@ contract Market is
         break;
       }
     }
-    if (amounts.sum() != certificateAmount) {
-      revert IncorrectSupplyAllocation();
-    }
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
@@ -1003,9 +1019,9 @@ contract Market is
    * @notice Allocates supply for an amount using only a single supplier's removals.
    * @param certificateAmount The number of carbon removals to purchase.
    * @param supplier The supplier from which to purchase carbon removals.
-   * @return The number of distinct removal IDs used to fulfill this order.
-   * @return An array of the removal IDs being drawn from to fulfill this order.
-   * @return An array of amounts being allocated from each corresponding removal token.
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @return ids An array of the removal IDs being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
    */
   function _allocateSupplySingleSupplier(
     uint256 certificateAmount,
@@ -1013,9 +1029,9 @@ contract Market is
   )
     private
     returns (
-      uint256,
-      uint256[] memory,
-      uint256[] memory
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts
     )
   {
     RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
@@ -1075,9 +1091,6 @@ contract Market is
       if (remainingAmountToFill == 0) {
         break;
       }
-    }
-    if (amounts.sum() != certificateAmount) {
-      revert IncorrectSupplyAllocation();
     }
     return (countOfRemovalsAllocated, ids, amounts);
   }

@@ -1,5 +1,3 @@
-import sinon from 'sinon';
-
 import { MaxUint256 } from '@/constants/units';
 import { expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
@@ -52,6 +50,7 @@ describe('Certificate', () => {
         removal.address,
         buyer.address,
         0,
+        purchaseAmount,
         [removalId],
         [purchaseAmount]
       );
