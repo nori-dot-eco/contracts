@@ -85,6 +85,7 @@ contract Certificate is
    * @param from The sender's address.
    * @param recipient The recipient address.
    * @param certificateId The ID of the certificate that the removals mint.
+   * @param certificateAmount The total number of NRTs retired in this certificate.
    * @param removalIds The removal IDs used for the certificate.
    * @param removalAmounts The amounts from each removal used for the certificate.
    */
@@ -92,6 +93,7 @@ contract Certificate is
     address from,
     address indexed recipient,
     uint256 indexed certificateId,
+    uint256 certificateAmount,
     uint256[] removalIds,
     uint256[] removalAmounts
   );
@@ -333,6 +335,7 @@ contract Certificate is
       from: _msgSender(),
       recipient: recipient,
       certificateId: certificateId,
+      certificateAmount: certificateAmount,
       removalIds: removalIds,
       removalAmounts: removalAmounts
     });
