@@ -128,3 +128,7 @@ error NoriFeeWalletZeroAddress();
  * @notice Thrown when a holdback percentage greater than 100 is submitted to `mintBatch`.
  */
 error InvalidHoldbackPercentage(uint8 holdbackPercentage);
+/**
+ * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market contracts.
+ */
+error RemovalAlreadySoldOrConsigned(uint256 tokenId);

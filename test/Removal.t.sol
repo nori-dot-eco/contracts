@@ -11,6 +11,64 @@ using AddressArrayLib for address[];
 // todo fuzz RemovalIdLib
 // todo test that checks Removal.consign can happen using multi call with mix-match project IDs
 
+contract Removal_consign_revertsForSoldRemovals is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function test() external {
+    uint256 amount = 0.5 ether;
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+    assertEq(_removal.getMarketBalance(), 0);
+    _removal.consign({
+      from: _namedAccounts.supplier,
+      id: _removalIds[0],
+      amount: amount
+    });
+    assertEq(_removal.getMarketBalance(), amount);
+    uint256 ownerPrivateKey = 0xA11CE;
+    address owner = vm.addr(ownerPrivateKey);
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(amount);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(checkoutTotal));
+    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _bpNori
+    );
+    vm.prank(owner);
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    assertEq(_removal.getMarketBalance(), 0);
+
+    // sold Removal is now locked in a Certificate
+    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), amount);
+
+    // should not be able to re-list the sold Removal
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        RemovalAlreadySoldOrConsigned.selector,
+        _removalIds[0]
+      )
+    );
+    _removal.consign({
+      from: address(_certificate),
+      id: _removalIds[0],
+      amount: amount
+    });
+  }
+}
+
 contract Removal_migrate is UpgradeableMarket {
   /*//////////////////////////////////////////////////////////////
                                 INPUTS
@@ -574,6 +632,44 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
 
   function test() external {
     assertEq(_holdbackPercentages, _retrievedHoldbackPercentages);
+  }
+}
+
+contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
+  function test() external {
+    _removal.mintBatch({
+      to: _marketAddress,
+      amounts: _asSingletonUintArray(1),
+      removals: _REMOVAL_FIXTURES,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+    assertEq(
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      0
+    );
+    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 1);
+
+    // Expect the Removal to be listed on the Market
+    assertEq(
+      _market.getRemovalIdsForSupplier(_namedAccounts.supplier).length,
+      1
+    );
+
+    _removal.release(REMOVAL_ID_FIXTURE, 1);
+    assertEq(
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      0
+    );
+    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 0);
+
+    // Expect the Removal to be pulled from the Market
+    assertEq(
+      _market.getRemovalIdsForSupplier(_namedAccounts.supplier).length,
+      0,
+      "Listing not removed from Market"
+    );
   }
 }
 
