@@ -993,8 +993,8 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
   bytes32[] expectedReleaseEventSelectors = [
     TRANSFER_SINGLE_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR,
-    SUPPLIER_REMOVED_EVENT_SELECTOR,
     TRANSFER_SINGLE_EVENT_SELECTOR,
+    SUPPLIER_REMOVED_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR,
     TRANSFER_SINGLE_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR
@@ -1090,6 +1090,19 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
         );
         assertEq(id, _removalIds[0]);
         assertEq(value, _expectedReleasedBalances[pairCount]);
+      } else if (entries[i].topics[0] == SUPPLIER_REMOVED_EVENT_SELECTOR) {
+        assertEq(
+          entries[i].topics[1],
+          bytes32(uint256(uint160(_namedAccounts.supplier)))
+        );
+        assertEq(
+          entries[i].topics[2],
+          bytes32(uint256(uint160(_namedAccounts.supplier)))
+        );
+        assertEq(
+          entries[i].topics[3],
+          bytes32(uint256(uint160(_namedAccounts.supplier)))
+        );
       }
     }
   }
