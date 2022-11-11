@@ -50,7 +50,7 @@ import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
  * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
  * pausable
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- * - `TOKEN_GRANTER_ROLE`: Can create token grants without sending BridgedPolygonNORI to the contract `createGrant`
+ * - `TOKEN_GRANTER_ROLE`: Grant admin that can create and revoke from token grants.
  * - `PAUSER_ROLE`: Can pause and unpause the contract
  * - `DEFAULT_ADMIN_ROLE`: This is the only role that can add/revoke other accounts to any of the roles
  * - [Can receive BridgedPolygonNORI ERC-777 tokens](https://eips.ethereum.org/EIPS/eip-777#hooks):
@@ -263,7 +263,20 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
   }
 
   /**
-   * @notice Batch version of `createGrant` with permit support.
+   * @notice Sets up a batch of vesting + lockup schedules and wraps the corresponding BridgedPolygonNORI
+   * using EIP712 permit access.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the contract is not paused.
+   * - Can only be used when the caller has the `TOKEN_GRANTER_ROLE` role.
+   *
+   * @param amounts The amount of each grant
+   * @param grantParams An array of `CreateTokenGrantParams` structs
+   * @param deadline The permit deadline
+   * @param v The permit v parameter
+   * @param r The permit r parameter
+   * @param s The permit s parameter
    */
   function batchCreateGrants(
     uint256[] calldata amounts,
@@ -294,45 +307,6 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
       s
     );
     _bridgedPolygonNori.transferFrom(_msgSender(), address(this), totalAmount);
-  }
-
-  /**
-   * @notice Sets up a vesting + lockup schedule for recipient.
-   *
-   * @dev This function can be used as an alternative way to set up a grant that doesn't require
-   * wrapping BridgedPolygonNORI first.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when the contract is not paused.
-   * - Can only be used when the caller has the `TOKEN_GRANTER_ROLE` role.
-   */
-  function createGrant(
-    uint256 amount,
-    address recipient,
-    uint256 startTime,
-    uint256 vestEndTime,
-    uint256 unlockEndTime,
-    uint256 cliff1Time,
-    uint256 cliff2Time,
-    uint256 vestCliff1Amount,
-    uint256 vestCliff2Amount,
-    uint256 unlockCliff1Amount,
-    uint256 unlockCliff2Amount
-  ) external whenNotPaused onlyRole(TOKEN_GRANTER_ROLE) {
-    bytes memory userData = abi.encode(
-      recipient,
-      startTime,
-      vestEndTime,
-      unlockEndTime,
-      cliff1Time,
-      cliff2Time,
-      vestCliff1Amount,
-      vestCliff2Amount,
-      unlockCliff1Amount,
-      unlockCliff2Amount
-    );
-    _createGrant(amount, userData);
   }
 
   /**
