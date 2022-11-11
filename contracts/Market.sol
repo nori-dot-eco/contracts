@@ -289,7 +289,7 @@ contract Market is
       account: address(this),
       id: removalId
     });
-    if (amount == removalBalance) {
+    if (removalBalance == 0) {
       _removeActiveRemoval({
         removalId: removalId,
         supplierAddress: supplierAddress
