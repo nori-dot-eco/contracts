@@ -117,10 +117,14 @@ error ForbiddenTransfer();
  */
 error RemovalNotYetMinted(uint256 tokenId);
 /**
- * @notice Thrown when the market encounters a purchase that it does not have enough supply to fulfill.
- */
-error IncorrectSupplyAllocation();
-/**
  * @notice Thrown when the caller specifies the zero address for the Nori fee wallet.
  */
 error NoriFeeWalletZeroAddress();
+/**
+ * @notice Thrown when a holdback percentage greater than 100 is submitted to `mintBatch`.
+ */
+error InvalidHoldbackPercentage(uint8 holdbackPercentage);
+/**
+ * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market contracts.
+ */
+error RemovalAlreadySoldOrConsigned(uint256 tokenId);

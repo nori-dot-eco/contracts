@@ -16,7 +16,7 @@ The [$NORI](./NORI.sol) token is Nori's fungible token which functions as a gift
 
 - Deployed on: Ethereum mainnet.
 - Initial supply minted at deployment: 500M
-- Minting and burning are disabled.
+- Minting is disabled.
 
 [NORI on Etherscan](https://etherscan.io/token/0x961760ad1bed52bf4d79aa4b1558e7f9d72071e4) (will be replaced with the current version of the contract having ERC777 support removed with our next deployment.)
 

@@ -239,3 +239,20 @@ contract Certificate_transferFrom_reverts_ForbiddenTransferAfterMinting is
     });
   }
 }
+
+contract Certificate_supportsInterface is NonUpgradeableCertificate {
+  function test() external {
+    bool support;
+    support = this.supportsInterface(0x5a05180f); // interface ID for AccessControl
+    assertEq(support, true);
+
+    support = this.supportsInterface(0x01ffc9a7); // interface ID for ERC165
+    assertEq(support, true);
+
+    support = this.supportsInterface(0x5b5e139f); // interface ID for ERC721Metadata
+    assertEq(support, true);
+
+    support = this.supportsInterface(0x80ac58cd); // interface ID for ERC721
+    assertEq(support, true);
+  }
+}
