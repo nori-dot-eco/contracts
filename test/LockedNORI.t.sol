@@ -305,21 +305,21 @@ contract LockedNORITest is
 
   function _issueGrant(address recipientAddress, uint256 fromTime) internal {
     uint256 amount = _GRANT_AMOUNT;
-    _lNori.createGrant(
-      amount,
-      recipientAddress,
-      fromTime,
-      fromTime + 365 days,
-      fromTime + 365 days,
-      fromTime,
-      fromTime,
-      0,
-      0,
-      0,
-      0
-    );
-    _erc20.approve(address(_lNori), _GRANT_AMOUNT);
-    _lNori.depositFor(recipientAddress, _GRANT_AMOUNT);
+    // _lNori.createGrant(
+    //   amount,
+    //   recipientAddress,
+    //   fromTime,
+    //   fromTime + 365 days,
+    //   fromTime + 365 days,
+    //   fromTime,
+    //   fromTime,
+    //   0,
+    //   0,
+    //   0,
+    //   0
+    // );
+    // _erc20.approve(address(_lNori), _GRANT_AMOUNT);
+    // _lNori.depositFor(recipientAddress, _GRANT_AMOUNT);
   }
 
   function _deployProxy(address _impl, bytes memory initializer)

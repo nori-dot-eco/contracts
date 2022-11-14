@@ -214,26 +214,6 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
   }
 
   /**
-   * @notice Mints wrapper token to `recipient` if a grant exists.
-   *
-   * @dev If `startTime` is zero no grant is set up. Satisfies situations where funding of the grant happens over time.
-   *
-   * @param amount The quantity of bpNORI to deposit.
-   */
-  function depositFor(address recipient, uint256 amount)
-    external
-    whenNotPaused
-    returns (bool)
-  {
-    require(_grants[recipient].exists, "lNORI: Cannot deposit without a grant");
-    if (_bridgedPolygonNori.transferFrom(_msgSender(), address(this), amount)) {
-      super._mint(recipient, amount, "", "");
-      return true;
-    }
-    revert("lNORI: transferFrom underlying asset failed");
-  }
-
-  /**
    * @notice Claim unlocked tokens and withdraw them to the `to` address.
    *
    * @dev This function burns `amount` of LockedNORI and transfers `amount`
@@ -633,7 +613,7 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
    * - The contract must not be paused.
    * - The recipient cannot be the zero address (e.g., no burning of tokens is allowed).
    * - One of the following must be true:
-   *    - The operation is minting (which should ONLY occur when BridgedPolygonNORI is being wrapped via `_depositFor`)
+   *    - The operation is minting (which should ONLY occur when BridgedPolygonNORI is being wrapped during `batchCreateGrants`)
    *    - The operation is a burn and _all_ the following must be true:
    *      - The operator has `TOKEN_GRANTER_ROLE`.
    *      - The operator is not operating on their own balance.

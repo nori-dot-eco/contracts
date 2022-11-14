@@ -822,7 +822,7 @@ contract RestrictedNORI is
    *
    * - The contract must not be paused.
    * - One of the following must be true:
-   *    - The operation is a mint (which should ONLY occur when BridgedPolygonNORI is being wrapped via `_depositFor`).
+   *    - The operation is a mint.
    *    - The operation is a burn, which only happens during revocation and withdrawal:
    *      - If the operation is a revocation, that permission is enforced by the `TOKEN_REVOKER_ROLE`.
    *      - If the operation is a withdrawal the burn amount must be <= the sender's claimable balance.
