@@ -25,7 +25,7 @@ abstract contract UpgradeableMarket is
       Certificate(_certificate)
     );
     _rNori.registerContractAddresses( // todo move to rnori helper
-      BridgedPolygonNORI(_bpNori),
+      IERC20WithPermit(address(_bpNori)),
       Removal(_removal)
     );
     _rNori.grantRole(_rNori.MINTER_ROLE(), address(_market)); // todo move to rnori helper
