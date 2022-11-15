@@ -1,6 +1,7 @@
+import type { ContractTransaction } from 'ethers';
 import { BigNumber } from 'ethers';
 
-import type { LockedNORI } from '@/typechain-types';
+import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import {
   expect,
   setupTest,
@@ -50,6 +51,77 @@ const END_OFFSET = 100_000;
 const DELTA = 1000; // useful offset to place time before / after the inflection points
 const GRANT_AMOUNT = formatTokenAmount(1000);
 const INITIAL_SUPPLY = formatTokenAmount(100_000_000); // comes from polygon helper
+
+const createGrant = async (
+  grant: TokenGrantUserData,
+  grantAmount: BigNumber,
+  lNori: LockedNORI,
+  bpNori: BridgedPolygonNORI,
+  hre: CustomHardHatRuntimeEnvironment
+): Promise<ContractTransaction> => {
+  const { namedAccounts, ethers } = hre;
+  const { admin } = namedAccounts;
+  const userData = ethers.utils.defaultAbiCoder.encode(
+    [
+      'address',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+    ],
+    [
+      grant.recipient,
+      grant.startTime,
+      grant.vestEndTime,
+      grant.unlockEndTime,
+      grant.cliff1Time,
+      grant.cliff2Time,
+      grant.vestCliff1Amount,
+      grant.vestCliff2Amount,
+      grant.unlockCliff1Amount,
+      grant.unlockCliff2Amount,
+    ]
+  );
+  const eip712Domain = {
+    Permit: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+      { name: 'value', type: 'uint256' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+    ],
+  };
+  const signer = await ethers.getSigner(admin);
+  const latestBlock = await signer.provider?.getBlock('latest');
+  const deadline = latestBlock!.timestamp + 3600; // one hour into the future
+  const owner = await signer.getAddress();
+  const name = await bpNori.name();
+  const nonce = await bpNori.nonces(owner);
+  const chainId = await signer.getChainId();
+  const signature = await signer._signTypedData(
+    {
+      name,
+      version: '1',
+      chainId,
+      verifyingContract: bpNori.address,
+    },
+    eip712Domain,
+    {
+      owner,
+      spender: lNori.address,
+      value: grantAmount,
+      nonce,
+      deadline,
+    }
+  );
+  const { v, r, s } = ethers.utils.splitSignature(signature);
+  return lNori.batchCreateGrants([grantAmount], [userData], deadline, v, r, s);
+};
 
 const defaultParameters = ({
   startTime = NOW, // todo use await getLatestBlockTime({hre}) instead
@@ -177,69 +249,7 @@ const setupWithGrant = async (
     },
   } as TokenGrantOptions;
 
-  const userData = ethers.utils.defaultAbiCoder.encode(
-    [
-      'address',
-      'uint256',
-      'uint256',
-      'uint256',
-      'uint256',
-      'uint256',
-      'uint256',
-      'uint256',
-      'uint256',
-      'uint256',
-    ],
-    [
-      grant.recipient,
-      grant.startTime,
-      grant.vestEndTime,
-      grant.unlockEndTime,
-      grant.cliff1Time,
-      grant.cliff2Time,
-      grant.vestCliff1Amount,
-      grant.vestCliff2Amount,
-      grant.unlockCliff1Amount,
-      grant.unlockCliff2Amount,
-    ]
-  );
-  const eip712Domain = {
-    Permit: [
-      { name: 'owner', type: 'address' },
-      { name: 'spender', type: 'address' },
-      { name: 'value', type: 'uint256' },
-      { name: 'nonce', type: 'uint256' },
-      { name: 'deadline', type: 'uint256' },
-    ],
-  };
-  const signer = await ethers.getSigner(admin);
-  const latestBlock = await signer.provider?.getBlock('latest');
-  const deadline = latestBlock!.timestamp + 3600; // one hour into the future
-  const owner = await signer.getAddress();
-  const name = await bpNori.name();
-  const nonce = await bpNori.nonces(owner);
-  const chainId = await signer.getChainId();
-  const signature = await signer._signTypedData(
-    {
-      name,
-      version: '1',
-      chainId,
-      verifyingContract: bpNori.address,
-    },
-    eip712Domain,
-    {
-      owner,
-      spender: lNori.address,
-      value: grantAmount,
-      nonce,
-      deadline,
-    }
-  );
-  const { v, r, s } = ethers.utils.splitSignature(signature);
-
-  await expect(
-    lNori.batchCreateGrants([grantAmount], [userData], deadline, v, r, s)
-  )
+  await expect(createGrant(grant, grantAmount, lNori, bpNori, hre))
     .to.emit(lNori, 'TokenGrantCreated')
     .withArgs(
       grant.recipient,
@@ -344,8 +354,7 @@ describe('LockedNORI', () => {
 
     it(`will not allow tokens to be deposited when the contract is paused`, async () => {
       const { lNori, bpNori, hre } = await setupTest();
-      const { namedAccounts, namedSigners, ethers } = hre;
-      const { admin } = namedAccounts;
+      const { namedSigners } = hre;
 
       await expect(lNori.connect(namedSigners.admin).pause()).to.emit(
         lNori,
@@ -356,68 +365,8 @@ describe('LockedNORI', () => {
         startTime: await getLatestBlockTime({ hre }),
       });
 
-      const userData = ethers.utils.defaultAbiCoder.encode(
-        [
-          'address',
-          'uint256',
-          'uint256',
-          'uint256',
-          'uint256',
-          'uint256',
-          'uint256',
-          'uint256',
-          'uint256',
-          'uint256',
-        ],
-        [
-          grant.recipient,
-          grant.startTime,
-          grant.vestEndTime,
-          grant.unlockEndTime,
-          grant.cliff1Time,
-          grant.cliff2Time,
-          grant.vestCliff1Amount,
-          grant.vestCliff2Amount,
-          grant.unlockCliff1Amount,
-          grant.unlockCliff2Amount,
-        ]
-      );
-      const eip712Domain = {
-        Permit: [
-          { name: 'owner', type: 'address' },
-          { name: 'spender', type: 'address' },
-          { name: 'value', type: 'uint256' },
-          { name: 'nonce', type: 'uint256' },
-          { name: 'deadline', type: 'uint256' },
-        ],
-      };
-      const signer = await ethers.getSigner(admin);
-      const latestBlock = await signer.provider?.getBlock('latest');
-      const deadline = latestBlock!.timestamp + 3600; // one hour into the future
-      const owner = await signer.getAddress();
-      const name = await bpNori.name();
-      const nonce = await bpNori.nonces(owner);
-      const chainId = await signer.getChainId();
-      const signature = await signer._signTypedData(
-        {
-          name,
-          version: '1',
-          chainId,
-          verifyingContract: bpNori.address,
-        },
-        eip712Domain,
-        {
-          owner,
-          spender: lNori.address,
-          value: grantAmount,
-          nonce,
-          deadline,
-        }
-      );
-      const { v, r, s } = ethers.utils.splitSignature(signature);
-
       await expect(
-        lNori.batchCreateGrants([grantAmount], [userData], deadline, v, r, s)
+        createGrant(grant, grantAmount, lNori, bpNori, hre)
       ).revertedWith('Pausable: paused');
     });
   });
@@ -574,99 +523,16 @@ describe('grantRole', () => {
   });
 });
 
-describe('batchCreateGrant', () => {
+describe('batchCreateGrants', () => {
   it('Should fail to create a second grant for an address', async () => {
     const { lNori, bpNori, hre } = await setupTest();
     const { grant, grantAmount } = employeeParameters({
       hre,
       startTime: await getLatestBlockTime({ hre }),
     });
-    const { namedAccounts, ethers } = hre;
-    const { admin } = namedAccounts;
-
-    const userData = ethers.utils.defaultAbiCoder.encode(
-      [
-        'address',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-      ],
-      [
-        grant.recipient,
-        grant.startTime,
-        grant.vestEndTime,
-        grant.unlockEndTime,
-        grant.cliff1Time,
-        grant.cliff2Time,
-        grant.vestCliff1Amount,
-        grant.vestCliff2Amount,
-        grant.unlockCliff1Amount,
-        grant.unlockCliff2Amount,
-      ]
-    );
-    const eip712Domain = {
-      Permit: [
-        { name: 'owner', type: 'address' },
-        { name: 'spender', type: 'address' },
-        { name: 'value', type: 'uint256' },
-        { name: 'nonce', type: 'uint256' },
-        { name: 'deadline', type: 'uint256' },
-      ],
-    };
-    const signer = await ethers.getSigner(admin);
-    const latestBlock = await signer.provider?.getBlock('latest');
-    const deadline = latestBlock!.timestamp + 3600; // one hour into the future
-    const owner = await signer.getAddress();
-    const name = await bpNori.name();
-    let nonce = await bpNori.nonces(owner);
-    const chainId = await signer.getChainId();
-    let signature = await signer._signTypedData(
-      {
-        name,
-        version: '1',
-        chainId,
-        verifyingContract: bpNori.address,
-      },
-      eip712Domain,
-      {
-        owner,
-        spender: lNori.address,
-        value: grantAmount,
-        nonce,
-        deadline,
-      }
-    );
-    const { v, r, s } = ethers.utils.splitSignature(signature);
-
-    await lNori.batchCreateGrants([grantAmount], [userData], deadline, v, r, s);
-
-    nonce = await bpNori.nonces(owner);
-    signature = await signer._signTypedData(
-      {
-        name,
-        version: '1',
-        chainId,
-        verifyingContract: bpNori.address,
-      },
-      eip712Domain,
-      {
-        owner,
-        spender: lNori.address,
-        value: grantAmount,
-        nonce,
-        deadline,
-      }
-    );
-    const { v: v2, r: r2, s: s2 } = ethers.utils.splitSignature(signature);
-
+    await createGrant(grant, grantAmount, lNori, bpNori, hre);
     await expect(
-      lNori.batchCreateGrants([grantAmount], [userData], deadline, v2, r2, s2)
+      createGrant(grant, grantAmount, lNori, bpNori, hre)
     ).to.be.revertedWith('lNORI: Grant already exists');
   });
 
@@ -676,71 +542,9 @@ describe('batchCreateGrant', () => {
       hre,
       startTime: await getLatestBlockTime({ hre }),
     });
-    const { namedAccounts } = hre;
-    const { admin } = namedAccounts;
-
-    const userData = ethers.utils.defaultAbiCoder.encode(
-      [
-        'address',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-        'uint256',
-      ],
-      [
-        admin,
-        grant.startTime,
-        grant.vestEndTime,
-        grant.unlockEndTime,
-        grant.cliff1Time,
-        grant.cliff2Time,
-        grant.vestCliff1Amount,
-        grant.vestCliff2Amount,
-        grant.unlockCliff1Amount,
-        grant.unlockCliff2Amount,
-      ]
-    );
-    const eip712Domain = {
-      Permit: [
-        { name: 'owner', type: 'address' },
-        { name: 'spender', type: 'address' },
-        { name: 'value', type: 'uint256' },
-        { name: 'nonce', type: 'uint256' },
-        { name: 'deadline', type: 'uint256' },
-      ],
-    };
-    const signer = await ethers.getSigner(admin);
-    const latestBlock = await signer.provider?.getBlock('latest');
-    const deadline = latestBlock!.timestamp + 3600; // one hour into the future
-    const owner = await signer.getAddress();
-    const name = await bpNori.name();
-    const nonce = await bpNori.nonces(owner);
-    const chainId = await signer.getChainId();
-    const signature = await signer._signTypedData(
-      {
-        name,
-        version: '1',
-        chainId,
-        verifyingContract: bpNori.address,
-      },
-      eip712Domain,
-      {
-        owner,
-        spender: lNori.address,
-        value: grantAmount,
-        nonce,
-        deadline,
-      }
-    );
-    const { v, r, s } = ethers.utils.splitSignature(signature);
-
+    grant.recipient = hre.namedAccounts.admin; // has TOKEN_GRANTER_ROLE
     await expect(
-      lNori.batchCreateGrants([grantAmount], [userData], deadline, v, r, s)
+      createGrant(grant, grantAmount, lNori, bpNori, hre)
     ).to.be.revertedWith('lNORI: Recipient cannot be grant admin');
   });
 });
