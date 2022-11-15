@@ -5,7 +5,7 @@ import type {
   LockedNORI,
   LockedNORIV1,
   MockERC777,
-  LockedNORIV1Helper,
+  LockedNORIV1Helper__factory,
 } from '@/typechain-types';
 
 describe('LockedNORI V1 to V2 upgrade', () => {
@@ -15,10 +15,11 @@ describe('LockedNORI V1 to V2 upgrade', () => {
     const recipient = namedAccounts.investor1;
     const GRANT_AMOUNT = ethers.utils.parseEther('100');
 
-    const helperFactory = await hre.ethers.getContractFactory(
-      'LockedNORIV1Helper'
-    );
-    const helper = (await helperFactory.deploy()) as LockedNORIV1Helper;
+    const helperFactory =
+      await hre.ethers.getContractFactory<LockedNORIV1Helper__factory>(
+        'LockedNORIV1Helper'
+      );
+    const helper = await helperFactory.deploy();
     await helper.deployed();
 
     const MockERC777Factory = await hre.ethers.getContractFactory('MockERC777');
