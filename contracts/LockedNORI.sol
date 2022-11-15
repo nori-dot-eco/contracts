@@ -2,7 +2,7 @@
 pragma solidity =0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "./BridgedPolygonNORI.sol";
+import "./IERC20WithPermit.sol";
 import "./deprecated/ERC777PresetPausablePermissioned.sol";
 import {LockedNORILib, Schedule, Cliff} from "./LockedNORILib.sol";
 
@@ -157,7 +157,7 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
   /**
    * @notice The BridgedPolygonNORI contract that this contract wraps tokens for
    */
-  BridgedPolygonNORI private _bridgedPolygonNori;
+  IERC20WithPermit private _bridgedPolygonNori;
 
   /**
    * @notice The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection registry
@@ -401,7 +401,7 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
       );
   }
 
-  function initialize(BridgedPolygonNORI bridgedPolygonNoriAddress)
+  function initialize(IERC20WithPermit bridgedPolygonNoriAddress)
     public
     initializer
   {
@@ -423,7 +423,7 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
    *
    * @dev Used in case of major migrations only.
    */
-  function updateUnderlying(BridgedPolygonNORI newUnderlying)
+  function updateUnderlying(IERC20WithPermit newUnderlying)
     external
     whenNotPaused
     onlyRole(DEFAULT_ADMIN_ROLE)

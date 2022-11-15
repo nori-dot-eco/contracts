@@ -4,11 +4,13 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "./BridgedPolygonNORI.sol";
-import "./Removal.sol";
+import "./AccessPresetPausable.sol";
+import "./Errors.sol";
+import "./IERC20WithPermit.sol";
+import "./IRemoval.sol";
+import "./IRestrictedNORI.sol";
 import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
-import "./Errors.sol";
 
 /**
  * @notice View information for the current state of one schedule.
@@ -51,7 +53,7 @@ struct ScheduleDetailForAddress {
 }
 
 /**
- * @title A wrapped BridgedPolygonNORI token contract for restricting the release of tokens for use as insurance
+ * @title A wrapped ERC20 token contract for restricting the release of tokens for use as insurance
  * collateral.
  * @author Nori Inc.
  * @notice Based on the mechanics of a wrapped ERC-20 token, this contract layers schedules over the withdrawal
@@ -84,7 +86,7 @@ struct ScheduleDetailForAddress {
  * ###### Withdrawal
  *
  * - _Withdrawal_ is the process of a token holder claiming the tokens that have been released by the restriction
- * schedule. When tokens are withdrawn, the 1155 schedule token is burned, and the BridgedPolygonNORI being held
+ * schedule. When tokens are withdrawn, the 1155 schedule token is burned, and the underlying ERC20 token being held
  * by this contract is sent to the address specified by the token holder performing the withdrawal.
  * Tokens are released by a schedule based on the linear release of the schedule's `totalSupply`, but a token holder
  * can only withdraw released tokens in proportion to their percentage ownership of the schedule tokens.
@@ -94,7 +96,7 @@ struct ScheduleDetailForAddress {
  * - _Revocation_ is the process of tokens being recaptured by Nori to enforce carbon permanence guarantees.
  * Only unreleased tokens can ever be revoked. When tokens are revoked from a schedule, the current number of released
  * tokens does not decrease, even as the schedule's total supply decreases through revocation (a floor is enforced).
- * When these tokens are revoked, the 1155 schedule token is burned, and the BridgedPolygonNORI held by this contract
+ * When these tokens are revoked, the 1155 schedule token is burned, and the underlying ERC20 token held by this contract
  * is sent to the address specified by Nori. If a schedule has multiple token holders, tokens are burned from each
  * holder in proportion to their total percentage ownership of the schedule.
  *
@@ -105,7 +107,7 @@ struct ScheduleDetailForAddress {
  * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
  * pausable.
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- * - `SCHEDULE_CREATOR_ROLE`: Can create restriction schedules without sending BridgedPolygonNORI to the contract. The
+ * - `SCHEDULE_CREATOR_ROLE`: Can create restriction schedules without sending the underlying tokens to the contract. The
  * market contract has this role and sets up relevant schedules as removal tokens are listed for sale.
  * - `MINTER_ROLE`: Can call `mint` on this contract, which mints tokens of the correct schedule ID (token ID) for a
  * given removal. The market contract has this role and can mint RestrictedNORI while routing sale proceeds to this
@@ -137,6 +139,7 @@ struct ScheduleDetailForAddress {
  * - [MathUpgradeable](https://docs.openzeppelin.com/contracts/4.x/api/utils#Math)
  */
 contract RestrictedNORI is
+  IRestrictedNORI,
   ERC1155SupplyUpgradeable,
   AccessPresetPausable,
   MulticallUpgradeable
@@ -153,7 +156,7 @@ contract RestrictedNORI is
     keccak256("SCHEDULE_CREATOR_ROLE");
 
   /**
-   * @notice Role conferring sending of BridgedPolygonNORI to this contract.
+   * @notice Role conferring sending of underlying ERC20 token to this contract for wrapping.
    * @dev The Market contract is granted this role after deployments.
    */
   bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -181,14 +184,14 @@ contract RestrictedNORI is
   EnumerableSetUpgradeable.UintSet private _allScheduleIds;
 
   /**
-   * @notice The BridgedPolygonNORI contract for which this contract wraps tokens.
+   * @notice The underlying ERC20 token contract for which this contract wraps tokens.
    */
-  BridgedPolygonNORI private _bridgedPolygonNORI;
+  IERC20WithPermit private _underlyingToken;
 
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
    */
-  Removal private _removal;
+  IRemoval private _removal;
 
   /**
    * @notice Emitted on successful creation of a new schedule.
@@ -282,7 +285,7 @@ contract RestrictedNORI is
    * the released amount to be lowered at the current timestamp (a floor is established).
    *
    * Unlike in the `withdrawFromSchedule` function, here we burn RestrictedNORI
-   * from the schedule owner but send that BridgedPolygonNORI back to Nori's
+   * from the schedule owner but send that underlying ERC20 token back to Nori's
    * treasury or an address of Nori's choosing (the `toAccount` address).
    * The `claimedAmount` is not changed because this is not a claim operation.
    *
@@ -294,7 +297,7 @@ contract RestrictedNORI is
    * - The requirements of `_beforeTokenTransfer` apply to this function.
    * @param projectId The schedule ID from which to revoke tokens.
    * @param amount The amount to revoke.
-   * @param toAccount The account to which the underlying BridgedPolygonNORI should be sent.
+   * @param toAccount The account to which the underlying ERC20 token should be sent.
    */
   function revokeUnreleasedTokens(
     uint256 projectId,
@@ -367,26 +370,26 @@ contract RestrictedNORI is
       scheduleOwners: tokenHoldersLocal,
       quantitiesBurned: quantitiesToBurnForHolders
     });
-    _bridgedPolygonNORI.transfer({to: toAccount, amount: quantityToRevoke});
+    _underlyingToken.transfer({to: toAccount, amount: quantityToRevoke});
   }
 
   /**
    * @notice Register the underlying assets used by this contract.
-   * @dev Register the addresses of the Market, BridgedPolygonNORI, and Removal contracts in this contract.
+   * @dev Register the addresses of the Market, underlying ERC20, and Removal contracts in this contract.
    *
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
-   * @param bridgedPolygonNORI The address of the BridgedPolygonNORI contract for which this contract wraps tokens.
+   * @param wrappedToken The address of the underlying ERC20 contract for which this contract wraps tokens.
    * @param removal The address of the Removal contract that accounts for Nori's issued carbon removals.
    */
   function registerContractAddresses(
-    BridgedPolygonNORI bridgedPolygonNORI,
-    Removal removal
+    IERC20WithPermit wrappedToken,
+    IRemoval removal
   ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
-    _bridgedPolygonNORI = BridgedPolygonNORI(bridgedPolygonNORI);
-    _removal = Removal(removal);
+    _underlyingToken = IERC20WithPermit(wrappedToken);
+    _removal = IRemoval(removal);
   }
 
   /**
@@ -407,7 +410,7 @@ contract RestrictedNORI is
     uint256 startTime,
     uint8 methodology,
     uint8 methodologyVersion
-  ) external whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
+  ) external override whenNotPaused onlyRole(SCHEDULE_CREATOR_ROLE) {
     if (this.scheduleExists({scheduleId: projectId})) {
       revert ScheduleExists({scheduleId: projectId});
     }
@@ -429,7 +432,7 @@ contract RestrictedNORI is
   /**
    * @notice Mint RestrictedNORI tokens for a schedule.
    * @dev Mint `amount` of RestrictedNORI to the schedule ID that corresponds to the provided `removalId`.
-   * The schedule ID for this removal is looked up in the Removal contract. The underlying BridgedPolygonNORI asset is
+   * The schedule ID for this removal is looked up in the Removal contract. The underlying ERC20 asset is
    *  sent to this contract from the buyer by the Market contract during a purchase, so this function only concerns
    * itself with minting the RestrictedNORI token for the correct token ID.
    *
@@ -458,7 +461,7 @@ contract RestrictedNORI is
    * @notice Claim sender's released tokens and withdraw them to `recipient` address.
    *
    * @dev This function burns `amount` of RestrictedNORI for the given schedule ID
-   * and transfers `amount` of BridgedPolygonNORI from the RestrictedNORI contract's
+   * and transfers `amount` of underlying ERC20 token from the RestrictedNORI contract's
    * balance to `recipient`'s balance.
    * Enforcement of the availability of claimable tokens for the `_burn` call happens in `_beforeTokenTransfer`.
    *
@@ -467,7 +470,7 @@ contract RestrictedNORI is
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
-   * @param recipient The address receiving the underlying BridgedPolygonNORI.
+   * @param recipient The address receiving the unwrapped underlying ERC20 token.
    * @param scheduleId The schedule from which to withdraw.
    * @param amount The amount to withdraw.
    * @return Whether or not the tokens were successfully withdrawn.
@@ -487,7 +490,7 @@ contract RestrictedNORI is
       scheduleId: scheduleId,
       quantity: amount
     });
-    _bridgedPolygonNORI.transfer({to: recipient, amount: amount});
+    _underlyingToken.transfer({to: recipient, amount: amount});
     return true;
   }
 
@@ -569,7 +572,12 @@ contract RestrictedNORI is
    * @param scheduleId The token ID of the schedule for which to check existence.
    * @return Returns a boolean indicating whether or not the schedule exists.
    */
-  function scheduleExists(uint256 scheduleId) external view returns (bool) {
+  function scheduleExists(uint256 scheduleId)
+    external
+    view
+    override
+    returns (bool)
+  {
     return _scheduleIdToScheduleStruct[scheduleId].doesExist();
   }
 
