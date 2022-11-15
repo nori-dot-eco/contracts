@@ -243,20 +243,19 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
   }
 
   /**
-   * @notice Sets up a batch of vesting + lockup schedules and wraps the corresponding BridgedPolygonNORI
-   * using EIP712 permit access.
+   * @notice Create a batch of vesting + lockup schedules.
+   * @dev This function uses EIP712 to transfer and wrap bpNORI as lNORI with the specified grant parameters.
    *
    * ##### Requirements:
    *
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `TOKEN_GRANTER_ROLE` role.
-   *
-   * @param amounts The amount of each grant
-   * @param grantParams An array of `CreateTokenGrantParams` structs
-   * @param deadline The permit deadline
-   * @param v The permit v parameter
-   * @param r The permit r parameter
-   * @param s The permit s parameter
+   * @param amounts The amount of bpNORI for each grant.
+   * @param grantParams An array of `CreateTokenGrantParams` structs.
+   * @param deadline The permit deadline.
+   * @param v The permit v parameter.
+   * @param r The permit r parameter.
+   * @param s The permit s parameter.
    */
   function batchCreateGrants(
     uint256[] calldata amounts,
@@ -613,7 +612,7 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
    * - The contract must not be paused.
    * - The recipient cannot be the zero address (e.g., no burning of tokens is allowed).
    * - One of the following must be true:
-   *    - The operation is minting (which should ONLY occur when BridgedPolygonNORI is being wrapped during `batchCreateGrants`)
+   *    - The operation is minting (which should ONLY occur when BridgedPolygonNORI is being wrapped during the execution of `batchCreateGrants`).
    *    - The operation is a burn and _all_ the following must be true:
    *      - The operator has `TOKEN_GRANTER_ROLE`.
    *      - The operator is not operating on their own balance.
