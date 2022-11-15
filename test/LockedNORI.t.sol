@@ -304,22 +304,30 @@ contract LockedNORITest is
   }
 
   function _issueGrant(address recipientAddress, uint256 fromTime) internal {
-    uint256 amount = _GRANT_AMOUNT;
-    // _lNori.createGrant(
-    //   amount,
-    //   recipientAddress,
-    //   fromTime,
-    //   fromTime + 365 days,
-    //   fromTime + 365 days,
-    //   fromTime,
-    //   fromTime,
-    //   0,
-    //   0,
-    //   0,
-    //   0
-    // );
-    // _erc20.approve(address(_lNori), _GRANT_AMOUNT);
-    // _lNori.depositFor(recipientAddress, _GRANT_AMOUNT);
+    uint256 grantAdminKey = 0xabcdef;
+    address grantAdmin = vm.addr(grantAdminKey);
+    _erc20.transfer(grantAdmin, _GRANT_AMOUNT);
+    assertEq(_erc20.balanceOf(address(grantAdmin)), _GRANT_AMOUNT);
+    _lNori.grantRole(_lNori.TOKEN_GRANTER_ROLE(), grantAdmin);
+    uint256 deadline = 1 days;
+    bytes memory params = _helper.getSimpleGrantCreationParamsEncoded(
+      recipientAddress,
+      fromTime
+    );
+    vm.startPrank(grantAdmin);
+    bytes32 digest = _signer.digestPermitCall(
+      address(_erc20),
+      address(_lNori),
+      _GRANT_AMOUNT,
+      deadline
+    );
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(grantAdminKey, digest);
+    uint256[] memory amounts = new uint256[](1);
+    amounts[0] = _GRANT_AMOUNT;
+    bytes[] memory data = new bytes[](1);
+    data[0] = params;
+    _lNori.batchCreateGrants(amounts, data, deadline, v, r, s);
+    vm.stopPrank();
   }
 
   function _deployProxy(address _impl, bytes memory initializer)

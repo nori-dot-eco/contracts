@@ -5,20 +5,20 @@ import type {
   LockedNORI,
   LockedNORIV1,
   MockERC777,
-  LockedNORIHelper,
+  LockedNORIV1Helper,
 } from '@/typechain-types';
 
 describe('LockedNORI V1 to V2 upgrade', () => {
   it('works before and after upgrading', async () => {
     const { bpNori, hre } = await setupTest();
-
-    const recipient = hre.namedAccounts.investor1;
+    const { namedSigners, namedAccounts } = hre;
+    const recipient = namedAccounts.investor1;
     const GRANT_AMOUNT = ethers.utils.parseEther('100');
 
     const helperFactory = await hre.ethers.getContractFactory(
-      'LockedNORIHelper'
+      'LockedNORIV1Helper'
     );
-    const helper = (await helperFactory.deploy()) as LockedNORIHelper;
+    const helper = (await helperFactory.deploy()) as LockedNORIV1Helper;
     await helper.deployed();
 
     const MockERC777Factory = await hre.ethers.getContractFactory('MockERC777');
@@ -87,7 +87,7 @@ describe('LockedNORI V1 to V2 upgrade', () => {
       ).toNumber(),
     });
     await lNoriV2
-      .connect(hre.namedSigners.investor1)
+      .connect(namedSigners.investor1)
       .withdrawTo(recipient, GRANT_AMOUNT);
     expect(await bpNori.balanceOf(recipient)).to.eq(GRANT_AMOUNT);
     expect(await lNoriV2.balanceOf(recipient)).to.eq(0);
