@@ -3,9 +3,9 @@ import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
 import { BigNumber, ethers } from 'ethers';
 import chalk from 'chalk';
-import { parseTransactionLogs } from '@nori-dot-com/contracts/utils/events';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 
+import { parseTransactionLogs } from '@/utils/events';
 import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { getCertificate, getRemoval } from '@/utils/contracts';
 

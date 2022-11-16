@@ -4,7 +4,6 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
-    "cli-progress": "^3.11.2",
     "@codechecks/client": "^0.1.12",
     "@ethersproject/abstract-signer": "5.7.0",
     "@ethersproject/properties": "5.7.0",
@@ -24,6 +23,7 @@
     "@typechain/hardhat": "^6.1.3",
     "@types/chai": "^4.3.3",
     "@types/chai-as-promised": "^7.1.5",
+    "@types/cli-progress": "^3.11.0",
     "@types/dotenv-defaults": "^2.0.1",
     "@types/dotenv-parse-variables": "^2.0.1",
     "@types/fs-extra": "^9.0.13",
@@ -32,6 +32,7 @@
     "chai": "^4.3.6",
     "chai-as-promised": "^7.1.1",
     "chalk": "^4.0",
+    "cli-progress": "^3.11.2",
     "csvtojson": "^2.0.10",
     "defender-admin-client": "^1.31.1",
     "dotenv": "^16.0.2",
@@ -47,6 +48,7 @@
     "fs-extra": "^10.1.0",
     "handlebars": "^4.7.7",
     "hardhat": "2.11.2",
+    "hardhat-contract-sizer": "^2.6.1",
     "hardhat-deploy": "^0.11.15",
     "hardhat-ethernal": "^2.1.0",
     "hardhat-gas-reporter": "^1.0.9",
@@ -66,8 +68,7 @@
     "tsconfig-paths": "^4.1.0",
     "typechain": "^8.1.0",
     "typescript": "^4.6.2",
-    "yup": "1.0.0-beta.7",
-    "hardhat-contract-sizer": "^2.6.1"
+    "yup": "1.0.0-beta.7"
   },
   "resolutions": {
     "firebase": "9.10.0"
