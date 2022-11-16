@@ -990,6 +990,10 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
     keccak256("RemovalReleased(uint256,address,uint256)");
   bytes32 constant SUPPLIER_REMOVED_EVENT_SELECTOR =
     keccak256("SupplierRemoved(address,address,address)");
+  bytes32 constant TOKENS_REVOKED_EVENT_SELECTOR =
+    keccak256("TokensRevoked(uint256,uint256,uint256,address[],uint256[])");
+  bytes32 constant TRANSFER_EVENT_SELECTOR =
+    keccak256("Transfer(address,address,uint256)");
   bytes32[] expectedReleaseEventSelectors = [
     TRANSFER_SINGLE_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR,
@@ -997,7 +1001,10 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
     SUPPLIER_REMOVED_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR,
     TRANSFER_SINGLE_EVENT_SELECTOR,
-    REMOVAL_RELEASED_EVENT_SELECTOR
+    REMOVAL_RELEASED_EVENT_SELECTOR,
+    TRANSFER_SINGLE_EVENT_SELECTOR,
+    TOKENS_REVOKED_EVENT_SELECTOR,
+    TRANSFER_EVENT_SELECTOR
   ];
 
   function setUp() external {
@@ -1074,7 +1081,9 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
           _expectedReleasedBalances[pairCount]
         );
         pairCount++;
-      } else if (entries[i].topics[0] == TRANSFER_SINGLE_EVENT_SELECTOR) {
+      } else if (
+        entries[i].topics[0] == TRANSFER_SINGLE_EVENT_SELECTOR && i < 7
+      ) {
         assertEq(
           entries[i].topics[1],
           bytes32(uint256(uint160(address(this))))
@@ -1090,7 +1099,10 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
         );
         assertEq(id, _removalIds[0]);
         assertEq(value, _expectedReleasedBalances[pairCount]);
-      } else if (entries[i].topics[0] == SUPPLIER_REMOVED_EVENT_SELECTOR) {
+      }
+      // TODO the final TransferSingle event is a RestrictedNORI burn and needs to be
+      // handled differently than the others
+      else if (entries[i].topics[0] == SUPPLIER_REMOVED_EVENT_SELECTOR) {
         assertEq(
           entries[i].topics[1],
           bytes32(uint256(uint160(_namedAccounts.supplier)))
@@ -1103,6 +1115,8 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
           entries[i].topics[3],
           bytes32(uint256(uint160(_namedAccounts.supplier)))
         );
+      } else if (entries[i].topics[0] == TOKENS_REVOKED_EVENT_SELECTOR) {
+        // TODO
       }
     }
   }

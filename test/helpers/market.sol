@@ -30,6 +30,7 @@ abstract contract UpgradeableMarket is
     );
     _rNori.grantRole(_rNori.MINTER_ROLE(), address(_market)); // todo move to rnori helper
     _rNori.grantRole(_rNori.SCHEDULE_CREATOR_ROLE(), address(_removal)); // todo move to rnori helper
+    _rNori.grantRole(_rNori.TOKEN_REVOKER_ROLE(), address(_removal)); // todo move to rnori helper
   }
 
   function _deployMarket() internal returns (Market) {

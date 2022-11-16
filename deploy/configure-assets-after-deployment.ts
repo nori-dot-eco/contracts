@@ -27,6 +27,14 @@ export const deploy: DeployFunction = async (environment) => {
       "Granted Removal the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI"
     );
   }
+  if (
+    !(await rNori.hasRole(await rNori.TOKEN_REVOKER_ROLE(), removal.address))
+  ) {
+    await rNori.grantRole(await rNori.TOKEN_REVOKER_ROLE(), removal.address);
+    hre.trace(
+      "Granted Removal the role 'TOKEN_REVOKER_ROLE' for RestrictedNORI"
+    );
+  }
 
   if (!(await rNori.hasRole(await rNori.MINTER_ROLE(), market.address))) {
     await rNori.grantRole(hre.ethers.utils.id('MINTER_ROLE'), market.address);

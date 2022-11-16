@@ -443,6 +443,24 @@ contract Removal is
           uint256 amountToRelease = amount - amountReleased;
           _releaseFromCertificate({id: id, amount: amount - amountReleased});
           amountReleased += amountToRelease;
+          IRestrictedNORI _restrictedNORI = IRestrictedNORI(
+            _market.restrictedNoriAddress()
+          );
+
+          uint256 projectId = _removalIdToProjectId[id];
+          uint256 revokableQuantityForProject = _restrictedNORI
+            .revocableQuantityForSchedule(projectId);
+          uint256 amountToRevoke = MathUpgradeable.min({
+            a: amountToRelease,
+            b: revokableQuantityForProject
+          });
+          _restrictedNORI.revokeUnreleasedTokens({
+            projectId: projectId,
+            amount: amountToRevoke,
+            toAccount: _msgSender() // TODO we probably either want to parameterize this as part of the release function or create a state variable that we can update in this contract
+          });
+          // TODO emit an event here? add to the event emitted by RNORI? include how much we *wanted* to release?
+          // pass the removal ID so that two different events can be correlated?
         }
       }
     }

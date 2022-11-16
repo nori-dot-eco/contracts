@@ -29,7 +29,7 @@ describe('RestrictedNORI', () => {
         { role: 'DEFAULT_ADMIN_ROLE', expectedCount: 1 },
         { role: 'PAUSER_ROLE', expectedCount: 1 },
         { role: 'SCHEDULE_CREATOR_ROLE', expectedCount: 2 }, // Removal contract and admin are both schedule creators
-        { role: 'TOKEN_REVOKER_ROLE', expectedCount: 1 },
+        { role: 'TOKEN_REVOKER_ROLE', expectedCount: 2 }, // Removal contract and admin are both token revokers
       ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
           const { rNori, hre } = await setupTest();
@@ -56,6 +56,12 @@ describe('RestrictedNORI', () => {
             await rNori.SCHEDULE_CREATOR_ROLE(),
             removal.address
           )
+        ).to.be.true;
+      });
+      it(`will assign the role TOKEN_REVOKER_ROLE to the removal contract`, async () => {
+        const { rNori, removal } = await setupTest();
+        expect(
+          await rNori.hasRole(await rNori.TOKEN_REVOKER_ROLE(), removal.address)
         ).to.be.true;
       });
     });

@@ -667,6 +667,10 @@ contract Market_onERC1155Received_reverts_SenderNotRemovalContract is
       _rNori.SCHEDULE_CREATOR_ROLE(),
       address(_unregisteredRemovalDuplicate)
     );
+    _rNori.grantRole(
+      _rNori.TOKEN_REVOKER_ROLE(),
+      address(_unregisteredRemovalDuplicate)
+    );
     _removalIds = _unregisteredRemovalDuplicate.seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
@@ -724,6 +728,10 @@ contract Market_onERC1155BatchReceived_reverts_SenderNotRemovalContract is
     );
     _rNori.grantRole(
       _rNori.SCHEDULE_CREATOR_ROLE(),
+      address(_unregisteredRemovalDuplicate)
+    );
+    _rNori.grantRole(
+      _rNori.TOKEN_REVOKER_ROLE(),
       address(_unregisteredRemovalDuplicate)
     );
   }

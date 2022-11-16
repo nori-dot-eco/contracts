@@ -108,11 +108,13 @@ struct ScheduleDetailForAddress {
  * pausable.
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
  * - `SCHEDULE_CREATOR_ROLE`: Can create restriction schedules without sending the underlying tokens to the contract. The
- * market contract has this role and sets up relevant schedules as removal tokens are listed for sale.
+ * removal contract has this role and sets up corresponding schedules as removal tokens are minted.
  * - `MINTER_ROLE`: Can call `mint` on this contract, which mints tokens of the correct schedule ID (token ID) for a
  * given removal. The market contract has this role and can mint RestrictedNORI while routing sale proceeds to this
  * contract.
- * - `TOKEN_REVOKER_ROLE`: Can revoke unreleased tokens from a schedule. Only Nori admin wallet should have this role.
+ * - `TOKEN_REVOKER_ROLE`: Can revoke unreleased tokens from a schedule. The removal contract has this role and attempts
+ * to revoke the correct number of unreleased tokens from the corresponding schedule when Removal.release is called for a
+ * removal token.
  * - `PAUSER_ROLE`: Can pause and unpause the contract.
  * - `DEFAULT_ADMIN_ROLE`: This is the only role that can add/revoke other accounts to any of the roles.
  *
@@ -260,8 +262,8 @@ contract RestrictedNORI is
     __Multicall_init_unchained();
     _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
     _grantRole({role: PAUSER_ROLE, account: _msgSender()});
-    _grantRole({role: SCHEDULE_CREATOR_ROLE, account: _msgSender()});
-    _grantRole({role: TOKEN_REVOKER_ROLE, account: _msgSender()});
+    _grantRole({role: SCHEDULE_CREATOR_ROLE, account: _msgSender()}); // TODO do we actually want the admin to have this role when only the removal contract needs it?
+    _grantRole({role: TOKEN_REVOKER_ROLE, account: _msgSender()}); // TODO do we actually want the admin to have this role when only the removal contract needs it?
     setRestrictionDurationForMethodologyAndVersion({
       methodology: 1,
       methodologyVersion: 0,
