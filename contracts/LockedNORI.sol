@@ -674,7 +674,7 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
             grant.grantAmount
           ) -
           grant.claimedAmount;
-      https://www.notion.so/0xmacro/Nori-1-Preliminary-Audit-Report-external-b70f6c3e0aa843489a1aeefc2b9f4b9b#032a6002e36448eba91d3643b5abf534} else {
+      } else {
         balance = grant.grantAmount - grant.claimedAmount;
       }
     }
