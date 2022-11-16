@@ -1,6 +1,4 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
-import { sign } from 'crypto';
-
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
 import { BigNumber, ethers } from 'ethers';
@@ -103,13 +101,11 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           const removalData = {
             idVersion: Number(removal.idVersion),
             methodology: Number(removal.methodology),
-            // methodologyVersion: Number(removal.methodologyVersion),
-            methodologyVersion: 0, // TODO is this ever going to be different across legacy removals? depends on methodology version work
+            methodologyVersion: Number(removal.methodologyVersion),
             vintage: Number(removal.vintage),
             country: asciiStringToHexString(removal.country),
             subdivision: asciiStringToHexString(removal.subdivision),
-            supplierAddress: '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667', // TODO need real supplier address on the project
-            // subIdentifier: (project.projectId % 1000) + index,
+            supplierAddress: project.supplierAddress, // TODO need real supplier address on the project
             subIdentifier: removal.subIdentifier,
           };
           return removalData;
