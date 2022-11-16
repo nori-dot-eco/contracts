@@ -138,7 +138,7 @@ interface RemovalDataFromListing {
 }
 
 // todo helpers/removal.ts
-interface RemovalDataForListing {
+export interface RemovalDataForListing {
   projectId?: number;
   scheduleStartTime?: number;
   holdbackPercentage?: BigNumber;
@@ -198,7 +198,9 @@ export const batchMintAndListRemovalsForSale = async (options: {
     formatTokenAmount(removalData.amount)
   );
   await removal.mintBatch(
-    removalDataToList.listNow === false ? supplier : market.address,
+    removalDataToList.listNow === false
+      ? removals[0].supplierAddress
+      : market.address,
     removalAmounts,
     removals,
     projectId,
@@ -292,8 +294,10 @@ export const setupTest = global.hre.deployments.createFixture(
         removals = [...removals, ...mintResultData.listedRemovalIds];
         totalAmountOfSupply =
           mintResultData.totalAmountOfSupply.add(totalAmountOfSupply);
-        totalAmountOfSuppliers = mintResultData.totalAmountOfSuppliers + totalAmountOfSuppliers;
-        totalAmountOfRemovals = mintResultData.totalAmountOfRemovals + totalAmountOfRemovals;
+        totalAmountOfSuppliers =
+          mintResultData.totalAmountOfSuppliers + totalAmountOfSuppliers;
+        totalAmountOfRemovals =
+          mintResultData.totalAmountOfRemovals + totalAmountOfRemovals;
         projectId = mintResultData.projectId; // todo allow multiple schedules/projects/percentages per fixture
         scheduleStartTime = mintResultData.scheduleStartTime; // todo allow multiple schedules/projects/percentages per fixture
         holdbackPercentage = mintResultData.holdbackPercentage; // todo allow multiple schedules/projects/percentages per fixture

@@ -113,11 +113,3 @@ broadcast
 
 # interfaces
 contracts/interfaces/
-
-# migration (temporary)
-amie.json
-certificate-data-for-amie.json
-listed-migrated-removals.json
-migrated-certificates.json
-migrated-removals.json
-removal-data-for-amie.json

@@ -54,6 +54,91 @@ abstract contract MarketBalanceTestHelper is UpgradeableMarket {
   }
 }
 
+contract ERC1155Recipient {
+  constructor() {}
+
+  function onERC1155Received(
+    address,
+    address from,
+    uint256,
+    uint256,
+    bytes calldata
+  ) external returns (bytes4) {
+    if (from == address(0)) {
+      revert("Griefing attack!!!");
+    }
+  }
+}
+
+contract Market_swap_rNori_mint_failure is UpgradeableMarket {
+  address owner;
+  uint256 holdbackPercentage = 10;
+  uint256 checkoutTotal;
+  uint256 rNoriToMint;
+  SignedPermit signedPermit;
+  uint256 removalId;
+  ERC1155Recipient recipient = new ERC1155Recipient();
+
+  event RestrictedNORIMintFailed(
+    uint256 indexed amount,
+    uint256 indexed removalId
+  );
+
+  function setUp() external {
+    DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
+    removals[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: address(recipient), // will not accept 1155 tokens - revert on mint
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
+    });
+
+    removalId = RemovalIdLib.createRemovalId(removals[0]);
+
+    _removal.mintBatch(
+      address(_market),
+      new uint256[](1).fill(2 ether),
+      removals,
+      1_234_567_890,
+      block.timestamp,
+      uint8(holdbackPercentage)
+    );
+
+    uint256 ownerPrivateKey = 0xA11CE;
+    owner = vm.addr(ownerPrivateKey);
+    checkoutTotal = _market.calculateCheckoutTotal(1 ether);
+    rNoriToMint = (1 ether * holdbackPercentage) / 100;
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(checkoutTotal));
+
+    signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _bpNori
+    );
+  }
+
+  function test() external {
+    vm.prank(owner);
+    vm.expectEmit(true, true, false, false);
+    emit RestrictedNORIMintFailed(rNoriToMint, removalId);
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+  }
+}
+
 contract Market_setNoriFeePercentage_revertsInvalidPercentage is
   UpgradeableMarket
 {
@@ -575,7 +660,7 @@ contract Market_onERC1155Received_reverts_SenderNotRemovalContract is
       Certificate(_certificate)
     );
     _rNori.registerContractAddresses(
-      BridgedPolygonNORI(_bpNori),
+      IERC20WithPermit(address(_bpNori)),
       Removal(_unregisteredRemovalDuplicate)
     );
     _rNori.grantRole(
@@ -634,7 +719,7 @@ contract Market_onERC1155BatchReceived_reverts_SenderNotRemovalContract is
       Certificate(_certificate)
     );
     _rNori.registerContractAddresses(
-      BridgedPolygonNORI(_bpNori),
+      IERC20WithPermit(address(_bpNori)),
       Removal(_unregisteredRemovalDuplicate)
     );
     _rNori.grantRole(
