@@ -1,6 +1,7 @@
+import type { ContractTransaction } from 'ethers';
 import { BigNumber } from 'ethers';
 
-import type { LockedNORI } from '@/typechain-types';
+import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import {
   expect,
   setupTest,
@@ -50,6 +51,77 @@ const END_OFFSET = 100_000;
 const DELTA = 1000; // useful offset to place time before / after the inflection points
 const GRANT_AMOUNT = formatTokenAmount(1000);
 const INITIAL_SUPPLY = formatTokenAmount(100_000_000); // comes from polygon helper
+
+const createGrant = async (
+  grant: TokenGrantUserData,
+  grantAmount: BigNumber,
+  lNori: LockedNORI,
+  bpNori: BridgedPolygonNORI,
+  hre: CustomHardHatRuntimeEnvironment
+): Promise<ContractTransaction> => {
+  const { namedAccounts, ethers } = hre;
+  const { admin } = namedAccounts;
+  const userData = ethers.utils.defaultAbiCoder.encode(
+    [
+      'address',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+      'uint256',
+    ],
+    [
+      grant.recipient,
+      grant.startTime,
+      grant.vestEndTime,
+      grant.unlockEndTime,
+      grant.cliff1Time,
+      grant.cliff2Time,
+      grant.vestCliff1Amount,
+      grant.vestCliff2Amount,
+      grant.unlockCliff1Amount,
+      grant.unlockCliff2Amount,
+    ]
+  );
+  const eip712Domain = {
+    Permit: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+      { name: 'value', type: 'uint256' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+    ],
+  };
+  const signer = await ethers.getSigner(admin);
+  const latestBlock = await signer.provider?.getBlock('latest');
+  const deadline = latestBlock!.timestamp + 3600; // one hour into the future
+  const owner = await signer.getAddress();
+  const name = await bpNori.name();
+  const nonce = await bpNori.nonces(owner);
+  const chainId = await signer.getChainId();
+  const signature = await signer._signTypedData(
+    {
+      name,
+      version: '1',
+      chainId,
+      verifyingContract: bpNori.address,
+    },
+    eip712Domain,
+    {
+      owner,
+      spender: lNori.address,
+      value: grantAmount,
+      nonce,
+      deadline,
+    }
+  );
+  const { v, r, s } = ethers.utils.splitSignature(signature);
+  return lNori.batchCreateGrants([grantAmount], [userData], deadline, v, r, s);
+};
 
 const defaultParameters = ({
   startTime = NOW, // todo use await getLatestBlockTime({hre}) instead
@@ -156,8 +228,7 @@ const linearParameters = ({
 };
 
 const setupWithGrant = async (
-  _options: DeepPartial<TokenGrantOptions> | BuildTokenGrantOptionFunction = {},
-  fund = true
+  _options: DeepPartial<TokenGrantOptions> | BuildTokenGrantOptionFunction = {}
 ): Promise<Awaited<ReturnType<typeof setupTest>> & TokenGrantOptions> => {
   const { bpNori, lNori, hre, ...rest } = await setupTest();
   const options: DeepPartial<TokenGrantOptions> =
@@ -178,21 +249,7 @@ const setupWithGrant = async (
     },
   } as TokenGrantOptions;
 
-  await expect(
-    lNori.createGrant(
-      grantAmount,
-      grant.recipient,
-      grant.startTime,
-      grant.vestEndTime,
-      grant.unlockEndTime,
-      grant.cliff1Time,
-      grant.cliff2Time,
-      grant.vestCliff1Amount,
-      grant.vestCliff2Amount,
-      grant.unlockCliff1Amount,
-      grant.unlockCliff2Amount
-    )
-  )
+  await expect(createGrant(grant, grantAmount, lNori, bpNori, hre))
     .to.emit(lNori, 'TokenGrantCreated')
     .withArgs(
       grant.recipient,
@@ -200,20 +257,17 @@ const setupWithGrant = async (
       grant.startTime,
       grant.vestEndTime,
       grant.unlockEndTime
-    );
+    )
+    .to.emit(lNori, 'Mint')
+    .withArgs(ethers.constants.AddressZero, grant.recipient, grantAmount)
+    .to.emit(bpNori, 'Transfer')
+    .withArgs(admin, lNori.address, grantAmount);
 
   await expect(bpNori.approve(lNori.address, grantAmount))
     .to.emit(bpNori, 'Approval')
     .withArgs(admin, lNori.address, grantAmount);
   expect(await bpNori.allowance(admin, lNori.address)).to.eq(grantAmount);
 
-  if (fund) {
-    await expect(lNori.depositFor(grant.recipient, grantAmount))
-      .to.emit(lNori, 'Mint')
-      .withArgs(ethers.constants.AddressZero, grant.recipient, grantAmount)
-      .to.emit(bpNori, 'Transfer')
-      .withArgs(admin, lNori.address, grantAmount);
-  }
   return { bpNori, lNori, grant, grantAmount, hre, ...rest };
 };
 
@@ -299,16 +353,20 @@ describe('LockedNORI', () => {
     }
 
     it(`will not allow tokens to be deposited when the contract is paused`, async () => {
-      const { lNori, hre } = await setupWithGrant();
-      const { namedAccounts, namedSigners } = hre;
+      const { lNori, bpNori, hre } = await setupTest();
+      const { namedSigners } = hre;
 
       await expect(lNori.connect(namedSigners.admin).pause()).to.emit(
         lNori,
         'Paused'
       );
+      const { grant, grantAmount } = employeeParameters({
+        hre,
+        startTime: await getLatestBlockTime({ hre }),
+      });
 
       await expect(
-        lNori.depositFor(namedAccounts.supplier, formatTokenAmount(1))
+        createGrant(grant, grantAmount, lNori, bpNori, hre)
       ).revertedWith('Pausable: paused');
     });
   });
@@ -405,63 +463,6 @@ describe('role access', () => {
             ].toLowerCase()} is missing role ${roleId}`
           );
         });
-        it(`accounts with the role "${role}" can use "createGrant" whilst accounts without the role "${role}" cannot`, async () => {
-          const { lNori, hre } = await setupTest();
-          const { namedAccounts, namedSigners } = hre;
-          const roleId = await lNori[role]();
-          expect(await lNori.hasRole(roleId, namedAccounts[accountWithoutRole]))
-            .to.be.false;
-          const { grant, grantAmount } = employeeParameters({
-            hre,
-            startTime: await getLatestBlockTime({ hre }),
-          });
-          await expect(
-            lNori
-              .connect(namedSigners[accountWithRole])
-              .createGrant(
-                grantAmount,
-                grant.recipient,
-                grant.startTime,
-                grant.vestEndTime,
-                grant.unlockEndTime,
-                grant.cliff1Time,
-                grant.cliff2Time,
-                grant.vestCliff1Amount,
-                grant.vestCliff2Amount,
-                grant.unlockCliff1Amount,
-                grant.unlockCliff2Amount
-              )
-          )
-            .to.emit(lNori, 'TokenGrantCreated')
-            .withArgs(
-              grant.recipient,
-              grantAmount,
-              grant.startTime,
-              grant.vestEndTime,
-              grant.unlockEndTime
-            );
-          await expect(
-            lNori
-              .connect(namedSigners[accountWithoutRole])
-              .createGrant(
-                grantAmount,
-                grant.recipient,
-                grant.startTime,
-                grant.vestEndTime,
-                grant.unlockEndTime,
-                grant.cliff1Time,
-                grant.cliff2Time,
-                grant.vestCliff1Amount,
-                grant.vestCliff2Amount,
-                grant.unlockCliff1Amount,
-                grant.unlockCliff2Amount
-              )
-          ).to.be.revertedWith(
-            `AccessControl: account ${namedAccounts[
-              accountWithoutRole
-            ].toLowerCase()} is missing role ${roleId}`
-          );
-        });
       }
     });
   });
@@ -493,16 +494,6 @@ describe('authorizeOperator', () => {
   });
 });
 
-it('Prevents wrapping bpNori when no grant is present', async () => {
-  const { bpNori, lNori, hre } = await setupTest();
-  const { investor1 } = hre.namedAccounts;
-  expect(await bpNori.balanceOf(investor1)).to.equal(0);
-  const depositAmount = formatTokenAmount(10);
-  await expect(lNori.depositFor(investor1, depositAmount)).to.be.revertedWith(
-    'lNORI: Cannot deposit without a grant'
-  );
-});
-
 describe('unlockedBalanceOf', () => {
   it('returns zero before startTime', async () => {
     const { lNori, grantAmount } = await setupWithGrant();
@@ -532,82 +523,28 @@ describe('grantRole', () => {
   });
 });
 
-describe('createGrant', () => {
+describe('batchCreateGrants', () => {
   it('Should fail to create a second grant for an address', async () => {
-    const { lNori, hre } = await setupTest();
+    const { lNori, bpNori, hre } = await setupTest();
     const { grant, grantAmount } = employeeParameters({
       hre,
       startTime: await getLatestBlockTime({ hre }),
     });
-    const { namedSigners } = hre;
+    await createGrant(grant, grantAmount, lNori, bpNori, hre);
     await expect(
-      lNori
-        .connect(namedSigners.admin)
-        .createGrant(
-          grantAmount,
-          grant.recipient,
-          grant.startTime,
-          grant.vestEndTime,
-          grant.unlockEndTime,
-          grant.cliff1Time,
-          grant.cliff2Time,
-          grant.vestCliff1Amount,
-          grant.vestCliff2Amount,
-          grant.unlockCliff1Amount,
-          grant.unlockCliff2Amount
-        )
-    )
-      .to.emit(lNori, 'TokenGrantCreated')
-      .withArgs(
-        grant.recipient,
-        grantAmount,
-        grant.startTime,
-        grant.vestEndTime,
-        grant.unlockEndTime
-      );
-
-    await expect(
-      lNori
-        .connect(namedSigners.admin)
-        .createGrant(
-          grantAmount,
-          grant.recipient,
-          grant.startTime,
-          grant.vestEndTime,
-          grant.unlockEndTime,
-          grant.cliff1Time,
-          grant.cliff2Time,
-          grant.vestCliff1Amount,
-          grant.vestCliff2Amount,
-          grant.unlockCliff1Amount,
-          grant.unlockCliff2Amount
-        )
+      createGrant(grant, grantAmount, lNori, bpNori, hre)
     ).to.be.revertedWith('lNORI: Grant already exists');
   });
 
   it('Should fail to create a grant for an address having TOKEN_GRANTER_ROLE', async () => {
-    const { lNori, hre } = await setupTest();
+    const { lNori, bpNori, hre } = await setupTest();
     const { grant, grantAmount } = employeeParameters({
       hre,
       startTime: await getLatestBlockTime({ hre }),
     });
-    const { namedSigners, namedAccounts } = hre;
+    grant.recipient = hre.namedAccounts.admin; // has TOKEN_GRANTER_ROLE
     await expect(
-      lNori
-        .connect(namedSigners.admin)
-        .createGrant(
-          grantAmount,
-          namedAccounts.admin,
-          grant.startTime,
-          grant.vestEndTime,
-          grant.unlockEndTime,
-          grant.cliff1Time,
-          grant.cliff2Time,
-          grant.vestCliff1Amount,
-          grant.vestCliff2Amount,
-          grant.unlockCliff1Amount,
-          grant.unlockCliff2Amount
-        )
+      createGrant(grant, grantAmount, lNori, bpNori, hre)
     ).to.be.revertedWith('lNORI: Recipient cannot be grant admin');
   });
 });
@@ -694,24 +631,6 @@ describe('Unlocking', () => {
       CLIFF1_AMOUNT.add(CLIFF2_AMOUNT)
     );
     expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
-  });
-
-  it('Should revert if N wrapped tokens < N requested (even if unlocked)', async () => {
-    const { lNori, hre, grant } = await setupWithGrant({}, false);
-    const { investor1 } = hre.namedAccounts;
-    const addr1Signer = hre.namedSigners.investor1;
-    await advanceTime({ hre, timestamp: grant.cliff1Time });
-    expect(await lNori.balanceOf(investor1)).to.equal(0);
-    await expect(lNori.depositFor(investor1, grant.vestCliff1Amount.sub(1)));
-    expect(await lNori.vestedBalanceOf(investor1)).to.equal(
-      grant.vestCliff1Amount
-    );
-    expect(await lNori.unlockedBalanceOf(investor1)).to.equal(
-      grant.unlockCliff1Amount
-    );
-    await expect(
-      lNori.connect(addr1Signer).withdrawTo(investor1, grant.vestCliff1Amount)
-    ).to.be.revertedWith('lNORI: insufficient balance');
   });
 
   it('Should unlock smoothly after cliff2', async () => {
@@ -808,49 +727,6 @@ describe('Unlocking', () => {
     );
     expect(await lNori.unlockedBalanceOf(employee)).to.equal(
       grant.unlockCliff1Amount
-    );
-  });
-
-  it('Should handle a linear unlock with funding lagging vesting', async () => {
-    const { lNori, grantAmount, grant, hre } = await setupWithGrant(
-      linearParameters,
-      false
-    );
-    await advanceTime({ hre, timestamp: grant.startTime + DELTA });
-
-    expect(await lNori.balanceOf(grant.recipient)).to.equal(0);
-    expect(await lNori.vestedBalanceOf(grant.recipient)).to.be.gt(0);
-    expect(await lNori.unlockedBalanceOf(grant.recipient)).to.be.gt(0);
-
-    expect(await lNori.depositFor(grant.recipient, GRANT_AMOUNT.div(2))); // todo expect used without assertion
-    expect(await lNori.balanceOf(grant.recipient)).to.equal(grantAmount.div(2));
-    expect(await lNori.vestedBalanceOf(grant.recipient)).to.be.gt(0);
-    expect(await lNori.unlockedBalanceOf(grant.recipient)).to.be.gt(0);
-
-    await lNori.depositFor(grant.recipient, grantAmount.div(2));
-    await advanceTime({ hre, timestamp: grant.startTime + END_OFFSET / 4 });
-    expect(await lNori.balanceOf(grant.recipient)).to.equal(grantAmount);
-    expect(await lNori.vestedBalanceOf(grant.recipient)).to.equal(
-      grantAmount.div(4)
-    );
-    expect(await lNori.unlockedBalanceOf(grant.recipient)).to.equal(
-      grantAmount.div(4)
-    );
-
-    await advanceTime({ hre, timestamp: grant.startTime + END_OFFSET / 2 });
-    expect(await lNori.balanceOf(grant.recipient)).to.equal(grantAmount);
-    expect(await lNori.vestedBalanceOf(grant.recipient)).to.equal(
-      grantAmount.div(2)
-    );
-    expect(await lNori.unlockedBalanceOf(grant.recipient)).to.equal(
-      grantAmount.div(2)
-    );
-
-    await advanceTime({ hre, timestamp: grant.startTime + END_OFFSET });
-    expect(await lNori.balanceOf(grant.recipient)).to.equal(grantAmount);
-    expect(await lNori.vestedBalanceOf(grant.recipient)).to.equal(grantAmount);
-    expect(await lNori.unlockedBalanceOf(grant.recipient)).to.equal(
-      grantAmount
     );
   });
 });

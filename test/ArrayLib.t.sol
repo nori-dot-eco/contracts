@@ -100,12 +100,20 @@ contract UInt256ArrayLib_sum is Global {
     assertEq(this.standardImplementation(), this.libraryImplementation());
   }
 
-  function test_reference() external view {
-    this.standardImplementation();
+  function test_library_overflow() external {
+    uint256[] memory vals = new uint256[](2);
+    vals[0] = type(uint256).max;
+    vals[1] = 1;
+    vm.expectRevert();
+    vals.sum();
   }
 
   function test_library() external view {
     this.libraryImplementation();
+  }
+
+  function test_reference() external view {
+    this.standardImplementation();
   }
 
   function standardImplementation() external pure returns (uint256 total) {
