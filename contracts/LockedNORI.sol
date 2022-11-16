@@ -628,15 +628,14 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
     bool isBurning = to == address(0);
     bool operatorIsGrantAdmin = hasRole(TOKEN_GRANTER_ROLE, operator);
     bool operatorIsNotSender = operator != from;
-    bool ownerHasSufficientUnlockedBalance = amount <= unlockedBalanceOf(from);
     bool ownerHasSufficientWrappedToken = amount <= balanceOf(from);
     if (isBurning && operatorIsNotSender && operatorIsGrantAdmin) {
       // Revocation
-      require(balanceOf(from) >= amount, "lNORI: insufficient balance");
+      require(ownerHasSufficientWrappedToken, "lNORI: insufficient balance");
     } else if (!isMinting) {
       // Withdrawal
       require(
-        ownerHasSufficientUnlockedBalance && ownerHasSufficientWrappedToken,
+        ownerHasSufficientWrappedToken && amount <= unlockedBalanceOf(from),
         "lNORI: insufficient balance"
       );
     }
@@ -675,7 +674,7 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
             grant.grantAmount
           ) -
           grant.claimedAmount;
-      } else {
+      https://www.notion.so/0xmacro/Nori-1-Preliminary-Audit-Report-external-b70f6c3e0aa843489a1aeefc2b9f4b9b#032a6002e36448eba91d3643b5abf534} else {
         balance = grant.grantAmount - grant.claimedAmount;
       }
     }
@@ -696,10 +695,10 @@ contract LockedNORI is ERC777PresetPausablePermissioned {
   {
     TokenGrant storage grant = _grants[account];
     uint256 balance = this.balanceOf(account);
-    uint256 vestedBalance = _hasVestingSchedule(account)
-      ? grant.vestingSchedule.availableAmount(atTime)
-      : grant.grantAmount;
     if (grant.exists) {
+      uint256 vestedBalance = _hasVestingSchedule(account)
+        ? grant.vestingSchedule.availableAmount(atTime)
+        : grant.grantAmount;
       balance =
         MathUpgradeable.min(
           MathUpgradeable.min(
