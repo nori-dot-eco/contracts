@@ -988,10 +988,13 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
     keccak256("TransferSingle(address,address,address,uint256,uint256)");
   bytes32 constant REMOVAL_RELEASED_EVENT_SELECTOR =
     keccak256("RemovalReleased(uint256,address,uint256)");
+  bytes32 constant SUPPLIER_REMOVED_EVENT_SELECTOR =
+    keccak256("SupplierRemoved(address,address,address)");
   bytes32[] expectedReleaseEventSelectors = [
     TRANSFER_SINGLE_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR,
     TRANSFER_SINGLE_EVENT_SELECTOR,
+    SUPPLIER_REMOVED_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR,
     TRANSFER_SINGLE_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR
@@ -1057,26 +1060,28 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
   function validateReleaseEvents() private {
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, expectedReleaseEventSelectors.length);
+    uint8 pairCount = 0;
     for (uint256 i = 0; i < entries.length; ++i) {
       assertEq(entries[i].topics[0], expectedReleaseEventSelectors[i]);
-      if (i % 2 == 1) {
+      if (entries[i].topics[0] == REMOVAL_RELEASED_EVENT_SELECTOR) {
         assertEq(entries[i].topics[1], bytes32(_removalIds[0]));
         assertEq(
           entries[i].topics[2],
-          bytes32(uint256(uint160(_expectedOwners[i / 2])))
+          bytes32(uint256(uint160(_expectedOwners[pairCount])))
         );
         assertEq(
           abi.decode(entries[i].data, (uint256)),
-          _expectedReleasedBalances[i / 2]
+          _expectedReleasedBalances[pairCount]
         );
-      } else {
+        pairCount++;
+      } else if (entries[i].topics[0] == TRANSFER_SINGLE_EVENT_SELECTOR) {
         assertEq(
           entries[i].topics[1],
           bytes32(uint256(uint160(address(this))))
         );
         assertEq(
           entries[i].topics[2],
-          bytes32(uint256(uint160(_expectedOwners[i / 2])))
+          bytes32(uint256(uint160(_expectedOwners[pairCount])))
         );
         assertEq(entries[i].topics[3], bytes32(uint256(uint160(address(0)))));
         (uint256 id, uint256 value) = abi.decode(
@@ -1084,7 +1089,20 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
           (uint256, uint256)
         );
         assertEq(id, _removalIds[0]);
-        assertEq(value, _expectedReleasedBalances[i / 2]);
+        assertEq(value, _expectedReleasedBalances[pairCount]);
+      } else if (entries[i].topics[0] == SUPPLIER_REMOVED_EVENT_SELECTOR) {
+        assertEq(
+          entries[i].topics[1],
+          bytes32(uint256(uint160(_namedAccounts.supplier)))
+        );
+        assertEq(
+          entries[i].topics[2],
+          bytes32(uint256(uint160(_namedAccounts.supplier)))
+        );
+        assertEq(
+          entries[i].topics[3],
+          bytes32(uint256(uint160(_namedAccounts.supplier)))
+        );
       }
     }
   }
