@@ -1,9 +1,11 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
+
+import { BigNumber, ethers } from 'ethers';
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
-import { BigNumber, ethers } from 'ethers';
 import chalk from 'chalk';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
+import type { TransactionReceipt } from '@ethersproject/providers';
 
 import { parseTransactionLogs } from '@/utils/events';
 import { getRemoval } from '@/utils/contracts';
@@ -19,6 +21,32 @@ type ParsedMigrateRemovalsTaskOptions = RequiredKeys<
   MigrateRemovalsTaskOptions,
   'file'
 >;
+
+interface Removal {
+  idVersion: 0;
+  methodology: 1;
+  methodologyVersion: 0;
+  country: 'US';
+  subdivision: `${string}${string}`;
+  supplierAddress: `0x${string}`;
+  subIdentifier: number;
+  vintage: number;
+  parcelKey: string;
+  removalKey: string;
+}
+
+interface Project {
+  amounts: number[];
+  removals: Removal[];
+  projectId: number;
+  scheduleStartTime: number;
+  holdbackPercentage: number;
+  txReceipt: TransactionReceipt;
+  tokenIds: string[];
+  supplierAddress: `0X${string}`;
+}
+
+type Projects = Project[];
 
 const asciiStringToHexString = (ascii: string): string => {
   return `0x${[...Array.from({ length: ascii.length }).keys()]
@@ -46,7 +74,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         );
       }
 
-      const jsonData = readJsonSync(file);
+      const jsonData: Projects = readJsonSync(file);
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
@@ -91,18 +119,18 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       // submit all mintBatch transactions serially to avoid nonce collision!
       let projectIndex = 1;
       for (const project of jsonData) {
-        const amounts = project.amounts.map((amount: string) =>
-          ethers.utils
-            .parseUnits(BigNumber.from(amount).div(1_000_000).toString())
-            .toString()
+        const amounts = project.amounts.map((amount) =>
+          ethers.utils.parseUnits(
+            BigNumber.from(amount).div(1_000_000).toString()
+          )
         );
 
-        const removals = project.removals.map((removal: any, index) => {
+        const removals = project.removals.map((removal) => {
           const removalData = {
-            idVersion: Number(removal.idVersion),
-            methodology: Number(removal.methodology),
-            methodologyVersion: Number(removal.methodologyVersion),
-            vintage: Number(removal.vintage),
+            idVersion: removal.idVersion,
+            methodology: removal.methodology,
+            methodologyVersion: removal.methodologyVersion,
+            vintage: removal.vintage,
             country: asciiStringToHexString(removal.country),
             subdivision: asciiStringToHexString(removal.subdivision),
             supplierAddress: project.supplierAddress, // TODO need real supplier address on the project
