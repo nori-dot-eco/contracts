@@ -6,7 +6,7 @@ import { ethers } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 
 import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
-import { Zero } from '../constants/units';
+import { Zero } from '@/constants/units';
 
 import { getRemoval } from '@/utils/contracts';
 

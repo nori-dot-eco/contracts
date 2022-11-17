@@ -1,7 +1,6 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
-import { sign } from 'crypto';
 
-import { Contract, BigNumber, ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
@@ -44,6 +43,7 @@ interface Project {
   holdbackPercentage: number;
   txReceipt: TransactionReceipt;
   tokenIds: string[];
+  supplierAddress: `0X${string}`;
 }
 
 type Projects = Project[];
@@ -129,13 +129,11 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           const removalData = {
             idVersion: removal.idVersion,
             methodology: removal.methodology,
-            // methodologyVersion: Number(removal.methodologyVersion),
-            methodologyVersion: 0, // TODO is this ever going to be different across legacy removals? depends on methodology version work
+            methodologyVersion: removal.methodologyVersion,
             vintage: removal.vintage,
             country: asciiStringToHexString(removal.country),
             subdivision: asciiStringToHexString(removal.subdivision),
-            supplierAddress: '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667', // TODO need real supplier address on the project
-            // subIdentifier: (project.projectId % 1000) + index,
+            supplierAddress: project.supplierAddress, // TODO need real supplier address on the project
             subIdentifier: removal.subIdentifier,
           };
           return removalData;

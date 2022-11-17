@@ -1,9 +1,35 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 
-import "../LockedNORI.sol";
+import "../deprecated/LockedNORIV1.sol";
 
-contract LockedNORIHelper {
+contract LockedNORIV1Helper {
+  function createFixtureGrant(
+    address lnori,
+    uint256 amount,
+    address recipient,
+    uint256 startTime,
+    uint256 vestEndTime,
+    uint256 unlockEndTime,
+    uint256 cliff1Time,
+    uint256 vestCliff1Amount,
+    uint256 unlockCliff1Amount
+  ) public {
+    LockedNORIV1(lnori).createGrant(
+      amount,
+      recipient,
+      startTime,
+      vestEndTime,
+      unlockEndTime,
+      cliff1Time,
+      cliff1Time,
+      vestCliff1Amount,
+      0,
+      unlockCliff1Amount,
+      0
+    );
+  }
+
   function encodeGrantCreationParams(
     address recipient,
     uint256 startTime,
@@ -34,50 +60,28 @@ contract LockedNORIHelper {
   function createSimpleGrant(
     address lnori,
     uint256 amount,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s,
     address recipient,
     uint256 fromTime
   ) public {
-    uint256[] memory amounts = new uint256[](1);
-    amounts[0] = amount;
-    bytes[] memory data = new bytes[](1);
-    data[0] = this.encodeGrantCreationParams(
+    createFixtureGrant(
+      lnori,
+      amount,
       recipient,
       fromTime,
       fromTime + 365 days,
       fromTime + 365 days,
       fromTime,
-      fromTime,
-      0,
-      0,
       0,
       0
     );
-    LockedNORI(lnori).batchCreateGrants(amounts, data, deadline, v, r, s);
   }
 
   function createSimpleGrantFromNow(
     address lnori,
     uint256 amount,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s,
     address recipient
   ) public {
-    createSimpleGrant(
-      lnori,
-      amount,
-      deadline,
-      v,
-      r,
-      s,
-      recipient,
-      block.timestamp + 1 hours
-    );
+    createSimpleGrant(lnori, amount, recipient, block.timestamp + 1 hours);
   }
 
   // Encodes creation data for a grant with no cliff over 365 days from `fromTime`
@@ -102,26 +106,27 @@ contract LockedNORIHelper {
 
   function assertSimplePastGrant(
     address lnori,
-    LockedNORI.TokenGrantDetail calldata expectedGrantDetails
+    LockedNORIV1.TokenGrantDetail calldata expectedGrantDetails
   ) public view {
-    LockedNORI.TokenGrantDetail memory actualGrantDetails = LockedNORI(lnori)
-      .getGrant(expectedGrantDetails.recipient);
+    LockedNORIV1.TokenGrantDetail memory actualGrantDetails = LockedNORIV1(
+      lnori
+    ).getGrant(expectedGrantDetails.recipient);
     assertEq(actualGrantDetails, expectedGrantDetails);
   }
 
-  event logNamedTokenGrant(string, LockedNORI.TokenGrantDetail grant);
+  event logNamedTokenGrant(string, LockedNORIV1.TokenGrantDetail grant);
 
   function get(address lnori, address recipient)
     public
     view
-    returns (LockedNORI.TokenGrantDetail memory)
+    returns (LockedNORIV1.TokenGrantDetail memory)
   {
-    return LockedNORI(lnori).getGrant(recipient);
+    return LockedNORIV1(lnori).getGrant(recipient);
   }
 
   function assertEq(
-    LockedNORI.TokenGrantDetail memory a,
-    LockedNORI.TokenGrantDetail memory b
+    LockedNORIV1.TokenGrantDetail memory a,
+    LockedNORIV1.TokenGrantDetail memory b
   ) internal pure {
     if (
       a.grantAmount != b.grantAmount ||

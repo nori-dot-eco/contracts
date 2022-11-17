@@ -11,6 +11,129 @@ using AddressArrayLib for address[];
 // todo fuzz RemovalIdLib
 // todo test that checks Removal.consign can happen using multi call with mix-match project IDs
 
+contract Removal_migrate_revertsIfRemovalBalanceSumDifferentFromCertificateAmount is
+  UpgradeableMarket
+{
+  /*//////////////////////////////////////////////////////////////
+                                INPUTS
+    //////////////////////////////////////////////////////////////*/
+  uint256 constant NUMBER_OF_SUPPLIERS = 2;
+  uint256 constant AMOUNT_PER_REMOVAL = 1 ether; // cannot be changed as it is not a parameter of `_seedRemovals`
+  uint32 constant NUMBER_OF_REMOVALS_PER_SUPPLIER = 5;
+  uint256 constant EXPECTED_CERTIFICATE_ID = 0;
+  uint256 constant NUMBER_OF_REMOVALS =
+    NUMBER_OF_SUPPLIERS * NUMBER_OF_REMOVALS_PER_SUPPLIER;
+  uint256 constant CERTIFICATE_AMOUNT = NUMBER_OF_REMOVALS * 1.5 ether; // != sum of removal balances!
+
+  /*//////////////////////////////////////////////////////////////
+                DYNAMIC ARGUMENTS (BUILT FROM INPUTS)
+    //////////////////////////////////////////////////////////////*/
+  uint256[] amountsForAllSuppliers;
+  uint256[] idsForAllSuppliers;
+  uint256[] amountsPerSupplier;
+  address[] suppliers;
+
+  function setUp() external {
+    // todo reuse setup in Removal_migrate_gasLimit
+    _removal.grantRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: _namedAccounts.admin
+    });
+    amountsForAllSuppliers = new uint256[](NUMBER_OF_REMOVALS).fill(
+      AMOUNT_PER_REMOVAL
+    );
+    idsForAllSuppliers = new uint256[](NUMBER_OF_REMOVALS);
+    suppliers = new address[](NUMBER_OF_SUPPLIERS);
+    for (uint256 i = 0; i < NUMBER_OF_SUPPLIERS; ++i) {
+      suppliers[i] = account({
+        name: string.concat("legacySupplier", StringsUpgradeable.toString(i))
+      });
+    }
+    uint256 index = 0;
+    for (uint256 i = 0; i < suppliers.length; ++i) {
+      uint256[] memory idsForSupplier = _seedRemovals({
+        consignor: _namedAccounts.admin,
+        count: NUMBER_OF_REMOVALS_PER_SUPPLIER,
+        supplier: suppliers[i],
+        uniqueVintages: true
+      });
+      for (uint256 j = 0; j < idsForSupplier.length; ++j) {
+        idsForAllSuppliers[index] = idsForSupplier[j];
+        ++index;
+      }
+    }
+    vm.startPrank(_namedAccounts.admin);
+  }
+
+  function test() external {
+    vm.expectRevert("Incorrect supply allocation");
+    _removal.migrate({
+      ids: idsForAllSuppliers,
+      amounts: amountsForAllSuppliers,
+      certificateRecipient: _namedAccounts.buyer,
+      certificateAmount: CERTIFICATE_AMOUNT
+    });
+  }
+}
+
+contract Removal_consign_revertsForSoldRemovals is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function test() external {
+    uint256 amount = 0.5 ether;
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: false
+    });
+    assertEq(_removal.getMarketBalance(), 0);
+    _removal.consign({
+      from: _namedAccounts.supplier,
+      id: _removalIds[0],
+      amount: amount
+    });
+    assertEq(_removal.getMarketBalance(), amount);
+    uint256 ownerPrivateKey = 0xA11CE;
+    address owner = vm.addr(ownerPrivateKey);
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(amount);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(checkoutTotal));
+    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _bpNori
+    );
+    vm.prank(owner);
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    assertEq(_removal.getMarketBalance(), 0);
+
+    // sold Removal is now locked in a Certificate
+    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), amount);
+
+    // should not be able to re-list the sold Removal
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        RemovalAlreadySoldOrConsigned.selector,
+        _removalIds[0]
+      )
+    );
+    _removal.consign({
+      from: address(_certificate),
+      id: _removalIds[0],
+      amount: amount
+    });
+  }
+}
+
 contract Removal_migrate is UpgradeableMarket {
   /*//////////////////////////////////////////////////////////////
                                 INPUTS
@@ -312,6 +435,40 @@ contract Removal_mintBatch_zero_amount_removal_to_market_reverts is
   }
 }
 
+contract Removal_mintBatch_revertsInvalidHoldbackPercentage is
+  UpgradeableMarket
+{
+  function test() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
+    });
+    uint256 removalId = RemovalIdLib.createRemovalId(ids[0]);
+    uint8 holdbackPercentage = 110;
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        InvalidHoldbackPercentage.selector,
+        holdbackPercentage
+      )
+    );
+    _removal.mintBatch({
+      to: address(_market),
+      amounts: new uint256[](1).fill(0 ether),
+      removals: ids,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: holdbackPercentage
+    });
+  }
+}
+
 contract Removal_addBalance is UpgradeableMarket {
   uint256[] _removalIds;
 
@@ -540,6 +697,44 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
 
   function test() external {
     assertEq(_holdbackPercentages, _retrievedHoldbackPercentages);
+  }
+}
+
+contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
+  function test() external {
+    _removal.mintBatch({
+      to: _marketAddress,
+      amounts: _asSingletonUintArray(1),
+      removals: _REMOVAL_FIXTURES,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: 50
+    });
+    assertEq(
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      0
+    );
+    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 1);
+
+    // Expect the Removal to be listed on the Market
+    assertEq(
+      _market.getRemovalIdsForSupplier(_namedAccounts.supplier).length,
+      1
+    );
+
+    _removal.release(REMOVAL_ID_FIXTURE, 1);
+    assertEq(
+      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      0
+    );
+    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 0);
+
+    // Expect the Removal to be pulled from the Market
+    assertEq(
+      _market.getRemovalIdsForSupplier(_namedAccounts.supplier).length,
+      0,
+      "Listing not removed from Market"
+    );
   }
 }
 
@@ -793,10 +988,13 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
     keccak256("TransferSingle(address,address,address,uint256,uint256)");
   bytes32 constant REMOVAL_RELEASED_EVENT_SELECTOR =
     keccak256("RemovalReleased(uint256,address,uint256)");
+  bytes32 constant SUPPLIER_REMOVED_EVENT_SELECTOR =
+    keccak256("SupplierRemoved(address,address,address)");
   bytes32[] expectedReleaseEventSelectors = [
     TRANSFER_SINGLE_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR,
     TRANSFER_SINGLE_EVENT_SELECTOR,
+    SUPPLIER_REMOVED_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR,
     TRANSFER_SINGLE_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR
@@ -862,26 +1060,28 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
   function validateReleaseEvents() private {
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, expectedReleaseEventSelectors.length);
+    uint8 pairCount = 0;
     for (uint256 i = 0; i < entries.length; ++i) {
       assertEq(entries[i].topics[0], expectedReleaseEventSelectors[i]);
-      if (i % 2 == 1) {
+      if (entries[i].topics[0] == REMOVAL_RELEASED_EVENT_SELECTOR) {
         assertEq(entries[i].topics[1], bytes32(_removalIds[0]));
         assertEq(
           entries[i].topics[2],
-          bytes32(uint256(uint160(_expectedOwners[i / 2])))
+          bytes32(uint256(uint160(_expectedOwners[pairCount])))
         );
         assertEq(
           abi.decode(entries[i].data, (uint256)),
-          _expectedReleasedBalances[i / 2]
+          _expectedReleasedBalances[pairCount]
         );
-      } else {
+        pairCount++;
+      } else if (entries[i].topics[0] == TRANSFER_SINGLE_EVENT_SELECTOR) {
         assertEq(
           entries[i].topics[1],
           bytes32(uint256(uint160(address(this))))
         );
         assertEq(
           entries[i].topics[2],
-          bytes32(uint256(uint160(_expectedOwners[i / 2])))
+          bytes32(uint256(uint160(_expectedOwners[pairCount])))
         );
         assertEq(entries[i].topics[3], bytes32(uint256(uint160(address(0)))));
         (uint256 id, uint256 value) = abi.decode(
@@ -889,7 +1089,20 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
           (uint256, uint256)
         );
         assertEq(id, _removalIds[0]);
-        assertEq(value, _expectedReleasedBalances[i / 2]);
+        assertEq(value, _expectedReleasedBalances[pairCount]);
+      } else if (entries[i].topics[0] == SUPPLIER_REMOVED_EVENT_SELECTOR) {
+        assertEq(
+          entries[i].topics[1],
+          bytes32(uint256(uint160(_namedAccounts.supplier)))
+        );
+        assertEq(
+          entries[i].topics[2],
+          bytes32(uint256(uint160(_namedAccounts.supplier)))
+        );
+        assertEq(
+          entries[i].topics[3],
+          bytes32(uint256(uint160(_namedAccounts.supplier)))
+        );
       }
     }
   }

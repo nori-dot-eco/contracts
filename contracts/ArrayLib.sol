@@ -11,7 +11,7 @@ pragma solidity =0.8.17;
 library UInt256ArrayLib {
   /**
    * @notice Fill an array.
-   * @dev Sums all the elements of a `uint256[]` array.
+   * @dev Fills all of the elements of a `uint256[]` with the specified `uint256` value.
    *
    * ##### Equivalence:
    *
@@ -22,7 +22,7 @@ library UInt256ArrayLib {
    * ##### Example usage:
    *
    * ```solidity
-   * new uint256[](3).fill(1).sum(); // returns: [1, 1, 1]
+   * new uint256[](3).fill(1); // returns: [1, 1, 1]
    * ```
    * -
    * @param from The array to fill.
@@ -77,7 +77,11 @@ library UInt256ArrayLib {
       } lt(element, end) {
         element := add(element, 32)
       } {
+        let initialTotal := total
         total := add(total, mload(element))
+        if lt(total, initialTotal) {
+          revert(0, 0)
+        }
       }
     }
   }
