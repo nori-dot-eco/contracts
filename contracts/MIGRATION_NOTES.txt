@@ -1,0 +1,10 @@
+
+Deploy to Mumbai:
+
+make sure environment variables are set to:
+- use production network and correct compiler settings
+- use the intended wallet (fireblocks or staging wallet)
+
+Deploy using:
+`hardhat --network mumbai deploy --tags market`
+
