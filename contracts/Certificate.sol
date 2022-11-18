@@ -178,7 +178,7 @@ contract Certificate is
     uint256[] calldata removalIds,
     uint256[] calldata removalAmounts,
     bytes calldata data
-  ) external whenNotPaused returns (bytes4) {
+  ) external returns (bytes4) {
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
