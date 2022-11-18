@@ -823,7 +823,7 @@ contract Market is
     uint8 holdbackPercentage;
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
-    for (uint256 i = 0; i < countOfRemovalsAllocated; i++) {
+    for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
       unrestrictedSupplierFee = removalAmounts[i];
       holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
       if (holdbackPercentage > 0) {
@@ -977,10 +977,10 @@ contract Market is
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
       account: address(this)
     });
-    uint256[] memory ids = new uint256[](countOfListedRemovals);
-    uint256[] memory amounts = new uint256[](countOfListedRemovals);
-    address[] memory suppliers = new address[](countOfListedRemovals);
-    uint256 countOfRemovalsAllocated = 0;
+    ids = new uint256[](countOfListedRemovals);
+    amounts = new uint256[](countOfListedRemovals);
+    suppliers = new address[](countOfListedRemovals);
+    countOfRemovalsAllocated = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = _listedSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
