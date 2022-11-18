@@ -90,22 +90,22 @@
   },
   "mumbai": {
     "BridgedPolygonNORI": {
-      "proxyAddress": "0xB3fe45C08137dD6adACb2918D899e0C0dBB036C8"
+      "proxyAddress": "0x248ED760EDc9c7F6D2e381Bce74dfA40e0C62826"
     },
     "Removal": {
-      "proxyAddress": "0x75EF951F415418D9BB6800924A4b37D8ECC9bC46"
+      "proxyAddress": "0xBE7bd9f8A3939581B9AB9b2D2B82239577632e87"
     },
     "Certificate": {
-      "proxyAddress": "0x96107D037594Cca4E7ce68f87346957BD726b3EE"
+      "proxyAddress": "0x6079d507AA53BdF8090307cBBb448A30B746C8b1"
     },
     "Market": {
-      "proxyAddress": "0x61A9d9A34Dbc3a1accD55D684A2bF0e0D394201f"
+      "proxyAddress": "0xB93DB3fc550343235Bf595FCF2b6786017f82f47"
     },
     "LockedNORI": {
       "proxyAddress": "0xCdcB43CB7B668F0C1cA04FE4b60DA7F8C62Be393"
     },
     "RestrictedNORI": {
-      "proxyAddress": "0x897e46a477305b86F96b86671AD514E090D61A62"
+      "proxyAddress": "0x7949e11B9e489E76EabDD50c5CE0e402286012E7"
     }
   },
   "goerli": {

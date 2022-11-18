@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber, ethers, FixedNumber } from 'ethers';
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
@@ -121,7 +121,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       for (const project of jsonData) {
         const amounts = project.amounts.map((amount) =>
           ethers.utils.parseUnits(
-            BigNumber.from(amount).div(1_000_000).toString()
+            BigNumber.from(FixedNumber.from(amount)).div(1_000_000).toString()
           )
         );
 
@@ -133,7 +133,8 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             vintage: removal.vintage,
             country: asciiStringToHexString(removal.country),
             subdivision: asciiStringToHexString(removal.subdivision),
-            supplierAddress: project.supplierAddress, // TODO need real supplier address on the project
+            // supplierAddress: project.supplierAddress, // TODO need real supplier address on the project
+            supplierAddress: '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667',
             subIdentifier: removal.subIdentifier,
           };
           return removalData;
@@ -145,7 +146,6 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             // make sure we're using the right gas price
             const gasPrice = await signer.getGasPrice();
             // hre.log(`Gas price: ${gasPrice.toString()}`);
-
             pendingTx = await removalContract.mintBatch(
               signerAddress, // mint to the consigner
               amounts,
