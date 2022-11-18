@@ -1332,30 +1332,6 @@ contract Removal_safeTransferFrom_reverts_ForbiddenTransfer is
   }
 }
 
-contract Removal_safeTransferFrom_reverts_when_paused is UpgradeableMarket {
-  uint256[] private _removalIds;
-
-  function setUp() external {
-    _removalIds = _seedRemovals({
-      to: _namedAccounts.supplier,
-      count: 1,
-      list: false
-    });
-    _removal.pause();
-  }
-
-  function test() external {
-    vm.expectRevert("Pausable: paused");
-    _removal.safeTransferFrom({
-      from: _namedAccounts.supplier,
-      to: address(_market),
-      id: _removalIds[0],
-      amount: 1 ether,
-      data: ""
-    });
-  }
-}
-
 contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
   UpgradeableMarket
 {

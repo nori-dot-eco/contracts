@@ -260,7 +260,7 @@ contract Removal is
     uint256 projectId,
     uint256 scheduleStartTime,
     uint8 holdbackPercentage
-  ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
+  ) external onlyRole(CONSIGNOR_ROLE) {
     uint256[] memory ids = _createRemovals({
       removals: removals,
       projectId: projectId
@@ -302,7 +302,7 @@ contract Removal is
     address to,
     uint256[] calldata amounts,
     uint256[] calldata ids
-  ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
+  ) external onlyRole(CONSIGNOR_ROLE) {
     for (uint256 i = 0; i < ids.length; ++i) {
       if (_removalIdToProjectId[ids[i]] == 0) {
         revert RemovalNotYetMinted({tokenId: ids[i]});
@@ -323,7 +323,7 @@ contract Removal is
     address from,
     uint256 id,
     uint256 amount
-  ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
+  ) external onlyRole(CONSIGNOR_ROLE) {
     if (from == address(_certificate) || from == address(_market)) {
       revert RemovalAlreadySoldOrConsigned({tokenId: id});
     }
@@ -369,7 +369,7 @@ contract Removal is
     uint256[] calldata amounts,
     address certificateRecipient,
     uint256 certificateAmount
-  ) external whenNotPaused onlyRole(CONSIGNOR_ROLE) {
+  ) external onlyRole(CONSIGNOR_ROLE) {
     emit Migrate({
       certificateRecipient: certificateRecipient,
       certificateAmount: certificateAmount,
@@ -409,7 +409,6 @@ contract Removal is
    */
   function release(uint256 id, uint256 amount)
     external
-    whenNotPaused
     onlyRole(RELEASER_ROLE)
   {
     uint256 amountReleased = 0;
@@ -557,7 +556,7 @@ contract Removal is
     uint256 id,
     uint256 amount,
     bytes memory data
-  ) public override whenNotPaused {
+  ) public override {
     if (_msgSender() != address(_market)) {
       revert ForbiddenTransfer();
     }
@@ -592,7 +591,7 @@ contract Removal is
     uint256[] memory ids,
     uint256[] memory amounts,
     bytes memory data
-  ) public override whenNotPaused {
+  ) public override {
     if (_msgSender() != address(_market)) {
       revert ForbiddenTransfer();
     }

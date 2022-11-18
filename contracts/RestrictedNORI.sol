@@ -303,7 +303,7 @@ contract RestrictedNORI is
     uint256 projectId,
     uint256 amount,
     address toAccount
-  ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
+  ) external onlyRole(TOKEN_REVOKER_ROLE) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     if (!schedule.doesExist()) {
       revert NonexistentSchedule({scheduleId: projectId});
