@@ -278,7 +278,7 @@ contract RestrictedNORI is
    * 1. To revoke a specific number of tokens as specified by the `amount` parameter.
    * 2. To revoke all remaining revokable tokens in a schedule by specifying 0 as the `amount`.
    *
-   * Transfers unreleased tokens in the removal's schedule and reduces the total supply
+   * Transfers unreleased tokens in the removal's project's schedule and reduces the total supply
    * of that token. Only unreleased tokens can be revoked from a schedule and no change is made to
    * balances that have released but not yet been claimed.
    * If a token has multiple owners, balances are burned proportionally to ownership percentage,
@@ -306,8 +306,8 @@ contract RestrictedNORI is
     uint256 removalId,
     uint256 amount,
     address toAccount
-  ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
-    uint256 projectId = _removal.getProjectId(removalId);
+  ) external onlyRole(TOKEN_REVOKER_ROLE) {
+    uint256 projectId = _removal.getProjectId({id: removalId});
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     if (!schedule.doesExist()) {
       revert NonexistentSchedule({scheduleId: projectId});
