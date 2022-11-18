@@ -81,7 +81,20 @@ function slice(uint256[] arr, uint256 from, uint256 to) internal pure returns (u
 
 Slice an array.
 
-<i>Slice an array `arr` at index `from` to an index `to`.</i>
+<i>Slice an array `arr` at index `from` to an index `to` (non-inclusively).
+
+##### Equivalence:
+
+```solidity
+for (uint256 i = from; i < to; ++i) new[i] = original[from + i];
+```
+
+##### Example usage:
+
+```solidity
+new uint256[](100).fill(1).slice(0, 50); // returns: [:50]
+```
+-</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -96,7 +109,7 @@ Slice an array.
 ### copy
 
 ```solidity
-function copy(uint256[] from, uint256[] to) internal pure returns (uint256[])
+function copy(uint256[] to, uint256[] from) internal pure returns (uint256[])
 ```
 
 Copy an array.
@@ -105,8 +118,8 @@ Copy an array.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| from | uint256[] | The array to copy from. |
 | to | uint256[] | The array to copy to. |
+| from | uint256[] | The array to copy from. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
