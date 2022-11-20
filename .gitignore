@@ -113,3 +113,9 @@ broadcast
 
 # interfaces
 contracts/interfaces/
+
+# migration
+migrated-removal.json
+migrated-certificates.json
+prepared-removals-short-*
+prepared-certificates-short*
