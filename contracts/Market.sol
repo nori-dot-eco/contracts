@@ -558,7 +558,14 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _prepareSwapFromSupplier(amount, supplier, deadline, v, r, s);
+    ) = _prepareSwapFromSupplier(
+        certificateAmount,
+        supplier,
+        deadline,
+        v,
+        r,
+        s
+      );
     _fulfillOrder({
       certificateAmount: certificateAmount,
       operator: _msgSender(),
