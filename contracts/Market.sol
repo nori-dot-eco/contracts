@@ -663,7 +663,7 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _prepareSwapFromSupplier(amount, supplier, deadline, v, r, s);
-    _fulfillOrder({
+    _fulfillOrderWithoutFee({
       certificateAmount: amount,
       operator: _msgSender(),
       recipient: recipient,
