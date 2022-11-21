@@ -160,10 +160,8 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               .flatMap((log) => log.args.certificateId.toNumber())[0];
             if (txReceipt.status !== 1) {
               // log an error that this transaction hash failed and we are exiting early
-              hre.log(
-                logger.error(
-                  `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
-                )
+              logger.error(
+                `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
               );
               return;
             }

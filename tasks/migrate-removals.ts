@@ -133,8 +133,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             vintage: removal.vintage,
             country: asciiStringToHexString(removal.country),
             subdivision: asciiStringToHexString(removal.subdivision),
-            // supplierAddress: project.supplierAddress, // TODO need real supplier address on the project
-            supplierAddress: '0x9A232b2f5FbBf857d153Af8B85c16CBDB4Ffb667',
+            supplierAddress: project.supplierAddress, // TODO need real supplier address on the project
             subIdentifier: removal.subIdentifier,
           };
           return removalData;
