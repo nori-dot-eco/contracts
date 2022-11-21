@@ -500,30 +500,12 @@ contract Market is
   ) external whenNotPaused {
     uint256 certificateAmount = this
       .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
-    uint256 availableSupply = _removal.getMarketBalance();
-    _validateSupply({
-      certificateAmount: certificateAmount,
-      availableSupply: availableSupply
-    });
-    _validatePrioritySupply({
-      certificateAmount: certificateAmount,
-      availableSupply: availableSupply
-    });
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _allocateSupply(certificateAmount);
-    _bridgedPolygonNORI.permit({
-      owner: _msgSender(),
-      spender: address(this),
-      value: amount,
-      deadline: deadline,
-      v: v,
-      r: r,
-      s: s
-    });
+    ) = _prepareSwap(certificateAmount, deadline, v, r, s);
     _fulfillOrder({
       certificateAmount: certificateAmount,
       operator: _msgSender(),
@@ -571,32 +553,111 @@ contract Market is
   ) external whenNotPaused {
     uint256 certificateAmount = this
       .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
-    _validatePrioritySupply({
-      certificateAmount: certificateAmount,
-      availableSupply: _removal.getMarketBalance()
-    });
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
-      uint256[] memory amounts
-    ) = _allocateSupplySingleSupplier({
-        certificateAmount: certificateAmount,
-        supplier: supplier
-      });
-    address[] memory suppliers = new address[](countOfRemovalsAllocated).fill({
-      val: supplier
-    });
-    _bridgedPolygonNORI.permit({
-      owner: _msgSender(),
-      spender: address(this),
-      value: amount,
-      deadline: deadline,
-      v: v,
-      r: r,
-      s: s
-    });
+      uint256[] memory amounts,
+      address[] memory suppliers
+    ) = _prepareSwapFromSupplier(amount, supplier, deadline, v, r, s);
     _fulfillOrder({
       certificateAmount: certificateAmount,
+      operator: _msgSender(),
+      recipient: recipient,
+      countOfRemovalsAllocated: countOfRemovalsAllocated,
+      ids: ids,
+      amounts: amounts,
+      suppliers: suppliers
+    });
+  }
+
+  /**
+   * @notice Exchange bpNORI tokens for an ERC721 certificate by transferring ownership of the removals to the
+   * certificate, without charging a transaction fee.
+   * @dev See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
+   * The message sender must present a valid permit to this contract to temporarily authorize this market
+   * to transfer the sender's bpNORI to complete the purchase. A certificate is minted in the Certificate contract
+   * to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
+   * to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
+   * to Nori Inc. as a market operator fee.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+   * @param recipient The address to which the certificate will be issued.
+   * @param amount The total purchase amount in bpNORI. This is the total number of removals being purchased.
+   * @param deadline The EIP2612 permit deadline in Unix time.
+   * @param v The recovery identifier for the permit's secp256k1 signature.
+   * @param r The r value for the permit's secp256k1 signature.
+   * @param s The s value for the permit's secp256k1 signature.
+   */
+  function swapWithoutFee(
+    address recipient,
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    ) = _prepareSwap(amount, deadline, v, r, s);
+    _fulfillOrderWithoutFee({
+      certificateAmount: amount,
+      operator: _msgSender(),
+      recipient: recipient,
+      countOfRemovalsAllocated: countOfRemovalsAllocated,
+      ids: ids,
+      amounts: amounts,
+      suppliers: suppliers
+    });
+  }
+
+  /**
+   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange bpNORI
+   * tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
+   * supplier to that certificate, without charging a transaction fee. If the specified supplier does not have enough
+   * carbon removals for sale to fulfill the order the transaction will revert.
+   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
+   * The message sender must present a valid permit to this contract to temporarily authorize this market
+   * to transfer the sender's bpNORI to complete the purchase. A certificate is issued by the Certificate contract
+   * to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
+   * to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
+   * to Nori Inc. as a market operator fee.
+   *
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+   * @param recipient The address to which the certificate will be issued.
+   * @param amount The total purchase amount in bpNORI. This is the total number of removals being purchased.
+   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
+   * @param deadline The EIP2612 permit deadline in Unix time.
+   * @param v The recovery identifier for the permit's secp256k1 signature
+   * @param r The r value for the permit's secp256k1 signature
+   * @param s The s value for the permit's secp256k1 signature
+   */
+  function swapFromSupplierWithoutFee(
+    address recipient,
+    uint256 amount,
+    address supplier,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    ) = _prepareSwapFromSupplier(amount, supplier, deadline, v, r, s);
+    _fulfillOrder({
+      certificateAmount: amount,
       operator: _msgSender(),
       recipient: recipient,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -854,6 +915,177 @@ contract Market is
         to: _noriFeeWallet,
         amount: this.calculateNoriFee(removalAmounts[i])
       });
+      _bridgedPolygonNORI.transferFrom({
+        from: operator,
+        to: suppliers[i],
+        amount: unrestrictedSupplierFee
+      });
+    }
+    bytes memory data = abi.encode(recipient, certificateAmount);
+    _removal.safeBatchTransferFrom({
+      from: address(this),
+      to: address(_certificate),
+      ids: removalIds,
+      amounts: removalAmounts,
+      data: data
+    });
+  }
+
+  /**
+   * @notice Prepares an order to be fulfilled.
+   * @dev This function is responsible for calculating the certificate amount, validating and allocating the supply,
+   * and permitting the bpNori transfer.
+   * @param certificateAmount The total amount for the certificate.
+   * @param deadline The EIP2612 permit deadline in Unix time.
+   * @param v The recovery identifier for the permit's secp256k1 signature
+   * @param r The r value for the permit's secp256k1 signature
+   * @param s The s value for the permit's secp256k1 signature
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @return ids An array of the removal IDs being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   */
+  function _prepareSwap(
+    uint256 certificateAmount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  )
+    internal
+    returns (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    )
+  {
+    uint256 availableSupply = _removal.getMarketBalance();
+    _validateSupply({
+      certificateAmount: certificateAmount,
+      availableSupply: availableSupply
+    });
+    _validatePrioritySupply({
+      certificateAmount: certificateAmount,
+      availableSupply: availableSupply
+    });
+    (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply(
+      certificateAmount
+    );
+    _bridgedPolygonNORI.permit({
+      owner: _msgSender(),
+      spender: address(this),
+      value: certificateAmount,
+      deadline: deadline,
+      v: v,
+      r: r,
+      s: s
+    });
+    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+  }
+
+  /**
+   * @notice Prepares an order from a specific supplier to be fulfilled.
+   * @dev This function is responsible for calculating the certificate amount, validating and allocating the supply
+   * from a specific supplier, and permitting the bpNori transfer.
+   * @param certificateAmount The total amount for the certificate.
+   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
+   * @param deadline The EIP2612 permit deadline in Unix time.
+   * @param v The recovery identifier for the permit's secp256k1 signature
+   * @param r The r value for the permit's secp256k1 signature
+   * @param s The s value for the permit's secp256k1 signature
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @return ids An array of the removal IDs being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   */
+  function _prepareSwapFromSupplier(
+    uint256 certificateAmount,
+    address supplier,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  )
+    internal
+    returns (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    )
+  {
+    _validatePrioritySupply({
+      certificateAmount: certificateAmount,
+      availableSupply: _removal.getMarketBalance()
+    });
+    (countOfRemovalsAllocated, ids, amounts) = _allocateSupplySingleSupplier({
+      certificateAmount: certificateAmount,
+      supplier: supplier
+    });
+    suppliers = new address[](countOfRemovalsAllocated).fill({val: supplier});
+    _bridgedPolygonNORI.permit({
+      owner: _msgSender(),
+      spender: address(this),
+      value: certificateAmount,
+      deadline: deadline,
+      v: v,
+      r: r,
+      s: s
+    });
+    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+  }
+
+  /**
+   * @notice Fulfill an order without charging the Nori fee.
+   * @dev This function is responsible for paying suppliers, routeing tokens to the RestrictedNORI contract, updating
+   * accounting, and minting the Certificate.
+   * @param certificateAmount The total amount for the certificate.
+   * @param operator The message sender.
+   * @param recipient The recipient of the certificate.
+   * @param countOfRemovalsAllocated The number of distinct removal IDs that are involved in fulfilling this order.
+   * @param ids An array of removal IDs involved in fulfilling this order.
+   * @param amounts An array of amounts being allocated from each corresponding removal token.
+   * @param suppliers An array of suppliers.
+   */
+  function _fulfillOrderWithoutFee(
+    uint256 certificateAmount,
+    address operator,
+    address recipient,
+    uint256 countOfRemovalsAllocated,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    address[] memory suppliers
+  ) internal {
+    uint256[] memory removalIds = ids.slice({
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+    uint256[] memory removalAmounts = amounts.slice({
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+    uint8 holdbackPercentage;
+    uint256 restrictedSupplierFee;
+    uint256 unrestrictedSupplierFee;
+    for (uint256 i = 0; i < countOfRemovalsAllocated; i++) {
+      unrestrictedSupplierFee = removalAmounts[i];
+      holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
+      if (holdbackPercentage > 0) {
+        restrictedSupplierFee =
+          (unrestrictedSupplierFee * holdbackPercentage) /
+          100;
+        unrestrictedSupplierFee -= restrictedSupplierFee;
+        _restrictedNORI.mint({
+          amount: restrictedSupplierFee,
+          removalId: removalIds[i]
+        });
+        _bridgedPolygonNORI.transferFrom({
+          from: operator,
+          to: address(_restrictedNORI),
+          amount: restrictedSupplierFee
+        });
+      }
       _bridgedPolygonNORI.transferFrom({
         from: operator,
         to: suppliers[i],
