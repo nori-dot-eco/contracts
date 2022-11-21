@@ -1458,3 +1458,72 @@ contract Removal_getOwnedTokenIds is UpgradeableMarket {
     }
   }
 }
+
+contract Removal_updateHoldbackPercentage is UpgradeableMarket {
+  event HoldbackPercentageUpdated(uint256 projectId, uint8 holdbackPercentage);
+
+  uint256 projectId = 1234567890;
+  uint8 originalHoldbackPercentage = 50;
+  uint256 removalTokenId;
+
+  function setUp() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    removalTokenId = RemovalIdLib.createRemovalId(ids[0]);
+    _removal.mintBatch({
+      to: address(_market),
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids,
+      projectId: projectId,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: originalHoldbackPercentage
+    });
+  }
+
+  function test() external {
+    uint8 newHoldbackPercentage = 20;
+    assertEq(
+      _removal.getHoldbackPercentage(removalTokenId),
+      originalHoldbackPercentage
+    );
+    vm.expectEmit(true, true, false, false);
+    emit HoldbackPercentageUpdated(removalTokenId, newHoldbackPercentage);
+    _removal.updateHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: newHoldbackPercentage
+    });
+    assertEq(
+      _removal.getHoldbackPercentage(removalTokenId),
+      newHoldbackPercentage
+    );
+  }
+
+  function test_reverts_InvalidHoldbackPercentage() external {
+    uint8 originalHoldbackPercentage = 50;
+    uint8 newHoldbackPercentage = 120;
+
+    assertEq(
+      _removal.getHoldbackPercentage(removalTokenId),
+      originalHoldbackPercentage
+    );
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        InvalidHoldbackPercentage.selector,
+        newHoldbackPercentage
+      )
+    );
+    _removal.updateHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: newHoldbackPercentage
+    });
+  }
+}

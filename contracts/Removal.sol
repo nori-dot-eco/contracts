@@ -156,6 +156,13 @@ contract Removal is
   event ContractAddressesRegistered(IMarket market, ICertificate certificate);
 
   /**
+   * @notice Emitted when the holdback percentage is updated for a project.
+   * @param projectId The ID of the project.
+   * @param holdbackPercentage The new holdback percentage for the project.
+   */
+  event HoldbackPercentageUpdated(uint256 projectId, uint8 holdbackPercentage);
+
+  /**
    * @notice Emitted on releasing a removal from a supplier, the market, or a certificate.
    * @param id The id of the removal that was released.
    * @param fromAddress The address the removal was released from.
@@ -233,6 +240,33 @@ contract Removal is
     emit ContractAddressesRegistered({
       market: market,
       certificate: certificate
+    });
+  }
+
+  /**
+   * @notice Updates the holdback percentage value for a project.
+   * @dev Emits a `HoldbackPercentageUpdated` event.
+   * ##### Requirements:
+   *
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
+   * - Can only be used when this contract is not paused.
+   * @param projectId The id of the project for which to update the holdback percentage.
+   * @param holdbackPercentage The new holdback percentage.
+   */
+  function updateHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage)
+    external
+    whenNotPaused
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    if (holdbackPercentage > 100) {
+      revert InvalidHoldbackPercentage({
+        holdbackPercentage: holdbackPercentage
+      });
+    }
+    _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
+    emit HoldbackPercentageUpdated({
+      projectId: projectId,
+      holdbackPercentage: holdbackPercentage
     });
   }
 
