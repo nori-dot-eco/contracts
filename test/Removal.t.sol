@@ -1459,11 +1459,11 @@ contract Removal_getOwnedTokenIds is UpgradeableMarket {
   }
 }
 
-contract Removal_updateHoldbackPercentage is UpgradeableMarket {
-  event HoldbackPercentageUpdated(uint256 projectId, uint8 holdbackPercentage);
+contract Removal_setHoldbackPercentage is UpgradeableMarket {
+  event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage);
 
-  uint256 projectId = 1234567890;
-  uint8 originalHoldbackPercentage = 50;
+  uint256 immutable projectId = 1234567890;
+  uint8 immutable originalHoldbackPercentage = 50;
   uint256 removalTokenId;
 
   function setUp() external {
@@ -1487,6 +1487,7 @@ contract Removal_updateHoldbackPercentage is UpgradeableMarket {
       scheduleStartTime: block.timestamp,
       holdbackPercentage: originalHoldbackPercentage
     });
+    vm.recordLogs();
   }
 
   function test() external {
@@ -1495,12 +1496,22 @@ contract Removal_updateHoldbackPercentage is UpgradeableMarket {
       _removal.getHoldbackPercentage(removalTokenId),
       originalHoldbackPercentage
     );
-    vm.expectEmit(true, true, false, false);
-    emit HoldbackPercentageUpdated(removalTokenId, newHoldbackPercentage);
-    _removal.updateHoldbackPercentage({
+    _removal.setHoldbackPercentage({
       projectId: projectId,
       holdbackPercentage: newHoldbackPercentage
     });
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 1);
+    assertEq(
+      entries[0].topics[0],
+      keccak256("SetHoldbackPercentage(uint256,uint8)")
+    );
+    (uint256 eventProjectId, uint8 eventHoldbackPercentage) = abi.decode(
+      entries[0].data,
+      (uint256, uint8)
+    );
+    assertEq(eventProjectId, projectId);
+    assertEq(eventHoldbackPercentage, newHoldbackPercentage);
     assertEq(
       _removal.getHoldbackPercentage(removalTokenId),
       newHoldbackPercentage
@@ -1521,7 +1532,7 @@ contract Removal_updateHoldbackPercentage is UpgradeableMarket {
         newHoldbackPercentage
       )
     );
-    _removal.updateHoldbackPercentage({
+    _removal.setHoldbackPercentage({
       projectId: projectId,
       holdbackPercentage: newHoldbackPercentage
     });
