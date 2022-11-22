@@ -156,6 +156,13 @@ contract Removal is
   event ContractAddressesRegistered(IMarket market, ICertificate certificate);
 
   /**
+   * @notice Emitted when the holdback percentage is updated for a project.
+   * @param projectId The ID of the project.
+   * @param holdbackPercentage The new holdback percentage for the project.
+   */
+  event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage);
+
+  /**
    * @notice Emitted on releasing a removal from a supplier, the market, or a certificate.
    * @param id The id of the removal that was released.
    * @param fromAddress The address the removal was released from.
@@ -237,6 +244,52 @@ contract Removal is
   }
 
   /**
+   * @notice Update the holdback percentage value for a project.
+   * @dev Emits a `SetHoldbackPercentage` event.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
+   * - Can only be used when this contract is not paused.
+   * @param projectId The id of the project for which to update the holdback percentage.
+   * @param holdbackPercentage The new holdback percentage.
+   */
+  function setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage)
+    external
+    whenNotPaused
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    _setHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: holdbackPercentage
+    });
+  }
+
+  /**
+   * @notice Update the holdback percentage value for a project.
+   * @dev Emits a `SetHoldbackPercentage` event.
+   *
+   * ##### Requirements:
+   *
+   * @param projectId The id of the project for which to update the holdback percentage.
+   * @param holdbackPercentage The new holdback percentage.
+   */
+  function _setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage)
+    internal
+  {
+    if (holdbackPercentage > 100) {
+      revert InvalidHoldbackPercentage({
+        holdbackPercentage: holdbackPercentage
+      });
+    }
+    _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
+    emit SetHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: holdbackPercentage
+    });
+  }
+
+  /**
    * @notice Mints multiple removals at once (for a single supplier).
    * @dev If `to` is the market address, the removals are listed for sale in the market.
    *
@@ -265,12 +318,10 @@ contract Removal is
       removals: removals,
       projectId: projectId
     });
-    if (holdbackPercentage > 100) {
-      revert InvalidHoldbackPercentage({
-        holdbackPercentage: holdbackPercentage
-      });
-    }
-    _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
+    _setHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: holdbackPercentage
+    });
     _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
     IRestrictedNORI _restrictedNORI = IRestrictedNORI(
       _market.restrictedNoriAddress()
