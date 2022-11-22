@@ -318,7 +318,10 @@ contract Removal is
       removals: removals,
       projectId: projectId
     });
-    _setHoldbackPercentage(projectId, holdbackPercentage);
+    _setHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: holdbackPercentage
+    });
     _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
     IRestrictedNORI _restrictedNORI = IRestrictedNORI(
       _market.restrictedNoriAddress()
