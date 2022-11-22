@@ -108,6 +108,11 @@ contract Market is
   RestrictedNORI private _restrictedNORI;
 
   /**
+   * @notice The number of base tokens required to purchase one NRT.
+   */
+  uint256 private _priceMultiple;
+
+  /**
    * @notice Wallet address used for Nori's transaction fees.
    */
   address private _noriFeeWallet;
@@ -154,6 +159,12 @@ contract Market is
    * @param threshold The updated threshold for priority restricted supply.
    */
   event PriorityRestrictedThresholdSet(uint256 threshold);
+
+  /**
+   * @notice Emitted on setting of `_priceMultiple`.
+   * @param priceMultiple The updated price multiple.
+   */
+  event SetPriceMultiple(uint256 priceMultiple);
 
   /**
    * @notice Emitted on updating the addresses for contracts.
@@ -243,6 +254,7 @@ contract Market is
    * @param noriFeeWalletAddress The address for Nori's fee wallet.
    * @param noriFeePercentage_ The percentage to take from every transaction. This fee is sent to the address
    * specified by `noriFeeWalletAddress`.
+   * @param priceMultiple_ The number of base tokens required to purchase one NRT.
    */
   function initialize(
     Removal removal,
@@ -250,7 +262,8 @@ contract Market is
     Certificate certificate,
     RestrictedNORI restrictedNori,
     address noriFeeWalletAddress,
-    uint256 noriFeePercentage_
+    uint256 noriFeePercentage_,
+    uint256 priceMultiple_
   ) external initializer {
     if (noriFeeWalletAddress == address(0)) {
       revert NoriFeeWalletZeroAddress();
@@ -269,6 +282,7 @@ contract Market is
     _noriFeeWallet = noriFeeWalletAddress;
     _priorityRestrictedThreshold = 0;
     _currentSupplierAddress = address(0);
+    _setPriceMultiple({priceMultiple: priceMultiple_});
     _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
     _grantRole({role: ALLOWLIST_ROLE, account: _msgSender()});
     _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
@@ -341,6 +355,15 @@ contract Market is
       bridgedPolygonNORI: _bridgedPolygonNORI,
       restrictedNORI: _restrictedNORI
     });
+  }
+
+  /**
+   * @notice Sets the price multiple, which is the number of base tokens required to purchase one NRT.
+   * @param priceMultiple The new price multiple.
+   */
+  function _setPriceMultiple(uint256 priceMultiple) internal {
+    _priceMultiple = priceMultiple;
+    emit SetPriceMultiple({priceMultiple: priceMultiple});
   }
 
   /**
@@ -634,6 +657,14 @@ contract Market is
     } else {
       revert UnauthorizedWithdrawal();
     }
+  }
+
+  /**
+   * @notice Returns the current value of the price multiple, which is the number of base tokens required to
+   * purchase one NRT.
+   */
+  function getPriceMultiple() external view returns (uint256) {
+    return _priceMultiple;
   }
 
   /**
