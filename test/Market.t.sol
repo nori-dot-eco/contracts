@@ -881,6 +881,12 @@ contract Market__setPurchasingToken is NonUpgradeableMarket {
   }
 }
 
+contract Market_purchasingTokenAddress is UpgradeableMarket {
+  function test() external {
+    assertEq(_market.purchasingTokenAddress(), address(_bpNori));
+  }
+}
+
 contract Market__setPriceMultiple is NonUpgradeableMarket {
   function test() external {
     vm.recordLogs();
