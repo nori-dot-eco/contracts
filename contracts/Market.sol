@@ -20,11 +20,11 @@ import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
 /**
  * @title Nori Inc.'s carbon removal marketplace.
  * @author Nori Inc.
- * @notice Facilitates the exchange of bpNORI tokens for a non-transferrable certificate of carbon removal.
+ * @notice Facilitates the exchange of ERC20 with permit tokens for a non-transferrable certificate of carbon removal.
  * @dev Carbon removals are represented by ERC1155 tokens in the Removal contract, where the balance of a
  * given token represents the number of tonnes of carbon that were removed from the atmosphere for that specific
  * removal (different token IDs are used to represent different slices of carbon removal projects and years).
- * This contract facilitates the exchange of bpNORI tokens for ERC721 tokens managed by the Certificate contract.
+ * This contract facilitates the exchange of ERC20 tokens for ERC721 tokens managed by the Certificate contract.
  * Each of these certificates is a non-transferrable, non-fungible token that owns the specific removal tokens
  * and token balances that comprise the specific certificate for the amount purchased.
  *
@@ -98,9 +98,9 @@ contract Market is
   Certificate private _certificate;
 
   /**
-   * @notice The BridgedPolygonNORI contract.
+   * @notice The ERC20 with permit contract that implements the token used to purchase NRTs from this market.
    */
-  IERC20WithPermit private _bridgedPolygonNORI;
+  IERC20WithPermit private _purchasingToken;
 
   /**
    * @notice The RestrictedNORI contract.
@@ -170,13 +170,13 @@ contract Market is
    * @notice Emitted on updating the addresses for contracts.
    * @param removal The address of the new Removal contract.
    * @param certificate The address of the new Certificate contract.
-   * @param bridgedPolygonNORI The address of the new BridgedPolygonNORI contract.
+   * @param purchasingToken The address of the new IERC20WithPermit contract.
    * @param restrictedNORI The address of the new RestrictedNORI contract.
    */
   event ContractAddressesRegistered(
     Removal removal,
     Certificate certificate,
-    IERC20WithPermit bridgedPolygonNORI,
+    IERC20WithPermit purchasingToken,
     RestrictedNORI restrictedNORI
   );
 
@@ -248,7 +248,7 @@ contract Market is
    * @notice Initializes the Market contract.
    * @dev Reverts if `_noriFeeWallet` is not set.
    * @param removal The address of the Removal contract.
-   * @param bridgedPolygonNori The address of the BridgedPolygonNORI contract.
+   * @param purchasingToken The address of the IERC20WithPermit contract used for purchases in this market.
    * @param certificate The address of the Certificate contract.
    * @param restrictedNori The address of the RestrictedNORI contract.
    * @param noriFeeWalletAddress The address for Nori's fee wallet.
@@ -258,7 +258,7 @@ contract Market is
    */
   function initialize(
     Removal removal,
-    IERC20WithPermit bridgedPolygonNori,
+    IERC20WithPermit purchasingToken,
     Certificate certificate,
     RestrictedNORI restrictedNori,
     address noriFeeWalletAddress,
@@ -275,7 +275,7 @@ contract Market is
     __AccessControlEnumerable_init_unchained();
     __Multicall_init_unchained();
     _removal = removal;
-    _bridgedPolygonNORI = bridgedPolygonNori;
+    _purchasingToken = purchasingToken;
     _certificate = certificate;
     _restrictedNORI = restrictedNori;
     _noriFeePercentage = noriFeePercentage_;
@@ -324,7 +324,7 @@ contract Market is
 
   /**
    * @notice Register the market contract's asset addresses.
-   * @dev Register the Removal, Certificate, BridgedPolygonNORI, and RestrictedNORI contracts so that they
+   * @dev Register the Removal, Certificate, IERC20WithPermit, and RestrictedNORI contracts so that they
    * can be referenced in this contract. Called as part of the market contract system deployment process.
    *
    * Emits a `ContractAddressesRegistered` event.
@@ -335,24 +335,24 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * @param removal The address of the Removal contract.
    * @param certificate The address of the Certificate contract.
-   * @param bridgedPolygonNORI The address of the BridgedPolygonNORI contract.
+   * @param purchasingToken The address of the IERC20WithPermit contract used for purchases from the market.
    * @param restrictedNORI The address of the market contract.
    *
    */
   function registerContractAddresses(
     Removal removal,
     Certificate certificate,
-    IERC20WithPermit bridgedPolygonNORI,
+    IERC20WithPermit purchasingToken,
     RestrictedNORI restrictedNORI
   ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
     _removal = removal;
     _certificate = certificate;
-    _bridgedPolygonNORI = bridgedPolygonNORI;
+    _purchasingToken = purchasingToken;
     _restrictedNORI = restrictedNORI;
     emit ContractAddressesRegistered({
       removal: _removal,
       certificate: _certificate,
-      bridgedPolygonNORI: _bridgedPolygonNORI,
+      purchasingToken: _purchasingToken,
       restrictedNORI: _restrictedNORI
     });
   }
@@ -538,7 +538,7 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateSupply(certificateAmount);
-    _bridgedPolygonNORI.permit({
+    _purchasingToken.permit({
       owner: _msgSender(),
       spender: address(this),
       value: amount,
@@ -609,7 +609,7 @@ contract Market is
     address[] memory suppliers = new address[](countOfRemovalsAllocated).fill({
       val: supplier
     });
-    _bridgedPolygonNORI.permit({
+    _purchasingToken.permit({
       owner: _msgSender(),
       spender: address(this),
       value: amount,
@@ -755,11 +755,11 @@ contract Market is
   }
 
   /**
-   * @notice Get the BridgedPolygonNori contract address.
-   * @return Returns the address of the BridgedPolygonNori contract.
+   * @notice Get the contract address of the IERC20WithPermit token used for making purchases from this market.
+   * @return Returns the address of the IERC20WithPermit contract.
    */
-  function bridgedPolygonNoriAddress() external view returns (address) {
-    return address(_bridgedPolygonNORI);
+  function purchasingTokenAddress() external view returns (address) {
+    return address(_purchasingToken);
   }
 
   /**
@@ -874,18 +874,18 @@ contract Market is
           });
         }
 
-        _bridgedPolygonNORI.transferFrom({
+        _purchasingToken.transferFrom({
           from: operator,
           to: address(_restrictedNORI),
           amount: restrictedSupplierFee
         });
       }
-      _bridgedPolygonNORI.transferFrom({
+      _purchasingToken.transferFrom({
         from: operator,
         to: _noriFeeWallet,
         amount: this.calculateNoriFee(removalAmounts[i])
       });
-      _bridgedPolygonNORI.transferFrom({
+      _purchasingToken.transferFrom({
         from: operator,
         to: suppliers[i],
         amount: unrestrictedSupplierFee
