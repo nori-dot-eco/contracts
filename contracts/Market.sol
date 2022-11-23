@@ -508,21 +508,21 @@ contract Market is
   }
 
   /**
-   * @notice Exchange bpNORI tokens for an ERC721 certificate by transferring ownership of the removals to the
+   * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
    * certificate.
    * @dev See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's bpNORI to complete the purchase. A certificate is minted in the Certificate contract
-   * to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
-   * to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
+   * to transfer the sender's ERC20 to complete the purchase. A certificate is minted in the Certificate contract
+   * to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal,
+   * to the RestrictedNORI contract that controls any restricted tokens owed to the supplier, and finally
    * to Nori Inc. as a market operator fee.
    *
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
    * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in bpNORI. This is the combined total of the number of removals being
-   * purchased, and the fee paid to Nori.
+   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
+   * purchased and the fee paid to Nori.
    * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature.
    * @param r The r value for the permit's secp256k1 signature.
@@ -574,15 +574,15 @@ contract Market is
   }
 
   /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange bpNORI
+   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange IERC20WithPermit
    * tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
    * supplier to that certificate. If the specified supplier does not have enough carbon removals for sale to fulfill
    * the order the transaction will revert.
    * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's bpNORI to complete the purchase. A certificate is issued by the Certificate contract
-   * to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
-   * to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
+   * to transfer the sender's IERC20WithPermit to complete the purchase. A certificate is issued by the Certificate contract
+   * to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal,
+   * to the RestrictedNORI contract that controls any restricted ERC20 owed to the supplier, and finally
    * to Nori Inc. as a market operator fee.
    *
    *
@@ -590,8 +590,8 @@ contract Market is
    *
    * - Can only be used when this contract is not paused.
    * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in bpNORI. This is the combined total of the number of removals being
-   * purchased, and the fee paid to Nori.
+   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
+   * purchased and the fee paid to Nori.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature
@@ -718,10 +718,10 @@ contract Market is
   }
 
   /**
-   * @notice Calculates the total quantity of bpNORI required to make a purchase of the specified `amount` (in tonnes of
+   * @notice Calculates the total quantity of ERC20 tokens required to make a purchase of the specified `amount` (in tonnes of
    * carbon removals).
    * @param amount The amount of carbon removals for the purchase.
-   * @return The total quantity of bpNORI required to make the purchase, including the fee.
+   * @return The total quantity of ERC20 tokens required to make the purchase, including the fee.
    */
   function calculateCheckoutTotal(uint256 amount)
     external
