@@ -42,7 +42,8 @@ abstract contract UpgradeableMarket is
       address(_certificate),
       address(_rNori),
       address(_namedAccounts.admin),
-      15
+      15,
+      100
     );
     Market marketProxy = Market(_deployProxy(address(impl), initializer));
     vm.label(address(marketProxy), "Market Proxy");

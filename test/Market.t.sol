@@ -761,7 +761,8 @@ contract Market__multicall_initialize_reverts is UpgradeableMarket {
         _certificate,
         _rNori,
         _namedAccounts.admin,
-        15
+        15,
+        100
       )
     );
     vm.expectRevert("Initializable: contract is already initialized");
@@ -859,5 +860,23 @@ contract Market_getRemovalIdsForSupplier is UpgradeableMarket {
       _market.getRemovalIdsForSupplier(_namedAccounts.supplier),
       _removalIds
     );
+  }
+}
+
+contract Market__setPriceMultiple is NonUpgradeableMarket {
+  function test() external {
+    vm.recordLogs();
+    uint256 newPriceMultiple = 20;
+    _setPriceMultiple({priceMultiple: newPriceMultiple});
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 1);
+    assertEq(entries[0].topics[0], keccak256("SetPriceMultiple(uint256)"));
+    assertEq(abi.decode(entries[0].data, (uint256)), newPriceMultiple);
+  }
+}
+
+contract Market_getPriceMultiple is UpgradeableMarket {
+  function test() external {
+    assertEq(_market.getPriceMultiple(), 100);
   }
 }

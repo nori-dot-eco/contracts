@@ -186,10 +186,12 @@ export const deployMarketContract = async ({
   hre,
   feeWallet,
   feePercentage,
+  priceMultiple,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   feeWallet: Address;
   feePercentage: number;
+  priceMultiple: number;
 }): Promise<InstanceOfContract<Market>> => {
   const deployments = await hre.deployments.all<Required<Contracts>>();
   return hre.deployOrUpgradeProxy<Market, Market__factory>({
@@ -201,10 +203,11 @@ export const deployMarketContract = async ({
       deployments.RestrictedNORI.address,
       feeWallet,
       feePercentage,
+      priceMultiple,
     ],
     options: {
       initializer:
-        'initialize(address,address,address,address,address,uint256)',
+        'initialize(address,address,address,address,address,uint256,uint256)',
       unsafeAllow: ['delegatecall'],
     },
   });
