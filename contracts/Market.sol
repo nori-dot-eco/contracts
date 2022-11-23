@@ -735,7 +735,7 @@ contract Market is
    * @return The amount of the fee for Nori.
    */
   function calculateNoriFee(uint256 amount) external view returns (uint256) {
-    return (amount * _noriFeePercentage) / 100;
+    return (amount * _priceMultiple * _noriFeePercentage) / 100 / 100;
   }
 
   /**
@@ -749,13 +749,14 @@ contract Market is
     view
     returns (uint256)
   {
-    return amount + this.calculateNoriFee({amount: amount});
+    return
+      (amount * _priceMultiple) / 100 + this.calculateNoriFee({amount: amount});
   }
 
   /**
-   * @notice Calculates the quantity of carbon removals being purchased given the purchase total and the
-   * percentage of that purchase total that is due to Nori as a transaction fee.
-   * @param purchaseTotal The total amount of Nori used for a purchase.
+   * @notice Calculates the quantity of carbon removals being purchased given the purchase total, the price multiple,
+   * and the percentage of that purchase total that is due to Nori as a transaction fee.
+   * @param purchaseTotal The total amount of ERC20 tokens used for a purchase.
    * @return The amount for the certificate, excluding the transaction fee.
    */
   function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal)
@@ -763,7 +764,9 @@ contract Market is
     view
     returns (uint256)
   {
-    return (purchaseTotal * 100) / (100 + _noriFeePercentage);
+    uint256 priceWithoutFee = (purchaseTotal * 100) /
+      (100 + _noriFeePercentage);
+    return (priceWithoutFee * 100) / _priceMultiple;
   }
 
   /**
@@ -860,7 +863,7 @@ contract Market is
 
   /**
    * @notice Fulfill an order.
-   * @dev This function is responsible for paying suppliers, routeing tokens to the RestrictedNORI contract, paying Nori
+   * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
    * the order fee, updating accounting, and minting the Certificate.
    * @param certificateAmount The total amount for the certificate.
    * @param operator The message sender.
@@ -891,7 +894,7 @@ contract Market is
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
-      unrestrictedSupplierFee = removalAmounts[i];
+      unrestrictedSupplierFee = (removalAmounts[i] * _priceMultiple) / 100;
       holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
       if (holdbackPercentage > 0) {
         restrictedSupplierFee =
