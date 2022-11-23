@@ -382,13 +382,34 @@ contract Market is
   }
 
   /**
+   * @notice Set the purchasing token contract address, an IERC20WithPermit token used to purchase from this market,
+   * and the price multiple, which is the number of tokens required to purchase one NRT.
+   * @dev Emits a `SetPurchasingToken` event and a `SetPriceMultiple` event.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+   * - Can only be used when this contract is not paused.
+   *
+   * @param purchasingToken The new purchasing token contract address.
+   * @param priceMultiple The new price multiple.
+   */
+  function setPurchasingTokenAndPriceMultiple(
+    IERC20WithPermit purchasingToken,
+    uint256 priceMultiple
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    _setPurchasingToken({purchasingToken: purchasingToken});
+    _setPriceMultiple({priceMultiple: priceMultiple});
+  }
+
+  /**
    * @notice Sets the current value of the priority restricted threshold, which is the amount of inventory
    * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
    * @dev Emits a `PriorityRestrictedThresholdSet` event.
    *
    * ##### Requirements:
    *
-   * - Can only receive ERC1155 tokens from the Removal contract.
+   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
    * - Can only be used when this contract is not paused.
    * @param threshold The updated priority restricted threshold
    */
