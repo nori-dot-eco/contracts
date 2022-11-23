@@ -98,7 +98,7 @@ contract Market is
   Certificate private _certificate;
 
   /**
-   * @notice The ERC20 with permit contract that implements the token used to purchase NRTs from this market.
+   * @notice The IERC20WithPermit token used to purchase from this market.
    */
   IERC20WithPermit private _purchasingToken;
 
@@ -159,6 +159,12 @@ contract Market is
    * @param threshold The updated threshold for priority restricted supply.
    */
   event PriorityRestrictedThresholdSet(uint256 threshold);
+
+  /**
+   * @notice Emitted on setting of `_purchasingToken`.
+   * @param purchasingToken The updated address of the IERC20WithPermit token used to purchase from this market.
+   */
+  event SetPurchasingToken(IERC20WithPermit purchasingToken);
 
   /**
    * @notice Emitted on setting of `_priceMultiple`.
@@ -248,7 +254,7 @@ contract Market is
    * @notice Initializes the Market contract.
    * @dev Reverts if `_noriFeeWallet` is not set.
    * @param removal The address of the Removal contract.
-   * @param purchasingToken The address of the IERC20WithPermit contract used for purchases in this market.
+   * @param purchasingToken The address of the IERC20WithPermit token used to purchase from this market.
    * @param certificate The address of the Certificate contract.
    * @param restrictedNori The address of the RestrictedNORI contract.
    * @param noriFeeWalletAddress The address for Nori's fee wallet.
@@ -275,13 +281,13 @@ contract Market is
     __AccessControlEnumerable_init_unchained();
     __Multicall_init_unchained();
     _removal = removal;
-    _purchasingToken = purchasingToken;
     _certificate = certificate;
     _restrictedNORI = restrictedNori;
     _noriFeePercentage = noriFeePercentage_;
     _noriFeeWallet = noriFeeWalletAddress;
     _priorityRestrictedThreshold = 0;
     _currentSupplierAddress = address(0);
+    _setPurchasingToken({purchasingToken: purchasingToken});
     _setPriceMultiple({priceMultiple: priceMultiple_});
     _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
     _grantRole({role: ALLOWLIST_ROLE, account: _msgSender()});
@@ -335,7 +341,7 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * @param removal The address of the Removal contract.
    * @param certificate The address of the Certificate contract.
-   * @param purchasingToken The address of the IERC20WithPermit contract used for purchases from the market.
+   * @param purchasingToken The address of the IERC20WithPermit token used to purchase from this market.
    * @param restrictedNORI The address of the market contract.
    *
    */
@@ -355,6 +361,15 @@ contract Market is
       purchasingToken: _purchasingToken,
       restrictedNORI: _restrictedNORI
     });
+  }
+
+  /**
+   * @notice Set the purchasing token contract address, an IERC20WithPermit token used to purchase from this market.
+   * @param purchasingToken The new purchasing token contract address.
+   */
+  function _setPurchasingToken(IERC20WithPermit purchasingToken) internal {
+    _purchasingToken = IERC20WithPermit(purchasingToken);
+    emit SetPurchasingToken({purchasingToken: purchasingToken});
   }
 
   /**
@@ -755,7 +770,7 @@ contract Market is
   }
 
   /**
-   * @notice Get the contract address of the IERC20WithPermit token used for making purchases from this market.
+   * @notice Get the contract address of the IERC20WithPermit token used to purchase from this market.
    * @return Returns the address of the IERC20WithPermit contract.
    */
   function purchasingTokenAddress() external view returns (address) {

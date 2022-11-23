@@ -5,6 +5,7 @@ import "@/test/helpers/market.sol";
 import "@/test/helpers/removal.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import "@/contracts/test/MockERC20Permit.sol";
 import "@/contracts/ArrayLib.sol";
 import "@/contracts/Removal.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
@@ -859,6 +860,23 @@ contract Market_getRemovalIdsForSupplier is UpgradeableMarket {
     assertEq(
       _market.getRemovalIdsForSupplier(_namedAccounts.supplier),
       _removalIds
+    );
+  }
+}
+
+contract Market__setPurchasingToken is NonUpgradeableMarket {
+  function test() external {
+    vm.recordLogs();
+    address erc20 = vm.addr(0xcab00d1e);
+    IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
+    _setPurchasingToken({purchasingToken: newPurchasingToken});
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 1);
+    assertEq(entries[0].topics[0], keccak256("SetPurchasingToken(address)"));
+    address actualPurchasingToken = abi.decode(entries[0].data, (address));
+    assertEq(
+      abi.decode(entries[0].data, (address)),
+      address(newPurchasingToken)
     );
   }
 }
