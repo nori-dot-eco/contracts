@@ -762,7 +762,7 @@ contract Market__multicall_initialize_reverts is UpgradeableMarket {
         _rNori,
         _namedAccounts.admin,
         15,
-        1
+        100
       )
     );
     vm.expectRevert("Initializable: contract is already initialized");
@@ -877,6 +877,6 @@ contract Market__setPriceMultiple is NonUpgradeableMarket {
 
 contract Market_getPriceMultiple is UpgradeableMarket {
   function test() external {
-    assertEq(_market.getPriceMultiple(), 1);
+    assertEq(_market.getPriceMultiple(), 100);
   }
 }

@@ -358,7 +358,7 @@ contract Market is
   }
 
   /**
-   * @notice Sets the price multiple, which is the number of base tokens required to purchase one NRT.
+   * @notice Set the price multiple, which is the number of base tokens required to purchase one NRT.
    * @param priceMultiple The new price multiple.
    */
   function _setPriceMultiple(uint256 priceMultiple) internal {
@@ -660,7 +660,7 @@ contract Market is
   }
 
   /**
-   * @notice Returns the current value of the price multiple, which is the number of base tokens required to
+   * @notice Get the current value of the price multiple, which is the number of base tokens required to
    * purchase one NRT.
    */
   function getPriceMultiple() external view returns (uint256) {
