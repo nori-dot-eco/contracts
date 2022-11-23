@@ -1458,3 +1458,83 @@ contract Removal_getOwnedTokenIds is UpgradeableMarket {
     }
   }
 }
+
+contract Removal_setHoldbackPercentage is UpgradeableMarket {
+  event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage);
+
+  uint256 immutable projectId = 1234567890;
+  uint8 immutable originalHoldbackPercentage = 50;
+  uint256 removalTokenId;
+
+  function setUp() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    removalTokenId = RemovalIdLib.createRemovalId(ids[0]);
+    _removal.mintBatch({
+      to: address(_market),
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids,
+      projectId: projectId,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: originalHoldbackPercentage
+    });
+    vm.recordLogs();
+  }
+
+  function test() external {
+    uint8 newHoldbackPercentage = 20;
+    assertEq(
+      _removal.getHoldbackPercentage(removalTokenId),
+      originalHoldbackPercentage
+    );
+    _removal.setHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: newHoldbackPercentage
+    });
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 1);
+    assertEq(
+      entries[0].topics[0],
+      keccak256("SetHoldbackPercentage(uint256,uint8)")
+    );
+    (uint256 eventProjectId, uint8 eventHoldbackPercentage) = abi.decode(
+      entries[0].data,
+      (uint256, uint8)
+    );
+    assertEq(eventProjectId, projectId);
+    assertEq(eventHoldbackPercentage, newHoldbackPercentage);
+    assertEq(
+      _removal.getHoldbackPercentage(removalTokenId),
+      newHoldbackPercentage
+    );
+  }
+
+  function test_reverts_InvalidHoldbackPercentage() external {
+    uint8 originalHoldbackPercentage = 50;
+    uint8 newHoldbackPercentage = 120;
+
+    assertEq(
+      _removal.getHoldbackPercentage(removalTokenId),
+      originalHoldbackPercentage
+    );
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        InvalidHoldbackPercentage.selector,
+        newHoldbackPercentage
+      )
+    );
+    _removal.setHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: newHoldbackPercentage
+    });
+  }
+}
