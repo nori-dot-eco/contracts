@@ -37,7 +37,7 @@ contract Certificate_burn is UpgradeableCertificate {
       address(0),
       _removalIds,
       _removalAmounts,
-      abi.encode(_owner, 1 ether)
+      abi.encode(_owner, 1 ether, address(0), 100)
     );
     assertEq(
       _certificate.totalSupply(),
@@ -77,7 +77,7 @@ contract Certificate_burn is UpgradeableCertificate {
       address(0),
       _removalIds2,
       _removalAmounts,
-      abi.encode(address(this), 1 ether) // todo use diff. named account
+      abi.encode(address(this), 1 ether, address(0), 100) // todo use diff. named account
     );
     assertEq(
       _certificate.balanceOf(address(this)),

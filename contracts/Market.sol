@@ -930,7 +930,12 @@ contract Market is
         amount: unrestrictedSupplierFee
       });
     }
-    bytes memory data = abi.encode(recipient, certificateAmount);
+    bytes memory data = abi.encode(
+      recipient,
+      certificateAmount,
+      address(_purchasingToken),
+      _priceMultiple
+    );
     _removal.safeBatchTransferFrom({
       from: address(this),
       to: address(_certificate),

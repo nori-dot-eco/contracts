@@ -902,7 +902,7 @@ contract Market__setPriceMultiple is NonUpgradeableMarket {
 
 contract Market_getPriceMultiple is UpgradeableMarket {
   function test() external {
-    assertEq(_market.getPriceMultiple(), 100);
+    assertEq(_market.getPriceMultiple(), 2000);
   }
 }
 
