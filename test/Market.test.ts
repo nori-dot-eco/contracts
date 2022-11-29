@@ -343,7 +343,6 @@ describe('Market', () => {
           hre,
           totalAmountOfSupply,
           removalAmounts,
-          feePercentage,
           removal,
         } = await setupTest({
           userFixtures: {
@@ -356,8 +355,7 @@ describe('Market', () => {
         });
         const purchaseAmount = removalAmounts[0].add(removalAmounts[1]);
         const buyer = hre.namedSigners.buyer;
-        const fee = purchaseAmount.mul(feePercentage).div(100);
-        const value = purchaseAmount.add(fee);
+        const value = await market.calculateCheckoutTotal(purchaseAmount);
         const { v, r, s } = await buyer.permit({
           verifyingContract: bpNori,
           spender: market.address,
@@ -371,7 +369,7 @@ describe('Market', () => {
         expect(totalListedSupply).to.equal(expectedRemainingSupply);
       });
       it('should correctly report the number of NRTs for sale when there is no inventory', async () => {
-        const { market, removal } = await setupTest({});
+        const { removal } = await setupTest({});
         expect(await removal.getMarketBalance())
           .to.equal(0)
           .and.to.equal(await removal.getMarketBalance());
@@ -1005,8 +1003,8 @@ describe('Market', () => {
         testSetup;
       const { supplier, buyer, noriWallet } = hre.namedSigners;
       const purchaseAmount = formatTokenAmount(200);
-      const fee = purchaseAmount.mul(feePercentage).div(100);
-      const value = purchaseAmount.add(fee);
+      const fee = await market.calculateNoriFee(purchaseAmount);
+      const value = await market.calculateCheckoutTotal(purchaseAmount);
       const supplierInitialNoriBalance = formatTokenAmount(0);
       const noriInitialNoriBalance = formatTokenAmount(0);
       const { v, r, s } = await buyer.permit({
@@ -1028,28 +1026,34 @@ describe('Market', () => {
         userFixtures.buyer.bpBalance.sub(value)
       );
       expect(supplierFinalNoriBalance).to.equal(
-        supplierInitialNoriBalance.add(
-          purchaseAmount.sub(
-            formatTokenAmount(removalAmount)
-              .mul(project1HoldbackPercentage)
-              .div(100)
-              .add(
-                formatTokenAmount(removalAmount)
-                  .mul(project2HoldbackPercentage)
-                  .div(100)
-              )
+        supplierInitialNoriBalance
+          .add(
+            value.sub(
+              value
+                .sub(fee)
+                .div(2)
+                .mul(project1HoldbackPercentage)
+                .div(100)
+                .add(
+                  value.sub(fee).div(2).mul(project2HoldbackPercentage).div(100)
+                )
+            )
           )
-        )
+          .sub(fee)
       );
       expect(noriFinalNoriBalance).to.equal(noriInitialNoriBalance.add(fee));
       compareScheduleSummaryStructs(scheduleSummaries[0], {
-        totalSupply: formatTokenAmount(removalAmount)
+        totalSupply: value
+          .sub(fee)
+          .div(2)
           .mul(project1HoldbackPercentage)
           .div(100),
         tokenHolders: [supplier.address],
       });
       compareScheduleSummaryStructs(scheduleSummaries[1], {
-        totalSupply: formatTokenAmount(removalAmount)
+        totalSupply: value
+          .sub(fee)
+          .div(2)
           .mul(project2HoldbackPercentage)
           .div(100),
         tokenHolders: [supplier.address],
@@ -1058,16 +1062,15 @@ describe('Market', () => {
   });
   describe('swap', () => {
     it('should be able to purchase removals', async () => {
-      const { bpNori, certificate, market, hre, userFixtures } =
-        await setupTest({
-          userFixtures: {
-            supplier: {
-              removalDataToList: {
-                removals: [{ amount: 100 }],
-              },
+      const { bpNori, market, hre, userFixtures } = await setupTest({
+        userFixtures: {
+          supplier: {
+            removalDataToList: {
+              removals: [{ amount: 100 }],
             },
           },
-        });
+        },
+      });
       const purchaseAmount = formatTokenAmount(1);
       const value = await market.calculateCheckoutTotal(purchaseAmount); // todo use calculateCheckoutTotal globally
       const { buyer, investor1 } = hre.namedSigners;
