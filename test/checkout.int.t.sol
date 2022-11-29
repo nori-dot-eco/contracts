@@ -1,7 +1,6 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, not-rely-on-time */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/contracts/test/MockERC20Permit.sol";
 import "@/test/helpers/market.sol";
 import {DecodedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
 import {AddressArrayLib, UInt256ArrayLib} from "@/contracts/ArrayLib.sol";
@@ -12,17 +11,6 @@ using UInt256ArrayLib for uint256[];
 abstract contract Checkout is UpgradeableMarket {
   uint256[] internal _removalIds;
   uint256 internal _certificateTokenId;
-
-  bytes32 constant RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR =
-    keccak256(
-      "ReceiveRemovalBatch(address,address,uint256,uint256,uint256[],uint256[],address,uint256)"
-    );
-
-  function _deployMockERC20() internal returns (MockERC20Permit) {
-    MockERC20Permit impl = new MockERC20Permit();
-    bytes memory initializer = abi.encodeWithSignature("initialize()");
-    return MockERC20Permit(_deployProxy(address(impl), initializer));
-  }
 
   function _assertExpectedBalances(
     address owner,
@@ -212,7 +200,6 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
     _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
-    vm.prank(_owner);
     _signedPermit = _signatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
@@ -555,220 +542,5 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
       _owner,
       "The wrong owner has the certificate"
     );
-  }
-}
-
-contract Checkout_buyingWithAlternateERC20 is Checkout {
-  MockERC20Permit internal _erc20;
-  SignatureUtils internal _mockERC20SignatureUtils;
-  uint256 deadline = 1 days;
-  uint256 ownerPrivateKey = 0xA11CE;
-  address owner = vm.addr(ownerPrivateKey);
-  uint256 amount;
-  uint256 fee;
-  uint256 certificateAmount;
-
-  function setUp() external {
-    _erc20 = _deployMockERC20();
-
-    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
-    _market.setPurchasingTokenAndPriceMultiple({
-      purchasingToken: _erc20,
-      priceMultiple: 2000
-    });
-    assertEq(_market.purchasingTokenAddress(), address(_erc20));
-    amount = _market.calculateCheckoutTotal(1 ether);
-    fee = _market.calculateNoriFee(1 ether);
-    certificateAmount = _market.calculateCertificateAmountFromPurchaseTotal(
-      amount
-    );
-    _erc20.transfer(owner, amount);
-    assertEq(_erc20.balanceOf(address(owner)), amount);
-    _removalIds = _seedRemovals({
-      to: _namedAccounts.supplier,
-      count: 1,
-      list: true,
-      holdbackPercentage: 0
-    });
-  }
-
-  function test() external {
-    assertEq(_removal.getMarketBalance(), 1 ether);
-    assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);
-    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    _assertExpectedBalances(address(_certificate), 0, false, 0);
-    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
-    vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
-    _certificate.ownerOf(_certificateTokenId);
-    SignedPermit memory signedPermit = _mockERC20SignatureUtils.generatePermit(
-      ownerPrivateKey,
-      address(_market),
-      amount,
-      1 days,
-      _erc20
-    );
-    vm.recordLogs();
-    vm.startPrank(owner);
-    _market.swap(
-      owner,
-      amount,
-      signedPermit.permit.deadline,
-      signedPermit.v,
-      signedPermit.r,
-      signedPermit.s
-    );
-    vm.stopPrank();
-
-    Vm.Log[] memory entries = vm.getRecordedLogs();
-    bool containsReceiveRemovalBatchEventSelector = false;
-    for (uint256 i = 0; i < entries.length; ++i) {
-      if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
-        containsReceiveRemovalBatchEventSelector = true;
-        assertEq(
-          entries[i].topics[1],
-          bytes32(uint256(uint160(address(owner))))
-        );
-        assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
-        (
-          address from,
-          uint256 eventCertificateAmount,
-          uint256[] memory removalIds,
-          uint256[] memory removalAmounts,
-          address purchasingTokenAddress,
-          uint256 priceMultiple
-        ) = abi.decode(
-            entries[i].data,
-            (address, uint256, uint256[], uint256[], address, uint256)
-          );
-        assertEq(from, address(_removal));
-        assertEq(eventCertificateAmount, certificateAmount);
-        assertEq(purchasingTokenAddress, address(_erc20));
-        assertEq(priceMultiple, _market.getPriceMultiple());
-        assertEq(removalIds.length, 1);
-        assertEq(removalAmounts.length, 1);
-        assertEq(removalIds[0], _removalIds[0]);
-        assertEq(removalAmounts[0], certificateAmount);
-      }
-    }
-    assertEq(containsReceiveRemovalBatchEventSelector, true);
-    _assertExpectedBalances(address(_market), 0, false, 0);
-    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
-    assertEq(
-      _removal.balanceOf(address(_certificate), _removalIds[0]),
-      certificateAmount
-    );
-    assertEq(_certificate.ownerOf(_certificateTokenId), owner);
-    assertEq(_erc20.balanceOf(address(owner)), 0);
-    assertEq(_erc20.balanceOf(_namedAccounts.supplier), amount - fee);
-    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
-  }
-}
-
-contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
-  Checkout
-{
-  MockERC20Permit internal _erc20;
-  SignatureUtils internal _mockERC20SignatureUtils;
-  uint256 deadline = 1 days;
-  uint256 ownerPrivateKey = 0xA11CE;
-  address owner = vm.addr(ownerPrivateKey);
-  uint256 amount;
-  uint256 fee;
-  uint256 certificateAmount;
-
-  function setUp() external {
-    _erc20 = _deployMockERC20();
-
-    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
-    _market.setPurchasingTokenAndPriceMultiple({
-      purchasingToken: _erc20,
-      priceMultiple: 1995 // $19.95
-    });
-    assertEq(_market.purchasingTokenAddress(), address(_erc20));
-    amount = _market.calculateCheckoutTotal(1 ether);
-    fee = _market.calculateNoriFee(1 ether);
-    certificateAmount = _market.calculateCertificateAmountFromPurchaseTotal(
-      amount
-    );
-    _erc20.transfer(owner, amount);
-    assertEq(_erc20.balanceOf(address(owner)), amount);
-    _removalIds = _seedRemovals({
-      to: _namedAccounts.supplier,
-      count: 1,
-      list: true,
-      holdbackPercentage: 0
-    });
-  }
-
-  function test() external {
-    assertEq(_removal.getMarketBalance(), 1 ether);
-    assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);
-    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    _assertExpectedBalances(address(_certificate), 0, false, 0);
-    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
-    vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
-    _certificate.ownerOf(_certificateTokenId);
-    SignedPermit memory signedPermit = _mockERC20SignatureUtils.generatePermit(
-      ownerPrivateKey,
-      address(_market),
-      amount,
-      1 days,
-      _erc20
-    );
-    vm.recordLogs();
-    vm.startPrank(owner);
-    _market.swap(
-      owner,
-      amount,
-      signedPermit.permit.deadline,
-      signedPermit.v,
-      signedPermit.r,
-      signedPermit.s
-    );
-    vm.stopPrank();
-    Vm.Log[] memory entries = vm.getRecordedLogs();
-    bool containsReceiveRemovalBatchEventSelector = false;
-    for (uint256 i = 0; i < entries.length; ++i) {
-      if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
-        containsReceiveRemovalBatchEventSelector = true;
-        assertEq(
-          entries[i].topics[1],
-          bytes32(uint256(uint160(address(owner))))
-        );
-        assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
-        (
-          address from,
-          uint256 eventCertificateAmount,
-          uint256[] memory removalIds,
-          uint256[] memory removalAmounts,
-          address purchasingTokenAddress,
-          uint256 priceMultiple
-        ) = abi.decode(
-            entries[i].data,
-            (address, uint256, uint256[], uint256[], address, uint256)
-          );
-        assertEq(from, address(_removal));
-        assertEq(eventCertificateAmount, certificateAmount);
-        assertEq(purchasingTokenAddress, address(_erc20));
-        assertEq(priceMultiple, _market.getPriceMultiple());
-        assertEq(removalIds.length, 1);
-        assertEq(removalAmounts.length, 1);
-        assertEq(removalIds[0], _removalIds[0]);
-        assertEq(removalAmounts[0], certificateAmount);
-      }
-    }
-    assertEq(containsReceiveRemovalBatchEventSelector, true);
-    _assertExpectedBalances(address(_market), 0, false, 0);
-    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
-    assertEq(
-      _removal.balanceOf(address(_certificate), _removalIds[0]),
-      certificateAmount
-    );
-    assertEq(_certificate.ownerOf(_certificateTokenId), owner);
-    assertEq(_erc20.balanceOf(address(owner)), 0);
-    assertEq(_erc20.balanceOf(_namedAccounts.supplier), amount - fee);
-    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
   }
 }
