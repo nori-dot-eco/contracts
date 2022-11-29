@@ -1043,7 +1043,7 @@ contract Market is
   }
 
   /**
-   * @notice Prepares an order to be fulfilled.
+   * @notice Prepare an order for fulfillment.
    * @dev This function is responsible for calculating the certificate amount, validating and allocating the supply,
    * and permitting the bpNori transfer.
    * @param certificateAmount The total amount for the certificate.
@@ -1083,7 +1083,7 @@ contract Market is
     (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply(
       certificateAmount
     );
-    _bridgedPolygonNORI.permit({
+    _purchasingToken.permit({
       owner: _msgSender(),
       spender: address(this),
       value: certificateAmount,
@@ -1135,7 +1135,7 @@ contract Market is
       supplier: supplier
     });
     suppliers = new address[](countOfRemovalsAllocated).fill({val: supplier});
-    _bridgedPolygonNORI.permit({
+    _purchasingToken.permit({
       owner: _msgSender(),
       spender: address(this),
       value: certificateAmount,
@@ -1179,31 +1179,46 @@ contract Market is
     uint8 holdbackPercentage;
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
-    for (uint256 i = 0; i < countOfRemovalsAllocated; i++) {
-      unrestrictedSupplierFee = removalAmounts[i];
+    for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
       holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
+
+      unrestrictedSupplierFee = removalAmounts[i].mulDiv(_priceMultiple, 100);
       if (holdbackPercentage > 0) {
-        restrictedSupplierFee =
-          (unrestrictedSupplierFee * holdbackPercentage) /
-          100;
+        restrictedSupplierFee = removalAmounts[i].mulDiv(
+          _priceMultiple * holdbackPercentage,
+          10000
+        );
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        _restrictedNORI.mint({
-          amount: restrictedSupplierFee,
-          removalId: removalIds[i]
-        });
-        _bridgedPolygonNORI.transferFrom({
+        try
+          _restrictedNORI.mint({
+            amount: restrictedSupplierFee,
+            removalId: removalIds[i]
+          })
+        {} catch {
+          emit RestrictedNORIMintFailed({
+            amount: restrictedSupplierFee,
+            removalId: removalIds[i]
+          });
+        }
+
+        _purchasingToken.transferFrom({
           from: from,
           to: address(_restrictedNORI),
           amount: restrictedSupplierFee
         });
       }
-      _bridgedPolygonNORI.transferFrom({
+      _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
         amount: unrestrictedSupplierFee
       });
     }
-    bytes memory data = abi.encode(recipient, certificateAmount);
+    bytes memory data = abi.encode(
+      recipient,
+      certificateAmount,
+      address(_purchasingToken),
+      _priceMultiple
+    );
     _removal.safeBatchTransferFrom({
       from: address(this),
       to: address(_certificate),
