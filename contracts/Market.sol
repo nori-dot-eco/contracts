@@ -1105,7 +1105,7 @@ contract Market is
    * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature.
    * @param r The r value for the permit's secp256k1 signature.
-   * @param s The s value for the permit's secp256k1 signature
+   * @param s The s value for the permit's secp256k1 signature.
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
    * @return ids An array of the removal IDs being drawn from to fulfill this order.
    * @return amounts An array of amounts being allocated from each corresponding removal token.
@@ -1136,13 +1136,6 @@ contract Market is
       supplier: supplier
     });
     suppliers = new address[](countOfRemovalsAllocated).fill({val: supplier});
-    console.log(_msgSender());
-    console.log(address(this));
-    console.log(certificateAmount);
-    console.log(deadline);
-    console.log(v);
-    console.logBytes32(r);
-    console.logBytes32(s);
     _purchasingToken.permit({
       owner: _msgSender(),
       spender: address(this),
@@ -1152,7 +1145,6 @@ contract Market is
       r: r,
       s: s
     });
-    console.log("DONE");
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
