@@ -13,6 +13,11 @@ abstract contract Checkout is UpgradeableMarket {
   uint256[] internal _removalIds;
   uint256 internal _certificateTokenId;
 
+  bytes32 constant RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR =
+    keccak256(
+      "ReceiveRemovalBatch(address,address,uint256,uint256,uint256[],uint256[],address,uint256)"
+    );
+
   function _deployMockERC20() internal returns (MockERC20Permit) {
     MockERC20Permit impl = new MockERC20Permit();
     bytes memory initializer = abi.encodeWithSignature("initialize()");
@@ -415,6 +420,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
       1 days,
       _erc20
     );
+    vm.recordLogs();
     vm.startPrank(owner);
     _market.swap(
       owner,
@@ -424,6 +430,40 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
       signedPermit.r,
       signedPermit.s
     );
+    vm.stopPrank();
+
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bool containsReceiveRemovalBatchEventSelector = false;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
+        containsReceiveRemovalBatchEventSelector = true;
+        assertEq(
+          entries[i].topics[1],
+          bytes32(uint256(uint160(address(owner))))
+        );
+        assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
+        (
+          address from,
+          uint256 eventCertificateAmount,
+          uint256[] memory removalIds,
+          uint256[] memory removalAmounts,
+          address purchasingTokenAddress,
+          uint256 priceMultiple
+        ) = abi.decode(
+            entries[i].data,
+            (address, uint256, uint256[], uint256[], address, uint256)
+          );
+        assertEq(from, address(_removal));
+        assertEq(eventCertificateAmount, certificateAmount);
+        assertEq(purchasingTokenAddress, address(_erc20));
+        assertEq(priceMultiple, _market.getPriceMultiple());
+        assertEq(removalIds.length, 1);
+        assertEq(removalAmounts.length, 1);
+        assertEq(removalIds[0], _removalIds[0]);
+        assertEq(removalAmounts[0], certificateAmount);
+      }
+    }
+    assertEq(containsReceiveRemovalBatchEventSelector, true);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
@@ -432,7 +472,6 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
       certificateAmount
     );
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
-    vm.stopPrank();
   }
 }
 
@@ -484,6 +523,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
       1 days,
       _erc20
     );
+    vm.recordLogs();
     vm.startPrank(owner);
     _market.swap(
       owner,
@@ -493,6 +533,39 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
       signedPermit.r,
       signedPermit.s
     );
+    vm.stopPrank();
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bool containsReceiveRemovalBatchEventSelector = false;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
+        containsReceiveRemovalBatchEventSelector = true;
+        assertEq(
+          entries[i].topics[1],
+          bytes32(uint256(uint160(address(owner))))
+        );
+        assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
+        (
+          address from,
+          uint256 eventCertificateAmount,
+          uint256[] memory removalIds,
+          uint256[] memory removalAmounts,
+          address purchasingTokenAddress,
+          uint256 priceMultiple
+        ) = abi.decode(
+            entries[i].data,
+            (address, uint256, uint256[], uint256[], address, uint256)
+          );
+        assertEq(from, address(_removal));
+        assertEq(eventCertificateAmount, certificateAmount);
+        assertEq(purchasingTokenAddress, address(_erc20));
+        assertEq(priceMultiple, _market.getPriceMultiple());
+        assertEq(removalIds.length, 1);
+        assertEq(removalAmounts.length, 1);
+        assertEq(removalIds[0], _removalIds[0]);
+        assertEq(removalAmounts[0], certificateAmount);
+      }
+    }
+    assertEq(containsReceiveRemovalBatchEventSelector, true);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
@@ -501,6 +574,5 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
       certificateAmount
     );
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
-    vm.stopPrank();
   }
 }

@@ -907,7 +907,7 @@ contract Market is
       unrestrictedSupplierFee = removalAmounts[i].mulDiv(_priceMultiple, 100);
       if (holdbackPercentage > 0) {
         restrictedSupplierFee = removalAmounts[i].mulDiv(
-          _restrictedSupplierFeePercentage * holdbackPercentage,
+          _priceMultiple * holdbackPercentage,
           10000
         );
         unrestrictedSupplierFee -= restrictedSupplierFee;
