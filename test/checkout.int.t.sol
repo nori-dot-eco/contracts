@@ -381,6 +381,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 amount;
+  uint256 fee;
   uint256 certificateAmount;
 
   function setUp() external {
@@ -393,6 +394,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     });
     assertEq(_market.purchasingTokenAddress(), address(_erc20));
     amount = _market.calculateCheckoutTotal(1 ether);
+    fee = _market.calculateNoriFee(1 ether);
     certificateAmount = _market.calculateCertificateAmountFromPurchaseTotal(
       amount
     );
@@ -401,7 +403,8 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
-      list: true
+      list: true,
+      holdbackPercentage: 0
     });
   }
 
@@ -472,6 +475,9 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
       certificateAmount
     );
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
+    assertEq(_erc20.balanceOf(address(owner)), 0);
+    assertEq(_erc20.balanceOf(_namedAccounts.supplier), amount - fee);
+    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
   }
 }
 
@@ -484,6 +490,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 amount;
+  uint256 fee;
   uint256 certificateAmount;
 
   function setUp() external {
@@ -496,6 +503,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     });
     assertEq(_market.purchasingTokenAddress(), address(_erc20));
     amount = _market.calculateCheckoutTotal(1 ether);
+    fee = _market.calculateNoriFee(1 ether);
     certificateAmount = _market.calculateCertificateAmountFromPurchaseTotal(
       amount
     );
@@ -504,7 +512,8 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
-      list: true
+      list: true,
+      holdbackPercentage: 0
     });
   }
 
@@ -574,5 +583,8 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
       certificateAmount
     );
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
+    assertEq(_erc20.balanceOf(address(owner)), 0);
+    assertEq(_erc20.balanceOf(_namedAccounts.supplier), amount - fee);
+    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
   }
 }

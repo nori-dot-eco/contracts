@@ -119,6 +119,39 @@ abstract contract UpgradeableRemoval is Upgradeable {
     address to,
     uint32 count,
     bool list,
+    uint8 holdbackPercentage
+  ) internal returns (uint256[] memory) {
+    uint256[] memory _removalIds = new uint256[](count);
+    DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](count);
+    for (uint32 i = 0; i < count; i++) {
+      DecodedRemovalIdV0 memory removalData = DecodedRemovalIdV0({
+        idVersion: 0,
+        methodology: 1,
+        methodologyVersion: 0,
+        vintage: 2018,
+        country: "AA",
+        subdivision: "ZZ",
+        supplierAddress: to,
+        subIdentifier: count + i
+      });
+      removals[i] = removalData;
+      _removalIds[i] = RemovalIdLib.createRemovalId(removalData);
+    }
+    _removal.mintBatch({
+      to: list ? _marketAddress : to,
+      amounts: new uint256[](count).fill(1 ether),
+      removals: removals,
+      projectId: 1_234_567_890,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: holdbackPercentage
+    });
+    return _removalIds;
+  }
+
+  function _seedRemovals(
+    address to,
+    uint32 count,
+    bool list,
     bool uniqueVintages
   ) internal returns (uint256[] memory) {
     DecodedRemovalIdV0[] memory _removals = new DecodedRemovalIdV0[](count);
