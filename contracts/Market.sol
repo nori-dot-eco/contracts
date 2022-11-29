@@ -505,7 +505,13 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _prepareSwap(certificateAmount, deadline, v, r, s);
+    ) = _prepareSwap({
+        certificateAmount: certificateAmount,
+        deadline: deadline,
+        v: v,
+        r: r,
+        s: s
+      });
     _fulfillOrder({
       certificateAmount: certificateAmount,
       operator: _msgSender(),
@@ -558,14 +564,14 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _prepareSwapFromSupplier(
-        certificateAmount,
-        supplier,
-        deadline,
-        v,
-        r,
-        s
-      );
+    ) = _prepareSwapFromSupplier({
+        certificateAmount: certificateAmount,
+        deadline: deadline,
+        supplier: supplier,
+        v: v,
+        r: r,
+        s: s
+      });
     _fulfillOrder({
       certificateAmount: certificateAmount,
       operator: _msgSender(),
@@ -611,7 +617,13 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _prepareSwap(amount, deadline, v, r, s);
+    ) = _prepareSwap({
+        certificateAmount: amount,
+        deadline: deadline,
+        v: v,
+        r: r,
+        s: s
+      });
     _fulfillOrderWithoutFee({
       certificateAmount: amount,
       operator: _msgSender(),
@@ -662,7 +674,14 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _prepareSwapFromSupplier(amount, supplier, deadline, v, r, s);
+    ) = _prepareSwapFromSupplier({
+        certificateAmount: amount,
+        deadline: deadline,
+        supplier: supplier,
+        v: v,
+        r: r,
+        s: s
+      });
     _fulfillOrderWithoutFee({
       certificateAmount: amount,
       operator: _msgSender(),
@@ -944,10 +963,10 @@ contract Market is
    * and permitting the bpNori transfer.
    * @param certificateAmount The total amount for the certificate.
    * @param deadline The EIP2612 permit deadline in Unix time.
-   * @param v The recovery identifier for the permit's secp256k1 signature
-   * @param r The r value for the permit's secp256k1 signature
-   * @param s The s value for the permit's secp256k1 signature
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @param v The recovery identifier for the permit's secp256k1 signature.
+   * @param r The r value for the permit's secp256k1 signature.
+   * @param s The s value for the permit's secp256k1 signature.
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this. order.
    * @return ids An array of the removal IDs being drawn from to fulfill this order.
    * @return amounts An array of amounts being allocated from each corresponding removal token.
    * @return suppliers The address of the supplier who owns each corresponding removal token.
@@ -998,8 +1017,8 @@ contract Market is
    * @param certificateAmount The total amount for the certificate.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @param deadline The EIP2612 permit deadline in Unix time.
-   * @param v The recovery identifier for the permit's secp256k1 signature
-   * @param r The r value for the permit's secp256k1 signature
+   * @param v The recovery identifier for the permit's secp256k1 signature.
+   * @param r The r value for the permit's secp256k1 signature.
    * @param s The s value for the permit's secp256k1 signature
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
    * @return ids An array of the removal IDs being drawn from to fulfill this order.
