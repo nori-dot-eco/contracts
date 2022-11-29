@@ -91,6 +91,8 @@ contract Certificate is
    * @param certificateAmount The total number of NRTs retired in this certificate.
    * @param removalIds The removal IDs used for the certificate.
    * @param removalAmounts The amounts from each removal used for the certificate.
+   * @param purchasingTokenAddress The address of the token used to purchase the certificate.
+   * @param priceMultiple The number of purchasing tokens required to buy one NRT.
    */
   event ReceiveRemovalBatch(
     address from,
@@ -98,7 +100,9 @@ contract Certificate is
     uint256 indexed certificateId,
     uint256 certificateAmount,
     uint256[] removalIds,
-    uint256[] removalAmounts
+    uint256[] removalAmounts,
+    address purchasingTokenAddress,
+    uint256 priceMultiple
   );
 
   /**
@@ -182,15 +186,19 @@ contract Certificate is
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    (address recipient, uint256 certificateAmount) = abi.decode(
-      data,
-      (address, uint256)
-    );
+    (
+      address recipient,
+      uint256 certificateAmount,
+      address purchasingTokenAddress,
+      uint256 priceMultiple
+    ) = abi.decode(data, (address, uint256, address, uint256));
     _receiveRemovalBatch({
       recipient: recipient,
       certificateAmount: certificateAmount,
       removalIds: removalIds,
-      removalAmounts: removalAmounts
+      removalAmounts: removalAmounts,
+      purchasingTokenAddress: purchasingTokenAddress,
+      priceMultiple: priceMultiple
     });
     return this.onERC1155BatchReceived.selector;
   }
@@ -319,7 +327,9 @@ contract Certificate is
     address recipient,
     uint256 certificateAmount,
     uint256[] calldata removalIds,
-    uint256[] calldata removalAmounts
+    uint256[] calldata removalAmounts,
+    address purchasingTokenAddress,
+    uint256 priceMultiple
   ) internal {
     _validateReceivedRemovalBatch({
       removalIds: removalIds,
@@ -335,7 +345,9 @@ contract Certificate is
       certificateId: certificateId,
       certificateAmount: certificateAmount,
       removalIds: removalIds,
-      removalAmounts: removalAmounts
+      removalAmounts: removalAmounts,
+      purchasingTokenAddress: purchasingTokenAddress,
+      priceMultiple: priceMultiple
     });
   }
 

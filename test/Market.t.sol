@@ -108,11 +108,12 @@ contract Market_swap_rNori_mint_failure is UpgradeableMarket {
       block.timestamp,
       uint8(holdbackPercentage)
     );
-
+    uint256 numberOfNRTsToPurchase = 1 ether;
     uint256 ownerPrivateKey = 0xA11CE;
     owner = vm.addr(ownerPrivateKey);
-    checkoutTotal = _market.calculateCheckoutTotal(1 ether);
-    rNoriToMint = (1 ether * holdbackPercentage) / 100;
+    checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
+    uint256 noriFeeAmount = _market.calculateNoriFee(numberOfNRTsToPurchase);
+    rNoriToMint = ((checkoutTotal - noriFeeAmount) * holdbackPercentage) / 100;
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
 
@@ -901,7 +902,7 @@ contract Market__setPriceMultiple is NonUpgradeableMarket {
 
 contract Market_getPriceMultiple is UpgradeableMarket {
   function test() external {
-    assertEq(_market.getPriceMultiple(), 100);
+    assertEq(_market.getPriceMultiple(), 2000);
   }
 }
 

@@ -4,6 +4,7 @@ pragma solidity =0.8.17;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./AccessPresetPausable.sol";
 import "./Certificate.sol";
@@ -76,6 +77,7 @@ contract Market is
   using RemovalsByYearLib for RemovalsByYear;
   using UInt256ArrayLib for uint256[];
   using AddressArrayLib for address[];
+  using Math for uint256;
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -109,6 +111,9 @@ contract Market is
 
   /**
    * @notice The number of base tokens required to purchase one NRT.
+   * @dev This value is scaled by 100 to allow for decimal precision. For example, a value of 100 means
+   * that 1 base token is required to purchase 1 NRT, while a value of 1995 means that 19.95 base tokens
+   * purchase 1 NRT.
    */
   uint256 private _priceMultiple;
 
@@ -374,6 +379,9 @@ contract Market is
 
   /**
    * @notice Set the price multiple, which is the number of base tokens required to purchase one NRT.
+   * @dev This value is scaled by 100 to allow for decimal precision. For example, a value of 100 means
+   * that 1 base token is required to purchase 1 NRT, while a value of 1995 means that 19.95 base tokens
+   * purchase 1 NRT.
    * @param priceMultiple The new price multiple.
    */
   function _setPriceMultiple(uint256 priceMultiple) internal {
@@ -735,7 +743,7 @@ contract Market is
    * @return The amount of the fee for Nori.
    */
   function calculateNoriFee(uint256 amount) external view returns (uint256) {
-    return (amount * _noriFeePercentage) / 100;
+    return amount.mulDiv(_priceMultiple * _noriFeePercentage, 10000);
   }
 
   /**
@@ -749,13 +757,15 @@ contract Market is
     view
     returns (uint256)
   {
-    return amount + this.calculateNoriFee({amount: amount});
+    return
+      amount.mulDiv(_priceMultiple, 100) +
+      this.calculateNoriFee({amount: amount});
   }
 
   /**
-   * @notice Calculates the quantity of carbon removals being purchased given the purchase total and the
-   * percentage of that purchase total that is due to Nori as a transaction fee.
-   * @param purchaseTotal The total amount of Nori used for a purchase.
+   * @notice Calculates the quantity of carbon removals being purchased given the purchase total, the price multiple,
+   * and the percentage of that purchase total that is due to Nori as a transaction fee.
+   * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
    * @return The amount for the certificate, excluding the transaction fee.
    */
   function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal)
@@ -763,7 +773,8 @@ contract Market is
     view
     returns (uint256)
   {
-    return (purchaseTotal * 100) / (100 + _noriFeePercentage);
+    return
+      purchaseTotal.mulDiv(10000, (100 + _noriFeePercentage) * _priceMultiple);
   }
 
   /**
@@ -860,7 +871,7 @@ contract Market is
 
   /**
    * @notice Fulfill an order.
-   * @dev This function is responsible for paying suppliers, routeing tokens to the RestrictedNORI contract, paying Nori
+   * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
    * the order fee, updating accounting, and minting the Certificate.
    * @param certificateAmount The total amount for the certificate.
    * @param operator The message sender.
@@ -891,12 +902,14 @@ contract Market is
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
-      unrestrictedSupplierFee = removalAmounts[i];
       holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
+
+      unrestrictedSupplierFee = removalAmounts[i].mulDiv(_priceMultiple, 100);
       if (holdbackPercentage > 0) {
-        restrictedSupplierFee =
-          (unrestrictedSupplierFee * holdbackPercentage) /
-          100;
+        restrictedSupplierFee = removalAmounts[i].mulDiv(
+          _priceMultiple * holdbackPercentage,
+          10000
+        );
         unrestrictedSupplierFee -= restrictedSupplierFee;
         try
           _restrictedNORI.mint({
@@ -927,7 +940,12 @@ contract Market is
         amount: unrestrictedSupplierFee
       });
     }
-    bytes memory data = abi.encode(recipient, certificateAmount);
+    bytes memory data = abi.encode(
+      recipient,
+      certificateAmount,
+      address(_purchasingToken),
+      _priceMultiple
+    );
     _removal.safeBatchTransferFrom({
       from: address(this),
       to: address(_certificate),
