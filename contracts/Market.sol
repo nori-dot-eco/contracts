@@ -369,27 +369,6 @@ contract Market is
   }
 
   /**
-   * @notice Set the purchasing token contract address, an IERC20WithPermit token used to purchase from this market.
-   * @param purchasingToken The new purchasing token contract address.
-   */
-  function _setPurchasingToken(IERC20WithPermit purchasingToken) internal {
-    _purchasingToken = IERC20WithPermit(purchasingToken);
-    emit SetPurchasingToken({purchasingToken: purchasingToken});
-  }
-
-  /**
-   * @notice Set the price multiple, which is the number of base tokens required to purchase one NRT.
-   * @dev This value is scaled by 100 to allow for decimal precision. For example, a value of 100 means
-   * that 1 base token is required to purchase 1 NRT, while a value of 1995 means that 19.95 base tokens
-   * purchase 1 NRT.
-   * @param priceMultiple The new price multiple.
-   */
-  function _setPriceMultiple(uint256 priceMultiple) internal {
-    _priceMultiple = priceMultiple;
-    emit SetPriceMultiple({priceMultiple: priceMultiple});
-  }
-
-  /**
    * @notice Set the purchasing token contract address, an IERC20WithPermit token used to purchase from this market,
    * and the price multiple, which is the number of tokens required to purchase one NRT.
    * @dev Emits a `SetPurchasingToken` event and a `SetPriceMultiple` event.
@@ -572,13 +551,8 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _prepareSwap({
-        certificateAmount: certificateAmount,
-        deadline: deadline,
-        v: v,
-        r: r,
-        s: s
-      });
+    ) = _allocateRemovals({certificateAmount: certificateAmount});
+    _permit({amount: amount, deadline: deadline, v: v, r: r, s: s});
     _fulfillOrder({
       certificateAmount: certificateAmount,
       from: _msgSender(),
@@ -591,14 +565,14 @@ contract Market is
   }
 
   /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange IERC20WithPermit
-   * tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
-   * supplier to that certificate. If the specified supplier does not have enough carbon removals for sale to fulfill
-   * the order the transaction will revert.
+   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange
+   * IERC20WithPermit tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only
+   * from the specified supplier to that certificate. If the specified supplier does not have enough carbon removals
+   * for sale to fulfill the order the transaction will revert.
    * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's IERC20WithPermit to complete the purchase. A certificate is issued by the Certificate contract
-   * to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal,
+   * to transfer the sender's IERC20WithPermit to complete the purchase. A certificate is issued by the Certificate
+   * contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal,
    * to the RestrictedNORI contract that controls any restricted ERC20 owed to the supplier, and finally
    * to Nori Inc. as a market operator fee.
    *
@@ -631,14 +605,11 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _prepareSwapFromSupplier({
+    ) = _allocateRemovalsFromSupplier({
         certificateAmount: certificateAmount,
-        deadline: deadline,
-        supplier: supplier,
-        v: v,
-        r: r,
-        s: s
+        supplier: supplier
       });
+    _permit({amount: amount, deadline: deadline, v: v, r: r, s: s});
     _fulfillOrder({
       certificateAmount: certificateAmount,
       from: _msgSender(),
@@ -684,13 +655,8 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _prepareSwap({
-        certificateAmount: amount,
-        deadline: deadline,
-        v: v,
-        r: r,
-        s: s
-      });
+    ) = _allocateRemovals({certificateAmount: amount});
+    _permit({amount: amount, deadline: deadline, v: v, r: r, s: s});
     _fulfillOrderWithoutFee({
       certificateAmount: amount,
       from: _msgSender(),
@@ -741,14 +707,11 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _prepareSwapFromSupplier({
+    ) = _allocateRemovalsFromSupplier({
         certificateAmount: amount,
-        deadline: deadline,
-        supplier: supplier,
-        v: v,
-        r: r,
-        s: s
+        supplier: supplier
       });
+    _permit({amount: amount, deadline: deadline, v: v, r: r, s: s});
     _fulfillOrderWithoutFee({
       certificateAmount: amount,
       from: _msgSender(),
@@ -834,8 +797,8 @@ contract Market is
   }
 
   /**
-   * @notice Calculates the total quantity of ERC20 tokens required to make a purchase of the specified `amount` (in tonnes of
-   * carbon removals).
+   * @notice Calculates the total quantity of ERC20 tokens required to make a purchase of the specified `amount` (in
+   * tonnes of carbon removals).
    * @param amount The amount of carbon removals for the purchase.
    * @return The total quantity of ERC20 tokens required to make the purchase, including the fee.
    */
@@ -853,7 +816,7 @@ contract Market is
    * @notice Calculates the quantity of carbon removals being purchased given the purchase total, the price multiple,
    * and the percentage of that purchase total that is due to Nori as a transaction fee.
    * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
-   * @return The amount for the certificate, excluding the transaction fee.
+   * @return certificateAmount Amount for the certificate, excluding the transaction fee.
    */
   function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal)
     external
@@ -957,6 +920,27 @@ contract Market is
   }
 
   /**
+   * @notice Set the purchasing token contract address, an IERC20WithPermit token used to purchase from this market.
+   * @param purchasingToken The new purchasing token contract address.
+   */
+  function _setPurchasingToken(IERC20WithPermit purchasingToken) internal {
+    _purchasingToken = IERC20WithPermit(purchasingToken);
+    emit SetPurchasingToken({purchasingToken: purchasingToken});
+  }
+
+  /**
+   * @notice Set the price multiple, which is the number of base tokens required to purchase one NRT.
+   * @dev This value is scaled by 100 to allow for decimal precision. For example, a value of 100 means
+   * that 1 base token is required to purchase 1 NRT, while a value of 1995 means that 19.95 base tokens
+   * purchase 1 NRT.
+   * @param priceMultiple The new price multiple.
+   */
+  function _setPriceMultiple(uint256 priceMultiple) internal {
+    _priceMultiple = priceMultiple;
+    emit SetPriceMultiple({priceMultiple: priceMultiple});
+  }
+
+  /**
    * @notice Fulfill an order.
    * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
    * the order fee, updating accounting, and minting the Certificate.
@@ -1043,26 +1027,15 @@ contract Market is
   }
 
   /**
-   * @notice Prepare an order for fulfillment.
-   * @dev This function is responsible for calculating the certificate amount, validating and allocating the supply,
-   * and permitting the bpNori transfer.
+   * @notice Allocates removals from a specific supplier to be fulfilled.
+   * @dev This function is responsible for validating and allocating the supply from a specific supplier.
    * @param certificateAmount The total amount for the certificate.
-   * @param deadline The EIP2612 permit deadline in Unix time.
-   * @param v The recovery identifier for the permit's secp256k1 signature.
-   * @param r The r value for the permit's secp256k1 signature.
-   * @param s The s value for the permit's secp256k1 signature.
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this. order.
    * @return ids An array of the removal IDs being drawn from to fulfill this order.
    * @return amounts An array of amounts being allocated from each corresponding removal token.
    * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
-  function _prepareSwap(
-    uint256 certificateAmount,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  )
+  function _allocateRemovals(uint256 certificateAmount)
     internal
     returns (
       uint256 countOfRemovalsAllocated,
@@ -1083,40 +1056,22 @@ contract Market is
     (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply(
       certificateAmount
     );
-    _purchasingToken.permit({
-      owner: _msgSender(),
-      spender: address(this),
-      value: certificateAmount,
-      deadline: deadline,
-      v: v,
-      r: r,
-      s: s
-    });
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
   /**
-   * @notice Prepares an order from a specific supplier to be fulfilled.
-   * @dev This function is responsible for calculating the certificate amount, validating and allocating the supply
-   * from a specific supplier, and permitting the bpNori transfer.
-   * @param certificateAmount The total amount for the certificate.
+   * @notice Allocates removals from a specific supplier to be fulfilled.
+   * @dev This function is responsible for validating and allocating the supply from a specific supplier.
+   * @param certificateAmount The total amount of NRTs for the certificate.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   * @param deadline The EIP2612 permit deadline in Unix time.
-   * @param v The recovery identifier for the permit's secp256k1 signature.
-   * @param r The r value for the permit's secp256k1 signature.
-   * @param s The s value for the permit's secp256k1 signature.
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
    * @return ids An array of the removal IDs being drawn from to fulfill this order.
    * @return amounts An array of amounts being allocated from each corresponding removal token.
    * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
-  function _prepareSwapFromSupplier(
+  function _allocateRemovalsFromSupplier(
     uint256 certificateAmount,
-    address supplier,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
+    address supplier
   )
     internal
     returns (
@@ -1135,16 +1090,35 @@ contract Market is
       supplier: supplier
     });
     suppliers = new address[](countOfRemovalsAllocated).fill({val: supplier});
+    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+  }
+
+  /**
+   * @notice Permits the transfer of an amount of tokens.
+   * @dev This function is responsible permitting the transfer of ERC20 tokens.
+   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
+   * purchased and the fee paid to Nori.
+   * @param deadline The EIP2612 permit deadline in Unix time.
+   * @param v The recovery identifier for the permit's secp256k1 signature.
+   * @param r The r value for the permit's secp256k1 signature.
+   * @param s The s value for the permit's secp256k1 signature.
+   */
+  function _permit(
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) internal {
     _purchasingToken.permit({
       owner: _msgSender(),
       spender: address(this),
-      value: certificateAmount,
+      value: amount,
       deadline: deadline,
       v: v,
       r: r,
       s: s
     });
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
   /**
