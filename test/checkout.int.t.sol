@@ -197,6 +197,7 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
     uint256 ownerPrivateKey = 0xA11CE;
     _owner = vm.addr(ownerPrivateKey);
     vm.prank(_namedAccounts.admin);
+    _market.grantRole({role: "MARKET_ADMIN_ROLE", account: _owner});
     _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
