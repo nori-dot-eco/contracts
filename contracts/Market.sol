@@ -723,9 +723,9 @@ contract Market is
    * @param amount The total purchase amount in bpNORI. This is the total number of removals being purchased.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @param deadline The EIP2612 permit deadline in Unix time.
-   * @param v The recovery identifier for the permit's secp256k1 signature
-   * @param r The r value for the permit's secp256k1 signature
-   * @param s The s value for the permit's secp256k1 signature
+   * @param v The recovery identifier for the permit's secp256k1 signature.
+   * @param r The r value for the permit's secp256k1 signature.
+   * @param s The s value for the permit's secp256k1 signature.
    */
   function swapFromSupplierWithoutFee(
     address recipient,
