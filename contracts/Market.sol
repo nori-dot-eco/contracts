@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "hardhat/console.sol";
 
 import "./AccessPresetPausable.sol";
 import "./Certificate.sol";
@@ -1135,6 +1136,13 @@ contract Market is
       supplier: supplier
     });
     suppliers = new address[](countOfRemovalsAllocated).fill({val: supplier});
+    console.log(_msgSender());
+    console.log(address(this));
+    console.log(certificateAmount);
+    console.log(deadline);
+    console.log(v);
+    console.logBytes32(r);
+    console.logBytes32(s);
     _purchasingToken.permit({
       owner: _msgSender(),
       spender: address(this),
@@ -1144,6 +1152,7 @@ contract Market is
       r: r,
       s: s
     });
+    console.log("DONE");
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
@@ -1419,9 +1428,9 @@ contract Market is
       revert InsufficientSupply();
     }
     uint256 remainingAmountToFill = certificateAmount;
-    uint256[] memory ids = new uint256[](countOfListedRemovals);
-    uint256[] memory amounts = new uint256[](countOfListedRemovals);
-    uint256 countOfRemovalsAllocated = 0;
+    ids = new uint256[](countOfListedRemovals);
+    amounts = new uint256[](countOfListedRemovals);
+    countOfRemovalsAllocated = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf({
