@@ -4,6 +4,7 @@ pragma solidity =0.8.17;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./AccessPresetPausable.sol";
 import "./Certificate.sol";
@@ -12,6 +13,7 @@ import "./IERC20WithPermit.sol";
 import "./IMarket.sol";
 import "./Removal.sol";
 import "./RestrictedNORI.sol";
+import "forge-std/console2.sol";
 
 import {RemovalsByYearLib, RemovalsByYear} from "./RemovalsByYearLib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
@@ -76,6 +78,7 @@ contract Market is
   using RemovalsByYearLib for RemovalsByYear;
   using UInt256ArrayLib for uint256[];
   using AddressArrayLib for address[];
+  using Math for uint256;
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -741,7 +744,7 @@ contract Market is
    * @return The amount of the fee for Nori.
    */
   function calculateNoriFee(uint256 amount) external view returns (uint256) {
-    return (amount * _priceMultiple * _noriFeePercentage) / 100 / 100;
+    return amount.mulDiv(_priceMultiple * _noriFeePercentage, 10000);
   }
 
   /**
@@ -756,13 +759,14 @@ contract Market is
     returns (uint256)
   {
     return
-      (amount * _priceMultiple) / 100 + this.calculateNoriFee({amount: amount});
+      amount.mulDiv(_priceMultiple, 100) +
+      this.calculateNoriFee({amount: amount});
   }
 
   /**
    * @notice Calculates the quantity of carbon removals being purchased given the purchase total, the price multiple,
    * and the percentage of that purchase total that is due to Nori as a transaction fee.
-   * @param purchaseTotal The total amount of ERC20 tokens used for a purchase.
+   * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
    * @return The amount for the certificate, excluding the transaction fee.
    */
   function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal)
@@ -770,9 +774,8 @@ contract Market is
     view
     returns (uint256)
   {
-    uint256 priceWithoutFee = (purchaseTotal * 100) /
-      (100 + _noriFeePercentage);
-    return (priceWithoutFee * 100) / _priceMultiple;
+    return
+      purchaseTotal.mulDiv(10000, (100 + _noriFeePercentage) * _priceMultiple);
   }
 
   /**
@@ -900,7 +903,7 @@ contract Market is
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
-      unrestrictedSupplierFee = (removalAmounts[i] * _priceMultiple) / 100;
+      unrestrictedSupplierFee = removalAmounts[i].mulDiv(_priceMultiple, 100);
       holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
       if (holdbackPercentage > 0) {
         restrictedSupplierFee =
