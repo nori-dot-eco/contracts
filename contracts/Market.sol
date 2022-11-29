@@ -13,7 +13,6 @@ import "./IERC20WithPermit.sol";
 import "./IMarket.sol";
 import "./Removal.sol";
 import "./RestrictedNORI.sol";
-import "forge-std/console2.sol";
 
 import {RemovalsByYearLib, RemovalsByYear} from "./RemovalsByYearLib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
@@ -903,12 +902,14 @@ contract Market is
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
-      unrestrictedSupplierFee = removalAmounts[i].mulDiv(_priceMultiple, 100);
       holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
+
+      unrestrictedSupplierFee = removalAmounts[i].mulDiv(_priceMultiple, 100);
       if (holdbackPercentage > 0) {
-        restrictedSupplierFee =
-          (unrestrictedSupplierFee * holdbackPercentage) /
-          100;
+        restrictedSupplierFee = removalAmounts[i].mulDiv(
+          _restrictedSupplierFeePercentage * holdbackPercentage,
+          10000
+        );
         unrestrictedSupplierFee -= restrictedSupplierFee;
         try
           _restrictedNORI.mint({
