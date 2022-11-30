@@ -10,6 +10,7 @@ import "@/contracts/ArrayLib.sol";
 import "@/contracts/Removal.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
+import "@/contracts/test/MockERC20Permit.sol";
 
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
@@ -71,7 +72,9 @@ contract ERC1155Recipient {
   }
 }
 
-contract Market_swap_rNori_mint_failure is UpgradeableMarket {
+contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155Receiver is
+  UpgradeableMarket
+{
   address owner;
   uint256 holdbackPercentage = 10;
   uint256 checkoutTotal;
@@ -138,6 +141,88 @@ contract Market_swap_rNori_mint_failure is UpgradeableMarket {
       signedPermit.r,
       signedPermit.s
     );
+  }
+}
+
+// TODO move this test into checkout.int.t.sol
+contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
+  UpgradeableMarket
+{
+  uint256 holdbackPercentage = 10;
+  uint256 checkoutTotal;
+  uint256 rNoriToMint;
+  SignedPermit signedPermit;
+  uint256[] _removalIds;
+  uint256 removalId;
+  MockERC20Permit internal _erc20;
+  SignatureUtils internal _mockERC20SignatureUtils;
+  uint256 ownerPrivateKey = 0xA11CE;
+  address owner = vm.addr(ownerPrivateKey);
+  uint256 amount;
+  uint256 fee;
+  uint256 certificateAmount;
+
+  event RestrictedNORIERC20TransferSkipped(
+    uint256 indexed amount,
+    uint256 indexed removalId,
+    uint256 currentHoldbackPercentage,
+    address rNoriUnderlyingToken,
+    address purchasingTokenAddress
+  );
+
+  function _deployMockERC20() internal returns (MockERC20Permit) {
+    MockERC20Permit impl = new MockERC20Permit();
+    bytes memory initializer = abi.encodeWithSignature("initialize()");
+    return MockERC20Permit(_deployProxy(address(impl), initializer));
+  }
+
+  function setUp() external {
+    _erc20 = _deployMockERC20();
+    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
+    _market.setPurchasingTokenAndPriceMultiple({
+      purchasingToken: _erc20,
+      priceMultiple: 2000
+    });
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+
+    uint256 numberOfNRTsToPurchase = 1 ether;
+    checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
+    fee = _market.calculateNoriFee(numberOfNRTsToPurchase);
+    rNoriToMint = ((checkoutTotal - fee) * holdbackPercentage) / 100;
+    _erc20.transfer(owner, checkoutTotal);
+    signedPermit = _mockERC20SignatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _erc20
+    );
+  }
+
+  function test() external {
+    vm.startPrank(owner);
+    // TODO use recordLogs and getRecordedLogs!
+    vm.expectEmit(true, true, false, false);
+    emit RestrictedNORIERC20TransferSkipped({
+      amount: rNoriToMint,
+      removalId: removalId,
+      currentHoldbackPercentage: holdbackPercentage,
+      rNoriUnderlyingToken: address(_bpNori),
+      purchasingTokenAddress: address(_erc20)
+    });
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    vm.stopPrank();
   }
 }
 

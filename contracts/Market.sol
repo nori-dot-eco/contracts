@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgrad
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-
+import "forge-std/console2.sol";
 import "./AccessPresetPausable.sol";
 import "./Certificate.sol";
 import "./Errors.sol";
@@ -244,6 +244,23 @@ contract Market is
   event RestrictedNORIMintFailed(
     uint256 indexed amount,
     uint256 indexed removalId
+  );
+
+  /**
+   * @notice Emitted when the ERC20 token that would be transferred to the RestrictedNORI contract is not the token
+   * address that RestrictedNORI was configured to wrap.
+   * @param amount The amount of RestrictedNORI in the transfer attempt.
+   * @param currentHoldbackPercentage The holdback percentage for this removal id's project at the time of this event emission.
+   * @param removalId The removal id being processed during the transfer attempt.
+   * @param rNoriUnderlyingToken The address of the token contract that RestrictedNORI was configured to wrap.
+   * @param purchasingTokenAddress The address of the ERC20 token that would have been transferred to RestrictedNORI.
+   */
+  event RestrictedNORIERC20TransferSkipped(
+    uint256 indexed amount,
+    uint256 indexed removalId,
+    uint256 currentHoldbackPercentage,
+    address rNoriUnderlyingToken,
+    address purchasingTokenAddress
   );
 
   /**
@@ -582,6 +599,7 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateSupply(certificateAmount);
+    console2.log("amount in permit(: ", amount);
     _purchasingToken.permit({
       owner: _msgSender(),
       spender: address(this),
@@ -911,23 +929,38 @@ contract Market is
           10000
         );
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        try
-          _restrictedNORI.mint({
+        if (
+          _restrictedNORI.getUnderlyingTokenAddress() !=
+          address(_purchasingToken)
+        ) {
+          emit RestrictedNORIERC20TransferSkipped({
             amount: restrictedSupplierFee,
-            removalId: removalIds[i]
-          })
-        {} catch {
-          emit RestrictedNORIMintFailed({
-            amount: restrictedSupplierFee,
-            removalId: removalIds[i]
+            removalId: removalIds[i],
+            currentHoldbackPercentage: holdbackPercentage,
+            rNoriUnderlyingToken: _restrictedNORI.getUnderlyingTokenAddress(),
+            purchasingTokenAddress: address(_purchasingToken)
+          });
+          unrestrictedSupplierFee =
+            unrestrictedSupplierFee +
+            restrictedSupplierFee; // transfer all purchasing token to supplier
+        } else {
+          try
+            _restrictedNORI.mint({
+              amount: restrictedSupplierFee,
+              removalId: removalIds[i]
+            })
+          {} catch {
+            emit RestrictedNORIMintFailed({
+              amount: restrictedSupplierFee,
+              removalId: removalIds[i]
+            });
+          }
+          _purchasingToken.transferFrom({
+            from: operator,
+            to: address(_restrictedNORI),
+            amount: restrictedSupplierFee
           });
         }
-
-        _purchasingToken.transferFrom({
-          from: operator,
-          to: address(_restrictedNORI),
-          amount: restrictedSupplierFee
-        });
       }
       _purchasingToken.transferFrom({
         from: operator,
