@@ -650,15 +650,19 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    uint256 certificateAmount = this
+      .calculateCertificateAmountFromPurchaseTotalWithoutFee({
+        purchaseTotal: amount
+      });
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _allocateRemovals({certificateAmount: amount});
+    ) = _allocateRemovals({certificateAmount: certificateAmount});
     _permit({amount: amount, deadline: deadline, v: v, r: r, s: s});
     _fulfillOrderWithoutFee({
-      certificateAmount: amount,
+      certificateAmount: certificateAmount,
       from: _msgSender(),
       recipient: recipient,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -702,18 +706,22 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    uint256 certificateAmount = this
+      .calculateCertificateAmountFromPurchaseTotalWithoutFee({
+        purchaseTotal: amount
+      });
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
-        certificateAmount: amount,
+        certificateAmount: certificateAmount,
         supplier: supplier
       });
     _permit({amount: amount, deadline: deadline, v: v, r: r, s: s});
     _fulfillOrderWithoutFee({
-      certificateAmount: amount,
+      certificateAmount: certificateAmount,
       from: _msgSender(),
       recipient: recipient,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -813,6 +821,20 @@ contract Market is
   }
 
   /**
+   * @notice Calculates the total quantity of ERC20 tokens required to make a purchase of the specified `amount` (in
+   * tonnes of carbon removals) without a transaction fee.
+   * @param amount The amount of carbon removals for the purchase.
+   * @return The total quantity of ERC20 tokens required to make the purchase, excluding the fee.
+   */
+  function calculateCheckoutTotalWithoutFee(uint256 amount)
+    external
+    view
+    returns (uint256)
+  {
+    return amount.mulDiv(_priceMultiple, 100);
+  }
+
+  /**
    * @notice Calculates the quantity of carbon removals being purchased given the purchase total, the price multiple,
    * and the percentage of that purchase total that is due to Nori as a transaction fee.
    * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
@@ -825,6 +847,17 @@ contract Market is
   {
     return
       purchaseTotal.mulDiv(10000, (100 + _noriFeePercentage) * _priceMultiple);
+  }
+
+  /**
+   * @notice Calculates the quantity of carbon removals being purchased given the purchase total and the price multiple.
+   * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
+   * @return certificateAmount Amount for the certificate.
+   */
+  function calculateCertificateAmountFromPurchaseTotalWithoutFee(
+    uint256 purchaseTotal
+  ) external view returns (uint256) {
+    return purchaseTotal.mulDiv(10000, 100 * _priceMultiple);
   }
 
   /**

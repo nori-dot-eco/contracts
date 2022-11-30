@@ -181,8 +181,9 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
       count: 10,
       list: true
     });
-    _purchaseAmount = 10 ether;
-    _expectedCertificateAmount = 10 ether;
+    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee(10 ether);
+    _expectedCertificateAmount = _market
+      .calculateCertificateAmountFromPurchaseTotalWithoutFee(_purchaseAmount);
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -366,8 +367,9 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
       count: 10,
       list: true
     });
-    _purchaseAmount = 10 ether;
-    _expectedCertificateAmount = 10 ether;
+    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee(10 ether);
+    _expectedCertificateAmount = _market
+      .calculateCertificateAmountFromPurchaseTotalWithoutFee(_purchaseAmount);
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
