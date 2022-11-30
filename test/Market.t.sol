@@ -148,7 +148,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
 contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
   UpgradeableMarket
 {
-  uint256 holdbackPercentage = 10;
+  uint8 holdbackPercentage = 10;
   uint256 checkoutTotal;
   uint256 rNoriToMint;
   SignedPermit signedPermit;
@@ -161,6 +161,11 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
   uint256 amount;
   uint256 fee;
   uint256 certificateAmount;
+
+  bytes32 constant RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR =
+    keccak256(
+      "RestrictedNORIERC20TransferSkipped(uint256,uint256,uint256,address,address)"
+    );
 
   event RestrictedNORIERC20TransferSkipped(
     uint256 indexed amount,
@@ -186,7 +191,8 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
-      list: true
+      list: true,
+      holdbackPercentage: holdbackPercentage
     });
 
     uint256 numberOfNRTsToPurchase = 1 ether;
@@ -205,15 +211,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
 
   function test() external {
     vm.startPrank(owner);
-    // TODO use recordLogs and getRecordedLogs!
-    vm.expectEmit(true, true, false, false);
-    emit RestrictedNORIERC20TransferSkipped({
-      amount: rNoriToMint,
-      removalId: removalId,
-      currentHoldbackPercentage: holdbackPercentage,
-      rNoriUnderlyingToken: address(_bpNori),
-      purchasingTokenAddress: address(_erc20)
-    });
+    vm.recordLogs();
     _market.swap(
       owner,
       checkoutTotal,
@@ -223,6 +221,28 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
       signedPermit.s
     );
     vm.stopPrank();
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bool containsTransferSkippedEventSelector = false;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR) {
+        containsTransferSkippedEventSelector = true;
+        assertEq(entries[i].topics[1], bytes32(uint256(rNoriToMint)));
+        assertEq(entries[i].topics[2], bytes32(uint256(_removalIds[0])));
+        (
+          uint256 currentHoldbackPercentage,
+          address rNoriUnderlyingToken,
+          address purchasingTokenAddress
+        ) = abi.decode(entries[i].data, (uint256, address, address));
+        assertEq(currentHoldbackPercentage, holdbackPercentage);
+        assertEq(rNoriUnderlyingToken, address(_bpNori));
+        assertEq(purchasingTokenAddress, address(_erc20));
+      }
+    }
+    assertEq(containsTransferSkippedEventSelector, true);
+    assertEq(_erc20.balanceOf(owner), 0);
+    assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal - fee);
+    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
+    assertEq(_erc20.balanceOf(address(_rNori)), 0);
   }
 }
 
