@@ -18,7 +18,7 @@
     "@openzeppelin/contracts-upgradeable": "4.7.3",
     "@openzeppelin/hardhat-defender": "^1.8.0",
     "@openzeppelin/hardhat-upgrades": "1.20.0",
-    "@tenderly/hardhat-tenderly": "^1.1.6",
+    "@tenderly/hardhat-tenderly": "^1.3.2",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.3",
     "@types/chai": "^4.3.3",
@@ -47,8 +47,12 @@
     "fireblocks-sdk": "^2.3.2",
     "fs-extra": "^10.1.0",
     "handlebars": "^4.7.7",
+<<<<<<< Updated upstream
     "hardhat": "2.11.2",
     "hardhat-contract-sizer": "^2.6.1",
+=======
+    "hardhat": "2.12.3",
+>>>>>>> Stashed changes
     "hardhat-deploy": "^0.11.15",
     "hardhat-ethernal": "^2.1.0",
     "hardhat-gas-reporter": "^1.0.9",
