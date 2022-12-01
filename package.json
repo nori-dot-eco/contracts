@@ -47,12 +47,8 @@
     "fireblocks-sdk": "^2.3.2",
     "fs-extra": "^10.1.0",
     "handlebars": "^4.7.7",
-<<<<<<< Updated upstream
-    "hardhat": "2.11.2",
-    "hardhat-contract-sizer": "^2.6.1",
-=======
     "hardhat": "2.12.3",
->>>>>>> Stashed changes
+    "hardhat-contract-sizer": "^2.6.1",
     "hardhat-deploy": "^0.11.15",
     "hardhat-ethernal": "^2.1.0",
     "hardhat-gas-reporter": "^1.0.9",
