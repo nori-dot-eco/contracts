@@ -144,7 +144,6 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
   }
 }
 
-// TODO move this test into checkout.int.t.sol
 contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
   UpgradeableMarket
 {
