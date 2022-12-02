@@ -152,10 +152,10 @@ uint256 _currentMarketBalance
 
 The current balance of across all removals listed in the market contract.
 
-### ContractAddressesRegistered
+### RegisterContractAddresses
 
 ```solidity
-event ContractAddressesRegistered(contract Market market, contract Certificate certificate)
+event RegisterContractAddresses(contract Market market, contract Certificate certificate)
 ```
 
 Emitted on updating the addresses for contracts.
@@ -165,10 +165,10 @@ Emitted on updating the addresses for contracts.
 | market      | contract Market      | The address of the new market contract.      |
 | certificate | contract Certificate | The address of the new certificate contract. |
 
-### RemovalReleased
+### ReleaseRemoval
 
 ```solidity
-event RemovalReleased(uint256 id, address fromAddress, uint256 amount)
+event ReleaseRemoval(uint256 id, address fromAddress, uint256 amount)
 ```
 
 Emitted on releasing a removal from a supplier, the market, or a certificate.
@@ -226,7 +226,7 @@ function registerContractAddresses(contract Market market, contract Certificate 
 Registers the market and certificate contracts so that they can be referenced in this contract.
 Called as part of the market contract system deployment process.
 
-<i>Emits a `ContractAddressesRegistered` event.
+<i>Emits a `RegisterContractAddresses` event.
 
 ##### Requirements:
 
@@ -625,7 +625,7 @@ function _releaseFromSupplier(uint256 id, uint256 amount) internal
 
 Burns `amount` of token ID `id` from the supplier address encoded in the ID.
 
-<i>Emits a `RemovalReleased` event.</i>
+<i>Emits a `ReleaseRemoval` event.</i>
 
 | Name   | Type    | Description           |
 | ------ | ------- | --------------------- |
@@ -640,7 +640,7 @@ function _releaseFromMarket(uint256 id, uint256 amount) internal
 
 Burns `amount` of token ID `id` from the Market's balance.
 
-<i>Emits a `RemovalReleased` event.</i>
+<i>Emits a `ReleaseRemoval` event.</i>
 
 | Name   | Type    | Description           |
 | ------ | ------- | --------------------- |
@@ -655,7 +655,7 @@ function _releaseFromCertificate(uint256 id, uint256 amount) internal
 
 Burns `amount` of token ID `id` from the Certificate's balance.
 
-<i>Emits a `RemovalReleased` event.</i>
+<i>Emits a `ReleaseRemoval` event.</i>
 
 | Name   | Type    | Description             |
 | ------ | ------- | ----------------------- |

@@ -153,7 +153,7 @@ contract Removal is
    * @param market The address of the new market contract.
    * @param certificate The address of the new certificate contract.
    */
-  event ContractAddressesRegistered(IMarket market, ICertificate certificate);
+  event RegisterContractAddresses(IMarket market, ICertificate certificate);
 
   /**
    * @notice Emitted when the holdback percentage is updated for a project.
@@ -168,7 +168,7 @@ contract Removal is
    * @param fromAddress The address the removal was released from.
    * @param amount The amount that was released.
    */
-  event RemovalReleased(
+  event ReleaseRemoval(
     uint256 indexed id,
     address indexed fromAddress,
     uint256 amount
@@ -221,7 +221,7 @@ contract Removal is
   /**
    * @notice Registers the market and certificate contracts so that they can be referenced in this contract.
    * Called as part of the market contract system deployment process.
-   * @dev Emits a `ContractAddressesRegistered` event.
+   * @dev Emits a `RegisterContractAddresses` event.
    *
    * ##### Requirements:
    *
@@ -237,10 +237,7 @@ contract Removal is
   {
     _market = market;
     _certificate = certificate;
-    emit ContractAddressesRegistered({
-      market: market,
-      certificate: certificate
-    });
+    emit RegisterContractAddresses({market: market, certificate: certificate});
   }
 
   /**
@@ -733,30 +730,26 @@ contract Removal is
 
   /**
    * @notice Burns `amount` of token ID `id` from the supplier address encoded in the ID.
-   * @dev Emits a `RemovalReleased` event.
+   * @dev Emits a `ReleaseRemoval` event.
    * @param id The token ID to burn.
    * @param amount The amount to burn.
    */
   function _releaseFromSupplier(uint256 id, uint256 amount) internal {
     address supplierAddress = RemovalIdLib.supplierAddress({removalId: id});
     super._burn({from: supplierAddress, id: id, amount: amount});
-    emit RemovalReleased({
-      id: id,
-      fromAddress: supplierAddress,
-      amount: amount
-    });
+    emit ReleaseRemoval({id: id, fromAddress: supplierAddress, amount: amount});
   }
 
   /**
    * @notice Burns `amount` of token ID `id` from the Market's balance.
-   * @dev Emits a `RemovalReleased` event.
+   * @dev Emits a `ReleaseRemoval` event.
    * @param id The token ID to burn.
    * @param amount The amount to burn.
    */
   function _releaseFromMarket(uint256 id, uint256 amount) internal {
     super._burn({from: this.getMarketAddress(), id: id, amount: amount});
     _market.release(id, amount);
-    emit RemovalReleased({
+    emit ReleaseRemoval({
       id: id,
       fromAddress: this.getMarketAddress(),
       amount: amount
@@ -765,14 +758,14 @@ contract Removal is
 
   /**
    * @notice Burns `amount` of token ID `id` from the Certificate's balance.
-   * @dev Emits a `RemovalReleased` event.
+   * @dev Emits a `ReleaseRemoval` event.
    * @param id The removal ID to burn.
    * @param amount The amount to burn.
    */
   function _releaseFromCertificate(uint256 id, uint256 amount) internal {
     address certificateAddress_ = this.getCertificateAddress();
     super._burn({from: certificateAddress_, id: id, amount: amount});
-    emit RemovalReleased({
+    emit ReleaseRemoval({
       id: id,
       fromAddress: certificateAddress_,
       amount: amount

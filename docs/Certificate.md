@@ -91,10 +91,10 @@ Emitted when a batch of removals is received to create a certificate.
 | removalIds     | uint256[] | The removal IDs used for the certificate.               |
 | removalAmounts | uint256[] | The amounts from each removal used for the certificate. |
 
-### ContractAddressesRegistered
+### RegisterContractAddresses
 
 ```solidity
-event ContractAddressesRegistered(contract Removal removal)
+event RegisterContractAddresses(contract Removal removal)
 ```
 
 Emitted on updating the addresses for contracts.
@@ -133,7 +133,7 @@ function registerContractAddresses(contract Removal removal) external
 
 Register the address of the Removal contract.
 
-<i>This function emits a `ContractAddressesRegistered` event.
+<i>This function emits a `RegisterContractAddresses` event.
 
 ##### Requirements:
 

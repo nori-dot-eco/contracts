@@ -109,7 +109,7 @@ contract Certificate is
    * @notice Emitted on updating the addresses for contracts.
    * @param removal The address of the new Removal contract.
    */
-  event ContractAddressesRegistered(IRemoval removal);
+  event RegisterContractAddresses(IRemoval removal);
 
   /**
    * @notice Locks the contract, preventing any future re-initialization.
@@ -146,7 +146,7 @@ contract Certificate is
 
   /**
    * @notice Register the address of the Removal contract.
-   * @dev This function emits a `ContractAddressesRegistered` event.
+   * @dev This function emits a `RegisterContractAddresses` event.
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
@@ -159,7 +159,7 @@ contract Certificate is
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     _removal = removal;
-    emit ContractAddressesRegistered({removal: removal});
+    emit RegisterContractAddresses({removal: removal});
   }
 
   /**

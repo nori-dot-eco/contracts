@@ -158,10 +158,10 @@ bytes32 ALLOWLIST_ROLE
 
 Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
 
-### PriorityRestrictedThresholdSet
+### SetPriorityRestrictedThreshold
 
 ```solidity
-event PriorityRestrictedThresholdSet(uint256 threshold)
+event SetPriorityRestrictedThreshold(uint256 threshold)
 ```
 
 Emitted on setting of `_priorityRestrictedThreshold`.
@@ -170,10 +170,10 @@ Emitted on setting of `_priorityRestrictedThreshold`.
 | --------- | ------- | ----------------------------------------------------- |
 | threshold | uint256 | The updated threshold for priority restricted supply. |
 
-### ContractAddressesRegistered
+### RegisterContractAddresses
 
 ```solidity
-event ContractAddressesRegistered(contract Removal removal, contract Certificate certificate, contract BridgedPolygonNORI bridgedPolygonNORI, contract RestrictedNORI restrictedNORI)
+event RegisterContractAddresses(contract Removal removal, contract Certificate certificate, contract BridgedPolygonNORI bridgedPolygonNORI, contract RestrictedNORI restrictedNORI)
 ```
 
 Emitted on updating the addresses for contracts.
@@ -185,10 +185,10 @@ Emitted on updating the addresses for contracts.
 | bridgedPolygonNORI | contract BridgedPolygonNORI | The address of the new BridgedPolygonNORI contract. |
 | restrictedNORI     | contract RestrictedNORI     | The address of the new RestrictedNORI contract.     |
 
-### NoriFeeWalletAddressUpdated
+### UpdateNoriFeeWalletAddress
 
 ```solidity
-event NoriFeeWalletAddressUpdated(address updatedWalletAddress)
+event UpdateNoriFeeWalletAddress(address updatedWalletAddress)
 ```
 
 Emitted on setting of `_noriFeeWalletAddress`.
@@ -197,10 +197,10 @@ Emitted on setting of `_noriFeeWalletAddress`.
 | -------------------- | ------- | ----------------------------------------- |
 | updatedWalletAddress | address | The updated address of Nori's fee wallet. |
 
-### NoriFeePercentageUpdated
+### UpdateNoriFeePercentage
 
 ```solidity
-event NoriFeePercentageUpdated(uint256 updatedFeePercentage)
+event UpdateNoriFeePercentage(uint256 updatedFeePercentage)
 ```
 
 Emitted on setting of `_noriFeePercentage`.
@@ -209,10 +209,10 @@ Emitted on setting of `_noriFeePercentage`.
 | -------------------- | ------- | ------------------------------------ |
 | updatedFeePercentage | uint256 | The updated fee percentage for Nori. |
 
-### SupplierAdded
+### AddSupplier
 
 ```solidity
-event SupplierAdded(address added, address next, address previous)
+event AddSupplier(address added, address next, address previous)
 ```
 
 Emitted when adding a supplier to `_listedSupply`.
@@ -223,10 +223,10 @@ Emitted when adding a supplier to `_listedSupply`.
 | next     | address | The next of the supplier that was added, updated to point to `addedSupplierAddress` as previous.         |
 | previous | address | the previous address of the supplier that was added, updated to point to `addedSupplierAddress` as next. |
 
-### SupplierRemoved
+### RemoveSupplier
 
 ```solidity
-event SupplierRemoved(address removed, address next, address previous)
+event RemoveSupplier(address removed, address next, address previous)
 ```
 
 Emitted when removing a supplier from `_listedSupply`.
@@ -237,10 +237,10 @@ Emitted when removing a supplier from `_listedSupply`.
 | next     | address | The next of the supplier that was removed, updated to point to `previous` as previous.     |
 | previous | address | the previous address of the supplier that was removed, updated to point to `next` as next. |
 
-### RemovalAdded
+### AddRemoval
 
 ```solidity
-event RemovalAdded(uint256 id, address supplierAddress)
+event AddRemoval(uint256 id, address supplierAddress)
 ```
 
 Emitted when a removal is added to `_listedSupply`.
@@ -310,7 +310,7 @@ Register the market contract's asset addresses.
 <i>Register the Removal, Certificate, BridgedPolygonNORI, and RestrictedNORI contracts so that they
 can be referenced in this contract. Called as part of the market contract system deployment process.
 
-Emits a `ContractAddressesRegistered` event.
+Emits a `RegisterContractAddresses` event.
 
 ##### Requirements:
 
@@ -333,7 +333,7 @@ function setPriorityRestrictedThreshold(uint256 threshold) external
 Sets the current value of the priority restricted threshold, which is the amount of inventory
 that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
 
-<i>Emits a `PriorityRestrictedThresholdSet` event.
+<i>Emits a `SetPriorityRestrictedThreshold` event.
 
 ##### Requirements:
 
@@ -353,7 +353,7 @@ function setNoriFeePercentage(uint256 noriFeePercentage_) external
 Sets the fee percentage (as an integer) which is the percentage of each purchase that will be paid to Nori
 as the marketplace operator.
 
-<i>Emits a `NoriFeePercentageUpdated` event.
+<i>Emits a `UpdateNoriFeePercentage` event.
 
 ##### Requirements:
 
@@ -373,7 +373,7 @@ function setNoriFeeWallet(address noriFeeWalletAddress) external
 Sets Nori's fee wallet address (as an integer) which is the address to which the
 marketplace operator fee will be routed during each purchase.
 
-<i>Emits a `NoriFeeWalletAddressUpdated` event.
+<i>Emits a `UpdateNoriFeeWalletAddress` event.
 
 ##### Requirements:
 
@@ -737,7 +737,7 @@ Add a removal to the list of active supply.
 <i>Adds the specified removal ID to the `_listedSupply` data structure. If this is the supplier's
 first listed removal, the supplier is also added to the active supplier queue.
 
-Emits a `RemovalAdded` event.</i>
+Emits a `AddRemoval` event.</i>
 
 | Name      | Type    | Description                   |
 | --------- | ------- | ----------------------------- |
@@ -865,7 +865,7 @@ to itself as next and previous. When a new supplier is added, at the position of
 the previous pointer of the current supplier to point to the new supplier, and update the next pointer of the
 previous supplier to the new supplier.
 
-Emits a `SupplierAdded` event.</i>
+Emits a `AddSupplier` event.</i>
 
 | Name               | Type    | Description                            |
 | ------------------ | ------- | -------------------------------------- |
@@ -883,7 +883,7 @@ supplier to be removed, update the previous supplier to point to the next of the
 the removed supplier to point to the previous address of the remove supplier. Then, set the next and previous
 pointers of the removed supplier to the 0x address.
 
-Emits a `SupplierRemoved` event.</i>
+Emits a `RemoveSupplier` event.</i>
 
 | Name             | Type    | Description                           |
 | ---------------- | ------- | ------------------------------------- |

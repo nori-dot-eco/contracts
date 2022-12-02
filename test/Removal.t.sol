@@ -987,9 +987,9 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
   bytes32 constant TRANSFER_SINGLE_EVENT_SELECTOR =
     keccak256("TransferSingle(address,address,address,uint256,uint256)");
   bytes32 constant REMOVAL_RELEASED_EVENT_SELECTOR =
-    keccak256("RemovalReleased(uint256,address,uint256)");
+    keccak256("ReleaseRemoval(uint256,address,uint256)");
   bytes32 constant SUPPLIER_REMOVED_EVENT_SELECTOR =
-    keccak256("SupplierRemoved(address,address,address)");
+    keccak256("RemoveSupplier(address,address,address)");
   bytes32[] expectedReleaseEventSelectors = [
     TRANSFER_SINGLE_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR,
@@ -1053,7 +1053,7 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
   }
 
   /**
-   * @dev Assert that the `TransferSingle` and `RemovalReleased` events are emitted in alternation with the
+   * @dev Assert that the `TransferSingle` and `ReleaseRemoval` events are emitted in alternation with the
    * correct arguments (e.g., every second call to each event respectively iterates through `_expectedOwners` and
    * `_expectedReleasedBalances`)
    */

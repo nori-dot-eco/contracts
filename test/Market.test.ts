@@ -45,7 +45,7 @@ describe('Market', () => {
     });
   });
   describe('events', () => {
-    describe('PriorityRestrictedThresholdSet', () => {
+    describe('SetPriorityRestrictedThreshold', () => {
       it('should be emitted when priorityRestrictedThreshold is updated', async () => {
         const role = 'DEFAULT_ADMIN_ROLE';
         const accountWithRole = 'admin';
@@ -60,7 +60,7 @@ describe('Market', () => {
             .connect(namedSigners[accountWithRole])
             .setPriorityRestrictedThreshold(newThreshold)
         )
-          .to.emit(market, 'PriorityRestrictedThresholdSet')
+          .to.emit(market, 'SetPriorityRestrictedThreshold')
           .withArgs(newThreshold);
       });
     });
@@ -79,11 +79,11 @@ describe('Market', () => {
             .connect(namedSigners[accountWithRole])
             .setNoriFeeWallet(newNoriFeeWalletAddress)
         )
-          .to.emit(market, 'NoriFeeWalletAddressUpdated')
+          .to.emit(market, 'UpdateNoriFeeWalletAddress')
           .withArgs(newNoriFeeWalletAddress);
       });
     });
-    describe('NoriFeePercentageUpdated', () => {
+    describe('UpdateNoriFeePercentage', () => {
       it('should be emitted when noriFeePercentage is updated', async () => {
         const role = 'DEFAULT_ADMIN_ROLE';
         const accountWithRole = 'admin';
@@ -98,24 +98,24 @@ describe('Market', () => {
             .connect(namedSigners[accountWithRole])
             .setNoriFeePercentage(newNoriFeePercentage)
         )
-          .to.emit(market, 'NoriFeePercentageUpdated')
+          .to.emit(market, 'UpdateNoriFeePercentage')
           .withArgs(newNoriFeePercentage);
       });
     });
     // describe('CurrentSupplierAddressChanged', () => {
     //   it.todo('should be emitted when _currentSupplierAddress is updated');
     // });
-    // describe('SupplierAdded', () => {
+    // describe('AddSupplier', () => {
     //   it.todo(
     //     'should be emitted when a supplier is added to _listedSupply with _addActiveSupplier'
     //   );
     // });
-    // describe('SupplierRemoved', () => {
+    // describe('RemoveSupplier', () => {
     //   it.todo(
     //     'should be emitted when a supplier is removed from _listedSupply with _removeActiveSupplier'
     //   );
     // });
-    // describe('RemovalAdded', () => {
+    // describe('AddRemoval', () => {
     //   it.todo(
     //     'should be emitted when a removal is added to _listedSupply with _addActiveRemoval'
     //   );
@@ -143,7 +143,7 @@ describe('Market', () => {
             .connect(namedSigners[accountWithRole])
             .setPriorityRestrictedThreshold(newThreshold)
         )
-          .to.emit(market, 'PriorityRestrictedThresholdSet')
+          .to.emit(market, 'SetPriorityRestrictedThreshold')
           .withArgs(newThreshold);
         expect(await market.getPriorityRestrictedThreshold()).to.equal(
           newThreshold
