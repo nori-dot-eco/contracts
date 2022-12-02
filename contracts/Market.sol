@@ -1227,23 +1227,38 @@ contract Market is
           10000
         );
         unrestrictedSupplierFee -= restrictedSupplierFee;
-        try
-          _restrictedNORI.mint({
+        if (
+          _restrictedNORI.getUnderlyingTokenAddress() !=
+          address(_purchasingToken)
+        ) {
+          emit RestrictedNORIERC20TransferSkipped({
             amount: restrictedSupplierFee,
-            removalId: removalIds[i]
-          })
-        {} catch {
-          emit RestrictedNORIMintFailed({
-            amount: restrictedSupplierFee,
-            removalId: removalIds[i]
+            removalId: removalIds[i],
+            currentHoldbackPercentage: holdbackPercentage,
+            rNoriUnderlyingToken: _restrictedNORI.getUnderlyingTokenAddress(),
+            purchasingTokenAddress: address(_purchasingToken)
+          });
+          unrestrictedSupplierFee =
+            unrestrictedSupplierFee +
+            restrictedSupplierFee; // transfer all purchasing token to supplier
+        } else {
+          try
+            _restrictedNORI.mint({
+              amount: restrictedSupplierFee,
+              removalId: removalIds[i]
+            })
+          {} catch {
+            emit RestrictedNORIMintFailed({
+              amount: restrictedSupplierFee,
+              removalId: removalIds[i]
+            });
+          }
+          _purchasingToken.transferFrom({
+            from: from,
+            to: address(_restrictedNORI),
+            amount: restrictedSupplierFee
           });
         }
-
-        _purchasingToken.transferFrom({
-          from: from,
-          to: address(_restrictedNORI),
-          amount: restrictedSupplierFee
-        });
       }
       _purchasingToken.transferFrom({
         from: from,
