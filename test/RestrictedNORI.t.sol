@@ -213,5 +213,11 @@ contract RestrictedNORI_transfers_revert is UpgradeableMarket {
   }
 }
 
+contract RestrictedNORI_getUnderlyingTokenAddress is UpgradeableMarket {
+  function test() external {
+    assertEq(_rNori.getUnderlyingTokenAddress(), address(_bpNori));
+  }
+}
+
 // todo createSchedule
 // todo _createSchedule

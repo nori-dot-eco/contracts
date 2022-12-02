@@ -727,6 +727,14 @@ contract RestrictedNORI is
   }
 
   /**
+   * @notice Get the address of the underlying ERC20 token being wrapped by this contract.
+   * @return The address of the underlying ERC20 token being wrapped by this contract.
+   */
+  function getUnderlyingTokenAddress() public view returns (address) {
+    return address(_underlyingToken);
+  }
+
+  /**
    * @notice Get a summary for a schedule.
    * @param scheduleId The token ID of the schedule for which to retrieve details.
    * @return Returns the schedule summary.
