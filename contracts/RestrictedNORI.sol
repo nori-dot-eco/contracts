@@ -214,7 +214,7 @@ contract RestrictedNORI is
    * @param scheduleOwners The addresses of the schedule owners from which tokens were revoked.
    * @param quantitiesBurned The quantities of tokens burned from each schedule owner.
    */
-  event TokensRevoked(
+  event RevokeTokens(
     uint256 indexed atTime,
     uint256 indexed scheduleId,
     uint256 indexed removalId,
@@ -230,7 +230,7 @@ contract RestrictedNORI is
    * @param scheduleId The ID of the schedule from which tokens were withdrawn.
    * @param quantity The quantity of tokens withdrawn.
    */
-  event TokensClaimed(
+  event ClaimTokens(
     address indexed from,
     address indexed to,
     uint256 indexed scheduleId,
@@ -292,7 +292,7 @@ contract RestrictedNORI is
    * treasury or an address of Nori's choosing (the `toAccount` address).
    * The `claimedAmount` is not changed because this is not a claim operation.
    *
-   * Emits a `TokensRevoked` event.
+   * Emits a `RevokeTokens` event.
    *
    * ##### Requirements:
    *
@@ -367,7 +367,7 @@ contract RestrictedNORI is
       ] += quantitiesToBurnForHolders[i];
     }
     schedule.totalQuantityRevoked += quantityToRevoke;
-    emit TokensRevoked({
+    emit RevokeTokens({
       atTime: block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
       removalId: removalId,
       scheduleId: projectId,
@@ -470,7 +470,7 @@ contract RestrictedNORI is
    * balance to `recipient`'s balance.
    * Enforcement of the availability of claimable tokens for the `_burn` call happens in `_beforeTokenTransfer`.
    *
-   * Emits a `TokensClaimed` event.
+   * Emits a `ClaimTokens` event.
    *
    * ##### Requirements:
    *
@@ -489,7 +489,7 @@ contract RestrictedNORI is
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     schedule.totalClaimedAmount += amount;
     schedule.claimedAmountsByAddress[_msgSender()] += amount;
-    emit TokensClaimed({
+    emit ClaimTokens({
       from: _msgSender(),
       to: recipient,
       scheduleId: scheduleId,

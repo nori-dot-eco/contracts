@@ -37,7 +37,7 @@ abstract contract MarketBalanceTestHelper is UpgradeableMarket {
       "Expected availableSupply to equal _expectedMarketSupply"
     );
     assertEq(
-      _market.priorityRestrictedThreshold(),
+      _market.getPriorityRestrictedThreshold(),
       _expectedPriorityRestrictedThreshold,
       "Expected availableSupply to equal _expectedMarketSupply"
     );
@@ -83,7 +83,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
   uint256 removalId;
   ERC1155Recipient recipient = new ERC1155Recipient();
 
-  event RestrictedNORIMintFailed(
+  event RestrictedNORIMintFailure(
     uint256 indexed amount,
     uint256 indexed removalId
   );
@@ -132,7 +132,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
   function test() external {
     vm.prank(owner);
     vm.expectEmit(true, true, false, false);
-    emit RestrictedNORIMintFailed(rNoriToMint, removalId);
+    emit RestrictedNORIMintFailure(rNoriToMint, removalId);
     _market.swap(
       owner,
       checkoutTotal,
@@ -163,10 +163,10 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
 
   bytes32 constant RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR =
     keccak256(
-      "RestrictedNORIERC20TransferSkipped(uint256,uint256,uint256,address,address)"
+      "SkipRestrictedNORIERC20Transfer(uint256,uint256,uint256,address,address)"
     );
 
-  event RestrictedNORIERC20TransferSkipped(
+  event SkipRestrictedNORIERC20Transfer(
     uint256 indexed amount,
     uint256 indexed removalId,
     uint256 currentHoldbackPercentage,
@@ -240,7 +240,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     assertEq(containsTransferSkippedEventSelector, true);
     assertEq(_erc20.balanceOf(owner), 0);
     assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal - fee);
-    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
+    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
     assertEq(_erc20.balanceOf(address(_rNori)), 0);
   }
 }
@@ -264,10 +264,10 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
 
   bytes32 constant RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR =
     keccak256(
-      "RestrictedNORIERC20TransferSkipped(uint256,uint256,uint256,address,address)"
+      "SkipRestrictedNORIERC20Transfer(uint256,uint256,uint256,address,address)"
     );
 
-  event RestrictedNORIERC20TransferSkipped(
+  event SkipRestrictedNORIERC20Transfer(
     uint256 indexed amount,
     uint256 indexed removalId,
     uint256 currentHoldbackPercentage,
@@ -343,7 +343,7 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     assertEq(containsTransferSkippedEventSelector, true);
     assertEq(_erc20.balanceOf(owner), 0);
     assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal - fee);
-    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
+    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
     assertEq(_erc20.balanceOf(address(_rNori)), 0);
   }
 }
@@ -1091,7 +1091,7 @@ contract Market__setPurchasingToken is NonUpgradeableMarket {
 
 contract Market_purchasingTokenAddress is UpgradeableMarket {
   function test() external {
-    assertEq(_market.purchasingTokenAddress(), address(_bpNori));
+    assertEq(_market.getPurchasingTokenAddress(), address(_bpNori));
   }
 }
 

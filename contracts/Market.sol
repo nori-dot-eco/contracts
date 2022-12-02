@@ -162,7 +162,7 @@ contract Market is
    * @notice Emitted on setting of `_priorityRestrictedThreshold`.
    * @param threshold The updated threshold for priority restricted supply.
    */
-  event PriorityRestrictedThresholdSet(uint256 threshold);
+  event SetPriorityRestrictedThreshold(uint256 threshold);
 
   /**
    * @notice Emitted on setting of `_purchasingToken`.
@@ -183,7 +183,7 @@ contract Market is
    * @param purchasingToken The address of the new IERC20WithPermit contract.
    * @param restrictedNORI The address of the new RestrictedNORI contract.
    */
-  event ContractAddressesRegistered(
+  event RegisterContractAddresses(
     Removal removal,
     Certificate certificate,
     IERC20WithPermit purchasingToken,
@@ -194,13 +194,13 @@ contract Market is
    * @notice Emitted on setting of `_noriFeeWalletAddress`.
    * @param updatedWalletAddress The updated address of Nori's fee wallet.
    */
-  event NoriFeeWalletAddressUpdated(address updatedWalletAddress);
+  event UpdateNoriFeeWalletAddress(address updatedWalletAddress);
 
   /**
    * @notice Emitted on setting of `_noriFeePercentage`.
    * @param updatedFeePercentage The updated fee percentage for Nori.
    */
-  event NoriFeePercentageUpdated(uint256 updatedFeePercentage);
+  event UpdateNoriFeePercentage(uint256 updatedFeePercentage);
 
   /**
    * @notice Emitted when adding a supplier to `_listedSupply`.
@@ -209,7 +209,7 @@ contract Market is
    * @param previous the previous address of the supplier that was added, updated to point to `addedSupplierAddress`
    * as next.
    */
-  event SupplierAdded(
+  event AddSupplier(
     address indexed added,
     address indexed next,
     address indexed previous
@@ -221,7 +221,7 @@ contract Market is
    * @param next The next of the supplier that was removed, updated to point to `previous` as previous.
    * @param previous the previous address of the supplier that was removed, updated to point to `next` as next.
    */
-  event SupplierRemoved(
+  event RemoveSupplier(
     address indexed removed,
     address indexed next,
     address indexed previous
@@ -232,7 +232,7 @@ contract Market is
    * @param id The removal that was added.
    * @param supplierAddress The address of the supplier for the removal.
    */
-  event RemovalAdded(uint256 indexed id, address indexed supplierAddress);
+  event AddRemoval(uint256 indexed id, address indexed supplierAddress);
 
   /**
    * @notice Emitted when the call to RestrictedNORI.mint fails during a purchase.
@@ -240,7 +240,7 @@ contract Market is
    * @param amount The amount of RestrictedNORI in the mint attempt.
    * @param removalId The removal id in the mint attempt.
    */
-  event RestrictedNORIMintFailed(
+  event RestrictedNORIMintFailure(
     uint256 indexed amount,
     uint256 indexed removalId
   );
@@ -254,7 +254,7 @@ contract Market is
    * @param rNoriUnderlyingToken The address of the token contract that RestrictedNORI was configured to wrap.
    * @param purchasingTokenAddress The address of the ERC20 token that would have been transferred to RestrictedNORI.
    */
-  event RestrictedNORIERC20TransferSkipped(
+  event SkipRestrictedNORIERC20Transfer(
     uint256 indexed amount,
     uint256 indexed removalId,
     uint256 currentHoldbackPercentage,
@@ -354,7 +354,7 @@ contract Market is
    * @dev Register the Removal, Certificate, IERC20WithPermit, and RestrictedNORI contracts so that they
    * can be referenced in this contract. Called as part of the market contract system deployment process.
    *
-   * Emits a `ContractAddressesRegistered` event.
+   * Emits a `RegisterContractAddresses` event.
    *
    * ##### Requirements:
    *
@@ -376,7 +376,7 @@ contract Market is
     _certificate = certificate;
     _purchasingToken = purchasingToken;
     _restrictedNORI = restrictedNORI;
-    emit ContractAddressesRegistered({
+    emit RegisterContractAddresses({
       removal: _removal,
       certificate: _certificate,
       purchasingToken: _purchasingToken,
@@ -408,7 +408,7 @@ contract Market is
   /**
    * @notice Sets the current value of the priority restricted threshold, which is the amount of inventory
    * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
-   * @dev Emits a `PriorityRestrictedThresholdSet` event.
+   * @dev Emits a `SetPriorityRestrictedThreshold` event.
    *
    * ##### Requirements:
    *
@@ -422,13 +422,13 @@ contract Market is
     onlyRole(MARKET_ADMIN_ROLE)
   {
     _priorityRestrictedThreshold = threshold;
-    emit PriorityRestrictedThresholdSet({threshold: threshold});
+    emit SetPriorityRestrictedThreshold({threshold: threshold});
   }
 
   /**
    * @notice Sets the fee percentage (as an integer) which is the percentage of each purchase that will be paid to Nori
    * as the marketplace operator.
-   * @dev Emits a `NoriFeePercentageUpdated` event.
+   * @dev Emits a `UpdateNoriFeePercentage` event.
    *
    * ##### Requirements:
    *
@@ -445,13 +445,13 @@ contract Market is
       revert InvalidNoriFeePercentage();
     }
     _noriFeePercentage = noriFeePercentage_;
-    emit NoriFeePercentageUpdated({updatedFeePercentage: noriFeePercentage_});
+    emit UpdateNoriFeePercentage({updatedFeePercentage: noriFeePercentage_});
   }
 
   /**
    * @notice Sets Nori's fee wallet address (as an integer) which is the address to which the
    * marketplace operator fee will be routed during each purchase.
-   * @dev Emits a `NoriFeeWalletAddressUpdated` event.
+   * @dev Emits a `UpdateNoriFeeWalletAddress` event.
    *
    * ##### Requirements:
    *
@@ -468,7 +468,7 @@ contract Market is
       revert NoriFeeWalletZeroAddress();
     }
     _noriFeeWallet = noriFeeWalletAddress;
-    emit NoriFeeWalletAddressUpdated({
+    emit UpdateNoriFeeWalletAddress({
       updatedWalletAddress: noriFeeWalletAddress
     });
   }
@@ -792,7 +792,7 @@ contract Market is
    * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
    * @return The threshold of supply allowed for priority customers only.
    */
-  function priorityRestrictedThreshold() external view returns (uint256) {
+  function getPriorityRestrictedThreshold() external view returns (uint256) {
     return _priorityRestrictedThreshold;
   }
 
@@ -801,7 +801,7 @@ contract Market is
    * each purchase that will be paid to Nori as the marketplace operator.
    * @return The percentage of each purchase that will be paid to Nori as the marketplace operator.
    */
-  function noriFeePercentage() external view returns (uint256) {
+  function getNoriFeePercentage() external view returns (uint256) {
     return _noriFeePercentage;
   }
 
@@ -809,7 +809,7 @@ contract Market is
    * @notice Returns the address to which the marketplace operator fee will be routed during each purchase.
    * @return The wallet address used for Nori's fees.
    */
-  function noriFeeWallet() external view returns (address) {
+  function getNoriFeeWallet() external view returns (address) {
     return _noriFeeWallet;
   }
 
@@ -882,7 +882,7 @@ contract Market is
    * @notice Get the Removal contract address.
    * @return Returns the address of the Removal contract.
    */
-  function removalAddress() external view returns (address) {
+  function getRemovalAddress() external view returns (address) {
     return address(_removal);
   }
 
@@ -890,7 +890,7 @@ contract Market is
    * @notice Get the RestrictedNORI contract address.
    * @return Returns the address of the RestrictedNORI contract.
    */
-  function restrictedNoriAddress() external view override returns (address) {
+  function getRestrictedNoriAddress() external view override returns (address) {
     return address(_restrictedNORI);
   }
 
@@ -898,7 +898,7 @@ contract Market is
    * @notice Get the Certificate contract address.
    * @return Returns the address of the Certificate contract.
    */
-  function certificateAddress() external view returns (address) {
+  function getCertificateAddress() external view returns (address) {
     return address(_certificate);
   }
 
@@ -906,7 +906,7 @@ contract Market is
    * @notice Get the contract address of the IERC20WithPermit token used to purchase from this market.
    * @return Returns the address of the IERC20WithPermit contract.
    */
-  function purchasingTokenAddress() external view returns (address) {
+  function getPurchasingTokenAddress() external view returns (address) {
     return address(_purchasingToken);
   }
 
@@ -1037,7 +1037,7 @@ contract Market is
           _restrictedNORI.getUnderlyingTokenAddress() !=
           address(_purchasingToken)
         ) {
-          emit RestrictedNORIERC20TransferSkipped({
+          emit SkipRestrictedNORIERC20Transfer({
             amount: restrictedSupplierFee,
             removalId: removalIds[i],
             currentHoldbackPercentage: holdbackPercentage,
@@ -1054,7 +1054,7 @@ contract Market is
               removalId: removalIds[i]
             })
           {} catch {
-            emit RestrictedNORIMintFailed({
+            emit RestrictedNORIMintFailure({
               amount: restrictedSupplierFee,
               removalId: removalIds[i]
             });
@@ -1233,7 +1233,7 @@ contract Market is
           _restrictedNORI.getUnderlyingTokenAddress() !=
           address(_purchasingToken)
         ) {
-          emit RestrictedNORIERC20TransferSkipped({
+          emit SkipRestrictedNORIERC20Transfer({
             amount: restrictedSupplierFee,
             removalId: removalIds[i],
             currentHoldbackPercentage: holdbackPercentage,
@@ -1250,7 +1250,7 @@ contract Market is
               removalId: removalIds[i]
             })
           {} catch {
-            emit RestrictedNORIMintFailed({
+            emit RestrictedNORIMintFailure({
               amount: restrictedSupplierFee,
               removalId: removalIds[i]
             });
@@ -1288,7 +1288,7 @@ contract Market is
    * @dev Adds the specified removal ID to the `_listedSupply` data structure. If this is the supplier's
    * first listed removal, the supplier is also added to the active supplier queue.
    *
-   * Emits a `RemovalAdded` event.
+   * Emits a `AddRemoval` event.
    * @param removalId The ID of the removal to add.
    */
   function _addActiveRemoval(uint256 removalId) internal {
@@ -1301,7 +1301,7 @@ contract Market is
     ) {
       _addActiveSupplier({newSupplierAddress: supplierAddress});
     }
-    emit RemovalAdded({id: removalId, supplierAddress: supplierAddress});
+    emit AddRemoval({id: removalId, supplierAddress: supplierAddress});
   }
 
   /**
@@ -1534,7 +1534,7 @@ contract Market is
    * the previous pointer of the current supplier to point to the new supplier, and update the next pointer of the
    * previous supplier to the new supplier.
    *
-   * Emits a `SupplierAdded` event.
+   * Emits a `AddSupplier` event.
    * @param newSupplierAddress the address of the new supplier to add
    */
   function _addActiveSupplier(address newSupplierAddress) private {
@@ -1545,7 +1545,7 @@ contract Market is
         previous: newSupplierAddress,
         next: newSupplierAddress
       });
-      emit SupplierAdded({
+      emit AddSupplier({
         added: newSupplierAddress,
         next: newSupplierAddress,
         previous: newSupplierAddress
@@ -1570,7 +1570,7 @@ contract Market is
        * Update the current supplier to point to the new supplier as previous.
        */
       _suppliers[_currentSupplierAddress].previous = newSupplierAddress;
-      emit SupplierAdded({
+      emit AddSupplier({
         added: newSupplierAddress,
         next: _currentSupplierAddress,
         previous: previousOfCurrentSupplierAddress
@@ -1585,7 +1585,7 @@ contract Market is
    * the removed supplier to point to the previous address of the remove supplier. Then, set the next and previous
    * pointers of the removed supplier to the 0x address.
    *
-   * Emits a `SupplierRemoved` event.
+   * Emits a `RemoveSupplier` event.
    * @param supplierToRemove the address of the supplier to remove
    */
   function _removeActiveSupplier(address supplierToRemove) private {
@@ -1622,7 +1622,7 @@ contract Market is
       next: address(0),
       previous: address(0)
     });
-    emit SupplierRemoved({
+    emit RemoveSupplier({
       removed: supplierToRemove,
       next: nextOfRemovedSupplierAddress,
       previous: previousOfRemovedSupplierAddress

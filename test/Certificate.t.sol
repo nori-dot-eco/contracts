@@ -44,7 +44,7 @@ contract Certificate_burn is UpgradeableCertificate {
       1,
       "Total supply should be incremented after minting"
     );
-    assertEq(_certificate.purchaseAmount(0), 1 ether);
+    assertEq(_certificate.getPurchaseAmount(0), 1 ether);
   }
 
   function test() external {
@@ -65,7 +65,7 @@ contract Certificate_burn is UpgradeableCertificate {
       "Certificate was not burned"
     );
     assertEq(
-      _certificate.purchaseAmount(0),
+      _certificate.getPurchaseAmount(0),
       1 ether,
       "Certificate purchase amount should never change"
     );
@@ -94,8 +94,8 @@ contract Certificate_burn is UpgradeableCertificate {
       _certificateId + 1,
       "Total supply should be incremented after minting"
     );
-    assertEq(_certificate.purchaseAmount(0), 1 ether);
-    assertEq(_certificate.purchaseAmount(1), 1 ether);
+    assertEq(_certificate.getPurchaseAmount(0), 1 ether);
+    assertEq(_certificate.getPurchaseAmount(1), 1 ether);
   }
 
   function test_reverts_when_paused() external {

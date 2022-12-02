@@ -522,7 +522,7 @@ describe('RestrictedNORI', () => {
             .connect(hre.namedSigners.supplier)
             .withdrawFromSchedule(supplier, projectId, claimableBalance)
         )
-          .to.emit(rNori, 'TokensClaimed')
+          .to.emit(rNori, 'ClaimTokens')
           .withArgs(supplier, supplier, projectId, claimableBalance);
         expect(await rNori.totalSupply(projectId)).to.equal(
           removalAmounts[0].sub(claimableBalance)
@@ -641,7 +641,7 @@ describe('RestrictedNORI', () => {
             .connect(hre.namedSigners.supplier)
             .withdrawFromSchedule(investor1, projectId, claimableBalance)
         )
-          .to.emit(rNori, 'TokensClaimed')
+          .to.emit(rNori, 'ClaimTokens')
           .withArgs(supplier, investor1, projectId, claimableBalance);
         expect(await rNori.totalSupply(projectId)).to.equal(
           removalAmounts[0].sub(claimableBalance)
@@ -918,7 +918,7 @@ describe('RestrictedNORI', () => {
         await expect(
           rNori.revokeUnreleasedTokens(removalIds[0], quantityToRevoke, admin)
         )
-          .to.emit(rNori, 'TokensRevoked')
+          .to.emit(rNori, 'RevokeTokens')
           .withArgs(
             scheduleStartTime + SECONDS_IN_5_YEARS,
             projectId,
@@ -1049,7 +1049,7 @@ describe('RestrictedNORI', () => {
         await expect(
           rNori.revokeUnreleasedTokens(removalIds[0], quantityToRevoke, admin)
         )
-          .to.emit(rNori, 'TokensRevoked')
+          .to.emit(rNori, 'RevokeTokens')
           .withArgs(
             scheduleStartTime + SECONDS_IN_5_YEARS,
             projectId,
@@ -1285,7 +1285,7 @@ describe('RestrictedNORI', () => {
         ]);
         const expectedQuantityRevoked = restrictedAmount.div(2); // half of the restricted amount determined by newTimestamp
         await expect(rNori.revokeUnreleasedTokens(removalIds[0], 0, admin))
-          .to.emit(rNori, 'TokensRevoked')
+          .to.emit(rNori, 'RevokeTokens')
           .withArgs(
             newTimestamp, // todo test underflow: await rNori.revocableQuantityForSchedule (Expected "28323967194635187783729271962109934955231132147579225830224695226740474786" to be equal 0)
             projectId,
