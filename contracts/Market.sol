@@ -521,8 +521,8 @@ contract Market is
    * @dev See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
    * to transfer the sender's ERC20 to complete the purchase. A certificate is minted in the Certificate contract
-   * to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal,
-   * to the RestrictedNORI contract that controls any restricted tokens owed to the supplier, and finally
+   * to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals,
+   * to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
    * to Nori Inc. as a market operator fee.
    *
    * ##### Requirements:
@@ -585,9 +585,9 @@ contract Market is
    * purchased and the fee paid to Nori.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @param deadline The EIP2612 permit deadline in Unix time.
-   * @param v The recovery identifier for the permit's secp256k1 signature
-   * @param r The r value for the permit's secp256k1 signature
-   * @param s The s value for the permit's secp256k1 signature
+   * @param v The recovery identifier for the permit's secp256k1 signature.
+   * @param r The r value for the permit's secp256k1 signature.
+   * @param s The s value for the permit's secp256k1 signature.
    */
   function swapFromSupplier(
     address recipient,
@@ -622,21 +622,22 @@ contract Market is
   }
 
   /**
-   * @notice Exchange bpNORI tokens for an ERC721 certificate by transferring ownership of the removals to the
-   * certificate, without charging a transaction fee.
+   * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
+   * certificate without charging a transaction fee.
    * @dev See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's bpNORI to complete the purchase. A certificate is minted in the Certificate contract
-   * to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
-   * to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
-   * to Nori Inc. as a market operator fee.
+   * to transfer the sender's supported ERC20 to complete the purchase. A certificate is minted in the Certificate
+   * contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
+   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
    *
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
    * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+   *
    * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in bpNORI. This is the total number of removals being purchased.
+   * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
+   * purchased, scaled by the price multiple.
    * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature.
    * @param r The r value for the permit's secp256k1 signature.
@@ -673,24 +674,25 @@ contract Market is
   }
 
   /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange bpNORI
+   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported ERC20
    * tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
    * supplier to that certificate, without charging a transaction fee. If the specified supplier does not have enough
    * carbon removals for sale to fulfill the order the transaction will revert.
    * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's bpNORI to complete the purchase. A certificate is issued by the Certificate contract
-   * to the specified recipient and bpNORI is distributed to the supplier of the carbon removal,
-   * to the RestrictedNORI contract that controls any restricted bpNORI owed to the supplier, and finally
-   * to Nori Inc. as a market operator fee.
+   * to transfer the sender's supported ERC20 to complete the purchase. A certificate is issued by the Certificate contract
+   * contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal and potentially
+   * to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
    *
    *
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
    * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+   *
    * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in bpNORI. This is the total number of removals being purchased.
+   * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
+   * purchased, scaled by the price multiple.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature.
@@ -1086,9 +1088,9 @@ contract Market is
       certificateAmount: certificateAmount,
       availableSupply: availableSupply
     });
-    (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply(
-      certificateAmount
-    );
+    (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply({
+      certificateAmount: certificateAmount
+    });
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
