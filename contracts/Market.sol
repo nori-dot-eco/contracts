@@ -1062,10 +1062,10 @@ contract Market is
   }
 
   /**
-   * @notice Allocates removals from a specific supplier to be fulfilled.
-   * @dev This function is responsible for validating and allocating the supply from a specific supplier.
+   * @notice Allocates removals to fulfill an order.
+   * @dev This function is responsible for validating and allocating the supply to fulfill an order.
    * @param certificateAmount The total amount for the certificate.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this. order.
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
    * @return ids An array of the removal IDs being drawn from to fulfill this order.
    * @return amounts An array of amounts being allocated from each corresponding removal token.
    * @return suppliers The address of the supplier who owns each corresponding removal token.
