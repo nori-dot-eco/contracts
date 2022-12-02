@@ -37,7 +37,7 @@ abstract contract MarketBalanceTestHelper is UpgradeableMarket {
       "Expected availableSupply to equal _expectedMarketSupply"
     );
     assertEq(
-      _market.priorityRestrictedThreshold(),
+      _market.getPriorityRestrictedThreshold(),
       _expectedPriorityRestrictedThreshold,
       "Expected availableSupply to equal _expectedMarketSupply"
     );
@@ -240,7 +240,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     assertEq(containsTransferSkippedEventSelector, true);
     assertEq(_erc20.balanceOf(owner), 0);
     assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal - fee);
-    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
+    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
     assertEq(_erc20.balanceOf(address(_rNori)), 0);
   }
 }
@@ -343,7 +343,7 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     assertEq(containsTransferSkippedEventSelector, true);
     assertEq(_erc20.balanceOf(owner), 0);
     assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal - fee);
-    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
+    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
     assertEq(_erc20.balanceOf(address(_rNori)), 0);
   }
 }
@@ -1091,7 +1091,7 @@ contract Market__setPurchasingToken is NonUpgradeableMarket {
 
 contract Market_purchasingTokenAddress is UpgradeableMarket {
   function test() external {
-    assertEq(_market.purchasingTokenAddress(), address(_bpNori));
+    assertEq(_market.getPurchasingTokenAddress(), address(_bpNori));
   }
 }
 

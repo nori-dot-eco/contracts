@@ -207,7 +207,7 @@ contract Removal_migrate is UpgradeableMarket {
       _namedAccounts.buyer
     );
     assertEq(
-      _certificate.purchaseAmount({certificateId: EXPECTED_CERTIFICATE_ID}),
+      _certificate.getPurchaseAmount({certificateId: EXPECTED_CERTIFICATE_ID}),
       CERTIFICATE_AMOUNT
     );
     Vm.Log[] memory entries = vm.getRecordedLogs();

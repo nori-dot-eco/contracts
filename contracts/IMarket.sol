@@ -6,7 +6,7 @@ interface IMarket {
    * @notice Get the RestrictedNORI contract address.
    * @return Returns the address of the RestrictedNORI contract.
    */
-  function restrictedNoriAddress() external view returns (address);
+  function getRestrictedNoriAddress() external view returns (address);
 
   /**
    * @notice Releases a removal from the market.

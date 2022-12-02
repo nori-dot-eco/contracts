@@ -37,7 +37,7 @@ describe('Market', () => {
         removal.getMarketBalance(),
         removal.numberOfTokensOwnedByAddress(market.address),
         // market.activeSupplierCount(),// todo
-        market.priorityRestrictedThreshold(),
+        market.getPriorityRestrictedThreshold(),
       ]);
       expect(initialSupply.map((e) => e.toString())).to.deep.equal(
         Array.from({ length: 3 }).fill(Zero.toString())
@@ -145,7 +145,7 @@ describe('Market', () => {
         )
           .to.emit(market, 'PriorityRestrictedThresholdSet')
           .withArgs(newThreshold);
-        expect(await market.priorityRestrictedThreshold()).to.equal(
+        expect(await market.getPriorityRestrictedThreshold()).to.equal(
           newThreshold
         );
         await expect(

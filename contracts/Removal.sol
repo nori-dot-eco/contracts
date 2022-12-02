@@ -324,7 +324,7 @@ contract Removal is
     });
     _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
     IRestrictedNORI _restrictedNORI = IRestrictedNORI(
-      _market.restrictedNoriAddress()
+      _market.getRestrictedNoriAddress()
     );
     if (!_restrictedNORI.scheduleExists({scheduleId: projectId})) {
       _restrictedNORI.createSchedule({
@@ -477,7 +477,7 @@ contract Removal is
     }
     if (amountReleased < amount) {
       uint256 listedBalance = balanceOf({
-        account: this.marketAddress(),
+        account: this.getMarketAddress(),
         id: id
       });
       if (listedBalance > 0) {
@@ -489,7 +489,7 @@ contract Removal is
         amountReleased += amountToRelease;
       }
       if (amountReleased < amount) {
-        if (balanceOf({account: this.certificateAddress(), id: id}) > 0) {
+        if (balanceOf({account: this.getCertificateAddress(), id: id}) > 0) {
           uint256 amountToRelease = amount - amountReleased;
           _releaseFromCertificate({id: id, amount: amount - amountReleased});
           amountReleased += amountToRelease;
@@ -502,7 +502,7 @@ contract Removal is
    * @notice Get the address of the Market contract.
    * @return The address of the Market contract.
    */
-  function marketAddress() external view returns (address) {
+  function getMarketAddress() external view returns (address) {
     return address(_market);
   }
 
@@ -510,7 +510,7 @@ contract Removal is
    * @notice Get the address of the Certificate contract.
    * @return The address of the Certificate contract.
    */
-  function certificateAddress() external view returns (address) {
+  function getCertificateAddress() external view returns (address) {
     return address(_certificate);
   }
 
@@ -754,11 +754,11 @@ contract Removal is
    * @param amount The amount to burn.
    */
   function _releaseFromMarket(uint256 id, uint256 amount) internal {
-    super._burn({from: this.marketAddress(), id: id, amount: amount});
+    super._burn({from: this.getMarketAddress(), id: id, amount: amount});
     _market.release(id, amount);
     emit RemovalReleased({
       id: id,
-      fromAddress: this.marketAddress(),
+      fromAddress: this.getMarketAddress(),
       amount: amount
     });
   }
@@ -770,7 +770,7 @@ contract Removal is
    * @param amount The amount to burn.
    */
   function _releaseFromCertificate(uint256 id, uint256 amount) internal {
-    address certificateAddress_ = this.certificateAddress();
+    address certificateAddress_ = this.getCertificateAddress();
     super._burn({from: certificateAddress_, id: id, amount: amount});
     emit RemovalReleased({
       id: id,

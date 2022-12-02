@@ -57,7 +57,7 @@ abstract contract UpgradeableMarket is
   {
     (, uint256 availableSupply) = SafeMathUpgradeable.trySub(
       _cumulativeBalanceOfRemovalsForOwner(address(_market), removalIds),
-      _market.priorityRestrictedThreshold()
+      _market.getPriorityRestrictedThreshold()
     );
     return availableSupply;
   }

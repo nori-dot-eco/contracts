@@ -207,7 +207,7 @@ contract Certificate is
    * @notice Returns the address of the Removal contract.
    * @return The address of the Removal contract.
    */
-  function removalAddress() external view returns (address) {
+  function getRemovalAddress() external view returns (address) {
     return address(_removal);
   }
 
@@ -220,7 +220,7 @@ contract Certificate is
    * @param certificateId The certificate for which to retrieve the original amount.
    * @return The tonnes of carbon removal purchased for the certificate.
    */
-  function purchaseAmount(uint256 certificateId)
+  function getPurchaseAmount(uint256 certificateId)
     external
     view
     returns (uint256)

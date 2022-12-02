@@ -169,7 +169,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
       );
     }
     assertEq(
-      _certificate.purchaseAmount(_certificateTokenId),
+      _certificate.getPurchaseAmount(_certificateTokenId),
       _expectedCertificateAmount,
       "Certificate balance is wrong"
     );
@@ -259,7 +259,7 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
       );
     }
     assertEq(
-      _certificate.purchaseAmount(_certificateTokenId),
+      _certificate.getPurchaseAmount(_certificateTokenId),
       _expectedCertificateAmount,
       "Certificate balance is wrong"
     );
@@ -315,7 +315,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
     assertEq(
-      _certificate.purchaseAmount(_certificateTokenId),
+      _certificate.getPurchaseAmount(_certificateTokenId),
       0,
       "Certificate balance is wrong"
     );
@@ -355,7 +355,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
       );
     }
     assertEq(
-      _certificate.purchaseAmount(_certificateTokenId),
+      _certificate.getPurchaseAmount(_certificateTokenId),
       _expectedCertificateAmount,
       "Certificate balance is wrong"
     );
@@ -412,7 +412,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
     assertEq(
-      _certificate.purchaseAmount(_certificateTokenId),
+      _certificate.getPurchaseAmount(_certificateTokenId),
       0,
       "Certificate balance is wrong"
     );
@@ -452,7 +452,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
       );
     }
     assertEq(
-      _certificate.purchaseAmount(_certificateTokenId),
+      _certificate.getPurchaseAmount(_certificateTokenId),
       _expectedCertificateAmount,
       "Certificate balance is wrong"
     );
@@ -510,7 +510,7 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(
-      _certificate.purchaseAmount(_certificateTokenId),
+      _certificate.getPurchaseAmount(_certificateTokenId),
       0,
       "Certificate balance is wrong"
     );
@@ -549,7 +549,7 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
       );
     }
     assertEq(
-      _certificate.purchaseAmount(_certificateTokenId),
+      _certificate.getPurchaseAmount(_certificateTokenId),
       _expectedCertificateAmount,
       "Certificate balance is wrong"
     );
@@ -579,7 +579,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
       purchasingToken: _erc20,
       priceMultiple: 2000
     });
-    assertEq(_market.purchasingTokenAddress(), address(_erc20));
+    assertEq(_market.getPurchasingTokenAddress(), address(_erc20));
     amount = _market.calculateCheckoutTotal(1 ether);
     fee = _market.calculateNoriFee(1 ether);
     certificateAmount = _market.calculateCertificateAmountFromPurchaseTotal(
@@ -664,7 +664,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
     assertEq(_erc20.balanceOf(address(owner)), 0);
     assertEq(_erc20.balanceOf(_namedAccounts.supplier), amount - fee);
-    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
+    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
   }
 }
 
@@ -688,7 +688,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
       purchasingToken: _erc20,
       priceMultiple: 1995 // $19.95
     });
-    assertEq(_market.purchasingTokenAddress(), address(_erc20));
+    assertEq(_market.getPurchasingTokenAddress(), address(_erc20));
     amount = _market.calculateCheckoutTotal(1 ether);
     fee = _market.calculateNoriFee(1 ether);
     certificateAmount = _market.calculateCertificateAmountFromPurchaseTotal(
@@ -772,6 +772,6 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
     assertEq(_erc20.balanceOf(address(owner)), 0);
     assertEq(_erc20.balanceOf(_namedAccounts.supplier), amount - fee);
-    assertEq(_erc20.balanceOf(_market.noriFeeWallet()), fee);
+    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
   }
 }

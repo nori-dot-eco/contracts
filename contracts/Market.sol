@@ -792,7 +792,7 @@ contract Market is
    * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
    * @return The threshold of supply allowed for priority customers only.
    */
-  function priorityRestrictedThreshold() external view returns (uint256) {
+  function getPriorityRestrictedThreshold() external view returns (uint256) {
     return _priorityRestrictedThreshold;
   }
 
@@ -801,7 +801,7 @@ contract Market is
    * each purchase that will be paid to Nori as the marketplace operator.
    * @return The percentage of each purchase that will be paid to Nori as the marketplace operator.
    */
-  function noriFeePercentage() external view returns (uint256) {
+  function getNoriFeePercentage() external view returns (uint256) {
     return _noriFeePercentage;
   }
 
@@ -809,7 +809,7 @@ contract Market is
    * @notice Returns the address to which the marketplace operator fee will be routed during each purchase.
    * @return The wallet address used for Nori's fees.
    */
-  function noriFeeWallet() external view returns (address) {
+  function getNoriFeeWallet() external view returns (address) {
     return _noriFeeWallet;
   }
 
@@ -882,7 +882,7 @@ contract Market is
    * @notice Get the Removal contract address.
    * @return Returns the address of the Removal contract.
    */
-  function removalAddress() external view returns (address) {
+  function getRemovalAddress() external view returns (address) {
     return address(_removal);
   }
 
@@ -890,7 +890,7 @@ contract Market is
    * @notice Get the RestrictedNORI contract address.
    * @return Returns the address of the RestrictedNORI contract.
    */
-  function restrictedNoriAddress() external view override returns (address) {
+  function getRestrictedNoriAddress() external view override returns (address) {
     return address(_restrictedNORI);
   }
 
@@ -898,7 +898,7 @@ contract Market is
    * @notice Get the Certificate contract address.
    * @return Returns the address of the Certificate contract.
    */
-  function certificateAddress() external view returns (address) {
+  function getCertificateAddress() external view returns (address) {
     return address(_certificate);
   }
 
@@ -906,7 +906,7 @@ contract Market is
    * @notice Get the contract address of the IERC20WithPermit token used to purchase from this market.
    * @return Returns the address of the IERC20WithPermit contract.
    */
-  function purchasingTokenAddress() external view returns (address) {
+  function getPurchasingTokenAddress() external view returns (address) {
     return address(_purchasingToken);
   }
 
