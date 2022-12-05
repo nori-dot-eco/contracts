@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber, ethers, FixedNumber } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { TransactionReceipt } from '@ethersproject/providers';
 
@@ -72,11 +72,15 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         hre,
         signer,
       });
-      logger.info(`Removal contract address: ${removalContract.address}`);
-      logger.info(
-        `Certificate contract address: ${certificateContract.address}`
+      hre.log(
+        logger.info(`Removal contract address: ${removalContract.address}`)
       );
-      logger.info(`Signer address: ${signerAddress}`);
+      hre.log(
+        logger.info(
+          `Certificate contract address: ${certificateContract.address}`
+        )
+      );
+      hre.log(logger.info(`Signer address: ${signerAddress}`));
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
       const signerHasConsignorRole = await removalContract.hasRole(
         await removalContract.CONSIGNOR_ROLE(),
@@ -88,7 +92,9 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         );
       }
       const outputData = [];
-      logger.info(`✨ Migrating ${jsonData.length} legacy certificates...`);
+      hre.log(
+        logger.info(`✨ Migrating ${jsonData.length} legacy certificates...`)
+      );
       const PROGRESS_BAR = new cliProgress.SingleBar(
         {},
         cliProgress.Presets.shades_classic
@@ -99,13 +105,13 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       for (const certificate of jsonData) {
         let amounts = certificate.amounts.map((amount) =>
           ethers.utils.parseUnits(
-            BigNumber.from(amount).div(1_000_000).toString()
+            BigNumber.from(FixedNumber.from(amount)).div(1_000_000).toString()
           )
         );
         let ids = certificate.ids;
         const totalAmount = ethers.utils
           .parseUnits(
-            BigNumber.from(certificate.data.gramsOfNrts)
+            BigNumber.from(FixedNumber.from(certificate.data.gramsOfNrts))
               .div(1_000_000)
               .toString()
           )
@@ -168,10 +174,12 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           });
         } catch (error) {
           PROGRESS_BAR.stop();
-          logger.error(
-            `❌ Error minting certificate ${
-              JSON.parse(certificate.key).id
-            } (number ${certificateIndex}/${jsonData.length}) - exiting early`
+          hre.log(
+            logger.error(
+              `❌ Error minting certificate ${
+                JSON.parse(certificate.key).id
+              } (number ${certificateIndex}/${jsonData.length}) - exiting early`
+            )
           );
           hre.log(error);
           outputData.push({
@@ -184,12 +192,14 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         certificateIndex += 1;
       }
       PROGRESS_BAR.stop();
-      logger.success(
-        `\nMigrated ${jsonData.length} certificates successfully!`
+      hre.log(
+        logger.success(
+          `\nMigrated ${jsonData.length} certificates successfully!`
+        )
       );
       writeJsonSync(outputFileName, outputData);
-      logger.info(`📝 Wrote results to ${outputFileName}`);
-      logger.info(`🎉 Done!`);
+      hre.log(logger.info(`📝 Wrote results to ${outputFileName}`));
+      hre.log(logger.info(`🎉 Done!`));
     },
   } as const);
 

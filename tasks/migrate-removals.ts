@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber,FixedNumber, ethers } from 'ethers';
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
@@ -121,7 +121,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       for (const project of jsonData) {
         const amounts = project.amounts.map((amount) =>
           ethers.utils.parseUnits(
-            BigNumber.from(amount).div(1_000_000).toString()
+            BigNumber.from(FixedNumber.from(amount)).div(1_000_000).toString()
           )
         );
 
