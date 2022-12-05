@@ -91,6 +91,8 @@ contract Certificate is
    * @param certificateAmount The total number of NRTs retired in this certificate.
    * @param removalIds The removal IDs used for the certificate.
    * @param removalAmounts The amounts from each removal used for the certificate.
+   * @param purchasingTokenAddress The address of the token used to purchase the certificate.
+   * @param priceMultiple The number of purchasing tokens required to buy one NRT.
    */
   event ReceiveRemovalBatch(
     address from,
@@ -98,14 +100,16 @@ contract Certificate is
     uint256 indexed certificateId,
     uint256 certificateAmount,
     uint256[] removalIds,
-    uint256[] removalAmounts
+    uint256[] removalAmounts,
+    address purchasingTokenAddress,
+    uint256 priceMultiple
   );
 
   /**
    * @notice Emitted on updating the addresses for contracts.
    * @param removal The address of the new Removal contract.
    */
-  event ContractAddressesRegistered(IRemoval removal);
+  event RegisterContractAddresses(IRemoval removal);
 
   /**
    * @notice Locks the contract, preventing any future re-initialization.
@@ -142,7 +146,7 @@ contract Certificate is
 
   /**
    * @notice Register the address of the Removal contract.
-   * @dev This function emits a `ContractAddressesRegistered` event.
+   * @dev This function emits a `RegisterContractAddresses` event.
    *
    * ##### Requirements:
    * - Can only be used when the contract is not paused.
@@ -155,7 +159,7 @@ contract Certificate is
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     _removal = removal;
-    emit ContractAddressesRegistered({removal: removal});
+    emit RegisterContractAddresses({removal: removal});
   }
 
   /**
@@ -178,19 +182,23 @@ contract Certificate is
     uint256[] calldata removalIds,
     uint256[] calldata removalAmounts,
     bytes calldata data
-  ) external whenNotPaused returns (bytes4) {
+  ) external returns (bytes4) {
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    (address recipient, uint256 certificateAmount) = abi.decode(
-      data,
-      (address, uint256)
-    );
+    (
+      address recipient,
+      uint256 certificateAmount,
+      address purchasingTokenAddress,
+      uint256 priceMultiple
+    ) = abi.decode(data, (address, uint256, address, uint256));
     _receiveRemovalBatch({
       recipient: recipient,
       certificateAmount: certificateAmount,
       removalIds: removalIds,
-      removalAmounts: removalAmounts
+      removalAmounts: removalAmounts,
+      purchasingTokenAddress: purchasingTokenAddress,
+      priceMultiple: priceMultiple
     });
     return this.onERC1155BatchReceived.selector;
   }
@@ -199,7 +207,7 @@ contract Certificate is
    * @notice Returns the address of the Removal contract.
    * @return The address of the Removal contract.
    */
-  function removalAddress() external view returns (address) {
+  function getRemovalAddress() external view returns (address) {
     return address(_removal);
   }
 
@@ -212,7 +220,7 @@ contract Certificate is
    * @param certificateId The certificate for which to retrieve the original amount.
    * @return The tonnes of carbon removal purchased for the certificate.
    */
-  function purchaseAmount(uint256 certificateId)
+  function getPurchaseAmount(uint256 certificateId)
     external
     view
     returns (uint256)
@@ -319,7 +327,9 @@ contract Certificate is
     address recipient,
     uint256 certificateAmount,
     uint256[] calldata removalIds,
-    uint256[] calldata removalAmounts
+    uint256[] calldata removalAmounts,
+    address purchasingTokenAddress,
+    uint256 priceMultiple
   ) internal {
     _validateReceivedRemovalBatch({
       removalIds: removalIds,
@@ -335,7 +345,9 @@ contract Certificate is
       certificateId: certificateId,
       certificateAmount: certificateAmount,
       removalIds: removalIds,
-      removalAmounts: removalAmounts
+      removalAmounts: removalAmounts,
+      purchasingTokenAddress: purchasingTokenAddress,
+      priceMultiple: priceMultiple
     });
   }
 

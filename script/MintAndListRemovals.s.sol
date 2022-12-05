@@ -34,7 +34,7 @@ contract MintAndListRemovals is Script {
       });
       removals[i] = removalData;
       _removal.mintBatch({
-        to: listInMarketNow ? _removal.marketAddress() : mockSupplierAddress,
+        to: listInMarketNow ? _removal.getMarketAddress() : mockSupplierAddress,
         amounts: new uint256[](numberOfRemovalsToCreate).fill(100 ether),
         removals: removals,
         projectId: 1_234_567_890,

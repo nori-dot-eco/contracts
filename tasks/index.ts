@@ -21,7 +21,10 @@ import { TASK as NORI_TASK } from './nori';
 import { TASK as LOCKED_NORI_TASK } from './locked-nori'; // todo make work with forked repo
 import { TASK as BRIDGED_POLYGON_NORI_TASK } from './bridged-polygon-nori';
 import { DEFENDER_ADD_TASK } from './defender';
-import { GET_VESTING_TASK as VESTING_TASK} from './vesting';  // todo make work with forked repo
+import { GET_VESTING_TASK as VESTING_TASK } from './vesting'; // todo make work with forked repo
+import { GET_MIGRATE_REMOVALS_TASK } from './migrate-removals';
+import { GET_MIGRATE_CERTIFICATES_TASK } from './migrate-certificates';
+import { GET_LIST_MIGRATED_REMOVALS_TASK } from './list-remaining-migrated-removals';
 import { TASK as FORCE_UPGRADE_TASK } from './force-ugrade';
 import { TASK as SIGN_MESSAGE_TASK } from './sign-message';
 import { TASK as TEST_SIGN_TYPED_TASK } from './test-sign-typed';
@@ -69,10 +72,15 @@ export const TASKS = {
   [MARKET_TASK.name]: { ...MARKET_TASK },
   [REMOVAL_TASK.name]: { ...REMOVAL_TASK },
   [NORI_TASK.name]: { ...NORI_TASK },
-  [LOCKED_NORI_TASK.name]: { ...LOCKED_NORI_TASK },  // todo make work with forked repo
+  [LOCKED_NORI_TASK.name]: { ...LOCKED_NORI_TASK }, // todo make work with forked repo
   [BRIDGED_POLYGON_NORI_TASK.name]: { ...BRIDGED_POLYGON_NORI_TASK },
   [DEFENDER_ADD_TASK.name]: { ...DEFENDER_ADD_TASK },
-  [VESTING_TASK.name]: { ...VESTING_TASK },  // todo make work with forked repo
+  [VESTING_TASK.name]: { ...VESTING_TASK }, // todo make work with forked repo
+  [GET_MIGRATE_REMOVALS_TASK.name]: { ...GET_MIGRATE_REMOVALS_TASK },
+  [GET_MIGRATE_CERTIFICATES_TASK.name]: { ...GET_MIGRATE_CERTIFICATES_TASK },
+  [GET_LIST_MIGRATED_REMOVALS_TASK.name]: {
+    ...GET_LIST_MIGRATED_REMOVALS_TASK,
+  },
   [FORCE_UPGRADE_TASK.name]: { ...FORCE_UPGRADE_TASK },
   [SIGN_MESSAGE_TASK.name]: { ...SIGN_MESSAGE_TASK },
   [TEST_SIGN_TYPED_TASK.name]: { ...TEST_SIGN_TYPED_TASK },

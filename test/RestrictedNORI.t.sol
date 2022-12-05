@@ -141,7 +141,11 @@ contract RestrictedNORI_revokeUnreleasedTokens is UpgradeableMarket {
   }
 
   function test() external {
-    _rNori.revokeUnreleasedTokens(projectId, 1 ether, _namedAccounts.admin);
+    _rNori.revokeUnreleasedTokens(
+      _removalIds[0],
+      1 ether,
+      _namedAccounts.admin
+    );
   }
 }
 
@@ -206,6 +210,12 @@ contract RestrictedNORI_transfers_revert is UpgradeableMarket {
       amounts,
       ""
     );
+  }
+}
+
+contract RestrictedNORI_getUnderlyingTokenAddress is UpgradeableMarket {
+  function test() external {
+    assertEq(_rNori.getUnderlyingTokenAddress(), address(_bpNori));
   }
 }
 

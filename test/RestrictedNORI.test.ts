@@ -522,7 +522,7 @@ describe('RestrictedNORI', () => {
             .connect(hre.namedSigners.supplier)
             .withdrawFromSchedule(supplier, projectId, claimableBalance)
         )
-          .to.emit(rNori, 'TokensClaimed')
+          .to.emit(rNori, 'ClaimTokens')
           .withArgs(supplier, supplier, projectId, claimableBalance);
         expect(await rNori.totalSupply(projectId)).to.equal(
           removalAmounts[0].sub(claimableBalance)
@@ -641,7 +641,7 @@ describe('RestrictedNORI', () => {
             .connect(hre.namedSigners.supplier)
             .withdrawFromSchedule(investor1, projectId, claimableBalance)
         )
-          .to.emit(rNori, 'TokensClaimed')
+          .to.emit(rNori, 'ClaimTokens')
           .withArgs(supplier, investor1, projectId, claimableBalance);
         expect(await rNori.totalSupply(projectId)).to.equal(
           removalAmounts[0].sub(claimableBalance)
@@ -897,13 +897,14 @@ describe('RestrictedNORI', () => {
         } = testSetup;
         const { supplier, admin } = hre.namedAccounts;
         const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
+        const removalIds = await Promise.all(
+          listedRemovalIds.map(async (r) =>
+            removalTestHarness.createRemovalId(r)
+          )
+        );
         const restrictedAmount = await restrictRemovalProceeds({
           testSetup,
-          removalIds: await Promise.all(
-            listedRemovalIds.map(async (r) =>
-              removalTestHarness.createRemovalId(r)
-            )
-          ),
+          removalIds,
           removalAmountsToRestrict: removalAmounts,
         });
         await advanceTime({
@@ -915,12 +916,13 @@ describe('RestrictedNORI', () => {
         expect(originalRevocableQuantity).to.equal(removalAmounts[0].div(2));
         const quantityToRevoke = originalRevocableQuantity.div(2);
         await expect(
-          rNori.revokeUnreleasedTokens(projectId, quantityToRevoke, admin)
+          rNori.revokeUnreleasedTokens(removalIds[0], quantityToRevoke, admin)
         )
-          .to.emit(rNori, 'TokensRevoked')
+          .to.emit(rNori, 'RevokeTokens')
           .withArgs(
             scheduleStartTime + SECONDS_IN_5_YEARS,
             projectId,
+            removalIds[0],
             quantityToRevoke,
             [supplier],
             [quantityToRevoke]
@@ -995,18 +997,16 @@ describe('RestrictedNORI', () => {
         } = testSetup;
         const { supplier, admin, investor1 } = hre.namedAccounts;
         const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
+        const removalIds = await Promise.all(
+          listedRemovalIds.map(async (r) =>
+            removalTestHarness.createRemovalId(r)
+          )
+        );
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: await Promise.all(
-            listedRemovalIds.map(async (r) =>
-              removalTestHarness.createRemovalId(r)
-            )
-          ),
+          removalIds,
           removalAmountsToRestrict: removalAmounts,
         });
-        // await hre.network.provider.send('evm_setNextBlockTimestamp', [
-        //   scheduleStartTime + SECONDS_IN_1_YEAR_AVG,
-        // ]);
         // create some RestrictedNORI for a second holder
         const investorRemovalData: RemovalDataForListing = {
           projectId,
@@ -1047,12 +1047,13 @@ describe('RestrictedNORI', () => {
           scheduleStartTime + SECONDS_IN_5_YEARS,
         ]);
         await expect(
-          rNori.revokeUnreleasedTokens(projectId, quantityToRevoke, admin)
+          rNori.revokeUnreleasedTokens(removalIds[0], quantityToRevoke, admin)
         )
-          .to.emit(rNori, 'TokensRevoked')
+          .to.emit(rNori, 'RevokeTokens')
           .withArgs(
             scheduleStartTime + SECONDS_IN_5_YEARS,
             projectId,
+            removalIds[0],
             quantityToRevoke,
             [supplier, investor1],
             [expectedRevokedFromSupplier, expectedRevokedFromInvestor]
@@ -1113,13 +1114,14 @@ describe('RestrictedNORI', () => {
           removalTestHarness,
         } = testSetup;
         const { supplier, admin, investor1, employee } = hre.namedAccounts;
+        const removalIds = await Promise.all(
+          listedRemovalIds.map(async (r) =>
+            removalTestHarness.createRemovalId(r)
+          )
+        );
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: await Promise.all(
-            listedRemovalIds.map(async (r) =>
-              removalTestHarness.createRemovalId(r)
-            )
-          ),
+          removalIds,
           removalAmountsToRestrict: removalAmounts,
         });
         // create some RestrictedNORI for a second holder
@@ -1189,7 +1191,7 @@ describe('RestrictedNORI', () => {
         ]);
         const revocableQuantityForSchedule = formatTokenAmount(750);
         await rNori.revokeUnreleasedTokens(
-          projectId,
+          removalIds[0],
           revocableQuantityForSchedule,
           admin
         );
@@ -1267,13 +1269,14 @@ describe('RestrictedNORI', () => {
         } = testSetup;
         const { supplier, admin } = hre.namedAccounts;
         const originalAdminBpNoriBalance = await bpNori.balanceOf(admin);
+        const removalIds = await Promise.all(
+          listedRemovalIds.map(async (r) =>
+            removalTestHarness.createRemovalId(r)
+          )
+        );
         const restrictedAmount = await restrictRemovalProceeds({
           testSetup,
-          removalIds: await Promise.all(
-            listedRemovalIds.map(async (r) =>
-              removalTestHarness.createRemovalId(r)
-            )
-          ),
+          removalIds,
           removalAmountsToRestrict: removalAmounts,
         });
         const newTimestamp = scheduleStartTime + SECONDS_IN_5_YEARS;
@@ -1281,11 +1284,12 @@ describe('RestrictedNORI', () => {
           newTimestamp,
         ]);
         const expectedQuantityRevoked = restrictedAmount.div(2); // half of the restricted amount determined by newTimestamp
-        await expect(rNori.revokeUnreleasedTokens(projectId, 0, admin))
-          .to.emit(rNori, 'TokensRevoked')
+        await expect(rNori.revokeUnreleasedTokens(removalIds[0], 0, admin))
+          .to.emit(rNori, 'RevokeTokens')
           .withArgs(
             newTimestamp, // todo test underflow: await rNori.revocableQuantityForSchedule (Expected "28323967194635187783729271962109934955231132147579225830224695226740474786" to be equal 0)
             projectId,
+            removalIds[0],
             expectedQuantityRevoked,
             [supplier],
             [expectedQuantityRevoked]
@@ -1334,13 +1338,14 @@ describe('RestrictedNORI', () => {
           removalTestHarness,
         } = testSetup;
         const { admin } = hre.namedAccounts;
+        const removalIds = await Promise.all(
+          listedRemovalIds.map(async (r) =>
+            removalTestHarness.createRemovalId(r)
+          )
+        );
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: await Promise.all(
-            listedRemovalIds.map(async (r) =>
-              removalTestHarness.createRemovalId(r)
-            )
-          ),
+          removalIds,
           removalAmountsToRestrict: removalAmounts,
         });
         // At halfway through the schedule should have 500 released tokens, 500 claimable.
@@ -1349,7 +1354,11 @@ describe('RestrictedNORI', () => {
           timestamp: scheduleStartTime + SECONDS_IN_5_YEARS,
         });
         const quantityToRevoke = formatTokenAmount(250);
-        await rNori.revokeUnreleasedTokens(projectId, quantityToRevoke, admin);
+        await rNori.revokeUnreleasedTokens(
+          removalIds[0],
+          quantityToRevoke,
+          admin
+        );
         const scheduleSummary = await rNori.getScheduleSummary(projectId);
         // After revoking 250 tokens, the claimable amount shouldn't drop below the current level of 500.
         expect(await rNori.revocableQuantityForSchedule(projectId)).to.closeTo(
@@ -1435,19 +1444,20 @@ describe('RestrictedNORI', () => {
         } = testSetup;
         const { buyer } = hre.namedAccounts;
         const restrictedAmount = removalAmounts[0];
+        const removalIds = await Promise.all(
+          listedRemovalIds.map(async (r) =>
+            removalTestHarness.createRemovalId(r)
+          )
+        );
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: await Promise.all(
-            listedRemovalIds.map(async (r) =>
-              removalTestHarness.createRemovalId(r)
-            )
-          ),
+          removalIds,
           removalAmountsToRestrict: [restrictedAmount],
         });
         await expect(
           rNori
             .connect(hre.namedSigners.buyer) // missing TOKEN_REVOKE_ROLE (but funded)
-            .revokeUnreleasedTokens(projectId, formatTokenAmount(1), buyer)
+            .revokeUnreleasedTokens(removalIds[0], formatTokenAmount(1), buyer)
         ).to.be.reverted;
       });
       it('should revert when attempting to revoke more tokens than are revocable', async () => {
@@ -1472,20 +1482,21 @@ describe('RestrictedNORI', () => {
           removalTestHarness,
         } = testSetup;
         const { admin } = hre.namedAccounts;
+        const removalIds = await Promise.all(
+          listedRemovalIds.map(async (r) =>
+            removalTestHarness.createRemovalId(r)
+          )
+        );
         await restrictRemovalProceeds({
           testSetup,
-          removalIds: await Promise.all(
-            listedRemovalIds.map(async (r) =>
-              removalTestHarness.createRemovalId(r)
-            )
-          ),
+          removalIds,
           removalAmountsToRestrict: removalAmounts,
         });
         const revocableQuantityForSchedule =
           await rNori.revocableQuantityForSchedule(projectId);
         await expect(
           rNori.revokeUnreleasedTokens(
-            projectId,
+            removalIds[0],
             revocableQuantityForSchedule.add(1),
             admin
           )
