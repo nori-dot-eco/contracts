@@ -94,6 +94,7 @@
     "build": "yarn run typechain",
     "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
     "deploy": "SOLC_PROFILE=production TRACE=true LOG_HARDHAT_NETWORK=true hardhat deploy",
+    "hardhat": "hardhat",
     "node:verbose": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat node",
     "docgen": "SOLC_PROFILE=test npx hardhat docgen",
     "snapshot": "forge snapshot",
