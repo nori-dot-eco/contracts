@@ -1,6 +1,7 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 
-import { BigNumber,FixedNumber, ethers } from 'ethers';
+import type { ethers } from 'ethers';
+import { BigNumber, FixedNumber } from 'ethers';
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
@@ -43,7 +44,6 @@ interface Project {
   holdbackPercentage: number;
   txReceipt: TransactionReceipt;
   tokenIds: string[];
-  supplierAddress: `0X${string}`;
 }
 
 type Projects = Project[];
@@ -120,11 +120,8 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       let projectIndex = 1;
       for (const project of jsonData) {
         const amounts = project.amounts.map((amount) =>
-          ethers.utils.parseUnits(
-            BigNumber.from(FixedNumber.from(amount)).div(1_000_000).toString()
-          )
+          BigNumber.from(FixedNumber.from(amount)).div(1_000_000).toString()
         );
-
         const removals = project.removals.map((removal) => {
           const removalData = {
             idVersion: removal.idVersion,
@@ -133,7 +130,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             vintage: removal.vintage,
             country: asciiStringToHexString(removal.country),
             subdivision: asciiStringToHexString(removal.subdivision),
-            supplierAddress: project.supplierAddress, // TODO need real supplier address on the project
+            supplierAddress: removal.supplierAddress, // TODO need real supplier address on the project
             subIdentifier: removal.subIdentifier,
           };
           return removalData;
