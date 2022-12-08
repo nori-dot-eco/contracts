@@ -7,7 +7,7 @@ import type { TransactionReceipt } from '@ethersproject/providers';
 
 import { getLogger } from '@/utils/log';
 import { parseTransactionLogs } from '@/utils/events';
-import { Zero } from '@/constants/units';
+import { AddressZero, Zero } from '@/constants/units';
 import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { getCertificate, getRemoval } from '@/utils/contracts';
 
@@ -51,8 +51,10 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       } = options as ParsedMigrateCertificatesTaskOptions;
       const logger = getLogger({
         prefix: dryRun === true ? '[DRY RUN]' : undefined,
+        hre,
       });
-      const outputFileName = dryRun === true ? 'dryRun-' : outputFile;
+      const outputFileName =
+        dryRun === true ? `dryRun-${outputFile}` : outputFile;
       const network = await hre.network.name;
       if (![`localhost`, `mumbai`, `polygon`].includes(network)) {
         throw new Error(
@@ -72,15 +74,13 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         hre,
         signer,
       });
-      hre.log(
-        logger.info(`Removal contract address: ${removalContract.address}`)
+      logger.info(`Removal contract address: ${removalContract.address}`);
+
+      logger.info(
+        `Certificate contract address: ${certificateContract.address}`
       );
-      hre.log(
-        logger.info(
-          `Certificate contract address: ${certificateContract.address}`
-        )
-      );
-      hre.log(logger.info(`Signer address: ${signerAddress}`));
+
+      logger.info(`Signer address: ${signerAddress}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
       const signerHasConsignorRole = await removalContract.hasRole(
         await removalContract.CONSIGNOR_ROLE(),
@@ -92,9 +92,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         );
       }
       const outputData = [];
-      hre.log(
-        logger.info(`✨ Migrating ${jsonData.length} legacy certificates...`)
-      );
+      logger.info(`✨ Migrating ${jsonData.length} legacy certificates...`);
       const PROGRESS_BAR = new cliProgress.SingleBar(
         {},
         cliProgress.Presets.shades_classic
@@ -104,17 +102,13 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       let certificateIndex = 1;
       for (const certificate of jsonData) {
         let amounts = certificate.amounts.map((amount) =>
-          ethers.utils.parseUnits(
-            BigNumber.from(FixedNumber.from(amount)).div(1_000_000).toString()
-          )
+          BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
         );
         let ids = certificate.ids;
-        const totalAmount = ethers.utils
-          .parseUnits(
-            BigNumber.from(FixedNumber.from(certificate.data.gramsOfNrts))
-              .div(1_000_000)
-              .toString()
-          )
+        const totalAmount = BigNumber.from(
+          FixedNumber.from(certificate.data.gramsOfNrts)
+        )
+          .div(1_000_000)
           .toString();
         // TODO - this is just to bypass the 4 empty certificates in the input and double check
         // that we can migrate certificates with 0-amounts...
@@ -124,7 +118,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           // TODO can this token ID just be 0?
           ids = [
             // '0x1007e2555349419a232b2f5fbbf857d153af8b85c16cbdb4ffb6678d7e5f93',
-            '0x00000000000000000000000000000000000000000000000000000000000000',
+            AddressZero,
           ];
         }
         const migrationFunction =
@@ -174,13 +168,12 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           });
         } catch (error) {
           PROGRESS_BAR.stop();
-          hre.log(
-            logger.error(
-              `❌ Error minting certificate ${
-                JSON.parse(certificate.key).id
-              } (number ${certificateIndex}/${jsonData.length}) - exiting early`
-            )
+          logger.error(
+            `❌ Error minting certificate ${
+              JSON.parse(certificate.key).id
+            } (number ${certificateIndex}/${jsonData.length}) - exiting early`
           );
+
           hre.log(error);
           outputData.push({
             ...certificate,
@@ -192,14 +185,13 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         certificateIndex += 1;
       }
       PROGRESS_BAR.stop();
-      hre.log(
-        logger.success(
-          `\nMigrated ${jsonData.length} certificates successfully!`
-        )
+      logger.success(
+        `\nMigrated ${jsonData.length} certificates successfully!`
       );
+
       writeJsonSync(outputFileName, outputData);
-      hre.log(logger.info(`📝 Wrote results to ${outputFileName}`));
-      hre.log(logger.info(`🎉 Done!`));
+      logger.info(`📝 Wrote results to ${outputFileName}`);
+      logger.info(`🎉 Done!`);
     },
   } as const);
 
