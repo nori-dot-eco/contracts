@@ -161,12 +161,12 @@ const printSummary = ({
     'Removal count': {
       value: summary.totalRemovalSupplyOnChain.removals.length.toLocaleString(),
     },
-    'Project totals (tonnes)': {
+    'Project totals on-chain (tonnes)': {
       value: summary.totalRemovalSupplyOnChain.projects.map((p) =>
         Number(ethers.utils.formatUnits(p, 18)).toLocaleString()
       ),
     },
-    'Removal total supply on-chain (tonnes)': {
+    'Total removal supply on-chain (tonnes)': {
       value: Number(
         hre.ethers.utils.formatUnits(summary.totalRemovalSupplyOnChain.sum, 18)
       ).toLocaleString(),
