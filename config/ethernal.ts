@@ -12,11 +12,10 @@ export const getEthernalConfig = (
           email: ETHERNAL_EMAIL,
           password: ETHERNAL_PASSWORD,
           disableSync: false,
-          disableTrace: TRACE,
+          disableTrace: !TRACE,
           workspace: 'nori',
           uploadAst: true,
           disabled: false,
-          resetOnStart: 'nori',
         }
       : {
           disableSync: true,
