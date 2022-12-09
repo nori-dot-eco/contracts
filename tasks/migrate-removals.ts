@@ -315,22 +315,28 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       }
       PROGRESS_BAR.stop();
       writeJsonSync(outputFileName, outputData);
-      const summary = await summarize({
-        hre,
-        logger,
-        outputData,
-        removalContract,
-        inputData,
-      });
-      printSummary({
-        logger,
-        outputData,
-        outputFileName,
-        inputData,
-        hre,
-        summary,
-      });
-      await validate({ summary, hre, logger });
+      if (!Boolean(dryRun)) {
+        const summary = await summarize({
+          hre,
+          logger,
+          outputData,
+          removalContract,
+          inputData,
+        });
+        printSummary({
+          logger,
+          outputData,
+          outputFileName,
+          inputData,
+          hre,
+          summary,
+        });
+        await validate({ summary, hre, logger });
+      } else {
+        logger.info(
+          `📝 Skipping validation and summary as it is not possible to do either in a dry run`
+        );
+      }
       logger.success(`🎉 Done!`);
     },
   } as const);

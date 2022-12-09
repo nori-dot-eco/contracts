@@ -1,9 +1,11 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
-import { BigNumber, ethers, FixedNumber } from 'ethers';
+import { BigNumber, FixedNumber } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { TransactionReceipt } from '@ethersproject/providers';
+
+import type { Certificate } from '../typechain-types';
 
 import { getLogger } from '@/utils/log';
 import { parseTransactionLogs } from '@/utils/events';
@@ -30,11 +32,122 @@ interface MigratedCertificate {
   };
   ids: string[];
   amounts: number[];
-  txReceipt: TransactionReceipt;
-  tokenId: number;
+  txReceipt?: TransactionReceipt;
+  tokenId?: number;
+  error?: any;
 }
 
 type MigratedCertificates = MigratedCertificate[];
+
+interface Summary {
+  totalCertificateSupplyOnChain: {
+    sum: BigNumber;
+    certificates: BigNumber[];
+  };
+  expectedTotalCertificateSupply: number;
+}
+
+interface InputData {
+  key: string;
+  ids: string[];
+  amounts: number[];
+  data: {
+    gramsOfNrts: number;
+    gramsOfNrtsInWei: string;
+  };
+}
+
+const summarize = async ({
+  hre,
+  logger,
+  outputData,
+  inputData,
+  certificateContract,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  logger: ReturnType<typeof getLogger>;
+  outputData: MigratedCertificates;
+  inputData: InputData[];
+  certificateContract: Certificate;
+}): Promise<Summary> => {
+  const totalCertificateSupplyOnChain = await outputData.reduce(
+    async (summary, certificate) => {
+      const updatedSummary = await summary;
+      const certificateIdAmount = await certificateContract.getPurchaseAmount(
+        certificate.tokenId!
+      );
+      updatedSummary.certificates.push(certificateIdAmount);
+      updatedSummary.sum = updatedSummary.sum.add(certificateIdAmount);
+      return updatedSummary;
+    },
+    Promise.resolve({ sum: Zero, certificates: [] as BigNumber[] })
+  );
+  const expectedTotalCertificateSupply = inputData
+    .map((d) => d.amounts)
+    .reduce((total, next) => {
+      return total + next.reduce((t, n) => t + n, 0);
+    }, 0);
+  return {
+    totalCertificateSupplyOnChain,
+    expectedTotalCertificateSupply,
+  };
+};
+
+const validate = async ({
+  hre,
+  logger,
+  summary,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  logger: ReturnType<typeof getLogger>;
+  summary: Summary;
+}): Promise<void> => {
+  const onChainSupplyTonnesInWei = summary.totalCertificateSupplyOnChain.sum;
+  const offChainSupplyTonnesInWei = BigNumber.from(
+    FixedNumber.from(summary.expectedTotalCertificateSupply)
+  )
+    .div(1_000_000)
+    .toString();
+  if (!onChainSupplyTonnesInWei.eq(offChainSupplyTonnesInWei)) {
+    throw new Error(
+      `Unexpected total supply, onChainSupplyTonnesInWei: ${onChainSupplyTonnesInWei}, offChainSupplyTonnesInWei: ${offChainSupplyTonnesInWei}`
+    );
+  }
+  logger.success('🎉 Successfully validated the migration!');
+};
+
+const printSummary = ({
+  logger,
+  inputData,
+  outputFileName,
+  outputData,
+  hre,
+  summary,
+}: {
+  logger: ReturnType<typeof getLogger>;
+  inputData: InputData[];
+  outputFileName: string;
+  outputData: MigratedCertificates;
+  hre: CustomHardHatRuntimeEnvironment;
+  summary: Summary;
+}): void => {
+  logger.info(`\n\nMigration summary:`);
+  logger.table({
+    'Output file name': { value: outputFileName },
+    'Certificate count': {
+      value:
+        summary.totalCertificateSupplyOnChain.certificates.length.toLocaleString(),
+    },
+    'Total Certificate supply on-chain (tonnes)': {
+      value: Number(
+        hre.ethers.utils.formatUnits(
+          summary.totalCertificateSupplyOnChain.sum,
+          18
+        )
+      ).toLocaleString(),
+    },
+  });
+};
 
 export const GET_MIGRATE_CERTIFICATES_TASK = () =>
   ({
@@ -62,7 +175,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         );
       }
 
-      const jsonData: MigratedCertificates = readJsonSync(file);
+      const inputData: MigratedCertificates = readJsonSync(file);
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
@@ -91,16 +204,16 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           `Signer does not have the CONSIGNOR role in the removal contract`
         );
       }
-      const outputData = [];
-      logger.info(`✨ Migrating ${jsonData.length} legacy certificates...`);
+      const outputData: MigratedCertificates = [];
+      logger.info(`✨ Migrating ${inputData.length} legacy certificates...`);
       const PROGRESS_BAR = new cliProgress.SingleBar(
         {},
         cliProgress.Presets.shades_classic
       );
-      PROGRESS_BAR.start(jsonData.length, 0);
+      PROGRESS_BAR.start(inputData.length, 0);
 
       let certificateIndex = 1;
-      for (const certificate of jsonData) {
+      for (const certificate of inputData) {
         let amounts = certificate.amounts.map((amount) =>
           BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
         );
@@ -171,7 +284,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           logger.error(
             `❌ Error minting certificate ${
               JSON.parse(certificate.key).id
-            } (number ${certificateIndex}/${jsonData.length}) - exiting early`
+            } (number ${certificateIndex}/${inputData.length}) - exiting early`
           );
 
           hre.log(error);
@@ -186,12 +299,33 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       }
       PROGRESS_BAR.stop();
       logger.success(
-        `\nMigrated ${jsonData.length} certificates successfully!`
+        `\nMigrated ${inputData.length} certificates successfully!`
       );
-
       writeJsonSync(outputFileName, outputData);
       logger.info(`📝 Wrote results to ${outputFileName}`);
-      logger.info(`🎉 Done!`);
+      if (!Boolean(dryRun)) {
+        const summary = await summarize({
+          hre,
+          logger,
+          outputData,
+          certificateContract,
+          inputData,
+        });
+        printSummary({
+          logger,
+          outputData,
+          outputFileName,
+          inputData,
+          hre,
+          summary,
+        });
+        await validate({ summary, hre, logger });
+      } else {
+        logger.info(
+          `📝 Skipping validation and summary as it is not possible to do either in a dry run`
+        );
+      }
+      logger.success(`🎉 Done!`);
     },
   } as const);
 
