@@ -5,10 +5,12 @@ import "@/test/helpers/market.sol";
 import "@/test/helpers/removal.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import "@/contracts/test/MockERC20Permit.sol";
 import "@/contracts/ArrayLib.sol";
 import "@/contracts/Removal.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
+import "@/contracts/test/MockERC20Permit.sol";
 
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
@@ -35,7 +37,7 @@ abstract contract MarketBalanceTestHelper is UpgradeableMarket {
       "Expected availableSupply to equal _expectedMarketSupply"
     );
     assertEq(
-      _market.priorityRestrictedThreshold(),
+      _market.getPriorityRestrictedThreshold(),
       _expectedPriorityRestrictedThreshold,
       "Expected availableSupply to equal _expectedMarketSupply"
     );
@@ -70,7 +72,9 @@ contract ERC1155Recipient {
   }
 }
 
-contract Market_swap_rNori_mint_failure is UpgradeableMarket {
+contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155Receiver is
+  UpgradeableMarket
+{
   address owner;
   uint256 holdbackPercentage = 10;
   uint256 checkoutTotal;
@@ -79,7 +83,7 @@ contract Market_swap_rNori_mint_failure is UpgradeableMarket {
   uint256 removalId;
   ERC1155Recipient recipient = new ERC1155Recipient();
 
-  event RestrictedNORIMintFailed(
+  event RestrictedNORIMintFailure(
     uint256 indexed amount,
     uint256 indexed removalId
   );
@@ -107,11 +111,12 @@ contract Market_swap_rNori_mint_failure is UpgradeableMarket {
       block.timestamp,
       uint8(holdbackPercentage)
     );
-
+    uint256 numberOfNRTsToPurchase = 1 ether;
     uint256 ownerPrivateKey = 0xA11CE;
     owner = vm.addr(ownerPrivateKey);
-    checkoutTotal = _market.calculateCheckoutTotal(1 ether);
-    rNoriToMint = (1 ether * holdbackPercentage) / 100;
+    checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
+    uint256 noriFeeAmount = _market.calculateNoriFee(numberOfNRTsToPurchase);
+    rNoriToMint = ((checkoutTotal - noriFeeAmount) * holdbackPercentage) / 100;
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
 
@@ -127,7 +132,7 @@ contract Market_swap_rNori_mint_failure is UpgradeableMarket {
   function test() external {
     vm.prank(owner);
     vm.expectEmit(true, true, false, false);
-    emit RestrictedNORIMintFailed(rNoriToMint, removalId);
+    emit RestrictedNORIMintFailure(rNoriToMint, removalId);
     _market.swap(
       owner,
       checkoutTotal,
@@ -136,6 +141,210 @@ contract Market_swap_rNori_mint_failure is UpgradeableMarket {
       signedPermit.r,
       signedPermit.s
     );
+  }
+}
+
+contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
+  UpgradeableMarket
+{
+  uint8 holdbackPercentage = 10;
+  uint256 checkoutTotal;
+  uint256 rNoriToMint;
+  SignedPermit signedPermit;
+  uint256[] _removalIds;
+  uint256 removalId;
+  MockERC20Permit internal _erc20;
+  SignatureUtils internal _mockERC20SignatureUtils;
+  uint256 ownerPrivateKey = 0xA11CE;
+  address owner = vm.addr(ownerPrivateKey);
+  uint256 amount;
+  uint256 fee;
+  uint256 certificateAmount;
+
+  bytes32 constant RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR =
+    keccak256(
+      "SkipRestrictedNORIERC20Transfer(uint256,uint256,uint256,address,address)"
+    );
+
+  event SkipRestrictedNORIERC20Transfer(
+    uint256 indexed amount,
+    uint256 indexed removalId,
+    uint256 currentHoldbackPercentage,
+    address rNoriUnderlyingToken,
+    address purchasingTokenAddress
+  );
+
+  function _deployMockERC20() internal returns (MockERC20Permit) {
+    MockERC20Permit impl = new MockERC20Permit();
+    bytes memory initializer = abi.encodeWithSignature("initialize()");
+    return MockERC20Permit(_deployProxy(address(impl), initializer));
+  }
+
+  function setUp() external {
+    _erc20 = _deployMockERC20();
+    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
+    _market.setPurchasingTokenAndPriceMultiple({
+      purchasingToken: _erc20,
+      priceMultiple: 2000
+    });
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true,
+      holdbackPercentage: holdbackPercentage
+    });
+
+    uint256 numberOfNRTsToPurchase = 1 ether;
+    checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
+    fee = _market.calculateNoriFee(numberOfNRTsToPurchase);
+    rNoriToMint = ((checkoutTotal - fee) * holdbackPercentage) / 100;
+    _erc20.transfer(owner, checkoutTotal);
+    signedPermit = _mockERC20SignatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _erc20
+    );
+  }
+
+  function test() external {
+    vm.startPrank(owner);
+    vm.recordLogs();
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    vm.stopPrank();
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bool containsTransferSkippedEventSelector = false;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR) {
+        containsTransferSkippedEventSelector = true;
+        assertEq(entries[i].topics[1], bytes32(uint256(rNoriToMint)));
+        assertEq(entries[i].topics[2], bytes32(uint256(_removalIds[0])));
+        (
+          uint256 currentHoldbackPercentage,
+          address rNoriUnderlyingToken,
+          address purchasingTokenAddress
+        ) = abi.decode(entries[i].data, (uint256, address, address));
+        assertEq(currentHoldbackPercentage, holdbackPercentage);
+        assertEq(rNoriUnderlyingToken, address(_bpNori));
+        assertEq(purchasingTokenAddress, address(_erc20));
+      }
+    }
+    assertEq(containsTransferSkippedEventSelector, true);
+    assertEq(_erc20.balanceOf(owner), 0);
+    assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal - fee);
+    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
+    assertEq(_erc20.balanceOf(address(_rNori)), 0);
+  }
+}
+
+contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
+  UpgradeableMarket
+{
+  uint8 holdbackPercentage = 10;
+  uint256 checkoutTotal;
+  uint256 rNoriToMint;
+  SignedPermit signedPermit;
+  uint256[] _removalIds;
+  uint256 removalId;
+  MockERC20Permit internal _erc20;
+  SignatureUtils internal _mockERC20SignatureUtils;
+  uint256 ownerPrivateKey = 0xA11CE;
+  address owner = vm.addr(ownerPrivateKey);
+  uint256 amount;
+  uint256 fee;
+  uint256 certificateAmount;
+
+  bytes32 constant RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR =
+    keccak256(
+      "SkipRestrictedNORIERC20Transfer(uint256,uint256,uint256,address,address)"
+    );
+
+  event SkipRestrictedNORIERC20Transfer(
+    uint256 indexed amount,
+    uint256 indexed removalId,
+    uint256 currentHoldbackPercentage,
+    address rNoriUnderlyingToken,
+    address purchasingTokenAddress
+  );
+
+  function _deployMockERC20() internal returns (MockERC20Permit) {
+    MockERC20Permit impl = new MockERC20Permit();
+    bytes memory initializer = abi.encodeWithSignature("initialize()");
+    return MockERC20Permit(_deployProxy(address(impl), initializer));
+  }
+
+  function setUp() external {
+    _erc20 = _deployMockERC20();
+    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
+    _market.setPurchasingTokenAndPriceMultiple({
+      purchasingToken: _erc20,
+      priceMultiple: 2000
+    });
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true,
+      holdbackPercentage: holdbackPercentage
+    });
+
+    uint256 numberOfNRTsToPurchase = 1 ether;
+    checkoutTotal = _market.calculateCheckoutTotalWithoutFee(
+      numberOfNRTsToPurchase
+    );
+    rNoriToMint = (checkoutTotal * holdbackPercentage) / 100;
+    _erc20.transfer(owner, checkoutTotal);
+    _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
+    signedPermit = _mockERC20SignatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _erc20
+    );
+  }
+
+  function test() external {
+    vm.startPrank(owner);
+    vm.recordLogs();
+    _market.swapWithoutFee(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    vm.stopPrank();
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bool containsTransferSkippedEventSelector = false;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR) {
+        containsTransferSkippedEventSelector = true;
+        assertEq(entries[i].topics[1], bytes32(uint256(rNoriToMint)));
+        assertEq(entries[i].topics[2], bytes32(uint256(_removalIds[0])));
+        (
+          uint256 currentHoldbackPercentage,
+          address rNoriUnderlyingToken,
+          address purchasingTokenAddress
+        ) = abi.decode(entries[i].data, (uint256, address, address));
+        assertEq(currentHoldbackPercentage, holdbackPercentage);
+        assertEq(rNoriUnderlyingToken, address(_bpNori));
+        assertEq(purchasingTokenAddress, address(_erc20));
+      }
+    }
+    assertEq(containsTransferSkippedEventSelector, true);
+    assertEq(_erc20.balanceOf(owner), 0);
+    assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal - fee);
+    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
+    assertEq(_erc20.balanceOf(address(_rNori)), 0);
   }
 }
 
@@ -761,7 +970,8 @@ contract Market__multicall_initialize_reverts is UpgradeableMarket {
         _certificate,
         _rNori,
         _namedAccounts.admin,
-        15
+        15,
+        100
       )
     );
     vm.expectRevert("Initializable: contract is already initialized");
@@ -859,5 +1069,81 @@ contract Market_getRemovalIdsForSupplier is UpgradeableMarket {
       _market.getRemovalIdsForSupplier(_namedAccounts.supplier),
       _removalIds
     );
+  }
+}
+
+contract Market__setPurchasingToken is NonUpgradeableMarket {
+  function test() external {
+    vm.recordLogs();
+    address erc20 = vm.addr(0xcab00d1e);
+    IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
+    _setPurchasingToken({purchasingToken: newPurchasingToken});
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 1);
+    assertEq(entries[0].topics[0], keccak256("SetPurchasingToken(address)"));
+    address actualPurchasingToken = abi.decode(entries[0].data, (address));
+    assertEq(
+      abi.decode(entries[0].data, (address)),
+      address(newPurchasingToken)
+    );
+  }
+}
+
+contract Market_purchasingTokenAddress is UpgradeableMarket {
+  function test() external {
+    assertEq(_market.getPurchasingTokenAddress(), address(_bpNori));
+  }
+}
+
+contract Market__setPriceMultiple is NonUpgradeableMarket {
+  function test() external {
+    vm.recordLogs();
+    uint256 newPriceMultiple = 20;
+    _setPriceMultiple({priceMultiple: newPriceMultiple});
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 1);
+    assertEq(entries[0].topics[0], keccak256("SetPriceMultiple(uint256)"));
+    assertEq(abi.decode(entries[0].data, (uint256)), newPriceMultiple);
+  }
+}
+
+contract Market_getPriceMultiple is UpgradeableMarket {
+  function test() external {
+    assertEq(_market.getPriceMultiple(), 2000);
+  }
+}
+
+contract Market_setPurchasingTokenAndPriceMultiple is UpgradeableMarket {
+  function test() external {
+    vm.recordLogs();
+    address erc20 = vm.addr(0xcab00d1e);
+    IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
+    uint256 newPriceMultiple = 2000;
+    _market.setPurchasingTokenAndPriceMultiple(
+      newPurchasingToken,
+      newPriceMultiple
+    );
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 2);
+    assertEq(entries[0].topics[0], keccak256("SetPurchasingToken(address)"));
+    assertEq(
+      abi.decode(entries[0].data, (address)),
+      address(newPurchasingToken)
+    );
+    assertEq(entries[1].topics[0], keccak256("SetPriceMultiple(uint256)"));
+    assertEq(abi.decode(entries[1].data, (uint256)), newPriceMultiple);
+  }
+}
+
+contract Market_setPurchasingTokenAndPriceMultiple_revertsIfNotAdmin is
+  UpgradeableMarket
+{
+  function test() external {
+    address nonAdmin = vm.addr(0xa11ce);
+    vm.expectRevert(
+      "AccessControl: account 0xe05fcc23807536bee418f142d19fa0d21bb0cff7 is missing role 0x3fb0aaa9e8051cfc6c234a5d843bed33910f70c647055f27247c10144c7552e1"
+    );
+    vm.prank(nonAdmin);
+    _market.setPurchasingTokenAndPriceMultiple(IERC20WithPermit(address(0)), 0);
   }
 }

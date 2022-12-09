@@ -108,7 +108,7 @@ struct ScheduleDetailForAddress {
  * pausable.
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
  * - `SCHEDULE_CREATOR_ROLE`: Can create restriction schedules without sending the underlying tokens to the contract. The
- * market contract has this role and sets up relevant schedules as removal tokens are listed for sale.
+ * market contract has this role and sets up relevant schedules as removal tokens are minted.
  * - `MINTER_ROLE`: Can call `mint` on this contract, which mints tokens of the correct schedule ID (token ID) for a
  * given removal. The market contract has this role and can mint RestrictedNORI while routing sale proceeds to this
  * contract.
@@ -209,13 +209,15 @@ contract RestrictedNORI is
    * @notice Emitted when unreleased tokens of an active schedule are revoked.
    * @param atTime The time at which the revocation occurred.
    * @param scheduleId The ID of the schedule from which tokens were revoked.
+   * @param removalId The ID of the released removal for which tokens were revoked.
    * @param quantity The quantity of tokens revoked.
    * @param scheduleOwners The addresses of the schedule owners from which tokens were revoked.
    * @param quantitiesBurned The quantities of tokens burned from each schedule owner.
    */
-  event TokensRevoked(
+  event RevokeTokens(
     uint256 indexed atTime,
     uint256 indexed scheduleId,
+    uint256 indexed removalId,
     uint256 quantity,
     address[] scheduleOwners,
     uint256[] quantitiesBurned
@@ -228,7 +230,7 @@ contract RestrictedNORI is
    * @param scheduleId The ID of the schedule from which tokens were withdrawn.
    * @param quantity The quantity of tokens withdrawn.
    */
-  event TokensClaimed(
+  event ClaimTokens(
     address indexed from,
     address indexed to,
     uint256 indexed scheduleId,
@@ -270,12 +272,13 @@ contract RestrictedNORI is
   }
 
   /**
-   * @notice Revokes amount of tokens from the specified project (schedule) ID and transfers to `toAccount`.
+   * @notice Revokes `amount` of tokens from the project (schedule) associated with the specificed
+   * `removalId` and transfers them to `toAccount`.
    * @dev The behavior of this function can be used in two specific ways:
    * 1. To revoke a specific number of tokens as specified by the `amount` parameter.
    * 2. To revoke all remaining revokable tokens in a schedule by specifying 0 as the `amount`.
    *
-   * Transfers any unreleased tokens in the specified schedule and reduces the total supply
+   * Transfers unreleased tokens in the removal's project's schedule and reduces the total supply
    * of that token. Only unreleased tokens can be revoked from a schedule and no change is made to
    * balances that have released but not yet been claimed.
    * If a token has multiple owners, balances are burned proportionally to ownership percentage,
@@ -289,21 +292,22 @@ contract RestrictedNORI is
    * treasury or an address of Nori's choosing (the `toAccount` address).
    * The `claimedAmount` is not changed because this is not a claim operation.
    *
-   * Emits a `TokensRevoked` event.
+   * Emits a `RevokeTokens` event.
    *
    * ##### Requirements:
    *
    * - Can only be used when the caller has the `TOKEN_REVOKER_ROLE` role.
    * - The requirements of `_beforeTokenTransfer` apply to this function.
-   * @param projectId The schedule ID from which to revoke tokens.
+   * @param removalId The removal ID that was released and on account of which tokens are being revoked.
    * @param amount The amount to revoke.
    * @param toAccount The account to which the underlying ERC20 token should be sent.
    */
   function revokeUnreleasedTokens(
-    uint256 projectId,
+    uint256 removalId,
     uint256 amount,
     address toAccount
-  ) external whenNotPaused onlyRole(TOKEN_REVOKER_ROLE) {
+  ) external onlyRole(TOKEN_REVOKER_ROLE) {
+    uint256 projectId = _removal.getProjectId({id: removalId});
     Schedule storage schedule = _scheduleIdToScheduleStruct[projectId];
     if (!schedule.doesExist()) {
       revert NonexistentSchedule({scheduleId: projectId});
@@ -363,8 +367,9 @@ contract RestrictedNORI is
       ] += quantitiesToBurnForHolders[i];
     }
     schedule.totalQuantityRevoked += quantityToRevoke;
-    emit TokensRevoked({
+    emit RevokeTokens({
       atTime: block.timestamp, // solhint-disable-line not-rely-on-time, this is time-dependent
+      removalId: removalId,
       scheduleId: projectId,
       quantity: quantityToRevoke,
       scheduleOwners: tokenHoldersLocal,
@@ -465,7 +470,7 @@ contract RestrictedNORI is
    * balance to `recipient`'s balance.
    * Enforcement of the availability of claimable tokens for the `_burn` call happens in `_beforeTokenTransfer`.
    *
-   * Emits a `TokensClaimed` event.
+   * Emits a `ClaimTokens` event.
    *
    * ##### Requirements:
    *
@@ -484,7 +489,7 @@ contract RestrictedNORI is
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     schedule.totalClaimedAmount += amount;
     schedule.claimedAmountsByAddress[_msgSender()] += amount;
-    emit TokensClaimed({
+    emit ClaimTokens({
       from: _msgSender(),
       to: recipient,
       scheduleId: scheduleId,
@@ -719,6 +724,14 @@ contract RestrictedNORI is
     bytes memory
   ) public override {
     revert FunctionDisabled();
+  }
+
+  /**
+   * @notice Get the address of the underlying ERC20 token being wrapped by this contract.
+   * @return The address of the underlying ERC20 token being wrapped by this contract.
+   */
+  function getUnderlyingTokenAddress() public view returns (address) {
+    return address(_underlyingToken);
   }
 
   /**

@@ -186,10 +186,12 @@ export const deployMarketContract = async ({
   hre,
   feeWallet,
   feePercentage,
+  priceMultiple,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   feeWallet: Address;
   feePercentage: number;
+  priceMultiple: number;
 }): Promise<InstanceOfContract<Market>> => {
   const deployments = await hre.deployments.all<Required<Contracts>>();
   return hre.deployOrUpgradeProxy<Market, Market__factory>({
@@ -201,10 +203,11 @@ export const deployMarketContract = async ({
       deployments.RestrictedNORI.address,
       feeWallet,
       feePercentage,
+      priceMultiple,
     ],
     options: {
       initializer:
-        'initialize(address,address,address,address,address,uint256)',
+        'initialize(address,address,address,address,address,uint256,uint256)',
       unsafeAllow: ['delegatecall'],
     },
   });
@@ -312,15 +315,34 @@ export const pushContractsToEthernal = async ({
   contracts: Contracts;
 }): Promise<void> => {
   if (!Boolean(hre.userConfig.ethernal?.disableSync)) {
-    hre.trace('pushing contracts to ethernal');
-    await Promise.allSettled(
+    hre.trace('Pushing contracts to ethernal.');
+    await Promise.all(
       Object.entries(contracts)
         .filter(([_, value]) => value !== undefined)
         .map(async ([name, { address }]) => {
-          return hre.ethernal.push({ name, address });
+          try {
+            hre.trace(`Pushing ${name} to Ethernal using address: ${address}`);
+            return await hre.ethernal.push({ name, address });
+          } catch (error) {
+            hre.trace(`Failed to push ${name} to Ethernal: ${error}`);
+            return Promise.resolve();
+          }
         })
     );
-    hre.trace('pushed contracts to ethernal');
+    hre.trace('Pushed contracts to Ethernal.');
+  }
+};
+
+export const resetEthernalWorkspace = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<void> => {
+  const { workspace, disabled } = hre.config.ethernal ?? {};
+  if (disabled === false && typeof workspace === 'string') {
+    hre.trace(`Resetting Ethernal workspace: ${workspace}`);
+    await hre.ethernal.resetWorkspace(workspace);
+    hre.trace(`Reset Ethernal workspace: ${workspace}`);
   }
 };
 

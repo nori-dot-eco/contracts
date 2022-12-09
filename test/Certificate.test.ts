@@ -52,7 +52,9 @@ describe('Certificate', () => {
         0,
         purchaseAmount,
         [removalId],
-        [purchaseAmount]
+        [purchaseAmount],
+        bpNori.address,
+        await market.getPriceMultiple()
       );
   });
 });

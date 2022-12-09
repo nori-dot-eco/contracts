@@ -3,6 +3,7 @@ import { Logger } from 'ethers/lib/utils';
 import {
   configureDeploymentSettings,
   validateDeploymentSettings,
+  resetEthernalWorkspace,
 } from '@/utils/deploy';
 
 export const deploy: CustomHardhatDeployFunction = async (environment) => {
@@ -10,6 +11,7 @@ export const deploy: CustomHardhatDeployFunction = async (environment) => {
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`preconditions`);
   validateDeploymentSettings({ hre });
+  await resetEthernalWorkspace({ hre });
   await configureDeploymentSettings({ hre });
 };
 

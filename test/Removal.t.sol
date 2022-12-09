@@ -207,7 +207,7 @@ contract Removal_migrate is UpgradeableMarket {
       _namedAccounts.buyer
     );
     assertEq(
-      _certificate.purchaseAmount({certificateId: EXPECTED_CERTIFICATE_ID}),
+      _certificate.getPurchaseAmount({certificateId: EXPECTED_CERTIFICATE_ID}),
       CERTIFICATE_AMOUNT
     );
     Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -987,9 +987,9 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
   bytes32 constant TRANSFER_SINGLE_EVENT_SELECTOR =
     keccak256("TransferSingle(address,address,address,uint256,uint256)");
   bytes32 constant REMOVAL_RELEASED_EVENT_SELECTOR =
-    keccak256("RemovalReleased(uint256,address,uint256)");
+    keccak256("ReleaseRemoval(uint256,address,uint256)");
   bytes32 constant SUPPLIER_REMOVED_EVENT_SELECTOR =
-    keccak256("SupplierRemoved(address,address,address)");
+    keccak256("RemoveSupplier(address,address,address)");
   bytes32[] expectedReleaseEventSelectors = [
     TRANSFER_SINGLE_EVENT_SELECTOR,
     REMOVAL_RELEASED_EVENT_SELECTOR,
@@ -1053,7 +1053,7 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
   }
 
   /**
-   * @dev Assert that the `TransferSingle` and `RemovalReleased` events are emitted in alternation with the
+   * @dev Assert that the `TransferSingle` and `ReleaseRemoval` events are emitted in alternation with the
    * correct arguments (e.g., every second call to each event respectively iterates through `_expectedOwners` and
    * `_expectedReleasedBalances`)
    */
@@ -1332,30 +1332,6 @@ contract Removal_safeTransferFrom_reverts_ForbiddenTransfer is
   }
 }
 
-contract Removal_safeTransferFrom_reverts_when_paused is UpgradeableMarket {
-  uint256[] private _removalIds;
-
-  function setUp() external {
-    _removalIds = _seedRemovals({
-      to: _namedAccounts.supplier,
-      count: 1,
-      list: false
-    });
-    _removal.pause();
-  }
-
-  function test() external {
-    vm.expectRevert("Pausable: paused");
-    _removal.safeTransferFrom({
-      from: _namedAccounts.supplier,
-      to: address(_market),
-      id: _removalIds[0],
-      amount: 1 ether,
-      data: ""
-    });
-  }
-}
-
 contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
   UpgradeableMarket
 {
@@ -1480,5 +1456,85 @@ contract Removal_getOwnedTokenIds is UpgradeableMarket {
     for (uint256 i = 0; i < _removalIds.length; i++) {
       assertContains(retrievedMarketTokens, _removalIds[i]);
     }
+  }
+}
+
+contract Removal_setHoldbackPercentage is UpgradeableMarket {
+  event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage);
+
+  uint256 immutable projectId = 1234567890;
+  uint8 immutable originalHoldbackPercentage = 50;
+  uint256 removalTokenId;
+
+  function setUp() external {
+    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
+    ids[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: _namedAccounts.supplier,
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
+    });
+    removalTokenId = RemovalIdLib.createRemovalId(ids[0]);
+    _removal.mintBatch({
+      to: address(_market),
+      amounts: new uint256[](1).fill(1 ether),
+      removals: ids,
+      projectId: projectId,
+      scheduleStartTime: block.timestamp,
+      holdbackPercentage: originalHoldbackPercentage
+    });
+    vm.recordLogs();
+  }
+
+  function test() external {
+    uint8 newHoldbackPercentage = 20;
+    assertEq(
+      _removal.getHoldbackPercentage(removalTokenId),
+      originalHoldbackPercentage
+    );
+    _removal.setHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: newHoldbackPercentage
+    });
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 1);
+    assertEq(
+      entries[0].topics[0],
+      keccak256("SetHoldbackPercentage(uint256,uint8)")
+    );
+    (uint256 eventProjectId, uint8 eventHoldbackPercentage) = abi.decode(
+      entries[0].data,
+      (uint256, uint8)
+    );
+    assertEq(eventProjectId, projectId);
+    assertEq(eventHoldbackPercentage, newHoldbackPercentage);
+    assertEq(
+      _removal.getHoldbackPercentage(removalTokenId),
+      newHoldbackPercentage
+    );
+  }
+
+  function test_reverts_InvalidHoldbackPercentage() external {
+    uint8 originalHoldbackPercentage = 50;
+    uint8 newHoldbackPercentage = 120;
+
+    assertEq(
+      _removal.getHoldbackPercentage(removalTokenId),
+      originalHoldbackPercentage
+    );
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        InvalidHoldbackPercentage.selector,
+        newHoldbackPercentage
+      )
+    );
+    _removal.setHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: newHoldbackPercentage
+    });
   }
 }

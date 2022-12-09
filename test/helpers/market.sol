@@ -42,7 +42,8 @@ abstract contract UpgradeableMarket is
       address(_certificate),
       address(_rNori),
       address(_namedAccounts.admin),
-      15
+      15,
+      2000
     );
     Market marketProxy = Market(_deployProxy(address(impl), initializer));
     vm.label(address(marketProxy), "Market Proxy");
@@ -56,7 +57,7 @@ abstract contract UpgradeableMarket is
   {
     (, uint256 availableSupply) = SafeMathUpgradeable.trySub(
       _cumulativeBalanceOfRemovalsForOwner(address(_market), removalIds),
-      _market.priorityRestrictedThreshold()
+      _market.getPriorityRestrictedThreshold()
     );
     return availableSupply;
   }

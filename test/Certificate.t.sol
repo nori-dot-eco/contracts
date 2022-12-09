@@ -37,14 +37,14 @@ contract Certificate_burn is UpgradeableCertificate {
       address(0),
       _removalIds,
       _removalAmounts,
-      abi.encode(_owner, 1 ether)
+      abi.encode(_owner, 1 ether, address(0), 100)
     );
     assertEq(
       _certificate.totalSupply(),
       1,
       "Total supply should be incremented after minting"
     );
-    assertEq(_certificate.purchaseAmount(0), 1 ether);
+    assertEq(_certificate.getPurchaseAmount(0), 1 ether);
   }
 
   function test() external {
@@ -65,7 +65,7 @@ contract Certificate_burn is UpgradeableCertificate {
       "Certificate was not burned"
     );
     assertEq(
-      _certificate.purchaseAmount(0),
+      _certificate.getPurchaseAmount(0),
       1 ether,
       "Certificate purchase amount should never change"
     );
@@ -77,7 +77,7 @@ contract Certificate_burn is UpgradeableCertificate {
       address(0),
       _removalIds2,
       _removalAmounts,
-      abi.encode(address(this), 1 ether) // todo use diff. named account
+      abi.encode(address(this), 1 ether, address(0), 100) // todo use diff. named account
     );
     assertEq(
       _certificate.balanceOf(address(this)),
@@ -94,8 +94,8 @@ contract Certificate_burn is UpgradeableCertificate {
       _certificateId + 1,
       "Total supply should be incremented after minting"
     );
-    assertEq(_certificate.purchaseAmount(0), 1 ether);
-    assertEq(_certificate.purchaseAmount(1), 1 ether);
+    assertEq(_certificate.getPurchaseAmount(0), 1 ether);
+    assertEq(_certificate.getPurchaseAmount(1), 1 ether);
   }
 
   function test_reverts_when_paused() external {
