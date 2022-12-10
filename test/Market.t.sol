@@ -1147,3 +1147,152 @@ contract Market_setPurchasingTokenAndPriceMultiple_revertsIfNotAdmin is
     _market.setPurchasingTokenAndPriceMultiple(IERC20WithPermit(address(0)), 0);
   }
 }
+
+contract Market_supplier_selection_using_up_suppliers_last_removal is
+  MarketBalanceTestHelper
+{
+  address owner;
+  uint256 checkoutTotal;
+  SignedPermit signedPermit;
+  uint256[] removalIds;
+
+  function setUp() external {
+    removalIds = [
+      _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true})[0],
+      _seedRemovals({to: _namedAccounts.supplier2, count: 1, list: true})[0],
+      _seedRemovals({to: _namedAccounts.supplier3, count: 1, list: true})[0]
+    ];
+
+    uint256 ownerPrivateKey = 0xA11CE;
+    owner = vm.addr(ownerPrivateKey);
+    checkoutTotal = _market.calculateCheckoutTotal(1.5 ether);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(checkoutTotal));
+
+    signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _bpNori
+    );
+  }
+
+  function test() external {
+    // each of the supplier has 1 removal with amount of 10**18 listed
+    address[] memory expectedSuppliers = new address[](3);
+    expectedSuppliers[0] = _namedAccounts.supplier;
+    expectedSuppliers[1] = _namedAccounts.supplier2;
+    expectedSuppliers[2] = _namedAccounts.supplier3;
+    assertEq(_market.getActiveSuppliers(), expectedSuppliers);
+
+    // purchase 1.5 * 10**18 amount of removals
+    vm.prank(owner);
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+
+    // Entire amount (1 * 10**18) of 1st supplier was taken
+    uint256 supplier1RemovalBalance = _removal.balanceOf(
+      address(_market),
+      removalIds[0]
+    );
+    assertEq(0, supplier1RemovalBalance);
+
+    // 0.5 * 10**18 amount of 2nd supplier was taken
+    uint256 supplier2RemovalBalance = _removal.balanceOf(
+      address(_market),
+      removalIds[1]
+    );
+    assertEq(0.5 ether, supplier2RemovalBalance);
+
+    // Nothing of 3rd supplier was taken
+    uint256 supplier3RemovalBalance = _removal.balanceOf(
+      address(_market),
+      removalIds[2]
+    );
+    assertEq(1 ether, supplier3RemovalBalance);
+  }
+}
+
+contract Market_supplier_selection_not_using_up_suppliers_last_removal is
+  MarketBalanceTestHelper
+{
+  address owner;
+  uint256 checkoutTotal;
+  SignedPermit signedPermit;
+  uint256[] supplier1RemovalIds;
+  uint256[] supplier2RemovalIds;
+
+  function setUp() external {
+    supplier1RemovalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 2,
+      list: true
+    });
+    supplier2RemovalIds = _seedRemovals({
+      to: _namedAccounts.supplier2,
+      count: 1,
+      list: true
+    });
+
+    uint256 ownerPrivateKey = 0xA11CE;
+    owner = vm.addr(ownerPrivateKey);
+    checkoutTotal = _market.calculateCheckoutTotal(1.5 ether);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(checkoutTotal));
+
+    signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _bpNori
+    );
+  }
+
+  function test() external {
+    // supplier1 has 2 removals with amount of 10**18 listed, supplier2 has 1 removal with amount of 10**18 listed
+    address[] memory expectedSuppliers = new address[](2);
+    expectedSuppliers[0] = _namedAccounts.supplier;
+    expectedSuppliers[1] = _namedAccounts.supplier2;
+    assertEq(_market.getActiveSuppliers(), expectedSuppliers);
+
+    // purchase 1.5 * 10**18 amount of removals
+    vm.prank(owner);
+    _market.swap(
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+
+    // Entire amount (1 * 10**18) of 1st supplier's first removal was taken
+    uint256 supplier1FirstRemovalBalance = _removal.balanceOf(
+      address(_market),
+      supplier1RemovalIds[0]
+    );
+    assertEq(0, supplier1FirstRemovalBalance);
+
+    // Nothing of 1st supplier's second removal was taken
+    uint256 supplier1SecondRemovalBalance = _removal.balanceOf(
+      address(_market),
+      supplier1RemovalIds[1]
+    );
+    assertEq(1 ether, supplier1SecondRemovalBalance);
+
+    // 0.5 * 10**18 amount of 2nd supplier's removal was taken
+    uint256 supplier2RemovalBalance = _removal.balanceOf(
+      address(_market),
+      supplier2RemovalIds[0]
+    );
+    assertEq(0.5 ether, supplier2RemovalBalance);
+  }
+}
