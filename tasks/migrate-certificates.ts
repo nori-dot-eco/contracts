@@ -292,14 +292,6 @@ const validateState = async ({
       `Unexpected certificate balance of recipient! Expected: ${inputData.length}, got: ${balanceOfRecipient}.`
     );
   }
-  console.log({
-    purchaseAmounts: JSON.stringify(
-      purchaseAmounts.map((a) => BigNumber.from(a).mul(1_000_000).toString())
-    ),
-    dataGrams: JSON.stringify(
-      inputData.flatMap((d) => d.data.gramsOfNrtsInWei)
-    ),
-  });
   if (
     JSON.stringify(
       purchaseAmounts.map((a) => BigNumber.from(a).mul(1_000_000).toString())
