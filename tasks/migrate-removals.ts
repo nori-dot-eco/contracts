@@ -68,14 +68,10 @@ interface Summary {
 }
 
 const summarize = async ({
-  hre,
-  logger,
   outputData,
   inputData,
   removalContract,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
-  logger: ReturnType<typeof getLogger>;
   outputData: Projects;
   inputData: InputData[];
   removalContract: Removal;
@@ -114,15 +110,13 @@ const summarize = async ({
   };
 };
 
-const validate = async ({
-  hre,
+const validate = ({
   logger,
   summary,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
   logger: ReturnType<typeof getLogger>;
   summary: Summary;
-}): Promise<void> => {
+}): void => {
   const onChainSupplyTonnesInWei = summary.totalRemovalSupplyOnChain.sum;
   const offChainSupplyTonnesInWei = BigNumber.from(
     FixedNumber.from(summary.expectedTotalRemovalSupply)
@@ -139,16 +133,12 @@ const validate = async ({
 
 const printSummary = ({
   logger,
-  inputData,
   outputFileName,
-  outputData,
   hre,
   summary,
 }: {
   logger: ReturnType<typeof getLogger>;
-  inputData: InputData[];
   outputFileName: string;
-  outputData: Projects;
   hre: CustomHardHatRuntimeEnvironment;
   summary: Summary;
 }): void => {
@@ -205,9 +195,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
         );
       }
-
       const inputData: InputData[] = readJsonSync(file);
-
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
       const removalContract = await getRemoval({
@@ -235,7 +223,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       );
       PROGRESS_BAR.start(inputData.length, 0);
       // submit all mintBatch transactions serially to avoid nonce collision!
-      let projectIndex = 1;
+      let projectIndex = 0;
       for (const project of inputData) {
         const amounts = project.amounts.map((amount) =>
           BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
@@ -260,10 +248,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         let pendingTx: Awaited<ReturnType<typeof migrationFunction>>;
 
         try {
-          // TODO on a live network we probably don't need to do this??
-          // make sure we're using the right gas price
-          const gasPrice = await signer.getGasPrice();
-          // hre.log(`Gas price: ${gasPrice.toString()}`);
+          const gasPrice = await signer.getGasPrice(); // TODO on a live network we probably don't need to do this??
           pendingTx = await removalContract.mintBatch(
             signerAddress, // mint to the consignor
             amounts,
@@ -273,10 +258,10 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             project.holdbackPercentage,
             { gasPrice }
           );
-          const result = await pendingTx.wait(); // TODO specify more than one confirmation?
+          const txResult = await pendingTx.wait(1); // TODO specify more than one confirmation?
           const txReceipt =
             await removalContract.provider.getTransactionReceipt(
-              result.transactionHash
+              txResult.transactionHash
             );
           const tokenIds = parseTransactionLogs({
             contractInstance: removalContract,
@@ -317,21 +302,17 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       writeJsonSync(outputFileName, outputData);
       if (!Boolean(dryRun)) {
         const summary = await summarize({
-          hre,
-          logger,
           outputData,
           removalContract,
           inputData,
         });
         printSummary({
           logger,
-          outputData,
           outputFileName,
-          inputData,
           hre,
           summary,
         });
-        await validate({ summary, hre, logger });
+        await validate({ summary, logger });
       } else {
         logger.info(
           `📝 Skipping validation and summary as it is not possible to do either in a dry run`

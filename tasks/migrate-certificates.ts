@@ -1,15 +1,16 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
+import type { ContractReceipt } from 'ethers';
 import { BigNumber, FixedNumber } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { TransactionReceipt } from '@ethersproject/providers';
 
-import type { Certificate } from '../typechain-types';
+import type { Certificate, Removal } from '../typechain-types';
 
 import { getLogger } from '@/utils/log';
 import { parseTransactionLogs } from '@/utils/events';
-import { AddressZero, Zero } from '@/constants/units';
+import { Zero } from '@/constants/units';
 import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { getCertificate, getRemoval } from '@/utils/contracts';
 
@@ -58,14 +59,10 @@ interface InputData {
 }
 
 const summarize = async ({
-  hre,
-  logger,
   outputData,
   inputData,
   certificateContract,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
-  logger: ReturnType<typeof getLogger>;
   outputData: MigratedCertificates;
   inputData: InputData[];
   certificateContract: Certificate;
@@ -93,14 +90,150 @@ const summarize = async ({
   };
 };
 
-const validate = async ({
+const validateMigrateEvent = ({
+  txResult,
+  removalContract,
   hre,
-  logger,
-  summary,
+  certificateIndex,
+  inputData,
+  recipient,
 }: {
+  txResult: ContractReceipt;
+  removalContract: Removal;
+  hre: CustomHardHatRuntimeEnvironment;
+  certificateIndex: number;
+  inputData: InputData[];
+  recipient: string;
+}): void => {
+  const eventLog: {
+    certificateId: number;
+    removalAmounts: number[];
+    removalIds: number[];
+    certificateAmount: number;
+    certificateRecipient: string;
+  } = parseTransactionLogs({
+    contractInstance: removalContract,
+    txReceipt: txResult,
+  })
+    .filter((log) => log.name === 'Migrate')
+    .flatMap((log) => ({
+      certificateId: log.args.certificateId.toNumber(),
+      removalAmounts: log.args.removalAmounts.map((a: BigNumber) =>
+        Number(hre.ethers.utils.formatUnits(a.mul(1_000_000), 18))
+      ),
+      removalIds: log.args.removalIds,
+      certificateAmount: Number(
+        hre.ethers.utils.formatUnits(
+          log.args.certificateAmount.mul(1_000_000),
+          18
+        )
+      ),
+      certificateRecipient: log.args.certificateRecipient,
+    }))[0];
+  const datastoreCertificate = inputData[certificateIndex];
+  const offChainAmountsMatchOnchainAmounts =
+    JSON.stringify(eventLog.removalAmounts) ===
+    JSON.stringify(datastoreCertificate.amounts);
+  const offChainIdsMatchOnchainIds =
+    JSON.stringify(eventLog.removalAmounts) ===
+    JSON.stringify(datastoreCertificate.amounts);
+  if (!offChainAmountsMatchOnchainAmounts) {
+    throw new Error(
+      `Removal amounts do not match for certificate ${eventLog.certificateId}. Expected: ${datastoreCertificate.amounts} , Got: ${eventLog.removalAmounts}`
+    );
+  }
+  if (!offChainIdsMatchOnchainIds) {
+    throw new Error(
+      `Removal ids do not match for certificate ${eventLog.certificateId}. Expected: ${datastoreCertificate.ids} , Got: ${eventLog.removalIds}`
+    );
+  }
+  if (eventLog.certificateAmount !== datastoreCertificate.data.gramsOfNrts) {
+    throw new Error(
+      `Unexpected certificate amount. Expected: ${datastoreCertificate.data.gramsOfNrts} , Got: ${eventLog.certificateAmount}`
+    );
+  }
+  if (eventLog.certificateRecipient !== recipient) {
+    throw new Error(
+      `Unexpected certificate recipient. Expected: ${recipient} , Got: ${eventLog.certificateRecipient}`
+    );
+  }
+  if (eventLog.certificateId !== certificateIndex) {
+    throw new Error(
+      `Unexpected certificate ID. Expected: ${certificateIndex} , Got: ${eventLog.certificateId}`
+    );
+  }
+};
+
+const validateEvents = ({
+  txResult,
+  removalContract,
+  hre,
+  certificateIndex,
+  inputData,
+  recipient,
+}: {
+  txResult: ContractReceipt;
+  removalContract: Removal;
   hre: CustomHardHatRuntimeEnvironment;
   logger: ReturnType<typeof getLogger>;
+  certificateIndex: number;
+  inputData: InputData[];
+  recipient: string;
+}): void => {
+  validateMigrateEvent({
+    txResult,
+    removalContract,
+    hre,
+    certificateIndex,
+    inputData,
+    recipient,
+  });
+  // Removal.TransferBatch(
+  //  address operator: 0x465d5a3f...18463
+  //  address from: 0x465d5a3f...18463
+  //  address to: Certificate
+  //  uint256[] ids:  [
+  //   28323967194641633453876643918753535290164133550933281571131057227227500424
+  //   ]
+  //  uint256[] values:  [
+  //   1000000000000000000
+  //   ]
+  // )
+  // Certificate.Transfer(
+  //  address from: AddressZero
+  //  address to: 0x465d5a3f...18463
+  //  uint256 tokenId: 404
+  // )
+  // Certificate.ReceiveRemovalBatch(
+  //  address from: Removal
+  //  address recipient: 0x465d5a3f...18463
+  //  uint256 certificateId: 404
+  //  uint256 certificateAmount: 1000000000000000000
+  //  uint256[] removalIds:  [
+  //   28323967194641633453876643918753535290164133550933281571131057227227500424
+  //   ]
+  //  uint256[] removalAmounts:  [
+  //   1000000000000000000
+  //   ]
+  //  address purchasingTokenAddress: AddressZero
+  //  uint256 priceMultiple: 0
+  // )
+};
+
+const validateState = async ({
+  logger,
+  summary,
+  removalContract,
+  certificateContract,
+  recipient,
+  inputData,
+}: {
+  logger: ReturnType<typeof getLogger>;
   summary: Summary;
+  removalContract: Removal;
+  certificateContract: Certificate;
+  recipient: string;
+  inputData: InputData[];
 }): Promise<void> => {
   const onChainSupplyTonnesInWei = summary.totalCertificateSupplyOnChain.sum;
   const offChainSupplyTonnesInWei = BigNumber.from(
@@ -113,21 +246,84 @@ const validate = async ({
       `Unexpected total supply, onChainSupplyTonnesInWei: ${onChainSupplyTonnesInWei}, offChainSupplyTonnesInWei: ${offChainSupplyTonnesInWei}`
     );
   }
+  const expectedTokenIds = Array.from(
+    Array.from({
+      length: (await certificateContract.totalMinted()).toNumber(),
+    }).keys()
+  );
+  const [
+    marketBalance,
+    totalMinted,
+    totalSupply,
+    balanceOfRecipient,
+    purchaseAmounts,
+    tokensOwnedByRecipient,
+  ] = await Promise.all([
+    removalContract.getMarketBalance(),
+    certificateContract.totalMinted(),
+    certificateContract.totalSupply(),
+    certificateContract.balanceOf(recipient),
+    certificateContract.callStatic.multicall(
+      expectedTokenIds.map((id) =>
+        certificateContract.interface.encodeFunctionData('getPurchaseAmount', [
+          id,
+        ])
+      )
+    ),
+    certificateContract.tokensOfOwner(recipient),
+  ]);
+  if (!marketBalance.eq(Zero)) {
+    throw new Error(
+      `Unexpected market balance! Expected 0, got ${marketBalance}`
+    );
+  }
+  if (!totalMinted.eq(BigNumber.from(inputData.length))) {
+    throw new Error(
+      `Unexpected certificate total minted! Expected: ${inputData.length}, got: ${totalMinted}.`
+    );
+  }
+  if (!totalSupply.eq(BigNumber.from(inputData.length))) {
+    throw new Error(
+      `Unexpected certificate total supply! Expected: ${inputData.length}, got: ${totalSupply}.`
+    );
+  }
+  if (!balanceOfRecipient.eq(BigNumber.from(inputData.length))) {
+    throw new Error(
+      `Unexpected certificate balance of recipient! Expected: ${inputData.length}, got: ${balanceOfRecipient}.`
+    );
+  }
+  console.log({
+    purchaseAmounts: JSON.stringify(
+      purchaseAmounts.map((a) => BigNumber.from(a).mul(1_000_000).toString())
+    ),
+    dataGrams: JSON.stringify(
+      inputData.flatMap((d) => d.data.gramsOfNrtsInWei)
+    ),
+  });
+  if (
+    JSON.stringify(
+      purchaseAmounts.map((a) => BigNumber.from(a).mul(1_000_000).toString())
+    ) !== JSON.stringify(inputData.flatMap((d) => d.data.gramsOfNrtsInWei))
+  ) {
+    throw new Error(`Unexpected certificate purchase amount!`);
+  }
+  if (
+    JSON.stringify(tokensOwnedByRecipient.map((id) => id.toNumber())) !==
+    JSON.stringify(expectedTokenIds)
+  ) {
+    throw new Error(`Unexpected owner of certificate!`);
+  }
   logger.success('🎉 Successfully validated the migration!');
 };
 
 const printSummary = ({
   logger,
-  inputData,
   outputFileName,
-  outputData,
   hre,
   summary,
 }: {
   logger: ReturnType<typeof getLogger>;
-  inputData: InputData[];
   outputFileName: string;
-  outputData: MigratedCertificates;
   hre: CustomHardHatRuntimeEnvironment;
   summary: Summary;
 }): void => {
@@ -174,9 +370,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
         );
       }
-
       const inputData: MigratedCertificates = readJsonSync(file);
-
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
       const removalContract = await getRemoval({
@@ -188,11 +382,9 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         signer,
       });
       logger.info(`Removal contract address: ${removalContract.address}`);
-
       logger.info(
         `Certificate contract address: ${certificateContract.address}`
       );
-
       logger.info(`Signer address: ${signerAddress}`);
       // const fireblocksSigner = removalContract.signer as FireblocksSigner;
       const signerHasConsignorRole = await removalContract.hasRole(
@@ -212,7 +404,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       );
       PROGRESS_BAR.start(inputData.length, 0);
 
-      let certificateIndex = 1;
+      let certificateIndex = 0;
       for (const certificate of inputData) {
         let amounts = certificate.amounts.map((amount) =>
           BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
@@ -231,18 +423,14 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           // TODO can this token ID just be 0?
           ids = [
             // '0x1007e2555349419a232b2f5fbbf857d153af8b85c16cbdb4ffb6678d7e5f93',
-            AddressZero,
+            hre.ethers.constants.HashZero,
           ];
         }
         const migrationFunction =
           dryRun === true
             ? removalContract.callStatic.migrate
             : removalContract.migrate;
-        // TODO we probably don't need to do this on a live network
-        // make sure we're using the right gas price
-        const gasPrice = await signer.getGasPrice();
-        // hre.log(`Gas price: ${gasPrice.toString()}`);
-
+        const gasPrice = await signer.getGasPrice(); // TODO we probably don't need to do this on a live network
         let pendingTx: Awaited<ReturnType<typeof migrationFunction>>;
         try {
           pendingTx = await migrationFunction(
@@ -255,9 +443,9 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           let txReceipt: TransactionReceipt | undefined;
           let tokenId: number | undefined = certificateIndex;
           if (pendingTx !== undefined) {
-            const result = await pendingTx.wait(); // TODO specify more than one confirmation?
+            const txResult = await pendingTx.wait(1); // TODO specify more than one confirmation?
             txReceipt = await removalContract.provider.getTransactionReceipt(
-              result.transactionHash
+              txResult.transactionHash
             );
             tokenId = parseTransactionLogs({
               contractInstance: removalContract,
@@ -266,12 +454,20 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               .filter((log) => log.name === 'Migrate')
               .flatMap((log) => log.args.certificateId.toNumber())[0];
             if (txReceipt.status !== 1) {
-              // log an error that this transaction hash failed and we are exiting early
               logger.error(
                 `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
               );
               return;
             }
+            validateEvents({
+              txResult,
+              removalContract,
+              hre,
+              logger,
+              certificateIndex,
+              inputData,
+              recipient: signerAddress,
+            });
           }
           PROGRESS_BAR.increment();
           outputData.push({
@@ -298,28 +494,29 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         certificateIndex += 1;
       }
       PROGRESS_BAR.stop();
-      logger.success(
-        `\nMigrated ${inputData.length} certificates successfully!`
-      );
+      logger.success(`\nMigrated ${inputData.length} certificates!`);
       writeJsonSync(outputFileName, outputData);
       logger.info(`📝 Wrote results to ${outputFileName}`);
       if (!Boolean(dryRun)) {
         const summary = await summarize({
-          hre,
-          logger,
           outputData,
           certificateContract,
           inputData,
         });
         printSummary({
           logger,
-          outputData,
           outputFileName,
-          inputData,
           hre,
           summary,
         });
-        await validate({ summary, hre, logger });
+        await validateState({
+          logger,
+          summary,
+          removalContract,
+          certificateContract,
+          recipient: signerAddress,
+          inputData,
+        });
       } else {
         logger.info(
           `📝 Skipping validation and summary as it is not possible to do either in a dry run`
