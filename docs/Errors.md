@@ -307,17 +307,6 @@ Thrown when the removal specified by `tokenId` has not been minted yet.
 | tokenId | uint256 | The removal token ID that is not minted yet. |
 
 
-## IncorrectSupplyAllocation
-
-```solidity
-error IncorrectSupplyAllocation()
-```
-
-Thrown when the market encounters a purchase that it does not have enough supply to fulfill.
-
-
-
-
 ## NoriFeeWalletZeroAddress
 
 ```solidity
@@ -325,6 +314,28 @@ error NoriFeeWalletZeroAddress()
 ```
 
 Thrown when the caller specifies the zero address for the Nori fee wallet.
+
+
+
+
+## InvalidHoldbackPercentage
+
+```solidity
+error InvalidHoldbackPercentage(uint8 holdbackPercentage)
+```
+
+Thrown when a holdback percentage greater than 100 is submitted to `mintBatch`.
+
+
+
+
+## RemovalAlreadySoldOrConsigned
+
+```solidity
+error RemovalAlreadySoldOrConsigned(uint256 tokenId)
+```
+
+Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market contracts.
 
 
 
