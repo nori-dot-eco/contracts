@@ -1148,7 +1148,7 @@ contract Market_setPurchasingTokenAndPriceMultiple_revertsIfNotAdmin is
   }
 }
 
-contract Market_supplier_selection_using_up_suppliers_last_removal is
+contract Market_supplierSelectionUsingUpSuppliersLastRemoval is
   MarketBalanceTestHelper
 {
   address owner;
@@ -1220,7 +1220,7 @@ contract Market_supplier_selection_using_up_suppliers_last_removal is
   }
 }
 
-contract Market_supplier_selection_not_using_up_suppliers_last_removal is
+contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
   MarketBalanceTestHelper
 {
   address owner;
