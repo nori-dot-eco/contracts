@@ -324,13 +324,8 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * - The caller must be the Removal contract.
    * @param removalId The ID of the removal to release.
-   * @param amount The amount of that removal to release.
    */
-  function release(uint256 removalId, uint256 amount)
-    external
-    override
-    whenNotPaused
-  {
+  function release(uint256 removalId) external override whenNotPaused {
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
