@@ -748,7 +748,7 @@ contract Removal is
    */
   function _releaseFromMarket(uint256 id, uint256 amount) internal {
     super._burn({from: this.getMarketAddress(), id: id, amount: amount});
-    _market.release(id, amount);
+    _market.release(id);
     emit ReleaseRemoval({
       id: id,
       fromAddress: this.getMarketAddress(),
