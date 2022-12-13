@@ -324,13 +324,8 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * - The caller must be the Removal contract.
    * @param removalId The ID of the removal to release.
-   * @param amount The amount of that removal to release.
    */
-  function release(uint256 removalId, uint256 amount)
-    external
-    override
-    whenNotPaused
-  {
+  function release(uint256 removalId) external override whenNotPaused {
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
@@ -1418,14 +1413,18 @@ contract Market is
         amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
         suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
         remainingAmountToFill -= removalAmount;
+        address currentSupplierBeforeRemovingActiveRemoval = _currentSupplierAddress;
         _removeActiveRemoval({
           removalId: removalId,
           supplierAddress: _currentSupplierAddress
         });
         if (
           /**
-           *  If the supplier is the only supplier remaining with supply, don't bother incrementing.
+           * Only if the current supplier address was not already incremented via removing that supplier's last active removal,
+           * and there is more than one remaining supplier with supply, increment the current supplier address.
            */
+          currentSupplierBeforeRemovingActiveRemoval ==
+          _currentSupplierAddress &&
           _suppliers[_currentSupplierAddress].next != _currentSupplierAddress
         ) {
           _incrementCurrentSupplierAddress();
@@ -1582,7 +1581,7 @@ contract Market is
    * @dev Removes a supplier from the active supplier queue. Called when a supplier's last removal is used for an order.
    * If the last supplier, resets the pointer for the `_currentSupplierAddress`. Otherwise, from the position of the
    * supplier to be removed, update the previous supplier to point to the next of the removed supplier, and the next of
-   * the removed supplier to point to the previous address of the remove supplier. Then, set the next and previous
+   * the removed supplier to point to the previous address of the removed supplier. Then, set the next and previous
    * pointers of the removed supplier to the 0x address.
    *
    * Emits a `RemoveSupplier` event.
