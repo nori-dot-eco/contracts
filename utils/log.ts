@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 
-const { log: defaultLogger } = console;
+const { log: defaultLogger, table } = console;
 
 export const trace = (...consoleArguments: unknown[]): void => {
   if (process.env.TRACE) {
@@ -13,18 +13,26 @@ export const log = (...consoleArguments: unknown[]): void => {
 };
 
 export const getLogger = ({
+  hre,
   prefix,
 }: {
+  hre: CustomHardHatRuntimeEnvironment;
   prefix?: string | undefined;
-} = {}): {
-  info: chalk.ChalkFunction;
-  error: chalk.ChalkFunction;
-  success: chalk.ChalkFunction;
+}): {
+  info: typeof log;
+  error: typeof log;
+  success: typeof log;
+  table: typeof table;
 } => {
   const maybePrefix = typeof prefix === 'string' ? [prefix] : [];
   return {
-    info: (...args: unknown[]) => chalk.bold.white(...maybePrefix, ...args),
-    error: (...args: unknown[]) => chalk.red(...maybePrefix, ...args),
-    success: (...args: unknown[]) => chalk.bold.green(...maybePrefix, ...args),
+    info: (...args: unknown[]) =>
+      hre.log(chalk.bold.white(...maybePrefix, ...args)),
+    error: (...args: unknown[]) => hre.log(chalk.red(...maybePrefix, ...args)),
+    success: (...args: unknown[]) =>
+      hre.log(chalk.bold.green(...maybePrefix, ...args)),
+    table: (args: unknown, columns?: string[]): void => {
+      table(args, columns);
+    },
   };
 };
