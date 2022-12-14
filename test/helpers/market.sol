@@ -16,6 +16,7 @@ abstract contract UpgradeableMarket is
   UpgradeableBridgedPolygonNORI
 {
   Market internal _market;
+  uint256 MAX_INT = 2**256 - 1;
 
   constructor() {
     _market = _deployMarket();
