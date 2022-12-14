@@ -191,7 +191,14 @@ describe('Market', () => {
         await expect(
           market
             .connect(namedSigners[accountWithRole])
-            .swap(namedAccounts[accountWithRole], value, MaxUint256, v, r, s)
+            .swapByPermit(
+              namedAccounts[accountWithRole],
+              value,
+              MaxUint256,
+              v,
+              r,
+              s
+            )
         ).not.to.be.reverted;
       });
       it(`should revert when an account that is not on the allowlist tries purchase supply when inventory is below the threshold`, async () => {
@@ -220,7 +227,7 @@ describe('Market', () => {
         await expect(
           market
             .connect(accountWithoutRole)
-            .swap(
+            .swapByPermit(
               accountWithoutRole.address,
               totalAmountOfSupply,
               MaxUint256,
@@ -363,7 +370,7 @@ describe('Market', () => {
         });
         await market
           .connect(buyer)
-          .swap(buyer.address, value, MaxUint256, v, r, s);
+          .swapByPermit(buyer.address, value, MaxUint256, v, r, s);
         const expectedRemainingSupply = totalAmountOfSupply.sub(purchaseAmount);
         const totalListedSupply = await removal.getMarketBalance();
         expect(totalListedSupply).to.equal(expectedRemainingSupply);
@@ -525,7 +532,7 @@ describe('Market', () => {
   //     });
   //     await market
   //       .connect(buyer)
-  //       .swap(buyer.address, value, MaxUint256, v, r, s);
+  //       .swapByPermit(buyer.address, value, MaxUint256, v, r, s);
   //     const buyerFinalNoriBalance = await bpNori.balanceOf(buyer.address);
   //     const supplierFinalNoriBalance = await bpNori.balanceOf(
   //       supplier.address
@@ -569,7 +576,7 @@ describe('Market', () => {
   //     });
   //     await market
   //       .connect(buyer)
-  //       .swap(investor1.address, value, deadline, v, r, s);
+  //       .swapByPermit(investor1.address, value, deadline, v, r, s);
   //     const numberOfActiveRemovals =
   //       await removal.numberOfTokensOwnedByAddress(market.address);
   //     // Roundabout way of showing that the removal used to fill the order was the removal with amount 5, not 1.
@@ -607,7 +614,7 @@ describe('Market', () => {
   //     });
   //     await market
   //       .connect(buyer)
-  //       .swap(buyer.address, value, MaxUint256, v, r, s);
+  //       .swapByPermit(buyer.address, value, MaxUint256, v, r, s);
   //     const buyerFinalNoriBalance = await bpNori.balanceOf(buyer.address);
   //     const supplierFinalNoriBalance = await bpNori.balanceOf(
   //       supplier.address
@@ -668,7 +675,7 @@ describe('Market', () => {
   //     });
   //     await market
   //       .connect(buyer)
-  //       .swap(buyer.address, value, MaxUint256, v, r, s);
+  //       .swapByPermit(buyer.address, value, MaxUint256, v, r, s);
   //     const buyerFinalNoriBalance = await bpNori.balanceOf(buyer.address);
   //     const supplierFinalNoriBalance = await bpNori.balanceOf(
   //       supplier.address
@@ -732,7 +739,7 @@ describe('Market', () => {
   //       });
   //       const tx = await market
   //         .connect(buyer)
-  //         .swap(buyer.address, value, MaxUint256, v, r, s);
+  //         .swapByPermit(buyer.address, value, MaxUint256, v, r, s);
   //       return tx.wait();
   //     };
   //     await purchaseNrts(); // deplete some of the stock (ids 0, 1, 2)
@@ -795,7 +802,7 @@ describe('Market', () => {
   //     });
   //     await market
   //       .connect(buyer)
-  //       .swap(buyer.address, value, MaxUint256, v, r, s);
+  //       .swapByPermit(buyer.address, value, MaxUint256, v, r, s);
   //     const [
   //       buyerFinalNoriBalance,
   //       supplierFinalNoriBalance,
@@ -857,7 +864,7 @@ describe('Market', () => {
   //     await expect(
   //       market
   //         .connect(buyer)
-  //         .swap(buyer.address, totalPrice, MaxUint256, v, r, s)
+  //         .swapByPermit(buyer.address, totalPrice, MaxUint256, v, r, s)
   //     ).to.be.revertedWith('OutOfStock()');
   //     const [
   //       buyerFinalNoriBalance,
@@ -900,7 +907,7 @@ describe('Market', () => {
   //     await expect(
   //       market
   //         .connect(buyer)
-  //         .swap(buyer.address, value, MaxUint256, v, r, s)
+  //         .swapByPermit(buyer.address, value, MaxUint256, v, r, s)
   //     ).to.be.revertedWith('InsufficientSupply()');
   //     const [
   //       buyerFinalNoriBalance,
@@ -956,7 +963,7 @@ describe('Market', () => {
   //   //   await expect(
   //   //     market
   //   //       .connect(buyer)
-  //   //       .swap(buyer.address, value, constants.MaxUint256, v, r, s)
+  //   //       .swapByPermit(buyer.address, value, constants.MaxUint256, v, r, s)
   //   //   ).to.be.reverted;
   //   //   const [
   //   //     buyerFinalNoriBalance,
@@ -1014,7 +1021,7 @@ describe('Market', () => {
       });
       await market
         .connect(buyer)
-        .swap(buyer.address, value, MaxUint256, v, r, s);
+        .swapByPermit(buyer.address, value, MaxUint256, v, r, s);
       const scheduleSummaries = await rNori.batchGetScheduleSummaries([
         projectId1,
         projectId2,
@@ -1086,7 +1093,7 @@ describe('Market', () => {
       // expect(await certificate.balanceOf(investor1.address, 0)).to.equal(0); // todo
       await market
         .connect(buyer)
-        .swap(investor1.address, value, deadline, v, r, s);
+        .swapByPermit(investor1.address, value, deadline, v, r, s);
       expect(await bpNori.balanceOf(hre.namedAccounts.buyer)).to.equal(
         userFixtures.buyer.bpBalance.sub(value)
       );
@@ -1134,7 +1141,7 @@ describe('purchasing from a specified supplier', () => {
     });
     await market
       .connect(buyer)
-      .swapFromSupplier(
+      .swapFromSupplierByPermit(
         buyer.address,
         value,
         hre.namedAccounts.supplier,
@@ -1189,7 +1196,7 @@ describe('purchasing from a specified supplier', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSupplier(
+        .swapFromSupplierByPermit(
           buyer.address,
           value,
           hre.namedAccounts.supplier,
@@ -1227,7 +1234,7 @@ describe('purchasing from a specified supplier', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSupplier(
+        .swapFromSupplierByPermit(
           buyer.address,
           value,
           hre.namedAccounts.investor2,
@@ -1263,7 +1270,7 @@ describe('purchasing from a specified supplier', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSupplier(
+        .swapFromSupplierByPermit(
           buyer.address,
           value,
           hre.namedAccounts.supplier,
