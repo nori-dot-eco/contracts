@@ -130,7 +130,7 @@ contract RestrictedNORI_revokeUnreleasedTokens is UpgradeableMarket {
       _bpNori
     );
     vm.prank(owner);
-    _market.swap(
+    _market.swapByPermit(
       owner,
       checkoutTotal,
       signedPermit.permit.deadline,
