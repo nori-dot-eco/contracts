@@ -676,37 +676,34 @@ to Nori Inc. as a market operator fee.
 ### swapWithoutFee
 
 ```solidity
-function swapWithoutFee(address recipient, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
+function swapWithoutFee(address recipient, uint256 amount) external
 ```
 
 Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
 certificate without charging a transaction fee.
 
 <i>See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
-The message sender must present a valid permit to this contract to temporarily authorize this market
-to transfer the sender's supported ERC20 to complete the purchase. A certificate is minted in the Certificate
+The message sender must have granted approval to this contract to authorize this market to transfer the sender's
+supported ERC20 to complete the purchase. A certificate is minted in the Certificate
 contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
 potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
 
 ##### Requirements:
 
 - Can only be used when this contract is not paused.
-- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.</i>
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+- Can only be used if this contract has been granted approval to spend the sender's ERC20 tokens.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
-| deadline | uint256 | The EIP2612 permit deadline in Unix time. |
-| v | uint8 | The recovery identifier for the permit's secp256k1 signature. |
-| r | bytes32 | The r value for the permit's secp256k1 signature. |
-| s | bytes32 | The s value for the permit's secp256k1 signature. |
 
 
 ### swapFromSupplierWithoutFee
 
 ```solidity
-function swapFromSupplierWithoutFee(address recipient, uint256 amount, address supplier, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
+function swapFromSupplierWithoutFee(address recipient, uint256 amount, address supplier) external
 ```
 
 An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported ERC20
@@ -714,9 +711,9 @@ tokens for an ERC721 certificate token and transfers ownership of removal tokens
 supplier to that certificate, without charging a transaction fee. If the specified supplier does not have enough
 carbon removals for sale to fulfill the order the transaction will revert.
 
-<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
-The message sender must present a valid permit to this contract to temporarily authorize this market
-to transfer the sender's supported ERC20 to complete the purchase. A certificate is issued by the Certificate contract
+<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for more.
+The message sender must have granted approval to this contract to authorize this market to transfer the sender's
+supported ERC20 to complete the purchase. A certificate is issued by the Certificate contract
 contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal and potentially
 to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
 
@@ -724,17 +721,15 @@ to the RestrictedNORI contract that controls any restricted portion of the ERC20
 ##### Requirements:
 
 - Can only be used when this contract is not paused.
-- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.</i>
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+- Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
+- Can only be used if this contract has been granted approval to spend the sender's ERC20 tokens.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
 | supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
-| deadline | uint256 | The EIP2612 permit deadline in Unix time. |
-| v | uint8 | The recovery identifier for the permit's secp256k1 signature. |
-| r | bytes32 | The r value for the permit's secp256k1 signature. |
-| s | bytes32 | The s value for the permit's secp256k1 signature. |
 
 
 ### withdraw
@@ -1310,7 +1305,7 @@ function _removeActiveSupplier(address supplierToRemove) private
 <i>Removes a supplier from the active supplier queue. Called when a supplier's last removal is used for an order.
 If the last supplier, resets the pointer for the `_currentSupplierAddress`. Otherwise, from the position of the
 supplier to be removed, update the previous supplier to point to the next of the removed supplier, and the next of
-the removed supplier to point to the previous address of the remove supplier. Then, set the next and previous
+the removed supplier to point to the previous address of the removed supplier. Then, set the next and previous
 pointers of the removed supplier to the 0x address.
 
 Emits a `RemoveSupplier` event.</i>
