@@ -16,7 +16,7 @@ jobs:
           version: nightly
 
       - name: Install Hardhat Dependencies
-        run: yarn install --skip-build
+        run: yarn install --mode skip-build
 
       - name: Run foundry tests
         run: forge test -vvv
