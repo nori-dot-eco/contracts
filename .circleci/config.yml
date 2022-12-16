@@ -28,20 +28,17 @@ jobs:
             echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
       - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v8-node_modules_dir-{{ checksum "yarn.lock" }}
       - run:
           name: Install Dependencies
           command: |
             sudo apt-get update && sudo apt -y install libsecret-1-0
             if [ ! -d "node_modules" ]; then
-              for i in 1 2; do
-                yarn install --prefer-offline && break || sleep 15;
-              done
-              git checkout yarn.lock
+              yarn install --immutable
             fi
       - build-typechain-types
       - save_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v8-node_modules_dir-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
             - ~/.cache
@@ -52,7 +49,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v8-node_modules_dir-{{ checksum "yarn.lock" }}
       - run:
           name: Setup Environment
           command: |
@@ -74,7 +71,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v8-node_modules_dir-{{ checksum "yarn.lock" }}
       - run:
           name: Setup Environment
           command: |
