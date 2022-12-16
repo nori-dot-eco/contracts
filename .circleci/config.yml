@@ -28,7 +28,7 @@ jobs:
             echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
             echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
       - restore_cache:
-          key: v7-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v8-node_modules_dir-{{ checksum "yarn.lock" }}
       - run:
           name: Install Dependencies
           command: |
@@ -38,7 +38,7 @@ jobs:
             fi
       - build-typechain-types
       - save_cache:
-          key: v7-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v8-node_modules_dir-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
             - ~/.cache
@@ -49,7 +49,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v7-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v8-node_modules_dir-{{ checksum "yarn.lock" }}
       - run:
           name: Setup Environment
           command: |
@@ -71,7 +71,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v7-node_modules_dir-{{ checksum "yarn.lock" }}
+          key: v8-node_modules_dir-{{ checksum "yarn.lock" }}
       - run:
           name: Setup Environment
           command: |
