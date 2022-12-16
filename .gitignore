@@ -102,9 +102,6 @@ gasreport.txt
 # local grants for the hardhat vesting task
 grants.csv
 
-# tenderly
-scripts/tenderly.ts
-
 # foundry
 out
 cache_hardhat
