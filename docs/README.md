@@ -1,18 +1,18 @@
 # Nori Smart Contracts
 
-Nori's product is the NRT or Nori _Removal_ Tonne. This can be understood as a carbon removal credit granted to a supplier for the CO2 they have removed from the atmosphere. The supplier consigns their NRTs to Nori's marketplace for sale and gets paid in _NORI_ token. A buyer of NRTs is minted a non-transferrable _Certificate_ (NCCR) which ultimately owns the sold NRTs.
+Nori's product is the NRT or Nori _Removal_ Tonne. This can be understood as a carbon removal credit granted to a supplier for the CO2 they have removed from the atmosphere. The supplier consigns their NRTs to Nori's marketplace for sale and gets paid in ERC20 tokens. Ultimately, suppliers will be paid in the _NORI_ token, which will be exchangable 1:1 for 1 NRT and is designed to enable price discovery for carbon removal. Initially, however, suppliers will be paid in _USDC_ at a price set by Nori. A buyer of NRTs is minted a non-transferrable _Certificate_ (NCCR) which ultimately owns the sold NRTs.
 
-Nori collects a configurable marketplace fee (currently 15%) from each transaction and additionally restricts a percentage of the proceeds of each swap to be held in an insurance reserve and released linearly over the supplier's ten-year contract with Nori. _RestrictedNORI_ implements this restriction and scheduled release mechanism with support for transfer of restricted token blocks between wallets.
+Nori collects a configurable marketplace fee (currently 15%) from each transaction. Once the marketplace is configured to receive _NORI_, a percentage of the proceeds of each swap will additionally be held in an insurance reserve and released linearly over the supplier's ten-year contract with Nori. _RestrictedNORI_ implements this restriction and scheduled release mechanism with support for transfer of restricted token blocks between wallets.
 
 If a supplier is found to have released the sequestered carbon the corresponding Removals will be burned and funds from the insurance reserve used to replace them making the Certificate and buyer whole. Automating the replacement of those burned Removals is on the future roadmap but is not implemented here.
 
-Investors and employees have received token grants bound by vesting and lockup terms. These grants are implemented by _LockedNORI_ which does not currently support transfer of locked tokens and allows a maximum of one grant schedule per wallet address.
+Investors and employees have received _NORI_ token grants bound by vesting and lockup terms. These grants are implemented by _LockedNORI_ which does not currently support transfer of locked tokens and allows a maximum of one grant schedule per wallet address.
 
 ## ERC20 Token
 
 ### NORI (NORI)
 
-The [$NORI](./NORI.sol) token is Nori's fungible token which functions as a gift card to purchase NRTs. One NRT is worth one $NORI.
+The [$NORI](./NORI.sol) token is Nori's fungible token which functions as a gift card to purchase NRTs. One NRT is worth one $NORI. The marketplace is configurable with respect to which ERC20 token it is willing to accept as payment. The initial launch of the market will be configured to receive _USDC_, with the intention of switching to receive _NORI_ once that token is launched publicly with sufficient liquidity.
 
 - Deployed on: Ethereum mainnet.
 - Initial supply minted at deployment: 500M
@@ -68,12 +68,12 @@ The core swap market contract of the Nori platform. Removals are listed for sale
 
 #### _Swap_ mechanism
 
-The _swap_ function is the primary point of interaction with the market for buyers. Calls to the _swap_ function include an amount of NORI to spend and a recipient wallet address to which the Certificate is minted. These calls also include a pre-signed authorization to transfer the corresponding amount of _BridgedPolygonNORI_ following the [ERC20Permit](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/draft-ERC20Permit.sol) pattern.
+The _swap_ function is the primary point of interaction with the market for buyers. Calls to the _swap_ function include an amount of supported ERC20 tokens (_USDC_ or _BridgedPolygonNORI_) to spend and a recipient wallet address to which the Certificate is minted. These calls also include a pre-signed authorization to transfer the corresponding amount of the supported ERC20 following the [ERC20Permit](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/draft-ERC20Permit.sol) pattern.
 
-The NORI tokens transferred from the buyer to this contract are distributed as follows:
+The ERC20 tokens transferred from the buyer to this contract are distributed as follows:
 
 - A configurable market fee percentage to Nori's fee wallet (currently 15%)
-- A configurable percentage of the sale proceeds due to the supplier(s) are forwarded to the _RestrictedNORI_ contract to be withheld for insurance purposes and released over the life of their NRT agreement(s). (Configured on each Removal)
+- If the supported ERC20 is _NORI_, a configurable percentage of the sale proceeds due to the supplier(s) are forwarded to the _RestrictedNORI_ contract to be withheld for insurance purposes and released over the life of their NRT agreement(s). (Configured on each Removal)
 - The balance of the proceeds of the sale are forwarded to the supplier(s) address.
 
 #### Withdrawal Mechanism
@@ -112,11 +112,15 @@ Operates similarly to _LockedNORI_ by acting as a wrapper token that governs the
 
 ### Errors
 
+Custom errors shared across multiple contracts.
+
 ### LockedNORILib
 
 The schedule logic for multiple cliffs followed by linear unlock used by the _LockedNORIV2_ contract. The vesting behavior and the unlocking behavior of each grant are each implemented using a schedule from this library.
 
 ### RemovalIdLib
+
+The logic for encoding and decoding removal IDs, which contain information about the origin of the carbon removal.
 
 ### RemovalsByYearLib
 
@@ -160,5 +164,7 @@ For additional documentation about any given smart contract, refer to that contr
 - [UInt256ArrayLib](UInt256ArrayLib.md)
 
 ## Prior Audits
+
+- [Macro](https://library.0xmacro.com/library/audits/nori-1) audited AccessPresetPausable, ArrayLib, BridgedPolygonNORI, Certificate, ERC20Preset, Errors, LockedNORI, LockedNORILib, Market, NORI, Removal, RemovalIdLib, RemovalsByYearLib, RestrictedNORI, and RestrictedNORILib in December of 2022.
 
 - [Omniscia](https://omniscia.io/nori-multiple-token-implementations/) audited NORI, BridgedPolygonNORI and LockedNORI in March of 2022.
