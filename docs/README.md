@@ -2,7 +2,7 @@
 
 Nori's product is the NRT or Nori _Removal_ Tonne. This can be understood as a carbon removal credit granted to a supplier for the CO2 they have removed from the atmosphere. The supplier consigns their NRTs to Nori's marketplace for sale and gets paid in ERC20 tokens. Ultimately, suppliers will be paid in the _NORI_ token, which will be exchangable 1:1 for 1 NRT and is designed to enable price discovery for carbon removal. Initially, however, suppliers will be paid in _USDC_ at a price set by Nori. A buyer of NRTs is minted a non-transferrable _Certificate_ (NCCR) which ultimately owns the sold NRTs.
 
-Nori collects a configurable marketplace fee (currently 15%) from each transaction. Once the marketplace is configured to receive _NORI_, a percentage of the proceeds of each swap will additionally be held in an insurance reserve and released linearly over the supplier's ten-year contract with Nori. _RestrictedNORI_ implements this restriction and scheduled release mechanism with support for transfer of restricted token blocks between wallets.
+Nori collects a configurable marketplace fee (currently 15%) from each transaction. Once the marketplace is configured to receive _NORI_, a percentage of the proceeds of each swap will additionally be held in an insurance reserve and released linearly over the supplier's ten-year contract with Nori. _RestrictedNORI_ implements this restriction and scheduled release mechanism.
 
 If a supplier is found to have released the sequestered carbon the corresponding Removals will be burned and funds from the insurance reserve used to replace them making the Certificate and buyer whole. Automating the replacement of those burned Removals is on the future roadmap but is not implemented here.
 
