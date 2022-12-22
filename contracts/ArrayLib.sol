@@ -2,7 +2,7 @@
 pragma solidity =0.8.17;
 
 /**
- * @title An library for `uint256[]`.
+ * @title A library for `uint256[]`.
  * @author Nori Inc.
  * @notice This library provides a set of functions to manipulate `uint256` arrays.
  * @dev The functions in this library use gas-efficient and concise syntax to improve both DX (via concision) and UX
