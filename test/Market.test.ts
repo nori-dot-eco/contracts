@@ -1,4 +1,3 @@
-import type { ContractReceipt } from 'ethers';
 import { BigNumber } from 'ethers';
 
 import { MaxUint256, Zero } from '@/constants/units';
@@ -73,7 +72,7 @@ describe('Market', () => {
         const roleId = await market[role]();
         expect(await market.hasRole(roleId, namedAccounts[accountWithRole])).to
           .be.true;
-        const newNoriFeeWalletAddress = hre.namedAccounts.admin;
+        const newNoriFeeWalletAddress = namedAccounts.admin;
         await expect(
           market
             .connect(namedSigners[accountWithRole])
@@ -331,7 +330,7 @@ describe('Market', () => {
     // });
     describe('total listed supply', () => {
       it('should correctly report the number of NRTs for sale when there are multiple removals in inventory', async () => {
-        const { market, removal, totalAmountOfSupply } = await setupTest({
+        const { removal, totalAmountOfSupply } = await setupTest({
           userFixtures: {
             supplier: {
               removalDataToList: {
@@ -392,19 +391,14 @@ describe('Market', () => {
   });
   describe('when listing supply in the market', () => {
     it('should update cumulativeActiveSupply, numberOfActiveRemovals, and activeSupplierCount when a new supplier is added', async () => {
-      const {
-        market,
-        totalAmountOfSupply,
-        totalAmountOfSuppliers, // todo
-        totalAmountOfRemovals,
-        removal,
-      } = await setupTest({
-        userFixtures: {
-          supplier: {
-            removalDataToList: { removals: [{ amount: 100 }] },
+      const { market, totalAmountOfSupply, totalAmountOfRemovals, removal } =
+        await setupTest({
+          userFixtures: {
+            supplier: {
+              removalDataToList: { removals: [{ amount: 100 }] },
+            },
           },
-        },
-      });
+        });
       const [cumulativeActiveSupply, numberOfActiveRemovals] =
         await Promise.all([
           removal.getMarketBalance(),
@@ -1013,8 +1007,7 @@ describe('Market', () => {
           holdbackPercentage: project2HoldbackPercentage,
         },
       });
-      const { bpNori, market, rNori, hre, feePercentage, userFixtures } =
-        testSetup;
+      const { bpNori, market, rNori, hre, userFixtures } = testSetup;
       const { supplier, buyer, noriWallet } = hre.namedSigners;
       const purchaseAmount = formatTokenAmount(200);
       const fee = await market.calculateNoriFee(purchaseAmount);
@@ -1128,27 +1121,21 @@ describe('Market', () => {
 });
 describe('purchasing from a specified supplier', () => {
   it('should purchase supply from a specific supplier when they have enough supply', async () => {
-    const {
-      bpNori,
-      removal,
-      certificate,
-      market,
-      feePercentage,
-      totalAmountOfSupply,
-    } = await setupTest({
-      userFixtures: {
-        supplier: {
-          removalDataToList: {
-            removals: [
-              { amount: 10, supplierAddress: hre.namedAccounts.supplier }, // 2 removals each for 2 different suppliers
-              { amount: 10, supplierAddress: hre.namedAccounts.supplier },
-              { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
-              { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
-            ],
+    const { bpNori, market, feePercentage, totalAmountOfSupply } =
+      await setupTest({
+        userFixtures: {
+          supplier: {
+            removalDataToList: {
+              removals: [
+                { amount: 10, supplierAddress: hre.namedAccounts.supplier }, // 2 removals each for 2 different suppliers
+                { amount: 10, supplierAddress: hre.namedAccounts.supplier },
+                { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
+                { amount: 10, supplierAddress: hre.namedAccounts.investor1 },
+              ],
+            },
           },
         },
-      },
-    });
+      });
     const purchaseAmount = totalAmountOfSupply.div(2); // purchase half of supply, exactly two full removal tokens
     const fee = purchaseAmount.mul(feePercentage).div(100);
     const value = purchaseAmount.add(fee);
@@ -1162,15 +1149,9 @@ describe('purchasing from a specified supplier', () => {
     });
     await market
       .connect(buyer)
-      .swapFromSupplier(
-        buyer.address,
-        value,
-        hre.namedAccounts.supplier,
-        MaxUint256,
-        v,
-        r,
-        s
-      );
+      [
+        'swapFromSupplier(address,uint256,address,uint256,uint8,bytes32,bytes32)'
+      ](buyer.address, value, hre.namedAccounts.supplier, MaxUint256, v, r, s);
     const [supplierFinalNoriBalance, investor1FinalNoriBalance] =
       await Promise.all([
         bpNori.balanceOf(hre.namedAccounts.supplier),
@@ -1217,15 +1198,9 @@ describe('purchasing from a specified supplier', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSupplier(
-          buyer.address,
-          value,
-          hre.namedAccounts.supplier,
-          MaxUint256,
-          v,
-          r,
-          s
-        )
+        [
+          'swapFromSupplier(address,uint256,address,uint256,uint8,bytes32,bytes32)'
+        ](buyer.address, value, hre.namedAccounts.supplier, MaxUint256, v, r, s)
     ).to.be.revertedWith('InsufficientSupply()');
   });
   it('should revert when purchasing supply from a specific supplier who does not exist in the market', async () => {
@@ -1255,7 +1230,9 @@ describe('purchasing from a specified supplier', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSupplier(
+        [
+          'swapFromSupplier(address,uint256,address,uint256,uint8,bytes32,bytes32)'
+        ](
           buyer.address,
           value,
           hre.namedAccounts.investor2,
@@ -1291,15 +1268,9 @@ describe('purchasing from a specified supplier', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSupplier(
-          buyer.address,
-          value,
-          hre.namedAccounts.supplier,
-          MaxUint256,
-          v,
-          r,
-          s
-        )
+        [
+          'swapFromSupplier(address,uint256,address,uint256,uint8,bytes32,bytes32)'
+        ](buyer.address, value, hre.namedAccounts.supplier, MaxUint256, v, r, s)
     ).to.be.revertedWith('LowSupplyAllowlistRequired()');
   });
 });
