@@ -48,7 +48,8 @@ export function hsection(
       .replace(
         /##### Additional behaviors and features:/,
         '\n ##### Additional behaviors and features:\n'
-      ).replace(
+      )
+      .replace(
         /##### Behaviors and features:/,
         '\n #### Behaviors and features:\n'
       )
