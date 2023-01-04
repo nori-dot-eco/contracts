@@ -657,7 +657,6 @@ contract to the specified recipient and the ERC20 is distributed to the supplier
 to the RestrictedNORI contract that controls any restricted ERC20 owed to the supplier, and finally
 to Nori Inc. as a market operator fee.
 
-
 ##### Requirements:
 
 - Can only be used when this contract is not paused.</i>
@@ -711,17 +710,18 @@ ERC20 tokens for an ERC721 certificate token and transfers ownership of removal 
 specified supplier to that certificate, without charging a transaction fee. If the specified supplier does not have
 enough carbon removals for sale to fulfill the order the transaction will revert.
 
-<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more. The sender must
-present a valid permit to this contract to temporarily authorize this market to transfer the sender's supported
-ERC20 to complete the purchase. A certificate is issued by the Certificate contract contract to the specified
-recipient and the ERC20 is distributed to the supplier of the carbon removal and potentially to the RestrictedNORI
-contract that controls any restricted portion of the ERC20 owed to the supplier.
-
+<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
+more. The message sender must have granted approval to this contract to authorize this market to transfer the
+sender's supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
+to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
+potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
 
 ##### Requirements:
 
 - Can only be used when this contract is not paused.
-- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.</i>
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+- Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
+- Can only be used if this contract has been granted approval to spend the sender's ERC20 tokens.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
