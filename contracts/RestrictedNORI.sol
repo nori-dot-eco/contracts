@@ -96,9 +96,9 @@ struct ScheduleDetailForAddress {
  * - _Revocation_ is the process of tokens being recaptured by Nori to enforce carbon permanence guarantees.
  * Only unreleased tokens can ever be revoked. When tokens are revoked from a schedule, the current number of released
  * tokens does not decrease, even as the schedule's total supply decreases through revocation (a floor is enforced).
- * When these tokens are revoked, the 1155 schedule token is burned, and the underlying ERC20 token held by this contract
- * is sent to the address specified by Nori. If a schedule has multiple token holders, tokens are burned from each
- * holder in proportion to their total percentage ownership of the schedule.
+ * When these tokens are revoked, the 1155 schedule token is burned, and the underlying ERC20 token held by this
+ * contract is sent to the address specified by Nori. If a schedule has multiple token holders, tokens are burned from
+ * each holder in proportion to their total percentage ownership of the schedule.
  *
  * ###### Additional behaviors and features
  *
@@ -107,8 +107,8 @@ struct ScheduleDetailForAddress {
  * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
  * pausable.
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- * - `SCHEDULE_CREATOR_ROLE`: Can create restriction schedules without sending the underlying tokens to the contract. The
- * market contract has this role and sets up relevant schedules as removal tokens are minted.
+ * - `SCHEDULE_CREATOR_ROLE`: Can create restriction schedules without sending the underlying tokens to the contract.
+ * The market contract has this role and sets up relevant schedules as removal tokens are minted.
  * - `MINTER_ROLE`: Can call `mint` on this contract, which mints tokens of the correct schedule ID (token ID) for a
  * given removal. The market contract has this role and can mint RestrictedNORI while routing sale proceeds to this
  * contract.
@@ -534,7 +534,6 @@ contract RestrictedNORI is
         scheduleTokenId: scheduleId,
         balance: balanceOf({account: account, id: scheduleId}),
         claimableAmount: schedule.claimableBalanceForScheduleForAccount({
-          scheduleId: scheduleId,
           account: account,
           totalSupply: totalSupply({id: scheduleId}),
           balanceOfAccount: balanceOf({account: account, id: scheduleId})
@@ -642,7 +641,6 @@ contract RestrictedNORI is
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
       schedule.claimableBalanceForScheduleForAccount({
-        scheduleId: scheduleId,
         account: account,
         totalSupply: totalSupply({id: scheduleId}),
         balanceOfAccount: balanceOf({account: account, id: scheduleId})
@@ -692,38 +690,6 @@ contract RestrictedNORI is
     _methodologyAndVersionToScheduleDuration[methodology][
       methodologyVersion
     ] = durationInSeconds;
-  }
-
-  /**
-   * @notice Token transfers disabled.
-   * @dev Transfer is disabled because keeping track of claimable amounts as tokens are
-   * claimed and transferred requires more bookkeeping infrastructure that we don't currently
-   * have time to write but may implement in the future.
-   */
-  function safeTransferFrom(
-    address,
-    address,
-    uint256,
-    uint256,
-    bytes memory
-  ) public override {
-    revert FunctionDisabled();
-  }
-
-  /**
-   * @notice Token transfers disabled.
-   * @dev Transfer is disabled because keeping track of claimable amounts as tokens are
-   * claimed and transferred requires more bookkeeping infrastructure that we don't currently
-   * have time to write but may implement in the future.
-   */
-  function safeBatchTransferFrom(
-    address,
-    address,
-    uint256[] memory,
-    uint256[] memory,
-    bytes memory
-  ) public override {
-    revert FunctionDisabled();
   }
 
   /**
@@ -802,6 +768,38 @@ contract RestrictedNORI is
   }
 
   /**
+   * @notice Token transfers are disabled.
+   * @dev Transfer is disabled because keeping track of claimable amounts as tokens are
+   * claimed and transferred requires more bookkeeping infrastructure that we don't currently
+   * have time to write but may implement in the future.
+   */
+  function safeTransferFrom(
+    address,
+    address,
+    uint256,
+    uint256,
+    bytes memory
+  ) public pure override {
+    revert FunctionDisabled();
+  }
+
+  /**
+   * @notice Token transfers are disabled.
+   * @dev Transfer is disabled because keeping track of claimable amounts as tokens are
+   * claimed and transferred requires more bookkeeping infrastructure that we don't currently
+   * have time to write but may implement in the future.
+   */
+  function safeBatchTransferFrom(
+    address,
+    address,
+    uint256[] memory,
+    uint256[] memory,
+    bytes memory
+  ) public pure override {
+    revert FunctionDisabled();
+  }
+
+  /**
    * @notice Sets up a schedule for the specified project.
    * @dev Schedules are created when removal tokens are listed for sale in the market contract,
    * so this should only be invoked during `tokensReceived` in the exceptional case that
@@ -877,7 +875,6 @@ contract RestrictedNORI is
             if (
               amounts[i] >
               schedule.claimableBalanceForScheduleForAccount({
-                scheduleId: id,
                 account: from,
                 totalSupply: totalSupply({id: id}),
                 balanceOfAccount: balanceOf({account: from, id: id})

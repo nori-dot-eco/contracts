@@ -249,7 +249,8 @@ contract Market is
    * @notice Emitted when the ERC20 token that would be transferred to the RestrictedNORI contract is not the token
    * address that RestrictedNORI was configured to wrap.
    * @param amount The amount of RestrictedNORI in the transfer attempt.
-   * @param currentHoldbackPercentage The holdback percentage for this removal id's project at the time of this event emission.
+   * @param currentHoldbackPercentage The holdback percentage for this removal id's project at the time of this event
+   * emission.
    * @param removalId The removal id being processed during the transfer attempt.
    * @param rNoriUnderlyingToken The address of the token contract that RestrictedNORI was configured to wrap.
    * @param purchasingTokenAddress The address of the ERC20 token that would have been transferred to RestrictedNORI.
@@ -388,7 +389,6 @@ contract Market is
    *
    * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
    * - Can only be used when this contract is not paused.
-   *
    * @param purchasingToken The new purchasing token contract address.
    * @param priceMultiple The new price multiple.
    */
@@ -645,7 +645,6 @@ contract Market is
    *
    * - Can only be used when this contract is not paused.
    * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   *
    * @param recipient The address to which the certificate will be issued.
    * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
    * purchased, scaled by the price multiple.
@@ -685,22 +684,20 @@ contract Market is
   }
 
   /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported ERC20
-   * tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
-   * supplier to that certificate, without charging a transaction fee. If the specified supplier does not have enough
-   * carbon removals for sale to fulfill the order the transaction will revert.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
-   * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's supported ERC20 to complete the purchase. A certificate is issued by the Certificate contract
-   * contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal and potentially
-   * to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
-   *
+   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported
+   * ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the
+   * specified supplier to that certificate, without charging a transaction fee. If the specified supplier does not have
+   * enough carbon removals for sale to fulfill the order the transaction will revert.
+   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more. The sender must
+   * present a valid permit to this contract to temporarily authorize this market to transfer
+   * the sender's supported ERC20 to complete the purchase. A certificate is issued by the Certificate
+   * contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal and
+   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
    *
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
    * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   *
    * @param recipient The address to which the certificate will be issued.
    * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
    * purchased, scaled by the price multiple.
@@ -1048,7 +1045,9 @@ contract Market is
               amount: restrictedSupplierFee,
               removalId: removalIds[i]
             })
-          {} catch {
+          {
+            // solhint-disable-previous-line no-empty-blocks, Nothing should happen here.
+          } catch {
             emit RestrictedNORIMintFailure({
               amount: restrictedSupplierFee,
               removalId: removalIds[i]
@@ -1244,7 +1243,9 @@ contract Market is
               amount: restrictedSupplierFee,
               removalId: removalIds[i]
             })
-          {} catch {
+          {
+            // solhint-disable-previous-line no-empty-blocks, Nothing should happen here.
+          } catch {
             emit RestrictedNORIMintFailure({
               amount: restrictedSupplierFee,
               removalId: removalIds[i]
@@ -1420,8 +1421,8 @@ contract Market is
         });
         if (
           /**
-           * Only if the current supplier address was not already incremented via removing that supplier's last active removal,
-           * and there is more than one remaining supplier with supply, increment the current supplier address.
+           * Only if the current supplier address was not already incremented via removing that supplier's last active
+           * removal, and there is more than one remaining supplier with supply, increment the current supplier address.
            */
           currentSupplierBeforeRemovingActiveRemoval ==
           _currentSupplierAddress &&

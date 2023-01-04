@@ -57,7 +57,6 @@ abstract contract AccessPresetPausable is
    * ##### Requirements:
    *
    * - The contract must not be paused.
-   *
    * @param role The role to grant.
    * @param account The account to grant the role to.
    */
@@ -76,7 +75,6 @@ abstract contract AccessPresetPausable is
    * ##### Requirements:
    *
    * - The contract must not be paused.
-   *
    * @param role The role to revoke.
    * @param account The account to revoke the role from.
    */
