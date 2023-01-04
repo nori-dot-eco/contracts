@@ -1,5 +1,4 @@
 /* eslint-disable unicorn/no-await-expression-member */
-/* eslint-disable @typescript-eslint/naming-convention */
 
 import moment from 'moment';
 import type { Octokit } from '@octokit/rest';

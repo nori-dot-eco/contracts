@@ -11,8 +11,8 @@ import type {
 } from 'hardhat/types';
 import './type-extensions';
 import { FireblocksSDK } from 'fireblocks-sdk';
-
 import { Chain } from 'fireblocks-defi-sdk';
+
 import { FireblocksSigner } from './fireblocks-signer';
 import { JsonRpcBatchProviderWithGasFees } from './provider-gas-wrapper';
 
