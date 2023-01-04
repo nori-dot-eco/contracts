@@ -6,7 +6,6 @@ import type {
   TransactionArguments,
 } from 'fireblocks-sdk';
 import { formatEther, formatUnits } from 'ethers/lib/utils';
-
 import { EthersBridge } from 'fireblocks-defi-sdk';
 
 export class EthersCustomBridge extends EthersBridge {
@@ -100,7 +99,7 @@ export class EthersCustomBridge extends EthersBridge {
             {
               content: payload,
               index: 0,
-              type: "EIP712"
+              type: 'EIP712',
             },
           ],
         },

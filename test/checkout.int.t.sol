@@ -185,7 +185,6 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
   uint256 private _expectedCertificateAmount;
   uint256 private _purchaseAmount;
   address private _owner;
-  SignedPermit private _signedPermit;
 
   function setUp() external {
     _removalIds = _seedRemovals({
@@ -212,15 +211,10 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: _owner});
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
+    vm.prank(_owner);
+    _bpNori.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
-    _signedPermit = _signatureUtils.generatePermit(
-      ownerPrivateKey,
-      address(_market),
-      _purchaseAmount,
-      1 days,
-      _bpNori
-    );
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
@@ -228,14 +222,7 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
 
   function test() external {
     vm.prank(_owner);
-    _market.swapWithoutFee(
-      _owner,
-      _purchaseAmount,
-      _signedPermit.permit.deadline,
-      _signedPermit.v,
-      _signedPermit.r,
-      _signedPermit.s
-    );
+    _market.swapWithoutFee(_owner, _purchaseAmount);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     assertEq(
@@ -371,7 +358,6 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
   uint256 private _expectedCertificateAmount;
   uint256 private _purchaseAmount;
   address private _owner;
-  SignedPermit private _signedPermit;
 
   function setUp() external {
     _removalIds = _seedRemovals({
@@ -397,17 +383,12 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
     _owner = vm.addr(ownerPrivateKey);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
+    vm.prank(_owner);
+    _bpNori.approve(address(_market), MAX_INT);
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: _owner});
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     vm.prank(_owner);
-    _signedPermit = _signatureUtils.generatePermit(
-      ownerPrivateKey,
-      address(_market),
-      _purchaseAmount,
-      1 days,
-      _bpNori
-    );
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
@@ -423,11 +404,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
     _market.swapFromSupplierWithoutFee({
       recipient: _owner,
       amount: _purchaseAmount,
-      supplier: _namedAccounts.supplier,
-      deadline: _signedPermit.permit.deadline,
-      v: _signedPermit.v,
-      r: _signedPermit.r,
-      s: _signedPermit.s
+      supplier: _namedAccounts.supplier
     });
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);

@@ -24,9 +24,9 @@ the schedule as well as the released amount at the current timestamp (assuming i
 
 ###### Transferring
 
-- A given schedule is a logical overlay to a specific 1155 token. This token can have any number of token holders,
-and transferability via `safeTransferFrom` and `safeBatchTransferFrom` is enabled.
-Ownership percentages only become relevant and are enforced during withdrawal and revocation.
+- A given schedule is a logical overlay to a specific 1155 token. This token can have any number of token holders
+if restricted tokens for a given schedule are minted to multiple addresses, but RestrictedNORI cannot be transferred
+between addresses. Ownership percentages are relevant and enforced during withdrawal and revocation.
 
 ###### Withdrawal
 
@@ -41,9 +41,9 @@ can only withdraw released tokens in proportion to their percentage ownership of
 - _Revocation_ is the process of tokens being recaptured by Nori to enforce carbon permanence guarantees.
 Only unreleased tokens can ever be revoked. When tokens are revoked from a schedule, the current number of released
 tokens does not decrease, even as the schedule's total supply decreases through revocation (a floor is enforced).
-When these tokens are revoked, the 1155 schedule token is burned, and the underlying ERC20 token held by this contract
-is sent to the address specified by Nori. If a schedule has multiple token holders, tokens are burned from each
-holder in proportion to their total percentage ownership of the schedule.
+When these tokens are revoked, the 1155 schedule token is burned, and the underlying ERC20 token held by this
+contract is sent to the address specified by Nori. If a schedule has multiple token holders, tokens are burned from
+each holder in proportion to their total percentage ownership of the schedule.
 
 ###### Additional behaviors and features
 
@@ -52,8 +52,8 @@ holder in proportion to their total percentage ownership of the schedule.
 - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
 pausable.
 - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
-- `SCHEDULE_CREATOR_ROLE`: Can create restriction schedules without sending the underlying tokens to the contract. The
-market contract has this role and sets up relevant schedules as removal tokens are minted.
+- `SCHEDULE_CREATOR_ROLE`: Can create restriction schedules without sending the underlying tokens to the contract.
+The market contract has this role and sets up relevant schedules as removal tokens are minted.
 - `MINTER_ROLE`: Can call `mint` on this contract, which mints tokens of the correct schedule ID (token ID) for a
 given removal. The market contract has this role and can mint RestrictedNORI while routing sale proceeds to this
 contract.
@@ -554,34 +554,6 @@ originating from the given methodology and methodology version.
 | durationInSeconds | uint256 | The duration in seconds that insurance funds should be restricted for this methodology and version. |
 
 
-### safeTransferFrom
-
-```solidity
-function safeTransferFrom(address, address, uint256, uint256, bytes) public
-```
-
-Token transfers disabled.
-
-<i>Transfer is disabled because keeping track of claimable amounts as tokens are
-claimed and transferred requires more bookkeeping infrastructure that we don't currently
-have time to write but may implement in the future.</i>
-
-
-
-### safeBatchTransferFrom
-
-```solidity
-function safeBatchTransferFrom(address, address, uint256[], uint256[], bytes) public
-```
-
-Token transfers disabled.
-
-<i>Transfer is disabled because keeping track of claimable amounts as tokens are
-claimed and transferred requires more bookkeeping infrastructure that we don't currently
-have time to write but may implement in the future.</i>
-
-
-
 ### getUnderlyingTokenAddress
 
 ```solidity
@@ -649,6 +621,34 @@ Get the schedule duration (in seconds) that has been set for a given methodology
 | ---- | ---- | ----------- |
 | [0] | uint256 | Returns the schedule duration in seconds. |
 
+### safeTransferFrom
+
+```solidity
+function safeTransferFrom(address, address, uint256, uint256, bytes) public pure
+```
+
+Token transfers are disabled.
+
+<i>Transfer is disabled because keeping track of claimable amounts as tokens are
+claimed and transferred requires more bookkeeping infrastructure that we don't currently
+have time to write but may implement in the future.</i>
+
+
+
+### safeBatchTransferFrom
+
+```solidity
+function safeBatchTransferFrom(address, address, uint256[], uint256[], bytes) public pure
+```
+
+Token transfers are disabled.
+
+<i>Transfer is disabled because keeping track of claimable amounts as tokens are
+claimed and transferred requires more bookkeeping infrastructure that we don't currently
+have time to write but may implement in the future.</i>
+
+
+
 ### _createSchedule
 
 ```solidity
@@ -694,10 +694,7 @@ See the ERC1155 specific version [here](https://docs.openzeppelin.com/contracts/
    - The operation is a mint.
    - The operation is a burn, which only happens during revocation and withdrawal:
      - If the operation is a revocation, that permission is enforced by the `TOKEN_REVOKER_ROLE`.
-     - If the operation is a withdrawal the burn amount must be <= the sender's claimable balance.
-   - The operation is a transfer and _all_ the following must be true:
-     - The operator is operating on their own balance (enforced in the inherited contract).
-     - The operator has sufficient balance to transfer (enforced in the inherited contract).</i>
+     - If the operation is a withdrawal the burn amount must be <= the sender's claimable balance.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

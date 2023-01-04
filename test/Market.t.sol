@@ -251,15 +251,11 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
   uint8 holdbackPercentage = 10;
   uint256 checkoutTotal;
   uint256 rNoriToMint;
-  SignedPermit signedPermit;
   uint256[] _removalIds;
-  uint256 removalId;
   MockERC20Permit internal _erc20;
-  SignatureUtils internal _mockERC20SignatureUtils;
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 amount;
-  uint256 fee;
   uint256 certificateAmount;
 
   bytes32 constant RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR =
@@ -283,7 +279,6 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
 
   function setUp() external {
     _erc20 = _deployMockERC20();
-    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
       priceMultiple: 2000
@@ -301,27 +296,15 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     );
     rNoriToMint = (checkoutTotal * holdbackPercentage) / 100;
     _erc20.transfer(owner, checkoutTotal);
+    vm.prank(owner);
+    _erc20.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
-    signedPermit = _mockERC20SignatureUtils.generatePermit(
-      ownerPrivateKey,
-      address(_market),
-      checkoutTotal,
-      1 days,
-      _erc20
-    );
   }
 
   function test() external {
     vm.startPrank(owner);
     vm.recordLogs();
-    _market.swapWithoutFee(
-      owner,
-      checkoutTotal,
-      signedPermit.permit.deadline,
-      signedPermit.v,
-      signedPermit.r,
-      signedPermit.s
-    );
+    _market.swapWithoutFee(owner, checkoutTotal);
     vm.stopPrank();
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool containsTransferSkippedEventSelector = false;
@@ -342,8 +325,8 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     }
     assertEq(containsTransferSkippedEventSelector, true);
     assertEq(_erc20.balanceOf(owner), 0);
-    assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal - fee);
-    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
+    assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal);
+    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), 0);
     assertEq(_erc20.balanceOf(address(_rNori)), 0);
   }
 }

@@ -102,7 +102,7 @@ Get the released balance less the total claimed amount at current block timestam
 ### claimableBalanceForScheduleForAccount
 
 ```solidity
-function claimableBalanceForScheduleForAccount(struct Schedule schedule, uint256 scheduleId, address account, uint256 totalSupply, uint256 balanceOfAccount) internal view returns (uint256)
+function claimableBalanceForScheduleForAccount(struct Schedule schedule, address account, uint256 totalSupply, uint256 balanceOfAccount) internal view returns (uint256)
 ```
 
 A single account's claimable balance at current `block.timestamp` for a schedule.
@@ -114,7 +114,6 @@ account has already claimed.</i>
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | schedule | struct Schedule | The schedule to calculate the claimable amount for. |
-| scheduleId | uint256 | The schedule ID to calculate the claimable amount for. |
 | account | address | The account to calculate the claimable amount for. |
 | totalSupply | uint256 | The total supply of tokens for the schedule. |
 | balanceOfAccount | uint256 | The current balance of the account for the schedule. |
