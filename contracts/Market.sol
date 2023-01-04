@@ -528,7 +528,7 @@ contract Market is
 
   /**
    * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
-   * certificate. A permit-based counterpart to `swapByApproval`.
+   * certificate. Relies on the EIP-2612 permit extension to facilitate ERC20 token transfer.
    * @dev See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
    * to transfer the sender's ERC20 to complete the purchase. A certificate is minted in the Certificate contract
@@ -548,7 +548,7 @@ contract Market is
    * @param r The r value for the permit's secp256k1 signature.
    * @param s The s value for the permit's secp256k1 signature.
    */
-  function swapByPermit(
+  function swap(
     address recipient,
     uint256 amount,
     uint256 deadline,
@@ -578,7 +578,7 @@ contract Market is
 
   /**
    * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
-   * certificate. An approval-based counterpart to `swapByPermit`.
+   * certificate. Relies on pre-approval of this market by the sender to transfer the sender's tokens.
    * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for more.
    * The message sender must have granted approval to this contract to authorize this market to transfer the sender's
    * supported ERC20 to complete the purchase. A certificate is minted in the Certificate contract
@@ -595,10 +595,7 @@ contract Market is
    * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
    * purchased and the fee paid to Nori.
    */
-  function swapByApproval(address recipient, uint256 amount)
-    external
-    whenNotPaused
-  {
+  function swap(address recipient, uint256 amount) external whenNotPaused {
     uint256 certificateAmount = this
       .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
     (
@@ -619,7 +616,7 @@ contract Market is
   }
 
   /**
-   * @notice An overloaded version of `swapByPermit` that additionally accepts a supplier address and will exchange
+   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange
    * IERC20WithPermit tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only
    * from the specified supplier to that certificate. If the specified supplier does not have enough carbon removals
    * for sale to fulfill the order the transaction will revert.
@@ -643,7 +640,7 @@ contract Market is
    * @param r The r value for the permit's secp256k1 signature.
    * @param s The s value for the permit's secp256k1 signature.
    */
-  function swapFromSupplierByPermit(
+  function swapFromSupplier(
     address recipient,
     uint256 amount,
     address supplier,

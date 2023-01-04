@@ -133,7 +133,7 @@ contract Market_swapByPermit_emits_event_and_skips_mint_when_minting_rNori_to_no
     vm.prank(owner);
     vm.expectEmit(true, true, false, false);
     emit RestrictedNORIMintFailure(rNoriToMint, removalId);
-    _market.swapByPermit(
+    _market.swap(
       owner,
       checkoutTotal,
       signedPermit.permit.deadline,
@@ -211,7 +211,7 @@ contract Market_swapByPermit_emits_and_skips_transfer_when_transferring_wrong_er
   function test() external {
     vm.startPrank(owner);
     vm.recordLogs();
-    _market.swapByPermit(
+    _market.swap(
       owner,
       checkoutTotal,
       signedPermit.permit.deadline,
@@ -1171,7 +1171,7 @@ contract Market_supplierSelectionUsingUpSuppliersLastRemoval is
 
     // purchase 1.5 * 10**18 amount of removals
     vm.prank(owner);
-    _market.swapByPermit(
+    _market.swap(
       owner,
       checkoutTotal,
       signedPermit.permit.deadline,
@@ -1248,7 +1248,7 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
 
     // purchase 1.5 * 10**18 amount of removals
     vm.prank(owner);
-    _market.swapByPermit(
+    _market.swap(
       owner,
       checkoutTotal,
       signedPermit.permit.deadline,

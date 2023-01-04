@@ -72,7 +72,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
       _bpNori
     );
     vm.prank(owner);
-    _market.swapByPermit(
+    _market.swap(
       owner,
       amount,
       signedPermit.permit.deadline,
@@ -120,7 +120,7 @@ contract Checkout_buyingFromOneRemoval_byApproval is Checkout {
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     vm.prank(owner);
-    _market.swapByApproval(owner, amount);
+    _market.swap(owner, amount);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
@@ -179,7 +179,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
 
   function test() external {
     vm.prank(_owner);
-    _market.swapByPermit(
+    _market.swap(
       _owner,
       _purchaseAmount,
       _signedPermit.permit.deadline,
@@ -351,7 +351,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
 
   function test() external {
     vm.prank(_owner);
-    _market.swapFromSupplierByPermit({
+    _market.swapFromSupplier({
       recipient: _owner,
       amount: _purchaseAmount,
       supplier: _namedAccounts.supplier,
@@ -536,7 +536,7 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
 
   function test() external {
     vm.prank(_owner);
-    _market.swapByPermit(
+    _market.swap(
       _owner,
       _purchaseAmount,
       _signedPermit.permit.deadline,
@@ -630,7 +630,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     );
     vm.recordLogs();
     vm.startPrank(owner);
-    _market.swapByPermit(
+    _market.swap(
       owner,
       amount,
       signedPermit.permit.deadline,
@@ -739,7 +739,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     );
     vm.recordLogs();
     vm.startPrank(owner);
-    _market.swapByPermit(
+    _market.swap(
       owner,
       amount,
       signedPermit.permit.deadline,

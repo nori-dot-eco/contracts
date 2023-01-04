@@ -35,7 +35,7 @@ describe('Certificate', () => {
     await expect(
       market
         .connect(buyer)
-        .swapFromSupplierByPermit(
+        .swapFromSupplier(
           buyer.address,
           value,
           hre.namedAccounts.supplier,
