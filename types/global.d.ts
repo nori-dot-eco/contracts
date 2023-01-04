@@ -17,23 +17,23 @@ import type {
   FactoryOptions,
   HardhatEthersHelpers,
 } from '@nomiclabs/hardhat-ethers/types';
-import type { namedAccountIndices } from '@/config/accounts';
-import type { networks } from '@/config/networks';
-
-import type { TASKS } from '@/tasks';
-import { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
-import {
+import type { HardhatUpgrades } from '@openzeppelin/hardhat-upgrades';
+import type {
   ContractAddressOrInstance,
   UpgradeProxyOptions,
 } from '@openzeppelin/hardhat-upgrades/dist/utils';
-import {
+import type {
   DeploymentsExtension as OriginalDeploymentsExtension,
   DeployFunction as HardhatDeployFunction,
 } from 'hardhat-deploy/dist/types';
-import { HardhatUserConfig } from 'hardhat/types';
-import { Address, Deployment } from 'hardhat-deploy/types';
-import { Eip2612Signer } from '@/signers/eip-26126';
-import { debug } from '@/utils/debug';
+import type { HardhatUserConfig } from 'hardhat/types';
+import type { Address, Deployment } from 'hardhat-deploy/types';
+
+import type { TASKS } from '@/tasks';
+import type { networks } from '@/config/networks';
+import type { namedAccountIndices } from '@/config/accounts';
+import type { Eip2612Signer } from '@/signers/eip-26126';
+import type { debug } from '@/utils/debug';
 import type {
   BridgedPolygonNORI,
   Certificate,
@@ -47,13 +47,15 @@ import type {
 } from '@/typechain-types';
 
 declare module 'hardhat/config' {
-  type EnvironmentExtender = (env: CustomHardHatRuntimeEnvironment) => void;
+  type EnvironmentExtender = (
+    environment: CustomHardHatRuntimeEnvironment
+  ) => void;
 
   function extendEnvironment(extender: EnvironmentExtender): void;
 
   export type ActionType<ArgsT extends TaskArguments, TActionReturnType> = (
     taskArgs: ArgsT,
-    env: CustomHardHatRuntimeEnvironment,
+    environment: CustomHardHatRuntimeEnvironment,
     runSuper: RunSuperFunction<ArgsT>
   ) => Promise<TActionReturnType>;
 
@@ -80,15 +82,15 @@ declare module 'hardhat/types/runtime' {
   interface DeploymentsExtension
     extends Omit<OriginalDeploymentsExtension, 'createFixture'> {
     createFixture<T, O>(
-      func: FixtureFunc<T, O>,
+      function_: FixtureFunction<T, O>,
       id?: string
     ): (options?: O) => Promise<T>;
     all<TContracts extends Contracts = Contracts>(): Promise<{
       [Property in keyof TContracts]: Deployment;
     }>;
   }
-  type FixtureFunc<T, O> = (
-    env: CustomHardHatRuntimeEnvironment,
+  type FixtureFunction<T, O> = (
+    environment: CustomHardHatRuntimeEnvironment,
     options?: O
   ) => Promise<T>;
   export interface HardhatRuntimeEnvironment {
@@ -105,14 +107,14 @@ interface GenericDeployFunction {
   >(
     ImplFactory: TContract,
     args?: unknown[],
-    opts?: DeployProxyOptions
+    options?: DeployProxyOptions
   ): Promise<InstanceOfContract<TC>>;
   <
     TC extends Contract = Contract,
     TContract extends ContractFactory = ContractFactory
   >(
     ImplFactory: TContract,
-    opts?: DeployProxyOptions
+    options?: DeployProxyOptions
   ): Promise<InstanceOfContract<TC>>;
 }
 
@@ -123,7 +125,7 @@ interface GenericUpgradeFunction {
   >(
     proxy: ContractAddressOrInstance,
     ImplFactory: TFactory,
-    opts?: UpgradeProxyOptions
+    options?: UpgradeProxyOptions
   ): Promise<InstanceOfContract<TC>>;
 }
 
@@ -241,7 +243,7 @@ declare global {
       startListening: () => Promise<void>;
       traceHandler: (
         trace: any,
-        isMessageTraceFromACall: Boolean
+        isMessageTraceFromACall: boolean
       ) => Promise<void>;
       push: (contract: any) => Promise<void>;
       resetWorkspace: (workspace: string) => Promise<void>;
@@ -253,11 +255,9 @@ declare global {
   }
 
   namespace NodeJS {
-    interface ProcessEnv {
+    interface ProcessEnvironment {
       MNEMONIC?: string;
       INFURA_STAGING_KEY?: string;
-      TENDERLY_USERNAME: string;
-      TENDERLY_PROJECT: string;
       ETHERNAL_EMAIL?: string;
       ETHERNAL_PASSWORD?: string;
       ETHERNAL: boolean;
@@ -272,13 +272,12 @@ declare global {
       FORCE_PROXY_DEPLOYMENT: boolean;
       LOG_HARDHAT_NETWORK: boolean;
       REPORT_GAS_FILE?: string;
-      TENDERLY: boolean;
       FAIL: boolean;
       VIA_IR: boolean;
       OPTIMIZER_RUNS: number;
       OPTIMIZER: boolean;
       CI: boolean;
-      SOLC_PROFILE: "default" | "production" | "test";
+      SOLC_PROFILE: 'default' | 'production' | 'test';
     }
   }
 }
