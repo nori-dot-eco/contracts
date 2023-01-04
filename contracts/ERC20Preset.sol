@@ -7,10 +7,10 @@ import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "./AccessPresetPausable.sol";
 
 /**
- * @title A preset contract that enables pausable access control.
+ * @title An ERC20 token preset contract with ERC2612 permit functionality.
  * @author Nori Inc.
- * @notice This preset contract affords an inheriting contract a set of standard functionality that allows role-based
- * access control and pausable functions.
+ * @notice This preset contract affords an inheriting contract a set of standard functionality that enables ERC-20
+ * functionality with role-based access control and pausable functions.
  * @dev This preset contract is used by all ERC20 tokens in this project.
  *
  * ##### Inherits:
