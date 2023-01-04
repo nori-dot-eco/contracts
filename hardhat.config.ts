@@ -5,7 +5,6 @@ import '@/plugins';
 import type { HardhatUserConfig } from 'hardhat/types';
 
 import { etherscan } from '@/config/etherscan';
-import { tenderly } from '@/config/tenderly';
 import { networks } from '@/config/networks';
 import { namedAccountIndices } from '@/config/accounts';
 import { defender } from '@/config/defender';
@@ -21,7 +20,6 @@ export const getConfig = (
   environment: NodeJS.ProcessEnv = process.env
 ): HardhatUserConfig => {
   const config: HardhatUserConfig = {
-    tenderly,
     docgen,
     namedAccounts: namedAccountIndices,
     networks,

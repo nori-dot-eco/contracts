@@ -7,7 +7,6 @@ import '@nomiclabs/hardhat-ethers';
 import '@/plugins/fireblocks';
 import 'hardhat-ethernal';
 import 'hardhat-deploy';
-import '@tenderly/hardhat-tenderly';
 import '@typechain/hardhat';
 import '@nomiclabs/hardhat-etherscan';
 import 'hardhat-gas-reporter';

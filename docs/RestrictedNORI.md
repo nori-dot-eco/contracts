@@ -24,9 +24,9 @@ the schedule as well as the released amount at the current timestamp (assuming i
 
 ###### Transferring
 
-- A given schedule is a logical overlay to a specific 1155 token. This token can have any number of token holders,
-and transferability via `safeTransferFrom` and `safeBatchTransferFrom` is enabled.
-Ownership percentages only become relevant and are enforced during withdrawal and revocation.
+- A given schedule is a logical overlay to a specific 1155 token. This token can have any number of token holders
+if restricted tokens for a given schedule are minted to multiple addresses, but RestrictedNORI cannot be transferred
+between addresses. Ownership percentages are relevant and enforced during withdrawal and revocation.
 
 ###### Withdrawal
 
@@ -694,10 +694,7 @@ See the ERC1155 specific version [here](https://docs.openzeppelin.com/contracts/
    - The operation is a mint.
    - The operation is a burn, which only happens during revocation and withdrawal:
      - If the operation is a revocation, that permission is enforced by the `TOKEN_REVOKER_ROLE`.
-     - If the operation is a withdrawal the burn amount must be <= the sender's claimable balance.
-   - The operation is a transfer and _all_ the following must be true:
-     - The operator is operating on their own balance (enforced in the inherited contract).
-     - The operator has sufficient balance to transfer (enforced in the inherited contract).</i>
+     - If the operation is a withdrawal the burn amount must be <= the sender's claimable balance.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
