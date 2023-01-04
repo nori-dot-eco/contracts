@@ -33,10 +33,15 @@ export const TASK = {
       spender,
       value: ethers.BigNumber.from('46425588600000000000000'), // ethers.utils.parseEther('100'),
       nonce: ethers.BigNumber.from('0'),
-      deadline: 1664492773,
+      deadline: 1_664_492_773,
     };
     const signature = await signer._signTypedData(domain, types, value);
-    const verified = ethers.utils.verifyTypedData(domain, types, value, signature);
+    const verified = ethers.utils.verifyTypedData(
+      domain,
+      types,
+      value,
+      signature
+    );
     if (verified == (await signer.getAddress())) {
       console.log(`Verified`);
     } else {
