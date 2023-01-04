@@ -72,7 +72,7 @@ contract ERC1155Recipient {
   }
 }
 
-contract Market_swapByPermit_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155Receiver is
+contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155Receiver is
   UpgradeableMarket
 {
   address owner;
@@ -144,7 +144,7 @@ contract Market_swapByPermit_emits_event_and_skips_mint_when_minting_rNori_to_no
   }
 }
 
-contract Market_swapByPermit_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
+contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
   UpgradeableMarket
 {
   uint8 holdbackPercentage = 10;
