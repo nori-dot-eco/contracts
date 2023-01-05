@@ -249,7 +249,8 @@ contract Market is
    * @notice Emitted when the ERC20 token that would be transferred to the RestrictedNORI contract is not the token
    * address that RestrictedNORI was configured to wrap.
    * @param amount The amount of RestrictedNORI in the transfer attempt.
-   * @param currentHoldbackPercentage The holdback percentage for this removal id's project at the time of this event emission.
+   * @param currentHoldbackPercentage The holdback percentage for this removal id's project at the time of this event
+   * emission.
    * @param removalId The removal id being processed during the transfer attempt.
    * @param rNoriUnderlyingToken The address of the token contract that RestrictedNORI was configured to wrap.
    * @param purchasingTokenAddress The address of the ERC20 token that would have been transferred to RestrictedNORI.
@@ -578,7 +579,8 @@ contract Market is
   /**
    * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
    * certificate. Relies on pre-approval of this market by the sender to transfer the sender's tokens.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for more.
+   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
+   * for more.
    * The sender must have granted approval to this contract to authorize this market to transfer the sender's
    * supported ERC20 to complete the purchase. A certificate is minted in the Certificate contract
    * to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removals,
@@ -677,11 +679,10 @@ contract Market is
    * for sale to fulfill the order the transaction will revert.
    * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
    * for more.
-   * The sender must have already granted approval to this contract in order to transfer the sender's ERC20 tokens to complete
-   * the purchase. A certificate is issued by the Certificate contract to the specified recipient and the ERC20 tokens are
-   * distributed to the supplier of the carbon removal, to the RestrictedNORI contract that controls any restricted
-   * ERC20 tokens owed to the supplier, and finally to Nori Inc. as a market operator fee.
-   *
+   * The sender must have already granted approval to this contract in order to transfer the sender's ERC20 tokens to
+   * complete the purchase. A certificate is issued by the Certificate contract to the specified recipient and the
+   * ERC20 tokens are distributed to the supplier of the carbon removal, to the RestrictedNORI contract that controls
+   * any restricted ERC20 tokens owed to the supplier, and finally to Nori Inc. as a market operator fee.
    *
    * ##### Requirements:
    *
@@ -722,7 +723,8 @@ contract Market is
   /**
    * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
    * certificate without charging a transaction fee.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for more.
+   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
+   * for more.
    * The message sender must have granted approval to this contract to authorize this market to transfer the sender's
    * supported ERC20 to complete the purchase. A certificate is minted in the Certificate
    * contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
@@ -765,15 +767,17 @@ contract Market is
   }
 
   /**
-   * @notice An overloaded version of `swapWithoutFee` that additionally accepts a supplier address and will exchange supported ERC20
-   * tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
+   * @notice An overloaded version of `swapWithoutFee` that additionally accepts a supplier address and will exchange
+   * supported ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only
+   * from the specified
    * supplier to that certificate, without charging a transaction fee. If the specified supplier does not have enough
    * carbon removals for sale to fulfill the order the transaction will revert.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for more.
+   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
+   * for more.
    * The message sender must have granted approval to this contract to authorize this market to transfer the sender's
    * supported ERC20 to complete the purchase. A certificate is issued by the Certificate contract
-   * contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal and potentially
-   * to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
+   * contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal and
+   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
    *
    *
    * ##### Requirements:
@@ -1493,8 +1497,8 @@ contract Market is
         });
         if (
           /**
-           * Only if the current supplier address was not already incremented via removing that supplier's last active removal,
-           * and there is more than one remaining supplier with supply, increment the current supplier address.
+           * Only if the current supplier address was not already incremented via removing that supplier's last active
+           * removal, and there is more than one remaining supplier with supply, increment the current supplier address.
            */
           currentSupplierBeforeRemovingActiveRemoval ==
           _currentSupplierAddress &&
