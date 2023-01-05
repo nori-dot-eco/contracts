@@ -312,24 +312,6 @@ Update the holdback percentage value for a project.
 | holdbackPercentage | uint8 | The new holdback percentage. |
 
 
-### _setHoldbackPercentage
-
-```solidity
-function _setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage) internal
-```
-
-Update the holdback percentage value for a project.
-
-<i>Emits a `SetHoldbackPercentage` event.
-
-##### Requirements:</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| projectId | uint256 | The id of the project for which to update the holdback percentage. |
-| holdbackPercentage | uint8 | The new holdback percentage. |
-
-
 ### mintBatch
 
 ```solidity
@@ -691,6 +673,22 @@ This function call must use less than 30,000 gas.</i>
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | bool | True if this contract implements the interface defined by &#x60;interfaceId&#x60;, otherwise false. |
+
+### _setHoldbackPercentage
+
+```solidity
+function _setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage) internal
+```
+
+Update the holdback percentage value for a project.
+
+<i>Emits a `SetHoldbackPercentage` event.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| projectId | uint256 | The id of the project for which to update the holdback percentage. |
+| holdbackPercentage | uint8 | The new holdback percentage. |
+
 
 ### _createRemovals
 

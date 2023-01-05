@@ -657,7 +657,6 @@ contract to the specified recipient and the ERC20 is distributed to the supplier
 to the RestrictedNORI contract that controls any restricted ERC20 owed to the supplier, and finally
 to Nori Inc. as a market operator fee.
 
-
 ##### Requirements:
 
 - Can only be used when this contract is not paused.</i>
@@ -706,17 +705,16 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 function swapFromSupplierWithoutFee(address recipient, uint256 amount, address supplier) external
 ```
 
-An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported ERC20
-tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the specified
-supplier to that certificate, without charging a transaction fee. If the specified supplier does not have enough
-carbon removals for sale to fulfill the order the transaction will revert.
+An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported
+ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the
+specified supplier to that certificate, without charging a transaction fee. If the specified supplier does not have
+enough carbon removals for sale to fulfill the order the transaction will revert.
 
-<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for more.
-The message sender must have granted approval to this contract to authorize this market to transfer the sender's
-supported ERC20 to complete the purchase. A certificate is issued by the Certificate contract
-contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal and potentially
-to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
-
+<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
+more. The message sender must have granted approval to this contract to authorize this market to transfer the
+sender's supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
+to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
+potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
 
 ##### Requirements:
 
