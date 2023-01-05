@@ -30,7 +30,6 @@ struct Schedule {
 library LockedNORILib {
   /**
    * @dev Add a cliff defined by the time and amount to the schedule.
-   *
    * @param time must be >= any existing cliff, >= `schedule.startTime and` <= `schedule.endTime`
    * @param amount must be <= (`schedule.totalAmount` - total of existing cliffs)
    */

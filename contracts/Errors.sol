@@ -125,6 +125,7 @@ error NoriFeeWalletZeroAddress();
  */
 error InvalidHoldbackPercentage(uint8 holdbackPercentage);
 /**
- * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market contracts.
+ * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market
+ * contracts.
  */
 error RemovalAlreadySoldOrConsigned(uint256 tokenId);

@@ -25,7 +25,6 @@ abstract contract UpgradeableRemoval is Upgradeable {
    *   supplierAddress: _namedAccounts.supplier,
    *   subIdentifier: 99_039_930
    * }))
-   *
    */
   uint256 public constant REMOVAL_ID_FIXTURE =
     28323967194635191374224967253542818032149542492774326996283828950022961850;

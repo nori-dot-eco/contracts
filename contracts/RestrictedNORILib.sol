@@ -129,7 +129,6 @@ library RestrictedNORILib {
    * using totals constructed from current balances and claimed amounts, and then subtract anything that
    * account has already claimed.
    * @param schedule The schedule to calculate the claimable amount for.
-   * @param scheduleId The schedule ID to calculate the claimable amount for.
    * @param account The account to calculate the claimable amount for.
    * @param totalSupply The total supply of tokens for the schedule.
    * @param balanceOfAccount The current balance of the account for the schedule.
@@ -137,7 +136,6 @@ library RestrictedNORILib {
    */
   function claimableBalanceForScheduleForAccount(
     Schedule storage schedule,
-    uint256 scheduleId,
     address account,
     uint256 totalSupply,
     uint256 balanceOfAccount
