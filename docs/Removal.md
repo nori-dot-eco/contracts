@@ -123,62 +123,6 @@ The Market contract that removals can be bought and sold from.
 
 
 
-### _certificate
-
-```solidity
-contract ICertificate _certificate
-```
-
-The Certificate contract that removals are retired into.
-
-
-
-
-### _projectIdToHoldbackPercentage
-
-```solidity
-mapping(uint256 => uint8) _projectIdToHoldbackPercentage
-```
-
-
-<i>Maps from a given project ID to the holdback percentage that will be used to determine what percentage of
-proceeds are routed to the RestrictedNORI contract when removals from this project are sold.</i>
-
-
-
-### _removalIdToProjectId
-
-```solidity
-mapping(uint256 => uint256) _removalIdToProjectId
-```
-
-
-<i>Maps from a removal ID to the project ID it belongs to.</i>
-
-
-
-### _addressToOwnedTokenIds
-
-```solidity
-mapping(address => struct EnumerableSetUpgradeable.UintSet) _addressToOwnedTokenIds
-```
-
-Maps from an address to an EnumerableSet of the token IDs for which that address has a non-zero balance.
-
-
-
-
-### _currentMarketBalance
-
-```solidity
-uint256 _currentMarketBalance
-```
-
-The current balance of across all removals listed in the market contract.
-
-
-
-
 ### RegisterContractAddresses
 
 ```solidity
