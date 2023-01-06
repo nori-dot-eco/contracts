@@ -50,7 +50,7 @@
     "hardhat-deploy": "^0.11.15",
     "hardhat-ethernal": "^3.0.2",
     "hardhat-gas-reporter": "^1.0.9",
-    "hardhat-tracer": "^1.1.0-rc.9",
+    "hardhat-tracer": "^1.2.1",
     "json-diff": "^0.9.0",
     "moment": "^2.29.4",
     "prettier": "^2.6.2",
