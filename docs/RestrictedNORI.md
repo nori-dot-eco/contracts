@@ -124,61 +124,6 @@ Role conferring revocation of restricted tokens.
 
 
 
-### _methodologyAndVersionToScheduleDuration
-
-```solidity
-mapping(uint256 => mapping(uint256 => uint256)) _methodologyAndVersionToScheduleDuration
-```
-
-A mapping of methodology to version to schedule duration.
-
-
-
-
-### _scheduleIdToScheduleStruct
-
-```solidity
-mapping(uint256 => struct Schedule) _scheduleIdToScheduleStruct
-```
-
-A mapping of schedule ID to schedule.
-
-
-
-
-### _allScheduleIds
-
-```solidity
-struct EnumerableSetUpgradeable.UintSet _allScheduleIds
-```
-
-An enumerable set containing all schedule IDs.
-
-
-
-
-### _underlyingToken
-
-```solidity
-contract IERC20WithPermit _underlyingToken
-```
-
-The underlying ERC20 token contract for which this contract wraps tokens.
-
-
-
-
-### _removal
-
-```solidity
-contract IRemoval _removal
-```
-
-The Removal contract that accounts for carbon removal supply.
-
-
-
-
 ### ScheduleCreated
 
 ```solidity
@@ -720,28 +665,6 @@ Validates that the schedule start time and duration are non-zero.
 | startTime | uint256 | The schedule start time in seconds since the unix epoch. |
 | restrictionDuration | uint256 | The duration of the schedule in seconds since the unix epoch. |
 
-
-### _quantityToRevokeForTokenHolder
-
-```solidity
-function _quantityToRevokeForTokenHolder(uint256 totalQuantityToRevoke, uint256 scheduleId, struct Schedule schedule, address account, uint256 balanceOfAccount) private view returns (uint256)
-```
-
-Calculates the quantity that should be revoked from a given token holder and schedule based on their
-proportion of ownership of the schedule's tokens and the total number of tokens being revoked.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| totalQuantityToRevoke | uint256 | The total quantity of tokens being revoked from this schedule. |
-| scheduleId | uint256 | The schedule (token ID) from which tokens are being revoked. |
-| schedule | struct Schedule | The schedule (struct) from which tokens are being revoked. |
-| account | address | The token holder for which to calculate the quantity that should be revoked. |
-| balanceOfAccount | uint256 | The total balance of this token ID owned by `account`. |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | The quantity of tokens that should be revoked from &#x60;account&#x60; for the given schedule. |
 
 
 

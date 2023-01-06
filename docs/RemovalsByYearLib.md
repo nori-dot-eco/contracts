@@ -15,26 +15,6 @@ EnumerableSetUpgradeable.UintSet
 
 ---
 
-### _DEFAULT_EARLIEST_YEAR
-
-```solidity
-uint256 _DEFAULT_EARLIEST_YEAR
-```
-
-
-
-
-
-### _DEFAULT_LATEST_YEAR
-
-```solidity
-uint256 _DEFAULT_LATEST_YEAR
-```
-
-
-
-
-
 ### insert
 
 ```solidity
