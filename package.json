@@ -45,7 +45,7 @@
     "fireblocks-sdk": "^2.3.2",
     "fs-extra": "^10.1.0",
     "handlebars": "^4.7.7",
-    "hardhat": "2.12.3",
+    "hardhat": "2.12.5",
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-deploy": "^0.11.15",
     "hardhat-ethernal": "^3.0.2",
