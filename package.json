@@ -39,7 +39,7 @@
     "erc721a-upgradeable": "4.2.2",
     "eslint": "^8.15.0",
     "ethereum-waffle": "^3.4.4",
-    "ethernal": "^2.0.1",
+    "ethernal": "^2.0.2",
     "ethers": "^5.7.2",
     "fireblocks-defi-sdk": "1.2.5",
     "fireblocks-sdk": "^2.3.2",
@@ -64,7 +64,7 @@
     "solidity-docgen": "0.6.0-beta.34",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.1.0",
-    "typechain": "^8.1.0",
+    "typechain": "^8.1.1",
     "typescript": "^4.6.2",
     "yup": "1.0.0-beta.7"
   },

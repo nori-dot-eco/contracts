@@ -7962,10 +7962,10 @@ ethereumjs-wallet@0.6.5:
     utf8 "^3.0.0"
     uuid "^3.3.2"
 
-ethernal@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/ethernal/-/ethernal-2.0.1.tgz#315d418c34530c7b2fc74d1d75ee1f70d9483fa5"
-  integrity sha512-71CFhE5yrOKaT0JvYdA2LFHCMixFp459X8ME8Xk6QZGO03OEk41OOJSqA+q3ctQMgeOLLCfhKZURsQpJZGVofA==
+ethernal@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/ethernal/-/ethernal-2.0.2.tgz#3e80074f871056b244ae349da61722cade91e152"
+  integrity sha512-+XteZRKIg+fRdbbq5DgvUDJiEhmb5o/eyLZIfouxrTE9voRXwXO5chto+uEjK2odo93jc2m2V+03KO6XuiipdA==
   dependencies:
     "@truffle/config" "1.3.16"
     axios "^0.27.2"
@@ -14226,7 +14226,7 @@ solhint@^3.0.0, solhint@^3.3.7:
   optionalDependencies:
     prettier "^1.14.3"
 
-solidity-ast@0.4.40, solidity-ast@^0.4.15, solidity-ast@^0.4.38:
+solidity-ast@^0.4.15, solidity-ast@^0.4.38, solidity-ast@^0.4.40:
   version "0.4.40"
   resolved "https://registry.yarnpkg.com/solidity-ast/-/solidity-ast-0.4.40.tgz#182709271b4e55efb34e2da934dfaa96ee0cf40b"
   integrity sha512-M8uLBT2jgFB7B0iVAC5a2l71J8vim7aEm03AZkaHbDqyrl1pE+i5PriMEw6WlwGfHp3/Ym7cn9BqvVLQgRk+Yw==
@@ -15245,10 +15245,10 @@ typechain@^3.0.0:
     ts-essentials "^6.0.3"
     ts-generator "^0.1.1"
 
-typechain@^8.1.0:
-  version "8.1.0"
-  resolved "https://registry.yarnpkg.com/typechain/-/typechain-8.1.0.tgz#fc4902ce596519cb2ccfd012e4ddf92a9945b569"
-  integrity sha512-5jToLgKTjHdI1VKqs/K8BLYy42Sr3o8bV5ojh4MnR9ExHO83cyyUdw+7+vMJCpKXUiVUvARM4qmHTFuyaCMAZQ==
+typechain@^8.1.1:
+  version "8.1.1"
+  resolved "https://registry.yarnpkg.com/typechain/-/typechain-8.1.1.tgz#9c2e8012c2c4c586536fc18402dcd7034c4ff0bd"
+  integrity sha512-uF/sUvnXTOVF2FHKhQYnxHk4su4JjZR8vr4mA2mBaRwHTbwh0jIlqARz9XJr1tA0l7afJGvEa1dTSi4zt039LQ==
   dependencies:
     "@types/prettier" "^2.1.1"
     debug "^4.3.1"
