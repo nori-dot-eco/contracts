@@ -3169,30 +3169,20 @@
     defender-base-client "^1.3.1"
     ethereumjs-util "^7.1.5"
 
-"@openzeppelin/hardhat-upgrades@1.20.0":
-  version "1.20.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.20.0.tgz#fe1bddc4ab591ccf185caf4cfa269a4851b73599"
-  integrity sha512-ign7fc/ZdPe+KAYCB91619o+wlBr7sIEEt1nqLhoXAJ9f0qVuXkwAaTdLB0MTSWH85TzlUUT2fTJp1ZnZ1o4LQ==
+"@openzeppelin/hardhat-upgrades@1.22.0", "@openzeppelin/hardhat-upgrades@^1.20.0":
+  version "1.22.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.22.0.tgz#2a432c72a428a9f277201646bc1a248021538f06"
+  integrity sha512-1qyZnDaxl0C8tne7ykNRa/fxw3FrNCY2M3fGuCiQW5DDkJoXhLgm3JVsXwl6X7q9mQSrik4vgBbI3ErmxmZTYg==
   dependencies:
-    "@openzeppelin/upgrades-core" "^1.18.0"
+    "@openzeppelin/upgrades-core" "^1.20.0"
     chalk "^4.1.0"
     debug "^4.1.1"
     proper-lockfile "^4.1.1"
 
-"@openzeppelin/hardhat-upgrades@^1.20.0":
-  version "1.20.1"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.20.1.tgz#19462b52869e00232760fe919a016767c3f2c287"
-  integrity sha512-z/H/KX6asXiY4xkjotPwJz9UXnt5DnbzqPQaWvi26IkgwPKVVvYco5/YgOair4f6BATNNNuPwI8eVoBKeuthIw==
-  dependencies:
-    "@openzeppelin/upgrades-core" "^1.18.0"
-    chalk "^4.1.0"
-    debug "^4.1.1"
-    proper-lockfile "^4.1.1"
-
-"@openzeppelin/upgrades-core@^1.18.0":
-  version "1.19.1"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.19.1.tgz#46da1cc1825ed1175ff3eaf5aa6cb5620f7da4d0"
-  integrity sha512-g0x/7xIXLHjYzvhsAyzkbIcIxLv87GEdEfq6KmEhljP2hEzcN3krNhGbjpoqZlJcV+sIEFcxSkDkYgOffAQmvA==
+"@openzeppelin/upgrades-core@^1.20.0":
+  version "1.20.6"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.20.6.tgz#74f43d600151b8fda6e2d375f46ae0da55922620"
+  integrity sha512-KWdtlahm+iunlAlzLsdpBueanwEx0LLPfAkDL1p0C4SPjMiUqHHFlyGtmmWwdiqDpJ//605vfwkd5RqfnFrHSg==
   dependencies:
     cbor "^8.0.0"
     chalk "^4.1.0"
