@@ -8,7 +8,7 @@ export const getMochaConfig = (
     REPORT_GAS || CI || TRACE
       ? {}
       : {
-          parallel: true,
+          parallel: false, // todo set this to true when this issue is resolved https://github.com/NomicFoundation/hardhat/pull/3382
         };
   return mochaConfig;
 };
