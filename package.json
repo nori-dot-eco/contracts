@@ -101,7 +101,14 @@
   "nx": {
     "targets": {
       "build": {
+        "inputs": [
+          "{projectRoot}/contracts/**/*.sol",
+          "{projectRoot}/src/**/*.ts",
+          "!{projectRoot}/typechain-types/**/*",
+          "!{projectRoot}/artifacts/**/*"
+        ],
         "outputs": [
+          "{projectRoot}/build",
           "{projectRoot}/typechain-types",
           "{projectRoot}/artifacts"
         ]
