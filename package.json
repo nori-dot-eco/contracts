@@ -42,7 +42,7 @@
     "ethernal": "^2.0.2",
     "ethers": "^5.7.2",
     "fireblocks-defi-sdk": "1.2.5",
-    "fireblocks-sdk": "^2.3.2",
+    "fireblocks-sdk": "^3.0.0",
     "fs-extra": "^10.1.0",
     "handlebars": "^4.7.7",
     "hardhat": "2.12.5",
