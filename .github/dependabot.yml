@@ -1,8 +1,4 @@
 version: 2
-registries:
-  npm-registry-registry-npmjs-org:
-    type: npm-registry
-    url: https://registry.npmjs.org
 
 updates:
   - package-ecosystem: npm
@@ -11,11 +7,8 @@ updates:
       interval: monthly
       time: '13:00'
     open-pull-requests-limit: 10
-    registries:
-      - npm-registry-registry-npmjs-org
 
   - package-ecosystem: 'gitsubmodule'
     directory: '/'
     schedule:
       interval: 'daily'
-
