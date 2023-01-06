@@ -1,0 +1,43 @@
+name: lockfile-updater # todo make shareable so we can use the same workflow in all repos
+
+on:
+  pull_request_target:
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  lockfile-updater:
+    if: github.actor == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/submodules/')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{github.event.pull_request.head.ref}}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
+          submodules: true
+          token: ${{ secrets.NORI_ESLINT_PAT }}
+          fetch-depth: '0'
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+      - uses: actions/cache@v3
+        id: yarn-cache
+        with:
+          path: |
+            **/node_modules
+            ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - run: yarn install --ignore-scripts
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update lockfile

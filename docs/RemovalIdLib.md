@@ -393,24 +393,5 @@ Extract and returns the `subIdentifier` field of a removal ID.
 | ---- | ---- | ----------- |
 | [0] | uint32 | The sub-identifier field of the removal ID. |
 
-### _extractValue
-
-```solidity
-function _extractValue(uint256 removalId, uint256 numBytesFieldLength, uint256 numBytesOffsetFromRight) private pure returns (uint256)
-```
-
-Extract a field of the specified length in bytes, at the specified location, from a removal ID.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| removalId | uint256 | The removal ID to extract the field from. |
-| numBytesFieldLength | uint256 | The number of bytes in the field to extract. |
-| numBytesOffsetFromRight | uint256 | The number of bytes to offset the field from the right. |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | The extracted field value. |
-
 
 

@@ -335,7 +335,8 @@ Thrown when a holdback percentage greater than 100 is submitted to `mintBatch`.
 error RemovalAlreadySoldOrConsigned(uint256 tokenId)
 ```
 
-Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market contracts.
+Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market
+contracts.
 
 
 

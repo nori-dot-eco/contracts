@@ -59,39 +59,6 @@ minting and burning.</i>
 
 
 
-### _purchaseAmounts
-
-```solidity
-mapping(uint256 => uint256) _purchaseAmounts
-```
-
-Keeps track of the original purchase amount for a certificate.
-
-
-
-
-### _removal
-
-```solidity
-contract IRemoval _removal
-```
-
-The Removal contract that accounts for carbon removal supply.
-
-
-
-
-### _baseURIValue
-
-```solidity
-string _baseURIValue
-```
-
-Base URI for token metadata.
-
-
-
-
 ### ReceiveRemovalBatch
 
 ```solidity

@@ -123,62 +123,6 @@ The Market contract that removals can be bought and sold from.
 
 
 
-### _certificate
-
-```solidity
-contract ICertificate _certificate
-```
-
-The Certificate contract that removals are retired into.
-
-
-
-
-### _projectIdToHoldbackPercentage
-
-```solidity
-mapping(uint256 => uint8) _projectIdToHoldbackPercentage
-```
-
-
-<i>Maps from a given project ID to the holdback percentage that will be used to determine what percentage of
-proceeds are routed to the RestrictedNORI contract when removals from this project are sold.</i>
-
-
-
-### _removalIdToProjectId
-
-```solidity
-mapping(uint256 => uint256) _removalIdToProjectId
-```
-
-
-<i>Maps from a removal ID to the project ID it belongs to.</i>
-
-
-
-### _addressToOwnedTokenIds
-
-```solidity
-mapping(address => struct EnumerableSetUpgradeable.UintSet) _addressToOwnedTokenIds
-```
-
-Maps from an address to an EnumerableSet of the token IDs for which that address has a non-zero balance.
-
-
-
-
-### _currentMarketBalance
-
-```solidity
-uint256 _currentMarketBalance
-```
-
-The current balance of across all removals listed in the market contract.
-
-
-
-
 ### RegisterContractAddresses
 
 ```solidity
@@ -305,24 +249,6 @@ Update the holdback percentage value for a project.
 
 - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
 - Can only be used when this contract is not paused.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| projectId | uint256 | The id of the project for which to update the holdback percentage. |
-| holdbackPercentage | uint8 | The new holdback percentage. |
-
-
-### _setHoldbackPercentage
-
-```solidity
-function _setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage) internal
-```
-
-Update the holdback percentage value for a project.
-
-<i>Emits a `SetHoldbackPercentage` event.
-
-##### Requirements:</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -691,6 +617,22 @@ This function call must use less than 30,000 gas.</i>
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | bool | True if this contract implements the interface defined by &#x60;interfaceId&#x60;, otherwise false. |
+
+### _setHoldbackPercentage
+
+```solidity
+function _setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage) internal
+```
+
+Update the holdback percentage value for a project.
+
+<i>Emits a `SetHoldbackPercentage` event.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| projectId | uint256 | The id of the project for which to update the holdback percentage. |
+| holdbackPercentage | uint8 | The new holdback percentage. |
+
 
 ### _createRemovals
 

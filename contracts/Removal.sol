@@ -263,30 +263,6 @@ contract Removal is
   }
 
   /**
-   * @notice Update the holdback percentage value for a project.
-   * @dev Emits a `SetHoldbackPercentage` event.
-   *
-   * ##### Requirements:
-   *
-   * @param projectId The id of the project for which to update the holdback percentage.
-   * @param holdbackPercentage The new holdback percentage.
-   */
-  function _setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage)
-    internal
-  {
-    if (holdbackPercentage > 100) {
-      revert InvalidHoldbackPercentage({
-        holdbackPercentage: holdbackPercentage
-      });
-    }
-    _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
-    emit SetHoldbackPercentage({
-      projectId: projectId,
-      holdbackPercentage: holdbackPercentage
-    });
-  }
-
-  /**
    * @notice Mints multiple removals at once (for a single supplier).
    * @dev If `to` is the market address, the removals are listed for sale in the market.
    *
@@ -692,6 +668,27 @@ contract Removal is
     returns (bool)
   {
     return super.supportsInterface({interfaceId: interfaceId});
+  }
+
+  /**
+   * @notice Update the holdback percentage value for a project.
+   * @dev Emits a `SetHoldbackPercentage` event.
+   * @param projectId The id of the project for which to update the holdback percentage.
+   * @param holdbackPercentage The new holdback percentage.
+   */
+  function _setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage)
+    internal
+  {
+    if (holdbackPercentage > 100) {
+      revert InvalidHoldbackPercentage({
+        holdbackPercentage: holdbackPercentage
+      });
+    }
+    _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
+    emit SetHoldbackPercentage({
+      projectId: projectId,
+      holdbackPercentage: holdbackPercentage
+    });
   }
 
   /**

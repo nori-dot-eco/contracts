@@ -1439,7 +1439,6 @@ describe('RestrictedNORI', () => {
           hre,
           listedRemovalIds,
           removalAmounts,
-          projectId,
           removalTestHarness,
         } = testSetup;
         const { buyer } = hre.namedAccounts;

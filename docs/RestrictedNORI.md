@@ -41,9 +41,9 @@ can only withdraw released tokens in proportion to their percentage ownership of
 - _Revocation_ is the process of tokens being recaptured by Nori to enforce carbon permanence guarantees.
 Only unreleased tokens can ever be revoked. When tokens are revoked from a schedule, the current number of released
 tokens does not decrease, even as the schedule's total supply decreases through revocation (a floor is enforced).
-When these tokens are revoked, the 1155 schedule token is burned, and the underlying ERC20 token held by this contract
-is sent to the address specified by Nori. If a schedule has multiple token holders, tokens are burned from each
-holder in proportion to their total percentage ownership of the schedule.
+When these tokens are revoked, the 1155 schedule token is burned, and the underlying ERC20 token held by this
+contract is sent to the address specified by Nori. If a schedule has multiple token holders, tokens are burned from
+each holder in proportion to their total percentage ownership of the schedule.
 
 ###### Additional behaviors and features
 
@@ -52,8 +52,8 @@ holder in proportion to their total percentage ownership of the schedule.
 - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all functions that mutate state are
 pausable.
 - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
-- `SCHEDULE_CREATOR_ROLE`: Can create restriction schedules without sending the underlying tokens to the contract. The
-market contract has this role and sets up relevant schedules as removal tokens are minted.
+- `SCHEDULE_CREATOR_ROLE`: Can create restriction schedules without sending the underlying tokens to the contract.
+The market contract has this role and sets up relevant schedules as removal tokens are minted.
 - `MINTER_ROLE`: Can call `mint` on this contract, which mints tokens of the correct schedule ID (token ID) for a
 given removal. The market contract has this role and can mint RestrictedNORI while routing sale proceeds to this
 contract.
@@ -121,61 +121,6 @@ bytes32 TOKEN_REVOKER_ROLE
 Role conferring revocation of restricted tokens.
 
 <i>Only Nori admin addresses should have this role.</i>
-
-
-
-### _methodologyAndVersionToScheduleDuration
-
-```solidity
-mapping(uint256 => mapping(uint256 => uint256)) _methodologyAndVersionToScheduleDuration
-```
-
-A mapping of methodology to version to schedule duration.
-
-
-
-
-### _scheduleIdToScheduleStruct
-
-```solidity
-mapping(uint256 => struct Schedule) _scheduleIdToScheduleStruct
-```
-
-A mapping of schedule ID to schedule.
-
-
-
-
-### _allScheduleIds
-
-```solidity
-struct EnumerableSetUpgradeable.UintSet _allScheduleIds
-```
-
-An enumerable set containing all schedule IDs.
-
-
-
-
-### _underlyingToken
-
-```solidity
-contract IERC20WithPermit _underlyingToken
-```
-
-The underlying ERC20 token contract for which this contract wraps tokens.
-
-
-
-
-### _removal
-
-```solidity
-contract IRemoval _removal
-```
-
-The Removal contract that accounts for carbon removal supply.
-
 
 
 
@@ -554,34 +499,6 @@ originating from the given methodology and methodology version.
 | durationInSeconds | uint256 | The duration in seconds that insurance funds should be restricted for this methodology and version. |
 
 
-### safeTransferFrom
-
-```solidity
-function safeTransferFrom(address, address, uint256, uint256, bytes) public
-```
-
-Token transfers disabled.
-
-<i>Transfer is disabled because keeping track of claimable amounts as tokens are
-claimed and transferred requires more bookkeeping infrastructure that we don't currently
-have time to write but may implement in the future.</i>
-
-
-
-### safeBatchTransferFrom
-
-```solidity
-function safeBatchTransferFrom(address, address, uint256[], uint256[], bytes) public
-```
-
-Token transfers disabled.
-
-<i>Transfer is disabled because keeping track of claimable amounts as tokens are
-claimed and transferred requires more bookkeeping infrastructure that we don't currently
-have time to write but may implement in the future.</i>
-
-
-
 ### getUnderlyingTokenAddress
 
 ```solidity
@@ -648,6 +565,34 @@ Get the schedule duration (in seconds) that has been set for a given methodology
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | uint256 | Returns the schedule duration in seconds. |
+
+### safeTransferFrom
+
+```solidity
+function safeTransferFrom(address, address, uint256, uint256, bytes) public pure
+```
+
+Token transfers are disabled.
+
+<i>Transfer is disabled because keeping track of claimable amounts as tokens are
+claimed and transferred requires more bookkeeping infrastructure that we don't currently
+have time to write but may implement in the future.</i>
+
+
+
+### safeBatchTransferFrom
+
+```solidity
+function safeBatchTransferFrom(address, address, uint256[], uint256[], bytes) public pure
+```
+
+Token transfers are disabled.
+
+<i>Transfer is disabled because keeping track of claimable amounts as tokens are
+claimed and transferred requires more bookkeeping infrastructure that we don't currently
+have time to write but may implement in the future.</i>
+
+
 
 ### _createSchedule
 
@@ -720,28 +665,6 @@ Validates that the schedule start time and duration are non-zero.
 | startTime | uint256 | The schedule start time in seconds since the unix epoch. |
 | restrictionDuration | uint256 | The duration of the schedule in seconds since the unix epoch. |
 
-
-### _quantityToRevokeForTokenHolder
-
-```solidity
-function _quantityToRevokeForTokenHolder(uint256 totalQuantityToRevoke, uint256 scheduleId, struct Schedule schedule, address account, uint256 balanceOfAccount) private view returns (uint256)
-```
-
-Calculates the quantity that should be revoked from a given token holder and schedule based on their
-proportion of ownership of the schedule's tokens and the total number of tokens being revoked.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| totalQuantityToRevoke | uint256 | The total quantity of tokens being revoked from this schedule. |
-| scheduleId | uint256 | The schedule (token ID) from which tokens are being revoked. |
-| schedule | struct Schedule | The schedule (struct) from which tokens are being revoked. |
-| account | address | The token holder for which to calculate the quantity that should be revoked. |
-| balanceOfAccount | uint256 | The total balance of this token ID owned by `account`. |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | The quantity of tokens that should be revoked from &#x60;account&#x60; for the given schedule. |
 
 
 

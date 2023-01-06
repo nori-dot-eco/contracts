@@ -190,40 +190,6 @@ ERC-1820 registry.  No longer used, retained to maintain storage layout.
 
 
 
-### _grants
-
-```solidity
-mapping(address => struct LockedNORI.TokenGrant) _grants
-```
-
-A mapping from grantee to grant
-
-
-
-
-### _bridgedPolygonNori
-
-```solidity
-contract IERC20WithPermit _bridgedPolygonNori
-```
-
-The BridgedPolygonNORI contract that this contract wraps tokens for
-
-
-
-
-### _erc1820
-
-```solidity
-contract IERC1820RegistryUpgradeable _erc1820
-```
-
-The [ERC-1820](https://eips.ethereum.org/EIPS/eip-1820) pseudo-introspection registry
-contract
-
-
-
-
 ### TokenGrantCreatedBatch
 
 ```solidity
@@ -523,18 +489,6 @@ Hook that is called before send, transfer, mint, and burn. Used to disable trans
      - The operator has `TOKEN_GRANTER_ROLE`.
      - The operator is not operating on their own balance.
      - The transfer amount is <= the sender's unlocked balance.</i>
-
-
-
-### _hasVestingSchedule
-
-```solidity
-function _hasVestingSchedule(address account) private view returns (bool)
-```
-
-Returns true if there is a grant for *account* with a vesting schedule.
-
-<i>Returns true if the there is a grant for *account* with a vesting schedule.</i>
 
 
 
