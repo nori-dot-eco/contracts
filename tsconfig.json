@@ -18,7 +18,8 @@
       "@/contracts.json": ["./contracts.json"],
       "@/artifacts/*": ["./artifacts/contracts/*"],
       "@/legacy-artifacts/*": ["./legacy-artifacts/contracts/*"],
-      "@/typechain-types": ["./typechain-types/index.ts"],
+      "@/typechain-types/*": ["./types/typechain-types/*"],
+      "@/typechain-types": ["./types/typechain-types/index.ts"],
       "@/*": ["./*"]
     }
   },
