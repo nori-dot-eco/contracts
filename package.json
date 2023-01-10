@@ -78,6 +78,7 @@
     "artifacts/contracts",
     "contracts.json",
     "types",
+    "types/events",
     "utils"
   ],
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
