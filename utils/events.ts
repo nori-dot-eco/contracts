@@ -1,24 +1,26 @@
 import type { ethers } from 'ethers';
 
-import type { ContractEventInterfaceFromType } from '@/types/events';
+import type {
+  ContractEventInterfaceFromType,
+  ContractsWithEvents,
+} from '../types/events';
 
-export const parseTransactionLogs = ({
+export const parseTransactionLogs = <
+  T extends ContractsWithEvents[keyof ContractsWithEvents]
+>({
   contractInstance,
   txReceipt,
 }: {
-  contractInstance: Exclude<Contracts[keyof Contracts], undefined>;
+  contractInstance: T;
   txReceipt: ethers.providers.TransactionReceipt;
-}): ContractEventInterfaceFromType<typeof contractInstance>[] => {
-  const logs: ContractEventInterfaceFromType<typeof contractInstance>[] =
-    txReceipt.logs
-      .filter((log) => log.address === contractInstance.address)
-      .map(
-        (log) =>
-          contractInstance.interface.parseLog(
-            log
-          ) as unknown as ContractEventInterfaceFromType<
-            typeof contractInstance // todo test real event to make sure types are correct
-          >
-      );
+}): ContractEventInterfaceFromType<T>[] => {
+  const logs: ContractEventInterfaceFromType<T>[] = txReceipt.logs
+    .filter((log) => log.address === contractInstance.address)
+    .map(
+      (log) =>
+        contractInstance.interface.parseLog(
+          log
+        ) as unknown as ContractEventInterfaceFromType<T>
+    );
   return logs;
 };
