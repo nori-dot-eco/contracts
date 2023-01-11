@@ -1,13 +1,4 @@
 /* eslint-disable @typescript-eslint/naming-convention -- events in this file match on-chain event names which are pascal case */
-// import type {
-//   Removal,
-//   Market,
-//   LockedNORI,
-//   NORI,
-//   BridgedPolygonNORI,
-//   Certificate,
-//   RestrictedNORI,
-// } from '@/typechain-types';
 import type {
   Removal,
   Market,
