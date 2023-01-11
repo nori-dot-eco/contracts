@@ -1,4 +1,4 @@
-import type { ethers } from 'ethers';
+import { ethers } from 'ethers';
 
 import type {
   ContractEventInterfaceFromType,
@@ -16,11 +16,15 @@ export const parseTransactionLogs = <
 }): ContractEventInterfaceFromType<T>[] => {
   const logs: ContractEventInterfaceFromType<T>[] = txReceipt.logs
     .filter((log) => log.address === contractInstance.address)
-    .map(
-      (log) =>
-        contractInstance.interface.parseLog(
-          log
-        ) as unknown as ContractEventInterfaceFromType<T>
-    );
+    .map((log) => {
+      const interfaceFragments = contractInstance.interface.format();
+      const contractInterface = [interfaceFragments]
+        .flat(2)
+        .map((fragment) => fragment.replace('values', 'vals'));
+      const parsedLog = new ethers.utils.Interface(contractInterface).parseLog(
+        log
+      ) as ContractEventInterfaceFromType<T>;
+      return parsedLog;
+    });
   return logs;
 };

@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention -- events in this file match on-chain event names which are pascal case */
+import type { BigNumber } from 'ethers';
+
 import type {
   ApprovalForAllEvent,
   InitializedEvent,
@@ -21,59 +23,63 @@ import type { ContractEvents } from './contract-events';
 export interface RemovalEventMap {
   ApprovalForAll: {
     name: 'ApprovalForAll';
-    args: ApprovalForAllEvent;
+    args: ApprovalForAllEvent['args'];
   };
   Initialized: {
     name: 'Initialized';
-    args: InitializedEvent;
+    args: InitializedEvent['args'];
   };
   Migrate: {
     name: 'Migrate';
-    args: MigrateEvent;
+    args: MigrateEvent['args'];
   };
   Paused: {
     name: 'Paused';
-    args: PausedEvent;
+    args: PausedEvent['args'];
   };
   RegisterContractAddresses: {
     name: 'RegisterContractAddresses';
-    args: RegisterContractAddressesEvent;
+    args: RegisterContractAddressesEvent['args'];
   };
   ReleaseRemoval: {
     name: 'ReleaseRemoval';
-    args: ReleaseRemovalEvent;
+    args: ReleaseRemovalEvent['args'];
   };
   RoleAdminChanged: {
     name: 'RoleAdminChanged';
-    args: RoleAdminChangedEvent;
+    args: RoleAdminChangedEvent['args'];
   };
   RoleGranted: {
     name: 'RoleGranted';
-    args: RoleGrantedEvent;
+    args: RoleGrantedEvent['args'];
   };
   RoleRevoked: {
     name: 'RoleRevoked';
-    args: RoleRevokedEvent;
+    args: RoleRevokedEvent['args'];
   };
   SetHoldbackPercentage: {
     name: 'SetHoldbackPercentage';
-    args: SetHoldbackPercentageEvent;
+    args: SetHoldbackPercentageEvent['args'];
   };
   TransferBatch: {
     name: 'TransferBatch';
-    args: TransferBatchEvent;
+    args: Omit<TransferBatchEvent['args'], 'values'> & {
+      vals: TransferBatchEvent['args']['values'] extends BigNumber[]
+        ? BigNumber[]
+        : never;
+    };
   };
   TransferSingle: {
     name: 'TransferSingle';
-    args: TransferSingleEvent;
+    args: TransferSingleEvent['args'];
   };
   URI: {
     name: 'URI';
-    args: URIEvent;
+    args: URIEvent['args'];
   };
   Unpaused: {
     name: 'Unpaused';
-    args: UnpausedEvent;
+    args: UnpausedEvent['args'];
   };
 }
 

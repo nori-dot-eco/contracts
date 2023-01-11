@@ -14,55 +14,55 @@ import type {
   UnpausedEvent,
 } from '../typechain-types/artifacts/contracts/Certificate';
 
-import type { ContractEvents } from './events/contract-events';
+import type { ContractEvents } from './contract-events';
 
 export interface CertificateEventMap {
   Approval: {
-    args: ApprovalEvent;
+    args: ApprovalEvent['args'];
     name: 'ApprovalEvent';
   };
   ApprovalForAll: {
-    args: ApprovalForAllEvent;
+    args: ApprovalForAllEvent['args'];
     name: 'ApprovalForAllEvent';
   };
   ConsecutiveTransfer: {
-    args: ConsecutiveTransferEvent;
+    args: ConsecutiveTransferEvent['args'];
     name: 'ConsecutiveTransferEvent';
   };
   Initialized: {
-    args: InitializedEvent;
+    args: InitializedEvent['args'];
     name: 'InitializedEvent';
   };
   Paused: {
-    args: PausedEvent;
+    args: PausedEvent['args'];
     name: 'PausedEvent';
   };
   ReceiveRemovalBatch: {
-    args: ReceiveRemovalBatchEvent;
+    args: ReceiveRemovalBatchEvent['args'];
     name: 'ReceiveRemovalBatchEvent';
   };
   RegisterContractAddresses: {
-    args: RegisterContractAddressesEvent;
+    args: RegisterContractAddressesEvent['args'];
     name: 'RegisterContractAddressesEvent';
   };
   RoleAdminChanged: {
-    args: RoleAdminChangedEvent;
+    args: RoleAdminChangedEvent['args'];
     name: 'RoleAdminChangedEvent';
   };
   RoleGranted: {
-    args: RoleGrantedEvent;
+    args: RoleGrantedEvent['args'];
     name: 'RoleGrantedEvent';
   };
   RoleRevoked: {
-    args: RoleRevokedEvent;
+    args: RoleRevokedEvent['args'];
     name: 'RoleRevokedEvent';
   };
   Transfer: {
-    args: TransferEvent;
+    args: TransferEvent['args'];
     name: 'TransferEvent';
   };
   Unpaused: {
-    args: UnpausedEvent;
+    args: UnpausedEvent['args'];
     name: 'UnpausedEvent';
   };
 }
