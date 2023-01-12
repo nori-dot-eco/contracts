@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "es2022",
     "module": "commonjs",
     "strict": true,
@@ -23,5 +24,12 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["**/*.ts", "**/*.d.ts", "./.eslintrc.js", ".solcover.js"]
+  "include": [
+    "**/*.ts",
+    "**/*.d.ts",
+    "./.eslintrc.js",
+    ".solcover.js",
+    "contracts.json",
+    "artifacts/**/*.json"
+  ]
 }

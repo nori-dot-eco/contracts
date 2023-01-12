@@ -63,6 +63,11 @@ export interface RemovalEventMap {
   };
   TransferBatch: {
     name: 'TransferBatch';
+    /**
+     * `args.values` is remapped to `args.vals` due to a limitation of javascript.
+     *
+     * @see https://github.com/ethers-io/ethers.js/discussions/3542#discussioncomment-4214097
+     */
     args: Omit<TransferBatchEvent['args'], 'values'> & {
       vals: TransferBatchEvent['args']['values'] extends BigNumber[]
         ? BigNumber[]

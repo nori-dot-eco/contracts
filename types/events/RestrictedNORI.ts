@@ -20,55 +20,55 @@ import type { ContractEvents } from './contract-events';
 export interface RestrictedNORIEventMap {
   ApprovalForAll: {
     args: ApprovalForAllEvent['args'];
-    name: 'ApprovalForAllEvent';
+    name: 'ApprovalForAll';
   };
   ClaimTokens: {
     args: ClaimTokensEvent['args'];
-    name: 'ClaimTokensEvent';
+    name: 'ClaimTokens';
   };
   Initialized: {
     args: InitializedEvent['args'];
-    name: 'InitializedEvent';
+    name: 'Initialized';
   };
   Paused: {
     args: PausedEvent['args'];
-    name: 'PausedEvent';
+    name: 'Paused';
   };
   RevokeTokens: {
     args: RevokeTokensEvent['args'];
-    name: 'RevokeTokensEvent';
+    name: 'RevokeTokens';
   };
   RoleAdminChanged: {
     args: RoleAdminChangedEvent['args'];
-    name: 'RoleAdminChangedEvent';
+    name: 'RoleAdminChanged';
   };
   RoleGranted: {
     args: RoleGrantedEvent['args'];
-    name: 'RoleGrantedEvent';
+    name: 'RoleGranted';
   };
   RoleRevoked: {
     args: RoleRevokedEvent['args'];
-    name: 'RoleRevokedEvent';
+    name: 'RoleRevoked';
   };
   ScheduleCreated: {
     args: ScheduleCreatedEvent['args'];
-    name: 'ScheduleCreatedEvent';
+    name: 'ScheduleCreated';
   };
   TransferBatch: {
     args: TransferBatchEvent['args'];
-    name: 'TransferBatchEvent';
+    name: 'TransferBatch';
   };
   TransferSingle: {
     args: TransferSingleEvent['args'];
-    name: 'TransferSingleEvent';
+    name: 'TransferSingle';
   };
   URI: {
     args: URIEvent['args'];
-    name: 'URIEvent';
+    name: 'URI';
   };
   Unpaused: {
     args: UnpausedEvent['args'];
-    name: 'UnpausedEvent';
+    name: 'Unpaused';
   };
 }
 

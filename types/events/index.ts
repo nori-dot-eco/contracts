@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention -- events in this file match on-chain event names which are pascal case */
 import type {
   Removal,
   Market,
@@ -8,6 +7,7 @@ import type {
   Certificate,
   RestrictedNORI,
 } from '../typechain-types/index';
+import type { Contracts } from '../contracts';
 
 import type { BridgedPolygonNORIEvents } from './BridgedPolygonNORI';
 import type { RemovalEvents } from './Removal';
@@ -17,30 +17,21 @@ import type { MarketEvents } from './Market';
 import type { CertificateEvents } from './Certificate';
 import type { RestrictedNORIEvents } from './RestrictedNORI';
 
-export interface ContractsWithEvents {
-  Removal: Removal;
-  NORI: NORI;
-  BridgedPolygonNORI: BridgedPolygonNORI;
-  Market: Market;
-  LockedNORI: LockedNORI;
-  RestrictedNORI: RestrictedNORI;
-  Certificate: Certificate;
-}
+export type ContractWithEvents = Contracts[keyof Contracts];
 
-export type ContractEventInterfaceFromType<
-  T extends ContractsWithEvents[keyof ContractsWithEvents]
-> = T extends Removal
-  ? RemovalEvents
-  : T extends Market
-  ? MarketEvents
-  : T extends LockedNORI
-  ? LockedNORIEvents
-  : T extends NORI
-  ? NORIEvents
-  : T extends BridgedPolygonNORI
-  ? BridgedPolygonNORIEvents
-  : T extends Certificate
-  ? CertificateEvents
-  : T extends RestrictedNORI
-  ? RestrictedNORIEvents
-  : never;
+export type ContractEventInterface<T extends ContractWithEvents> =
+  T extends Removal
+    ? RemovalEvents
+    : T extends Market
+    ? MarketEvents
+    : T extends LockedNORI
+    ? LockedNORIEvents
+    : T extends NORI
+    ? NORIEvents
+    : T extends BridgedPolygonNORI
+    ? BridgedPolygonNORIEvents
+    : T extends Certificate
+    ? CertificateEvents
+    : T extends RestrictedNORI
+    ? RestrictedNORIEvents
+    : never;

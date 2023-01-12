@@ -1,6 +1,13 @@
 import type { NetworksUserConfig, NetworkUserConfig } from 'hardhat/types';
 
+import type * as contractsConfig from '@/contracts.json';
 import { accounts } from '@/config/accounts';
+
+export type ContractsInNetwork<
+  T extends SupportedNetworks = SupportedNetworks
+> = T extends SupportedNetworks ? keyof typeof contractsConfig[T] : never;
+
+export type SupportedNetworks = keyof typeof networks;
 
 const {
   ETHEREUM_RPC_URL,
@@ -17,7 +24,7 @@ const hardhat: NetworksUserConfig['hardhat'] = {
   gasPrice: 3,
   chainId: 9001,
   accounts,
-  loggingEnabled: LOG_HARDHAT_NETWORK,
+  loggingEnabled: Boolean(LOG_HARDHAT_NETWORK),
   allowUnlimitedContractSize: true,
   tags: ['test'],
   saveDeployments: true,
@@ -32,7 +39,7 @@ const localhost: NetworkUserConfig = {
     accounts: { mnemonic: MNEMONIC },
   }),
   allowUnlimitedContractSize: true,
-  loggingEnabled: LOG_HARDHAT_NETWORK,
+  loggingEnabled: Boolean(LOG_HARDHAT_NETWORK),
   url: 'http://127.0.0.1:8545',
   tags: ['test'],
   saveDeployments: true,
