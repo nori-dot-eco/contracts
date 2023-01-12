@@ -15,35 +15,35 @@ import type { ContractEvents } from './contract-events';
 export interface NORIEventMap {
   Approval: {
     args: ApprovalEvent['args'];
-    name: 'ApprovalEvent';
+    name: 'Approval';
   };
   Initialized: {
     args: InitializedEvent['args'];
-    name: 'InitializedEvent';
+    name: 'Initialized';
   };
   Paused: {
     args: PausedEvent['args'];
-    name: 'PausedEvent';
+    name: 'Paused';
   };
   RoleAdminChanged: {
     args: RoleAdminChangedEvent['args'];
-    name: 'RoleAdminChangedEvent';
+    name: 'RoleAdminChanged';
   };
   RoleGranted: {
     args: RoleGrantedEvent['args'];
-    name: 'RoleGrantedEvent';
+    name: 'RoleGranted';
   };
   RoleRevoked: {
     args: RoleRevokedEvent['args'];
-    name: 'RoleRevokedEvent';
+    name: 'RoleRevoked';
   };
   Transfer: {
     args: TransferEvent['args'];
-    name: 'TransferEvent';
+    name: 'Transfer';
   };
   Unpaused: {
     args: UnpausedEvent['args'];
-    name: 'UnpausedEvent';
+    name: 'Unpaused';
   };
 }
 

@@ -26,79 +26,79 @@ import type { ContractEvents } from './contract-events';
 export interface LockedNORIEventMap {
   Approval: {
     args: ApprovalEvent['args'];
-    name: 'ApprovalEvent';
+    name: 'Approval';
   };
   AuthorizedOperator: {
     args: AuthorizedOperatorEvent['args'];
-    name: 'AuthorizedOperatorEvent';
+    name: 'AuthorizedOperator';
   };
   Burned: {
     args: BurnedEvent['args'];
-    name: 'BurnedEvent';
+    name: 'Burned';
   };
   Initialized: {
     args: InitializedEvent['args'];
-    name: 'InitializedEvent';
+    name: 'Initialized';
   };
   Minted: {
     args: MintedEvent['args'];
-    name: 'MintedEvent';
+    name: 'Minted';
   };
   Paused: {
     args: PausedEvent['args'];
-    name: 'PausedEvent';
+    name: 'Paused';
   };
   RevokedOperator: {
     args: RevokedOperatorEvent['args'];
-    name: 'RevokedOperatorEvent';
+    name: 'RevokedOperator';
   };
   RoleAdminChanged: {
     args: RoleAdminChangedEvent['args'];
-    name: 'RoleAdminChangedEvent';
+    name: 'RoleAdminChanged';
   };
   RoleGranted: {
     args: RoleGrantedEvent['args'];
-    name: 'RoleGrantedEvent';
+    name: 'RoleGranted';
   };
   RoleRevoked: {
     args: RoleRevokedEvent['args'];
-    name: 'RoleRevokedEvent';
+    name: 'RoleRevoked';
   };
   Sent: {
     args: SentEvent['args'];
-    name: 'SentEvent';
+    name: 'Sent';
   };
   SentBatch: {
     args: SentBatchEvent['args'];
-    name: 'SentBatchEvent';
+    name: 'SentBatch';
   };
   TokenGrantCreated: {
     args: TokenGrantCreatedEvent['args'];
-    name: 'TokenGrantCreatedEvent';
+    name: 'TokenGrantCreated';
   };
   TokenGrantCreatedBatchEven: {
     args: TokenGrantCreatedBatchEvent['args'];
-    name: 'TokenGrantCreatedBatchEvent';
+    name: 'TokenGrantCreatedBatch';
   };
   TokensClaimed: {
     args: TokensClaimedEvent['args'];
-    name: 'TokensClaimedEvent';
+    name: 'TokensClaimed';
   };
   Transfer: {
     args: TransferEvent['args'];
-    name: 'TransferEvent';
+    name: 'Transfer';
   };
   UnderlyingTokenAddressUpdated: {
     args: UnderlyingTokenAddressUpdatedEvent['args'];
-    name: 'UnderlyingTokenAddressUpdatedEvent';
+    name: 'UnderlyingTokenAddressUpdated';
   };
   Unpaused: {
     args: UnpausedEvent['args'];
-    name: 'UnpausedEvent';
+    name: 'Unpaused';
   };
   UnvestedTokensRevoked: {
     args: UnvestedTokensRevokedEvent['args'];
-    name: 'UnvestedTokensRevokedEvent';
+    name: 'UnvestedTokensRevoked';
   };
 }
 

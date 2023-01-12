@@ -24,71 +24,71 @@ import type { ContractEvents } from './contract-events';
 export interface MarketEventMap {
   AddRemoval: {
     args: AddRemovalEvent['args'];
-    name: 'AddRemovalEvent';
+    name: 'AddRemoval';
   };
   AddSupplier: {
     args: AddSupplierEvent['args'];
-    name: 'AddSupplierEvent';
+    name: 'AddSupplier';
   };
   Initialized: {
     args: InitializedEvent['args'];
-    name: 'InitializedEvent';
+    name: 'Initialized';
   };
   Paused: {
     args: PausedEvent['args'];
-    name: 'PausedEvent';
+    name: 'Paused';
   };
   RegisterContractAddresses: {
     args: RegisterContractAddressesEvent['args'];
-    name: 'RegisterContractAddressesEvent';
+    name: 'RegisterContractAddresses';
   };
   RemoveSupplier: {
     args: RemoveSupplierEvent['args'];
-    name: 'RemoveSupplierEvent';
+    name: 'RemoveSupplier';
   };
   RestrictedNORIMintFailure: {
     args: RestrictedNORIMintFailureEvent['args'];
-    name: 'RestrictedNORIMintFailureEvent';
+    name: 'RestrictedNORIMintFailure';
   };
   RoleAdminChanged: {
     args: RoleAdminChangedEvent['args'];
-    name: 'RoleAdminChangedEvent';
+    name: 'RoleAdminChanged';
   };
   RoleGranted: {
     args: RoleGrantedEvent['args'];
-    name: 'RoleGrantedEvent';
+    name: 'RoleGranted';
   };
   RoleRevoked: {
     args: RoleRevokedEvent['args'];
-    name: 'RoleRevokedEvent';
+    name: 'RoleRevoked';
   };
   SetPriceMultiple: {
     args: SetPriceMultipleEvent['args'];
-    name: 'SetPriceMultipleEvent';
+    name: 'SetPriceMultiple';
   };
   SetPriorityRestrictedThresholdE: {
     args: SetPriorityRestrictedThresholdEvent['args'];
-    name: 'SetPriorityRestrictedThresholdEvent';
+    name: 'SetPriorityRestrictedThreshold';
   };
   SetPurchasingToken: {
     args: SetPurchasingTokenEvent['args'];
-    name: 'SetPurchasingTokenEvent';
+    name: 'SetPurchasingToken';
   };
   SkipRestrictedNORIERC20Transfer: {
     args: SkipRestrictedNORIERC20TransferEvent['args'];
-    name: 'SkipRestrictedNORIERC20TransferEvent';
+    name: 'SkipRestrictedNORIERC20Transfer';
   };
   Unpaused: {
     args: UnpausedEvent['args'];
-    name: 'UnpausedEvent';
+    name: 'Unpaused';
   };
   UpdateNoriFeePercentage: {
     args: UpdateNoriFeePercentageEvent['args'];
-    name: 'UpdateNoriFeePercentageEvent';
+    name: 'UpdateNoriFeePercentage';
   };
   UpdateNoriFeeWalletAddress: {
     args: UpdateNoriFeeWalletAddressEvent['args'];
-    name: 'UpdateNoriFeeWalletAddressEvent';
+    name: 'UpdateNoriFeeWalletAddress';
   };
 }
 
