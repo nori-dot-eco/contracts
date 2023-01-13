@@ -19,19 +19,36 @@ import type { RestrictedNORIEvents } from './RestrictedNORI';
 
 export type ContractWithEvents = Contracts[keyof Contracts];
 
-export type ContractEventInterface<T extends ContractWithEvents> =
-  T extends Removal
+export type ContractEventInterface<TInterface extends ContractWithEvents> =
+  TInterface extends Removal
     ? RemovalEvents
-    : T extends Market
+    : TInterface extends Market
     ? MarketEvents
-    : T extends LockedNORI
+    : TInterface extends LockedNORI
     ? LockedNORIEvents
-    : T extends NORI
+    : TInterface extends NORI
     ? NORIEvents
-    : T extends BridgedPolygonNORI
+    : TInterface extends BridgedPolygonNORI
     ? BridgedPolygonNORIEvents
-    : T extends Certificate
+    : TInterface extends Certificate
     ? CertificateEvents
-    : T extends RestrictedNORI
+    : TInterface extends RestrictedNORI
     ? RestrictedNORIEvents
     : never;
+
+export type ContractEventNames<TInterface extends ContractWithEvents> =
+  ContractEventInterface<TInterface>['name'];
+
+export type NamedLogs<
+  TContract extends ContractWithEvents,
+  TEventNames extends ContractEventNames<TContract>[] = Exclude<
+    ContractEventNames<TContract>,
+    undefined
+  >[]
+> = Extract<
+  ContractEventInterface<TContract>,
+  {
+    name: TEventNames[number];
+    args: ContractEventInterface<TContract>['args'];
+  }
+>[];

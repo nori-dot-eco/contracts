@@ -1,7 +1,8 @@
-import type { Removal } from '@/types/typechain-types';
+import type { Removal, BridgedPolygonNORI } from '@/types/typechain-types';
 import { parseTransactionLogs } from '@/utils/events';
 import { marketSwapTransactionReceipt } from '@/test/fixtures/transaction-receipts';
 import { abi as removalAbi } from '@/artifacts/Removal.sol/Removal.json';
+import { abi as bpNoriAbi } from '@/artifacts/BridgedPolygonNORI.sol/BridgedPolygonNORI.json';
 import { expect } from '@/test/helpers';
 
 describe('events', () => {
@@ -18,6 +19,7 @@ describe('events', () => {
     const removalLogs = parseTransactionLogs({
       contractInstance: removal,
       txReceipt: marketSwapTransactionReceipt,
+      eventNames: ['TransferBatch'],
     });
     if (removalLogs[0].name !== 'TransferBatch') {
       expect.fail('Invalid event name');
@@ -37,5 +39,35 @@ describe('events', () => {
       expect(removalLogs[0].args.from).to.equal(marketAddress);
       expect(removalLogs[0].args.to).to.equal(certificateAddress);
     }
+  });
+  it('returns an empty array when attempting to parse events using an invalid event name', async () => {
+    const removalAddress = marketSwapTransactionReceipt.logs[8].address;
+    const [signer] = await hre.getSigners();
+    const removal = new hre.ethers.Contract(
+      removalAddress,
+      removalAbi,
+      signer
+    ) as Removal;
+    const removalLogs = parseTransactionLogs({
+      contractInstance: removal,
+      txReceipt: marketSwapTransactionReceipt,
+      // @ts-expect-error -- this is testing for an invalid event name
+      eventNames: ['InvalidEventName'],
+    });
+    expect(removalLogs).to.have.lengthOf(0);
+  });
+  it('returns an all events array when attempting to parse events using no filter', async () => {
+    const bpNoriAddress = marketSwapTransactionReceipt.logs[0].address;
+    const [signer] = await hre.getSigners();
+    const bpNori = new hre.ethers.Contract(
+      bpNoriAddress,
+      bpNoriAbi,
+      signer
+    ) as BridgedPolygonNORI;
+    const bpNoriLogs = parseTransactionLogs({
+      contractInstance: bpNori,
+      txReceipt: marketSwapTransactionReceipt,
+    });
+    expect(bpNoriLogs).to.have.lengthOf(7);
   });
 });

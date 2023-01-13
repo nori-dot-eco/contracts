@@ -6,7 +6,7 @@ import { BigNumber, FixedNumber } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { TransactionReceipt } from '@ethersproject/providers';
 
-import type { Certificate, Removal } from '../typechain-types';
+import type { Certificate, Removal } from '../types/typechain-types';
 
 import { getLogger } from '@/utils/log';
 import { parseTransactionLogs } from '@/utils/events';
@@ -114,22 +114,21 @@ const validateMigrateEvent = ({
   } = parseTransactionLogs({
     contractInstance: removalContract,
     txReceipt: txResult,
-  })
-    .filter((log) => log.name === 'Migrate')
-    .flatMap((log) => ({
-      certificateId: log.args.certificateId.toNumber(),
-      removalAmounts: log.args.removalAmounts.map((a: BigNumber) =>
-        Number(hre.ethers.utils.formatUnits(a.mul(1_000_000), 18))
-      ),
-      removalIds: log.args.removalIds,
-      certificateAmount: Number(
-        hre.ethers.utils.formatUnits(
-          log.args.certificateAmount.mul(1_000_000),
-          18
-        )
-      ),
-      certificateRecipient: log.args.certificateRecipient,
-    }))[0];
+    eventNames: ['Migrate'],
+  }).map((log) => ({
+    certificateId: log.args.certificateId.toNumber(),
+    removalAmounts: log.args.removalAmounts.map((a: BigNumber) =>
+      Number(hre.ethers.utils.formatUnits(a.mul(1_000_000), 18))
+    ),
+    removalIds: log.args.removalIds.map((id) => id.toNumber()),
+    certificateAmount: Number(
+      hre.ethers.utils.formatUnits(
+        log.args.certificateAmount.mul(1_000_000),
+        18
+      )
+    ),
+    certificateRecipient: log.args.certificateRecipient,
+  }))[0];
   const datastoreCertificate = inputData[certificateIndex];
   const offChainAmountsMatchOnchainAmounts =
     JSON.stringify(eventLog.removalAmounts) ===
@@ -442,9 +441,8 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             tokenId = parseTransactionLogs({
               contractInstance: removalContract,
               txReceipt,
-            })
-              .filter((log) => log.name === 'Migrate')
-              .flatMap((log) => log.args.certificateId.toNumber())[0];
+              eventNames: ['Migrate'],
+            }).map((log) => log.args.certificateId.toNumber())[0];
             if (txReceipt.status !== 1) {
               logger.error(
                 `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`

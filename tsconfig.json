@@ -19,7 +19,9 @@
       "@/contracts.json": ["./contracts.json"],
       "@/artifacts/*": ["./artifacts/contracts/*"],
       "@/legacy-artifacts/*": ["./legacy-artifacts/contracts/*"],
-      "@/typechain-types/*": ["./types/typechain-types/*"],
+      "@/typechain-types/artifacts/contracts/*": [
+        "./types/typechain-types/artifacts/contracts/*"
+      ],
       "@/typechain-types": ["./types/typechain-types/index.ts"],
       "@/*": ["./*"]
     }
@@ -30,6 +32,6 @@
     "./.eslintrc.js",
     ".solcover.js",
     "contracts.json",
-    "artifacts/**/*.json"
+    "artifacts/contracts/**/*.json"
   ]
 }

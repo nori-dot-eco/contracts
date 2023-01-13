@@ -266,11 +266,10 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           const tokenIds = parseTransactionLogs({
             contractInstance: removalContract,
             txReceipt,
-          })
-            .filter((log) => log.name === 'TransferBatch')
-            .flatMap((log) =>
-              log.args.ids.map((id: BigNumber) => id.toHexString())
-            );
+            eventNames: ['TransferBatch'],
+          }).flatMap((log) =>
+            log.args.ids.map((id: BigNumber) => id.toHexString())
+          );
           if (txReceipt.status !== 1) {
             logger.error(
               `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
