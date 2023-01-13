@@ -422,19 +422,17 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           dryRun === true
             ? removalContract.callStatic.migrate
             : removalContract.migrate;
-        const gasPrice = await signer.getGasPrice(); // TODO we probably don't need to do this on a live network
         let pendingTx: Awaited<ReturnType<typeof migrationFunction>>;
         try {
           pendingTx = await migrationFunction(
             ids,
             amounts,
             signerAddress, // TODO use Nori admin address, which may also be the signer?
-            totalAmount,
-            { gasPrice }
+            totalAmount
           );
           let txReceipt: TransactionReceipt | undefined;
           let tokenId: number | undefined = certificateIndex;
-          if (pendingTx !== undefined) {
+          if (pendingTx !== undefined && dryRun === false) {
             const txResult = await pendingTx.wait(1); // TODO specify more than one confirmation?
             txReceipt = await removalContract.provider.getTransactionReceipt(
               txResult.transactionHash

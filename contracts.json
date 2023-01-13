@@ -1,19 +1,19 @@
 {
   "hardhat": {
     "NORI": {
-      "proxyAddress": "0xEdf0bef28943aE9d2ee7d84cF1AEEC85588655b7"
+      "proxyAddress": "0x50562ADF34935aeb8cC86e9bDc66eaBf79097A08"
     },
     "BridgedPolygonNORI": {
-      "proxyAddress": "0x5D4Ccd1c007cAe21347F3ceD346389b66f7a0ccB"
+      "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
     },
     "Removal": {
       "proxyAddress": "0xe35401Eb5078388D49f47d631a0ce0733a31A425"
     },
     "Certificate": {
-      "proxyAddress": "0xA7c33e73716EFC39C0d06FeB976B08081682Ad3c"
+      "proxyAddress": "0x2CA5C6C765be11F44519Fc85Bf758723DC3C8cFC"
     },
     "Market": {
-      "proxyAddress": "0x825Fff6bC67a7055DE62b0fB18676E3844Ac69dD"
+      "proxyAddress": "0xA85991C70a743ffcE508b2E520C685C9d8ea6F4d"
     },
     "LockedNORI": {
       "proxyAddress": "0x1BE70016d4D5144124f77DDaB7504ea33d173C03"
@@ -28,7 +28,7 @@
       "proxyAddress": "0x3C5d3e20ab495ecee10b4E6eeAd04Dd21d780b98"
     },
     "RestrictedNORI": {
-      "proxyAddress": "0xA85991C70a743ffcE508b2E520C685C9d8ea6F4d"
+      "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
     }
   },
   "localhost": {
@@ -90,22 +90,22 @@
   },
   "mumbai": {
     "BridgedPolygonNORI": {
-      "proxyAddress": "0xB3fe45C08137dD6adACb2918D899e0C0dBB036C8"
+      "proxyAddress": "0xC8f13ad27BB9270B64bc937d43366569E6CEde97"
     },
     "Removal": {
-      "proxyAddress": "0x8d1fd3bDF29B5F5A98b196725ef0D00DD45eFa5a"
+      "proxyAddress": "0x08722E24075B25C3e070150663f46406a6a34449"
     },
     "Certificate": {
-      "proxyAddress": "0x96107D037594Cca4E7ce68f87346957BD726b3EE"
+      "proxyAddress": "0xB69DAac74F3568B875BD55960Ba92D7C326eE364"
     },
     "Market": {
-      "proxyAddress": "0x61A9d9A34Dbc3a1accD55D684A2bF0e0D394201f"
+      "proxyAddress": "0x394D86ca7F00608a1ae38193FE9ee08130a139b8"
     },
     "LockedNORI": {
       "proxyAddress": "0xCdcB43CB7B668F0C1cA04FE4b60DA7F8C62Be393"
     },
     "RestrictedNORI": {
-      "proxyAddress": "0x897e46a477305b86F96b86671AD514E090D61A62"
+      "proxyAddress": "0x7a177C928bcD09eCDDfC7c3C04f48e888dA754b6"
     }
   },
   "goerli": {

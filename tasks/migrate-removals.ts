@@ -1,5 +1,6 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 
+import type { ContractTransaction } from 'ethers';
 import { BigNumber, FixedNumber } from 'ethers';
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
@@ -245,37 +246,43 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           dryRun === true
             ? removalContract.callStatic.mintBatch
             : removalContract.mintBatch;
-        let pendingTx: Awaited<ReturnType<typeof migrationFunction>>;
+        let pendingTx: ContractTransaction;
+        let tokenIds;
+        let txReceipt;
 
         try {
-          const gasPrice = await signer.getGasPrice(); // TODO on a live network we probably don't need to do this??
-          pendingTx = await removalContract.mintBatch(
+          const maybePendingTx = await migrationFunction(
             signerAddress, // mint to the consignor
             amounts,
             removals,
             project.projectId,
             project.scheduleStartTime,
-            project.holdbackPercentage,
-            { gasPrice }
+            project.holdbackPercentage
           );
-          const txResult = await pendingTx.wait(1); // TODO specify more than one confirmation?
-          const txReceipt =
-            await removalContract.provider.getTransactionReceipt(
+          if (maybePendingTx === undefined) {
+            throw new Error(`No pending transaction returned`);
+          } else {
+            pendingTx = maybePendingTx;
+          }
+          if (dryRun === false) {
+            const txResult = await pendingTx.wait(2); // TODO specify more than one confirmation?
+            txReceipt = await removalContract.provider.getTransactionReceipt(
               txResult.transactionHash
             );
-          const tokenIds = parseTransactionLogs({
-            contractInstance: removalContract,
-            txReceipt,
-          })
-            .filter((log) => log.name === 'TransferBatch')
-            .flatMap((log) =>
-              log.args.ids.map((id: BigNumber) => id.toHexString())
-            );
-          if (txReceipt.status !== 1) {
-            logger.error(
-              `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
-            );
-            return;
+            tokenIds = parseTransactionLogs({
+              contractInstance: removalContract,
+              txReceipt,
+            })
+              .filter((log) => log.name === 'TransferBatch')
+              .flatMap((log) =>
+                log.args.ids.map((id: BigNumber) => id.toHexString())
+              );
+            if (txReceipt.status !== 1) {
+              logger.error(
+                `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
+              );
+              return;
+            }
           }
           PROGRESS_BAR.increment();
           outputData.push({
