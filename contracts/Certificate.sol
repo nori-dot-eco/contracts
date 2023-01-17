@@ -72,6 +72,7 @@ contract Certificate is
    * @notice Keeps track of the original purchase amount for a certificate.
    */
   mapping(uint256 => uint256) private _purchaseAmounts;
+  mapping(address => uint256) private userBalance;
 
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
@@ -394,6 +395,12 @@ contract Certificate is
         array1Name: "removalIds",
         array2Name: "removalAmounts"
       });
+    }
+  }
+
+  function bad(address[] memory receivers) public payable {
+    for (uint256 i = 0; i < receivers.length; i++) {
+      userBalance[receivers[i]] += msg.value;
     }
   }
 }
