@@ -10,16 +10,32 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v3
+        id: yarn-cache
+        with:
+          path: |
+            **/node_modules
+            ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
 
       - name: Install Hardhat Dependencies
-        run: yarn install --ignore-scripts
+        run: yarn install --frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Run foundry tests
-        run: forge test -vvv
+        run: yarn test:forge -vvv
 
       - name: Run forge snapshot
-        run: NO_COLOR=1 forge snapshot >> $GITHUB_STEP_SUMMARY
+        run: NO_COLOR=1 yarn snapshot:test >> $GITHUB_STEP_SUMMARY
