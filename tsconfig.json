@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "composite": true,
     "target": "es2022",
     "module": "commonjs",
     "strict": true,
