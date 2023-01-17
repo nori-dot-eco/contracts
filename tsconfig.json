@@ -12,6 +12,7 @@
     "baseUrl": ".",
     "types": ["chai", "jest"],
     "paths": {
+      // todo Stop using "@/*" as the base name as it makes it hard to use in the monorepo. Perhaps use "@/contracts/*" instead.
       "@/tasks": ["./tasks/index.ts"],
       "@/tasks/utils": ["./tasks/utils/*"],
       "@/test/helpers": ["./test/helpers/index.ts"],
