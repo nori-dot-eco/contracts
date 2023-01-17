@@ -530,7 +530,7 @@ contract Market is
    * certificate. Relies on the EIP-2612 permit extension to facilitate ERC20 token transfer.
    * @dev See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's ERC20 to complete the purchase. A certificate is minted in the Certificate contract
+   * to transfer the permit owner's ERC20 to complete the purchase. A certificate is minted in the Certificate contract
    * to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals,
    * to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
    * to Nori Inc. as a market operator fee.
@@ -539,6 +539,7 @@ contract Market is
    *
    * - Can only be used when this contract is not paused.
    * @param recipient The address to which the certificate will be issued.
+   * @param permitOwner The address that signed the EIP2612 permit and will pay for the removals.
    * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
    * purchased and the fee paid to Nori.
    * @param deadline The EIP2612 permit deadline in Unix time.
@@ -548,11 +549,42 @@ contract Market is
    */
   function swap(
     address recipient,
+    address permitOwner,
     uint256 amount,
     uint256 deadline,
     uint8 v,
     bytes32 r,
     bytes32 s
+  ) external whenNotPaused {
+    _permit({amount: amount, deadline: deadline, v: v, r: r, s: s});
+    this.swap({recipient: recipient, purchaser: permitOwner, amount: amount});
+  }
+
+  /**
+   * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
+   * certificate. Relies on pre-approval of this market by the sender to transfer the purchaser's tokens.
+   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
+   * for more.
+   * The purchaser must have granted approval to this contract to authorize this market to transfer their
+   * supported ERC20 to complete the purchase. A certificate is minted in the Certificate contract
+   * to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removals,
+   * to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
+   * to Nori Inc. as a market operator fee.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   * - Can only be used if this contract has been granted approval to transfer the purchaser's ERC20 tokens.
+   * @param recipient The address to which the certificate will be issued.
+   * @param purchaser The address that will be purchasing the removals and has granted this market approval to tranfser
+   * their ERC20 tokens.
+   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
+   * purchased and the fee paid to Nori.
+   */
+  function swap(
+    address recipient,
+    address purchaser,
+    uint256 amount
   ) external whenNotPaused {
     uint256 certificateAmount = this
       .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
@@ -562,49 +594,9 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovals({certificateAmount: certificateAmount});
-    _permit({amount: amount, deadline: deadline, v: v, r: r, s: s});
     _fulfillOrder({
       certificateAmount: certificateAmount,
-      from: _msgSender(),
-      recipient: recipient,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: ids,
-      amounts: amounts,
-      suppliers: suppliers
-    });
-  }
-
-  /**
-   * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
-   * certificate. Relies on pre-approval of this market by the sender to transfer the sender's tokens.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
-   * for more.
-   * The sender must have granted approval to this contract to authorize this market to transfer the sender's
-   * supported ERC20 to complete the purchase. A certificate is minted in the Certificate contract
-   * to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removals,
-   * to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
-   * to Nori Inc. as a market operator fee.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
-   * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
-   * purchased and the fee paid to Nori.
-   */
-  function swap(address recipient, uint256 amount) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovals({certificateAmount: certificateAmount});
-    _fulfillOrder({
-      certificateAmount: certificateAmount,
-      from: _msgSender(),
+      from: purchaser,
       recipient: recipient,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
       ids: ids,
