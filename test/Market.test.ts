@@ -190,7 +190,8 @@ describe('Market', () => {
         await expect(
           market
             .connect(namedSigners[accountWithRole])
-            ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
+            ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
+              namedAccounts[accountWithRole],
               namedAccounts[accountWithRole],
               value,
               MaxUint256,
@@ -226,7 +227,8 @@ describe('Market', () => {
         await expect(
           market
             .connect(accountWithoutRole)
-            ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
+            ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
+              accountWithoutRole.address,
               accountWithoutRole.address,
               totalAmountOfSupply,
               MaxUint256,
@@ -369,7 +371,8 @@ describe('Market', () => {
         });
         await market
           .connect(buyer)
-          ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
+          ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
+            buyer.address,
             buyer.address,
             value,
             MaxUint256,
@@ -1021,7 +1024,8 @@ describe('Market', () => {
       });
       await market
         .connect(buyer)
-        ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
+        ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
+          buyer.address,
           buyer.address,
           value,
           MaxUint256,
@@ -1100,8 +1104,9 @@ describe('Market', () => {
       // expect(await certificate.balanceOf(investor1.address, 0)).to.equal(0); // todo
       await market
         .connect(buyer)
-        ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
+        ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
           investor1.address,
+          buyer.address,
           value,
           deadline,
           v,
@@ -1150,8 +1155,8 @@ describe('purchasing from a specified supplier', () => {
     await market
       .connect(buyer)
       [
-        'swapFromSupplier(address,uint256,address,uint256,uint8,bytes32,bytes32)'
-      ](buyer.address, value, hre.namedAccounts.supplier, MaxUint256, v, r, s);
+        'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
+      ](buyer.address, buyer.address, value, hre.namedAccounts.supplier, MaxUint256, v, r, s);
     const [supplierFinalNoriBalance, investor1FinalNoriBalance] =
       await Promise.all([
         bpNori.balanceOf(hre.namedAccounts.supplier),
@@ -1199,8 +1204,8 @@ describe('purchasing from a specified supplier', () => {
       market
         .connect(buyer)
         [
-          'swapFromSupplier(address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](buyer.address, value, hre.namedAccounts.supplier, MaxUint256, v, r, s)
+          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
+        ](buyer.address, buyer.address, value, hre.namedAccounts.supplier, MaxUint256, v, r, s)
     ).to.be.revertedWith('InsufficientSupply()');
   });
   it('should revert when purchasing supply from a specific supplier who does not exist in the market', async () => {
@@ -1231,8 +1236,9 @@ describe('purchasing from a specified supplier', () => {
       market
         .connect(buyer)
         [
-          'swapFromSupplier(address,uint256,address,uint256,uint8,bytes32,bytes32)'
+          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
         ](
+          buyer.address,
           buyer.address,
           value,
           hre.namedAccounts.investor2,
@@ -1269,8 +1275,8 @@ describe('purchasing from a specified supplier', () => {
       market
         .connect(buyer)
         [
-          'swapFromSupplier(address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](buyer.address, value, hre.namedAccounts.supplier, MaxUint256, v, r, s)
+          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
+        ](buyer.address, buyer.address, value, hre.namedAccounts.supplier, MaxUint256, v, r, s)
     ).to.be.revertedWith('LowSupplyAllowlistRequired()');
   });
 });

@@ -556,7 +556,14 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    _permit({amount: amount, deadline: deadline, v: v, r: r, s: s});
+    _permit({
+      owner: permitOwner,
+      amount: amount,
+      deadline: deadline,
+      v: v,
+      r: r,
+      s: s
+    });
     this.swap({recipient: recipient, purchaser: permitOwner, amount: amount});
   }
 
@@ -576,7 +583,7 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * - Can only be used if this contract has been granted approval to transfer the purchaser's ERC20 tokens.
    * @param recipient The address to which the certificate will be issued.
-   * @param purchaser The address that will be purchasing the removals and has granted this market approval to tranfser
+   * @param purchaser The address that will pay for the removals and has granted this market approval to tranfser
    * their ERC20 tokens.
    * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
    * purchased and the fee paid to Nori.
@@ -593,7 +600,10 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _allocateRemovals({certificateAmount: certificateAmount});
+    ) = _allocateRemovals({
+        purchaser: purchaser,
+        certificateAmount: certificateAmount
+      });
     _fulfillOrder({
       certificateAmount: certificateAmount,
       from: purchaser,
@@ -621,6 +631,7 @@ contract Market is
    *
    * - Can only be used when this contract is not paused.
    * @param recipient The address to which the certificate will be issued.
+   * @param permitOwner The address that signed the EIP2612 permit and will pay for the removals.
    * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
    * purchased and the fee paid to Nori.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
@@ -631,6 +642,7 @@ contract Market is
    */
   function swapFromSupplier(
     address recipient,
+    address permitOwner,
     uint256 amount,
     address supplier,
     uint256 deadline,
@@ -646,13 +658,21 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
+        purchaser: permitOwner,
         certificateAmount: certificateAmount,
         supplier: supplier
       });
-    _permit({amount: amount, deadline: deadline, v: v, r: r, s: s});
+    _permit({
+      owner: permitOwner,
+      amount: amount,
+      deadline: deadline,
+      v: v,
+      r: r,
+      s: s
+    });
     _fulfillOrder({
       certificateAmount: certificateAmount,
-      from: _msgSender(),
+      from: permitOwner,
       recipient: recipient,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
       ids: ids,
@@ -668,7 +688,7 @@ contract Market is
    * for sale to fulfill the order the transaction will revert.
    * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
    * for more.
-   * The sender must have already granted approval to this contract in order to transfer the sender's ERC20 tokens to
+   * The purchaser must have already granted approval to this contract in order to transfer their ERC20 tokens to
    * complete the purchase. A certificate is issued by the Certificate contract to the specified recipient and the
    * ERC20 tokens are distributed to the supplier of the carbon removal, to the RestrictedNORI contract that controls
    * any restricted ERC20 tokens owed to the supplier, and finally to Nori Inc. as a market operator fee.
@@ -676,14 +696,17 @@ contract Market is
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
-   * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
+   * - Can only be used if this contract has been granted approval to transfer the purchaser's ERC20 tokens.
    * @param recipient The address to which the certificate will be issued.
+   * @param purchaser The address that will pay for the removals and has granted this market approval to tranfser
+   * their ERC20 tokens.
    * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
    * purchased and the fee paid to Nori.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    */
   function swapFromSupplier(
     address recipient,
+    address purchaser,
     uint256 amount,
     address supplier
   ) external whenNotPaused {
@@ -695,12 +718,13 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
+        purchaser: purchaser,
         certificateAmount: certificateAmount,
         supplier: supplier
       });
     _fulfillOrder({
       certificateAmount: certificateAmount,
-      from: _msgSender(),
+      from: purchaser,
       recipient: recipient,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
       ids: ids,
@@ -714,7 +738,7 @@ contract Market is
    * certificate without charging a transaction fee.
    * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
    * for more.
-   * The message sender must have granted approval to this contract to authorize this market to transfer the sender's
+   * The purchaser must have granted approval to this contract to authorize this market to transfer their
    * supported ERC20 to complete the purchase. A certificate is minted in the Certificate
    * contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
    * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
@@ -723,16 +747,18 @@ contract Market is
    *
    * - Can only be used when this contract is not paused.
    * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * - Can only be used if this contract has been granted approval to spend the sender's ERC20 tokens.
+   * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
    * @param recipient The address to which the certificate will be issued.
+   * @param purchaser The address that will pay for the removals and has granted approval to this contract
+   * to transfer their ERC20 tokens.
    * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
    * purchased, scaled by the price multiple.
    */
-  function swapWithoutFee(address recipient, uint256 amount)
-    external
-    whenNotPaused
-    onlyRole(MARKET_ADMIN_ROLE)
-  {
+  function swapWithoutFee(
+    address recipient,
+    address purchaser,
+    uint256 amount
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     uint256 certificateAmount = this
       .calculateCertificateAmountFromPurchaseTotalWithoutFee({
         purchaseTotal: amount
@@ -742,10 +768,13 @@ contract Market is
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _allocateRemovals({certificateAmount: certificateAmount});
+    ) = _allocateRemovals({
+        purchaser: purchaser,
+        certificateAmount: certificateAmount
+      });
     _fulfillOrderWithoutFee({
       certificateAmount: certificateAmount,
-      from: _msgSender(),
+      from: purchaser,
       recipient: recipient,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
       ids: ids,
@@ -760,8 +789,8 @@ contract Market is
    * specified supplier to that certificate, without charging a transaction fee. If the specified supplier does not have
    * enough carbon removals for sale to fulfill the order the transaction will revert.
    * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
-   * more. The message sender must have granted approval to this contract to authorize this market to transfer the
-   * sender's supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
+   * more. The purchaser must have granted approval to this contract to authorize this market to transfer their
+   * supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
    * to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
    * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
    *
@@ -770,14 +799,17 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
    * - Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
-   * - Can only be used if this contract has been granted approval to spend the sender's ERC20 tokens.
+   * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
    * @param recipient The address to which the certificate will be issued.
+   * @param purchaser The address that will pay for the removals and has granted approval to this contract
+   * to transfer their ERC20 tokens.
    * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
    * purchased, scaled by the price multiple.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    */
   function swapFromSupplierWithoutFee(
     address recipient,
+    address purchaser,
     uint256 amount,
     address supplier
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
@@ -791,12 +823,13 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
+        purchaser: purchaser,
         certificateAmount: certificateAmount,
         supplier: supplier
       });
     _fulfillOrderWithoutFee({
       certificateAmount: certificateAmount,
-      from: _msgSender(),
+      from: purchaser,
       recipient: recipient,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
       ids: ids,
@@ -1153,13 +1186,14 @@ contract Market is
   /**
    * @notice Allocates removals to fulfill an order.
    * @dev This function is responsible for validating and allocating the supply to fulfill an order.
+   * @param purchaser The address of the purchaser.
    * @param certificateAmount The total amount for the certificate.
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
    * @return ids An array of the removal IDs being drawn from to fulfill this order.
    * @return amounts An array of amounts being allocated from each corresponding removal token.
    * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
-  function _allocateRemovals(uint256 certificateAmount)
+  function _allocateRemovals(address purchaser, uint256 certificateAmount)
     internal
     returns (
       uint256 countOfRemovalsAllocated,
@@ -1174,6 +1208,7 @@ contract Market is
       availableSupply: availableSupply
     });
     _validatePrioritySupply({
+      purchaser: purchaser,
       certificateAmount: certificateAmount,
       availableSupply: availableSupply
     });
@@ -1186,6 +1221,7 @@ contract Market is
   /**
    * @notice Allocates removals from a specific supplier to be fulfilled.
    * @dev This function is responsible for validating and allocating the supply from a specific supplier.
+   * @param purchaser The address of the purchaser.
    * @param certificateAmount The total amount of NRTs for the certificate.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
@@ -1194,6 +1230,7 @@ contract Market is
    * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
   function _allocateRemovalsFromSupplier(
+    address purchaser,
     uint256 certificateAmount,
     address supplier
   )
@@ -1206,6 +1243,7 @@ contract Market is
     )
   {
     _validatePrioritySupply({
+      purchaser: purchaser,
       certificateAmount: certificateAmount,
       availableSupply: _removal.getMarketBalance()
     });
@@ -1220,6 +1258,7 @@ contract Market is
   /**
    * @notice Permits the transfer of an amount of tokens.
    * @dev This function is responsible permitting the transfer of ERC20 tokens.
+   * @param owner The owner of the tokens being transferred.
    * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
    * purchased and the fee paid to Nori.
    * @param deadline The EIP2612 permit deadline in Unix time.
@@ -1228,6 +1267,7 @@ contract Market is
    * @param s The s value for the permit's secp256k1 signature.
    */
   function _permit(
+    address owner,
     uint256 amount,
     uint256 deadline,
     uint8 v,
@@ -1235,7 +1275,7 @@ contract Market is
     bytes32 s
   ) internal {
     _purchasingToken.permit({
-      owner: _msgSender(),
+      owner: owner,
       spender: address(this),
       value: amount,
       deadline: deadline,
@@ -1383,10 +1423,12 @@ contract Market is
   /**
    * @notice Validates that the listed supply is enough to fulfill the purchase given the priority restricted threshold.
    * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
+   * @param purchaser The address of the buyer.
    * @param certificateAmount The number of carbon removals being purchased.
    * @param availableSupply The amount of listed supply in the market.
    */
   function _validatePrioritySupply(
+    address purchaser,
     uint256 certificateAmount,
     uint256 availableSupply
   ) internal view {
@@ -1395,7 +1437,7 @@ contract Market is
       b: certificateAmount
     });
     if (supplyAfterPurchase < _priorityRestrictedThreshold) {
-      if (!hasRole({role: ALLOWLIST_ROLE, account: _msgSender()})) {
+      if (!hasRole({role: ALLOWLIST_ROLE, account: purchaser})) {
         revert LowSupplyAllowlistRequired();
       }
     }
