@@ -3,6 +3,10 @@ import { ethers } from 'ethers';
 
 const MNEMONIC = process.env.MNEMONIC;
 
+export type NamedAccountIndices = typeof namedAccountIndices;
+
+export type NamedAccounts = { [Property in keyof NamedAccountIndices]: string };
+
 // todo namedFireblocksAccounts
 // todo namedFireblocksSigners
 

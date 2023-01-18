@@ -24,6 +24,8 @@
     "@types/chai-as-promised": "^7.1.5",
     "@types/cli-progress": "^3.11.0",
     "@types/dotenv-defaults": "^2.0.1",
+    "@types/proper-lockfile": "^4.1.1",
+    "@types/debug": "^4.1.5",
     "@types/dotenv-parse-variables": "^2.0.1",
     "@types/fs-extra": "^9.0.13",
     "@types/json-diff": "^0.9.0",

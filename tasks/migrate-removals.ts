@@ -13,7 +13,7 @@ import { getRemoval } from '@/utils/contracts';
 import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { Zero } from '@/constants/units';
 
-interface MigrateRemovalsTaskOptions {
+export interface MigrateRemovalsTaskOptions {
   file: string;
   outputFile?: string;
   dryRun?: boolean;

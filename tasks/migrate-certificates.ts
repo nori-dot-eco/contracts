@@ -14,7 +14,7 @@ import { Zero } from '@/constants/units';
 import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { getCertificate, getRemoval } from '@/utils/contracts';
 
-interface MigrateCertificatesTaskOptions {
+export interface MigrateCertificatesTaskOptions {
   file: string;
   outputFile?: string;
   dryRun?: boolean;

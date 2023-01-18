@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "es2022",
     "module": "commonjs",
     "strict": true,
@@ -9,7 +10,7 @@
     "resolveJsonModule": true,
     "outDir": "dist",
     "baseUrl": ".",
-    "types": ["chai", "jest"],
+    "skipLibCheck": true,
     "paths": {
       // todo Stop using "@/*" as the base name as it makes it hard to use in the monorepo. Perhaps use "@/contracts/*" instead.
       "@/tasks": ["./tasks/index.ts"],

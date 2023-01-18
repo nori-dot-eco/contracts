@@ -43,12 +43,12 @@ const setupFireblocksSigner = async (
         config.apiKey
       );
       const signer = new FireblocksSigner(
-        fireblocksApiClient,
-        networkNameToChain[hre.network.name],
+        fireblocksApiClient as any,
+        networkNameToChain[hre.network.name]!,
         new JsonRpcBatchProviderWithGasFees(
           networkConfig.url,
           networkConfig.chainId
-        ),
+        ) as any,
         config.vaultId
       );
       const address = await signer.getAddress();

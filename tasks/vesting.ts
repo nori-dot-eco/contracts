@@ -382,7 +382,7 @@ export const grantsSchema = yup.lazy((data) => {
   return yup.object(
     Object.fromEntries(Object.keys(data).map((key) => [key, grantSchema]))
   );
-});
+}) as any;
 
 const getDiff = ({
   grants: { github: githubGrants, blockchain: blockchainGrants },
@@ -470,7 +470,7 @@ const grantCsvToObject = async ({
   return grants;
 };
 
-interface VestingTaskOptions {
+export interface VestingTaskOptions {
   diff?: boolean;
   expand?: boolean;
   commit?: string;

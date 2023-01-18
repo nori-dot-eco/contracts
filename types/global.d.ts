@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention -- this file overwrites many predefined types */
 import type {
   ConfigurableTaskDefinition as OriginalConfigurableTaskDefinition,
   HardhatRuntimeEnvironment,
@@ -27,13 +28,14 @@ import type {
   DeployFunction as HardhatDeployFunction,
 } from 'hardhat-deploy/dist/types';
 import type { HardhatUserConfig } from 'hardhat/types';
-import type { Address, Deployment } from 'hardhat-deploy/types';
+import type { Deployment } from 'hardhat-deploy/types';
 
-import type { TASKS } from '@/tasks';
-import type { networks } from '@/config/networks';
-import type { namedAccountIndices } from '@/config/accounts';
-import type { Eip2612Signer } from '@/signers/eip-26126';
-import type { debug } from '@/utils/debug';
+import type { debug } from '../utils/debug';
+import type { TASKS } from '../tasks';
+import type { networks } from '../config/networks';
+import type { NamedAccounts } from '../config/accounts';
+import type { Eip2612Signer } from '../signers/eip-26126';
+
 import type {
   BridgedPolygonNORI,
   Certificate,
@@ -185,8 +187,6 @@ declare global {
     TContract['attach']
   >;
   type TypeChainBaseContract = BaseContract & { contractName: string };
-  type NamedAccountIndices = typeof namedAccountIndices;
-  type NamedAccounts = { [Property in keyof NamedAccountIndices]: Address };
   type NamedSigners = { [Property in keyof NamedAccounts]: Eip2612Signer };
   type DeepPartial<T> = {
     [P in keyof T]?: DeepPartial<T[P]>;
@@ -255,7 +255,7 @@ declare global {
   }
 
   namespace NodeJS {
-    interface ProcessEnvironment {
+    interface ProcessEnv {
       MNEMONIC?: string;
       INFURA_STAGING_KEY?: string;
       ETHERNAL_EMAIL?: string;
