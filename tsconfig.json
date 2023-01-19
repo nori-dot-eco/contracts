@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "composite": true,
+    "declaration": true,
     "target": "es2022",
     "module": "commonjs",
     "strict": true,
@@ -9,8 +11,9 @@
     "resolveJsonModule": true,
     "outDir": "dist",
     "baseUrl": ".",
-    "types": ["chai", "jest"],
+    "skipLibCheck": true,
     "paths": {
+      // todo Stop using "@/*" as the base name as it makes it hard to use in the monorepo. Perhaps use "@/contracts/*" instead.
       "@/tasks": ["./tasks/index.ts"],
       "@/tasks/utils": ["./tasks/utils/*"],
       "@/test/helpers": ["./test/helpers/index.ts"],
@@ -18,9 +21,19 @@
       "@/contracts.json": ["./contracts.json"],
       "@/artifacts/*": ["./artifacts/contracts/*"],
       "@/legacy-artifacts/*": ["./legacy-artifacts/contracts/*"],
-      "@/typechain-types": ["./typechain-types/index.ts"],
+      "@/typechain-types/artifacts/contracts/*": [
+        "./types/typechain-types/artifacts/contracts/*"
+      ],
+      "@/typechain-types": ["./types/typechain-types/index.ts"],
       "@/*": ["./*"]
     }
   },
-  "include": ["**/*.ts", "**/*.d.ts", "./.eslintrc.js", ".solcover.js"]
+  "include": [
+    "**/*.ts",
+    "types/**/*.d.ts",
+    "./.eslintrc.js",
+    ".solcover.js",
+    "contracts.json",
+    "artifacts/contracts/**/*.json"
+  ]
 }

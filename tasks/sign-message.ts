@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config';
 
-interface SignMessageTaskParameters {
+export interface SignMessageTaskParameters {
   message: string;
 }
 
