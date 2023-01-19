@@ -346,6 +346,74 @@ contract Market is
   }
 
   /**
+   * @notice Purchases removals on behalf of the Certificate contract in order to replace removals that have been
+   * released from an existing certificate.
+   * @dev Replacement removals are sent to the Certificate contract and an event is emitted by the Certificate contract
+   * to indicate the specific certificate on behalf of which removals are being replaced, as well as the IDs and amounts
+   * of the replacement removals.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   * - The caller must have the MARKET_ADMIN_ROLE.
+   * - The amount of removals to purchase must be less than or equal to the amount of removals available in the
+   * market.
+   *
+   * @param certificateId The ID of the certificate on behalf of which removals are being replaced.
+   * @param totalAmountToReplace The total amount of replacement removals to purchase.
+   * @param treasury The address of the treasury that will fund the replacement purchase.
+   */
+  function replace(
+    address treasury,
+    uint256 certificateId,
+    uint256 totalAmountToReplace,
+    uint256[] memory removalIdsBeingReplaced,
+    uint256[] memory removalAmountsBeingReplaced
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    uint256 availableSupply = _removal.getMarketBalance();
+    _validateSupply({
+      certificateAmount: totalAmountToReplace,
+      availableSupply: availableSupply
+    });
+    (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    ) = _allocateSupply({amount: totalAmountToReplace});
+
+    uint256[] memory removalIds = ids.slice({
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+    uint256[] memory removalAmounts = amounts.slice({
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+    _transferFunds({
+      chargeFee: false,
+      from: treasury,
+      countOfRemovalsAllocated: countOfRemovalsAllocated,
+      removalIds: removalIds,
+      removalAmounts: removalAmounts,
+      suppliers: suppliers
+    });
+    bytes memory data = abi.encode(
+      true, // isReplacement
+      certificateId,
+      address(_purchasingToken),
+      _priceMultiple
+    );
+    _removal.safeBatchTransferFrom({
+      from: address(this),
+      to: address(_certificate),
+      ids: removalIds,
+      amounts: removalAmounts,
+      data: data
+    });
+  }
+
+  /**
    * @notice Register the market contract's asset addresses.
    * @dev Register the Removal, Certificate, IERC20WithPermit, and RestrictedNORI contracts so that they
    * can be referenced in this contract. Called as part of the market contract system deployment process.
@@ -1081,34 +1149,24 @@ contract Market is
   }
 
   /**
-   * @notice Fulfill an order.
-   * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
-   * the order fee, updating accounting, and minting the Certificate.
-   * @param certificateAmount The total amount for the certificate.
-   * @param from The message sender.
-   * @param recipient The recipient of the certificate.
-   * @param countOfRemovalsAllocated The number of distinct removal IDs that are involved in fulfilling this order.
-   * @param ids An array of removal IDs involved in fulfilling this order.
-   * @param amounts An array of amounts being allocated from each corresponding removal token.
-   * @param suppliers An array of suppliers.
+   * @notice Pays the suppliers for the removals being purchased, routes funds to the RestrictedNORI contract if
+   * necessary, and pays a fee to Nori if `chargeFee` is true.
+   *
+   * @param chargeFee Whether to charge a transaction fee for Nori.
+   * @param from The address of the spender.
+   * @param countOfRemovalsAllocated The number of removals being purchased.
+   * @param removalIds The IDs of the removals being purchased.
+   * @param removalAmounts The amounts of each removal being purchased.
+   * @param suppliers The suppliers who own each removal being purchased.
    */
-  function _fulfillOrder(
-    uint256 certificateAmount,
+  function _transferFunds(
+    bool chargeFee,
     address from,
-    address recipient,
     uint256 countOfRemovalsAllocated,
-    uint256[] memory ids,
-    uint256[] memory amounts,
+    uint256[] memory removalIds,
+    uint256[] memory removalAmounts,
     address[] memory suppliers
   ) internal {
-    uint256[] memory removalIds = ids.slice({
-      from: 0,
-      to: countOfRemovalsAllocated
-    });
-    uint256[] memory removalAmounts = amounts.slice({
-      from: 0,
-      to: countOfRemovalsAllocated
-    });
     uint8 holdbackPercentage;
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
@@ -1157,18 +1215,60 @@ contract Market is
           });
         }
       }
-      _purchasingToken.transferFrom({
-        from: from,
-        to: _noriFeeWallet,
-        amount: this.calculateNoriFee(removalAmounts[i])
-      });
+      if (chargeFee) {
+        _purchasingToken.transferFrom({
+          from: from,
+          to: _noriFeeWallet,
+          amount: this.calculateNoriFee(removalAmounts[i])
+        });
+      }
       _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
         amount: unrestrictedSupplierFee
       });
     }
+  }
+
+  /**
+   * @notice Fulfill an order.
+   * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
+   * the order fee, updating accounting, and minting the Certificate.
+   * @param certificateAmount The total amount for the certificate.
+   * @param from The message sender.
+   * @param recipient The recipient of the certificate.
+   * @param countOfRemovalsAllocated The number of distinct removal IDs that are involved in fulfilling this order.
+   * @param ids An array of removal IDs involved in fulfilling this order.
+   * @param amounts An array of amounts being allocated from each corresponding removal token.
+   * @param suppliers An array of suppliers.
+   */
+  function _fulfillOrder(
+    uint256 certificateAmount,
+    address from,
+    address recipient,
+    uint256 countOfRemovalsAllocated,
+    uint256[] memory ids,
+    uint256[] memory amounts,
+    address[] memory suppliers
+  ) internal {
+    uint256[] memory removalIds = ids.slice({
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+    uint256[] memory removalAmounts = amounts.slice({
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+    _transferFunds({
+      chargeFee: true,
+      from: from,
+      countOfRemovalsAllocated: countOfRemovalsAllocated,
+      removalIds: removalIds,
+      removalAmounts: removalAmounts,
+      suppliers: suppliers
+    });
     bytes memory data = abi.encode(
+      false,
       recipient,
       certificateAmount,
       address(_purchasingToken),
@@ -1213,7 +1313,7 @@ contract Market is
       availableSupply: availableSupply
     });
     (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply({
-      certificateAmount: certificateAmount
+      amount: certificateAmount
     });
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
@@ -1314,61 +1414,16 @@ contract Market is
       from: 0,
       to: countOfRemovalsAllocated
     });
-    uint8 holdbackPercentage;
-    uint256 restrictedSupplierFee;
-    uint256 unrestrictedSupplierFee;
-    for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
-      holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
-
-      unrestrictedSupplierFee = removalAmounts[i].mulDiv(_priceMultiple, 100);
-      if (holdbackPercentage > 0) {
-        restrictedSupplierFee = removalAmounts[i].mulDiv(
-          _priceMultiple * holdbackPercentage,
-          10000
-        );
-        unrestrictedSupplierFee -= restrictedSupplierFee;
-        if (
-          _restrictedNORI.getUnderlyingTokenAddress() !=
-          address(_purchasingToken)
-        ) {
-          emit SkipRestrictedNORIERC20Transfer({
-            amount: restrictedSupplierFee,
-            removalId: removalIds[i],
-            currentHoldbackPercentage: holdbackPercentage,
-            rNoriUnderlyingToken: _restrictedNORI.getUnderlyingTokenAddress(),
-            purchasingTokenAddress: address(_purchasingToken)
-          });
-          unrestrictedSupplierFee =
-            unrestrictedSupplierFee +
-            restrictedSupplierFee; // transfer all purchasing token to supplier
-        } else {
-          try
-            _restrictedNORI.mint({
-              amount: restrictedSupplierFee,
-              removalId: removalIds[i]
-            })
-          {
-            // solhint-disable-previous-line no-empty-blocks, Nothing should happen here.
-          } catch {
-            emit RestrictedNORIMintFailure({
-              amount: restrictedSupplierFee,
-              removalId: removalIds[i]
-            });
-          }
-          _purchasingToken.transferFrom({
-            from: from,
-            to: address(_restrictedNORI),
-            amount: restrictedSupplierFee
-          });
-        }
-      }
-      _purchasingToken.transferFrom({
-        from: from,
-        to: suppliers[i],
-        amount: unrestrictedSupplierFee
-      });
-    }
+    _transferFunds({
+      chargeFee: false,
+      from: from,
+      countOfRemovalsAllocated: countOfRemovalsAllocated,
+      removalIds: removalIds,
+      removalAmounts: removalAmounts,
+      suppliers: suppliers
+    });
     bytes memory data = abi.encode(
+      false,
       recipient,
       certificateAmount,
       address(_purchasingToken),
@@ -1473,13 +1528,13 @@ contract Market is
 
   /**
    * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase.
-   * @param certificateAmount The number of carbon removals to purchase.
+   * @param amount The number of carbon removals to purchase.
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
    * @return ids An array of the removal IDs being drawn from to fulfill this order.
    * @return amounts An array of amounts being allocated from each corresponding removal token.
    * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
-  function _allocateSupply(uint256 certificateAmount)
+  function _allocateSupply(uint256 amount)
     private
     returns (
       uint256 countOfRemovalsAllocated,
@@ -1488,7 +1543,7 @@ contract Market is
       address[] memory suppliers
     )
   {
-    uint256 remainingAmountToFill = certificateAmount;
+    uint256 remainingAmountToFill = amount;
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
       account: address(this)
     });

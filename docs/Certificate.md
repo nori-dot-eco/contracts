@@ -46,6 +46,39 @@ https://github.com/chiru-labs/ERC721A/blob/v4.2.3/contracts/extensions/ERC721ABu
 
 ---
 
+### CertificateData
+
+
+
+
+
+
+```solidity
+struct CertificateData {
+  bool isReplacement;
+  address recipient;
+  uint256 certificateAmount;
+  address purchasingTokenAddress;
+  uint256 priceMultiple;
+}
+```
+
+### ReplacementData
+
+
+
+
+
+
+```solidity
+struct ReplacementData {
+  bool isReplacement;
+  uint256 certificateId;
+  address purchasingTokenAddress;
+  uint256 priceMultiple;
+}
+```
+
 ### CERTIFICATE_OPERATOR_ROLE
 
 ```solidity
@@ -59,10 +92,10 @@ minting and burning.</i>
 
 
 
-### ReceiveRemovalBatch
+### CreateCertificate
 
 ```solidity
-event ReceiveRemovalBatch(address from, address recipient, uint256 certificateId, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple)
+event CreateCertificate(address from, address recipient, uint256 certificateId, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple)
 ```
 
 Emitted when a batch of removals is received to create a certificate.
@@ -77,6 +110,24 @@ Emitted when a batch of removals is received to create a certificate.
 | removalIds | uint256[] | The removal IDs used for the certificate. |
 | removalAmounts | uint256[] | The amounts from each removal used for the certificate. |
 | purchasingTokenAddress | address | The address of the token used to purchase the certificate. |
+| priceMultiple | uint256 | The number of purchasing tokens required to buy one NRT. |
+
+
+### UpdateCertificate
+
+```solidity
+event UpdateCertificate(uint256 certificateId, uint256[] removalIds, uint256[] amounts, address purchasingTokenAddress, uint256 priceMultiple)
+```
+
+Emitted when replacement removals are sent to this contract on behalf of an existing certificate.
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| certificateId | uint256 | The certificate id that was updated. |
+| removalIds | uint256[] | The removal ids that were added to the certificate. |
+| amounts | uint256[] | The amount of each removal id that were added to the certificate. |
+| purchasingTokenAddress | address | The address of the token used to purchase the replacement removals. |
 | priceMultiple | uint256 | The number of purchasing tokens required to buy one NRT. |
 
 
@@ -161,7 +212,7 @@ https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) f
 |  | address |  |
 | removalIds | uint256[] | The array of ERC1155 Removal IDs received. |
 | removalAmounts | uint256[] | The removal amounts per each removal ID. |
-| data | bytes | The bytes that encode the certificate's recipient address and total amount. |
+| data | bytes | The bytes that encode information about either the new certificate to be minted, or replacement removals being sent to replace released removals. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -291,7 +342,7 @@ Creates a new certificate for a batch of removals.
 <i>Mints a new certificate token to the next sequential ID and updates the internal data structures
 that track the relationship between the certificate and its constituent removal tokens and balances.
 
-Emits a `ReceiveRemovalBatch` event.</i>
+Emits a `CreateCertificate` event.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
