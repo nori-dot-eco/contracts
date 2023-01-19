@@ -74,6 +74,15 @@ contract Certificate is
   mapping(uint256 => uint256) private _purchaseAmounts;
 
   /**
+   * @notice Keeps track of any discrepancy between the total number of NRTs guaranteed by this contract and the
+   * number of NRTs currently held. In other words, the number of NRTs held minus the number of NRTs guaranteed.
+   * @dev This is used to provide a redundant, transparent account of the number of NRTs that may still need to be
+   * replaced in the case of released removals. This number should only be non-zero if removals are in the process of
+   * being replaced.
+   */
+  int256 private _guaranteeDiscrepancy;
+
+  /**
    * @notice The Removal contract that accounts for carbon removal supply.
    */
   IRemoval private _removal;
@@ -163,6 +172,19 @@ contract Certificate is
   }
 
   /**
+   * @notice Used to decrement the discrepancy counter when removals are burned from this contract.
+   */
+  function decrementGuaranteeDiscrepancy(uint256 amount)
+    external
+    whenNotPaused
+  {
+    if (_msgSender() != address(_removal)) {
+      revert SenderNotRemovalContract();
+    }
+    _guaranteeDiscrepancy -= int256(amount);
+  }
+
+  /**
    * @notice Receive a batch of child tokens.
    * @dev See [IERC1155Receiver](
    * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
@@ -213,6 +235,14 @@ contract Certificate is
 
   function totalMinted() external view override returns (uint256) {
     return _totalMinted();
+  }
+
+  /**
+   * @notice Returns the guarantee discrepancy, which is the difference between the total number of NRTs
+   * guaranteed by this contract (purchased) and the current number of NRTs actually held.
+   */
+  function getGuaranteeDiscrepancy() external view returns (int256) {
+    return _guaranteeDiscrepancy;
   }
 
   /**
