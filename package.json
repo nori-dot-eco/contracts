@@ -104,7 +104,7 @@
     "test:unoptimized": "SOLC_PROFILE=test yarn test:hardhat",
     "prepare": "SOLC_PROFILE=test yarn build",
     "typechain": "TS_NODE_TRANSPILE_ONLY=1 hardhat typechain",
-    "build": "yarn run typechain",
+    "build": "yarn run typechain && tsc",
     "slither": "yarn prepare && slither .",
     "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
     "deploy": "SOLC_PROFILE=production TRACE=true LOG_HARDHAT_NETWORK=true hardhat deploy",
