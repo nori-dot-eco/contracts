@@ -2,18 +2,6 @@
   "name": "@nori-dot-com/contracts",
   "version": "1.6.0",
   "main": "index.js",
-  "exports": {
-    "./utils/*": "./dist/utils/*.js",
-    "./contracts.json": "./dist/contracts.json",
-    "./artifacts/contracts/Removal.sol/Removal.json": "./dist/artifacts/contracts/Removal.sol/Removal.json",
-    "./artifacts/contracts/BridgedPolygonNORI.sol/BridgedPolygonNORI.json": "./dist/artifacts/contracts/BridgedPolygonNORI.sol/BridgedPolygonNORI.json",
-    "./artifacts/contracts/Certificate.sol/Certificate.json": "./dist/artifacts/contracts/Certificate.sol/Certificate.json",
-    "./artifacts/contracts/Market.sol/Market.json": "./dist/artifacts/contracts/Market.sol/Market.json",
-    "./artifacts/contracts/LockedNORI.sol/LockedNORI.json": "./dist/artifacts/contracts/LockedNORI.sol/LockedNORI.json",
-    "./artifacts/contracts/RestrictedNORI.sol/RestrictedNORI.json": "./dist/artifacts/contracts/RestrictedNORI.sol/RestrictedNORI.json",
-    "./artifacts/contracts/NORI.sol/NORI.json": "./dist/artifacts/contracts/NORI.sol/NORI.json",
-    "./types/typechain-types/artifacts/contracts/*": "./dist/types/typechain-types/artifacts/contracts/*"
-  },
   "license": "MIT",
   "devDependencies": {
     "@codechecks/client": "^0.1.12",
