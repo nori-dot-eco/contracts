@@ -30,7 +30,7 @@
   },
   "include": [
     "**/*.ts",
-    "**/*.d.ts",
+    "types/**/*.d.ts",
     "./.eslintrc.js",
     ".solcover.js",
     "contracts.json",

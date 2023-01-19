@@ -382,7 +382,7 @@ export const grantsSchema = yup.lazy((data) => {
   return yup.object(
     Object.fromEntries(Object.keys(data).map((key) => [key, grantSchema]))
   );
-}) as any;
+}) as any; // todo this is being casted as any as yup is lacking an exported interface for Lazy
 
 const getDiff = ({
   grants: { github: githubGrants, blockchain: blockchainGrants },

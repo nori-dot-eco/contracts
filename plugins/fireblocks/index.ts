@@ -10,8 +10,7 @@ import type {
   HttpNetworkConfig,
 } from 'hardhat/types';
 import './type-extensions';
-import { FireblocksSDK } from 'fireblocks-sdk';
-import { Chain } from 'fireblocks-defi-sdk';
+import { FireblocksSDK, Chain } from 'fireblocks-defi-sdk';
 
 import { FireblocksSigner } from './fireblocks-signer';
 import { JsonRpcBatchProviderWithGasFees } from './provider-gas-wrapper';
@@ -42,13 +41,17 @@ const setupFireblocksSigner = async (
         config.apiSecret,
         config.apiKey
       );
+      const network = networkNameToChain[hre.network.name];
+      if (network === undefined) {
+        throw new Error(`Invalid network ${hre.network.name}`);
+      }
       const signer = new FireblocksSigner(
-        fireblocksApiClient as any,
-        networkNameToChain[hre.network.name]!,
+        fireblocksApiClient,
+        network,
         new JsonRpcBatchProviderWithGasFees(
           networkConfig.url,
           networkConfig.chainId
-        ) as any,
+        ),
         config.vaultId
       );
       const address = await signer.getAddress();

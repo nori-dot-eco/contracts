@@ -52,15 +52,15 @@ export const parseTransactionLogs = <
     .filter((log) => {
       return log.address === contractInstance.address;
     })
-    .reduce<NamedLogs<TContract, TEventNames>>((acc, log) => {
-      const parsedLog = iface.parseLog(log) as typeof acc[number];
+    .reduce<NamedLogs<TContract, TEventNames>>((accumulator, log) => {
+      const parsedLog = iface.parseLog(log) as typeof accumulator[number];
       if (!('name' in parsedLog)) {
         throw new Error('Something went wrong when parsing logs!');
       }
       const shouldReturnEvent: boolean =
         (shouldFilterLogs && eventNames.includes(parsedLog.name)) ||
         !shouldFilterLogs;
-      return [...acc, ...(shouldReturnEvent ? [parsedLog] : [])];
+      return [...accumulator, ...(shouldReturnEvent ? [parsedLog] : [])];
     }, []);
 
   return logs;

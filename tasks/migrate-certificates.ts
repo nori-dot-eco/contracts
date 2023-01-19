@@ -105,13 +105,13 @@ const validateMigrateEvent = ({
   inputData: InputData[];
   recipient: string;
 }): void => {
-  const eventLog: {
+  const eventLogs: {
     certificateId: number;
     removalAmounts: number[];
     removalIds: number[];
     certificateAmount: number;
     certificateRecipient: string;
-  } = parseTransactionLogs({
+  }[] = parseTransactionLogs({
     contractInstance: removalContract,
     txReceipt: txResult,
     eventNames: ['Migrate'],
@@ -128,38 +128,40 @@ const validateMigrateEvent = ({
       )
     ),
     certificateRecipient: log.args.certificateRecipient,
-  }))[0];
-  const datastoreCertificate = inputData[certificateIndex];
-  const offChainAmountsMatchOnchainAmounts =
-    JSON.stringify(eventLog.removalAmounts) ===
-    JSON.stringify(datastoreCertificate.amounts);
-  const offChainIdsMatchOnchainIds =
-    JSON.stringify(eventLog.removalAmounts) ===
-    JSON.stringify(datastoreCertificate.amounts);
-  if (!offChainAmountsMatchOnchainAmounts) {
-    throw new Error(
-      `Removal amounts do not match for certificate ${eventLog.certificateId}. Expected: ${datastoreCertificate.amounts} , Got: ${eventLog.removalAmounts}`
-    );
-  }
-  if (!offChainIdsMatchOnchainIds) {
-    throw new Error(
-      `Removal ids do not match for certificate ${eventLog.certificateId}. Expected: ${datastoreCertificate.ids} , Got: ${eventLog.removalIds}`
-    );
-  }
-  if (eventLog.certificateAmount !== datastoreCertificate.data.gramsOfNrts) {
-    throw new Error(
-      `Unexpected certificate amount. Expected: ${datastoreCertificate.data.gramsOfNrts} , Got: ${eventLog.certificateAmount}`
-    );
-  }
-  if (eventLog.certificateRecipient !== recipient) {
-    throw new Error(
-      `Unexpected certificate recipient. Expected: ${recipient} , Got: ${eventLog.certificateRecipient}`
-    );
-  }
-  if (eventLog.certificateId !== certificateIndex) {
-    throw new Error(
-      `Unexpected certificate ID. Expected: ${certificateIndex} , Got: ${eventLog.certificateId}`
-    );
+  }));
+  for (const eventLog of eventLogs) {
+    const datastoreCertificate = inputData[certificateIndex];
+    const offChainAmountsMatchOnchainAmounts =
+      JSON.stringify(eventLog.removalAmounts) ===
+      JSON.stringify(datastoreCertificate.amounts);
+    const offChainIdsMatchOnchainIds =
+      JSON.stringify(eventLog.removalAmounts) ===
+      JSON.stringify(datastoreCertificate.amounts);
+    if (!offChainAmountsMatchOnchainAmounts) {
+      throw new Error(
+        `Removal amounts do not match for certificate ${eventLog.certificateId}. Expected: ${datastoreCertificate.amounts} , Got: ${eventLog.removalAmounts}`
+      );
+    }
+    if (!offChainIdsMatchOnchainIds) {
+      throw new Error(
+        `Removal ids do not match for certificate ${eventLog.certificateId}. Expected: ${datastoreCertificate.ids} , Got: ${eventLog.removalIds}`
+      );
+    }
+    if (eventLog.certificateAmount !== datastoreCertificate.data.gramsOfNrts) {
+      throw new Error(
+        `Unexpected certificate amount. Expected: ${datastoreCertificate.data.gramsOfNrts} , Got: ${eventLog.certificateAmount}`
+      );
+    }
+    if (eventLog.certificateRecipient !== recipient) {
+      throw new Error(
+        `Unexpected certificate recipient. Expected: ${recipient} , Got: ${eventLog.certificateRecipient}`
+      );
+    }
+    if (eventLog.certificateId !== certificateIndex) {
+      throw new Error(
+        `Unexpected certificate ID. Expected: ${certificateIndex} , Got: ${eventLog.certificateId}`
+      );
+    }
   }
 };
 
@@ -432,22 +434,27 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             { gasPrice }
           );
           let txReceipt: TransactionReceipt | undefined;
-          let tokenId: number | undefined = certificateIndex;
+          let tokenIds: number[] | undefined = [certificateIndex];
           if (pendingTx !== undefined) {
             const txResult = await pendingTx.wait(1); // TODO specify more than one confirmation?
             txReceipt = await removalContract.provider.getTransactionReceipt(
               txResult.transactionHash
             );
-            tokenId = parseTransactionLogs({
+            tokenIds = parseTransactionLogs({
               contractInstance: removalContract,
               txReceipt,
               eventNames: ['Migrate'],
-            }).map((log) => log.args.certificateId.toNumber())[0];
+            }).map((log) => log.args.certificateId.toNumber());
             if (txReceipt.status !== 1) {
               logger.error(
                 `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
               );
               return;
+            }
+            if (tokenIds.length > 0) {
+              throw new Error(
+                `Unexpected number of certificate token IDs found for migrate transaction. Expected 1 but got ${tokenIds.length}`
+              );
             }
             validateEvents({
               txResult,
@@ -463,7 +470,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           outputData.push({
             ...certificate,
             txReceipt,
-            tokenId,
+            tokenId: tokenIds![0],
           });
         } catch (error) {
           PROGRESS_BAR.stop();
