@@ -108,6 +108,7 @@ contract Removal_consign_revertsForSoldRemovals is UpgradeableMarket {
     vm.prank(owner);
     _market.swap(
       owner,
+      owner,
       checkoutTotal,
       signedPermit.permit.deadline,
       signedPermit.v,
@@ -808,6 +809,7 @@ contract Removal_release_retired_burned is UpgradeableMarket {
     vm.prank(owner);
     _market.swap(
       owner,
+      owner,
       checkoutTotal,
       signedPermit.permit.deadline,
       signedPermit.v,
@@ -859,6 +861,7 @@ contract Removal_release_retired is UpgradeableMarket {
     vm.prank(owner);
     _market.swap(
       owner,
+      owner,
       checkoutTotal,
       signedPermit.permit.deadline,
       signedPermit.v,
@@ -909,6 +912,7 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
       );
       vm.prank(owner);
       _market.swap(
+        owner,
         owner,
         checkoutTotal,
         signedPermit.permit.deadline,
@@ -1036,6 +1040,7 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
     vm.prank(owner);
     _market.swap(
       owner,
+      owner,
       checkoutTotal,
       signedPermit.permit.deadline,
       signedPermit.v,
@@ -1148,6 +1153,7 @@ contract Removal_release_retired_2x is UpgradeableMarket {
       vm.prank(owner);
       _market.swap(
         owner,
+        owner,
         checkoutTotal,
         signedPermit.permit.deadline,
         signedPermit.v,
@@ -1248,6 +1254,7 @@ contract Removal_getMarketBalance is UpgradeableMarket {
     );
     vm.prank(owner);
     _market.swap(
+      owner,
       owner,
       checkoutTotal,
       signedPermit.permit.deadline,

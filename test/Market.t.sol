@@ -135,6 +135,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
     emit RestrictedNORIMintFailure(rNoriToMint, removalId);
     _market.swap(
       owner,
+      owner,
       checkoutTotal,
       signedPermit.permit.deadline,
       signedPermit.v,
@@ -212,6 +213,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     vm.startPrank(owner);
     vm.recordLogs();
     _market.swap(
+      owner,
       owner,
       checkoutTotal,
       signedPermit.permit.deadline,
@@ -304,7 +306,7 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
   function test() external {
     vm.startPrank(owner);
     vm.recordLogs();
-    _market.swapWithoutFee(owner, checkoutTotal);
+    _market.swapWithoutFee(owner, owner, checkoutTotal);
     vm.stopPrank();
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool containsTransferSkippedEventSelector = false;
@@ -660,6 +662,7 @@ contract Market__validatePrioritySupply is NonUpgradeableMarket {
     view
   {
     _validatePrioritySupply({
+      purchaser: _namedAccounts.buyer,
       certificateAmount: 0.5 ether,
       availableSupply: 1 ether
     });
@@ -667,6 +670,7 @@ contract Market__validatePrioritySupply is NonUpgradeableMarket {
 
   function test_supplyAfterPurchaseIsZero() external view {
     _validatePrioritySupply({
+      purchaser: _namedAccounts.buyer,
       certificateAmount: 1 ether,
       availableSupply: 1 ether
     });
@@ -685,6 +689,7 @@ contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriori
 
   function test() external view {
     _validatePrioritySupply({
+      purchaser: _namedAccounts.deployer,
       certificateAmount: 1 ether,
       availableSupply: 1 ether
     });
@@ -703,6 +708,7 @@ contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
   function test() external {
     vm.expectRevert(LowSupplyAllowlistRequired.selector);
     _validatePrioritySupply({
+      purchaser: _msgSender(),
       certificateAmount: 1 ether,
       availableSupply: 1 ether
     });
@@ -1173,6 +1179,7 @@ contract Market_supplierSelectionUsingUpSuppliersLastRemoval is
     vm.prank(owner);
     _market.swap(
       owner,
+      owner,
       checkoutTotal,
       signedPermit.permit.deadline,
       signedPermit.v,
@@ -1249,6 +1256,7 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
     // purchase 1.5 * 10**18 amount of removals
     vm.prank(owner);
     _market.swap(
+      owner,
       owner,
       checkoutTotal,
       signedPermit.permit.deadline,
