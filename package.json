@@ -11,7 +11,8 @@
     "./artifacts/contracts/Market.sol/Market.json": "./dist/artifacts/contracts/Market.sol/Market.json",
     "./artifacts/contracts/LockedNORI.sol/LockedNORI.json": "./dist/artifacts/contracts/LockedNORI.sol/LockedNORI.json",
     "./artifacts/contracts/RestrictedNORI.sol/RestrictedNORI.json": "./dist/artifacts/contracts/RestrictedNORI.sol/RestrictedNORI.json",
-    "./artifacts/contracts/NORI.sol/NORI.json": "./dist/artifacts/contracts/NORI.sol/NORI.json"
+    "./artifacts/contracts/NORI.sol/NORI.json": "./dist/artifacts/contracts/NORI.sol/NORI.json",
+    "./types/typechain-types/artifacts/contracts/*": "./dist/types/typechain-types/artifacts/contracts/*"
   },
   "license": "MIT",
   "devDependencies": {
@@ -86,12 +87,7 @@
     "solidity-ast": "^0.4.40"
   },
   "files": [
-    "build",
-    ".openzeppelin",
-    "artifacts",
-    "contracts.json",
-    "types",
-    "utils"
+    "dist"
   ],
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
