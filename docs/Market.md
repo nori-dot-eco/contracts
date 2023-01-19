@@ -337,7 +337,7 @@ Releases a removal from the market.
 ### replace
 
 ```solidity
-function replace(address treasury, uint256 certificateId, uint256 totalAmountToReplace, uint256[] removalIdsBeingReplaced, uint256[] removalAmountsBeingReplaced) external
+function replace(address treasury, uint256 certificateId, uint256 totalAmountToReplace, uint256[] removalIdsBeingReplaced, uint256[] amountsBeingReplaced) external
 ```
 
 Purchases removals on behalf of the Certificate contract in order to replace removals that have been
@@ -360,7 +360,7 @@ market.</i>
 | certificateId | uint256 | The ID of the certificate on behalf of which removals are being replaced. |
 | totalAmountToReplace | uint256 | The total amount of replacement removals to purchase. |
 | removalIdsBeingReplaced | uint256[] |  |
-| removalAmountsBeingReplaced | uint256[] |  |
+| amountsBeingReplaced | uint256[] |  |
 
 
 ### registerContractAddresses

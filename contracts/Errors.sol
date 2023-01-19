@@ -129,3 +129,11 @@ error InvalidHoldbackPercentage(uint8 holdbackPercentage);
  * contracts.
  */
 error RemovalAlreadySoldOrConsigned(uint256 tokenId);
+/**
+ * @notice Thrown when replacement removal amounts do not sum to the specified total amount being replaced.
+ */
+error ReplacementAmountMismatch();
+/**
+ * @notice Thrown when attempting to replace removals on behalf of a certificate that has not been minted yet.
+ */
+error CertificateNotYetMinted(uint256 tokenId);
