@@ -62,6 +62,27 @@ contract Certificate is
   using UInt256ArrayLib for uint256[];
 
   /**
+   * TODO
+   */
+  struct CertificateData {
+    bool isReplacement;
+    address recipient;
+    uint256 certificateAmount;
+    address purchasingTokenAddress;
+    uint256 priceMultiple;
+  }
+
+  /**
+   * TODO
+   */
+  struct ReplacementData {
+    bool isReplacement;
+    uint256 certificateId;
+    address purchasingTokenAddress;
+    uint256 priceMultiple;
+  }
+
+  /**
    * @notice Role conferring operator permissions.
    * @dev Assigned to operators which are the only addresses which can transfer certificates outside
    * minting and burning.
@@ -103,13 +124,29 @@ contract Certificate is
    * @param purchasingTokenAddress The address of the token used to purchase the certificate.
    * @param priceMultiple The number of purchasing tokens required to buy one NRT.
    */
-  event ReceiveRemovalBatch(
+  event CreateCertificate(
     address from,
     address indexed recipient,
     uint256 indexed certificateId,
     uint256 certificateAmount,
     uint256[] removalIds,
     uint256[] removalAmounts,
+    address purchasingTokenAddress,
+    uint256 priceMultiple
+  );
+
+  /**
+   * @notice Emitted when replacement removals are sent to this contract on behalf of an existing certificate.
+   * @param certificateId The certificate id that was updated.
+   * @param removalIds The removal ids that were added to the certificate.
+   * @param amounts The amount of each removal id that were added to the certificate.
+   * @param purchasingTokenAddress The address of the token used to purchase the replacement removals.
+   * @param priceMultiple The number of purchasing tokens required to buy one NRT.
+   */
+  event UpdateCertificate(
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] amounts,
     address purchasingTokenAddress,
     uint256 priceMultiple
   );
@@ -195,7 +232,8 @@ contract Certificate is
    * - The certificate recipient and amount must be encoded in the `data` parameter.
    * @param removalIds The array of ERC1155 Removal IDs received.
    * @param removalAmounts The removal amounts per each removal ID.
-   * @param data The bytes that encode the certificate's recipient address and total amount.
+   * @param data The bytes that encode information about either the new certificate to be minted, or replacement
+   * removals being sent to replace released removals.
    * @return The selector of the function.
    */
   function onERC1155BatchReceived(
@@ -208,20 +246,38 @@ contract Certificate is
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    (
-      address recipient,
-      uint256 certificateAmount,
-      address purchasingTokenAddress,
-      uint256 priceMultiple
-    ) = abi.decode(data, (address, uint256, address, uint256));
-    _receiveRemovalBatch({
-      recipient: recipient,
-      certificateAmount: certificateAmount,
-      removalIds: removalIds,
-      removalAmounts: removalAmounts,
-      purchasingTokenAddress: purchasingTokenAddress,
-      priceMultiple: priceMultiple
-    });
+    bool isReplacement = abi.decode(data, (bool));
+    if (isReplacement) {
+      ReplacementData memory replacementData = abi.decode(
+        data,
+        (ReplacementData)
+      );
+      // TODO validate the this certificate exists
+      // TODO validate that we are not replacing more removals than need to be replaced
+      // TODO maybe we don't even need replacement data to come through here if we just emit the event
+      // from the market contract.  Emitting here for consistency with the CreateCertificate event.
+      emit UpdateCertificate({
+        certificateId: replacementData.certificateId,
+        removalIds: removalIds,
+        amounts: removalAmounts,
+        purchasingTokenAddress: replacementData.purchasingTokenAddress,
+        priceMultiple: replacementData.priceMultiple
+      });
+    } else {
+      CertificateData memory certificateData = abi.decode(
+        data,
+        (CertificateData)
+      );
+      _receiveRemovalBatch({
+        recipient: certificateData.recipient,
+        certificateAmount: certificateData.certificateAmount,
+        removalIds: removalIds,
+        removalAmounts: removalAmounts,
+        purchasingTokenAddress: certificateData.purchasingTokenAddress,
+        priceMultiple: certificateData.priceMultiple
+      });
+    }
+
     return this.onERC1155BatchReceived.selector;
   }
 
@@ -347,7 +403,7 @@ contract Certificate is
    * @dev Mints a new certificate token to the next sequential ID and updates the internal data structures
    * that track the relationship between the certificate and its constituent removal tokens and balances.
    *
-   * Emits a `ReceiveRemovalBatch` event.
+   * Emits a `CreateCertificate` event.
    * @param recipient The address receiving the new certificate.
    * @param certificateAmount The total number of tonnes of carbon removals represented by the new certificate.
    * @param removalIds The Removal token IDs that are being included in the certificate.
@@ -369,7 +425,7 @@ contract Certificate is
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
     _mint(recipient, 1);
-    emit ReceiveRemovalBatch({
+    emit CreateCertificate({
       from: _msgSender(),
       recipient: recipient,
       certificateId: certificateId,
