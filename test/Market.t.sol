@@ -81,6 +81,8 @@ contract MarketReplaceTestHelper is UpgradeableMarket {
     uint256 indexed certificateId,
     uint256[] removalIds,
     uint256[] amounts,
+    uint256[] removalIdsBeingReplaced,
+    uint256[] amountsBeingReplaced,
     address purchasingTokenAddress,
     uint256 priceMultiple
   );
@@ -172,6 +174,8 @@ contract Market_replace is MarketReplaceTestHelper {
       _certificateTokenId,
       new uint256[](1).fill(_removalIds[1]),
       new uint256[](1).fill(_amountToReplace),
+      new uint256[](1).fill(_removalIds[0]),
+      new uint256[](1).fill(_amountToReplace),
       address(_bpNori),
       _market.getPriceMultiple()
     );
@@ -179,8 +183,73 @@ contract Market_replace is MarketReplaceTestHelper {
       treasury: _namedAccounts.admin,
       certificateId: _certificateTokenId,
       totalAmountToReplace: _amountToReplace,
-      removalIdsBeingReplaced: new uint256[](1).fill(_removalIds[1]),
-      removalAmountsBeingReplaced: new uint256[](1).fill(_amountToReplace)
+      removalIdsBeingReplaced: new uint256[](1).fill(_removalIds[0]),
+      amountsBeingReplaced: new uint256[](1).fill(_amountToReplace)
+    });
+    vm.stopPrank();
+  }
+}
+
+contract Market_replace_reverts_CertificateNotYetMinted is
+  MarketReplaceTestHelper
+{
+  function setUp() external {
+    _listRemovals();
+    // do not create a certificate
+    _market.grantRole({
+      role: _market.MARKET_ADMIN_ROLE(),
+      account: _namedAccounts.admin
+    });
+    uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
+    vm.startPrank(_namedAccounts.admin);
+
+    _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
+    _bpNori.approve(address(_market), amount);
+  }
+
+  function test() external {
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CertificateNotYetMinted.selector,
+        _certificateTokenId
+      )
+    );
+    _market.replace({
+      treasury: _namedAccounts.admin,
+      certificateId: _certificateTokenId,
+      totalAmountToReplace: _amountToReplace,
+      removalIdsBeingReplaced: new uint256[](1).fill(_removalIds[0]),
+      amountsBeingReplaced: new uint256[](1).fill(_amountToReplace)
+    });
+    vm.stopPrank();
+  }
+}
+
+contract Market_replace_reverts_ReplacementAmountMismatch is
+  MarketReplaceTestHelper
+{
+  function setUp() external {
+    _listRemovals();
+    _createCertificate();
+    _market.grantRole({
+      role: _market.MARKET_ADMIN_ROLE(),
+      account: _namedAccounts.admin
+    });
+    uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
+    vm.startPrank(_namedAccounts.admin);
+
+    _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
+    _bpNori.approve(address(_market), amount);
+  }
+
+  function test() external {
+    vm.expectRevert(ReplacementAmountMismatch.selector);
+    _market.replace({
+      treasury: _namedAccounts.admin,
+      certificateId: _certificateTokenId,
+      totalAmountToReplace: _amountToReplace / 2, // mismatch with amountsBeingReplaced
+      removalIdsBeingReplaced: new uint256[](1).fill(_removalIds[0]),
+      amountsBeingReplaced: new uint256[](1).fill(_amountToReplace)
     });
     vm.stopPrank();
   }

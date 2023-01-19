@@ -264,6 +264,26 @@ contract Market is
   );
 
   /**
+   * @notice Emitted when replacement removals are sent to this contract on behalf of an existing certificate.
+   * @param certificateId The certificate id that was updated.
+   * @param removalIds The removal ids that were added to the certificate.
+   * @param amounts The amount of each removal id that were added to the certificate.
+   * @param removalIdsBeingReplaced The removal ids that were released from the certificate.
+   * @param amountsBeingReplaced The amount of each removal id that was released from the certificate.
+   * @param purchasingTokenAddress The address of the token used to purchase the replacement removals.
+   * @param priceMultiple The number of purchasing tokens required to buy one NRT.
+   */
+  event UpdateCertificate(
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] amounts,
+    uint256[] removalIdsBeingReplaced,
+    uint256[] amountsBeingReplaced,
+    address purchasingTokenAddress,
+    uint256 priceMultiple
+  );
+
+  /**
    * @notice Locks the contract, preventing any future re-initialization.
    * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -359,17 +379,22 @@ contract Market is
    * - The amount of removals to purchase must be less than or equal to the amount of removals available in the
    * market.
    *
+   * @param treasury The address of the treasury that will fund the replacement purchase.
    * @param certificateId The ID of the certificate on behalf of which removals are being replaced.
    * @param totalAmountToReplace The total amount of replacement removals to purchase.
-   * @param treasury The address of the treasury that will fund the replacement purchase.
+   * @param removalIdsBeingReplaced The removal ids that are being replaced.
+   * @param amountsBeingReplaced The amount of each removal id that is being replaced.
    */
   function replace(
     address treasury,
     uint256 certificateId,
     uint256 totalAmountToReplace,
     uint256[] memory removalIdsBeingReplaced,
-    uint256[] memory removalAmountsBeingReplaced
+    uint256[] memory amountsBeingReplaced
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    if (_certificate.getPurchaseAmount(certificateId) == 0) {
+      revert CertificateNotYetMinted({tokenId: certificateId});
+    }
     uint256 availableSupply = _removal.getMarketBalance();
     _validateSupply({
       certificateAmount: totalAmountToReplace,
@@ -390,6 +415,11 @@ contract Market is
       from: 0,
       to: countOfRemovalsAllocated
     });
+    _validateReplacementAmounts({
+      totalAmountToReplace: totalAmountToReplace,
+      removalAmounts: removalAmounts,
+      removalAmountsBeingReplaced: amountsBeingReplaced
+    });
     _transferFunds({
       chargeFee: false,
       from: treasury,
@@ -399,10 +429,7 @@ contract Market is
       suppliers: suppliers
     });
     bytes memory data = abi.encode(
-      true, // isReplacement
-      certificateId,
-      address(_purchasingToken),
-      _priceMultiple
+      true // isReplacement
     );
     _removal.safeBatchTransferFrom({
       from: address(this),
@@ -410,6 +437,15 @@ contract Market is
       ids: removalIds,
       amounts: removalAmounts,
       data: data
+    });
+    emit UpdateCertificate({
+      certificateId: certificateId,
+      removalIds: removalIds,
+      amounts: removalAmounts,
+      removalIdsBeingReplaced: removalIdsBeingReplaced,
+      amountsBeingReplaced: amountsBeingReplaced,
+      purchasingTokenAddress: address(_purchasingToken),
+      priceMultiple: _priceMultiple
     });
   }
 
@@ -1509,6 +1545,30 @@ contract Market is
     return (_msgSender() == owner ||
       hasRole({role: MARKET_ADMIN_ROLE, account: _msgSender()}) ||
       _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
+  }
+
+  /**
+   * @notice Validates that the removal amounts being sent for replacement sum to the same amount as the removals
+   * being replaced.
+   * @dev Reverts if the sum of the removal amounts being sent for replacement does not equal the sum of the removals
+   * being replaced.
+   * @param totalAmountToReplace The total amount of removals being replaced.
+   * @param removalAmounts The amounts of removals being sent for replacement.
+   * @param removalAmountsBeingReplaced The amounts of removals being replaced.
+   */
+  function _validateReplacementAmounts(
+    uint256 totalAmountToReplace,
+    uint256[] memory removalAmounts,
+    uint256[] memory removalAmountsBeingReplaced
+  ) internal pure {
+    uint256 totalAmountSentForReplacement = removalAmounts.sum();
+    uint256 totalAmountBeingReplaced = removalAmountsBeingReplaced.sum();
+    if (
+      totalAmountSentForReplacement != totalAmountBeingReplaced ||
+      totalAmountSentForReplacement != totalAmountToReplace
+    ) {
+      revert ReplacementAmountMismatch();
+    }
   }
 
   /**

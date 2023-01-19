@@ -62,7 +62,16 @@ contract Certificate is
   using UInt256ArrayLib for uint256[];
 
   /**
-   * TODO
+   * @notice The data that is passed to the `onERC1155BatchReceived` function data parameter when creating a new
+   * certificate.
+   * @dev This struct is used to pass data to the `onERC1155BatchReceived` function when creating a new certificate.
+   *
+   * @param isReplacement A bool used to differentiate between a token batch being received to create a new
+   * certificate and a token batch being received as a replacement for previously released removals.
+   * @param recipient The address is the address that will receive the new certificate.
+   * @param certificateAmount The amount of the certificate that will be minted.
+   * @param purchasingTokenAddress The address is the address of the token that was used to purchase the certificate.
+   * @param priceMultiple The number of purchasing tokens required to purchase one NRT.
    */
   struct CertificateData {
     bool isReplacement;
@@ -73,13 +82,15 @@ contract Certificate is
   }
 
   /**
-   * TODO
+   * @notice The data that is passed to the `onERC1155BatchReceived` function data parameter when sending a batch of
+   * removals to replace previously released removals for a certificate.
+   * @dev This struct is used to pass data to the `onERC1155BatchReceived` function when sending replacement removals.
+   *
+   * @param isReplacement A bool used to differentiate between a token batch being received to create a new
+   * certificate and a token batch being received as a replacement for previously released removals.
    */
   struct ReplacementData {
     bool isReplacement;
-    uint256 certificateId;
-    address purchasingTokenAddress;
-    uint256 priceMultiple;
   }
 
   /**
@@ -131,22 +142,6 @@ contract Certificate is
     uint256 certificateAmount,
     uint256[] removalIds,
     uint256[] removalAmounts,
-    address purchasingTokenAddress,
-    uint256 priceMultiple
-  );
-
-  /**
-   * @notice Emitted when replacement removals are sent to this contract on behalf of an existing certificate.
-   * @param certificateId The certificate id that was updated.
-   * @param removalIds The removal ids that were added to the certificate.
-   * @param amounts The amount of each removal id that were added to the certificate.
-   * @param purchasingTokenAddress The address of the token used to purchase the replacement removals.
-   * @param priceMultiple The number of purchasing tokens required to buy one NRT.
-   */
-  event UpdateCertificate(
-    uint256 indexed certificateId,
-    uint256[] removalIds,
-    uint256[] amounts,
     address purchasingTokenAddress,
     uint256 priceMultiple
   );
@@ -247,23 +242,8 @@ contract Certificate is
       revert SenderNotRemovalContract();
     }
     bool isReplacement = abi.decode(data, (bool));
-    if (isReplacement) {
-      ReplacementData memory replacementData = abi.decode(
-        data,
-        (ReplacementData)
-      );
-      // TODO validate the this certificate exists
-      // TODO validate that we are not replacing more removals than need to be replaced
-      // TODO maybe we don't even need replacement data to come through here if we just emit the event
-      // from the market contract.  Emitting here for consistency with the CreateCertificate event.
-      emit UpdateCertificate({
-        certificateId: replacementData.certificateId,
-        removalIds: removalIds,
-        amounts: removalAmounts,
-        purchasingTokenAddress: replacementData.purchasingTokenAddress,
-        priceMultiple: replacementData.priceMultiple
-      });
-    } else {
+    // TODO validate that we are not replacing more removals than need to be replaced
+    if (!isReplacement) {
       CertificateData memory certificateData = abi.decode(
         data,
         (CertificateData)
