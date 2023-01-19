@@ -268,7 +268,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             txReceipt,
             eventNames: ['TransferBatch'],
           }).flatMap((log) =>
-            log.args.ids.map((id: BigNumber) => id.toHexString())
+            log.args.ids.map((id: BigNumber) => id.toString())
           );
           if (txReceipt.status !== 1) {
             logger.error(
