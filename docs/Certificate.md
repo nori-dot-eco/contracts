@@ -73,9 +73,7 @@ struct CertificateData {
 ```solidity
 struct ReplacementData {
   bool isReplacement;
-  uint256 certificateId;
-  address purchasingTokenAddress;
-  uint256 priceMultiple;
+  uint256 replacementAmount;
 }
 ```
 
@@ -110,24 +108,6 @@ Emitted when a batch of removals is received to create a certificate.
 | removalIds | uint256[] | The removal IDs used for the certificate. |
 | removalAmounts | uint256[] | The amounts from each removal used for the certificate. |
 | purchasingTokenAddress | address | The address of the token used to purchase the certificate. |
-| priceMultiple | uint256 | The number of purchasing tokens required to buy one NRT. |
-
-
-### UpdateCertificate
-
-```solidity
-event UpdateCertificate(uint256 certificateId, uint256[] removalIds, uint256[] amounts, address purchasingTokenAddress, uint256 priceMultiple)
-```
-
-Emitted when replacement removals are sent to this contract on behalf of an existing certificate.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| certificateId | uint256 | The certificate id that was updated. |
-| removalIds | uint256[] | The removal ids that were added to the certificate. |
-| amounts | uint256[] | The amount of each removal id that were added to the certificate. |
-| purchasingTokenAddress | address | The address of the token used to purchase the replacement removals. |
 | priceMultiple | uint256 | The number of purchasing tokens required to buy one NRT. |
 
 
@@ -190,6 +170,17 @@ Register the address of the Removal contract.
 | removal | contract IRemoval | The address of the Removal contract. |
 
 
+### decrementGuaranteeDiscrepancy
+
+```solidity
+function decrementGuaranteeDiscrepancy(uint256 amount) external
+```
+
+Used to decrement the discrepancy counter when removals are burned from this contract.
+
+
+
+
 ### onERC1155BatchReceived
 
 ```solidity
@@ -246,6 +237,18 @@ Returns the total number of certificates that have been minted.
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | uint256 | Total number of certificates that have been minted. |
+
+### getGuaranteeDiscrepancy
+
+```solidity
+function getGuaranteeDiscrepancy() external view returns (int256)
+```
+
+Returns the guarantee discrepancy, which is the difference between the total number of NRTs
+guaranteed by this contract (purchased) and the current number of NRTs actually held.
+
+
+
 
 ### getPurchaseAmount
 

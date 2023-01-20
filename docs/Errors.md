@@ -341,3 +341,36 @@ contracts.
 
 
 
+## ReplacementAmountMismatch
+
+```solidity
+error ReplacementAmountMismatch()
+```
+
+Thrown when replacement removal amounts do not sum to the specified total amount being replaced.
+
+
+
+
+## ReplacementAmountExceedsGuaranteeDiscrepancy
+
+```solidity
+error ReplacementAmountExceedsGuaranteeDiscrepancy()
+```
+
+Thrown when attempting to replace more removals than the size of the discrepancy.
+
+
+
+
+## CertificateNotYetMinted
+
+```solidity
+error CertificateNotYetMinted(uint256 tokenId)
+```
+
+Thrown when attempting to replace removals on behalf of a certificate that has not been minted yet.
+
+
+
+
