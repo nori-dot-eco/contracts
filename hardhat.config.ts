@@ -15,6 +15,7 @@ import { docgen } from '@/config/docgen';
 import { getMochaConfig } from '@/config/mocha';
 import { fireblocks } from '@/config/fireblocks';
 import { tracer } from '@/config/tracer';
+import { typechain } from '@/config/typechain';
 
 export const getConfig = (
   environment: NodeJS.ProcessEnv = process.env
@@ -35,11 +36,7 @@ export const getConfig = (
       cache: './cache_hardhat',
     },
     tracer,
-    typechain: {
-      externalArtifacts: [
-        'legacy-artifacts/contracts/LockedNORI.sol/LockedNORI.json',
-      ],
-    },
+    typechain,
     contractSizer: {
       alphaSort: true,
       disambiguatePaths: false,
