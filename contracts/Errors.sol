@@ -134,6 +134,10 @@ error RemovalAlreadySoldOrConsigned(uint256 tokenId);
  */
 error ReplacementAmountMismatch();
 /**
+ * @notice Thrown when attempting to replace more removals than the size of the discrepancy.
+ */
+error ReplacementAmountExceedsGuaranteeDiscrepancy();
+/**
  * @notice Thrown when attempting to replace removals on behalf of a certificate that has not been minted yet.
  */
 error CertificateNotYetMinted(uint256 tokenId);

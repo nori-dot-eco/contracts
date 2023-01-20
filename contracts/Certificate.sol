@@ -88,9 +88,11 @@ contract Certificate is
    *
    * @param isReplacement A bool used to differentiate between a token batch being received to create a new
    * certificate and a token batch being received as a replacement for previously released removals.
+   * @param replacementAmount The number of replacement removals being received.
    */
   struct ReplacementData {
     bool isReplacement;
+    uint256 replacementAmount;
   }
 
   /**
@@ -239,11 +241,18 @@ contract Certificate is
     bytes calldata data
   ) external returns (bytes4) {
     if (_msgSender() != address(_removal)) {
+      // TODO use a require + string instead of a custom error because custom can't bubble - falls through a try catch
       revert SenderNotRemovalContract();
     }
     bool isReplacement = abi.decode(data, (bool));
-    // TODO validate that we are not replacing more removals than need to be replaced
-    if (!isReplacement) {
+    if (isReplacement) {
+      // TODO should we be bothering to encode the replacement amount here, or just sum it from the removalAmounts?
+      ReplacementData memory replacementData = abi.decode(
+        data,
+        (ReplacementData)
+      );
+      _guaranteeDiscrepancy += int256(replacementData.replacementAmount);
+    } else {
       CertificateData memory certificateData = abi.decode(
         data,
         (CertificateData)
