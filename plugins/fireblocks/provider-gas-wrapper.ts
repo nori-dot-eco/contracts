@@ -1,5 +1,4 @@
 import { JsonRpcBatchProvider } from '@ethersproject/providers';
-import type { FeeData } from '@ethersproject/abstract-provider';
 import type { BigNumber } from '@ethersproject/bignumber';
 
 /**
@@ -62,7 +61,7 @@ const ETHEREUM_MAINNET_URL = `https://api.etherscan.io/api?module=gastracker&act
 const polygonGasStation = async (
   level: GasSpeed,
   url: string
-): Promise<FeeData> => {
+): ReturnType<JsonRpcBatchProvider['getFeeData']> => {
   const response = await fetch(url);
   // Gas station data is in gwei
   const fees: GasStationResponse = await response.json();
@@ -81,6 +80,7 @@ const polygonGasStation = async (
     maxFeePerGas: parseGwei(feeData.maxFee),
     maxPriorityFeePerGas: parseGwei(feeData.maxPriorityFee),
     gasPrice: parseGwei(feeData.maxFee),
+    lastBaseFeePerGas: null, // eslint-disable-line unicorn/no-null -- null is the expected value here
   };
 };
 
@@ -110,7 +110,7 @@ let ethereumGasCache: EthereumGasCache = {
 const ethereumGasStation = async (
   level: GasSpeed,
   url: string
-): Promise<FeeData> => {
+): ReturnType<JsonRpcBatchProvider['getFeeData']> => {
   // Free tier of etherscan gas api has a 1req/5sec rate limit.
   if (
     ethereumGasCache.lastUpdated === undefined ||
@@ -149,13 +149,14 @@ const ethereumGasStation = async (
       Number.parseFloat(feeForLevel) - Number.parseFloat(fees.suggestBaseFee)
     ),
     gasPrice: parseGwei(feeForLevel),
+    lastBaseFeePerGas: null, // eslint-disable-line unicorn/no-null -- null is the expected value here
   };
 };
 
 async function getFeeDataForChain(
   chainId: number,
   level: GasSpeed = GasSpeed.FAST
-): Promise<FeeData> {
+): ReturnType<JsonRpcBatchProvider['getFeeData']> {
   if (chainId === 1) {
     return ethereumGasStation(level, ETHEREUM_MAINNET_URL);
   }
@@ -171,11 +172,12 @@ async function getFeeDataForChain(
       defaultGasFeeSettings[chainId].maxPriorityFeePerGas
     ),
     gasPrice: parseGwei(defaultGasFeeSettings[chainId].maxFeePerGas),
+    lastBaseFeePerGas: null, // eslint-disable-line unicorn/no-null -- null is the expected value here
   });
 }
 
 export class JsonRpcBatchProviderWithGasFees extends JsonRpcBatchProvider {
-  async getFeeData(): Promise<FeeData> {
+  async getFeeData(): ReturnType<JsonRpcBatchProvider['getFeeData']> {
     return getFeeDataForChain(this.network.chainId);
   }
 }

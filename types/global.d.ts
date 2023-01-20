@@ -27,13 +27,14 @@ import type {
   DeployFunction as HardhatDeployFunction,
 } from 'hardhat-deploy/dist/types';
 import type { HardhatUserConfig } from 'hardhat/types';
-import type { Address, Deployment } from 'hardhat-deploy/types';
+import type { Deployment } from 'hardhat-deploy/types';
 
-import type { TASKS } from '@/tasks';
-import type { networks } from '@/config/networks';
-import type { namedAccountIndices } from '@/config/accounts';
-import type { Eip2612Signer } from '@/signers/eip-26126';
-import type { debug } from '@/utils/debug';
+import type { debug } from '../utils/debug';
+import type { TASKS } from '../tasks';
+import type { networks } from '../config/networks';
+import type { NamedAccounts } from '../config/accounts';
+import type { Eip2612Signer } from '../signers/eip-26126';
+
 import type {
   BridgedPolygonNORI,
   Certificate,
@@ -185,8 +186,6 @@ declare global {
     TContract['attach']
   >;
   type TypeChainBaseContract = BaseContract & { contractName: string };
-  type NamedAccountIndices = typeof namedAccountIndices;
-  type NamedAccounts = { [Property in keyof NamedAccountIndices]: Address };
   type NamedSigners = { [Property in keyof NamedAccounts]: Eip2612Signer };
   type DeepPartial<T> = {
     [P in keyof T]?: DeepPartial<T[P]>;
@@ -252,32 +251,5 @@ declare global {
 
   interface CustomHardhatDeployFunction extends HardhatDeployFunction {
     (hre: CustomHardHatRuntimeEnvironment): Promise<unknown>;
-  }
-
-  namespace NodeJS {
-    interface ProcessEnvironment {
-      MNEMONIC?: string;
-      INFURA_STAGING_KEY?: string;
-      ETHERNAL_EMAIL?: string;
-      ETHERNAL_PASSWORD?: string;
-      ETHERNAL: boolean;
-      ETHERSCAN_API_KEY?: string;
-      POLYGONSCAN_API_KEY?: string;
-      DEFENDER_API_KEY?: string;
-      DEFENDER_API_SECRET?: string;
-      REPORT_GAS: boolean;
-      COINMARKETCAP_API_KEY?: string;
-      GITHUB_PERSONAL_ACCESS_TOKEN?: string;
-      TRACE: boolean;
-      FORCE_PROXY_DEPLOYMENT: boolean;
-      LOG_HARDHAT_NETWORK: boolean;
-      REPORT_GAS_FILE?: string;
-      FAIL: boolean;
-      VIA_IR: boolean;
-      OPTIMIZER_RUNS: number;
-      OPTIMIZER: boolean;
-      CI: boolean;
-      SOLC_PROFILE: 'default' | 'production' | 'test';
-    }
   }
 }

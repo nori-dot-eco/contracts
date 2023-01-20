@@ -13,7 +13,7 @@ import { getRemoval } from '@/utils/contracts';
 import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { Zero } from '@/constants/units';
 
-interface MigrateRemovalsTaskOptions {
+export interface MigrateRemovalsTaskOptions {
   file: string;
   outputFile?: string;
   dryRun?: boolean;
@@ -266,11 +266,10 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           const tokenIds = parseTransactionLogs({
             contractInstance: removalContract,
             txReceipt,
-          })
-            .filter((log) => log.name === 'TransferBatch')
-            .flatMap((log) =>
-              log.args.ids.map((id: BigNumber) => id.toHexString())
-            );
+            eventNames: ['TransferBatch'],
+          }).flatMap((log) =>
+            log.args.ids.map((id: BigNumber) => id.toString())
+          );
           if (txReceipt.status !== 1) {
             logger.error(
               `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`

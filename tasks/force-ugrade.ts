@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config';
 
-interface ForceUpgradeTaskParameters {
+export interface ForceUpgradeTaskParameters {
   proxyAddress: string;
   contractName: string;
 }
