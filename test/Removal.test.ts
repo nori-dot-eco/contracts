@@ -1,5 +1,4 @@
 import { BigNumber } from 'ethers';
-import { isBigNumberish } from '@ethersproject/bignumber/lib/bignumber';
 
 import { defaultRemovalTokenIdFixture } from './fixtures/removal';
 
@@ -9,19 +8,6 @@ import { Zero, AddressZero } from '@/constants/units';
 import { createBatchMintData, expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 
-describe('BigNumberTests', () => {
-  it('should return false for isBignumberish floating point', () => {
-    expect(isBigNumberish(1.1)).to.be.false;
-    expect(() => BigNumber.from(1.1)).throws();
-    expect(() => BigNumber.from('1.1')).throws();
-
-    const nrts = BigNumber.from(5050).div(1000);
-    console.log({ nrts: nrts.toString() });
-    // const isThisZero = BigNumber.from(null);
-    // console.log({ isThisZero: isThisZero.toString() });
-    // expect(isThisZero.isZero()).to.be.true;
-  });
-});
 describe('Removal', () => {
   describe('balanceOf', () => {
     it('should return the balance for the token ID owned by the account', async () => {
