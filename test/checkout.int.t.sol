@@ -121,7 +121,7 @@ contract Checkout_buyingFromOneRemoval_byApproval is Checkout {
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     vm.prank(owner);
-    _market.swap(owner, owner, amount);
+    _market.swap(owner, amount);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
@@ -177,48 +177,6 @@ contract Checkout_swapWithDifferentPermitSignerAndMsgSender is Checkout {
       signedPermit.r,
       signedPermit.s
     );
-    _assertExpectedBalances(address(_market), 0, false, 0);
-    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
-    assertEq(
-      _removal.balanceOf(address(_certificate), _removalIds[0]),
-      certificateAmount
-    );
-    assertEq(_certificate.ownerOf(_certificateTokenId), owner);
-  }
-}
-
-contract Checkout_swapByApprovalWithDifferentPurchaserAndMsgSender is Checkout {
-  function setUp() external {
-    _removalIds = _seedRemovals({
-      to: _namedAccounts.supplier,
-      count: 1,
-      list: true
-    });
-  }
-
-  function test() external {
-    // todo refactor so assertions
-    // todo refactor so setup lives in this contracts setUp function (improves gas reporting)
-    uint256 ownerPrivateKey = 0xA11CE;
-    address owner = vm.addr(ownerPrivateKey);
-    uint256 amount = _market.calculateCheckoutTotal(1 ether);
-    uint256 certificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotal(amount);
-    vm.prank(_namedAccounts.admin);
-    _bpNori.deposit(owner, abi.encode(amount));
-    vm.prank(owner);
-    _bpNori.approve(address(_market), MAX_INT);
-    assertEq(_removal.getMarketBalance(), 1 ether);
-    assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);
-    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    _assertExpectedBalances(address(_certificate), 0, false, 0);
-    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
-    vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
-    _certificate.ownerOf(_certificateTokenId);
-    address msgSender = vm.addr(0x12345);
-    vm.prank(msgSender);
-    _market.swap(owner, owner, amount);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
