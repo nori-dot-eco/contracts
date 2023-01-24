@@ -109,12 +109,12 @@ contract Certificate is
 
   /**
    * @notice Keeps track of any discrepancy between the total number of NRTs guaranteed by this contract and the
-   * number of NRTs currently held. In other words, the number of NRTs held minus the number of NRTs guaranteed.
+   * number of NRTs currently held, expressed as an unsigned int.
    * @dev This is used to provide a redundant, transparent account of the number of NRTs that may still need to be
    * replaced in the case of released removals. This number should only be non-zero if removals are in the process of
    * being replaced.
    */
-  int256 private _guaranteeDiscrepancy;
+  uint256 private _nrtDeficit;
 
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
@@ -206,16 +206,13 @@ contract Certificate is
   }
 
   /**
-   * @notice Used to decrement the discrepancy counter when removals are burned from this contract.
+   * @notice Used to increment the deficit counter when removals are burned from this contract.
    */
-  function decrementGuaranteeDiscrepancy(uint256 amount)
-    external
-    whenNotPaused
-  {
+  function incrementNrtDeficit(uint256 amount) external whenNotPaused {
     if (_msgSender() != address(_removal)) {
       revert SenderNotRemovalContract();
     }
-    _guaranteeDiscrepancy -= int256(amount);
+    _nrtDeficit += amount;
   }
 
   /**
@@ -283,11 +280,11 @@ contract Certificate is
   }
 
   /**
-   * @notice Returns the guarantee discrepancy, which is the difference between the total number of NRTs
+   * @notice Returns the nrt deficit, which is the difference between the total number of NRTs
    * guaranteed by this contract (purchased) and the current number of NRTs actually held.
    */
-  function getGuaranteeDiscrepancy() external view returns (int256) {
-    return _guaranteeDiscrepancy;
+  function getNrtDeficit() external view returns (uint256) {
+    return _nrtDeficit;
   }
 
   /**
