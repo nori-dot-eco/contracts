@@ -62,7 +62,7 @@ minting and burning.</i>
 ### ReceiveRemovalBatch
 
 ```solidity
-event ReceiveRemovalBatch(address from, address recipient, uint256 certificateId, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple)
+event ReceiveRemovalBatch(address from, address recipient, uint256 certificateId, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage)
 ```
 
 Emitted when a batch of removals is received to create a certificate.
@@ -78,6 +78,7 @@ Emitted when a batch of removals is received to create a certificate.
 | removalAmounts | uint256[] | The amounts from each removal used for the certificate. |
 | purchasingTokenAddress | address | The address of the token used to purchase the certificate. |
 | priceMultiple | uint256 | The number of purchasing tokens required to buy one NRT. |
+| noriFeePercentage | uint256 | The fee percentage charged by Nori at the time of this purchase. |
 
 
 ### RegisterContractAddresses
@@ -283,7 +284,7 @@ certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfe
 ### _receiveRemovalBatch
 
 ```solidity
-function _receiveRemovalBatch(address recipient, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple) internal
+function _receiveRemovalBatch(address recipient, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage) internal
 ```
 
 Creates a new certificate for a batch of removals.
@@ -301,6 +302,7 @@ Emits a `ReceiveRemovalBatch` event.</i>
 | removalAmounts | uint256[] | The balances of each corresponding removal token that are being included in the certificate. |
 | purchasingTokenAddress | address |  |
 | priceMultiple | uint256 |  |
+| noriFeePercentage | uint256 |  |
 
 
 ### _msgSenderERC721A

@@ -122,7 +122,7 @@ contract Market is
   address private _noriFeeWallet;
 
   /**
-   * @notice Percentage of the fee sent to Nori from every transaction.
+   * @notice Percentage of the base NRT cost that is additionally sent to Nori from every transaction.
    */
   uint256 private _noriFeePercentage;
 
@@ -1182,7 +1182,8 @@ contract Market is
       recipient,
       certificateAmount,
       address(_purchasingToken),
-      _priceMultiple
+      _priceMultiple,
+      _noriFeePercentage
     );
     _removal.safeBatchTransferFrom({
       from: address(this),
@@ -1382,7 +1383,8 @@ contract Market is
       recipient,
       certificateAmount,
       address(_purchasingToken),
-      _priceMultiple
+      _priceMultiple,
+      _noriFeePercentage
     );
     _removal.safeBatchTransferFrom({
       from: address(this),

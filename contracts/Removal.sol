@@ -406,7 +406,13 @@ contract Removal is
       to: address(_certificate),
       ids: ids,
       amounts: amounts,
-      data: abi.encode(certificateRecipient, certificateAmount, address(0), 0)
+      data: abi.encode(
+        certificateRecipient,
+        certificateAmount,
+        address(0),
+        0,
+        0
+      )
     });
   }
 
