@@ -833,9 +833,9 @@ contract Removal_release_retired_burned is UpgradeableMarket {
   }
 
   function testDecrementsCertificateDiscrepancy() external {
-    assertEq(_certificate.getGuaranteeDiscrepancy(), 0);
+    assertEq(_certificate.getNrtDeficit(), 0);
     _removal.release(_removalIds[0], 1 ether);
-    assertEq(_certificate.getGuaranteeDiscrepancy(), -1 ether);
+    assertEq(_certificate.getNrtDeficit(), 1 ether);
   }
 }
 

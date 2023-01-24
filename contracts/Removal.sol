@@ -762,7 +762,7 @@ contract Removal is
   function _releaseFromCertificate(uint256 id, uint256 amount) internal {
     address certificateAddress_ = this.getCertificateAddress();
     super._burn({from: certificateAddress_, id: id, amount: amount});
-    _certificate.decrementGuaranteeDiscrepancy(amount);
+    _certificate.incrementNrtDeficit(amount);
     emit ReleaseRemoval({
       id: id,
       fromAddress: certificateAddress_,
