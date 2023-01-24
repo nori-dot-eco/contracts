@@ -169,10 +169,7 @@ contract Market_replace is MarketReplaceTestHelper {
     uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
     vm.startPrank(_namedAccounts.admin);
     _removal.release(_removalIds[0], _originalCertificateAmount);
-    assertEq(
-      _certificate.getGuaranteeDiscrepancy(),
-      -int256(_originalCertificateAmount)
-    );
+    assertEq(_certificate.getNrtDeficit(), _originalCertificateAmount);
     _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
     _bpNori.approve(address(_market), amount);
   }
@@ -196,14 +193,14 @@ contract Market_replace is MarketReplaceTestHelper {
       amountsBeingReplaced: new uint256[](1).fill(_amountToReplace)
     });
     assertEq(
-      _certificate.getGuaranteeDiscrepancy(),
-      -int256(_originalCertificateAmount - _amountToReplace)
+      _certificate.getNrtDeficit(),
+      _originalCertificateAmount - _amountToReplace
     );
     vm.stopPrank();
   }
 }
 
-contract Market_replace_reverts_ReplacementAmountExceedsGuaranteeDiscrepancy is
+contract Market_replace_reverts_ReplacementAmountExceedsNrtDeficit is
   MarketReplaceTestHelper
 {
   function setUp() external {
@@ -220,7 +217,7 @@ contract Market_replace_reverts_ReplacementAmountExceedsGuaranteeDiscrepancy is
     });
     uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
     vm.startPrank(_namedAccounts.admin);
-    assertEq(_certificate.getGuaranteeDiscrepancy(), 0); // no discrepancy
+    assertEq(_certificate.getNrtDeficit(), 0); // no discrepancy
     _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
     _bpNori.approve(address(_market), amount);
   }
@@ -295,10 +292,7 @@ contract Market_replace_reverts_ReplacementAmountMismatch is
     uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
     vm.startPrank(_namedAccounts.admin);
     _removal.release(_removalIds[0], _originalCertificateAmount);
-    assertEq(
-      _certificate.getGuaranteeDiscrepancy(),
-      -int256(_originalCertificateAmount)
-    );
+    assertEq(_certificate.getNrtDeficit(), _originalCertificateAmount);
     _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
     _bpNori.approve(address(_market), amount);
   }

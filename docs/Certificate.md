@@ -63,20 +63,6 @@ struct CertificateData {
 }
 ```
 
-### ReplacementData
-
-
-
-
-
-
-```solidity
-struct ReplacementData {
-  bool isReplacement;
-  uint256 replacementAmount;
-}
-```
-
 ### CERTIFICATE_OPERATOR_ROLE
 
 ```solidity
@@ -170,13 +156,13 @@ Register the address of the Removal contract.
 | removal | contract IRemoval | The address of the Removal contract. |
 
 
-### decrementGuaranteeDiscrepancy
+### incrementNrtDeficit
 
 ```solidity
-function decrementGuaranteeDiscrepancy(uint256 amount) external
+function incrementNrtDeficit(uint256 amount) external
 ```
 
-Used to decrement the discrepancy counter when removals are burned from this contract.
+Used to increment the deficit counter when removals are burned from this contract.
 
 
 
@@ -238,13 +224,13 @@ Returns the total number of certificates that have been minted.
 | ---- | ---- | ----------- |
 | [0] | uint256 | Total number of certificates that have been minted. |
 
-### getGuaranteeDiscrepancy
+### getNrtDeficit
 
 ```solidity
-function getGuaranteeDiscrepancy() external view returns (int256)
+function getNrtDeficit() external view returns (uint256)
 ```
 
-Returns the guarantee discrepancy, which is the difference between the total number of NRTs
+Returns the nrt deficit, which is the difference between the total number of NRTs
 guaranteed by this contract (purchased) and the current number of NRTs actually held.
 
 

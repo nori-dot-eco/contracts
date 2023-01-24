@@ -590,15 +590,15 @@ to Nori Inc. as a market operator fee.
 ### swap
 
 ```solidity
-function swap(address recipient, address purchaser, uint256 amount) external
+function swap(address recipient, uint256 amount) external
 ```
 
 Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
-certificate. Relies on pre-approval of this market by the sender to transfer the purchaser's tokens.
+certificate. Relies on pre-approval of this market by the transaction sender to transfer the sender's tokens.
 
 <i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
 for more.
-The purchaser must have granted approval to this contract to authorize this market to transfer their
+The sender must have granted approval to this contract to authorize this market to transfer their
 supported ERC20 to complete the purchase. A certificate is minted in the Certificate contract
 to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removals,
 to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
@@ -607,12 +607,11 @@ to Nori Inc. as a market operator fee.
 ##### Requirements:
 
 - Can only be used when this contract is not paused.
-- Can only be used if this contract has been granted approval to transfer the purchaser's ERC20 tokens.</i>
+- Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
-| purchaser | address | The address that will pay for the removals and has granted this market approval to tranfser their ERC20 tokens. |
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the combined total price of the removals being purchased and the fee paid to Nori. |
 
 
@@ -653,7 +652,7 @@ to Nori Inc. as a market operator fee.
 ### swapFromSupplier
 
 ```solidity
-function swapFromSupplier(address recipient, address purchaser, uint256 amount, address supplier) external
+function swapFromSupplier(address recipient, uint256 amount, address supplier) external
 ```
 
 An overloaded version of `swap` that additionally accepts a supplier address and will exchange
@@ -663,7 +662,7 @@ for sale to fulfill the order the transaction will revert.
 
 <i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
 for more.
-The purchaser must have already granted approval to this contract in order to transfer their ERC20 tokens to
+The sender must have already granted approval to this contract in order to transfer their ERC20 tokens to
 complete the purchase. A certificate is issued by the Certificate contract to the specified recipient and the
 ERC20 tokens are distributed to the supplier of the carbon removal, to the RestrictedNORI contract that controls
 any restricted ERC20 tokens owed to the supplier, and finally to Nori Inc. as a market operator fee.
@@ -671,12 +670,11 @@ any restricted ERC20 tokens owed to the supplier, and finally to Nori Inc. as a 
 ##### Requirements:
 
 - Can only be used when this contract is not paused.
-- Can only be used if this contract has been granted approval to transfer the purchaser's ERC20 tokens.</i>
+- Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
-| purchaser | address | The address that will pay for the removals and has granted this market approval to tranfser their ERC20 tokens. |
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the combined total price of the removals being purchased and the fee paid to Nori. |
 | supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
 

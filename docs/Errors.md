@@ -352,13 +352,13 @@ Thrown when replacement removal amounts do not sum to the specified total amount
 
 
 
-## ReplacementAmountExceedsGuaranteeDiscrepancy
+## ReplacementAmountExceedsNrtDeficit
 
 ```solidity
-error ReplacementAmountExceedsGuaranteeDiscrepancy()
+error ReplacementAmountExceedsNrtDeficit()
 ```
 
-Thrown when attempting to replace more removals than the size of the discrepancy.
+Thrown when attempting to replace more removals than the size of the deficit.
 
 
 

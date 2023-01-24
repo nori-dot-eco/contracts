@@ -82,20 +82,6 @@ contract Certificate is
   }
 
   /**
-   * @notice The data that is passed to the `onERC1155BatchReceived` function data parameter when sending a batch of
-   * removals to replace previously released removals for a certificate.
-   * @dev This struct is used to pass data to the `onERC1155BatchReceived` function when sending replacement removals.
-   *
-   * @param isReplacement A bool used to differentiate between a token batch being received to create a new
-   * certificate and a token batch being received as a replacement for previously released removals.
-   * @param replacementAmount The number of replacement removals being received.
-   */
-  struct ReplacementData {
-    bool isReplacement;
-    uint256 replacementAmount;
-  }
-
-  /**
    * @notice Role conferring operator permissions.
    * @dev Assigned to operators which are the only addresses which can transfer certificates outside
    * minting and burning.
@@ -237,18 +223,14 @@ contract Certificate is
     uint256[] calldata removalAmounts,
     bytes calldata data
   ) external returns (bytes4) {
-    if (_msgSender() != address(_removal)) {
-      // TODO use a require + string instead of a custom error because custom can't bubble - falls through a try catch
-      revert SenderNotRemovalContract();
-    }
+    require(
+      _msgSender() == address(_removal),
+      "Certificate: Sender not removal contract"
+    );
     bool isReplacement = abi.decode(data, (bool));
     if (isReplacement) {
-      // TODO should we be bothering to encode the replacement amount here, or just sum it from the removalAmounts?
-      ReplacementData memory replacementData = abi.decode(
-        data,
-        (ReplacementData)
-      );
-      _guaranteeDiscrepancy += int256(replacementData.replacementAmount);
+      uint256 replacementAmount = removalAmounts.sum();
+      _nrtDeficit -= replacementAmount;
     } else {
       CertificateData memory certificateData = abi.decode(
         data,

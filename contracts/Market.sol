@@ -395,9 +395,9 @@ contract Market is
     if (_certificate.getPurchaseAmount(certificateId) == 0) {
       revert CertificateNotYetMinted({tokenId: certificateId});
     }
-    int256 _guaranteeDiscrepancy = _certificate.getGuaranteeDiscrepancy();
-    if (totalAmountToReplace > uint256(_guaranteeDiscrepancy * -1)) {
-      revert ReplacementAmountExceedsGuaranteeDiscrepancy();
+    uint256 nrtDeficit = _certificate.getNrtDeficit();
+    if (totalAmountToReplace > nrtDeficit) {
+      revert ReplacementAmountExceedsNrtDeficit();
     }
     uint256 availableSupply = _removal.getMarketBalance();
     _validateSupply({
@@ -433,8 +433,7 @@ contract Market is
       suppliers: suppliers
     });
     bytes memory data = abi.encode(
-      true, // isReplacement
-      totalAmountToReplace
+      true // isReplacement
     );
     _removal.safeBatchTransferFrom({
       from: address(this),
