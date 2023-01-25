@@ -15,6 +15,7 @@ import type {
   SetPurchasingTokenEvent,
   SkipRestrictedNORIERC20TransferEvent,
   UnpausedEvent,
+  UpdateCertificateEvent,
   UpdateNoriFeePercentageEvent,
   UpdateNoriFeeWalletAddressEvent,
 } from '../typechain-types/artifacts/contracts/Market';
@@ -81,6 +82,10 @@ export interface MarketEventMap {
   Unpaused: {
     args: UnpausedEvent['args'];
     name: 'Unpaused';
+  };
+  UpdateCertificate: {
+    args: UpdateCertificateEvent['args'];
+    name: 'UpdateCertificate';
   };
   UpdateNoriFeePercentage: {
     args: UpdateNoriFeePercentageEvent['args'];

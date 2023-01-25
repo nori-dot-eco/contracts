@@ -62,6 +62,28 @@ contract Certificate is
   using UInt256ArrayLib for uint256[];
 
   /**
+   * @notice The data that is passed to the `onERC1155BatchReceived` function data parameter when creating a new
+   * certificate.
+   * @dev This struct is used to pass data to the `onERC1155BatchReceived` function when creating a new certificate.
+   *
+   * @param isReplacement A bool used to differentiate between a token batch being received to create a new
+   * certificate and a token batch being received as a replacement for previously released removals.
+   * @param recipient The address is the address that will receive the new certificate.
+   * @param certificateAmount The amount of the certificate that will be minted.
+   * @param purchasingTokenAddress The address is the address of the token that was used to purchase the certificate.
+   * @param priceMultiple The number of purchasing tokens required to purchase one NRT.
+   * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
+   */
+  struct CertificateData {
+    bool isReplacement;
+    address recipient;
+    uint256 certificateAmount;
+    address purchasingTokenAddress;
+    uint256 priceMultiple;
+    uint256 noriFeePercentage;
+  }
+
+  /**
    * @notice Role conferring operator permissions.
    * @dev Assigned to operators which are the only addresses which can transfer certificates outside
    * minting and burning.
@@ -72,6 +94,15 @@ contract Certificate is
    * @notice Keeps track of the original purchase amount for a certificate.
    */
   mapping(uint256 => uint256) private _purchaseAmounts;
+
+  /**
+   * @notice Keeps track of any discrepancy between the total number of NRTs guaranteed by this contract and the
+   * number of NRTs currently held, expressed as an unsigned int.
+   * @dev This is used to provide a redundant, transparent account of the number of NRTs that may still need to be
+   * replaced in the case of released removals. This number should only be non-zero if removals are in the process of
+   * being replaced.
+   */
+  uint256 private _nrtDeficit;
 
   /**
    * @notice The Removal contract that accounts for carbon removal supply.
@@ -93,6 +124,7 @@ contract Certificate is
    * @param removalAmounts The amounts from each removal used for the certificate.
    * @param purchasingTokenAddress The address of the token used to purchase the certificate.
    * @param priceMultiple The number of purchasing tokens required to buy one NRT.
+   * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
   event ReceiveRemovalBatch(
     address from,
@@ -102,7 +134,8 @@ contract Certificate is
     uint256[] removalIds,
     uint256[] removalAmounts,
     address purchasingTokenAddress,
-    uint256 priceMultiple
+    uint256 priceMultiple,
+    uint256 noriFeePercentage
   );
 
   /**
@@ -163,6 +196,16 @@ contract Certificate is
   }
 
   /**
+   * @notice Used to increment the deficit counter when removals are burned from this contract.
+   */
+  function incrementNrtDeficit(uint256 amount) external whenNotPaused {
+    if (_msgSender() != address(_removal)) {
+      revert SenderNotRemovalContract();
+    }
+    _nrtDeficit += amount;
+  }
+
+  /**
    * @notice Receive a batch of child tokens.
    * @dev See [IERC1155Receiver](
    * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
@@ -173,7 +216,8 @@ contract Certificate is
    * - The certificate recipient and amount must be encoded in the `data` parameter.
    * @param removalIds The array of ERC1155 Removal IDs received.
    * @param removalAmounts The removal amounts per each removal ID.
-   * @param data The bytes that encode the certificate's recipient address and total amount.
+   * @param data The bytes that encode information about either the new certificate to be minted, or replacement
+   * removals being sent to replace released removals.
    * @return The selector of the function.
    */
   function onERC1155BatchReceived(
@@ -183,23 +227,29 @@ contract Certificate is
     uint256[] calldata removalAmounts,
     bytes calldata data
   ) external returns (bytes4) {
-    if (_msgSender() != address(_removal)) {
-      revert SenderNotRemovalContract();
+    require(
+      _msgSender() == address(_removal),
+      "Certificate: Sender not removal contract"
+    );
+    bool isReplacement = abi.decode(data, (bool));
+    if (isReplacement) {
+      uint256 replacementAmount = removalAmounts.sum();
+      _nrtDeficit -= replacementAmount;
+    } else {
+      CertificateData memory certificateData = abi.decode(
+        data,
+        (CertificateData)
+      );
+      _receiveRemovalBatch({
+        recipient: certificateData.recipient,
+        certificateAmount: certificateData.certificateAmount,
+        removalIds: removalIds,
+        removalAmounts: removalAmounts,
+        purchasingTokenAddress: certificateData.purchasingTokenAddress,
+        priceMultiple: certificateData.priceMultiple,
+        noriFeePercentage: certificateData.noriFeePercentage
+      });
     }
-    (
-      address recipient,
-      uint256 certificateAmount,
-      address purchasingTokenAddress,
-      uint256 priceMultiple
-    ) = abi.decode(data, (address, uint256, address, uint256));
-    _receiveRemovalBatch({
-      recipient: recipient,
-      certificateAmount: certificateAmount,
-      removalIds: removalIds,
-      removalAmounts: removalAmounts,
-      purchasingTokenAddress: purchasingTokenAddress,
-      priceMultiple: priceMultiple
-    });
     return this.onERC1155BatchReceived.selector;
   }
 
@@ -213,6 +263,14 @@ contract Certificate is
 
   function totalMinted() external view override returns (uint256) {
     return _totalMinted();
+  }
+
+  /**
+   * @notice Returns the nrt deficit, which is the difference between the total number of NRTs
+   * guaranteed by this contract (purchased) and the current number of NRTs actually held.
+   */
+  function getNrtDeficit() external view returns (uint256) {
+    return _nrtDeficit;
   }
 
   /**
@@ -329,7 +387,8 @@ contract Certificate is
     uint256[] calldata removalIds,
     uint256[] calldata removalAmounts,
     address purchasingTokenAddress,
-    uint256 priceMultiple
+    uint256 priceMultiple,
+    uint256 noriFeePercentage
   ) internal {
     _validateReceivedRemovalBatch({
       removalIds: removalIds,
@@ -347,7 +406,8 @@ contract Certificate is
       removalIds: removalIds,
       removalAmounts: removalAmounts,
       purchasingTokenAddress: purchasingTokenAddress,
-      priceMultiple: priceMultiple
+      priceMultiple: priceMultiple,
+      noriFeePercentage: noriFeePercentage
     });
   }
 

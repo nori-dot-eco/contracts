@@ -46,6 +46,24 @@ https://github.com/chiru-labs/ERC721A/blob/v4.2.3/contracts/extensions/ERC721ABu
 
 ---
 
+### CertificateData
+
+
+
+
+
+
+```solidity
+struct CertificateData {
+  bool isReplacement;
+  address recipient;
+  uint256 certificateAmount;
+  address purchasingTokenAddress;
+  uint256 priceMultiple;
+  uint256 noriFeePercentage;
+}
+```
+
 ### CERTIFICATE_OPERATOR_ROLE
 
 ```solidity
@@ -62,7 +80,7 @@ minting and burning.</i>
 ### ReceiveRemovalBatch
 
 ```solidity
-event ReceiveRemovalBatch(address from, address recipient, uint256 certificateId, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple)
+event ReceiveRemovalBatch(address from, address recipient, uint256 certificateId, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage)
 ```
 
 Emitted when a batch of removals is received to create a certificate.
@@ -78,6 +96,7 @@ Emitted when a batch of removals is received to create a certificate.
 | removalAmounts | uint256[] | The amounts from each removal used for the certificate. |
 | purchasingTokenAddress | address | The address of the token used to purchase the certificate. |
 | priceMultiple | uint256 | The number of purchasing tokens required to buy one NRT. |
+| noriFeePercentage | uint256 | The fee percentage charged by Nori at the time of this purchase. |
 
 
 ### RegisterContractAddresses
@@ -139,6 +158,17 @@ Register the address of the Removal contract.
 | removal | contract IRemoval | The address of the Removal contract. |
 
 
+### incrementNrtDeficit
+
+```solidity
+function incrementNrtDeficit(uint256 amount) external
+```
+
+Used to increment the deficit counter when removals are burned from this contract.
+
+
+
+
 ### onERC1155BatchReceived
 
 ```solidity
@@ -161,7 +191,7 @@ https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) f
 |  | address |  |
 | removalIds | uint256[] | The array of ERC1155 Removal IDs received. |
 | removalAmounts | uint256[] | The removal amounts per each removal ID. |
-| data | bytes | The bytes that encode the certificate's recipient address and total amount. |
+| data | bytes | The bytes that encode information about either the new certificate to be minted, or replacement removals being sent to replace released removals. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -195,6 +225,18 @@ Returns the total number of certificates that have been minted.
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | uint256 | Total number of certificates that have been minted. |
+
+### getNrtDeficit
+
+```solidity
+function getNrtDeficit() external view returns (uint256)
+```
+
+Returns the nrt deficit, which is the difference between the total number of NRTs
+guaranteed by this contract (purchased) and the current number of NRTs actually held.
+
+
+
 
 ### getPurchaseAmount
 
@@ -283,7 +325,7 @@ certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfe
 ### _receiveRemovalBatch
 
 ```solidity
-function _receiveRemovalBatch(address recipient, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple) internal
+function _receiveRemovalBatch(address recipient, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage) internal
 ```
 
 Creates a new certificate for a batch of removals.
@@ -301,6 +343,7 @@ Emits a `ReceiveRemovalBatch` event.</i>
 | removalAmounts | uint256[] | The balances of each corresponding removal token that are being included in the certificate. |
 | purchasingTokenAddress | address |  |
 | priceMultiple | uint256 |  |
+| noriFeePercentage | uint256 |  |
 
 
 ### _msgSenderERC721A
