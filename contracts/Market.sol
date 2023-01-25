@@ -1119,6 +1119,7 @@ contract Market is
       from: 0,
       to: countOfRemovalsAllocated
     });
+    bool isTransferSuccessful;
     uint8 holdbackPercentage;
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
@@ -1160,23 +1161,32 @@ contract Market is
               removalId: removalIds[i]
             });
           }
-          _purchasingToken.transferFrom({
+          isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,
             to: address(_restrictedNORI),
             amount: restrictedSupplierFee
           });
+          if (!isTransferSuccessful) {
+            revert ERC20TransferFailed();
+          }
         }
       }
-      _purchasingToken.transferFrom({
+      isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: _noriFeeWallet,
         amount: this.calculateNoriFee(removalAmounts[i])
       });
-      _purchasingToken.transferFrom({
+      if (!isTransferSuccessful) {
+        revert ERC20TransferFailed();
+      }
+      isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
         amount: unrestrictedSupplierFee
       });
+      if (!isTransferSuccessful) {
+        revert ERC20TransferFailed();
+      }
     }
     bytes memory data = abi.encode(
       recipient,
@@ -1324,6 +1334,7 @@ contract Market is
       from: 0,
       to: countOfRemovalsAllocated
     });
+    bool isTransferSuccessful;
     uint8 holdbackPercentage;
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
@@ -1365,18 +1376,24 @@ contract Market is
               removalId: removalIds[i]
             });
           }
-          _purchasingToken.transferFrom({
+          isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,
             to: address(_restrictedNORI),
             amount: restrictedSupplierFee
           });
+          if (!isTransferSuccessful) {
+            revert ERC20TransferFailed();
+          }
         }
       }
-      _purchasingToken.transferFrom({
+      isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
         amount: unrestrictedSupplierFee
       });
+      if (!isTransferSuccessful) {
+        revert ERC20TransferFailed();
+      }
     }
     bytes memory data = abi.encode(
       recipient,

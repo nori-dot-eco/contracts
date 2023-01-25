@@ -129,3 +129,7 @@ error InvalidHoldbackPercentage(uint8 holdbackPercentage);
  * contracts.
  */
 error RemovalAlreadySoldOrConsigned(uint256 tokenId);
+/**
+ * @notice Thrown when an ERC20 token transfer fails.
+ */
+error ERC20TransferFailed();

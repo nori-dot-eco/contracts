@@ -341,3 +341,14 @@ contracts.
 
 
 
+## ERC20TransferFailed
+
+```solidity
+error ERC20TransferFailed()
+```
+
+Thrown when an ERC20 token transfer fails.
+
+
+
+
