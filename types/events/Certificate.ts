@@ -5,7 +5,7 @@ import type {
   ConsecutiveTransferEvent,
   InitializedEvent,
   PausedEvent,
-  CreateCertificateEvent,
+  ReceiveRemovalBatchEvent,
   RegisterContractAddressesEvent,
   RoleAdminChangedEvent,
   RoleGrantedEvent,
@@ -38,7 +38,7 @@ export interface CertificateEventMap {
     name: 'Paused';
   };
   ReceiveRemovalBatch: {
-    args: CreateCertificateEvent['args'];
+    args: ReceiveRemovalBatchEvent['args'];
     name: 'ReceiveRemovalBatch';
   };
   RegisterContractAddresses: {

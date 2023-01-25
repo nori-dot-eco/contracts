@@ -60,6 +60,7 @@ struct CertificateData {
   uint256 certificateAmount;
   address purchasingTokenAddress;
   uint256 priceMultiple;
+  uint256 noriFeePercentage;
 }
 ```
 
