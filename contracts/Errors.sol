@@ -130,6 +130,18 @@ error InvalidHoldbackPercentage(uint8 holdbackPercentage);
  */
 error RemovalAlreadySoldOrConsigned(uint256 tokenId);
 /**
+ * @notice Thrown when replacement removal amounts do not sum to the specified total amount being replaced.
+ */
+error ReplacementAmountMismatch();
+/**
+ * @notice Thrown when attempting to replace more removals than the size of the deficit.
+ */
+error ReplacementAmountExceedsNrtDeficit();
+/**
+ * @notice Thrown when attempting to replace removals on behalf of a certificate that has not been minted yet.
+ */
+error CertificateNotYetMinted(uint256 tokenId);
+/**
  * @notice Thrown when an ERC20 token transfer fails.
  */
 error ERC20TransferFailed();

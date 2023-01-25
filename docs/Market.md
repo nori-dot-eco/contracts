@@ -281,6 +281,26 @@ address that RestrictedNORI was configured to wrap.
 | purchasingTokenAddress | address | The address of the ERC20 token that would have been transferred to RestrictedNORI. |
 
 
+### UpdateCertificate
+
+```solidity
+event UpdateCertificate(uint256 certificateId, uint256[] removalIds, uint256[] amounts, uint256[] removalIdsBeingReplaced, uint256[] amountsBeingReplaced, address purchasingTokenAddress, uint256 priceMultiple)
+```
+
+Emitted when replacement removals are sent to this contract on behalf of an existing certificate.
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| certificateId | uint256 | The certificate id that was updated. |
+| removalIds | uint256[] | The removal ids that were added to the certificate. |
+| amounts | uint256[] | The amount of each removal id that were added to the certificate. |
+| removalIdsBeingReplaced | uint256[] | The removal ids that were released from the certificate. |
+| amountsBeingReplaced | uint256[] | The amount of each removal id that was released from the certificate. |
+| purchasingTokenAddress | address | The address of the token used to purchase the replacement removals. |
+| priceMultiple | uint256 | The number of purchasing tokens required to buy one NRT. |
+
+
 ### constructor
 
 ```solidity
@@ -332,6 +352,35 @@ Releases a removal from the market.
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | removalId | uint256 | The ID of the removal to release. |
+
+
+### replace
+
+```solidity
+function replace(address treasury, uint256 certificateId, uint256 totalAmountToReplace, uint256[] removalIdsBeingReplaced, uint256[] amountsBeingReplaced) external
+```
+
+Purchases removals on behalf of the Certificate contract in order to replace removals that have been
+released from an existing certificate.
+
+<i>Replacement removals are sent to the Certificate contract and an event is emitted by the Certificate contract
+to indicate the specific certificate on behalf of which removals are being replaced, as well as the IDs and amounts
+of the replacement removals.
+
+##### Requirements:
+
+- Can only be used when this contract is not paused.
+- The caller must have the MARKET_ADMIN_ROLE.
+- The amount of removals to purchase must be less than or equal to the amount of removals available in the
+market.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| treasury | address | The address of the treasury that will fund the replacement purchase. |
+| certificateId | uint256 | The ID of the certificate on behalf of which removals are being replaced. |
+| totalAmountToReplace | uint256 | The total amount of replacement removals to purchase. |
+| removalIdsBeingReplaced | uint256[] | The removal ids that are being replaced. |
+| amountsBeingReplaced | uint256[] | The amount of each removal id that is being replaced. |
 
 
 ### registerContractAddresses
@@ -991,6 +1040,26 @@ purchase 1 NRT.</i>
 | priceMultiple | uint256 | The new price multiple. |
 
 
+### _transferFunds
+
+```solidity
+function _transferFunds(bool chargeFee, address from, uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers) internal
+```
+
+Pays the suppliers for the removals being purchased, routes funds to the RestrictedNORI contract if
+necessary, and pays a fee to Nori if `chargeFee` is true.
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| chargeFee | bool | Whether to charge a transaction fee for Nori. |
+| from | address | The address of the spender. |
+| countOfRemovalsAllocated | uint256 | The number of removals being purchased. |
+| ids | uint256[] | The IDs of the removals being purchased. |
+| amounts | uint256[] | The amounts of each removal being purchased. |
+| suppliers | address[] | The suppliers who own each removal being purchased. |
+
+
 ### _fulfillOrder
 
 ```solidity
@@ -1169,6 +1238,25 @@ does not have the role `MARKET_ADMIN_ROLE`.</i>
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | bool | Returns true if the caller is the owner, an approved spender, or has the role &#x60;MARKET_ADMIN_ROLE&#x60;, false otherwise. |
+
+### _validateReplacementAmounts
+
+```solidity
+function _validateReplacementAmounts(uint256 totalAmountToReplace, uint256[] removalAmounts, uint256[] removalAmountsBeingReplaced) internal pure
+```
+
+Validates that the removal amounts being sent for replacement sum to the same amount as the removals
+being replaced.
+
+<i>Reverts if the sum of the removal amounts being sent for replacement does not equal the sum of the removals
+being replaced.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| totalAmountToReplace | uint256 | The total amount of removals being replaced. |
+| removalAmounts | uint256[] | The amounts of removals being sent for replacement. |
+| removalAmountsBeingReplaced | uint256[] | The amounts of removals being replaced. |
+
 
 ### _validateSupply
 

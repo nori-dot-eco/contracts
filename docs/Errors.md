@@ -341,6 +341,39 @@ contracts.
 
 
 
+## ReplacementAmountMismatch
+
+```solidity
+error ReplacementAmountMismatch()
+```
+
+Thrown when replacement removal amounts do not sum to the specified total amount being replaced.
+
+
+
+
+## ReplacementAmountExceedsNrtDeficit
+
+```solidity
+error ReplacementAmountExceedsNrtDeficit()
+```
+
+Thrown when attempting to replace more removals than the size of the deficit.
+
+
+
+
+## CertificateNotYetMinted
+
+```solidity
+error CertificateNotYetMinted(uint256 tokenId)
+```
+
+Thrown when attempting to replace removals on behalf of a certificate that has not been minted yet.
+
+
+
+
 ## ERC20TransferFailed
 
 ```solidity

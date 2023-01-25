@@ -62,6 +62,28 @@ contract Certificate is
   using UInt256ArrayLib for uint256[];
 
   /**
+   * @notice The data that is passed to the `onERC1155BatchReceived` function data parameter when creating a new
+   * certificate.
+   * @dev This struct is used to pass data to the `onERC1155BatchReceived` function when creating a new certificate.
+   *
+   * @param isReplacement A bool used to differentiate between a token batch being received to create a new
+   * certificate and a token batch being received as a replacement for previously released removals.
+   * @param recipient The address is the address that will receive the new certificate.
+   * @param certificateAmount The amount of the certificate that will be minted.
+   * @param purchasingTokenAddress The address is the address of the token that was used to purchase the certificate.
+   * @param priceMultiple The number of purchasing tokens required to purchase one NRT.
+   * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
+   */
+  struct CertificateData {
+    bool isReplacement;
+    address recipient;
+    uint256 certificateAmount;
+    address purchasingTokenAddress;
+    uint256 priceMultiple;
+    uint256 noriFeePercentage;
+  }
+
+  /**
    * @notice Role conferring operator permissions.
    * @dev Assigned to operators which are the only addresses which can transfer certificates outside
    * minting and burning.
@@ -194,7 +216,8 @@ contract Certificate is
    * - The certificate recipient and amount must be encoded in the `data` parameter.
    * @param removalIds The array of ERC1155 Removal IDs received.
    * @param removalAmounts The removal amounts per each removal ID.
-   * @param data The bytes that encode the certificate's recipient address and total amount.
+   * @param data The bytes that encode information about either the new certificate to be minted, or replacement
+   * removals being sent to replace released removals.
    * @return The selector of the function.
    */
   function onERC1155BatchReceived(
@@ -204,25 +227,29 @@ contract Certificate is
     uint256[] calldata removalAmounts,
     bytes calldata data
   ) external returns (bytes4) {
-    if (_msgSender() != address(_removal)) {
-      revert SenderNotRemovalContract();
+    require(
+      _msgSender() == address(_removal),
+      "Certificate: Sender not removal contract"
+    );
+    bool isReplacement = abi.decode(data, (bool));
+    if (isReplacement) {
+      uint256 replacementAmount = removalAmounts.sum();
+      _nrtDeficit -= replacementAmount;
+    } else {
+      CertificateData memory certificateData = abi.decode(
+        data,
+        (CertificateData)
+      );
+      _receiveRemovalBatch({
+        recipient: certificateData.recipient,
+        certificateAmount: certificateData.certificateAmount,
+        removalIds: removalIds,
+        removalAmounts: removalAmounts,
+        purchasingTokenAddress: certificateData.purchasingTokenAddress,
+        priceMultiple: certificateData.priceMultiple,
+        noriFeePercentage: certificateData.noriFeePercentage
+      });
     }
-    (
-      address recipient,
-      uint256 certificateAmount,
-      address purchasingTokenAddress,
-      uint256 priceMultiple,
-      uint256 noriFeePercentage
-    ) = abi.decode(data, (address, uint256, address, uint256, uint256));
-    _receiveRemovalBatch({
-      recipient: recipient,
-      certificateAmount: certificateAmount,
-      removalIds: removalIds,
-      removalAmounts: removalAmounts,
-      purchasingTokenAddress: purchasingTokenAddress,
-      priceMultiple: priceMultiple,
-      noriFeePercentage: noriFeePercentage
-    });
     return this.onERC1155BatchReceived.selector;
   }
 

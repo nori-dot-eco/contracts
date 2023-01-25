@@ -46,6 +46,24 @@ https://github.com/chiru-labs/ERC721A/blob/v4.2.3/contracts/extensions/ERC721ABu
 
 ---
 
+### CertificateData
+
+
+
+
+
+
+```solidity
+struct CertificateData {
+  bool isReplacement;
+  address recipient;
+  uint256 certificateAmount;
+  address purchasingTokenAddress;
+  uint256 priceMultiple;
+  uint256 noriFeePercentage;
+}
+```
+
 ### CERTIFICATE_OPERATOR_ROLE
 
 ```solidity
@@ -140,6 +158,17 @@ Register the address of the Removal contract.
 | removal | contract IRemoval | The address of the Removal contract. |
 
 
+### incrementNrtDeficit
+
+```solidity
+function incrementNrtDeficit(uint256 amount) external
+```
+
+Used to increment the deficit counter when removals are burned from this contract.
+
+
+
+
 ### onERC1155BatchReceived
 
 ```solidity
@@ -162,7 +191,7 @@ https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) f
 |  | address |  |
 | removalIds | uint256[] | The array of ERC1155 Removal IDs received. |
 | removalAmounts | uint256[] | The removal amounts per each removal ID. |
-| data | bytes | The bytes that encode the certificate's recipient address and total amount. |
+| data | bytes | The bytes that encode information about either the new certificate to be minted, or replacement removals being sent to replace released removals. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -196,6 +225,18 @@ Returns the total number of certificates that have been minted.
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | uint256 | Total number of certificates that have been minted. |
+
+### getNrtDeficit
+
+```solidity
+function getNrtDeficit() external view returns (uint256)
+```
+
+Returns the nrt deficit, which is the difference between the total number of NRTs
+guaranteed by this contract (purchased) and the current number of NRTs actually held.
+
+
+
 
 ### getPurchaseAmount
 

@@ -407,6 +407,7 @@ contract Removal is
       ids: ids,
       amounts: amounts,
       data: abi.encode(
+        false,
         certificateRecipient,
         certificateAmount,
         address(0),

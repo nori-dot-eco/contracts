@@ -131,6 +131,244 @@ contract ERC1155Recipient {
   }
 }
 
+contract MarketReplaceTestHelper is UpgradeableMarket {
+  uint256[] internal _removalIds;
+  uint256 internal _originalCertificateAmount = 1 ether;
+  uint256 internal _certificateTokenId; // 0
+  uint256 internal _amountToReplace = 0.5 ether;
+
+  event UpdateCertificate(
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] amounts,
+    uint256[] removalIdsBeingReplaced,
+    uint256[] amountsBeingReplaced,
+    address purchasingTokenAddress,
+    uint256 priceMultiple
+  );
+
+  function _listRemovals() internal {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 2,
+      list: true
+    });
+  }
+
+  function _createCertificate() internal {
+    // purchase a certificate and use up one removal
+    uint256 ownerPrivateKey = 0xA11CE;
+    address owner = vm.addr(ownerPrivateKey);
+    uint256 amount = _market.calculateCheckoutTotal(_originalCertificateAmount);
+    uint256 certificateAmount = _market
+      .calculateCertificateAmountFromPurchaseTotal(amount);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(amount));
+    assertEq(_removal.getMarketBalance(), 2 ether);
+    assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 2);
+    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    _assertExpectedBalances(address(_certificate), 0, false, 0);
+    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
+    vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
+    _certificate.ownerOf(_certificateTokenId);
+    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      amount,
+      1 days,
+      _bpNori
+    );
+    vm.prank(owner);
+    _market.swap(
+      owner,
+      owner,
+      amount,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    _assertExpectedBalances(address(_market), 0, false, 1); // 1 removal left in stock that we will use to replace
+    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
+    _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
+    assertEq(
+      _removal.balanceOf(address(_certificate), _removalIds[0]),
+      certificateAmount
+    );
+    assertEq(_certificate.ownerOf(_certificateTokenId), owner);
+  }
+
+  function _assertExpectedBalances(
+    address owner,
+    uint256 amount,
+    bool ownsRemovalTokenId,
+    uint256 count
+  ) internal {
+    assertEq(
+      _removal.balanceOf({account: owner, id: _removalIds[0]}),
+      ownsRemovalTokenId ? amount : 0
+    );
+    assertEq(_removal.numberOfTokensOwnedByAddress(owner), count);
+  }
+}
+
+contract Market_replace is MarketReplaceTestHelper {
+  function setUp() external {
+    _listRemovals();
+    _createCertificate();
+
+    _market.grantRole({
+      role: _market.MARKET_ADMIN_ROLE(),
+      account: _namedAccounts.admin
+    });
+    _removal.grantRole({
+      role: _removal.RELEASER_ROLE(),
+      account: _namedAccounts.admin
+    });
+    uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
+    vm.startPrank(_namedAccounts.admin);
+    _removal.release(_removalIds[0], _originalCertificateAmount);
+    assertEq(_certificate.getNrtDeficit(), _originalCertificateAmount);
+    _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
+    _bpNori.approve(address(_market), amount);
+  }
+
+  function test() external {
+    vm.expectEmit(true, false, false, true);
+    emit UpdateCertificate(
+      _certificateTokenId,
+      new uint256[](1).fill(_removalIds[1]),
+      new uint256[](1).fill(_amountToReplace),
+      new uint256[](1).fill(_removalIds[0]),
+      new uint256[](1).fill(_amountToReplace),
+      address(_bpNori),
+      _market.getPriceMultiple()
+    );
+    _market.replace({
+      treasury: _namedAccounts.admin,
+      certificateId: _certificateTokenId,
+      totalAmountToReplace: _amountToReplace,
+      removalIdsBeingReplaced: new uint256[](1).fill(_removalIds[0]),
+      amountsBeingReplaced: new uint256[](1).fill(_amountToReplace)
+    });
+    assertEq(
+      _certificate.getNrtDeficit(),
+      _originalCertificateAmount - _amountToReplace
+    );
+    vm.stopPrank();
+  }
+}
+
+contract Market_replace_reverts_ReplacementAmountExceedsNrtDeficit is
+  MarketReplaceTestHelper
+{
+  function setUp() external {
+    _listRemovals();
+    _createCertificate();
+
+    _market.grantRole({
+      role: _market.MARKET_ADMIN_ROLE(),
+      account: _namedAccounts.admin
+    });
+    _removal.grantRole({
+      role: _removal.RELEASER_ROLE(),
+      account: _namedAccounts.admin
+    });
+    uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
+    vm.startPrank(_namedAccounts.admin);
+    assertEq(_certificate.getNrtDeficit(), 0); // no discrepancy
+    _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
+    _bpNori.approve(address(_market), amount);
+  }
+
+  function test() external {
+    // using low level call to get around limitation of vm.expectRevert
+    // see https://book.getfoundry.sh/cheatcodes/expect-revert
+    (bool success, ) = address(_market).call(
+      abi.encodeWithSignature(
+        "replace(address,uint256,uint256,uint256[],uint256[])",
+        _namedAccounts.admin,
+        _certificateTokenId,
+        _amountToReplace,
+        new uint256[](1).fill(_removalIds[0]),
+        new uint256[](1).fill(_amountToReplace)
+      )
+    );
+    assertFalse(success, "expectRevert: call did not revert");
+    vm.stopPrank();
+  }
+}
+
+contract Market_replace_reverts_CertificateNotYetMinted is
+  MarketReplaceTestHelper
+{
+  function setUp() external {
+    _listRemovals();
+    // do not create a certificate
+    _market.grantRole({
+      role: _market.MARKET_ADMIN_ROLE(),
+      account: _namedAccounts.admin
+    });
+    uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
+    vm.startPrank(_namedAccounts.admin);
+
+    _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
+    _bpNori.approve(address(_market), amount);
+  }
+
+  function test() external {
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        CertificateNotYetMinted.selector,
+        _certificateTokenId
+      )
+    );
+    _market.replace({
+      treasury: _namedAccounts.admin,
+      certificateId: _certificateTokenId,
+      totalAmountToReplace: _amountToReplace,
+      removalIdsBeingReplaced: new uint256[](1).fill(_removalIds[0]),
+      amountsBeingReplaced: new uint256[](1).fill(_amountToReplace)
+    });
+    vm.stopPrank();
+  }
+}
+
+contract Market_replace_reverts_ReplacementAmountMismatch is
+  MarketReplaceTestHelper
+{
+  function setUp() external {
+    _listRemovals();
+    _createCertificate();
+    _market.grantRole({
+      role: _market.MARKET_ADMIN_ROLE(),
+      account: _namedAccounts.admin
+    });
+    _removal.grantRole({
+      role: _removal.RELEASER_ROLE(),
+      account: _namedAccounts.admin
+    });
+    uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
+    vm.startPrank(_namedAccounts.admin);
+    _removal.release(_removalIds[0], _originalCertificateAmount);
+    assertEq(_certificate.getNrtDeficit(), _originalCertificateAmount);
+    _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
+    _bpNori.approve(address(_market), amount);
+  }
+
+  function test() external {
+    vm.expectRevert(ReplacementAmountMismatch.selector);
+    _market.replace({
+      treasury: _namedAccounts.admin,
+      certificateId: _certificateTokenId,
+      totalAmountToReplace: _amountToReplace / 2, // mismatch with amountsBeingReplaced
+      removalIdsBeingReplaced: new uint256[](1).fill(_removalIds[0]),
+      amountsBeingReplaced: new uint256[](1).fill(_amountToReplace)
+    });
+    vm.stopPrank();
+  }
+}
+
 contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155Receiver is
   UpgradeableMarket
 {
