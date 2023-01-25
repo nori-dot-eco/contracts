@@ -74,6 +74,15 @@ contract Certificate is
   mapping(uint256 => uint256) private _purchaseAmounts;
 
   /**
+   * @notice Keeps track of any discrepancy between the total number of NRTs guaranteed by this contract and the
+   * number of NRTs currently held, expressed as an unsigned int.
+   * @dev This is used to provide a redundant, transparent account of the number of NRTs that may still need to be
+   * replaced in the case of released removals. This number should only be non-zero if removals are in the process of
+   * being replaced.
+   */
+  uint256 private _nrtDeficit;
+
+  /**
    * @notice The Removal contract that accounts for carbon removal supply.
    */
   IRemoval private _removal;
@@ -165,6 +174,16 @@ contract Certificate is
   }
 
   /**
+   * @notice Used to increment the deficit counter when removals are burned from this contract.
+   */
+  function incrementNrtDeficit(uint256 amount) external whenNotPaused {
+    if (_msgSender() != address(_removal)) {
+      revert SenderNotRemovalContract();
+    }
+    _nrtDeficit += amount;
+  }
+
+  /**
    * @notice Receive a batch of child tokens.
    * @dev See [IERC1155Receiver](
    * https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) for more.
@@ -217,6 +236,14 @@ contract Certificate is
 
   function totalMinted() external view override returns (uint256) {
     return _totalMinted();
+  }
+
+  /**
+   * @notice Returns the nrt deficit, which is the difference between the total number of NRTs
+   * guaranteed by this contract (purchased) and the current number of NRTs actually held.
+   */
+  function getNrtDeficit() external view returns (uint256) {
+    return _nrtDeficit;
   }
 
   /**
