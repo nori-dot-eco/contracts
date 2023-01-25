@@ -1119,7 +1119,7 @@ contract Market is
       from: 0,
       to: countOfRemovalsAllocated
     });
-    bool successfulTransfer;
+    bool isTransferSuccessful;
     uint8 holdbackPercentage;
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
@@ -1161,30 +1161,30 @@ contract Market is
               removalId: removalIds[i]
             });
           }
-          successfulTransfer = _purchasingToken.transferFrom({
+          isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,
             to: address(_restrictedNORI),
             amount: restrictedSupplierFee
           });
-          if (!successfulTransfer) {
+          if (!isTransferSuccessful) {
             revert ERC20TransferFailed();
           }
         }
       }
-      successfulTransfer = _purchasingToken.transferFrom({
+      isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: _noriFeeWallet,
         amount: this.calculateNoriFee(removalAmounts[i])
       });
-      if (!successfulTransfer) {
+      if (!isTransferSuccessful) {
         revert ERC20TransferFailed();
       }
-      successfulTransfer = _purchasingToken.transferFrom({
+      isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
         amount: unrestrictedSupplierFee
       });
-      if (!successfulTransfer) {
+      if (!isTransferSuccessful) {
         revert ERC20TransferFailed();
       }
     }
@@ -1334,7 +1334,7 @@ contract Market is
       from: 0,
       to: countOfRemovalsAllocated
     });
-    bool successfulTransfer;
+    bool isTransferSuccessful;
     uint8 holdbackPercentage;
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
@@ -1376,22 +1376,22 @@ contract Market is
               removalId: removalIds[i]
             });
           }
-          successfulTransfer = _purchasingToken.transferFrom({
+          isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,
             to: address(_restrictedNORI),
             amount: restrictedSupplierFee
           });
-          if (!successfulTransfer) {
+          if (!isTransferSuccessful) {
             revert ERC20TransferFailed();
           }
         }
       }
-      successfulTransfer = _purchasingToken.transferFrom({
+      isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
         amount: unrestrictedSupplierFee
       });
-      if (!successfulTransfer) {
+      if (!isTransferSuccessful) {
         revert ERC20TransferFailed();
       }
     }
