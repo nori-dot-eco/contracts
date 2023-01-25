@@ -102,6 +102,7 @@ contract Certificate is
    * @param removalAmounts The amounts from each removal used for the certificate.
    * @param purchasingTokenAddress The address of the token used to purchase the certificate.
    * @param priceMultiple The number of purchasing tokens required to buy one NRT.
+   * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
   event ReceiveRemovalBatch(
     address from,
@@ -111,7 +112,8 @@ contract Certificate is
     uint256[] removalIds,
     uint256[] removalAmounts,
     address purchasingTokenAddress,
-    uint256 priceMultiple
+    uint256 priceMultiple,
+    uint256 noriFeePercentage
   );
 
   /**
@@ -209,15 +211,17 @@ contract Certificate is
       address recipient,
       uint256 certificateAmount,
       address purchasingTokenAddress,
-      uint256 priceMultiple
-    ) = abi.decode(data, (address, uint256, address, uint256));
+      uint256 priceMultiple,
+      uint256 noriFeePercentage
+    ) = abi.decode(data, (address, uint256, address, uint256, uint256));
     _receiveRemovalBatch({
       recipient: recipient,
       certificateAmount: certificateAmount,
       removalIds: removalIds,
       removalAmounts: removalAmounts,
       purchasingTokenAddress: purchasingTokenAddress,
-      priceMultiple: priceMultiple
+      priceMultiple: priceMultiple,
+      noriFeePercentage: noriFeePercentage
     });
     return this.onERC1155BatchReceived.selector;
   }
@@ -356,7 +360,8 @@ contract Certificate is
     uint256[] calldata removalIds,
     uint256[] calldata removalAmounts,
     address purchasingTokenAddress,
-    uint256 priceMultiple
+    uint256 priceMultiple,
+    uint256 noriFeePercentage
   ) internal {
     _validateReceivedRemovalBatch({
       removalIds: removalIds,
@@ -374,7 +379,8 @@ contract Certificate is
       removalIds: removalIds,
       removalAmounts: removalAmounts,
       purchasingTokenAddress: purchasingTokenAddress,
-      priceMultiple: priceMultiple
+      priceMultiple: priceMultiple,
+      noriFeePercentage: noriFeePercentage
     });
   }
 
