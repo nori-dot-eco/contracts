@@ -374,3 +374,14 @@ Thrown when attempting to replace removals on behalf of a certificate that has n
 
 
 
+## ERC20TransferFailed
+
+```solidity
+error ERC20TransferFailed()
+```
+
+Thrown when an ERC20 token transfer fails.
+
+
+
+

@@ -428,8 +428,8 @@ contract Market is
       chargeFee: false,
       from: treasury,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
-      removalIds: removalIds,
-      removalAmounts: removalAmounts,
+      ids: removalIds,
+      amounts: removalAmounts,
       suppliers: suppliers
     });
     bytes memory data = abi.encode(
@@ -1205,18 +1205,27 @@ contract Market is
    * @param chargeFee Whether to charge a transaction fee for Nori.
    * @param from The address of the spender.
    * @param countOfRemovalsAllocated The number of removals being purchased.
-   * @param removalIds The IDs of the removals being purchased.
-   * @param removalAmounts The amounts of each removal being purchased.
+   * @param ids The IDs of the removals being purchased.
+   * @param amounts The amounts of each removal being purchased.
    * @param suppliers The suppliers who own each removal being purchased.
    */
   function _transferFunds(
     bool chargeFee,
     address from,
     uint256 countOfRemovalsAllocated,
-    uint256[] memory removalIds,
-    uint256[] memory removalAmounts,
+    uint256[] memory ids,
+    uint256[] memory amounts,
     address[] memory suppliers
   ) internal {
+    uint256[] memory removalIds = ids.slice({
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+    uint256[] memory removalAmounts = amounts.slice({
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+    bool isTransferSuccessful;
     uint8 holdbackPercentage;
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
@@ -1258,25 +1267,34 @@ contract Market is
               removalId: removalIds[i]
             });
           }
-          _purchasingToken.transferFrom({
+          isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,
             to: address(_restrictedNORI),
             amount: restrictedSupplierFee
           });
+          if (!isTransferSuccessful) {
+            revert ERC20TransferFailed();
+          }
         }
       }
       if (chargeFee) {
-        _purchasingToken.transferFrom({
+        isTransferSuccessful = _purchasingToken.transferFrom({
           from: from,
           to: _noriFeeWallet,
           amount: this.calculateNoriFee(removalAmounts[i])
         });
+        if (!isTransferSuccessful) {
+          revert ERC20TransferFailed();
+        }
       }
-      _purchasingToken.transferFrom({
+      isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
         amount: unrestrictedSupplierFee
       });
+      if (!isTransferSuccessful) {
+        revert ERC20TransferFailed();
+      }
     }
   }
 
@@ -1313,8 +1331,8 @@ contract Market is
       chargeFee: true,
       from: from,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
-      removalIds: removalIds,
-      removalAmounts: removalAmounts,
+      ids: removalIds,
+      amounts: removalAmounts,
       suppliers: suppliers
     });
     bytes memory data = abi.encode(
@@ -1468,8 +1486,8 @@ contract Market is
       chargeFee: false,
       from: from,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
-      removalIds: removalIds,
-      removalAmounts: removalAmounts,
+      ids: removalIds,
+      amounts: removalAmounts,
       suppliers: suppliers
     });
     bytes memory data = abi.encode(

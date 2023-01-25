@@ -141,3 +141,7 @@ error ReplacementAmountExceedsNrtDeficit();
  * @notice Thrown when attempting to replace removals on behalf of a certificate that has not been minted yet.
  */
 error CertificateNotYetMinted(uint256 tokenId);
+/**
+ * @notice Thrown when an ERC20 token transfer fails.
+ */
+error ERC20TransferFailed();

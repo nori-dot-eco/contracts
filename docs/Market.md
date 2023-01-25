@@ -1043,7 +1043,7 @@ purchase 1 NRT.</i>
 ### _transferFunds
 
 ```solidity
-function _transferFunds(bool chargeFee, address from, uint256 countOfRemovalsAllocated, uint256[] removalIds, uint256[] removalAmounts, address[] suppliers) internal
+function _transferFunds(bool chargeFee, address from, uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers) internal
 ```
 
 Pays the suppliers for the removals being purchased, routes funds to the RestrictedNORI contract if
@@ -1055,8 +1055,8 @@ necessary, and pays a fee to Nori if `chargeFee` is true.
 | chargeFee | bool | Whether to charge a transaction fee for Nori. |
 | from | address | The address of the spender. |
 | countOfRemovalsAllocated | uint256 | The number of removals being purchased. |
-| removalIds | uint256[] | The IDs of the removals being purchased. |
-| removalAmounts | uint256[] | The amounts of each removal being purchased. |
+| ids | uint256[] | The IDs of the removals being purchased. |
+| amounts | uint256[] | The amounts of each removal being purchased. |
 | suppliers | address[] | The suppliers who own each removal being purchased. |
 
 
