@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'fs';
 
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
+import type { BigNumber } from 'ethers';
 import { ethers } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 
@@ -10,7 +11,7 @@ import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
 import { Zero } from '@/constants/units';
 import { getRemoval } from '@/utils/contracts';
 
-interface ListMigratedRemovalsTaskOptions {
+export interface ListMigratedRemovalsTaskOptions {
   file: string;
   outputFile?: string;
   dryRun?: boolean;
@@ -77,7 +78,7 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
       }
 
       const allMigratedRemovalIds = jsonData.flatMap(
-        (project) => project.tokenIds
+        (project: any) => project.tokenIds
       );
       if (allMigratedRemovalIds.includes(undefined)) {
         hre.log(
@@ -91,7 +92,7 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
       hre.log(chalk.white(`👀 Querying unsold removal balances...`));
 
       const remainingBalanceData = await Promise.all(
-        allMigratedRemovalIds.map(async (tokenId) => {
+        allMigratedRemovalIds.map(async (tokenId: BigNumber) => {
           const balance = await removalContract.balanceOf(
             signerAddress,
             tokenId

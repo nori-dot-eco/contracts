@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config';
 
-interface TestSignTypesTaskParameters {}
+export interface TestSignTypesTaskParameters {}
 
 export const types = {
   Permit: [

@@ -406,7 +406,14 @@ contract Removal is
       to: address(_certificate),
       ids: ids,
       amounts: amounts,
-      data: abi.encode(certificateRecipient, certificateAmount, address(0), 0)
+      data: abi.encode(
+        false,
+        certificateRecipient,
+        certificateAmount,
+        address(0),
+        0,
+        0
+      )
     });
   }
 
@@ -762,6 +769,7 @@ contract Removal is
   function _releaseFromCertificate(uint256 id, uint256 amount) internal {
     address certificateAddress_ = this.getCertificateAddress();
     super._burn({from: certificateAddress_, id: id, amount: amount});
+    _certificate.incrementNrtDeficit(amount);
     emit ReleaseRemoval({
       id: id,
       fromAddress: certificateAddress_,

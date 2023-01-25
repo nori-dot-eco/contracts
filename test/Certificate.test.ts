@@ -36,8 +36,17 @@ describe('Certificate', () => {
       market
         .connect(buyer)
         [
-          'swapFromSupplier(address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](buyer.address, value, hre.namedAccounts.supplier, MaxUint256, v, r, s)
+          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
+        ](
+          buyer.address,
+          buyer.address,
+          value,
+          hre.namedAccounts.supplier,
+          MaxUint256,
+          v,
+          r,
+          s
+        )
     )
       .to.emit(certificate, 'ReceiveRemovalBatch')
       .withArgs(
@@ -48,7 +57,8 @@ describe('Certificate', () => {
         [removalId],
         [purchaseAmount],
         bpNori.address,
-        await market.getPriceMultiple()
+        await market.getPriceMultiple(),
+        await market.getNoriFeePercentage()
       );
   });
 });

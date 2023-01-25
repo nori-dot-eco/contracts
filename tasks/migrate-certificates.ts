@@ -6,7 +6,7 @@ import { BigNumber, FixedNumber } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { TransactionReceipt } from '@ethersproject/providers';
 
-import type { Certificate, Removal } from '../typechain-types';
+import type { Certificate, Removal } from '../types/typechain-types';
 
 import { getLogger } from '@/utils/log';
 import { parseTransactionLogs } from '@/utils/events';
@@ -14,7 +14,7 @@ import { Zero } from '@/constants/units';
 import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { getCertificate, getRemoval } from '@/utils/contracts';
 
-interface MigrateCertificatesTaskOptions {
+export interface MigrateCertificatesTaskOptions {
   file: string;
   outputFile?: string;
   dryRun?: boolean;
@@ -105,62 +105,63 @@ const validateMigrateEvent = ({
   inputData: InputData[];
   recipient: string;
 }): void => {
-  const eventLog: {
+  const eventLogs: {
     certificateId: number;
     removalAmounts: number[];
     removalIds: number[];
     certificateAmount: number;
     certificateRecipient: string;
-  } = parseTransactionLogs({
+  }[] = parseTransactionLogs({
     contractInstance: removalContract,
     txReceipt: txResult,
-  })
-    .filter((log) => log.name === 'Migrate')
-    .flatMap((log) => ({
-      certificateId: log.args.certificateId.toNumber(),
-      removalAmounts: log.args.removalAmounts.map((a: BigNumber) =>
-        Number(hre.ethers.utils.formatUnits(a.mul(1_000_000), 18))
-      ),
-      removalIds: log.args.removalIds,
-      certificateAmount: Number(
-        hre.ethers.utils.formatUnits(
-          log.args.certificateAmount.mul(1_000_000),
-          18
-        )
-      ),
-      certificateRecipient: log.args.certificateRecipient,
-    }))[0];
-  const datastoreCertificate = inputData[certificateIndex];
-  const offChainAmountsMatchOnchainAmounts =
-    JSON.stringify(eventLog.removalAmounts) ===
-    JSON.stringify(datastoreCertificate.amounts);
-  const offChainIdsMatchOnchainIds =
-    JSON.stringify(eventLog.removalAmounts) ===
-    JSON.stringify(datastoreCertificate.amounts);
-  if (!offChainAmountsMatchOnchainAmounts) {
-    throw new Error(
-      `Removal amounts do not match for certificate ${eventLog.certificateId}. Expected: ${datastoreCertificate.amounts} , Got: ${eventLog.removalAmounts}`
-    );
-  }
-  if (!offChainIdsMatchOnchainIds) {
-    throw new Error(
-      `Removal ids do not match for certificate ${eventLog.certificateId}. Expected: ${datastoreCertificate.ids} , Got: ${eventLog.removalIds}`
-    );
-  }
-  if (eventLog.certificateAmount !== datastoreCertificate.data.gramsOfNrts) {
-    throw new Error(
-      `Unexpected certificate amount. Expected: ${datastoreCertificate.data.gramsOfNrts} , Got: ${eventLog.certificateAmount}`
-    );
-  }
-  if (eventLog.certificateRecipient !== recipient) {
-    throw new Error(
-      `Unexpected certificate recipient. Expected: ${recipient} , Got: ${eventLog.certificateRecipient}`
-    );
-  }
-  if (eventLog.certificateId !== certificateIndex) {
-    throw new Error(
-      `Unexpected certificate ID. Expected: ${certificateIndex} , Got: ${eventLog.certificateId}`
-    );
+    eventNames: ['Migrate'],
+  }).map((log) => ({
+    certificateId: log.args.certificateId.toNumber(),
+    removalAmounts: log.args.removalAmounts.map((a: BigNumber) =>
+      Number(hre.ethers.utils.formatUnits(a.mul(1_000_000), 18))
+    ),
+    removalIds: log.args.removalIds.map((id) => id.toNumber()),
+    certificateAmount: Number(
+      hre.ethers.utils.formatUnits(
+        log.args.certificateAmount.mul(1_000_000),
+        18
+      )
+    ),
+    certificateRecipient: log.args.certificateRecipient,
+  }));
+  for (const eventLog of eventLogs) {
+    const datastoreCertificate = inputData[certificateIndex];
+    const offChainAmountsMatchOnchainAmounts =
+      JSON.stringify(eventLog.removalAmounts) ===
+      JSON.stringify(datastoreCertificate.amounts);
+    const offChainIdsMatchOnchainIds =
+      JSON.stringify(eventLog.removalAmounts) ===
+      JSON.stringify(datastoreCertificate.amounts);
+    if (!offChainAmountsMatchOnchainAmounts) {
+      throw new Error(
+        `Removal amounts do not match for certificate ${eventLog.certificateId}. Expected: ${datastoreCertificate.amounts} , Got: ${eventLog.removalAmounts}`
+      );
+    }
+    if (!offChainIdsMatchOnchainIds) {
+      throw new Error(
+        `Removal ids do not match for certificate ${eventLog.certificateId}. Expected: ${datastoreCertificate.ids} , Got: ${eventLog.removalIds}`
+      );
+    }
+    if (eventLog.certificateAmount !== datastoreCertificate.data.gramsOfNrts) {
+      throw new Error(
+        `Unexpected certificate amount. Expected: ${datastoreCertificate.data.gramsOfNrts} , Got: ${eventLog.certificateAmount}`
+      );
+    }
+    if (eventLog.certificateRecipient !== recipient) {
+      throw new Error(
+        `Unexpected certificate recipient. Expected: ${recipient} , Got: ${eventLog.certificateRecipient}`
+      );
+    }
+    if (eventLog.certificateId !== certificateIndex) {
+      throw new Error(
+        `Unexpected certificate ID. Expected: ${certificateIndex} , Got: ${eventLog.certificateId}`
+      );
+    }
   }
 };
 
@@ -431,23 +432,27 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             totalAmount
           );
           let txReceipt: TransactionReceipt | undefined;
-          let tokenId: number | undefined = certificateIndex;
+          let tokenIds: number[] | undefined = [certificateIndex];
           if (pendingTx !== undefined && dryRun === false) {
             const txResult = await pendingTx.wait(1); // TODO specify more than one confirmation?
             txReceipt = await removalContract.provider.getTransactionReceipt(
               txResult.transactionHash
             );
-            tokenId = parseTransactionLogs({
+            tokenIds = parseTransactionLogs({
               contractInstance: removalContract,
               txReceipt,
-            })
-              .filter((log) => log.name === 'Migrate')
-              .flatMap((log) => log.args.certificateId.toNumber())[0];
+              eventNames: ['Migrate'],
+            }).map((log) => log.args.certificateId.toNumber());
             if (txReceipt.status !== 1) {
               logger.error(
                 `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
               );
               return;
+            }
+            if (tokenIds.length > 0) {
+              throw new Error(
+                `Unexpected number of certificate token IDs found for migrate transaction. Expected 1 but got ${tokenIds.length}`
+              );
             }
             validateEvents({
               txResult,
@@ -463,7 +468,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           outputData.push({
             ...certificate,
             txReceipt,
-            tokenId,
+            tokenId: tokenIds![0],
           });
         } catch (error) {
           PROGRESS_BAR.stop();

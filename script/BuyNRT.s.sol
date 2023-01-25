@@ -69,7 +69,15 @@ contract BuyNRT is Script {
     );
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(buyerPrivateKey, digest);
 
-    _market.swap(recipientAddress, permit.value, permit.deadline, v, r, s);
+    _market.swap(
+      recipientAddress,
+      buyerAddress,
+      permit.value,
+      permit.deadline,
+      v,
+      r,
+      s
+    );
 
     vm.stopBroadcast();
   }
