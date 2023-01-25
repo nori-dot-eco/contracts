@@ -66,6 +66,26 @@ struct LinkedListNode {
 }
 ```
 
+### FulfillOrderData
+
+
+
+
+
+
+```solidity
+struct FulfillOrderData {
+  bool chargeFee;
+  uint256 certificateAmount;
+  address from;
+  address recipient;
+  uint256 countOfRemovalsAllocated;
+  uint256[] ids;
+  uint256[] amounts;
+  address[] suppliers;
+}
+```
+
 ### _suppliers
 
 ```solidity
@@ -1063,7 +1083,7 @@ necessary, and pays a fee to Nori if `chargeFee` is true.
 ### _fulfillOrder
 
 ```solidity
-function _fulfillOrder(uint256 certificateAmount, address from, address recipient, uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers) internal
+function _fulfillOrder(struct Market.FulfillOrderData params) internal
 ```
 
 Fulfill an order.
@@ -1071,15 +1091,6 @@ Fulfill an order.
 <i>This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
 the order fee, updating accounting, and minting the Certificate.</i>
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| certificateAmount | uint256 | The total amount for the certificate. |
-| from | address | The message sender. |
-| recipient | address | The recipient of the certificate. |
-| countOfRemovalsAllocated | uint256 | The number of distinct removal IDs that are involved in fulfilling this order. |
-| ids | uint256[] | An array of removal IDs involved in fulfilling this order. |
-| amounts | uint256[] | An array of amounts being allocated from each corresponding removal token. |
-| suppliers | address[] | An array of suppliers. |
 
 
 ### _allocateRemovals
@@ -1145,28 +1156,6 @@ Permits the transfer of an amount of tokens.
 | v | uint8 | The recovery identifier for the permit's secp256k1 signature. |
 | r | bytes32 | The r value for the permit's secp256k1 signature. |
 | s | bytes32 | The s value for the permit's secp256k1 signature. |
-
-
-### _fulfillOrderWithoutFee
-
-```solidity
-function _fulfillOrderWithoutFee(uint256 certificateAmount, address from, address recipient, uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers) internal
-```
-
-Fulfill an order without charging the Nori fee.
-
-<i>This function is responsible for paying suppliers, routeing tokens to the RestrictedNORI contract, updating
-accounting, and minting the Certificate.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| certificateAmount | uint256 | The total amount for the certificate. |
-| from | address | The message sender. |
-| recipient | address | The recipient of the certificate. |
-| countOfRemovalsAllocated | uint256 | The number of distinct removal IDs that are involved in fulfilling this order. |
-| ids | uint256[] | An array of removal IDs involved in fulfilling this order. |
-| amounts | uint256[] | An array of amounts being allocated from each corresponding removal token. |
-| suppliers | address[] | An array of suppliers. |
 
 
 ### _addActiveRemoval

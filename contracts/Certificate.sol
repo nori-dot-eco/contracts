@@ -216,8 +216,8 @@ contract Certificate is
    * - The certificate recipient and amount must be encoded in the `data` parameter.
    * @param removalIds The array of ERC1155 Removal IDs received.
    * @param removalAmounts The removal amounts per each removal ID.
-   * @param data The bytes that encode information about either the new certificate to be minted, or replacement
-   * removals being sent to replace released removals.
+   * @param data The bytes that either encode information about the new certificate to be minted (as a CertificateData
+   * struct) or a boolean indicating whether this is a batch of removals being sent to replace released removals.
    * @return The selector of the function.
    */
   function onERC1155BatchReceived(
@@ -380,6 +380,9 @@ contract Certificate is
    * @param certificateAmount The total number of tonnes of carbon removals represented by the new certificate.
    * @param removalIds The Removal token IDs that are being included in the certificate.
    * @param removalAmounts The balances of each corresponding removal token that are being included in the certificate.
+   * @param purchasingTokenAddress The address of the token used to purchase the certificate.
+   * @param priceMultiple The number of purchasing tokens required to purchase one NRT.
+   * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
   function _receiveRemovalBatch(
     address recipient,
