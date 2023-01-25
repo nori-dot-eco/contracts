@@ -37,9 +37,9 @@ export interface CertificateEventMap {
     args: PausedEvent['args'];
     name: 'Paused';
   };
-  CreateCertificate: {
+  ReceiveRemovalBatch: {
     args: CreateCertificateEvent['args'];
-    name: 'CreateCertificate';
+    name: 'ReceiveRemovalBatch';
   };
   RegisterContractAddresses: {
     args: RegisterContractAddressesEvent['args'];

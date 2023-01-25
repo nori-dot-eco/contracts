@@ -72,6 +72,7 @@ contract Certificate is
    * @param certificateAmount The amount of the certificate that will be minted.
    * @param purchasingTokenAddress The address is the address of the token that was used to purchase the certificate.
    * @param priceMultiple The number of purchasing tokens required to purchase one NRT.
+   * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
   struct CertificateData {
     bool isReplacement;
@@ -79,6 +80,7 @@ contract Certificate is
     uint256 certificateAmount;
     address purchasingTokenAddress;
     uint256 priceMultiple;
+    uint256 noriFeePercentage;
   }
 
   /**
@@ -122,8 +124,9 @@ contract Certificate is
    * @param removalAmounts The amounts from each removal used for the certificate.
    * @param purchasingTokenAddress The address of the token used to purchase the certificate.
    * @param priceMultiple The number of purchasing tokens required to buy one NRT.
+   * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
-  event CreateCertificate(
+  event ReceiveRemovalBatch(
     address from,
     address indexed recipient,
     uint256 indexed certificateId,
@@ -131,7 +134,8 @@ contract Certificate is
     uint256[] removalIds,
     uint256[] removalAmounts,
     address purchasingTokenAddress,
-    uint256 priceMultiple
+    uint256 priceMultiple,
+    uint256 noriFeePercentage
   );
 
   /**
@@ -242,10 +246,10 @@ contract Certificate is
         removalIds: removalIds,
         removalAmounts: removalAmounts,
         purchasingTokenAddress: certificateData.purchasingTokenAddress,
-        priceMultiple: certificateData.priceMultiple
+        priceMultiple: certificateData.priceMultiple,
+        noriFeePercentage: certificateData.noriFeePercentage
       });
     }
-
     return this.onERC1155BatchReceived.selector;
   }
 
@@ -371,7 +375,7 @@ contract Certificate is
    * @dev Mints a new certificate token to the next sequential ID and updates the internal data structures
    * that track the relationship between the certificate and its constituent removal tokens and balances.
    *
-   * Emits a `CreateCertificate` event.
+   * Emits a `ReceiveRemovalBatch` event.
    * @param recipient The address receiving the new certificate.
    * @param certificateAmount The total number of tonnes of carbon removals represented by the new certificate.
    * @param removalIds The Removal token IDs that are being included in the certificate.
@@ -383,7 +387,8 @@ contract Certificate is
     uint256[] calldata removalIds,
     uint256[] calldata removalAmounts,
     address purchasingTokenAddress,
-    uint256 priceMultiple
+    uint256 priceMultiple,
+    uint256 noriFeePercentage
   ) internal {
     _validateReceivedRemovalBatch({
       removalIds: removalIds,
@@ -393,7 +398,7 @@ contract Certificate is
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
     _mint(recipient, 1);
-    emit CreateCertificate({
+    emit ReceiveRemovalBatch({
       from: _msgSender(),
       recipient: recipient,
       certificateId: certificateId,
@@ -401,7 +406,8 @@ contract Certificate is
       removalIds: removalIds,
       removalAmounts: removalAmounts,
       purchasingTokenAddress: purchasingTokenAddress,
-      priceMultiple: priceMultiple
+      priceMultiple: priceMultiple,
+      noriFeePercentage: noriFeePercentage
     });
   }
 

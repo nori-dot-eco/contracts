@@ -411,6 +411,7 @@ contract Removal is
         certificateRecipient,
         certificateAmount,
         address(0),
+        0,
         0
       )
     });

@@ -13,9 +13,9 @@ abstract contract Checkout is UpgradeableMarket {
   uint256[] internal _removalIds;
   uint256 internal _certificateTokenId;
 
-  bytes32 constant CREATE_CERTIFICATE_EVENT_SELECTOR =
+  bytes32 constant RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR =
     keccak256(
-      "CreateCertificate(address,address,uint256,uint256,uint256[],uint256[],address,uint256)"
+      "ReceiveRemovalBatch(address,address,uint256,uint256,uint256[],uint256[],address,uint256,uint256)"
     );
 
   function _deployMockERC20() internal returns (MockERC20Permit) {
@@ -801,10 +801,10 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    bool containsCreateCertificateEventSelector = false;
+    bool containsReceiveRemovalBatchEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
-      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
-        containsCreateCertificateEventSelector = true;
+      if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
+        containsReceiveRemovalBatchEventSelector = true;
         assertEq(
           entries[i].topics[1],
           bytes32(uint256(uint160(address(owner))))
@@ -816,22 +816,24 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
           uint256[] memory removalIds,
           uint256[] memory removalAmounts,
           address purchasingTokenAddress,
-          uint256 priceMultiple
+          uint256 priceMultiple,
+          uint256 noriFeePercentage
         ) = abi.decode(
             entries[i].data,
-            (address, uint256, uint256[], uint256[], address, uint256)
+            (address, uint256, uint256[], uint256[], address, uint256, uint256)
           );
         assertEq(from, address(_removal));
         assertEq(eventCertificateAmount, certificateAmount);
         assertEq(purchasingTokenAddress, address(_erc20));
         assertEq(priceMultiple, _market.getPriceMultiple());
+        assertEq(noriFeePercentage, _market.getNoriFeePercentage());
         assertEq(removalIds.length, 1);
         assertEq(removalAmounts.length, 1);
         assertEq(removalIds[0], _removalIds[0]);
         assertEq(removalAmounts[0], certificateAmount);
       }
     }
-    assertEq(containsCreateCertificateEventSelector, true);
+    assertEq(containsReceiveRemovalBatchEventSelector, true);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
@@ -910,10 +912,10 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     );
     vm.stopPrank();
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    bool containsCreateCertificateEventSelector = false;
+    bool containsReceiveRemovalBatchEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
-      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
-        containsCreateCertificateEventSelector = true;
+      if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
+        containsReceiveRemovalBatchEventSelector = true;
         assertEq(
           entries[i].topics[1],
           bytes32(uint256(uint160(address(owner))))
@@ -925,22 +927,24 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
           uint256[] memory removalIds,
           uint256[] memory removalAmounts,
           address purchasingTokenAddress,
-          uint256 priceMultiple
+          uint256 priceMultiple,
+          uint256 noriFeePercentage
         ) = abi.decode(
             entries[i].data,
-            (address, uint256, uint256[], uint256[], address, uint256)
+            (address, uint256, uint256[], uint256[], address, uint256, uint256)
           );
         assertEq(from, address(_removal));
         assertEq(eventCertificateAmount, certificateAmount);
         assertEq(purchasingTokenAddress, address(_erc20));
         assertEq(priceMultiple, _market.getPriceMultiple());
+        assertEq(noriFeePercentage, _market.getNoriFeePercentage());
         assertEq(removalIds.length, 1);
         assertEq(removalAmounts.length, 1);
         assertEq(removalIds[0], _removalIds[0]);
         assertEq(removalAmounts[0], certificateAmount);
       }
     }
-    assertEq(containsCreateCertificateEventSelector, true);
+    assertEq(containsReceiveRemovalBatchEventSelector, true);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);

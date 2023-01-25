@@ -205,7 +205,7 @@ const validateEvents = ({
   //  address to: 0x465d5a3f...18463
   //  uint256 tokenId: 404
   // )
-  // Certificate.CreateCertificate(
+  // Certificate.ReceiveRemovalBatch(
   //  address from: Removal
   //  address recipient: 0x465d5a3f...18463
   //  uint256 certificateId: 404
