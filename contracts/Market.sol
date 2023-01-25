@@ -89,7 +89,8 @@ contract Market is
   }
 
   /**
-   * TODO
+   * @notice The data required to pass to the `_fulfillOrder` function.
+   * @dev This is packaged as a struct to avoid stack too deep errors.
    * @param chargeFee Whether or not to charge the Nori fee.
    * @param certificateAmount The total amount for the certificate.
    * @param from The message sender.
