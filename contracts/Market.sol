@@ -4,7 +4,7 @@ pragma solidity =0.8.17;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "./AccessPresetPausable.sol";
 import "./Certificate.sol";
 import "./Errors.sol";
@@ -76,7 +76,7 @@ contract Market is
   using RemovalsByYearLib for RemovalsByYear;
   using UInt256ArrayLib for uint256[];
   using AddressArrayLib for address[];
-  using Math for uint256;
+  using MathUpgradeable for uint256;
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
