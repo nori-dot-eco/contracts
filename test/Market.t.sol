@@ -11,6 +11,7 @@ import "@/contracts/Removal.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
 import "@/contracts/test/MockERC20Permit.sol";
+import "@/contracts/test/MockUnsafeERC20Permit.sol";
 
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
@@ -53,6 +54,64 @@ abstract contract MarketBalanceTestHelper is UpgradeableMarket {
         )
       );
     }
+  }
+}
+
+contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
+  uint256 checkoutTotal;
+  MockUnsafeERC20Permit internal _unsafeErc20;
+  uint256 ownerPrivateKey = 0xA11CE;
+  address owner = vm.addr(ownerPrivateKey);
+  SignatureUtils internal _mockERC20SignatureUtils;
+  SignedPermit signedPermit;
+
+  function _deployMockUnsafeERC20() internal returns (MockUnsafeERC20Permit) {
+    MockUnsafeERC20Permit impl = new MockUnsafeERC20Permit();
+    bytes memory initializer = abi.encodeWithSignature("initialize()");
+    return MockUnsafeERC20Permit(_deployProxy(address(impl), initializer));
+  }
+
+  function setUp() external {
+    _unsafeErc20 = _deployMockUnsafeERC20();
+    _mockERC20SignatureUtils = new SignatureUtils(
+      _unsafeErc20.DOMAIN_SEPARATOR()
+    );
+    _market.setPurchasingTokenAndPriceMultiple({
+      purchasingToken: _unsafeErc20,
+      priceMultiple: 100
+    });
+    _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
+
+    uint256 numberOfNRTsToPurchase = 1 ether;
+    checkoutTotal = _market.calculateCheckoutTotalWithoutFee(
+      numberOfNRTsToPurchase
+    );
+    _unsafeErc20.transfer(owner, checkoutTotal);
+    vm.prank(owner);
+    _unsafeErc20.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+    _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
+    signedPermit = _mockERC20SignatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _unsafeErc20
+    );
+  }
+
+  function test() external {
+    vm.startPrank(owner);
+    vm.expectRevert(ERC20TransferFailed.selector);
+    _market.swap(
+      owner,
+      owner,
+      checkoutTotal,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    vm.stopPrank();
   }
 }
 
