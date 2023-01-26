@@ -112,3 +112,9 @@ broadcast
 contracts/interfaces/
 
 TODO.*
+
+# migration
+dryRun-migrated-certificates.json
+dryRun-migrated-removals.json
+migrated-removals.json
+migrated-certificates.json

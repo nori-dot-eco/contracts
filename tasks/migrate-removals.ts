@@ -251,21 +251,39 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         let txReceipt;
 
         try {
-          const maybePendingTx = await migrationFunction(
-            signerAddress, // mint to the consignor
-            amounts,
-            removals,
-            project.projectId,
-            project.scheduleStartTime,
-            project.holdbackPercentage
-          );
+          let maybePendingTx;
+          if (network === `localhost`) {
+            const gasPrice = await signer.getGasPrice();
+            maybePendingTx = await migrationFunction(
+              signerAddress, // mint to the consignor
+              amounts,
+              removals,
+              project.projectId,
+              project.scheduleStartTime,
+              project.holdbackPercentage,
+              { gasPrice }
+            );
+          } else {
+            maybePendingTx = await migrationFunction(
+              signerAddress, // mint to the consignor
+              amounts,
+              removals,
+              project.projectId,
+              project.scheduleStartTime,
+              project.holdbackPercentage
+            );
+          }
+
           if (maybePendingTx === undefined) {
             throw new Error(`No pending transaction returned`);
           } else {
             pendingTx = maybePendingTx;
           }
           if (dryRun === false) {
-            const txResult = await pendingTx.wait(2); // TODO specify more than one confirmation?
+            const txResult =
+              network === `localhost`
+                ? await pendingTx.wait()
+                : await pendingTx.wait(2); // TODO what is the correct number of confirmations for mainnet?
             txReceipt = await removalContract.provider.getTransactionReceipt(
               txResult.transactionHash
             );

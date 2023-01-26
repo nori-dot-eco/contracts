@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
-import type { ContractReceipt } from 'ethers';
+import type { ContractReceipt, ContractTransaction } from 'ethers';
 import { BigNumber, FixedNumber } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { TransactionReceipt } from '@ethersproject/providers';
@@ -389,51 +389,61 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           `Signer does not have the CONSIGNOR role in the removal contract`
         );
       }
+
+      const multicallChunks = [];
+      const chunkSize = 98;
+      for (let i = 0; i < inputData.length; i += chunkSize) {
+        multicallChunks.push(inputData.slice(i, i + chunkSize));
+      }
+      console.log('chunks length:', multicallChunks.length);
+
       const outputData: MigratedCertificates = [];
       logger.info(`✨ Migrating ${inputData.length} legacy certificates...`);
       const PROGRESS_BAR = new cliProgress.SingleBar(
         {},
         cliProgress.Presets.shades_classic
       );
-      PROGRESS_BAR.start(inputData.length, 0);
+      PROGRESS_BAR.start(multicallChunks.length, 0);
 
       let certificateIndex = 0;
-      for (const certificate of inputData) {
-        let amounts = certificate.amounts.map((amount) =>
-          BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
-        );
-        let ids = certificate.ids;
-        const totalAmount = BigNumber.from(
-          FixedNumber.from(certificate.data.gramsOfNrts)
-        )
-          .div(1_000_000)
-          .toString();
-        // TODO - this is just to bypass the 4 empty certificates in the input and double check
-        // that we can migrate certificates with 0-amounts...
-        // for the real deal we need those to have updated certificate sources
-        if (amounts.length === 0) {
-          amounts = [Zero];
-          // TODO can this token ID just be 0?
-          ids = [
-            // '0x1007e2555349419a232b2f5fbbf857d153af8b85c16cbdb4ffb6678d7e5f93',
-            hre.ethers.constants.HashZero,
-          ];
-        }
-        const migrationFunction =
-          dryRun === true
-            ? removalContract.callStatic.migrate
-            : removalContract.migrate;
-        let pendingTx: Awaited<ReturnType<typeof migrationFunction>>;
-        try {
-          pendingTx = await migrationFunction(
+      for (const chunk of multicallChunks) {
+        const multicallData = chunk.map((certificate) => {
+          const amounts = certificate.amounts.map((amount) =>
+            BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
+          );
+          const ids = certificate.ids;
+          const totalAmount = BigNumber.from(
+            FixedNumber.from(certificate.data.gramsOfNrts)
+          )
+            .div(1_000_000)
+            .toString();
+          return removalContract.interface.encodeFunctionData('migrate', [
             ids,
             amounts,
-            signerAddress, // TODO use Nori admin address, which may also be the signer?
-            totalAmount
-          );
-          let txReceipt: TransactionReceipt | undefined;
-          let tokenIds: number[] | undefined = [certificateIndex];
+            signerAddress,
+            totalAmount,
+          ]);
+        });
+
+        const migrationFunction =
+          dryRun === true
+            ? removalContract.callStatic.multicall
+            : removalContract.multicall;
+
+        let pendingTx: Awaited<ReturnType<typeof migrationFunction>>;
+
+        let txReceipt: TransactionReceipt | undefined;
+        let tokenIds: number[] | undefined = [certificateIndex];
+        try {
+          const maybePendingTx = await migrationFunction(multicallData);
+          if (maybePendingTx === undefined) {
+            throw new Error(`No pending transaction returned`);
+          } else {
+            pendingTx = maybePendingTx;
+          }
+          console.log('pendingTx:', pendingTx);
           if (pendingTx !== undefined && dryRun === false) {
+            pendingTx = pendingTx as ContractTransaction; // real multicall returns this type
             const txResult = await pendingTx.wait(1); // TODO specify more than one confirmation?
             txReceipt = await removalContract.provider.getTransactionReceipt(
               txResult.transactionHash
@@ -465,24 +475,24 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             });
           }
           PROGRESS_BAR.increment();
-          outputData.push({
-            ...certificate,
-            txReceipt,
-            tokenId: tokenIds![0],
-          });
+          // outputData.push({
+          //   ...certificate,
+          //   txReceipt,
+          //   tokenId: tokenIds![0],
+          // });
         } catch (error) {
           PROGRESS_BAR.stop();
-          logger.error(
-            `❌ Error minting certificate ${
-              JSON.parse(certificate.key).id
-            } (number ${certificateIndex}/${inputData.length}) - exiting early`
-          );
+          // logger.error(
+          //   `❌ Error minting certificate ${
+          //     JSON.parse(certificate.key).id
+          //   } (number ${certificateIndex}/${inputData.length}) - exiting early`
+          // );
 
           hre.log(error);
-          outputData.push({
-            ...certificate,
-            error,
-          });
+          // outputData.push({
+          //   ...certificate,
+          //   error,
+          // });
           writeJsonSync(outputFileName, outputData);
           return;
         }
