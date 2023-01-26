@@ -104,7 +104,8 @@ V2 of this contract was updated to support the new [ERC20Permit](https://github.
 
 A contract managing supplier insurance holdbacks.
 
-Operates similarly to _LockedNORI_ by acting as a wrapper token that governs the scheduled release of the underlying _BridgedPolygonNori_ asset. Implemented as an ERC1155, each token ID has its own schedule parameters that control the linear release of the underlying assets over the duration of the schedule. It is possible to create more than one schedule per owner address and also to transfer full or partial restricted balances between addresses.
+Operates similarly to _LockedNORI_ by acting as a wrapper token that governs the scheduled release of the underlying _BridgedPolygonNori_ asset. Implemented as an ERC1155, each token ID has its own schedule parameters that control the linear release of the underlying assets over the duration of the schedule. It is possible to create more than one schedule per owner address. It is not currently
+possible to transfer restricted balances between addresses, though this feature may be implemented in a future release.
 
 ### Support Libraries
 
