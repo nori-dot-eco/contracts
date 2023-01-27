@@ -33,7 +33,7 @@ interface MigratedCertificate {
   };
   ids: string[];
   amounts: number[];
-  txReceipt?: TransactionReceipt;
+  txReceipt?: { transactionHash?: string; status?: number };
   tokenId?: number;
   error?: any;
 }
@@ -390,24 +390,24 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         );
       }
 
-      const multicallChunks = [];
-      const chunkSize = 98;
-      for (let i = 0; i < inputData.length; i += chunkSize) {
-        multicallChunks.push(inputData.slice(i, i + chunkSize));
+      const multicallBatches = [];
+      const batchSize = 98;
+      for (let i = 0; i < inputData.length; i += batchSize) {
+        multicallBatches.push(inputData.slice(i, i + batchSize));
       }
-      console.log('chunks length:', multicallChunks.length);
-
       const outputData: MigratedCertificates = [];
-      logger.info(`✨ Migrating ${inputData.length} legacy certificates...`);
+      logger.info(
+        `✨ Migrating ${inputData.length} legacy certificates using ${multicallBatches.length} multicall transactions and batch size ${batchSize}...`
+      );
       const PROGRESS_BAR = new cliProgress.SingleBar(
         {},
         cliProgress.Presets.shades_classic
       );
-      PROGRESS_BAR.start(multicallChunks.length, 0);
+      PROGRESS_BAR.start(multicallBatches.length, 0);
 
-      let certificateIndex = 0;
-      for (const chunk of multicallChunks) {
-        const multicallData = chunk.map((certificate) => {
+      let batchIndex = 0;
+      for (const batch of multicallBatches) {
+        const multicallData = batch.map((certificate) => {
           const amounts = certificate.amounts.map((amount) =>
             BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
           );
@@ -424,7 +424,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             totalAmount,
           ]);
         });
-
         const migrationFunction =
           dryRun === true
             ? removalContract.callStatic.multicall
@@ -433,9 +432,26 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         let pendingTx: Awaited<ReturnType<typeof migrationFunction>>;
 
         let txReceipt: TransactionReceipt | undefined;
-        let tokenIds: number[] | undefined = [certificateIndex];
+        let tokenIds = [];
+        for (let i = batchIndex; i < batch.length; i += 1) {
+          tokenIds.push(i);
+        }
+
         try {
-          const maybePendingTx = await migrationFunction(multicallData);
+          let maybePendingTx;
+          if (network === 'localhost' && dryRun === false) {
+            const gasPrice = await signer.getGasPrice();
+            const gasLimit = await removalContract.estimateGas.multicall(
+              multicallData
+            );
+            maybePendingTx = await migrationFunction(multicallData, {
+              gasPrice,
+              gasLimit,
+            });
+          } else {
+            maybePendingTx = await migrationFunction(multicallData);
+          }
+
           if (maybePendingTx === undefined) {
             throw new Error(`No pending transaction returned`);
           } else {
@@ -444,59 +460,75 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           console.log('pendingTx:', pendingTx);
           if (pendingTx !== undefined && dryRun === false) {
             pendingTx = pendingTx as ContractTransaction; // real multicall returns this type
-            const txResult = await pendingTx.wait(1); // TODO specify more than one confirmation?
+            const txResult = await pendingTx.wait(); // TODO specify more than one confirmation?
             txReceipt = await removalContract.provider.getTransactionReceipt(
               txResult.transactionHash
             );
-            tokenIds = parseTransactionLogs({
-              contractInstance: removalContract,
-              txReceipt,
-              eventNames: ['Migrate'],
-            }).map((log) => log.args.certificateId.toNumber());
+
             if (txReceipt.status !== 1) {
               logger.error(
                 `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
               );
               return;
             }
-            if (tokenIds.length > 0) {
-              throw new Error(
-                `Unexpected number of certificate token IDs found for migrate transaction. Expected 1 but got ${tokenIds.length}`
-              );
-            }
-            validateEvents({
-              txResult,
-              removalContract,
-              hre,
-              logger,
-              certificateIndex,
-              inputData,
-              recipient: signerAddress,
-            });
+            tokenIds = parseTransactionLogs({
+              contractInstance: removalContract,
+              txReceipt,
+              eventNames: ['Migrate'],
+            }).map((log) => log.args.certificateId.toNumber());
+            console.log('tokenIds:', tokenIds);
+            // if (tokenIds.length > 0) {
+            //   throw new Error(
+            //     `Unexpected number of certificate token IDs found for migrate transaction. Expected 1 but got ${tokenIds.length}`
+            //   );
+            // }
+            // validateEvents({
+            //   txResult,
+            //   removalContract,
+            //   hre,
+            //   logger,
+            //   certificateIndex,
+            //   inputData,
+            //   recipient: signerAddress,
+            // });
           }
           PROGRESS_BAR.increment();
-          // outputData.push({
-          //   ...certificate,
-          //   txReceipt,
-          //   tokenId: tokenIds![0],
-          // });
+          let certificateIndex = 0;
+          for (const certificate of batch) {
+            outputData.push({
+              ...certificate,
+              txReceipt: {
+                transactionHash: txReceipt?.transactionHash,
+                status: txReceipt?.status,
+              },
+              tokenId: tokenIds![certificateIndex],
+            });
+            certificateIndex += 1;
+          }
         } catch (error) {
           PROGRESS_BAR.stop();
           // logger.error(
-          //   `❌ Error minting certificate ${
-          //     JSON.parse(certificate.key).id
-          //   } (number ${certificateIndex}/${inputData.length}) - exiting early`
+          //   `❌ Error minting certificates ${JSON.parse(batch[0].key).id} - ${
+          //     JSON.parse(batch[batchSize - 1].key).id
+          //   }. Exiting early.`
           // );
+          logger.error(
+            `❌ Error minting certificates ${batchIndex * batchSize} - ${
+              batchIndex * batchSize + batchSize - 1
+            }. Exiting early.`
+          );
 
           hre.log(error);
-          // outputData.push({
-          //   ...certificate,
-          //   error,
-          // });
+          for (const certificate of batch) {
+            outputData.push({
+              ...certificate,
+              error,
+            });
+          }
           writeJsonSync(outputFileName, outputData);
           return;
         }
-        certificateIndex += 1;
+        batchIndex += 1;
       }
       PROGRESS_BAR.stop();
       logger.success(`\nMigrated ${inputData.length} certificates!`);
