@@ -414,6 +414,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
     checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
     uint256 noriFeeAmount = _market.calculateNoriFee(numberOfNRTsToPurchase);
     rNoriToMint = ((checkoutTotal - noriFeeAmount) * holdbackPercentage) / 100;
+    assertEq(_rNori.getMaxManualMintable(), 0);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
 
@@ -439,6 +440,8 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
       signedPermit.r,
       signedPermit.s
     );
+    assertEq(_rNori.getMaxManualMintable(), rNoriToMint);
+    vm.stopPrank();
   }
 }
 
@@ -1156,7 +1159,8 @@ contract Market_onERC1155Received_reverts_SenderNotRemovalContract is
     );
     _rNori.registerContractAddresses(
       IERC20WithPermit(address(_bpNori)),
-      Removal(_unregisteredRemovalDuplicate)
+      Removal(_unregisteredRemovalDuplicate),
+      Market(_market)
     );
     _rNori.grantRole(
       _rNori.SCHEDULE_CREATOR_ROLE(),
@@ -1215,7 +1219,8 @@ contract Market_onERC1155BatchReceived_reverts_SenderNotRemovalContract is
     );
     _rNori.registerContractAddresses(
       IERC20WithPermit(address(_bpNori)),
-      Removal(_unregisteredRemovalDuplicate)
+      Removal(_unregisteredRemovalDuplicate),
+      Market(_market)
     );
     _rNori.grantRole(
       _rNori.SCHEDULE_CREATOR_ROLE(),

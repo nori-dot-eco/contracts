@@ -1306,6 +1306,9 @@ contract Market is
               amount: restrictedSupplierFee,
               removalId: removalIds[i]
             });
+            _restrictedNORI.incrementMaxManualMintable({
+              amount: restrictedSupplierFee
+            });
           }
           isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,
