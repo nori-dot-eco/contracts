@@ -199,21 +199,22 @@ Initialize the RestrictedNORI contract.
 
 
 
-### incrementMaxManualMintable
+### incrementDeficitForSupplier
 
 ```solidity
-function incrementMaxManualMintable(uint256 amount) external
+function incrementDeficitForSupplier(address originalSupplier, uint256 amount) external
 ```
 
-Increments the value of `_maxManualMintable` by `amount`.
+Increments the value of `_supplierToDeficit[originalSupplier]` by `amount`.
 
 <i>This function is only callable by the Market contract, and is used to account for the number
-of RestrictedNORI tokens that have failed to be minted to suppliers' non-1155-compatible wallets
+of RestrictedNORI tokens that have failed to be minted to the specified non-ERC1155-compatible wallet
 during a purchase.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| amount | uint256 | The amount to increment `_maxManualMintable` by. |
+| originalSupplier | address | The original intended recipient of failed RestrictedNORI mint(s). |
+| amount | uint256 | The amount to increment `_supplierToDeficit` by. |
 
 
 ### revokeUnreleasedTokens
@@ -355,15 +356,20 @@ Emits a `ClaimTokens` event.
 | ---- | ---- | ----------- |
 | [0] | bool | Whether or not the tokens were successfully withdrawn. |
 
-### getMaxManualMintable
+### getDeficitForAddress
 
 ```solidity
-function getMaxManualMintable() external view returns (uint256)
+function getDeficitForAddress(address originalSupplier) external view returns (uint256)
 ```
 
-Returns the maximum number of RestrictedNORI tokens that can be manually minted.
+Returns the current deficit of RestrictedNORI tokens that failed to be minted to
+the given non-ERC1155-compatible wallet and have not yet been replaced manually on behalf
+of the original supplier.
 
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| originalSupplier | address | The original supplier address for which to retrieve the deficit. |
 
 
 ### getAllScheduleIds
