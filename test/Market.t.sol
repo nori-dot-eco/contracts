@@ -414,7 +414,10 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
     checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
     uint256 noriFeeAmount = _market.calculateNoriFee(numberOfNRTsToPurchase);
     rNoriToMint = ((checkoutTotal - noriFeeAmount) * holdbackPercentage) / 100;
-    assertEq(_rNori.getMaxManualMintable(), 0);
+    assertEq(
+      _rNori.getDeficitForAddress(RemovalIdLib.supplierAddress(removalId)),
+      0
+    );
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
 
@@ -440,7 +443,10 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
       signedPermit.r,
       signedPermit.s
     );
-    assertEq(_rNori.getMaxManualMintable(), rNoriToMint);
+    assertEq(
+      _rNori.getDeficitForAddress(RemovalIdLib.supplierAddress(removalId)),
+      rNoriToMint
+    );
     vm.stopPrank();
   }
 }

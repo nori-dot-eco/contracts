@@ -169,15 +169,16 @@ contract RestrictedNORI is
   bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
 
   /**
-   * @notice Accounting for the maximum amount of RestrictedNORI that should be mintable manually.
+   * @notice Accounting for the per-address current deficit of RestrictedNORI that should be manually minted
+   * by a Nori admin to a new, ERC1155-compatible wallet on behalf of the original supplier.
    * @dev In the case of a non-ERC1155-compatible supplier wallet address, minting RestrictedNORI during a
-   * purchase will fail and cause an event to be emitted. This variable is used to track the maximum amount
-   * of RestrictedNORI that can be redmedially minted to a supplier's compatible address to avoid over-
+   * purchase will fail and cause an event to be emitted. This data structure tracks the maximum amount
+   * of RestrictedNORI that should be remedially minted to a supplier's compatible address to avoid over-
    * minting the wrapper token and failing to have enough RestrictedNORI backed by wrapped NORI.
-   * TODO This variable should be used to enforce the maximum number of tokens that can ever be minted manually,
-   * and should be decremented when tokens are minted manually, which is not yet implemented.
+   * TODO This variable should be used to enforce the maximum number of tokens that can ever be minted manually
+   * on behalf of a given address, and should be decremented when this occurs, which is not yet implemented.
    */
-  uint256 private _maxManualMintable;
+  mapping(address => uint256) private _supplierToDeficit;
 
   /**
    * @notice A mapping of methodology to version to schedule duration.
@@ -289,17 +290,20 @@ contract RestrictedNORI is
   }
 
   /**
-   * @notice Increments the value of `_maxManualMintable` by `amount`.
+   * @notice Increments the value of `_supplierToDeficit[originalSupplier]` by `amount`.
    * @dev This function is only callable by the Market contract, and is used to account for the number
-   * of RestrictedNORI tokens that have failed to be minted to suppliers' non-1155-compatible wallets
+   * of RestrictedNORI tokens that have failed to be minted to the specified non-ERC1155-compatible wallet
    * during a purchase.
-   * @param amount The amount to increment `_maxManualMintable` by.
+   * @param originalSupplier The original intended recipient of failed RestrictedNORI mint(s).
+   * @param amount The amount to increment `_supplierToDeficit` by.
    */
-  function incrementMaxManualMintable(uint256 amount) external {
+  function incrementDeficitForSupplier(address originalSupplier, uint256 amount)
+    external
+  {
     if (_msgSender() != address(_market)) {
       revert SenderNotMarketContract();
     }
-    _maxManualMintable += amount;
+    _supplierToDeficit[originalSupplier] += amount;
   }
 
   /**
@@ -538,10 +542,17 @@ contract RestrictedNORI is
   }
 
   /**
-   * @notice Returns the maximum number of RestrictedNORI tokens that can be manually minted.
+   * @notice Returns the current deficit of RestrictedNORI tokens that failed to be minted to
+   * the given non-ERC1155-compatible wallet and have not yet been replaced manually on behalf
+   * of the original supplier.
+   * @param originalSupplier The original supplier address for which to retrieve the deficit.
    */
-  function getMaxManualMintable() external view returns (uint256) {
-    return _maxManualMintable;
+  function getDeficitForAddress(address originalSupplier)
+    external
+    view
+    returns (uint256)
+  {
+    return _supplierToDeficit[originalSupplier];
   }
 
   /**

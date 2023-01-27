@@ -1306,8 +1306,11 @@ contract Market is
               amount: restrictedSupplierFee,
               removalId: removalIds[i]
             });
-            _restrictedNORI.incrementMaxManualMintable({
-              amount: restrictedSupplierFee
+            _restrictedNORI.incrementDeficitForSupplier({
+              amount: restrictedSupplierFee,
+              originalSupplier: RemovalIdLib.supplierAddress({
+                removalId: removalIds[i]
+              })
             });
           }
           isTransferSuccessful = _purchasingToken.transferFrom({
