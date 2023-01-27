@@ -36,6 +36,18 @@ the Removal contract.
 
 
 
+## SenderNotMarketContract
+
+```solidity
+error SenderNotMarketContract()
+```
+
+Thrown when a function that can only be called by the Market contract is called by any address other than
+the Market contract.
+
+
+
+
 ## NonexistentSchedule
 
 ```solidity

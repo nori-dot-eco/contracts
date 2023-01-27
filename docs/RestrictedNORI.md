@@ -199,6 +199,23 @@ Initialize the RestrictedNORI contract.
 
 
 
+### incrementMaxManualMintable
+
+```solidity
+function incrementMaxManualMintable(uint256 amount) external
+```
+
+Increments the value of `_maxManualMintable` by `amount`.
+
+<i>This function is only callable by the Market contract, and is used to account for the number
+of RestrictedNORI tokens that have failed to be minted to suppliers' non-1155-compatible wallets
+during a purchase.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| amount | uint256 | The amount to increment `_maxManualMintable` by. |
+
+
 ### revokeUnreleasedTokens
 
 ```solidity
@@ -243,7 +260,7 @@ Emits a `RevokeTokens` event.
 ### registerContractAddresses
 
 ```solidity
-function registerContractAddresses(contract IERC20WithPermit wrappedToken, contract IRemoval removal) external
+function registerContractAddresses(contract IERC20WithPermit wrappedToken, contract IRemoval removal, contract IMarket market) external
 ```
 
 Register the underlying assets used by this contract.
@@ -259,6 +276,7 @@ Register the underlying assets used by this contract.
 | ---- | ---- | ----------- |
 | wrappedToken | contract IERC20WithPermit | The address of the underlying ERC20 contract for which this contract wraps tokens. |
 | removal | contract IRemoval | The address of the Removal contract that accounts for Nori's issued carbon removals. |
+| market | contract IMarket | The address of the Market contract that sells Nori's issued carbon removals. |
 
 
 ### createSchedule
@@ -336,6 +354,17 @@ Emits a `ClaimTokens` event.
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | bool | Whether or not the tokens were successfully withdrawn. |
+
+### getMaxManualMintable
+
+```solidity
+function getMaxManualMintable() external view returns (uint256)
+```
+
+Returns the maximum number of RestrictedNORI tokens that can be manually minted.
+
+
+
 
 ### getAllScheduleIds
 
