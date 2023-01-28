@@ -219,6 +219,3 @@ contract RestrictedNORI_getUnderlyingTokenAddress is UpgradeableMarket {
     assertEq(_rNori.getUnderlyingTokenAddress(), address(_bpNori));
   }
 }
-
-// todo createSchedule
-// todo _createSchedule
