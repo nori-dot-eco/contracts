@@ -90,25 +90,27 @@ const summarize = async ({
   };
 };
 
-const validateMigrateEvent = ({
+const validateMigrateEvents = ({
   txResult,
   removalContract,
   hre,
-  certificateIndex,
+  startingCertificateIndex,
+  certificateBatchSize,
   inputData,
   recipient,
 }: {
   txResult: ContractReceipt;
   removalContract: Removal;
   hre: CustomHardHatRuntimeEnvironment;
-  certificateIndex: number;
+  startingCertificateIndex: number;
+  certificateBatchSize: number;
   inputData: InputData[];
   recipient: string;
 }): void => {
   const eventLogs: {
     certificateId: number;
     removalAmounts: number[];
-    removalIds: number[];
+    removalIds: string[];
     certificateAmount: number;
     certificateRecipient: string;
   }[] = parseTransactionLogs({
@@ -120,7 +122,7 @@ const validateMigrateEvent = ({
     removalAmounts: log.args.removalAmounts.map((a: BigNumber) =>
       Number(hre.ethers.utils.formatUnits(a.mul(1_000_000), 18))
     ),
-    removalIds: log.args.removalIds.map((id) => id.toNumber()),
+    removalIds: log.args.removalIds.map((id) => id.toString()),
     certificateAmount: Number(
       hre.ethers.utils.formatUnits(
         log.args.certificateAmount.mul(1_000_000),
@@ -129,8 +131,13 @@ const validateMigrateEvent = ({
     ),
     certificateRecipient: log.args.certificateRecipient,
   }));
-  for (const eventLog of eventLogs) {
-    const datastoreCertificate = inputData[certificateIndex];
+  if (eventLogs.length !== certificateBatchSize) {
+    throw new Error(
+      `Unexpected number of Migrate events. Expected: ${certificateBatchSize} , Got: ${eventLogs.length}`
+    );
+  }
+  for (const [index, eventLog] of eventLogs.entries()) {
+    const datastoreCertificate = inputData[startingCertificateIndex + index];
     const offChainAmountsMatchOnchainAmounts =
       JSON.stringify(eventLog.removalAmounts) ===
       JSON.stringify(datastoreCertificate.amounts);
@@ -157,9 +164,11 @@ const validateMigrateEvent = ({
         `Unexpected certificate recipient. Expected: ${recipient} , Got: ${eventLog.certificateRecipient}`
       );
     }
-    if (eventLog.certificateId !== certificateIndex) {
+    if (eventLog.certificateId !== startingCertificateIndex + index) {
       throw new Error(
-        `Unexpected certificate ID. Expected: ${certificateIndex} , Got: ${eventLog.certificateId}`
+        `Unexpected certificate ID. Expected: ${
+          startingCertificateIndex + index
+        } , Got: ${eventLog.certificateId}`
       );
     }
   }
@@ -169,7 +178,8 @@ const validateEvents = ({
   txResult,
   removalContract,
   hre,
-  certificateIndex,
+  startingCertificateIndex,
+  certificateBatchSize,
   inputData,
   recipient,
 }: {
@@ -177,15 +187,17 @@ const validateEvents = ({
   removalContract: Removal;
   hre: CustomHardHatRuntimeEnvironment;
   logger: ReturnType<typeof getLogger>;
-  certificateIndex: number;
+  startingCertificateIndex: number;
+  certificateBatchSize: number;
   inputData: InputData[];
   recipient: string;
 }): void => {
-  validateMigrateEvent({
+  validateMigrateEvents({
     txResult,
     removalContract,
     hre,
-    certificateIndex,
+    startingCertificateIndex,
+    certificateBatchSize,
     inputData,
     recipient,
   });
@@ -457,7 +469,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           } else {
             pendingTx = maybePendingTx;
           }
-          console.log('pendingTx:', pendingTx);
           if (pendingTx !== undefined && dryRun === false) {
             pendingTx = pendingTx as ContractTransaction; // real multicall returns this type
             const txResult = await pendingTx.wait(); // TODO specify more than one confirmation?
@@ -476,21 +487,21 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               txReceipt,
               eventNames: ['Migrate'],
             }).map((log) => log.args.certificateId.toNumber());
-            console.log('tokenIds:', tokenIds);
-            // if (tokenIds.length > 0) {
-            //   throw new Error(
-            //     `Unexpected number of certificate token IDs found for migrate transaction. Expected 1 but got ${tokenIds.length}`
-            //   );
-            // }
-            // validateEvents({
-            //   txResult,
-            //   removalContract,
-            //   hre,
-            //   logger,
-            //   certificateIndex,
-            //   inputData,
-            //   recipient: signerAddress,
-            // });
+            if (tokenIds.length !== batch.length) {
+              throw new Error(
+                `Unexpected number of certificate token IDs found for migrate transaction. Expected ${batch.length} but got ${tokenIds.length}`
+              );
+            }
+            validateEvents({
+              txResult,
+              removalContract,
+              hre,
+              logger,
+              startingCertificateIndex: batchIndex * batchSize,
+              certificateBatchSize: batch.length,
+              inputData,
+              recipient: signerAddress,
+            });
           }
           PROGRESS_BAR.increment();
           let certificateIndex = 0;
@@ -507,11 +518,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           }
         } catch (error) {
           PROGRESS_BAR.stop();
-          // logger.error(
-          //   `❌ Error minting certificates ${JSON.parse(batch[0].key).id} - ${
-          //     JSON.parse(batch[batchSize - 1].key).id
-          //   }. Exiting early.`
-          // );
           logger.error(
             `❌ Error minting certificates ${batchIndex * batchSize} - ${
               batchIndex * batchSize + batchSize - 1

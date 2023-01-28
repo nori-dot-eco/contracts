@@ -38,6 +38,14 @@ This command will do the following:
 2. Seed test wallets with funds.
 3. Run the deployment scripts which seed the test contracts.
 
+### Deploying the market contracts on Mumbai or Polygon
+
+Note that you will need to have .env settings configured for production or the deployment will be prevented.
+
+```bash
+hardhat deploy --network [networkName] --tags market
+```
+
 ### Testing
 
 To serially run the hardhat test suite followed by the forge test suite, run the following:
@@ -202,7 +210,7 @@ A description of how to run some example scripts can be found in the examples be
 </details>
 
 <details>
-  
+
   <summary><b>Example: Minting and listing new removals on mumbai</b></summary>
 
 ```bash
@@ -219,7 +227,7 @@ forge script \
 </details>
 
 <details>
-  
+
   <summary><b>Example: Minting bpNORI</b></summary>
 
 ```bash
