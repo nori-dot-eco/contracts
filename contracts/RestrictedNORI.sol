@@ -410,9 +410,7 @@ contract RestrictedNORI is
       scheduleOwners: tokenHoldersLocal,
       quantitiesBurned: quantitiesToBurnForHolders
     });
-    if (!_underlyingToken.transfer({to: toAccount, amount: quantityToRevoke})) {
-      revert ERC20TransferFailed();
-    }
+    _underlyingToken.transfer({to: toAccount, amount: quantityToRevoke});
   }
 
   /**
@@ -535,9 +533,7 @@ contract RestrictedNORI is
       scheduleId: scheduleId,
       quantity: amount
     });
-    if (!_underlyingToken.transfer({to: recipient, amount: amount})) {
-      revert ERC20TransferFailed();
-    }
+    _underlyingToken.transfer({to: recipient, amount: amount});
     return true;
   }
 
