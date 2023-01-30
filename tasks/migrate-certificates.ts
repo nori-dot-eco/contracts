@@ -261,6 +261,7 @@ const validateState = async ({
   }
   const expectedTokenIds = Array.from(
     Array.from({
+      // eslint-disable-next-line unicorn/no-await-expression-member -- script
       length: (await certificateContract.totalMinted()).toNumber(),
     }).keys()
   );
@@ -350,6 +351,30 @@ const printSummary = ({
   });
 };
 
+const callWithTimeout = async (
+  promise: Promise<any>,
+  timeout: number
+): Promise<unknown> => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(
+        () => reject(new Error('Timed out waiting on transaction submission.')),
+        timeout
+      );
+    }),
+  ]).catch((error) => {
+    throw error;
+  });
+};
+
+/**
+ *  TODO for live network runs:
+ * - configure timeout to be a few minutes?
+ * - determine the correct number of confirmation to await
+ *
+ */
+
 export const GET_MIGRATE_CERTIFICATES_TASK = () =>
   ({
     name: 'migrate-certificates',
@@ -375,7 +400,8 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
         );
       }
-      const inputData: MigratedCertificates = readJsonSync(file);
+      const originalInputData: MigratedCertificates = readJsonSync(file);
+      let inputData = originalInputData;
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
       const removalContract = await getRemoval({
@@ -401,13 +427,43 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           `Signer does not have the CONSIGNOR role in the removal contract`
         );
       }
+      let outputData: MigratedCertificates = [];
 
+      const alreadyMigrated = (await certificateContract.totalMinted())
+        // eslint-disable-next-line unicorn/no-await-expression-member -- script
+        .toNumber();
+      logger.info(
+        `Found ${alreadyMigrated} certificates already migrated. Minting remaining ${
+          inputData.length - alreadyMigrated
+        } certificates...`
+      );
+      if (alreadyMigrated > 0) {
+        let alreadyMintedResults;
+        try {
+          alreadyMintedResults = readJsonSync(outputFile);
+        } catch (error) {
+          logger.error(
+            `${alreadyMigrated} certificates have already been migrated, but no ${outputFile} file found... Something is wrong -- where are the existing results?`
+          );
+          throw error;
+        }
+        if (alreadyMintedResults.length !== alreadyMigrated) {
+          logger.error(
+            `${alreadyMigrated} certificates have already been migrated, but the ${outputFile} file contains ${alreadyMintedResults.length} results... Something is wrong -- why is there a mismatch?`
+          );
+          throw new Error(
+            `${alreadyMigrated} certificates have already been migrated, but the ${outputFile} file contains ${alreadyMintedResults.length} results... Something is wrong -- why is there a mismatch?`
+          );
+        }
+        outputData = outputData.concat(alreadyMintedResults);
+      }
+
+      inputData = inputData.slice(alreadyMigrated);
       const multicallBatches = [];
-      const batchSize = 98;
+      const batchSize = 98; // 98 appears to be the max number of certificates that can be migrated in a single multicall transaction without blowing gas limit
       for (let i = 0; i < inputData.length; i += batchSize) {
         multicallBatches.push(inputData.slice(i, i + batchSize));
       }
-      const outputData: MigratedCertificates = [];
       logger.info(
         `✨ Migrating ${inputData.length} legacy certificates using ${multicallBatches.length} multicall transactions and batch size ${batchSize}...`
       );
@@ -416,6 +472,8 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         cliProgress.Presets.shades_classic
       );
       PROGRESS_BAR.start(multicallBatches.length, 0);
+
+      const TIMEOUT_DURATION = 60 * 1000 * 5; // 5 minutes
 
       let batchIndex = 0;
       for (const batch of multicallBatches) {
@@ -441,27 +499,51 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             ? removalContract.callStatic.multicall
             : removalContract.multicall;
 
+        // Enable this code to simulate a timeout on batch 3 if running localhost
+        // if (batchIndex === 2 && network === 'localhost') {
+        //   logger.info(`🚧 Intentionally timing out on third batch`);
+        //   migrationFunction = async (_multicallData: any) => {
+        //     console.log('Calling the timeout fake migrate function...');
+        //     await new Promise((resolve) =>
+        //       // eslint-disable-next-line no-promise-executor-return -- script
+        //       setTimeout(resolve, TIMEOUT_DURATION * 2)
+        //     ); // will time out
+        //     return Promise.resolve(['Timeout']);
+        //   };
+        // }
         let pendingTx: Awaited<ReturnType<typeof migrationFunction>>;
 
         let txReceipt: TransactionReceipt | undefined;
         let tokenIds = [];
-        for (let i = batchIndex; i < batch.length; i += 1) {
+        for (
+          let i = alreadyMigrated + batchIndex * batchSize;
+          i < alreadyMigrated + batchIndex * batchSize + batch.length;
+          i += 1
+        ) {
           tokenIds.push(i);
         }
-
         try {
           let maybePendingTx;
           if (network === 'localhost' && dryRun === false) {
+            console.log(
+              'inside the localhost non-dry-run block (manually setting gas price and limit)'
+            );
             const gasPrice = await signer.getGasPrice();
             const gasLimit = await removalContract.estimateGas.multicall(
               multicallData
             );
-            maybePendingTx = await migrationFunction(multicallData, {
-              gasPrice,
-              gasLimit,
-            });
+            maybePendingTx = await callWithTimeout(
+              migrationFunction(multicallData, { gasPrice, gasLimit }),
+              TIMEOUT_DURATION
+            );
           } else {
-            maybePendingTx = await migrationFunction(multicallData);
+            console.log(
+              'inside the else block -- not setting gas price or limit'
+            );
+            maybePendingTx = await callWithTimeout(
+              migrationFunction(multicallData),
+              TIMEOUT_DURATION
+            );
           }
 
           if (maybePendingTx === undefined) {
@@ -471,10 +553,24 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           }
           if (pendingTx !== undefined && dryRun === false) {
             pendingTx = pendingTx as ContractTransaction; // real multicall returns this type
-            const txResult = await pendingTx.wait(); // TODO specify more than one confirmation?
-            txReceipt = await removalContract.provider.getTransactionReceipt(
-              txResult.transactionHash
-            );
+            logger.info(`📝 Awaiting transaction: ${pendingTx.hash}`);
+            const txResult =
+              network === `localhost`
+                ? ((await callWithTimeout(
+                    pendingTx.wait(),
+                    TIMEOUT_DURATION
+                  )) as ContractReceipt)
+                : ((await callWithTimeout(
+                    pendingTx.wait(2),
+                    TIMEOUT_DURATION
+                  )) as ContractReceipt); // TODO what is the correct number of confirmations for mainnet?
+            logger.info('Getting txReceipt...');
+            txReceipt = (await callWithTimeout(
+              removalContract.provider.getTransactionReceipt(
+                txResult.transactionHash
+              ),
+              TIMEOUT_DURATION
+            )) as TransactionReceipt;
 
             if (txReceipt.status !== 1) {
               logger.error(
@@ -482,6 +578,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               );
               return;
             }
+            logger.info('Getting tokenIds...');
             tokenIds = parseTransactionLogs({
               contractInstance: removalContract,
               txReceipt,
@@ -492,14 +589,16 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
                 `Unexpected number of certificate token IDs found for migrate transaction. Expected ${batch.length} but got ${tokenIds.length}`
               );
             }
+            logger.info('Validating events...');
             validateEvents({
               txResult,
               removalContract,
               hre,
               logger,
-              startingCertificateIndex: batchIndex * batchSize,
+              startingCertificateIndex:
+                alreadyMigrated + batchIndex * batchSize,
               certificateBatchSize: batch.length,
-              inputData,
+              inputData: originalInputData,
               recipient: signerAddress,
             });
           }
@@ -523,14 +622,17 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               batchIndex * batchSize + batchSize - 1
             }. Exiting early.`
           );
-
-          hre.log(error);
-          for (const certificate of batch) {
-            outputData.push({
-              ...certificate,
-              error,
-            });
-          }
+          logger.error(error);
+          // TODO we may not want to write these errors for each certificate... but rather just print it out
+          // otherwise it affects the number of certificate entries in the output file and causes a mis-match with
+          // the number of certificates that have actually been migrated on-chain when the script is run again
+          // for (const certificate of batch) {
+          //   outputData.push({
+          //     ...certificate,
+          //     error,
+          //   });
+          // }
+          logger.info(`Writing current output results to ${outputFileName}`);
           writeJsonSync(outputFileName, outputData);
           return;
         }
@@ -544,7 +646,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         const summary = await summarize({
           outputData,
           certificateContract,
-          inputData,
+          inputData: originalInputData,
         });
         printSummary({
           logger,
@@ -558,7 +660,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           removalContract,
           certificateContract,
           recipient: signerAddress,
-          inputData,
+          inputData: originalInputData,
         });
       } else {
         logger.info(

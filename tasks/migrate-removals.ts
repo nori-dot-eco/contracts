@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 
-import type { ContractTransaction } from 'ethers';
+import type { Contract, ContractReceipt, ContractTransaction } from 'ethers';
 import { BigNumber, FixedNumber } from 'ethers';
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
@@ -63,7 +63,7 @@ interface Summary {
   totalRemovalSupplyOnChain: {
     sum: BigNumber;
     removals: BigNumber[];
-    projects: BigNumber[];
+    // projects: BigNumber[];
   };
   expectedTotalRemovalSupply: number;
 }
@@ -77,34 +77,56 @@ const summarize = async ({
   inputData: InputData[];
   removalContract: Removal;
 }): Promise<Summary> => {
-  const totalRemovalSupplyOnChain = await outputData.reduce(
-    async (summary, project) => {
-      const updatedSummary = await summary;
-      const projectTotals: BigNumber = await project.tokenIds!.reduce(
-        async (total, removal) => {
-          const updatedTotal = await total;
-          const removalIdSupply = await removalContract.totalSupply(removal);
-          const removalTotal = updatedTotal.add(removalIdSupply);
-          updatedSummary.sum = updatedSummary.sum.add(removalIdSupply);
-          updatedSummary.removals.push(removalTotal);
-          return removalTotal;
-        },
-        Promise.resolve(Zero)
-      );
-      updatedSummary.projects.push(projectTotals);
-      return updatedSummary;
-    },
-    Promise.resolve({
-      sum: Zero,
-      removals: [] as BigNumber[],
-      projects: [] as BigNumber[],
-    })
+  const removalAmountsOnChain = await Promise.all(
+    outputData.flatMap((project) =>
+      project.tokenIds!.map((tokenId) => removalContract.totalSupply(tokenId))
+    )
   );
+  const totalOnChainSupply = removalAmountsOnChain.reduce(
+    (total, next) => total.add(next),
+    Zero
+  );
+
+  const totalRemovalSupplyOnChain = {
+    sum: totalOnChainSupply,
+    removals: removalAmountsOnChain,
+  };
+  // const totalRemovalSupplyOnChain = await outputData.reduce(
+  //   async (summary, project, index) => {
+  //     const updatedSummary = await summary;
+
+  //     const projectTotals: BigNumber = await project.tokenIds!.reduce(
+  //       async (total, removal, index) => {
+  //         const updatedTotal = await total;
+  //         const removalIdSupply = await removalContract.totalSupply(removal);
+  //         const removalTotal = updatedTotal.add(removalIdSupply);
+  //         updatedSummary.sum = updatedSummary.sum.add(removalIdSupply);
+  //         updatedSummary.removals.push(removalTotal);
+  //         return Promise.resolve(removalTotal);
+  //       },
+  //       Promise.resolve(Zero)
+  //     );
+  //     updatedSummary.projects.push(projectTotals);
+  //     return Promise.resolve(updatedSummary);
+  //   },
+  //   Promise.resolve({
+  //     sum: Zero,
+  //     removals: [] as BigNumber[],
+  //     projects: [] as BigNumber[],
+  //   })
+  // );
+  console.log('here');
   const expectedTotalRemovalSupply = inputData
     .map((d) => d.amounts)
-    .reduce((total, next) => {
-      return total + next.reduce((t, n) => t + n, 0);
+    .reduce((total, next, index) => {
+      return (
+        total +
+        next.reduce((t, n) => {
+          return t + n;
+        }, 0)
+      );
     }, 0);
+  console.log('about to return');
   return {
     totalRemovalSupplyOnChain,
     expectedTotalRemovalSupply,
@@ -146,17 +168,17 @@ const printSummary = ({
   logger.info(`\n\nMigration summary:`);
   logger.table({
     'Output file name': { value: outputFileName },
-    'Project count': {
-      value: summary.totalRemovalSupplyOnChain.projects.length.toLocaleString(),
-    },
+    // 'Project count': {
+    //   value: summary.totalRemovalSupplyOnChain.projects.length.toLocaleString(),
+    // },
     'Removal count': {
       value: summary.totalRemovalSupplyOnChain.removals.length.toLocaleString(),
     },
-    'Project totals on-chain (tonnes)': {
-      value: summary.totalRemovalSupplyOnChain.projects.map((p) =>
-        Number(ethers.utils.formatUnits(p, 18)).toLocaleString()
-      ),
-    },
+    // 'Project totals on-chain (tonnes)': {
+    //   value: summary.totalRemovalSupplyOnChain.projects.map((p) =>
+    //     Number(ethers.utils.formatUnits(p, 18)).toLocaleString()
+    //   ),
+    // },
     'Total removal supply on-chain (tonnes)': {
       value: Number(
         hre.ethers.utils.formatUnits(summary.totalRemovalSupplyOnChain.sum, 18)
@@ -171,6 +193,30 @@ const asciiStringToHexString = (ascii: string): string => {
     .join('')}`;
 };
 
+const callWithTimeout = async (
+  promise: Promise<any>,
+  timeout: number
+): Promise<unknown> => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(
+        () => reject(new Error('Timed out waiting on transaction submission.')),
+        timeout
+      );
+    }),
+  ]).catch((error) => {
+    throw error;
+  });
+};
+
+/**
+ *  TODO for live network runs:
+ * - configure timeout to be a few minutes?
+ * - determine the correct number of confirmation to await
+ *
+ */
+
 export const GET_MIGRATE_REMOVALS_TASK = () =>
   ({
     name: 'migrate-removals',
@@ -179,6 +225,8 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       options: MigrateRemovalsTaskOptions,
       _: CustomHardHatRuntimeEnvironment
     ): Promise<void> => {
+      const TIMEOUT_DURATION = 60_000; // 1000 * 60 * 5; // 5 minutes
+
       const {
         file,
         outputFile = 'migrated-removals.json',
@@ -196,7 +244,23 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
         );
       }
-      const inputData: InputData[] = readJsonSync(file);
+      const fullInputData: InputData[] = readJsonSync(file);
+      let alreadyMintedResults = [];
+      try {
+        alreadyMintedResults = readJsonSync(outputFile);
+      } catch {
+        logger.info(
+          'No existing migration results found. Continuing with full migration.'
+        );
+      }
+      logger.info(
+        `${alreadyMintedResults.length} projects already minted in ${outputFile}. Skipping first ${alreadyMintedResults.length} projects.`
+      );
+      const filteredInputData = fullInputData.slice(
+        alreadyMintedResults.length
+      );
+      const outputData: Projects = alreadyMintedResults;
+
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
       const removalContract = await getRemoval({
@@ -216,16 +280,17 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         );
       }
 
-      const outputData: Projects = [];
-      logger.info(`Minting removals for ${inputData.length} projects...`);
+      logger.info(
+        `Minting removals for ${filteredInputData.length} projects...`
+      );
       const PROGRESS_BAR = new cliProgress.SingleBar(
         {},
         cliProgress.Presets.shades_classic
       );
-      PROGRESS_BAR.start(inputData.length, 0);
+      PROGRESS_BAR.start(filteredInputData.length, 0);
       // submit all mintBatch transactions serially to avoid nonce collision!
       let projectIndex = 0;
-      for (const project of inputData) {
+      for (const project of filteredInputData) {
         const amounts = project.amounts.map((amount) =>
           BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
         );
@@ -246,31 +311,51 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           dryRun === true
             ? removalContract.callStatic.mintBatch
             : removalContract.mintBatch;
+
+        // Enable this code to simulate a timeout on third project to be minted on localhost
+        // if (projectIndex === 2 && network === 'localhost') {
+        //   logger.info(`🚧 Intentionally timing out on third project`);
+        //   migrationFunction = async () => {
+        //     console.log('Calling the timeout fake mintBatch function...');
+        //     await new Promise((resolve) =>
+        //       // eslint-disable-next-line no-promise-executor-return -- script
+        //       setTimeout(resolve, TIMEOUT_DURATION * 2)
+        //     ); // will time out
+        //   };
+        // }
+
         let pendingTx: ContractTransaction;
         let tokenIds;
         let txReceipt;
-
         try {
           let maybePendingTx;
-          if (network === `localhost`) {
+          if (network === `localhost` && dryRun === false) {
+            // localhost non-dry-run requires manually setting gas price
             const gasPrice = await signer.getGasPrice();
-            maybePendingTx = await migrationFunction(
-              signerAddress, // mint to the consignor
-              amounts,
-              removals,
-              project.projectId,
-              project.scheduleStartTime,
-              project.holdbackPercentage,
-              { gasPrice }
+            maybePendingTx = await callWithTimeout(
+              migrationFunction(
+                signerAddress, // mint to the consignor
+                amounts,
+                removals,
+                project.projectId,
+                project.scheduleStartTime,
+                project.holdbackPercentage,
+                { gasPrice }
+              ),
+              TIMEOUT_DURATION
             );
           } else {
-            maybePendingTx = await migrationFunction(
-              signerAddress, // mint to the consignor
-              amounts,
-              removals,
-              project.projectId,
-              project.scheduleStartTime,
-              project.holdbackPercentage
+            // all other cases
+            maybePendingTx = await callWithTimeout(
+              migrationFunction(
+                signerAddress, // mint to the consignor
+                amounts,
+                removals,
+                project.projectId,
+                project.scheduleStartTime,
+                project.holdbackPercentage
+              ),
+              TIMEOUT_DURATION
             );
           }
 
@@ -280,13 +365,17 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             pendingTx = maybePendingTx;
           }
           if (dryRun === false) {
+            logger.info(`📝 Awaiting transaction: ${pendingTx.hash}`);
             const txResult =
               network === `localhost`
-                ? await pendingTx.wait()
-                : await pendingTx.wait(2); // TODO what is the correct number of confirmations for mainnet?
-            txReceipt = await removalContract.provider.getTransactionReceipt(
-              txResult.transactionHash
-            );
+                ? await callWithTimeout(pendingTx.wait(), TIMEOUT_DURATION)
+                : await callWithTimeout(pendingTx.wait(2), TIMEOUT_DURATION); // TODO what is the correct number of confirmations for mainnet?
+            txReceipt = (await callWithTimeout(
+              removalContract.provider.getTransactionReceipt(
+                (txResult as ContractReceipt).transactionHash
+              ),
+              TIMEOUT_DURATION
+            )) as TransactionReceipt;
             tokenIds = parseTransactionLogs({
               contractInstance: removalContract,
               txReceipt,
@@ -309,14 +398,16 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           });
         } catch (error) {
           logger.error(
-            `❌ Error minting project ${project.projectId} (number ${projectIndex}/${inputData.length}) - exiting early`
+            `❌ Error minting project ${project.projectId} (number ${projectIndex}/${filteredInputData.length}) - exiting early`
           );
           PROGRESS_BAR.stop();
           logger.error(error);
-          outputData.push({
-            ...project,
-            error,
-          });
+          // For now, suppressing the writing of errors to the output file
+          // outputData.push({
+          //   ...project,
+          //   error,
+          // });
+          logger.info(`Writing current output results to ${outputFileName}`);
           writeJsonSync(outputFileName, outputData);
           throw error;
         }
@@ -325,17 +416,20 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       PROGRESS_BAR.stop();
       writeJsonSync(outputFileName, outputData);
       if (!Boolean(dryRun)) {
+        logger.info('Starting validation and summary...');
         const summary = await summarize({
           outputData,
           removalContract,
-          inputData,
+          inputData: fullInputData,
         });
+        logger.info('finished summary, printing summary...');
         printSummary({
           logger,
           outputFileName,
           hre,
           summary,
         });
+        logger.info('starting validation');
         await validate({ summary, logger });
       } else {
         logger.info(
