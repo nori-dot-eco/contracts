@@ -77,48 +77,28 @@ const summarize = async ({
   inputData: InputData[];
   removalContract: Removal;
 }): Promise<Summary> => {
-  const removalAmountsOnChain = await Promise.all(
-    outputData.flatMap((project) =>
-      project.tokenIds!.map((tokenId) => removalContract.totalSupply(tokenId))
-    )
+  const allRemovalIds = outputData.flatMap((project) => project.tokenIds!);
+  const multicallData = allRemovalIds.map((tokenId) =>
+    removalContract.interface.encodeFunctionData('totalSupply', [tokenId])
   );
-  const totalOnChainSupply = removalAmountsOnChain.reduce(
+  const removalAmountsOnChain = await removalContract.callStatic.multicall(
+    multicallData
+  );
+  const bigNumberRemovalAmounts = removalAmountsOnChain.map((amount) =>
+    BigNumber.from(amount)
+  );
+  const totalOnChainSupply = bigNumberRemovalAmounts.reduce(
     (total, next) => total.add(next),
     Zero
   );
 
   const totalRemovalSupplyOnChain = {
     sum: totalOnChainSupply,
-    removals: removalAmountsOnChain,
+    removals: bigNumberRemovalAmounts,
   };
-  // const totalRemovalSupplyOnChain = await outputData.reduce(
-  //   async (summary, project, index) => {
-  //     const updatedSummary = await summary;
-
-  //     const projectTotals: BigNumber = await project.tokenIds!.reduce(
-  //       async (total, removal, index) => {
-  //         const updatedTotal = await total;
-  //         const removalIdSupply = await removalContract.totalSupply(removal);
-  //         const removalTotal = updatedTotal.add(removalIdSupply);
-  //         updatedSummary.sum = updatedSummary.sum.add(removalIdSupply);
-  //         updatedSummary.removals.push(removalTotal);
-  //         return Promise.resolve(removalTotal);
-  //       },
-  //       Promise.resolve(Zero)
-  //     );
-  //     updatedSummary.projects.push(projectTotals);
-  //     return Promise.resolve(updatedSummary);
-  //   },
-  //   Promise.resolve({
-  //     sum: Zero,
-  //     removals: [] as BigNumber[],
-  //     projects: [] as BigNumber[],
-  //   })
-  // );
-  console.log('here');
   const expectedTotalRemovalSupply = inputData
     .map((d) => d.amounts)
-    .reduce((total, next, index) => {
+    .reduce((total, next) => {
       return (
         total +
         next.reduce((t, n) => {
@@ -126,7 +106,6 @@ const summarize = async ({
         }, 0)
       );
     }, 0);
-  console.log('about to return');
   return {
     totalRemovalSupplyOnChain,
     expectedTotalRemovalSupply,
@@ -210,13 +189,6 @@ const callWithTimeout = async (
   });
 };
 
-/**
- *  TODO for live network runs:
- * - configure timeout to be a few minutes?
- * - determine the correct number of confirmation to await
- *
- */
-
 export const GET_MIGRATE_REMOVALS_TASK = () =>
   ({
     name: 'migrate-removals',
@@ -225,7 +197,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       options: MigrateRemovalsTaskOptions,
       _: CustomHardHatRuntimeEnvironment
     ): Promise<void> => {
-      const TIMEOUT_DURATION = 60_000; // 1000 * 60 * 5; // 5 minutes
+      const TIMEOUT_DURATION = 1000 * 60 * 2; // 2 minutes
 
       const {
         file,

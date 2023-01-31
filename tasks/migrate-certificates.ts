@@ -67,18 +67,22 @@ const summarize = async ({
   inputData: InputData[];
   certificateContract: Certificate;
 }): Promise<Summary> => {
-  const totalCertificateSupplyOnChain = await outputData.reduce(
-    async (summary, certificate) => {
-      const updatedSummary = await summary;
-      const certificateIdAmount = await certificateContract.getPurchaseAmount(
-        certificate.tokenId!
-      );
-      updatedSummary.certificates.push(certificateIdAmount);
-      updatedSummary.sum = updatedSummary.sum.add(certificateIdAmount);
-      return updatedSummary;
-    },
-    Promise.resolve({ sum: Zero, certificates: [] as BigNumber[] })
+  const multicallData = outputData.map((certificate) =>
+    certificateContract.interface.encodeFunctionData('getPurchaseAmount', [
+      certificate.tokenId!,
+    ])
   );
+  const allCertificateBalances = (
+    await certificateContract.callStatic.multicall(multicallData)
+  ).map((balance) => BigNumber.from(balance));
+  const sumOfCertificateAmountsOnChain = allCertificateBalances.reduce(
+    (total, next) => total.add(next),
+    Zero
+  );
+  const totalCertificateSupplyOnChain = {
+    sum: sumOfCertificateAmountsOnChain,
+    certificates: allCertificateBalances,
+  };
   const expectedTotalCertificateSupply = inputData
     .map((d) => d.amounts)
     .reduce((total, next) => {
@@ -368,13 +372,6 @@ const callWithTimeout = async (
   });
 };
 
-/**
- *  TODO for live network runs:
- * - configure timeout to be a few minutes?
- * - determine the correct number of confirmation to await
- *
- */
-
 export const GET_MIGRATE_CERTIFICATES_TASK = () =>
   ({
     name: 'migrate-certificates',
@@ -464,6 +461,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       for (let i = 0; i < inputData.length; i += batchSize) {
         multicallBatches.push(inputData.slice(i, i + batchSize));
       }
+      // multicallBatches = multicallBatches.slice(0, 3);
       logger.info(
         `✨ Migrating ${inputData.length} legacy certificates using ${multicallBatches.length} multicall transactions and batch size ${batchSize}...`
       );
@@ -473,8 +471,8 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       );
       PROGRESS_BAR.start(multicallBatches.length, 0);
 
-      const TIMEOUT_DURATION = 60 * 1000 * 5; // 5 minutes
-
+      const TIMEOUT_DURATION = 60 * 1000 * 2; // 2 minutes
+      // multicallBatches = multicallBatches.slice(0, 3); // if needed to try smaller batches
       let batchIndex = 0;
       for (const batch of multicallBatches) {
         const multicallData = batch.map((certificate) => {
@@ -525,9 +523,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         try {
           let maybePendingTx;
           if (network === 'localhost' && dryRun === false) {
-            console.log(
-              'inside the localhost non-dry-run block (manually setting gas price and limit)'
-            );
+            // have to manually set gas price and limit on localhost for non-dry-run
             const gasPrice = await signer.getGasPrice();
             const gasLimit = await removalContract.estimateGas.multicall(
               multicallData
@@ -537,9 +533,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               TIMEOUT_DURATION
             );
           } else {
-            console.log(
-              'inside the else block -- not setting gas price or limit'
-            );
+            // all other cases
             maybePendingTx = await callWithTimeout(
               migrationFunction(multicallData),
               TIMEOUT_DURATION
@@ -552,7 +546,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             pendingTx = maybePendingTx;
           }
           if (pendingTx !== undefined && dryRun === false) {
-            pendingTx = pendingTx as ContractTransaction; // real multicall returns this type
+            pendingTx = pendingTx as ContractTransaction; // real multicall returns this type but callstatic is different
             logger.info(`📝 Awaiting transaction: ${pendingTx.hash}`);
             const txResult =
               network === `localhost`
@@ -626,6 +620,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           // TODO we may not want to write these errors for each certificate... but rather just print it out
           // otherwise it affects the number of certificate entries in the output file and causes a mis-match with
           // the number of certificates that have actually been migrated on-chain when the script is run again
+          // Therefore commenting it out for now.
           // for (const certificate of batch) {
           //   outputData.push({
           //     ...certificate,
