@@ -1306,6 +1306,12 @@ contract Market is
               amount: restrictedSupplierFee,
               removalId: removalIds[i]
             });
+            _restrictedNORI.incrementDeficitForSupplier({
+              amount: restrictedSupplierFee,
+              originalSupplier: RemovalIdLib.supplierAddress({
+                removalId: removalIds[i]
+              })
+            });
           }
           isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,

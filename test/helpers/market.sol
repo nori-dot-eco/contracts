@@ -27,7 +27,8 @@ abstract contract UpgradeableMarket is
     );
     _rNori.registerContractAddresses( // todo move to rnori helper
       IERC20WithPermit(address(_bpNori)),
-      Removal(_removal)
+      Removal(_removal),
+      Market(_market)
     );
     _rNori.grantRole(_rNori.MINTER_ROLE(), address(_market)); // todo move to rnori helper
     _rNori.grantRole(_rNori.SCHEDULE_CREATOR_ROLE(), address(_removal)); // todo move to rnori helper

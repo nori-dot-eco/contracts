@@ -17,6 +17,11 @@ error FunctionDisabled();
  */
 error SenderNotRemovalContract();
 /**
+ * @notice Thrown when a function that can only be called by the Market contract is called by any address other than
+ * the Market contract.
+ */
+error SenderNotMarketContract();
+/**
  * @notice Thrown when a non-existent rNORI schedule is requested.
  * @param scheduleId The schedule ID that does not exist.
  */
