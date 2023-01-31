@@ -398,7 +398,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         );
       }
       const originalInputData: MigratedCertificates = readJsonSync(file);
-      let inputData = originalInputData;
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
       const removalContract = await getRemoval({
@@ -431,7 +430,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         .toNumber();
       logger.info(
         `Found ${alreadyMigrated} certificates already migrated. Minting remaining ${
-          inputData.length - alreadyMigrated
+          originalInputData.length - alreadyMigrated
         } certificates...`
       );
       if (alreadyMigrated > 0) {
@@ -454,16 +453,46 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         }
         outputData = outputData.concat(alreadyMintedResults);
       }
+      const inputData = originalInputData.slice(alreadyMigrated);
+      // const certificateLengths = inputData
+      //   .map((certificate) => certificate.ids.length)
+      //   .sort((a, b) => b - a);
+      // console.log(certificateLengths.slice(0, 10));
+      // return;
 
-      inputData = inputData.slice(alreadyMigrated);
       const multicallBatches = [];
-      const batchSize = 98; // 98 appears to be the max number of certificates that can be migrated in a single multicall transaction without blowing gas limit
-      for (let i = 0; i < inputData.length; i += batchSize) {
-        multicallBatches.push(inputData.slice(i, i + batchSize));
+      const batchSize = 100;
+      let batch = [];
+      let singularBatchCount = 0;
+      for (const certificate of inputData) {
+        if (batch.length === batchSize) {
+          multicallBatches.push(batch);
+          batch = [];
+        }
+        if (certificate.ids.length > 30) {
+          if (batch.length > 0) {
+            multicallBatches.push(batch);
+          }
+          batch = [certificate];
+          multicallBatches.push(batch);
+          singularBatchCount += 1;
+          batch = [];
+        }
+        batch.push(certificate);
       }
+      multicallBatches.push(batch);
+      for (const batch of multicallBatches) {
+        if (batch.length === 0) {
+          throw new Error(`Empty batch found`);
+        }
+      }
+
+      // for (let i = 0; i < inputData.length; i += batchSize) {
+      //   multicallBatches.push(inputData.slice(i, i + batchSize));
+      // }
       // multicallBatches = multicallBatches.slice(0, 3);
       logger.info(
-        `✨ Migrating ${inputData.length} legacy certificates using ${multicallBatches.length} multicall transactions and batch size ${batchSize}...`
+        `✨ Migrating ${inputData.length} legacy certificates using ${multicallBatches.length} total transactions and max batch size ${batchSize} with ${singularBatchCount} singular transactions for large certificates...`
       );
       const PROGRESS_BAR = new cliProgress.SingleBar(
         {},
@@ -473,8 +502,9 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
 
       const TIMEOUT_DURATION = 60 * 1000 * 2; // 2 minutes
       // multicallBatches = multicallBatches.slice(0, 3); // if needed to try smaller batches
-      let batchIndex = 0;
+      let batchStartingTokenId = alreadyMigrated ?? 0;
       for (const batch of multicallBatches) {
+        console.log('batch length', batch.length);
         const multicallData = batch.map((certificate) => {
           const amounts = certificate.amounts.map((amount) =>
             BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
@@ -513,9 +543,10 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
 
         let txReceipt: TransactionReceipt | undefined;
         let tokenIds = [];
+        // NOTE: the token id code below only matters for simulating token ids for dry runs...
         for (
-          let i = alreadyMigrated + batchIndex * batchSize;
-          i < alreadyMigrated + batchIndex * batchSize + batch.length;
+          let i = batchStartingTokenId;
+          i < batchStartingTokenId + batch.length;
           i += 1
         ) {
           tokenIds.push(i);
@@ -570,7 +601,9 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               logger.error(
                 `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
               );
-              return;
+              throw new Error(
+                'Transaction failed with unsuccessful status - exiting early'
+              );
             }
             logger.info('Getting tokenIds...');
             tokenIds = parseTransactionLogs({
@@ -589,8 +622,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               removalContract,
               hre,
               logger,
-              startingCertificateIndex:
-                alreadyMigrated + batchIndex * batchSize,
+              startingCertificateIndex: batchStartingTokenId,
               certificateBatchSize: batch.length,
               inputData: originalInputData,
               recipient: signerAddress,
@@ -612,8 +644,8 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         } catch (error) {
           PROGRESS_BAR.stop();
           logger.error(
-            `❌ Error minting certificates ${batchIndex * batchSize} - ${
-              batchIndex * batchSize + batchSize - 1
+            `❌ Error minting certificates ${batchStartingTokenId} - ${
+              batchStartingTokenId + batch.length - 1
             }. Exiting early.`
           );
           logger.error(error);
@@ -631,7 +663,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           writeJsonSync(outputFileName, outputData);
           return;
         }
-        batchIndex += 1;
+        batchStartingTokenId += batch.length;
       }
       PROGRESS_BAR.stop();
       logger.success(`\nMigrated ${inputData.length} certificates!`);
