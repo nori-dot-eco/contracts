@@ -28,7 +28,7 @@ describe('events', () => {
       expect(removalLogs[0].args.vals.length).to.equal(1);
       expect(removalLogs[0].args.ids[0]).to.eq(
         hre.ethers.BigNumber.from(
-          '28323994154581855794530986173263081099665759625301584093990944131103326209' // matches the token ID in marketSwapTransactionReceipt
+          '28323994154569157217720298918077841297662610516141809028926793389283737601' // matches the token ID in marketSwapTransactionReceipt
         )
       );
       expect(removalLogs[0].args.vals[0]).to.eq(
