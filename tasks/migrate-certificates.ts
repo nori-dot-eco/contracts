@@ -574,7 +574,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           if (maybePendingTx === undefined) {
             throw new Error(`No pending transaction returned`);
           } else {
-            pendingTx = maybePendingTx;
+            pendingTx = maybePendingTx as ContractTransaction;
           }
           if (pendingTx !== undefined && dryRun === false) {
             pendingTx = pendingTx as ContractTransaction; // real multicall returns this type but callstatic is different

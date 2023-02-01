@@ -334,7 +334,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           if (maybePendingTx === undefined) {
             throw new Error(`No pending transaction returned`);
           } else {
-            pendingTx = maybePendingTx;
+            pendingTx = maybePendingTx as ContractTransaction;
           }
           if (dryRun === false) {
             logger.info(`📝 Awaiting transaction: ${pendingTx.hash}`);
