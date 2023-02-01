@@ -45,7 +45,7 @@ export const deploy: DeployFunction = async (environment) => {
 };
 
 export default deploy;
-deploy.tags = ['market'];
+deploy.tags = ['market', 'configure'];
 deploy.dependencies = ['Market'];
 deploy.skip = async (hre) =>
   Promise.resolve(
