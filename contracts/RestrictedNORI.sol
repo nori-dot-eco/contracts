@@ -8,6 +8,7 @@ import "./AccessPresetPausable.sol";
 import "./Errors.sol";
 import "./IERC20WithPermit.sol";
 import "./IRemoval.sol";
+import "./IMarket.sol";
 import "./IRestrictedNORI.sol";
 import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
@@ -168,6 +169,18 @@ contract RestrictedNORI is
   bytes32 public constant TOKEN_REVOKER_ROLE = keccak256("TOKEN_REVOKER_ROLE");
 
   /**
+   * @notice Accounting for the per-address current deficit of RestrictedNORI that should be manually minted
+   * by a Nori admin to a new, ERC1155-compatible wallet on behalf of the original supplier.
+   * @dev In the case of a non-ERC1155-compatible supplier wallet address, minting RestrictedNORI during a
+   * purchase will fail and cause an event to be emitted. This data structure tracks the maximum amount
+   * of RestrictedNORI that should be remedially minted to a supplier's compatible address to avoid over-
+   * minting the wrapper token and failing to have enough RestrictedNORI backed by wrapped NORI.
+   * TODO This variable should be used to enforce the maximum number of tokens that can ever be minted manually
+   * on behalf of a given address, and should be decremented when this occurs, which is not yet implemented.
+   */
+  mapping(address => uint256) private _supplierToDeficit;
+
+  /**
    * @notice A mapping of methodology to version to schedule duration.
    */
   mapping(uint256 => mapping(uint256 => uint256))
@@ -192,6 +205,11 @@ contract RestrictedNORI is
    * @notice The Removal contract that accounts for carbon removal supply.
    */
   IRemoval private _removal;
+
+  /**
+   * @notice The Market contract that sells carbon removals.
+   */
+  IMarket private _market;
 
   /**
    * @notice Emitted on successful creation of a new schedule.
@@ -269,6 +287,23 @@ contract RestrictedNORI is
       methodologyVersion: 0,
       durationInSeconds: 315_569_520 // Seconds in 10 years (accounts for leap years)
     });
+  }
+
+  /**
+   * @notice Increments the value of `_supplierToDeficit[originalSupplier]` by `amount`.
+   * @dev This function is only callable by the Market contract, and is used to account for the number
+   * of RestrictedNORI tokens that have failed to be minted to the specified non-ERC1155-compatible wallet
+   * during a purchase.
+   * @param originalSupplier The original intended recipient of failed RestrictedNORI mint(s).
+   * @param amount The amount to increment `_supplierToDeficit` by.
+   */
+  function incrementDeficitForSupplier(address originalSupplier, uint256 amount)
+    external
+  {
+    if (_msgSender() != address(_market)) {
+      revert SenderNotMarketContract();
+    }
+    _supplierToDeficit[originalSupplier] += amount;
   }
 
   /**
@@ -388,13 +423,16 @@ contract RestrictedNORI is
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
    * @param wrappedToken The address of the underlying ERC20 contract for which this contract wraps tokens.
    * @param removal The address of the Removal contract that accounts for Nori's issued carbon removals.
+   * @param market The address of the Market contract that sells Nori's issued carbon removals.
    */
   function registerContractAddresses(
     IERC20WithPermit wrappedToken,
-    IRemoval removal
+    IRemoval removal,
+    IMarket market
   ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     _underlyingToken = IERC20WithPermit(wrappedToken);
     _removal = IRemoval(removal);
+    _market = IMarket(market);
   }
 
   /**
@@ -497,6 +535,20 @@ contract RestrictedNORI is
     });
     _underlyingToken.transfer({to: recipient, amount: amount});
     return true;
+  }
+
+  /**
+   * @notice Returns the current deficit of RestrictedNORI tokens that failed to be minted to
+   * the given non-ERC1155-compatible wallet and have not yet been replaced manually on behalf
+   * of the original supplier.
+   * @param originalSupplier The original supplier address for which to retrieve the deficit.
+   */
+  function getDeficitForAddress(address originalSupplier)
+    external
+    view
+    returns (uint256)
+  {
+    return _supplierToDeficit[originalSupplier];
   }
 
   /**
