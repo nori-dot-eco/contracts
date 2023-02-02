@@ -279,22 +279,22 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           };
           return removalData;
         });
-        const migrationFunction =
+        let migrationFunction =
           dryRun === true
             ? removalContract.callStatic.mintBatch
             : removalContract.mintBatch;
 
         // Enable this code to simulate a timeout on third project to be minted on localhost
-        // if (projectIndex === 2 && network === 'localhost') {
-        //   logger.info(`🚧 Intentionally timing out on third project`);
-        //   migrationFunction = async () => {
-        //     console.log('Calling the timeout fake mintBatch function...');
-        //     await new Promise((resolve) =>
-        //       // eslint-disable-next-line no-promise-executor-return -- script
-        //       setTimeout(resolve, TIMEOUT_DURATION * 2)
-        //     ); // will time out
-        //   };
-        // }
+        if (projectIndex === 2 && network === 'localhost') {
+          logger.info(`🚧 Intentionally timing out on third project`);
+          migrationFunction = async () => {
+            console.log('Calling the timeout fake mintBatch function...');
+            await new Promise((resolve) =>
+              // eslint-disable-next-line no-promise-executor-return -- script
+              setTimeout(resolve, TIMEOUT_DURATION * 2)
+            ); // will time out
+          };
+        }
 
         let pendingTx: ContractTransaction;
         let tokenIds;
