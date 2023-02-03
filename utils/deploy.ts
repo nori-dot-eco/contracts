@@ -408,23 +408,23 @@ export const seedContracts = async ({
     contracts.Market !== undefined &&
     contracts.Removal !== undefined
   ) {
-    const tokenId = {
-      ...defaultRemovalTokenIdFixture,
-      subIdentifier: generateRandomSubIdentifier(), // keep token ids unique
-    };
-    const packedData = await createBatchMintData({
-      hre,
-      scheduleStartTime: await getLatestBlockTime({ hre }),
-    });
-    const tx = await contracts.Removal.mintBatch(
-      contracts.Market.address,
-      [formatTokenAmount(100)],
-      [tokenId],
-      packedData.projectId,
-      packedData.scheduleStartTime,
-      packedData.holdbackPercentage
-    );
-    hre.trace('Listed 100 NRTs for sale in Market', { tx: tx.hash });
+    // const tokenId = {
+    //   ...defaultRemovalTokenIdFixture,
+    //   subIdentifier: generateRandomSubIdentifier(), // keep token ids unique
+    // };
+    // const packedData = await createBatchMintData({
+    //   hre,
+    //   scheduleStartTime: await getLatestBlockTime({ hre }),
+    // });
+    // const tx = await contracts.Removal.mintBatch(
+    //   contracts.Market.address,
+    //   [formatTokenAmount(100)],
+    //   [tokenId],
+    //   packedData.projectId,
+    //   packedData.scheduleStartTime,
+    //   packedData.holdbackPercentage
+    // );
+    // hre.trace('Listed 100 NRTs for sale in Market', { tx: tx.hash });
   }
   if (
     contracts.BridgedPolygonNORI !== undefined &&
