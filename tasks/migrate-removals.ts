@@ -173,11 +173,11 @@ const asciiStringToHexString = (ascii: string): string => {
 };
 
 const callWithTimeout = async (
-  promise: Promise<any>,
+  callback: () => Promise<any>,
   timeout: number
 ): Promise<unknown> => {
   return Promise.race([
-    promise,
+    callback(),
     new Promise((_, reject) => {
       setTimeout(
         () => reject(new Error('Timed out waiting on transaction submission.')),
@@ -285,16 +285,16 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             : removalContract.mintBatch;
 
         // Enable this code to simulate a timeout on third project to be minted on localhost
-        if (projectIndex === 2 && network === 'localhost') {
-          logger.info(`🚧 Intentionally timing out on third project`);
-          migrationFunction = async () => {
-            console.log('Calling the timeout fake mintBatch function...');
-            await new Promise((resolve) =>
-              // eslint-disable-next-line no-promise-executor-return -- script
-              setTimeout(resolve, TIMEOUT_DURATION * 2)
-            ); // will time out
-          };
-        }
+        // if (projectIndex === 2 && network === 'localhost') {
+        //   logger.info(`🚧 Intentionally timing out on third project`);
+        //   migrationFunction = async () => {
+        //     console.log('Calling the timeout fake mintBatch function...');
+        //     await new Promise((resolve) =>
+        //       // eslint-disable-next-line no-promise-executor-return -- script
+        //       setTimeout(resolve, TIMEOUT_DURATION * 2)
+        //     ); // will time out
+        //   };
+        // }
 
         let pendingTx: ContractTransaction;
         let tokenIds;
@@ -305,7 +305,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             // localhost non-dry-run requires manually setting gas price
             const gasPrice = await signer.getGasPrice();
             maybePendingTx = await callWithTimeout(
-              migrationFunction(
+             () =>  migrationFunction(
                 signerAddress, // mint to the consignor
                 amounts,
                 removals,
@@ -319,7 +319,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           } else {
             // all other cases
             maybePendingTx = await callWithTimeout(
-              migrationFunction(
+             () =>  migrationFunction(
                 signerAddress, // mint to the consignor
                 amounts,
                 removals,
@@ -340,10 +340,10 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             logger.info(`📝 Awaiting transaction: ${pendingTx.hash}`);
             const txResult =
               network === `localhost`
-                ? await callWithTimeout(pendingTx.wait(), TIMEOUT_DURATION)
-                : await callWithTimeout(pendingTx.wait(2), TIMEOUT_DURATION); // TODO what is the correct number of confirmations for mainnet?
+                ? await callWithTimeout(() => pendingTx.wait(), TIMEOUT_DURATION)
+                : await callWithTimeout(() => pendingTx.wait(2), TIMEOUT_DURATION); // TODO what is the correct number of confirmations for mainnet?
             txReceipt = (await callWithTimeout(
-              removalContract.provider.getTransactionReceipt(
+              () => removalContract.provider.getTransactionReceipt(
                 (txResult as ContractReceipt).transactionHash
               ),
               TIMEOUT_DURATION

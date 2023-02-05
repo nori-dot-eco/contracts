@@ -356,11 +356,11 @@ const printSummary = ({
 };
 
 const callWithTimeout = async (
-  promise: Promise<any>,
+  callback: () => Promise<any>,
   timeout: number
 ): Promise<unknown> => {
   return Promise.race([
-    promise,
+    callback(),
     new Promise((_, reject) => {
       setTimeout(
         () => reject(new Error('Timed out waiting on transaction submission.')),
@@ -522,13 +522,13 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             totalAmount,
           ]);
         });
-        const migrationFunction =
+        let migrationFunction =
           dryRun === true
             ? removalContract.callStatic.multicall
             : removalContract.multicall;
 
-        // Enable this code to simulate a timeout on batch 3 if running localhost
-        // if (batchIndex === 2 && network === 'localhost') {
+        // Enable this code to simulate a timeout on a batch
+        // if (batchStartingTokenId > batchSize * 2 && network === 'localhost') {
         //   logger.info(`🚧 Intentionally timing out on third batch`);
         //   migrationFunction = async (_multicallData: any) => {
         //     console.log('Calling the timeout fake migrate function...');
@@ -560,13 +560,13 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               multicallData
             );
             maybePendingTx = await callWithTimeout(
-              migrationFunction(multicallData, { gasPrice, gasLimit }),
+              () => migrationFunction(multicallData, { gasPrice, gasLimit }),
               TIMEOUT_DURATION
             );
           } else {
             // all other cases
             maybePendingTx = await callWithTimeout(
-              migrationFunction(multicallData),
+              () => migrationFunction(multicallData),
               TIMEOUT_DURATION
             );
           }
@@ -577,21 +577,20 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             pendingTx = maybePendingTx as ContractTransaction;
           }
           if (pendingTx !== undefined && dryRun === false) {
-            pendingTx = pendingTx as ContractTransaction; // real multicall returns this type but callstatic is different
             logger.info(`📝 Awaiting transaction: ${pendingTx.hash}`);
             const txResult =
               network === `localhost`
                 ? ((await callWithTimeout(
-                    pendingTx.wait(),
+                    () => (pendingTx as ContractTransaction).wait(),
                     TIMEOUT_DURATION
                   )) as ContractReceipt)
                 : ((await callWithTimeout(
-                    pendingTx.wait(2),
+                    () => (pendingTx as ContractTransaction).wait(2),
                     TIMEOUT_DURATION
                   )) as ContractReceipt); // TODO what is the correct number of confirmations for mainnet?
             logger.info('Getting txReceipt...');
             txReceipt = (await callWithTimeout(
-              removalContract.provider.getTransactionReceipt(
+              () => removalContract.provider.getTransactionReceipt(
                 txResult.transactionHash
               ),
               TIMEOUT_DURATION
