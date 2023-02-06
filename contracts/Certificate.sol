@@ -126,7 +126,7 @@ contract Certificate is
    * @param priceMultiple The number of purchasing tokens required to buy one NRT.
    * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
-  event ReceiveRemovalBatch(
+  event CreateCertificate(
     address from,
     address indexed recipient,
     uint256 indexed certificateId,
@@ -240,7 +240,7 @@ contract Certificate is
         data,
         (CertificateData)
       );
-      _receiveRemovalBatch({
+      _CreateCertificate({
         recipient: certificateData.recipient,
         certificateAmount: certificateData.certificateAmount,
         removalIds: removalIds,
@@ -375,7 +375,7 @@ contract Certificate is
    * @dev Mints a new certificate token to the next sequential ID and updates the internal data structures
    * that track the relationship between the certificate and its constituent removal tokens and balances.
    *
-   * Emits a `ReceiveRemovalBatch` event.
+   * Emits a `CreateCertificate` event.
    * @param recipient The address receiving the new certificate.
    * @param certificateAmount The total number of tonnes of carbon removals represented by the new certificate.
    * @param removalIds The Removal token IDs that are being included in the certificate.
@@ -384,7 +384,7 @@ contract Certificate is
    * @param priceMultiple The number of purchasing tokens required to purchase one NRT.
    * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
-  function _receiveRemovalBatch(
+  function _CreateCertificate(
     address recipient,
     uint256 certificateAmount,
     uint256[] calldata removalIds,
@@ -401,7 +401,7 @@ contract Certificate is
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
     _mint(recipient, 1);
-    emit ReceiveRemovalBatch({
+    emit CreateCertificate({
       from: _msgSender(),
       recipient: recipient,
       certificateId: certificateId,

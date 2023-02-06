@@ -77,10 +77,10 @@ minting and burning.</i>
 
 
 
-### ReceiveRemovalBatch
+### CreateCertificate
 
 ```solidity
-event ReceiveRemovalBatch(address from, address recipient, uint256 certificateId, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage)
+event CreateCertificate(address from, address recipient, uint256 certificateId, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage)
 ```
 
 Emitted when a batch of removals is received to create a certificate.
@@ -322,10 +322,10 @@ certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfe
 | quantity | uint256 | The number of certificates in the transfer. |
 
 
-### _receiveRemovalBatch
+### _CreateCertificate
 
 ```solidity
-function _receiveRemovalBatch(address recipient, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage) internal
+function _CreateCertificate(address recipient, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage) internal
 ```
 
 Creates a new certificate for a batch of removals.
@@ -333,7 +333,7 @@ Creates a new certificate for a batch of removals.
 <i>Mints a new certificate token to the next sequential ID and updates the internal data structures
 that track the relationship between the certificate and its constituent removal tokens and balances.
 
-Emits a `ReceiveRemovalBatch` event.</i>
+Emits a `CreateCertificate` event.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

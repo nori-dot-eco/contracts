@@ -3,7 +3,7 @@ import { expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
 
 describe('Certificate', () => {
-  it('should emit a ReceiveRemovalBatch event when Certificate is created', async () => {
+  it('should emit a CreateCertificate event when Certificate is created', async () => {
     const removalAmount = 3;
     const {
       bpNori,
@@ -48,7 +48,7 @@ describe('Certificate', () => {
           s
         )
     )
-      .to.emit(certificate, 'ReceiveRemovalBatch')
+      .to.emit(certificate, 'CreateCertificate')
       .withArgs(
         removal.address,
         buyer.address,

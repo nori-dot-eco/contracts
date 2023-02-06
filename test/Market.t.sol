@@ -143,7 +143,7 @@ contract MarketReplaceTestHelper is UpgradeableMarket {
     uint256[] amounts,
     uint256[] removalIdsBeingReplaced,
     uint256[] amountsBeingReplaced,
-    address purchasingTokenAddress,
+    address indexed purchasingTokenAddress,
     uint256 priceMultiple
   );
 
@@ -234,7 +234,7 @@ contract Market_replace is MarketReplaceTestHelper {
   }
 
   function test() external {
-    vm.expectEmit(true, false, false, true);
+    vm.expectEmit(true, true, false, true);
     emit UpdateCertificate(
       _certificateTokenId,
       new uint256[](1).fill(_removalIds[1]),

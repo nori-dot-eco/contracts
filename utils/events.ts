@@ -12,23 +12,23 @@ import type {
  * @param args.contractInstance The contract instance to parse logs from.
  * @param args.txReceipt The transaction receipt to parse logs from.
  * @param [args.filter=] An optional filter to filter logs by. Filters are names of events in the contract (e.g.,
- * `ReceiveRemovalBatch` can be used to filter the events by passing this function `['ReceiveRemovalBatch']` as the
+ * `CreateCertificate` can be used to filter the events by passing this function `['CreateCertificate']` as the
  * `args.filter` argument).
  * @returns An array of strongly typed logs with type support based on `args.contractInstance`. Note that all events in
  * the logs array which use `args.values` in their event signature will have `args.values` remapped to `args.vals` due
  * to a {@link https://github.com/ethers-io/ethers.js/discussions/3542#discussioncomment-4214097| limitation} of
  * JavaScript.
  * @example
- * <caption>Parse "ReceiveRemovalBatch" logs for a tx using the Certificate contract</caption>
+ * <caption>Parse "CreateCertificate" logs for a tx using the Certificate contract</caption>
  * ```ts
  * const logs = parseTransactionLogs({
  *   contractInstance: certificate,
  *   txReceipt, // TransactionReceipt object
- *   filter: ['ReceiveRemovalBatch'],
+ *   filter: ['CreateCertificate'],
  * });
- * logs.name; // 'ReceiveRemovalBatch'
+ * logs.name; // 'CreateCertificate'
  * logs.args.recipient; // '0x...'
- * logs.args.FAKE; // Error: Property 'FAKE' does not exist on type 'ReceiveRemovalBatchEvent["args"]'
+ * logs.args.FAKE; // Error: Property 'FAKE' does not exist on type 'CreateCertificateEvent["args"]'
  * ```
  */
 export const parseTransactionLogs = <

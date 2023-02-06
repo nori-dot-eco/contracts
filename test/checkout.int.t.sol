@@ -15,7 +15,7 @@ abstract contract Checkout is UpgradeableMarket {
 
   bytes32 constant RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR =
     keccak256(
-      "ReceiveRemovalBatch(address,address,uint256,uint256,uint256[],uint256[],address,uint256,uint256)"
+      "CreateCertificate(address,address,uint256,uint256,uint256[],uint256[],address,uint256,uint256)"
     );
 
   function _deployMockERC20() internal returns (MockERC20Permit) {
@@ -801,10 +801,10 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    bool containsReceiveRemovalBatchEventSelector = false;
+    bool containsCreateCertificateEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
       if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
-        containsReceiveRemovalBatchEventSelector = true;
+        containsCreateCertificateEventSelector = true;
         assertEq(
           entries[i].topics[1],
           bytes32(uint256(uint160(address(owner))))
@@ -835,7 +835,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
         assertEq(removalAmounts[0], certificateAmount);
       }
     }
-    assertEq(containsReceiveRemovalBatchEventSelector, true);
+    assertEq(containsCreateCertificateEventSelector, true);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
@@ -914,10 +914,10 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     );
     vm.stopPrank();
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    bool containsReceiveRemovalBatchEventSelector = false;
+    bool containsCreateCertificateEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
       if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
-        containsReceiveRemovalBatchEventSelector = true;
+        containsCreateCertificateEventSelector = true;
         assertEq(
           entries[i].topics[1],
           bytes32(uint256(uint160(address(owner))))
@@ -948,7 +948,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
         assertEq(removalAmounts[0], certificateAmount);
       }
     }
-    assertEq(containsReceiveRemovalBatchEventSelector, true);
+    assertEq(containsCreateCertificateEventSelector, true);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
