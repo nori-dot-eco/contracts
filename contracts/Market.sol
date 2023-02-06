@@ -110,6 +110,7 @@ contract Market is
     uint256[] amounts;
     address[] suppliers;
   }
+
   /**
    * @notice The Removal contract.
    */
@@ -301,7 +302,7 @@ contract Market is
     uint256[] amounts,
     uint256[] removalIdsBeingReplaced,
     uint256[] amountsBeingReplaced,
-    address purchasingTokenAddress,
+    address indexed purchasingTokenAddress,
     uint256 priceMultiple
   );
 
@@ -454,15 +455,14 @@ contract Market is
       amounts: removalAmounts,
       suppliers: suppliers
     });
-    bytes memory data = abi.encode(
-      true // isReplacement
-    );
     _removal.safeBatchTransferFrom({
       from: address(this),
       to: address(_certificate),
       ids: removalIds,
       amounts: removalAmounts,
-      data: data
+      data: abi.encode(
+        true // isReplacement
+      )
     });
     emit UpdateCertificate({
       certificateId: certificateId,
