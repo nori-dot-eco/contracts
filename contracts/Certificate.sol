@@ -133,7 +133,7 @@ contract Certificate is
     uint256 certificateAmount,
     uint256[] removalIds,
     uint256[] removalAmounts,
-    address purchasingTokenAddress,
+    address indexed purchasingTokenAddress,
     uint256 priceMultiple,
     uint256 noriFeePercentage
   );

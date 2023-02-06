@@ -810,21 +810,23 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
           bytes32(uint256(uint160(address(owner))))
         );
         assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
+        assertEq(
+          entries[i].topics[3],
+          bytes32(uint256(uint160(address(_erc20))))
+        );
         (
           address from,
           uint256 eventCertificateAmount,
           uint256[] memory removalIds,
           uint256[] memory removalAmounts,
-          address purchasingTokenAddress,
           uint256 priceMultiple,
           uint256 noriFeePercentage
         ) = abi.decode(
             entries[i].data,
-            (address, uint256, uint256[], uint256[], address, uint256, uint256)
+            (address, uint256, uint256[], uint256[], uint256, uint256)
           );
         assertEq(from, address(_removal));
         assertEq(eventCertificateAmount, certificateAmount);
-        assertEq(purchasingTokenAddress, address(_erc20));
         assertEq(priceMultiple, _market.getPriceMultiple());
         assertEq(noriFeePercentage, _market.getNoriFeePercentage());
         assertEq(removalIds.length, 1);
@@ -921,21 +923,23 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
           bytes32(uint256(uint160(address(owner))))
         );
         assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
+        assertEq(
+          entries[i].topics[3],
+          bytes32(uint256(uint160(address(_erc20))))
+        );
         (
           address from,
           uint256 eventCertificateAmount,
           uint256[] memory removalIds,
           uint256[] memory removalAmounts,
-          address purchasingTokenAddress,
           uint256 priceMultiple,
           uint256 noriFeePercentage
         ) = abi.decode(
             entries[i].data,
-            (address, uint256, uint256[], uint256[], address, uint256, uint256)
+            (address, uint256, uint256[], uint256[], uint256, uint256)
           );
         assertEq(from, address(_removal));
         assertEq(eventCertificateAmount, certificateAmount);
-        assertEq(purchasingTokenAddress, address(_erc20));
         assertEq(priceMultiple, _market.getPriceMultiple());
         assertEq(noriFeePercentage, _market.getNoriFeePercentage());
         assertEq(removalIds.length, 1);
