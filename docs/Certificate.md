@@ -322,10 +322,10 @@ certificate-operator (conferred by the `CERTIFICATE_OPERATOR_ROLE` role) transfe
 | quantity | uint256 | The number of certificates in the transfer. |
 
 
-### _CreateCertificate
+### _receiveRemovalBatch
 
 ```solidity
-function _CreateCertificate(address recipient, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage) internal
+function _receiveRemovalBatch(address recipient, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage) internal
 ```
 
 Creates a new certificate for a batch of removals.

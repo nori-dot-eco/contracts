@@ -240,7 +240,7 @@ contract Certificate is
         data,
         (CertificateData)
       );
-      _CreateCertificate({
+      _receiveRemovalBatch({
         recipient: certificateData.recipient,
         certificateAmount: certificateData.certificateAmount,
         removalIds: removalIds,
@@ -384,7 +384,7 @@ contract Certificate is
    * @param priceMultiple The number of purchasing tokens required to purchase one NRT.
    * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
-  function _CreateCertificate(
+  function _receiveRemovalBatch(
     address recipient,
     uint256 certificateAmount,
     uint256[] calldata removalIds,
