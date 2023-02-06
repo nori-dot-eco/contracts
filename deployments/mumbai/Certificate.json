@@ -277,7 +277,7 @@
           "type": "uint256"
         }
       ],
-      "name": "CreateCertificate",
+      "name": "ReceiveRemovalBatch",
       "type": "event"
     },
     {
