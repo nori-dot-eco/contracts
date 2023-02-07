@@ -3,10 +3,6 @@ import path from 'path';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 
-import { defaultRemovalTokenIdFixture } from '../test/fixtures/removal';
-
-import { generateRandomSubIdentifier } from './removal';
-
 import type {
   LockedNORI,
   LockedNORI__factory,
@@ -30,8 +26,6 @@ import type {
 import { formatTokenAmount } from '@/utils/units';
 import {
   mockDepositNoriToPolygon,
-  createBatchMintData,
-  getLatestBlockTime,
 } from '@/test/helpers';
 
 interface ContractConfig {
