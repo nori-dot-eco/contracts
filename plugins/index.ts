@@ -95,7 +95,12 @@ const deployOrUpgradeProxy = async <
     contractCode === '0x' ||
     process.env.FORCE_PROXY_DEPLOYMENT ||
     typeof maybeProxyAddress !== 'string';
-  if (shouldDeployProxy) {
+  if (
+    shouldDeployProxy &&
+    !['bridgedpolygonnori', 'nori', 'lockednori'].includes(
+      contractName.toLowerCase()
+    )
+  ) {
     hre.trace('Deploying proxy and instance', contractName);
     const fireblocksSigner = signer as FireblocksSigner;
     if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
@@ -116,47 +121,56 @@ const deployOrUpgradeProxy = async <
       contract.address
     );
   } else {
-    hre.trace(
-      'Found existing proxy at:',
-      maybeProxyAddress,
-      'attempting to upgrade instance',
-      contractName
-    );
-    const existingImplementationAddress =
-      await hre.upgrades.erc1967.getImplementationAddress(maybeProxyAddress);
-    hre.trace('Existing implementation at:', existingImplementationAddress);
-    const fireblocksSigner = signer as FireblocksSigner;
-    if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-      fireblocksSigner.setNextTransactionMemo(
-        `Upgrade contract instance for ${contractName}`
-      );
-    }
-    const deployment = await hre.deployments.get(contractName);
-    const artifact = await hre.deployments.getArtifact(contractName);
-    if (deployment.bytecode !== artifact.bytecode) {
-      contract = await hre.upgrades.upgradeProxy<TContract>(
+    try {
+      hre.trace(
+        'Found existing proxy at:',
         maybeProxyAddress,
-        contractFactory,
-        { ...options }
+        'attempting to upgrade instance',
+        contractName
       );
-      const newImplementationAddress =
-        await hre.upgrades.erc1967.getImplementationAddress(maybeProxyAddress);
-      if (existingImplementationAddress === newImplementationAddress) {
-        hre.trace('Implementation unchanged');
-      } else {
-        hre.log('New implementation at:', newImplementationAddress);
+      const existingImplementationAddress =
+        await hre.upgrades.erc1967.getImplementationAddress(maybeProxyAddress!);
+      hre.trace('Existing implementation at:', existingImplementationAddress);
+      const fireblocksSigner = signer as FireblocksSigner;
+      if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
+        fireblocksSigner.setNextTransactionMemo(
+          `Upgrade contract instance for ${contractName}`
+        );
       }
-      hre.trace('...awaiting deployment transaction', contractName);
-      await contract.deployed();
-      hre.trace('...successful deployment transaction', contractName);
-    } else {
-      hre.trace('Implementation appears unchanged, skipped upgrade attempt.');
-      const name = contractName;
-      contract = getContract({
-        contractName: name,
-        hre,
-        signer,
-      }) as InstanceOfContract<TContract>;
+      const deployment = await hre.deployments.get(contractName);
+      const artifact = await hre.deployments.getArtifact(contractName);
+      if (deployment.bytecode !== artifact.bytecode) {
+        contract = await hre.upgrades.upgradeProxy<TContract>(
+          maybeProxyAddress!,
+          contractFactory,
+          { ...options }
+        );
+        const newImplementationAddress =
+          await hre.upgrades.erc1967.getImplementationAddress(
+            maybeProxyAddress!
+          );
+        if (existingImplementationAddress === newImplementationAddress) {
+          hre.trace('Implementation unchanged');
+        } else {
+          hre.log('New implementation at:', newImplementationAddress);
+        }
+        hre.trace('...awaiting deployment transaction', contractName);
+        await contract.deployed();
+        hre.trace('...successful deployment transaction', contractName);
+      } else {
+        hre.trace('Implementation appears unchanged, skipped upgrade attempt.');
+        const name = contractName;
+        contract = getContract({
+          contractName: name,
+          hre,
+          signer,
+        }) as InstanceOfContract<TContract>;
+      }
+    } catch (error) {
+      hre.trace(`Failed to upgrade ${contractName} with error:`, error);
+      contract = hre.deployments.get(
+        contractName
+      ) as InstanceOfContract<TContract>;
     }
   }
   return contract;
