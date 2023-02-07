@@ -38,6 +38,17 @@ This command will do the following:
 2. Seed test wallets with funds.
 3. Run the deployment scripts which seed the test contracts.
 
+### Deploying the market contracts on a live network
+
+Note that you will need to have `SOLC_PROFILE` environment variable configured as `production` or the deployment will be prevented.
+The following command will deploy new implementations and upgrade the existing proxies if they exist.
+
+```bash
+hardhat deploy --network [networkName] --tags market
+```
+
+TODO: documentation around how to deploy and force the deployment of fresh proxies as well.
+
 ### Testing
 
 To serially run the hardhat test suite followed by the forge test suite, run the following:
@@ -202,7 +213,7 @@ A description of how to run some example scripts can be found in the examples be
 </details>
 
 <details>
-  
+
   <summary><b>Example: Minting and listing new removals on mumbai</b></summary>
 
 ```bash
@@ -219,7 +230,7 @@ forge script \
 </details>
 
 <details>
-  
+
   <summary><b>Example: Minting bpNORI</b></summary>
 
 ```bash

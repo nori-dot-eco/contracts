@@ -4,7 +4,7 @@ pragma solidity =0.8.17;
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "./AccessPresetPausable.sol";
 import "./Certificate.sol";
 import "./Errors.sol";
@@ -76,7 +76,7 @@ contract Market is
   using RemovalsByYearLib for RemovalsByYear;
   using UInt256ArrayLib for uint256[];
   using AddressArrayLib for address[];
-  using Math for uint256;
+  using MathUpgradeable for uint256;
 
   /**
    * @notice Keeps track of order of suppliers by address using a circularly doubly linked list.
@@ -86,6 +86,29 @@ contract Market is
   struct LinkedListNode {
     address previous;
     address next;
+  }
+
+  /**
+   * @notice The data required to pass to the `_fulfillOrder` function.
+   * @dev This is packaged as a struct to avoid stack too deep errors.
+   * @param chargeFee Whether or not to charge the Nori fee.
+   * @param certificateAmount The total amount for the certificate.
+   * @param from The message sender.
+   * @param recipient The recipient of the certificate.
+   * @param countOfRemovalsAllocated The number of distinct removal IDs that are involved in fulfilling this order.
+   * @param ids An array of removal IDs involved in fulfilling this order.
+   * @param amounts An array of amounts being allocated from each corresponding removal token.
+   * @param suppliers An array of suppliers.
+   */
+  struct FulfillOrderData {
+    bool chargeFee;
+    uint256 certificateAmount;
+    address from;
+    address recipient;
+    uint256 countOfRemovalsAllocated;
+    uint256[] ids;
+    uint256[] amounts;
+    address[] suppliers;
   }
 
   /**
@@ -279,7 +302,7 @@ contract Market is
     uint256[] amounts,
     uint256[] removalIdsBeingReplaced,
     uint256[] amountsBeingReplaced,
-    address purchasingTokenAddress,
+    address indexed purchasingTokenAddress,
     uint256 priceMultiple
   );
 
@@ -432,15 +455,14 @@ contract Market is
       amounts: removalAmounts,
       suppliers: suppliers
     });
-    bytes memory data = abi.encode(
-      true // isReplacement
-    );
     _removal.safeBatchTransferFrom({
       from: address(this),
       to: address(_certificate),
       ids: removalIds,
       amounts: removalAmounts,
-      data: data
+      data: abi.encode(
+        true // isReplacement
+      )
     });
     emit UpdateCertificate({
       certificateId: certificateId,
@@ -684,13 +706,16 @@ contract Market is
       s: s
     });
     _fulfillOrder({
-      certificateAmount: certificateAmount,
-      from: permitOwner,
-      recipient: recipient,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: ids,
-      amounts: amounts,
-      suppliers: suppliers
+      params: FulfillOrderData({
+        chargeFee: true,
+        certificateAmount: certificateAmount,
+        from: permitOwner,
+        recipient: recipient,
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      })
     });
   }
 
@@ -726,13 +751,16 @@ contract Market is
         certificateAmount: certificateAmount
       });
     _fulfillOrder({
-      certificateAmount: certificateAmount,
-      from: _msgSender(),
-      recipient: recipient,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: ids,
-      amounts: amounts,
-      suppliers: suppliers
+      params: FulfillOrderData({
+        chargeFee: true,
+        certificateAmount: certificateAmount,
+        from: _msgSender(),
+        recipient: recipient,
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      })
     });
   }
 
@@ -792,13 +820,16 @@ contract Market is
       s: s
     });
     _fulfillOrder({
-      certificateAmount: certificateAmount,
-      from: permitOwner,
-      recipient: recipient,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: ids,
-      amounts: amounts,
-      suppliers: suppliers
+      params: FulfillOrderData({
+        chargeFee: true,
+        certificateAmount: certificateAmount,
+        from: permitOwner,
+        recipient: recipient,
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      })
     });
   }
 
@@ -841,13 +872,16 @@ contract Market is
         supplier: supplier
       });
     _fulfillOrder({
-      certificateAmount: certificateAmount,
-      from: _msgSender(),
-      recipient: recipient,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: ids,
-      amounts: amounts,
-      suppliers: suppliers
+      params: FulfillOrderData({
+        chargeFee: true,
+        certificateAmount: certificateAmount,
+        from: _msgSender(),
+        recipient: recipient,
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      })
     });
   }
 
@@ -890,14 +924,17 @@ contract Market is
         purchaser: purchaser,
         certificateAmount: certificateAmount
       });
-    _fulfillOrderWithoutFee({
-      certificateAmount: certificateAmount,
-      from: purchaser,
-      recipient: recipient,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: ids,
-      amounts: amounts,
-      suppliers: suppliers
+    _fulfillOrder({
+      params: FulfillOrderData({
+        chargeFee: false,
+        certificateAmount: certificateAmount,
+        from: purchaser,
+        recipient: recipient,
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      })
     });
   }
 
@@ -945,14 +982,17 @@ contract Market is
         certificateAmount: certificateAmount,
         supplier: supplier
       });
-    _fulfillOrderWithoutFee({
-      certificateAmount: certificateAmount,
-      from: purchaser,
-      recipient: recipient,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: ids,
-      amounts: amounts,
-      suppliers: suppliers
+    _fulfillOrder({
+      params: FulfillOrderData({
+        chargeFee: false,
+        certificateAmount: certificateAmount,
+        from: purchaser,
+        recipient: recipient,
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      })
     });
   }
 
@@ -1266,6 +1306,12 @@ contract Market is
               amount: restrictedSupplierFee,
               removalId: removalIds[i]
             });
+            _restrictedNORI.incrementDeficitForSupplier({
+              amount: restrictedSupplierFee,
+              originalSupplier: RemovalIdLib.supplierAddress({
+                removalId: removalIds[i]
+              })
+            });
           }
           isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,
@@ -1302,43 +1348,29 @@ contract Market is
    * @notice Fulfill an order.
    * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
    * the order fee, updating accounting, and minting the Certificate.
-   * @param certificateAmount The total amount for the certificate.
-   * @param from The message sender.
-   * @param recipient The recipient of the certificate.
-   * @param countOfRemovalsAllocated The number of distinct removal IDs that are involved in fulfilling this order.
-   * @param ids An array of removal IDs involved in fulfilling this order.
-   * @param amounts An array of amounts being allocated from each corresponding removal token.
-   * @param suppliers An array of suppliers.
+
    */
-  function _fulfillOrder(
-    uint256 certificateAmount,
-    address from,
-    address recipient,
-    uint256 countOfRemovalsAllocated,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    address[] memory suppliers
-  ) internal {
-    uint256[] memory removalIds = ids.slice({
+  function _fulfillOrder(FulfillOrderData memory params) internal {
+    uint256[] memory removalIds = params.ids.slice({
       from: 0,
-      to: countOfRemovalsAllocated
+      to: params.countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = amounts.slice({
+    uint256[] memory removalAmounts = params.amounts.slice({
       from: 0,
-      to: countOfRemovalsAllocated
+      to: params.countOfRemovalsAllocated
     });
     _transferFunds({
-      chargeFee: true,
-      from: from,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
+      chargeFee: params.chargeFee,
+      from: params.from,
+      countOfRemovalsAllocated: params.countOfRemovalsAllocated,
       ids: removalIds,
       amounts: removalAmounts,
-      suppliers: suppliers
+      suppliers: params.suppliers
     });
     bytes memory data = abi.encode(
       false,
-      recipient,
-      certificateAmount,
+      params.recipient,
+      params.certificateAmount,
       address(_purchasingToken),
       _priceMultiple,
       _noriFeePercentage
@@ -1451,60 +1483,6 @@ contract Market is
       v: v,
       r: r,
       s: s
-    });
-  }
-
-  /**
-   * @notice Fulfill an order without charging the Nori fee.
-   * @dev This function is responsible for paying suppliers, routeing tokens to the RestrictedNORI contract, updating
-   * accounting, and minting the Certificate.
-   * @param certificateAmount The total amount for the certificate.
-   * @param from The message sender.
-   * @param recipient The recipient of the certificate.
-   * @param countOfRemovalsAllocated The number of distinct removal IDs that are involved in fulfilling this order.
-   * @param ids An array of removal IDs involved in fulfilling this order.
-   * @param amounts An array of amounts being allocated from each corresponding removal token.
-   * @param suppliers An array of suppliers.
-   */
-  function _fulfillOrderWithoutFee(
-    uint256 certificateAmount,
-    address from,
-    address recipient,
-    uint256 countOfRemovalsAllocated,
-    uint256[] memory ids,
-    uint256[] memory amounts,
-    address[] memory suppliers
-  ) internal {
-    uint256[] memory removalIds = ids.slice({
-      from: 0,
-      to: countOfRemovalsAllocated
-    });
-    uint256[] memory removalAmounts = amounts.slice({
-      from: 0,
-      to: countOfRemovalsAllocated
-    });
-    _transferFunds({
-      chargeFee: false,
-      from: from,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: removalIds,
-      amounts: removalAmounts,
-      suppliers: suppliers
-    });
-    bytes memory data = abi.encode(
-      false,
-      recipient,
-      certificateAmount,
-      address(_purchasingToken),
-      _priceMultiple,
-      _noriFeePercentage
-    );
-    _removal.safeBatchTransferFrom({
-      from: address(this),
-      to: address(_certificate),
-      ids: removalIds,
-      amounts: removalAmounts,
-      data: data
     });
   }
 

@@ -15,7 +15,7 @@ abstract contract Checkout is UpgradeableMarket {
 
   bytes32 constant RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR =
     keccak256(
-      "ReceiveRemovalBatch(address,address,uint256,uint256,uint256[],uint256[],address,uint256,uint256)"
+      "CreateCertificate(address,address,uint256,uint256,uint256[],uint256[],address,uint256,uint256)"
     );
 
   function _deployMockERC20() internal returns (MockERC20Permit) {
@@ -801,30 +801,32 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    bool containsReceiveRemovalBatchEventSelector = false;
+    bool containsCreateCertificateEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
       if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
-        containsReceiveRemovalBatchEventSelector = true;
+        containsCreateCertificateEventSelector = true;
         assertEq(
           entries[i].topics[1],
           bytes32(uint256(uint160(address(owner))))
         );
         assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
+        assertEq(
+          entries[i].topics[3],
+          bytes32(uint256(uint160(address(_erc20))))
+        );
         (
           address from,
           uint256 eventCertificateAmount,
           uint256[] memory removalIds,
           uint256[] memory removalAmounts,
-          address purchasingTokenAddress,
           uint256 priceMultiple,
           uint256 noriFeePercentage
         ) = abi.decode(
             entries[i].data,
-            (address, uint256, uint256[], uint256[], address, uint256, uint256)
+            (address, uint256, uint256[], uint256[], uint256, uint256)
           );
         assertEq(from, address(_removal));
         assertEq(eventCertificateAmount, certificateAmount);
-        assertEq(purchasingTokenAddress, address(_erc20));
         assertEq(priceMultiple, _market.getPriceMultiple());
         assertEq(noriFeePercentage, _market.getNoriFeePercentage());
         assertEq(removalIds.length, 1);
@@ -833,7 +835,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
         assertEq(removalAmounts[0], certificateAmount);
       }
     }
-    assertEq(containsReceiveRemovalBatchEventSelector, true);
+    assertEq(containsCreateCertificateEventSelector, true);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
@@ -912,30 +914,32 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     );
     vm.stopPrank();
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    bool containsReceiveRemovalBatchEventSelector = false;
+    bool containsCreateCertificateEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
       if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
-        containsReceiveRemovalBatchEventSelector = true;
+        containsCreateCertificateEventSelector = true;
         assertEq(
           entries[i].topics[1],
           bytes32(uint256(uint160(address(owner))))
         );
         assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
+        assertEq(
+          entries[i].topics[3],
+          bytes32(uint256(uint160(address(_erc20))))
+        );
         (
           address from,
           uint256 eventCertificateAmount,
           uint256[] memory removalIds,
           uint256[] memory removalAmounts,
-          address purchasingTokenAddress,
           uint256 priceMultiple,
           uint256 noriFeePercentage
         ) = abi.decode(
             entries[i].data,
-            (address, uint256, uint256[], uint256[], address, uint256, uint256)
+            (address, uint256, uint256[], uint256[], uint256, uint256)
           );
         assertEq(from, address(_removal));
         assertEq(eventCertificateAmount, certificateAmount);
-        assertEq(purchasingTokenAddress, address(_erc20));
         assertEq(priceMultiple, _market.getPriceMultiple());
         assertEq(noriFeePercentage, _market.getNoriFeePercentage());
         assertEq(removalIds.length, 1);
@@ -944,7 +948,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
         assertEq(removalAmounts[0], certificateAmount);
       }
     }
-    assertEq(containsReceiveRemovalBatchEventSelector, true);
+    assertEq(containsCreateCertificateEventSelector, true);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);

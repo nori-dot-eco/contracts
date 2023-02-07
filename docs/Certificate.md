@@ -77,10 +77,10 @@ minting and burning.</i>
 
 
 
-### ReceiveRemovalBatch
+### CreateCertificate
 
 ```solidity
-event ReceiveRemovalBatch(address from, address recipient, uint256 certificateId, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage)
+event CreateCertificate(address from, address recipient, uint256 certificateId, uint256 certificateAmount, uint256[] removalIds, uint256[] removalAmounts, address purchasingTokenAddress, uint256 priceMultiple, uint256 noriFeePercentage)
 ```
 
 Emitted when a batch of removals is received to create a certificate.
@@ -191,7 +191,7 @@ https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) f
 |  | address |  |
 | removalIds | uint256[] | The array of ERC1155 Removal IDs received. |
 | removalAmounts | uint256[] | The removal amounts per each removal ID. |
-| data | bytes | The bytes that encode information about either the new certificate to be minted, or replacement removals being sent to replace released removals. |
+| data | bytes | The bytes that either encode information about the new certificate to be minted (as a CertificateData struct) or a boolean indicating whether this is a batch of removals being sent to replace released removals. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -333,7 +333,7 @@ Creates a new certificate for a batch of removals.
 <i>Mints a new certificate token to the next sequential ID and updates the internal data structures
 that track the relationship between the certificate and its constituent removal tokens and balances.
 
-Emits a `ReceiveRemovalBatch` event.</i>
+Emits a `CreateCertificate` event.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -341,9 +341,9 @@ Emits a `ReceiveRemovalBatch` event.</i>
 | certificateAmount | uint256 | The total number of tonnes of carbon removals represented by the new certificate. |
 | removalIds | uint256[] | The Removal token IDs that are being included in the certificate. |
 | removalAmounts | uint256[] | The balances of each corresponding removal token that are being included in the certificate. |
-| purchasingTokenAddress | address |  |
-| priceMultiple | uint256 |  |
-| noriFeePercentage | uint256 |  |
+| purchasingTokenAddress | address | The address of the token used to purchase the certificate. |
+| priceMultiple | uint256 | The number of purchasing tokens required to purchase one NRT. |
+| noriFeePercentage | uint256 | The fee percentage charged by Nori at the time of this purchase. |
 
 
 ### _msgSenderERC721A

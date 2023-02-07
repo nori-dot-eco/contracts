@@ -32,8 +32,12 @@ export const deploy: DeployFunction = async (environment) => {
     await rNori.grantRole(hre.ethers.utils.id('MINTER_ROLE'), market.address);
   }
   hre.trace("Granted Market the role 'MINTER_ROLE' for RestrictedNORI");
-  await rNori.registerContractAddresses(bpNori.address, removal.address);
-  hre.trace('Set removal and bpNori addresses in rNori');
+  await rNori.registerContractAddresses(
+    bpNori.address,
+    removal.address,
+    market.address
+  );
+  hre.trace('Set removal, bpNori and market addresses in rNori');
   await certificate.registerContractAddresses(removal.address);
   hre.trace('Set removal addresses in rNori');
   await removal.registerContractAddresses(market.address, certificate.address);
@@ -41,7 +45,7 @@ export const deploy: DeployFunction = async (environment) => {
 };
 
 export default deploy;
-deploy.tags = ['market'];
+deploy.tags = ['market', 'configure'];
 deploy.dependencies = ['Market'];
 deploy.skip = async (hre) =>
   Promise.resolve(
