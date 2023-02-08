@@ -56,10 +56,10 @@
   },
   "polygon": {
     "Removal": {
-      "proxyAddress": "0xCBf641EF5578A92fdaB22F869073ff224fB4D74A"
+      "proxyAddress": "0x07E228843466d4937cE3E138aDc76B107c4B619f"
     },
     "Certificate": {
-      "proxyAddress": "0x2076bDd93b64db17Cb6bffD517347E5C1ad76035"
+      "proxyAddress": "0x702555f4Ae0a184A1B584454246b9ED6a4856812"
     },
     "BridgedPolygonNORI": {
       "proxyAddress": "0x5922Da38963429b12CA3d7a60f9435AA1f3e8C1D"

@@ -87,17 +87,17 @@ const deployOrUpgradeProxy = async <
   // on mainnet so that we can test mainnet deploy on a local fork
   // used this issue to figure out how to do this:
   // https://github.com/NomicFoundation/hardhat/issues/1226
-  const provider = new ethers.providers.JsonRpcProvider(
-    'http://localhost:8545'
-  );
-  await provider.send('hardhat_impersonateAccount', [
-    '0x582a885C03A0104Dc3053FAA8486c178e51E48Db',
-  ]);
-  const signer = provider.getSigner(
-    '0x582a885C03A0104Dc3053FAA8486c178e51E48Db'
-  );
+  // const provider = new ethers.providers.JsonRpcProvider(
+  //   'http://localhost:8545'
+  // );
+  // await provider.send('hardhat_impersonateAccount', [
+  //   '0x582a885C03A0104Dc3053FAA8486c178e51E48Db',
+  // ]);
+  // const signer = provider.getSigner(
+  //   '0x582a885C03A0104Dc3053FAA8486c178e51E48Db'
+  // );
 
-  // const [signer] = await hre.getSigners();
+  const [signer] = await hre.getSigners();
 
   hre.trace(
     `deployOrUpgrade: ${contractName} from address ${await signer.getAddress()}`
