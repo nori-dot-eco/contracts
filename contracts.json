@@ -36,28 +36,22 @@
       "proxyAddress": "0xEdf0bef28943aE9d2ee7d84cF1AEEC85588655b7"
     },
     "BridgedPolygonNORI": {
-      "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
+      "proxyAddress": "0x5922Da38963429b12CA3d7a60f9435AA1f3e8C1D"
     },
     "Removal": {
-      "proxyAddress": "0xe35401Eb5078388D49f47d631a0ce0733a31A425"
+      "proxyAddress": "0x52C1aB0eb8cfc221CF28dE0Df212D83b164FFA57"
     },
     "Certificate": {
-      "proxyAddress": "0x2CA5C6C765be11F44519Fc85Bf758723DC3C8cFC"
+      "proxyAddress": "0x5EBA7Cb3Fa7f1333Af6482560e1cf3394E36802A"
     },
     "Market": {
-      "proxyAddress": "0xA85991C70a743ffcE508b2E520C685C9d8ea6F4d"
+      "proxyAddress": "0x13cc9AD4D54Ad935f0c0d46e437CBBD4e2c431Ea"
     },
     "LockedNORI": {
-      "proxyAddress": "0x50562ADF34935aeb8cC86e9bDc66eaBf79097A08"
-    },
-    "RemovalTestHarness": {
-      "proxyAddress": "0x143ddB67B749FeB5e2E1b2135bC55Dc8de729Db2"
+      "proxyAddress": "0xCcFfFA6c2a030821331cC113b63babDC60BfF82A"
     },
     "RestrictedNORI": {
-      "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
-    },
-    "MockCertificate": {
-      "proxyAddress": "0x3C5d3e20ab495ecee10b4E6eeAd04Dd21d780b98"
+      "proxyAddress": "0x24E4278838f30fCF2acfC722c5724b2154d456Ca"
     }
   },
   "polygon": {

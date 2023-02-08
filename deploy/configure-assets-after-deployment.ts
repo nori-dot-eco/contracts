@@ -13,7 +13,16 @@ export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`configure-assets-after-deployment`);
-  const [signer] = await hre.getSigners();
+  const provider = new ethers.providers.JsonRpcProvider(
+    'http://localhost:8545'
+  );
+  await provider.send('hardhat_impersonateAccount', [
+    '0x582a885C03A0104Dc3053FAA8486c178e51E48Db',
+  ]);
+  const signer = provider.getSigner(
+    '0x582a885C03A0104Dc3053FAA8486c178e51E48Db'
+  );
+  // const [signer] = await hre.getSigners();
   const market = await getMarket({ hre, signer });
   const certificate = await getCertificate({ hre, signer });
   const rNori = await getRestrictedNORI({ hre, signer });
