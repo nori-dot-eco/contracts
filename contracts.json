@@ -56,22 +56,22 @@
   },
   "polygon": {
     "Removal": {
-      "proxyAddress": "0x75c1Dd41D67bF110a1fD160Ee71a3829B933483A"
+      "proxyAddress": "0x766d47301897A5Fe4A1ddCB4d06Aad80785A9AeE"
     },
     "Certificate": {
-      "proxyAddress": "0x8cBEd8cB4B0af472041B300388A32Bb011F51137"
+      "proxyAddress": "0xB0257949dfbF2e77F235afEF277504f26405BF02"
     },
     "BridgedPolygonNORI": {
       "proxyAddress": "0x5922Da38963429b12CA3d7a60f9435AA1f3e8C1D"
     },
     "Market": {
-      "proxyAddress": "0xB1a88A8c08670c1e4A76fF0bA567af92D901dE9d"
+      "proxyAddress": "0x6d14906698f636AB6fd9209518b0e9DA2d9eeEEF"
     },
     "LockedNORI": {
       "proxyAddress": "0xCcFfFA6c2a030821331cC113b63babDC60BfF82A"
     },
     "RestrictedNORI": {
-      "proxyAddress": "0xF1dAcBbB0e812368A099f75672752A0e9eA6C32b"
+      "proxyAddress": "0x3A2A50FC8Df737b83671775e73dD80347dE4a4fa"
     }
   },
   "mainnet": {
