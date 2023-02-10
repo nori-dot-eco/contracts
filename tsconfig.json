@@ -29,6 +29,7 @@
     }
   },
   "include": [
+    "./plugins/fireblocks/type-extensions.ts",
     "**/*.ts",
     "types/**/*.d.ts",
     "./.eslintrc.js",
