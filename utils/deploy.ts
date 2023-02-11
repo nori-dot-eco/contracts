@@ -3,10 +3,6 @@ import path from 'path';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
 
-import { defaultRemovalTokenIdFixture } from '../test/fixtures/removal';
-
-import { generateRandomSubIdentifier } from './removal';
-
 import type {
   LockedNORI,
   LockedNORI__factory,
@@ -30,8 +26,6 @@ import type {
 import { formatTokenAmount } from '@/utils/units';
 import {
   mockDepositNoriToPolygon,
-  createBatchMintData,
-  getLatestBlockTime,
 } from '@/test/helpers';
 
 interface ContractConfig {
@@ -403,29 +397,6 @@ export const seedContracts = async ({
   hre: CustomHardHatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
-  if (
-    contracts.Certificate !== undefined &&
-    contracts.Market !== undefined &&
-    contracts.Removal !== undefined
-  ) {
-    const tokenId = {
-      ...defaultRemovalTokenIdFixture,
-      subIdentifier: generateRandomSubIdentifier(), // keep token ids unique
-    };
-    const packedData = await createBatchMintData({
-      hre,
-      scheduleStartTime: await getLatestBlockTime({ hre }),
-    });
-    const tx = await contracts.Removal.mintBatch(
-      contracts.Market.address,
-      [formatTokenAmount(100)],
-      [tokenId],
-      packedData.projectId,
-      packedData.scheduleStartTime,
-      packedData.holdbackPercentage
-    );
-    hre.trace('Listed 100 NRTs for sale in Market', { tx: tx.hash });
-  }
   if (
     contracts.BridgedPolygonNORI !== undefined &&
     contracts.NORI !== undefined &&
