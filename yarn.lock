@@ -3618,11 +3618,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/mocha@^10.0.1":
-  version "10.0.1"
-  resolved "https://registry.yarnpkg.com/@types/mocha/-/mocha-10.0.1.tgz#2f4f65bb08bc368ac39c96da7b2f09140b26851b"
-  integrity sha512-/fvYntiO1GeICvqbQ3doGDIP97vWmvFt83GKguJ6prmQM2iXZfFcq6YE8KteFyRtX2/h5Hf91BYvPodJKFYv5Q==
-
 "@types/ms@*":
   version "0.7.31"
   resolved "https://registry.yarnpkg.com/@types/ms/-/ms-0.7.31.tgz#31b7ca6407128a3d2bbc27fe2d21b345397f6197"
@@ -8674,10 +8669,10 @@ fireblocks-sdk@^1.14.0:
     query-string "6.13.1"
     uuid "^8.3.2"
 
-fireblocks-sdk@^3.1.2:
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/fireblocks-sdk/-/fireblocks-sdk-3.1.2.tgz#97c022a701c96cf7401c28cafe1cf42d5985e8c0"
-  integrity sha512-LOywivsJ7RKBWALWYnbtNO9s0L9lHA7tAInE81uTzANxZ3pLQgWAh6s0emRiGupjw2TLIJdAlinKcEQh+nAUEA==
+fireblocks-sdk@^3.1.4:
+  version "3.1.4"
+  resolved "https://registry.yarnpkg.com/fireblocks-sdk/-/fireblocks-sdk-3.1.4.tgz#c2759753577af53b9c6f31a31d9c7e0919c68aec"
+  integrity sha512-R0Mg4ZkGAhNSRq7evjteeEYjdpH6KuJo4t/TCKebP/EH2YLwXr24BlGKoRslJpWVepKNI0XWE3cX41VKgPiZ5A==
   dependencies:
     axios "^0.27.2"
     jsonwebtoken "9.0.0"
