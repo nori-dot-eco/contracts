@@ -30,4 +30,10 @@ mainnet = "${ETHEREUM_RPC_URL}"
 goerli = "${GOERLI_RPC_URL}"
 polygon = "${POLYGON_RPC_URL}"
 
+
+[invariant]
+runs = 100
+depth =1
+fail_on_revert = true
+
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
