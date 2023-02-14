@@ -78,11 +78,11 @@ export const deploy: DeployFunction = async (environment) => {
     hre.trace('Set removal addresses in Certificate');
   }
   if (
-    (await market.getRemovalAddress()) !== removal.address ||
-    (await market.getCertificateAddress()) !== certificate.address
+    (await removal.getMarketAddress()) !== market.address ||
+    (await removal.getCertificateAddress()) !== certificate.address
   ) {
     hre.trace(
-      'Setting removal and certificate addresses in Removal contract...'
+      'Setting market and certificate addresses in Removal contract...'
     );
     txn = await removal.registerContractAddresses(
       market.address,
