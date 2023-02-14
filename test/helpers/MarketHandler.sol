@@ -15,7 +15,8 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
 
   mapping(bytes32 => uint256) public numCalls;
 
-  EnumerableSetUpgradeable.UintSet mintedRemovalIds;
+  EnumerableSetUpgradeable.UintSet allRemovalIds;
+  EnumerableSetUpgradeable.UintSet unlistedRemovalIds;
   EnumerableSetUpgradeable.UintSet listedRemovalIds;
   EnumerableSetUpgradeable.UintSet soldRemovalIds;
   EnumerableSetUpgradeable.UintSet releasedIds;
@@ -30,6 +31,7 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
     vm.addr(6)
   ];
 
+  uint256 constant BIG_NUMBER_MODULATOR = 10_000;
   bytes32 constant RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR =
     keccak256(
       "CreateCertificate(address,address,uint256,uint256,uint256[],uint256[],address,uint256,uint256)"
@@ -39,7 +41,7 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
     numCalls["mintRemovalMinimizeReverts"]++;
     uint256 batchSize = (fuzz % 10) + 1;
     DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](batchSize);
-
+    // TODO: occasionally mint directly to market?
     address supplierAddress = allSuppliers[fuzz % allSuppliers.length];
     for (uint256 i = 0; i < batchSize; i++) {
       DecodedRemovalIdV0 memory removalIdData = DecodedRemovalIdV0({
@@ -53,7 +55,8 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
         subIdentifier: uint32(fuzz % 100_000_000)
       });
       removals[i] = removalIdData;
-      mintedRemovalIds.add(RemovalIdLib.createRemovalId(removalIdData));
+      unlistedRemovalIds.add(RemovalIdLib.createRemovalId(removalIdData));
+      allRemovalIds.add(RemovalIdLib.createRemovalId(removalIdData));
     }
     // populate amounts array with random values between 0 and 1 ether:
     uint256[] memory amounts = new uint256[](batchSize);
@@ -72,13 +75,15 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
 
   function _consignRandomRemovalToMarket(uint256 fuzz) internal {
     numCalls["consignRandomRemovalToMarket"]++;
-    uint256 countMintedRemovalIds = mintedRemovalIds.length();
-    uint256 removalId = mintedRemovalIds.at(fuzz % mintedRemovalIds.length());
+    uint256 countMintedRemovalIds = unlistedRemovalIds.length();
+    uint256 removalId = unlistedRemovalIds.at(
+      fuzz % unlistedRemovalIds.length()
+    );
     address currentOwner = RemovalIdLib.supplierAddress(removalId);
     uint256 amount = _removal.balanceOf(currentOwner, removalId);
     _removal.consign({from: currentOwner, id: removalId, amount: amount});
     listedRemovalIds.add(removalId);
-    mintedRemovalIds.remove(removalId);
+    unlistedRemovalIds.remove(removalId);
   }
 
   function _purchaseFromMarket(
@@ -134,6 +139,23 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
     // TODO how do we know what removals were purchased?
   }
 
+  function _releaseRandomRemoval(uint256 fuzz) internal {
+    numCalls["releaseRandomRemoval"]++;
+    uint256 removalId = allRemovalIds.at(fuzz % allRemovalIds.length());
+    uint256 totalSupply = _removal.totalSupply(removalId);
+    if (!(totalSupply == 0)) {
+      _removal.release({id: removalId, amount: (fuzz % totalSupply) + 1}); // release a random amount up to the total supply
+    }
+    totalSupply = _removal.totalSupply(removalId);
+    if (totalSupply == 0) {
+      allRemovalIds.remove(removalId);
+      soldRemovalIds.remove(removalId);
+      listedRemovalIds.remove(removalId);
+      unlistedRemovalIds.remove(removalId);
+      releasedIds.add(removalId);
+    }
+  }
+
   function endToEnd(uint256 fuzz) external {
     // TODO you are here... in what way do we want to fuzz this?
     // how much explicit setup v.s. how much random setup?
@@ -160,45 +182,33 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
     });
 
     // 3) release some of these removals ==================================================
-    // TODO you are here!
-    // 1) release somewhat at random from unsold or sold removals
-    // 2) release a meaningful amount that doesn't exceed the balance that can be released
-    // btw -- what happens when we do attempt to release in excess of the actual balance of a removal?
-    // 3) make sure bookkeeping is correct -- that's what's failing our invariant checks -- incorrect set upkeep
-
-    // old code below:
-    // uint256 releaseAmount = amount / 2; // this shouldn't work
-    // uint256 randomRemovalId = soldRemovalIds.at(fuzz % soldRemovalIds.length()); // todo do we want to release from any removal not just sold?
-    // _removal.release({id: randomRemovalId, amount: releaseAmount}); // release half the removal
-    // releasedIds.add(randomRemovalId);
-    // releasedAmounts[randomRemovalId] = releaseAmount;
-    // todo do we need to update anything about the sold id accounting?
+    _releaseRandomRemoval(fuzz);
 
     // 4) replace some of these removals ==================================================
-    if (!(_certificate.getNrtDeficit() == 0)) {
-      // (won't ever run yet bc no release)
-      // avoid modulo by 0
-      uint256 replaceAmount = fuzz % _certificate.getNrtDeficit();
-      if (!(_removal.getMarketBalance() < replaceAmount)) {
-        uint256 replacementCost = _market.calculateCheckoutTotalWithoutFee(
-          replaceAmount
-        ); // incorporates price multiple!
-        vm.startPrank(_namedAccounts.admin);
-        _bpNori.deposit(_namedAccounts.admin, abi.encode(replacementCost));
-        _bpNori.approve(address(_market), replacementCost);
-        vm.stopPrank();
-        console2.log("replaceAmount: ", replaceAmount);
-        _market.replace({
-          treasury: _namedAccounts.admin,
-          certificateId: 0, // shouldn't matter which cert is specified -- this is just re-emitted in events
-          totalAmountToReplace: replaceAmount,
-          removalIdsBeingReplaced: new uint256[](1).fill(fuzz), // don't actually care about the removal id being replaced
-          amountsBeingReplaced: new uint256[](1).fill(replaceAmount) // or the amount actually, but whatever
-        });
-        // TODO account for the replacement removal id(s) using same recorded logs event approach
-        // soldRemovalIds.add(replacementRemovalId);
-      }
-    }
+    // if (!(_certificate.getNrtDeficit() == 0)) {
+    //   // (won't ever run yet bc no release)
+    //   // avoid modulo by 0
+    //   uint256 replaceAmount = fuzz % _certificate.getNrtDeficit();
+    //   if (!(_removal.getMarketBalance() < replaceAmount)) {
+    //     uint256 replacementCost = _market.calculateCheckoutTotalWithoutFee(
+    //       replaceAmount
+    //     ); // incorporates price multiple!
+    //     vm.startPrank(_namedAccounts.admin);
+    //     _bpNori.deposit(_namedAccounts.admin, abi.encode(replacementCost));
+    //     _bpNori.approve(address(_market), replacementCost);
+    //     vm.stopPrank();
+    //     console2.log("replaceAmount: ", replaceAmount);
+    //     _market.replace({
+    //       treasury: _namedAccounts.admin,
+    //       certificateId: 0, // shouldn't matter which cert is specified -- this is just re-emitted in events
+    //       totalAmountToReplace: replaceAmount,
+    //       removalIdsBeingReplaced: new uint256[](1).fill(fuzz), // don't actually care about the removal id being replaced
+    //       amountsBeingReplaced: new uint256[](1).fill(replaceAmount) // or the amount actually, but whatever
+    //     });
+    //     // TODO account for the replacement removal id(s) using same recorded logs event approach
+    //     // soldRemovalIds.add(replacementRemovalId);
+    //   }
+    // }
   }
 
   function getCountOfSoldRemovalIds() external view returns (uint256) {
