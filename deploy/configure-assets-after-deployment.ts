@@ -10,9 +10,11 @@ import {
   getRestrictedNORI,
 } from '@/utils/contracts';
 
-const CONFIRMATIONS = 5;
 export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
+  const CONFIRMATIONS =
+    hre.network.name === 'localhost' || hre.network.name === 'hardhat' ? 1 : 5;
+
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`configure-assets-after-deployment`);
 
