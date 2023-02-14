@@ -10,16 +10,20 @@ import "forge-std/InvariantTest.sol";
 import "forge-std/console2.sol";
 import {console} from "forge-std/console.sol";
 
-contract CertificateInvariantTest is InvariantTest, Global {
+contract MarketInvariantTest is InvariantTest, Global {
   MarketHandler marketHandler;
   Certificate internal _certificate;
   Removal internal _removal;
+
+  // bytes4[] internal _selectors;
 
   function setUp() external {
     marketHandler = new MarketHandler();
     _certificate = Certificate(marketHandler.getCertificateAddress());
     _removal = Removal(marketHandler.getRemovalAddress());
     targetContract(address(marketHandler)); // only target the handler
+    // _selectors = [MarketHandler.endToEnd.selector];
+    // targetSelector(FuzzSelector(address(marketHandler), _selectors));
   }
 
   function invariant_sumOfPurchaseAmounts() external {
