@@ -111,7 +111,16 @@ const deployOrUpgradeProxy = async <
     contractCode === '0x' ||
     process.env.FORCE_PROXY_DEPLOYMENT ||
     typeof maybeProxyAddress !== 'string';
-  if (shouldDeployProxy) {
+  if (
+    shouldDeployProxy
+    // This guard was used during mainnet deployment as an extra barrier to prevent
+    // accidental deployment of live contracts. It has to be removed to allow for
+    // complete test environment Hardhat deployments.
+    //  &&
+    // !['bridgedpolygonnori', 'nori', 'lockednori'].includes(
+    //   contractName.toLowerCase()
+    // )
+  ) {
     hre.trace('Deploying proxy and instance', contractName);
     const fireblocksSigner = signer as FireblocksSigner;
     if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
