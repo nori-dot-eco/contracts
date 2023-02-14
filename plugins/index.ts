@@ -111,12 +111,7 @@ const deployOrUpgradeProxy = async <
     contractCode === '0x' ||
     process.env.FORCE_PROXY_DEPLOYMENT ||
     typeof maybeProxyAddress !== 'string';
-  if (
-    shouldDeployProxy &&
-    !['bridgedpolygonnori', 'nori', 'lockednori'].includes(
-      contractName.toLowerCase()
-    )
-  ) {
+  if (shouldDeployProxy) {
     hre.trace('Deploying proxy and instance', contractName);
     const fireblocksSigner = signer as FireblocksSigner;
     if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
