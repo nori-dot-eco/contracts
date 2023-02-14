@@ -118,7 +118,7 @@ const deployOrUpgradeProxy = async <
     )
   ) {
     hre.trace('Deploying proxy and instance', contractName);
-    const fireblocksSigner = signer as any as FireblocksSigner;
+    const fireblocksSigner = signer as FireblocksSigner;
     if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
       fireblocksSigner.setNextTransactionMemo(
         `Deploy proxy and instance for ${contractName}`
@@ -147,7 +147,7 @@ const deployOrUpgradeProxy = async <
       const existingImplementationAddress =
         await hre.upgrades.erc1967.getImplementationAddress(maybeProxyAddress!);
       hre.trace('Existing implementation at:', existingImplementationAddress);
-      const fireblocksSigner = signer as any as FireblocksSigner;
+      const fireblocksSigner = signer as FireblocksSigner;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
         fireblocksSigner.setNextTransactionMemo(
           `Upgrade contract instance for ${contractName}`

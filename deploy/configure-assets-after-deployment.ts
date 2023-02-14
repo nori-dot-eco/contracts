@@ -15,6 +15,10 @@ export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`configure-assets-after-deployment`);
+
+  // impersonating the fireblocks account that deployed contracts
+  // on mainnet so that we can test mainnet deploy on a local fork
+  // used this issue to figure out how to do this:
   // const provider = new ethers.providers.JsonRpcProvider(
   //   'http://localhost:8545'
   // );
