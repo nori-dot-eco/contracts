@@ -13,7 +13,7 @@ abstract contract Checkout is UpgradeableMarket {
   uint256[] internal _removalIds;
   uint256 internal _certificateTokenId;
 
-  bytes32 constant RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR =
+  bytes32 constant CREATE_CERTIFICATE_EVENT_SELECTOR =
     keccak256(
       "CreateCertificate(address,address,uint256,uint256,uint256[],uint256[],address,uint256,uint256)"
     );
@@ -803,7 +803,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool containsCreateCertificateEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
-      if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
+      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
         containsCreateCertificateEventSelector = true;
         assertEq(
           entries[i].topics[1],
@@ -916,7 +916,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool containsCreateCertificateEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
-      if (entries[i].topics[0] == RECEIVE_REMOVAL_BATCH_EVENT_SELECTOR) {
+      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
         containsCreateCertificateEventSelector = true;
         assertEq(
           entries[i].topics[1],
