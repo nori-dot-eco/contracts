@@ -43,7 +43,6 @@ export const deploy: DeployFunction = async (environment) => {
   const certificate = await getCertificate({ hre, signer });
   const rNori = await getRestrictedNORI({ hre, signer });
   const removal = await getRemoval({ hre, signer });
-  const bpNori = await getBridgedPolygonNori({ hre, signer });
   const noriUSDC = await getNoriUSDC({ hre, signer });
   const usdcAddress =
     hre.network.name === 'polygon' ? PROD_USDC_TOKEN_ADDRESS : noriUSDC.address;
@@ -81,7 +80,7 @@ export const deploy: DeployFunction = async (environment) => {
   // TODO figure out how to make a check about what these addresses are currently set to
   // bigger TODO: expose getters for these on the contract
   txn = await rNori.registerContractAddresses(
-    bpNori.address,
+    usdcAddress,
     removal.address,
     market.address
   );
@@ -133,7 +132,7 @@ export const deploy: DeployFunction = async (environment) => {
 export default deploy;
 deploy.tags = ['configure'];
 // TODO is there a way to remove this 'Market' dependency?
-// deploy.dependencies = ['Market'];
+deploy.dependencies = ['Market'];
 deploy.skip = async (hre) =>
   Promise.resolve(
     !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)

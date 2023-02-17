@@ -14,7 +14,7 @@ export const deploy: DeployFunction = async (environment) => {
 };
 
 export default deploy;
-deploy.tags = ['USDC', 'assets'];
+deploy.tags = ['NoriUSDC', 'assets'];
 deploy.dependencies = ['preconditions'];
 deploy.skip = async (hre) =>
   Promise.resolve(

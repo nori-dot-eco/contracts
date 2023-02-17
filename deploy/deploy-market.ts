@@ -34,6 +34,9 @@ deploy.dependencies = [
   'BridgedPolygonNORI',
   'RestrictedNORI',
 ];
+if (hre.network.name !== 'polygon') {
+  deploy.dependencies = [...deploy.dependencies, 'NoriUSDC'];
+}
 deploy.skip = async (hre) =>
   Promise.resolve(
     !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
