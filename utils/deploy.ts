@@ -22,11 +22,11 @@ import type {
   LockedNORILibTestHarness__factory,
   RemovalTestHarness,
   RemovalTestHarness__factory,
+  NoriUSDC,
+  NoriUSDC__factory,
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
-import {
-  mockDepositNoriToPolygon,
-} from '@/test/helpers';
+import { mockDepositNoriToPolygon } from '@/test/helpers';
 
 interface ContractConfig {
   [key: string]: { proxyAddress: string };
@@ -266,6 +266,27 @@ export const deployLockedNORIContract = async ({
     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
     options: {
       initializer: 'initialize(address)',
+      unsafeAllow: ['constructor'],
+    },
+  });
+};
+
+export const deployTestnetUSDC = async ({
+  hre,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+}): Promise<InstanceOfContract<NoriUSDC>> => {
+  const isTestnet = ['mumbai', 'localhost', 'hardhat'].includes(
+    hre.network.name
+  );
+  if (!isTestnet) {
+    throw new Error('Testnet USDC contract can only be deployed on testnets');
+  }
+  return hre.deployOrUpgradeProxy<NoriUSDC, NoriUSDC__factory>({
+    contractName: 'NoriUSDC',
+    args: [],
+    options: {
+      initializer: 'initialize()',
       unsafeAllow: ['constructor'],
     },
   });

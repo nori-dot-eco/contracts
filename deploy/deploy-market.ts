@@ -19,7 +19,7 @@ export const deploy: DeployFunction = async (environment) => {
   const contract = await deployMarketContract({
     hre,
     feeWallet,
-    feePercentage: 15,
+    feePercentage: 25,
     priceMultiple: 2000,
   });
   await finalizeDeployments({ hre, contracts: { Market: contract } });

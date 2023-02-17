@@ -1,11 +1,19 @@
 import { Logger } from 'ethers/lib/utils';
 import type { DeployFunction } from 'hardhat-deploy/types';
 import type { ContractTransaction } from 'ethers';
+import { BigNumber } from 'ethers';
+
+import {
+  PROD_USDC_TOKEN_ADDRESS,
+  PROD_NORI_FEE_WALLET_ADDRESS,
+  STAGING_NORI_FEE_WALLET_ADDRESS,
+} from '../constants/addresses';
 
 import {
   getBridgedPolygonNori,
   getCertificate,
   getMarket,
+  getNoriUSDC,
   getRemoval,
   getRestrictedNORI,
 } from '@/utils/contracts';
@@ -36,6 +44,14 @@ export const deploy: DeployFunction = async (environment) => {
   const rNori = await getRestrictedNORI({ hre, signer });
   const removal = await getRemoval({ hre, signer });
   const bpNori = await getBridgedPolygonNori({ hre, signer });
+  const noriUSDC = await getNoriUSDC({ hre, signer });
+  const usdcAddress =
+    hre.network.name === 'polygon' ? PROD_USDC_TOKEN_ADDRESS : noriUSDC.address;
+  const feeWalletAddress = ['hardhat', 'localhost'].includes(hre.network.name)
+    ? hre.namedAccounts.noriWallet
+    : hre.network.name === 'polygon'
+    ? PROD_NORI_FEE_WALLET_ADDRESS
+    : STAGING_NORI_FEE_WALLET_ADDRESS;
   let txn: ContractTransaction;
   if (
     !(await rNori.hasRole(await rNori.SCHEDULE_CREATOR_ROLE(), removal.address))
@@ -91,12 +107,33 @@ export const deploy: DeployFunction = async (environment) => {
     await txn.wait(CONFIRMATIONS);
     hre.trace('Set market and certificate addresses in Removal');
   }
+
+  if (
+    (await market.getPurchasingTokenAddress()) !== usdcAddress ||
+    (await market.getPriceMultiple()) !== BigNumber.from(2000)
+  ) {
+    txn = await market.setPurchasingTokenAndPriceMultiple(usdcAddress, 2000);
+    await txn.wait(CONFIRMATIONS);
+    hre.trace('Set USDC as purchase token with price multiple of 2000');
+  }
+
+  if ((await market.getNoriFeePercentage()) !== BigNumber.from(25)) {
+    txn = await market.setNoriFeePercentage(25);
+    await txn.wait(CONFIRMATIONS);
+    hre.trace('Set fee percentage to 25');
+  }
+
+  if ((await market.getNoriFeeWallet()) !== feeWalletAddress) {
+    txn = await market.setNoriFeeWallet(feeWalletAddress);
+    await txn.wait(CONFIRMATIONS);
+    hre.trace(`Updated fee wallet address to ${feeWalletAddress}`);
+  }
 };
 
 export default deploy;
-deploy.tags = ['market', 'configure'];
+deploy.tags = ['configure'];
 // TODO is there a way to remove this 'Market' dependency?
-deploy.dependencies = ['Market'];
+// deploy.dependencies = ['Market'];
 deploy.skip = async (hre) =>
   Promise.resolve(
     !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
