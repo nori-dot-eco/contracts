@@ -127,6 +127,12 @@ contract Market is
   IERC20WithPermit private _purchasingToken;
 
   /**
+   * @notice The number of decimals configure on the _purchasingToken contract.
+   * Used to adapt between Removal amounts and payment token amounts.
+   */
+  uint8 private _purchasingTokenDecimals;
+
+  /**
    * @notice The RestrictedNORI contract.
    */
   RestrictedNORI private _restrictedNORI;
@@ -191,7 +197,7 @@ contract Market is
    * @notice Emitted on setting of `_purchasingToken`.
    * @param purchasingToken The updated address of the IERC20WithPermit token used to purchase from this market.
    */
-  event SetPurchasingToken(IERC20WithPermit purchasingToken);
+  event SetPurchasingToken(IERC20WithPermit purchasingToken, uint8 decimals);
 
   /**
    * @notice Emitted on setting of `_priceMultiple`.
@@ -210,6 +216,7 @@ contract Market is
     Removal removal,
     Certificate certificate,
     IERC20WithPermit purchasingToken,
+    uint8 purchasingTokenDecimals,
     RestrictedNORI restrictedNORI
   );
 
@@ -330,6 +337,7 @@ contract Market is
   function initialize(
     Removal removal,
     IERC20WithPermit purchasingToken,
+    uint8 purchasingTokenDecimals,
     Certificate certificate,
     RestrictedNORI restrictedNori,
     address noriFeeWalletAddress,
@@ -352,7 +360,10 @@ contract Market is
     _noriFeeWallet = noriFeeWalletAddress;
     _priorityRestrictedThreshold = 0;
     _currentSupplierAddress = address(0);
-    _setPurchasingToken({purchasingToken: purchasingToken});
+    _setPurchasingToken({
+      purchasingToken: purchasingToken,
+      decimals: purchasingTokenDecimals
+    });
     _setPriceMultiple({priceMultiple: priceMultiple_});
     _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
     _grantRole({role: ALLOWLIST_ROLE, account: _msgSender()});
@@ -495,16 +506,19 @@ contract Market is
     Removal removal,
     Certificate certificate,
     IERC20WithPermit purchasingToken,
+    uint8 purchasingTokenDecimals,
     RestrictedNORI restrictedNORI
   ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
     _removal = removal;
     _certificate = certificate;
     _purchasingToken = purchasingToken;
+    _purchasingTokenDecimals = purchasingTokenDecimals;
     _restrictedNORI = restrictedNORI;
     emit RegisterContractAddresses({
       removal: _removal,
       certificate: _certificate,
       purchasingToken: _purchasingToken,
+      purchasingTokenDecimals: _purchasingTokenDecimals,
       restrictedNORI: _restrictedNORI
     });
   }
@@ -523,9 +537,13 @@ contract Market is
    */
   function setPurchasingTokenAndPriceMultiple(
     IERC20WithPermit purchasingToken,
+    uint8 purchasingTokenDecimals,
     uint256 priceMultiple
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    _setPurchasingToken({purchasingToken: purchasingToken});
+    _setPurchasingToken({
+      purchasingToken: purchasingToken,
+      decimals: purchasingTokenDecimals
+    });
     _setPriceMultiple({priceMultiple: priceMultiple});
   }
 
@@ -670,8 +688,8 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * @param recipient The address to which the certificate will be issued.
    * @param permitOwner The address that signed the EIP2612 permit and will pay for the removals.
-   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
-   * purchased and the fee paid to Nori.
+   * @param amount The total amount iof Removals being purchased. This is the combined total price of the removals being
+   * purchased and the fee paid to Nori. (See calculateCheckoutTotal())
    * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature.
    * @param r The r value for the permit's secp256k1 signature.
@@ -686,8 +704,7 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
+    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -699,7 +716,7 @@ contract Market is
       });
     _permit({
       owner: permitOwner,
-      amount: amount,
+      amount: calculateCheckoutTotal(amount),
       deadline: deadline,
       v: v,
       r: r,
@@ -735,12 +752,11 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
    * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
+   * @param amount The total amount of Removals to purchase. This is the combined total price of the removals being
    * purchased and the fee paid to Nori.
    */
   function swap(address recipient, uint256 amount) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
+    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -799,8 +815,7 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
+    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -813,7 +828,7 @@ contract Market is
       });
     _permit({
       owner: permitOwner,
-      amount: amount,
+      amount: calculateCheckoutTotal(amount),
       deadline: deadline,
       v: v,
       r: r,
@@ -859,8 +874,7 @@ contract Market is
     uint256 amount,
     address supplier
   ) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
+    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -911,10 +925,7 @@ contract Market is
     address purchaser,
     uint256 amount
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotalWithoutFee({
-        purchaseTotal: amount
-      });
+    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -968,10 +979,7 @@ contract Market is
     uint256 amount,
     address supplier
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotalWithoutFee({
-        purchaseTotal: amount
-      });
+    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -1066,23 +1074,49 @@ contract Market is
    * @return The amount of the fee for Nori.
    */
   function calculateNoriFee(uint256 amount) external view returns (uint256) {
-    return amount.mulDiv(_priceMultiple * _noriFeePercentage, 10000);
+    return
+      convertRemovalAmountToPurchasingTokenAmount(
+        amount.mulDiv(_priceMultiple * _noriFeePercentage, 10000)
+      );
+  }
+
+  function convertRemovalAmountToPurchasingTokenAmount(uint256 removalAmount)
+    public
+    view
+    returns (uint256)
+  {
+    if (_purchasingTokenDecimals == 18) {
+      return removalAmount;
+    }
+    int8 decimalDelta = 18 - int8(_purchasingTokenDecimals);
+    return removalAmount / 10**uint8(decimalDelta);
+  }
+
+  function convertPurchasingTokenAmountToRemovalAmount(
+    uint256 purchasingTokenAmount
+  ) public view returns (uint256) {
+    if (_purchasingTokenDecimals == 18) {
+      return purchasingTokenAmount;
+    }
+    int8 decimalDelta = 18 - int8(_purchasingTokenDecimals);
+    return purchasingTokenAmount * 10**uint8(decimalDelta);
   }
 
   /**
    * @notice Calculates the total quantity of ERC20 tokens required to make a purchase of the specified `amount` (in
    * tonnes of carbon removals).
    * @param amount The amount of carbon removals for the purchase.
-   * @return The total quantity of ERC20 tokens required to make the purchase, including the fee.
+   * @return The total quantity of ERC20 purchase token required to make the purchase.
    */
   function calculateCheckoutTotal(uint256 amount)
-    external
+    public
     view
     returns (uint256)
   {
     return
-      amount.mulDiv(_priceMultiple, 100) +
-      this.calculateNoriFee({amount: amount});
+      convertRemovalAmountToPurchasingTokenAmount(
+        amount.mulDiv(_priceMultiple, 100)
+      ) + this.calculateNoriFee({amount: amount});
   }
 
   /**
@@ -1096,33 +1130,10 @@ contract Market is
     view
     returns (uint256)
   {
-    return amount.mulDiv(_priceMultiple, 100);
-  }
-
-  /**
-   * @notice Calculates the quantity of carbon removals being purchased given the purchase total, the price multiple,
-   * and the percentage of that purchase total that is due to Nori as a transaction fee.
-   * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
-   * @return certificateAmount Amount for the certificate, excluding the transaction fee.
-   */
-  function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal)
-    external
-    view
-    returns (uint256)
-  {
     return
-      purchaseTotal.mulDiv(10000, (100 + _noriFeePercentage) * _priceMultiple);
-  }
-
-  /**
-   * @notice Calculates the quantity of carbon removals being purchased given the purchase total and the price multiple.
-   * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
-   * @return certificateAmount Amount for the certificate.
-   */
-  function calculateCertificateAmountFromPurchaseTotalWithoutFee(
-    uint256 purchaseTotal
-  ) external view returns (uint256) {
-    return purchaseTotal.mulDiv(10000, 100 * _priceMultiple);
+      convertRemovalAmountToPurchasingTokenAmount(
+        amount.mulDiv(_priceMultiple, 100)
+      );
   }
 
   /**
@@ -1155,6 +1166,14 @@ contract Market is
    */
   function getPurchasingTokenAddress() external view returns (address) {
     return address(_purchasingToken);
+  }
+
+  /**
+   * @notice Get the number of decimals configured on the purchasing token ERC20 contract.
+   * @return Returns the number of decimals
+   */
+  function getPurchasingTokenDecimals() external view returns (uint8) {
+    return _purchasingTokenDecimals;
   }
 
   /**
@@ -1221,9 +1240,18 @@ contract Market is
    * @notice Set the purchasing token contract address, an IERC20WithPermit token used to purchase from this market.
    * @param purchasingToken The new purchasing token contract address.
    */
-  function _setPurchasingToken(IERC20WithPermit purchasingToken) internal {
+  function _setPurchasingToken(IERC20WithPermit purchasingToken, uint8 decimals)
+    internal
+  {
+    if (decimals > 18 || decimals < 6) {
+      revert InvalidPurchasingTokenDecimals(decimals);
+    }
     _purchasingToken = IERC20WithPermit(purchasingToken);
-    emit SetPurchasingToken({purchasingToken: purchasingToken});
+    _purchasingTokenDecimals = decimals;
+    emit SetPurchasingToken({
+      purchasingToken: purchasingToken,
+      decimals: decimals
+    });
   }
 
   /**
@@ -1284,7 +1312,9 @@ contract Market is
           address(_purchasingToken)
         ) {
           emit SkipRestrictedNORIERC20Transfer({
-            amount: restrictedSupplierFee,
+            amount: convertRemovalAmountToPurchasingTokenAmount(
+              restrictedSupplierFee
+            ),
             removalId: removalIds[i],
             currentHoldbackPercentage: holdbackPercentage,
             rNoriUnderlyingToken: _restrictedNORI.getUnderlyingTokenAddress(),
@@ -1296,28 +1326,35 @@ contract Market is
         } else {
           try
             _restrictedNORI.mint({
-              amount: restrictedSupplierFee,
+              amount: convertRemovalAmountToPurchasingTokenAmount(
+                restrictedSupplierFee
+              ),
               removalId: removalIds[i]
             })
           {
             // solhint-disable-previous-line no-empty-blocks, Nothing should happen here.
           } catch {
             emit RestrictedNORIMintFailure({
-              amount: restrictedSupplierFee,
+              amount: convertPurchasingTokenAmountToRemovalAmount(
+                restrictedSupplierFee
+              ),
               removalId: removalIds[i]
             });
             _restrictedNORI.incrementDeficitForSupplier({
-              amount: restrictedSupplierFee,
+              amount: convertPurchasingTokenAmountToRemovalAmount(
+                restrictedSupplierFee
+              ),
               originalSupplier: RemovalIdLib.supplierAddress({
                 removalId: removalIds[i]
               })
             });
           }
-          // TODO:SW needs to take into accout _purchasingToken decimals?
           isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,
             to: address(_restrictedNORI),
-            amount: restrictedSupplierFee
+            amount: convertRemovalAmountToPurchasingTokenAmount(
+              restrictedSupplierFee
+            )
           });
           if (!isTransferSuccessful) {
             revert ERC20TransferFailed();
@@ -1325,7 +1362,6 @@ contract Market is
         }
       }
       if (chargeFee) {
-        // TODO:SW needs to take into accout _purchasingToken decimals?
         isTransferSuccessful = _purchasingToken.transferFrom({
           from: from,
           to: _noriFeeWallet,
@@ -1335,11 +1371,12 @@ contract Market is
           revert ERC20TransferFailed();
         }
       }
-      // TODO:SW needs to take into accout _purchasingToken decimals?
       isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
-        amount: unrestrictedSupplierFee
+        amount: convertRemovalAmountToPurchasingTokenAmount(
+          unrestrictedSupplierFee
+        )
       });
       if (!isTransferSuccessful) {
         revert ERC20TransferFailed();

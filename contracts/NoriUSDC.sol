@@ -20,6 +20,6 @@ contract NoriUSDC is ERC20Preset {
   }
 
   function decimals() public view virtual override returns (uint8) {
-    return 18;
+    return 6;
   }
 }

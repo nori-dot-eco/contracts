@@ -130,6 +130,10 @@ error NoriFeeWalletZeroAddress();
  */
 error InvalidHoldbackPercentage(uint8 holdbackPercentage);
 /**
+ * @notice Thrown when a purchsing token decimals value is not between 6 and 18.
+ */
+error InvalidPurchasingTokenDecimals(uint256 decimals);
+/**
  * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market
  * contracts.
  */

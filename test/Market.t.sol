@@ -59,6 +59,7 @@ abstract contract MarketBalanceTestHelper is UpgradeableMarket {
 
 contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
   uint256 checkoutTotal;
+  uint256 certificateAmount;
   MockUnsafeERC20Permit internal _unsafeErc20;
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
@@ -78,14 +79,13 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
     );
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _unsafeErc20,
+      purchasingTokenDecimals: 12,
       priceMultiple: 100
     });
     _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
 
-    uint256 numberOfNRTsToPurchase = 1 ether;
-    checkoutTotal = _market.calculateCheckoutTotalWithoutFee(
-      numberOfNRTsToPurchase
-    );
+    certificateAmount = 1 ether;
+    checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
     _unsafeErc20.transfer(owner, checkoutTotal);
     vm.prank(owner);
     _unsafeErc20.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
@@ -105,7 +105,7 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -160,8 +160,6 @@ contract MarketReplaceTestHelper is UpgradeableMarket {
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
     uint256 amount = _market.calculateCheckoutTotal(_originalCertificateAmount);
-    uint256 certificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotal(amount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(amount));
     assertEq(_removal.getMarketBalance(), 2 ether);
@@ -182,7 +180,7 @@ contract MarketReplaceTestHelper is UpgradeableMarket {
     _market.swap(
       owner,
       owner,
-      amount,
+      _originalCertificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -190,10 +188,15 @@ contract MarketReplaceTestHelper is UpgradeableMarket {
     );
     _assertExpectedBalances(address(_market), 0, false, 1); // 1 removal left in stock that we will use to replace
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
+    _assertExpectedBalances(
+      address(_certificate),
+      _originalCertificateAmount,
+      true,
+      1
+    );
     assertEq(
       _removal.balanceOf(address(_certificate), _removalIds[0]),
-      certificateAmount
+      _originalCertificateAmount
     );
     assertEq(_certificate.ownerOf(_certificateTokenId), owner);
   }
@@ -375,6 +378,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
   address owner;
   uint256 holdbackPercentage = 10;
   uint256 checkoutTotal;
+  uint256 certificateAmount;
   uint256 rNoriToMint;
   SignedPermit signedPermit;
   uint256 removalId;
@@ -408,11 +412,11 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
       block.timestamp,
       uint8(holdbackPercentage)
     );
-    uint256 numberOfNRTsToPurchase = 1 ether;
+    certificateAmount = 1 ether;
     uint256 ownerPrivateKey = 0xA11CE;
     owner = vm.addr(ownerPrivateKey);
-    checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
-    uint256 noriFeeAmount = _market.calculateNoriFee(numberOfNRTsToPurchase);
+    checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
+    uint256 noriFeeAmount = _market.calculateNoriFee(certificateAmount);
     rNoriToMint = ((checkoutTotal - noriFeeAmount) * holdbackPercentage) / 100;
     assertEq(
       _rNori.getDeficitForAddress(RemovalIdLib.supplierAddress(removalId)),
@@ -437,7 +441,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -456,6 +460,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
 {
   uint8 holdbackPercentage = 10;
   uint256 checkoutTotal;
+  uint256 certificateAmount;
   uint256 rNoriToMint;
   SignedPermit signedPermit;
   uint256[] _removalIds;
@@ -466,7 +471,6 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
   address owner = vm.addr(ownerPrivateKey);
   uint256 amount;
   uint256 fee;
-  uint256 certificateAmount;
 
   bytes32 constant RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR =
     keccak256(
@@ -492,6 +496,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
+      purchasingTokenDecimals: 18,
       priceMultiple: 2000
     });
     _removalIds = _seedRemovals({
@@ -501,9 +506,9 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
       holdbackPercentage: holdbackPercentage
     });
 
-    uint256 numberOfNRTsToPurchase = 1 ether;
-    checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
-    fee = _market.calculateNoriFee(numberOfNRTsToPurchase);
+    certificateAmount = 1 ether;
+    checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
+    fee = _market.calculateNoriFee(certificateAmount);
     rNoriToMint = ((checkoutTotal - fee) * holdbackPercentage) / 100;
     _erc20.transfer(owner, checkoutTotal);
     signedPermit = _mockERC20SignatureUtils.generatePermit(
@@ -521,7 +526,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -558,13 +563,13 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
 {
   uint8 holdbackPercentage = 10;
   uint256 checkoutTotal;
+  uint256 certificateAmount;
   uint256 rNoriToMint;
   uint256[] _removalIds;
   MockERC20Permit internal _erc20;
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 amount;
-  uint256 certificateAmount;
 
   bytes32 constant RNORI_ERC20_TRANSFER_SKIPPED_EVENT_SELECTOR =
     keccak256(
@@ -589,6 +594,7 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     _erc20 = _deployMockERC20();
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
+      purchasingTokenDecimals: 18,
       priceMultiple: 2000
     });
     _removalIds = _seedRemovals({
@@ -598,10 +604,8 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
       holdbackPercentage: holdbackPercentage
     });
 
-    uint256 numberOfNRTsToPurchase = 1 ether;
-    checkoutTotal = _market.calculateCheckoutTotalWithoutFee(
-      numberOfNRTsToPurchase
-    );
+    certificateAmount = 1 ether;
+    checkoutTotal = _market.calculateCheckoutTotalWithoutFee(certificateAmount);
     rNoriToMint = (checkoutTotal * holdbackPercentage) / 100;
     _erc20.transfer(owner, checkoutTotal);
     vm.prank(owner);
@@ -612,7 +616,7 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
   function test() external {
     vm.startPrank(owner);
     vm.recordLogs();
-    _market.swapWithoutFee(owner, owner, checkoutTotal);
+    _market.swapWithoutFee(owner, owner, certificateAmount);
     vm.stopPrank();
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool containsTransferSkippedEventSelector = false;
@@ -1264,6 +1268,7 @@ contract Market__multicall_initialize_reverts is UpgradeableMarket {
         _market.initialize.selector,
         _removal,
         _bpNori,
+        18,
         _certificate,
         _rNori,
         _namedAccounts.admin,
@@ -1374,15 +1379,23 @@ contract Market__setPurchasingToken is NonUpgradeableMarket {
     vm.recordLogs();
     address erc20 = vm.addr(0xcab00d1e);
     IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
-    _setPurchasingToken({purchasingToken: newPurchasingToken});
+    uint8 newPurchasingTokenDecimals = 18;
+    _setPurchasingToken({
+      purchasingToken: newPurchasingToken,
+      decimals: newPurchasingTokenDecimals
+    });
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, 1);
-    assertEq(entries[0].topics[0], keccak256("SetPurchasingToken(address)"));
-    address actualPurchasingToken = abi.decode(entries[0].data, (address));
     assertEq(
-      abi.decode(entries[0].data, (address)),
-      address(newPurchasingToken)
+      entries[0].topics[0],
+      keccak256("SetPurchasingToken(address,uint8)")
     );
+    (address actualPurchasingTokenAddress, uint8 actualDecimals) = abi.decode(
+      entries[0].data,
+      (address, uint8)
+    );
+    assertEq(actualPurchasingTokenAddress, address(newPurchasingToken));
+    assertEq(actualDecimals, newPurchasingTokenDecimals);
   }
 }
 
@@ -1416,17 +1429,24 @@ contract Market_setPurchasingTokenAndPriceMultiple is UpgradeableMarket {
     address erc20 = vm.addr(0xcab00d1e);
     IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
     uint256 newPriceMultiple = 2000;
+    uint8 newDecimals = 12;
     _market.setPurchasingTokenAndPriceMultiple(
       newPurchasingToken,
+      newDecimals,
       newPriceMultiple
     );
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, 2);
-    assertEq(entries[0].topics[0], keccak256("SetPurchasingToken(address)"));
     assertEq(
-      abi.decode(entries[0].data, (address)),
-      address(newPurchasingToken)
+      entries[0].topics[0],
+      keccak256("SetPurchasingToken(address,uint8)")
     );
+    (address tokenAddress, uint8 decimals) = abi.decode(
+      entries[0].data,
+      (address, uint8)
+    );
+    assertEq(tokenAddress, address(newPurchasingToken));
+    assertEq(decimals, newDecimals);
     assertEq(entries[1].topics[0], keccak256("SetPriceMultiple(uint256)"));
     assertEq(abi.decode(entries[1].data, (uint256)), newPriceMultiple);
   }
@@ -1441,7 +1461,11 @@ contract Market_setPurchasingTokenAndPriceMultiple_revertsIfNotAdmin is
       "AccessControl: account 0xe05fcc23807536bee418f142d19fa0d21bb0cff7 is missing role 0x3fb0aaa9e8051cfc6c234a5d843bed33910f70c647055f27247c10144c7552e1"
     );
     vm.prank(nonAdmin);
-    _market.setPurchasingTokenAndPriceMultiple(IERC20WithPermit(address(0)), 0);
+    _market.setPurchasingTokenAndPriceMultiple(
+      IERC20WithPermit(address(0)),
+      0,
+      0
+    );
   }
 }
 
@@ -1450,6 +1474,7 @@ contract Market_supplierSelectionUsingUpSuppliersLastRemoval is
 {
   address owner;
   uint256 checkoutTotal;
+  uint256 certificateAmount;
   SignedPermit signedPermit;
   uint256[] removalIds;
 
@@ -1462,7 +1487,8 @@ contract Market_supplierSelectionUsingUpSuppliersLastRemoval is
 
     uint256 ownerPrivateKey = 0xA11CE;
     owner = vm.addr(ownerPrivateKey);
-    checkoutTotal = _market.calculateCheckoutTotal(1.5 ether);
+    certificateAmount = 1.5 ether;
+    checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
 
@@ -1488,7 +1514,7 @@ contract Market_supplierSelectionUsingUpSuppliersLastRemoval is
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -1523,6 +1549,7 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
 {
   address owner;
   uint256 checkoutTotal;
+  uint256 certificateAmount;
   SignedPermit signedPermit;
   uint256[] supplier1RemovalIds;
   uint256[] supplier2RemovalIds;
@@ -1541,7 +1568,8 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
 
     uint256 ownerPrivateKey = 0xA11CE;
     owner = vm.addr(ownerPrivateKey);
-    checkoutTotal = _market.calculateCheckoutTotal(1.5 ether);
+    certificateAmount = 1.5 ether;
+    checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
 
@@ -1566,7 +1594,7 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -1593,5 +1621,104 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
       supplier2RemovalIds[0]
     );
     assertEq(0.5 ether, supplier2RemovalBalance);
+  }
+}
+
+contract Market_converts_decimals is UpgradeableUSDCMarket {
+  function test() external {
+    assertEq(
+      _market.convertRemovalAmountToPurchasingTokenAmount(1 ether),
+      1_000_000
+    );
+    // truncates cleanly
+    assertEq(
+      _market.convertRemovalAmountToPurchasingTokenAmount(1 ether + 1),
+      1_000_000
+    );
+    assertEq(
+      _market.convertPurchasingTokenAmountToRemovalAmount(1_000_000),
+      1 ether
+    );
+  }
+}
+
+contract Market_calculates_prices_using_decimal is UpgradeableUSDCMarket {
+  function test() external {
+    assertEq(_market.calculateCheckoutTotal(1 ether), 25_000_000);
+    assertEq(_market.calculateNoriFee(1 ether), 5_000_000);
+    assertEq(_market.calculateCheckoutTotalWithoutFee(1 ether), 20_000_000);
+  }
+}
+
+contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
+  address owner;
+  uint256 checkoutTotal;
+  SignedPermit signedPermit;
+  uint256 removalId;
+
+  using MathUpgradeable for uint256;
+
+  struct CertificateData {
+    bool isReplacement;
+    address recipient;
+    uint256 certificateAmount;
+    address purchasingTokenAddress;
+    uint256 priceMultiple;
+    uint256 noriFeePercentage;
+  }
+
+  function setUp() external {
+    DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
+    removals[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: address(_namedAccounts.supplier),
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
+    });
+
+    removalId = RemovalIdLib.createRemovalId(removals[0]);
+
+    _removal.mintBatch(
+      address(_market),
+      new uint256[](1).fill(2 ether),
+      removals,
+      1_234_567_890,
+      block.timestamp,
+      uint8(0)
+    );
+  }
+
+  function test() external {
+    uint256 numberOfNRTsToPurchase = 1 ether;
+    uint256 ownerPrivateKey = 0xA11CE;
+    owner = vm.addr(ownerPrivateKey);
+    checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
+
+    vm.prank(_namedAccounts.admin);
+    _purchasingToken.transfer(owner, checkoutTotal);
+
+    signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _purchasingToken
+    );
+
+    vm.prank(owner);
+    _market.swap(
+      owner,
+      owner,
+      numberOfNRTsToPurchase,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    vm.stopPrank();
   }
 }

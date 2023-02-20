@@ -17,26 +17,31 @@ abstract contract UpgradeableMarket is
   UpgradeableCertificate,
   UpgradeableBridgedPolygonNORI
 {
-  IERC20WithPermit internal _purchaseToken;
+  IERC20WithPermit internal _purchasingToken;
+  uint8 internal _purchasingTokenDecimals;
   SignatureUtils internal _signatureUtils;
   Market internal _market;
   uint256 MAX_INT = 2**256 - 1;
 
   constructor() {
-    _purchaseToken = IERC20WithPermit(address(_bpNori));
+    _purchasingToken = IERC20WithPermit(address(_bpNori));
+    _purchasingTokenDecimals = 18;
     _signatureUtils = _bpNoriSignatureUtils;
     _construct();
   }
 
   function _construct() internal {
-    _market = _deployMarket(address(_purchaseToken));
+    _market = _deployMarket(
+      address(_purchasingToken),
+      _purchasingTokenDecimals
+    );
     _marketAddress = address(_market);
     _removal.registerContractAddresses( // todo move to removal helper
       Market(_market),
       Certificate(_certificate)
     );
     _rNori.registerContractAddresses( // todo move to rnori helper
-      _purchaseToken,
+      _purchasingToken,
       Removal(_removal),
       Market(_market)
     );
@@ -44,16 +49,17 @@ abstract contract UpgradeableMarket is
     _rNori.grantRole(_rNori.SCHEDULE_CREATOR_ROLE(), address(_removal)); // todo move to rnori helper
   }
 
-  function _deployMarket(address purchaseTokenAddress)
-    internal
-    returns (Market)
-  {
+  function _deployMarket(
+    address purchasingTokenAddress,
+    uint8 purchasingTokenDecimals
+  ) internal returns (Market) {
     Market impl = new Market();
     vm.label(address(impl), "Market Implementation");
     bytes memory initializer = abi.encodeWithSelector(
       impl.initialize.selector,
       address(_removal),
-      purchaseTokenAddress,
+      purchasingTokenAddress,
+      purchasingTokenDecimals,
       address(_certificate),
       address(_rNori),
       address(_namedAccounts.admin),
@@ -83,7 +89,8 @@ abstract contract UpgradeableUSDCMarket is
   UpgradeableNoriUSDC
 {
   constructor() {
-    _purchaseToken = IERC20WithPermit(address(_noriUSDC));
+    _purchasingToken = IERC20WithPermit(address(_noriUSDC));
+    _purchasingTokenDecimals = 6;
     _signatureUtils = _noriUSDCSignatureUtils;
     _construct();
   }
