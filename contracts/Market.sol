@@ -1313,6 +1313,7 @@ contract Market is
               })
             });
           }
+          // TODO:SW needs to take into accout _purchasingToken decimals?
           isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,
             to: address(_restrictedNORI),
@@ -1324,6 +1325,7 @@ contract Market is
         }
       }
       if (chargeFee) {
+        // TODO:SW needs to take into accout _purchasingToken decimals?
         isTransferSuccessful = _purchasingToken.transferFrom({
           from: from,
           to: _noriFeeWallet,
@@ -1333,6 +1335,7 @@ contract Market is
           revert ERC20TransferFailed();
         }
       }
+      // TODO:SW needs to take into accout _purchasingToken decimals?
       isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],

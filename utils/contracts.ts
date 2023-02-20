@@ -177,6 +177,9 @@ export const getContractsFromDeployments = async (
     RemovalTestHarness: deployments.RemovalTestHarness?.address
       ? await getRemovalTestHarness({ hre })
       : undefined,
+    NoriUSDC: deployments.NoriUSDC?.address
+      ? await getNoriUSDC({ hre })
+      : undefined,
   } as Required<Contracts>;
   return contracts;
 };

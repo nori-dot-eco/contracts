@@ -271,7 +271,7 @@ export const deployLockedNORIContract = async ({
   });
 };
 
-export const deployTestnetUSDC = async ({
+export const deployNoriUSDC = async ({
   hre,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
@@ -284,10 +284,10 @@ export const deployTestnetUSDC = async ({
   }
   return hre.deployOrUpgradeProxy<NoriUSDC, NoriUSDC__factory>({
     contractName: 'NoriUSDC',
-    args: [],
+    args: [hre.namedAccounts.admin],
     options: {
-      initializer: 'initialize()',
-      unsafeAllow: ['constructor'],
+      initializer: 'initialize(address)',
+      unsafeAllow: ['delegatecall'],
     },
   });
 };

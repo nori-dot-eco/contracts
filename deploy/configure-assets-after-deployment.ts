@@ -38,14 +38,26 @@ export const deploy: DeployFunction = async (environment) => {
   // const signer = provider.getSigner(
   //   '0x582a885C03A0104Dc3053FAA8486c178e51E48Db'
   // );
+
   const [signer] = await hre.getSigners();
   const market = await getMarket({ hre, signer });
   const certificate = await getCertificate({ hre, signer });
   const rNori = await getRestrictedNORI({ hre, signer });
   const removal = await getRemoval({ hre, signer });
+  const bpNori = await getBridgedPolygonNori({ hre, signer });
   const noriUSDC = await getNoriUSDC({ hre, signer });
-  const usdcAddress =
-    hre.network.name === 'polygon' ? PROD_USDC_TOKEN_ADDRESS : noriUSDC.address;
+
+  // SW: Leaving the default local configuration with the assumption
+  // of the NORI token as purchase token to minimize test breakage.
+  let purchaseTokenAddress = bpNori.address;
+  let priceMultiple = BigNumber.from(100);
+  if (hre.network.name === 'polygon') {
+    purchaseTokenAddress = PROD_USDC_TOKEN_ADDRESS;
+    priceMultiple = BigNumber.from(2000);
+  } else if (hre.network.name === 'mumbai') {
+    purchaseTokenAddress = noriUSDC.address;
+    priceMultiple = BigNumber.from(2000);
+  }
   const feeWalletAddress = ['hardhat', 'localhost'].includes(hre.network.name)
     ? hre.namedAccounts.noriWallet
     : hre.network.name === 'polygon'
@@ -58,7 +70,7 @@ export const deploy: DeployFunction = async (environment) => {
     hre.trace(
       "Granting Removal the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI..."
     );
-    const txn = await rNori.grantRole(
+    txn = await rNori.grantRole(
       await rNori.SCHEDULE_CREATOR_ROLE(),
       removal.address
     );
@@ -80,12 +92,12 @@ export const deploy: DeployFunction = async (environment) => {
   // TODO figure out how to make a check about what these addresses are currently set to
   // bigger TODO: expose getters for these on the contract
   txn = await rNori.registerContractAddresses(
-    usdcAddress,
+    purchaseTokenAddress,
     removal.address,
     market.address
   );
   await txn.wait(CONFIRMATIONS);
-  hre.trace('Set removal, bpNori and market addresses in rNori');
+  hre.trace('Set removal, purchase token and market addresses in rNori');
   if ((await certificate.getRemovalAddress()) !== removal.address) {
     hre.trace('Setting removal address in Certificate contract...');
     txn = await certificate.registerContractAddresses(removal.address);
@@ -108,10 +120,13 @@ export const deploy: DeployFunction = async (environment) => {
   }
 
   if (
-    (await market.getPurchasingTokenAddress()) !== usdcAddress ||
-    (await market.getPriceMultiple()) !== BigNumber.from(2000)
+    (await market.getPurchasingTokenAddress()) !== purchaseTokenAddress ||
+    (await market.getPriceMultiple()) !== priceMultiple
   ) {
-    txn = await market.setPurchasingTokenAndPriceMultiple(usdcAddress, 2000);
+    txn = await market.setPurchasingTokenAndPriceMultiple(
+      purchaseTokenAddress,
+      priceMultiple
+    );
     await txn.wait(CONFIRMATIONS);
     hre.trace('Set USDC as purchase token with price multiple of 2000');
   }
