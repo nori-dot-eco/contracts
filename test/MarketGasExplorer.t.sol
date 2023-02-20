@@ -48,7 +48,7 @@ contract QuickSort {
  * In any given run, the number of NRTs to purchase is a randomish uint256 between MIN_PURCHASE_AMOUNT and MAX_PURCHASE_AMOUNT,
  * so over the course of many runs, the average and median purchase sizes will be close to the average of the min and max.
  *
- * The seeding of removals is varied in 5 different test cases that explore (in order) best-to-worst case scenarios for gas usage
+ * The seeding of removals is varied in 6 different test cases that explore (in order) best-to-worst case scenarios for gas usage
  * from a market setup perspective. (See the docstring above each test for more details.)
  * In general, the more removals that are required to fulfill an order, the worse the gas usage, and to a slightly lesser extent,
  * the more unique suppliers that are required to fulfill an order, the worse the gas. Gas measurements tightly surround the `swap`
@@ -72,6 +72,29 @@ contract MarketGasExplorer is UpgradeableMarket, QuickSort {
   uint256[] private _perRemovalAmount;
 
   /**
+   * The best possible gas scenario where an order is fulfilled by one removal.
+   */
+  function test_0_bestPossibleCaseOneRemoval() external {
+    for (uint256 i = 0; i < RUNS; i++) {
+      uint256 nrtAmount = getRandomNrtAmount();
+      uint256 perRemovalAmount = nrtAmount * 1 ether;
+      uint256 numberOfRemovals = 1;
+      _perRemovalAmount.push(perRemovalAmount);
+      for (uint256 j = 0; j < numberOfRemovals; j++) {
+        uint256[] memory localRemovalIds = _seedRemovalSpecificAmount({
+          mintTo: address(_market),
+          supplier: vm.addr(1),
+          removalAmount: perRemovalAmount,
+          subIdentifier: uint32(_removalIds.length + 1) // ensure uniqueness of ids across all iterations and runs
+        });
+        _removalIds.push(localRemovalIds[0]);
+      }
+      makePurchaseRecordGas(nrtAmount);
+    }
+    logResults();
+  }
+
+  /**
    * The most realistic test setup, with various suppliers bounded from a set of 10, and
    * removal balances that are roughly realistic.
    */
@@ -79,13 +102,13 @@ contract MarketGasExplorer is UpgradeableMarket, QuickSort {
     for (uint256 i = 0; i < RUNS; i++) {
       uint256 nrtAmount = getRandomNrtAmount();
       uint256 perRemovalAmount = (100) * 1 ether; // TODO create a more interesting but realistic distribution of removal amounts.
-      uint256 numberOfRemovals = (nrtAmount / perRemovalAmount) + 1; // make sure we seed enough removals to cover the purchase
+      uint256 numberOfRemovals = ((nrtAmount * 1 ether) / perRemovalAmount) + 1; // make sure we seed enough removals to cover the purchase
       _perRemovalAmount.push(perRemovalAmount);
       for (uint256 j = 0; j < numberOfRemovals; j++) {
         uint256[] memory localRemovalIds = _seedRemovalSpecificAmount({
           mintTo: address(_market),
           supplier: vm.addr((_removalIds.length % 10) + 1), // 10 unique suppliers
-          removalAmount: perRemovalAmount * 1 ether,
+          removalAmount: perRemovalAmount,
           subIdentifier: uint32(_removalIds.length + 1) // ensure uniqueness of ids across all iterations and runs
         });
         _removalIds.push(localRemovalIds[0]);
