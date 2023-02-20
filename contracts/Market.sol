@@ -1137,6 +1137,42 @@ contract Market is
   }
 
   /**
+   * @notice Calculates the quantity of carbon removals that can be purchased given
+   * some payment amount taking into account NRT price and fees.
+   * i.e. I have $100 (100_000_000 USDC), how many NRTs can I buy?
+   * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
+   * @return certificateAmount Amount for the certificate, excluding the transaction fee.
+   */
+  function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal)
+    external
+    view
+    returns (uint256)
+  {
+    return
+      convertPurchasingTokenAmountToRemovalAmount(purchaseTotal).mulDiv(
+        10000,
+        (100 + _noriFeePercentage) * _priceMultiple
+      );
+  }
+
+  /**
+   * @notice Calculates the quantity of carbon removals that can be purchased given
+   * some payment amount taking into account NRT price but excludign fees.
+   * i.e. I have $100 (100_000_000 USDC), how many NRTs can I buy?
+   * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
+   * @return certificateAmount Amount for the certificate.
+   */
+  function calculateCertificateAmountFromPurchaseTotalWithoutFee(
+    uint256 purchaseTotal
+  ) external view returns (uint256) {
+    return
+      convertPurchasingTokenAmountToRemovalAmount(purchaseTotal).mulDiv(
+        10000,
+        100 * _priceMultiple
+      );
+  }
+
+  /**
    * @notice Get the Removal contract address.
    * @return Returns the address of the Removal contract.
    */

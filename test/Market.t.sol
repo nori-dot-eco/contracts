@@ -1647,6 +1647,14 @@ contract Market_calculates_prices_using_decimal is UpgradeableUSDCMarket {
     assertEq(_market.calculateCheckoutTotal(1 ether), 25_000_000);
     assertEq(_market.calculateNoriFee(1 ether), 5_000_000);
     assertEq(_market.calculateCheckoutTotalWithoutFee(1 ether), 20_000_000);
+    assertEq(
+      _market.calculateCertificateAmountFromPurchaseTotal(25_000_000),
+      1 ether
+    );
+    assertEq(
+      _market.calculateCertificateAmountFromPurchaseTotalWithoutFee(20_000_000),
+      1 ether
+    );
   }
 }
 
