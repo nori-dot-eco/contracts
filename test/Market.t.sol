@@ -12,7 +12,6 @@ import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
 import "@/contracts/test/MockERC20Permit.sol";
 import "@/contracts/test/MockUnsafeERC20Permit.sol";
-import "forge-std/console2.sol";
 
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
@@ -1676,6 +1675,18 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
     uint256 noriFeePercentage;
   }
 
+  event CreateCertificate(
+    address from,
+    address indexed recipient,
+    uint256 indexed certificateId,
+    uint256 certificateAmount,
+    uint256[] removalIds,
+    uint256[] removalAmounts,
+    address indexed purchasingTokenAddress,
+    uint256 priceMultiple,
+    uint256 noriFeePercentage
+  );
+
   function setUp() external {
     DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
     removals[0] = DecodedRemovalIdV0({
@@ -1704,6 +1715,7 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
   function test() external {
     uint256 numberOfNRTsToPurchase = 1 ether;
     uint256 ownerPrivateKey = 0xA11CE;
+    uint256 certificateTokenId = 0;
     owner = vm.addr(ownerPrivateKey);
     checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
 
@@ -1719,6 +1731,20 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
     );
 
     vm.prank(owner);
+    vm.expectEmit(false, false, false, true);
+    uint256[] memory removalIds = new uint256[](1).fill(removalId);
+    uint256[] memory amounts = new uint256[](1).fill(numberOfNRTsToPurchase);
+    emit CreateCertificate(
+      address(_removal),
+      owner,
+      certificateTokenId,
+      numberOfNRTsToPurchase,
+      removalIds,
+      amounts,
+      address(_market.getPurchasingTokenAddress()),
+      _market.getPriceMultiple(),
+      _market.getNoriFeePercentage()
+    );
     _market.swap(
       owner,
       owner,
@@ -1729,6 +1755,7 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
       signedPermit.s
     );
     vm.stopPrank();
+    assertEq(_certificate.ownerOf(certificateTokenId), owner);
   }
 }
 
@@ -1766,8 +1793,6 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
       checkoutTotal = _market.calculateCheckoutTotalWithoutFee(
         numberOfNRTsToPurchase
       );
-
-      console2.logBytes(revertData);
 
       vm.prank(owner);
       vm.expectRevert(revertData);
