@@ -149,7 +149,7 @@ export interface RemovalDataForListing {
   listNow?: boolean;
   removals: (Partial<DecodedRemovalIdV0Struct> & {
     tokenId?: BigNumber;
-    amount: number; // todo bignumber
+    amount: BigNumber; // todo bignumber
     projectId?: number;
     scheduleStartTime?: number;
     holdbackPercentage?: number;
@@ -198,8 +198,8 @@ export const batchMintAndListRemovalsForSale = async (options: {
     };
     removals.push(removalTokenId);
   }
-  const removalAmounts = removalDataToList.removals.map((removalData) =>
-    formatTokenAmount(removalData.amount)
+  const removalAmounts = removalDataToList.removals.map(
+    (removalData) => removalData.amount
   );
   await removal.mintBatch(
     removalDataToList.listNow === false
