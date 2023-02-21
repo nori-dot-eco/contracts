@@ -12,6 +12,7 @@ import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
 import "@/contracts/test/MockERC20Permit.sol";
 import "@/contracts/test/MockUnsafeERC20Permit.sol";
+import "forge-std/console2.sol";
 
 using UInt256ArrayLib for uint256[];
 using AddressArrayLib for address[];
@@ -1728,5 +1729,85 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
       signedPermit.s
     );
     vm.stopPrank();
+  }
+}
+
+contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
+  address owner;
+  uint256 checkoutTotal;
+  SignedPermit signedPermit;
+
+  function setUp() external {
+    vm.prank(_namedAccounts.admin);
+    _market.grantRole(_market.MARKET_ADMIN_ROLE(), _namedAccounts.admin);
+  }
+
+  function test() external {
+    uint256 ownerPrivateKey = 0xA11CE;
+    owner = vm.addr(ownerPrivateKey);
+
+    uint256[] memory testValues = new uint256[](3);
+    testValues[0] = 0;
+    testValues[1] = 1;
+    testValues[2] = 1 ether + 1;
+
+    for (uint256 i = 0; i < 3; i++) {
+      uint256 numberOfNRTsToPurchase = testValues[i];
+
+      bytes memory revertData = abi.encodeWithSelector(
+        InvalidCertificateAmount.selector,
+        numberOfNRTsToPurchase
+      );
+
+      vm.expectRevert(revertData);
+      checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
+
+      vm.expectRevert(revertData);
+      checkoutTotal = _market.calculateCheckoutTotalWithoutFee(
+        numberOfNRTsToPurchase
+      );
+
+      console2.logBytes(revertData);
+
+      vm.prank(owner);
+      vm.expectRevert(revertData);
+      _market.swap(owner, numberOfNRTsToPurchase);
+
+      vm.expectRevert(revertData);
+      _market.swap(owner, owner, numberOfNRTsToPurchase, 0, 0, 0, 0);
+
+      vm.expectRevert(revertData);
+      _market.swapFromSupplier(
+        owner,
+        numberOfNRTsToPurchase,
+        _namedAccounts.supplier
+      );
+
+      vm.expectRevert(revertData);
+      _market.swapFromSupplier(
+        owner,
+        owner,
+        numberOfNRTsToPurchase,
+        _namedAccounts.supplier,
+        0,
+        0,
+        0,
+        0
+      );
+      vm.stopPrank();
+
+      vm.prank(_namedAccounts.admin);
+      vm.expectRevert(revertData);
+      _market.swapWithoutFee(owner, owner, numberOfNRTsToPurchase);
+
+      vm.expectRevert(revertData);
+      _market.swapFromSupplierWithoutFee(
+        owner,
+        owner,
+        numberOfNRTsToPurchase,
+        _namedAccounts.supplier
+      );
+      vm.stopPrank();
+    }
   }
 }

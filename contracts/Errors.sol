@@ -134,6 +134,11 @@ error InvalidHoldbackPercentage(uint8 holdbackPercentage);
  */
 error InvalidPurchasingTokenDecimals(uint256 decimals);
 /**
+ * @notice Thrown when a swap attempt is made for zero removals or
+ * a fractional amount less than the purchasing tokens decimal precision - 2.
+ */
+error InvalidCertificateAmount(uint256 decimals);
+/**
  * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market
  * contracts.
  */

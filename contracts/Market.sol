@@ -688,8 +688,7 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * @param recipient The address to which the certificate will be issued.
    * @param permitOwner The address that signed the EIP2612 permit and will pay for the removals.
-   * @param amount The total amount iof Removals being purchased. This is the combined total price of the removals being
-   * purchased and the fee paid to Nori. (See calculateCheckoutTotal())
+   * @param amount The total amount of Removals being purchased.
    * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature.
    * @param r The r value for the permit's secp256k1 signature.
@@ -704,6 +703,7 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -751,6 +751,7 @@ contract Market is
    * @param amount The total amount of Removals to purchase.
    */
   function swap(address recipient, uint256 amount) external whenNotPaused {
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -806,6 +807,7 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -864,6 +866,7 @@ contract Market is
     uint256 amount,
     address supplier
   ) external whenNotPaused {
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -914,6 +917,7 @@ contract Market is
     address purchaser,
     uint256 amount
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -964,6 +968,7 @@ contract Market is
     uint256 amount,
     address supplier
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -1097,6 +1102,7 @@ contract Market is
     view
     returns (uint256)
   {
+    _validateCertificateAmount({amount: amount});
     return
       convertRemovalAmountToPurchasingTokenAmount(
         amount.mulDiv(_priceMultiple, 100)
@@ -1114,6 +1120,7 @@ contract Market is
     view
     returns (uint256)
   {
+    _validateCertificateAmount({amount: amount});
     return
       convertRemovalAmountToPurchasingTokenAmount(
         amount.mulDiv(_priceMultiple, 100)
@@ -1920,5 +1927,15 @@ contract Market is
       next: nextOfRemovedSupplierAddress,
       previous: previousOfRemovedSupplierAddress
     });
+  }
+
+  /**
+   * @dev Validates the certificate purchase amount.
+   * @param amount Proposed amount to purchase.
+   */
+  function _validateCertificateAmount(uint256 amount) internal view {
+    if (amount == 0 || amount % (_purchasingTokenDecimals - 2) != 0) {
+      revert InvalidCertificateAmount(amount);
+    }
   }
 }
