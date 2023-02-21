@@ -704,16 +704,12 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _allocateRemovals({
-        purchaser: _msgSender(),
-        certificateAmount: certificateAmount
-      });
+    ) = _allocateRemovals({purchaser: _msgSender(), certificateAmount: amount});
     _permit({
       owner: permitOwner,
       amount: calculateCheckoutTotal(amount),
@@ -725,7 +721,7 @@ contract Market is
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: permitOwner,
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -752,24 +748,19 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
    * @param recipient The address to which the certificate will be issued.
-   * @param amount The total amount of Removals to purchase. This is the combined total price of the removals being
-   * purchased and the fee paid to Nori.
+   * @param amount The total amount of Removals to purchase.
    */
   function swap(address recipient, uint256 amount) external whenNotPaused {
-    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _allocateRemovals({
-        purchaser: _msgSender(),
-        certificateAmount: certificateAmount
-      });
+    ) = _allocateRemovals({purchaser: _msgSender(), certificateAmount: amount});
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: _msgSender(),
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -815,7 +806,6 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -823,7 +813,7 @@ contract Market is
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
         purchaser: permitOwner,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         supplier: supplier
       });
     _permit({
@@ -837,7 +827,7 @@ contract Market is
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: permitOwner,
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -874,7 +864,6 @@ contract Market is
     uint256 amount,
     address supplier
   ) external whenNotPaused {
-    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -882,13 +871,13 @@ contract Market is
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
         purchaser: _msgSender(),
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         supplier: supplier
       });
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: _msgSender(),
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -925,20 +914,16 @@ contract Market is
     address purchaser,
     uint256 amount
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _allocateRemovals({
-        purchaser: purchaser,
-        certificateAmount: certificateAmount
-      });
+    ) = _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: purchaser,
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -979,7 +964,6 @@ contract Market is
     uint256 amount,
     address supplier
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    uint256 certificateAmount = amount;
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -987,13 +971,13 @@ contract Market is
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
         purchaser: purchaser,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         supplier: supplier
       });
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: purchaser,
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
