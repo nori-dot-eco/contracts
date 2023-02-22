@@ -149,7 +149,7 @@ export interface RemovalDataForListing {
   listNow?: boolean;
   removals: (Partial<DecodedRemovalIdV0Struct> & {
     tokenId?: BigNumber;
-    amount: BigNumber; // todo bignumber
+    amount: BigNumber;
     projectId?: number;
     scheduleStartTime?: number;
     holdbackPercentage?: number;
