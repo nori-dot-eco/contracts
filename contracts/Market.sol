@@ -1242,8 +1242,8 @@ contract Market is
    * @param purchasingToken The new purchasing token contract address.
    */
   function _setPurchasingToken(IERC20WithPermit purchasingToken) internal {
-    if (_purchasingToken.decimals() > 18 || _purchasingToken.decimals() < 6) {
-      revert InvalidPurchasingTokenDecimals(_purchasingToken.decimals());
+    if (purchasingToken.decimals() > 18 || purchasingToken.decimals() < 6) {
+      revert InvalidPurchasingTokenDecimals(purchasingToken.decimals());
     }
     _purchasingToken = IERC20WithPermit(purchasingToken);
     emit SetPurchasingToken({purchasingToken: purchasingToken});

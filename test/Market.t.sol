@@ -1373,7 +1373,7 @@ contract Market_getRemovalIdsForSupplier is UpgradeableMarket {
 contract Market__setPurchasingToken is NonUpgradeableMarket {
   function test() external {
     vm.recordLogs();
-    address erc20 = vm.addr(0xcab00d1e);
+    MockERC20Permit erc20 = new MockERC20Permit();
     IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
     _setPurchasingToken({purchasingToken: newPurchasingToken});
     Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -1414,13 +1414,13 @@ contract Market_getPriceMultiple is UpgradeableMarket {
 contract Market_setPurchasingTokenAndPriceMultiple is UpgradeableMarket {
   function test() external {
     vm.recordLogs();
-    address erc20 = vm.addr(0xcab00d1e);
+    MockERC20Permit erc20 = new MockERC20Permit();
     IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
     uint256 newPriceMultiple = 2000;
-    _market.setPurchasingTokenAndPriceMultiple(
-      newPurchasingToken,
-      newPriceMultiple
-    );
+    _market.setPurchasingTokenAndPriceMultiple({
+      purchasingToken: newPurchasingToken,
+      priceMultiple: newPriceMultiple
+    });
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, 2);
     assertEq(entries[0].topics[0], keccak256("SetPurchasingToken(address)"));
@@ -1440,11 +1440,7 @@ contract Market_setPurchasingTokenAndPriceMultiple_revertsIfNotAdmin is
       "AccessControl: account 0xe05fcc23807536bee418f142d19fa0d21bb0cff7 is missing role 0x3fb0aaa9e8051cfc6c234a5d843bed33910f70c647055f27247c10144c7552e1"
     );
     vm.prank(nonAdmin);
-    _market.setPurchasingTokenAndPriceMultiple(
-      IERC20WithPermit(address(0)),
-      0,
-      0
-    );
+    _market.setPurchasingTokenAndPriceMultiple(IERC20WithPermit(address(0)), 0);
   }
 }
 

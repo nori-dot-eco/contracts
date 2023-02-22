@@ -44,9 +44,10 @@ abstract contract UpgradeableMarket is
     _rNori.grantRole(_rNori.SCHEDULE_CREATOR_ROLE(), address(_removal)); // todo move to rnori helper
   }
 
-  function _deployMarket(
-    address purchasingTokenAddress,
-  ) internal returns (Market) {
+  function _deployMarket(address purchasingTokenAddress)
+    internal
+    returns (Market)
+  {
     Market impl = new Market();
     vm.label(address(impl), "Market Implementation");
     bytes memory initializer = abi.encodeWithSelector(
