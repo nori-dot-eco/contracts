@@ -127,9 +127,13 @@ export const deploy: DeployFunction = async (environment) => {
       priceMultiple
     );
     await txn.wait(CONFIRMATIONS);
-    hre.trace('Set USDC as purchase token with price multiple of 2000');
+    hre.trace(
+      `Set ${
+        purchaseTokenAddress === bpNori.address ? 'bpNORI' : 'USDC'
+      } as purchase token with price multiple of ${priceMultiple}`
+    );
   }
-
+  // TODO: Configure the purchasing token and fee percentage somewhere more global
   if ((await market.getNoriFeePercentage()) !== BigNumber.from(25)) {
     txn = await market.setNoriFeePercentage(25);
     await txn.wait(CONFIRMATIONS);
