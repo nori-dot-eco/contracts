@@ -79,7 +79,6 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
     );
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _unsafeErc20,
-      purchasingTokenDecimals: 12,
       priceMultiple: 100
     });
     _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
@@ -496,7 +495,6 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
-      purchasingTokenDecimals: 18,
       priceMultiple: 2000
     });
     _removalIds = _seedRemovals({
@@ -594,7 +592,6 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     _erc20 = _deployMockERC20();
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
-      purchasingTokenDecimals: 18,
       priceMultiple: 2000
     });
     _removalIds = _seedRemovals({

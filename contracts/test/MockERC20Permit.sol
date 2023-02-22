@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 import "../IERC20WithPermit.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 
 contract MockERC20Permit is ERC20PermitUpgradeable, IERC20WithPermit {
   function initialize() public initializer {
