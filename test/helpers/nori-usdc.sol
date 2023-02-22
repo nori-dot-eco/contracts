@@ -17,7 +17,7 @@ abstract contract UpgradeableNoriUSDC is Upgradeable {
 
   function _deployPurchaseToken() internal returns (NoriUSDC) {
     _noriUSDCImplementation = new NoriUSDC();
-    vm.label(address(_noriUSDCImplementation), "Purchase Token Implementation");
+    vm.label(address(_noriUSDCImplementation), "NoriUSDC Implementation");
     bytes memory initializer = abi.encodeWithSelector(
       _noriUSDCImplementation.initialize.selector,
       _namedAccounts.admin
@@ -25,7 +25,7 @@ abstract contract UpgradeableNoriUSDC is Upgradeable {
     NoriUSDC purchaseTokenProxy = NoriUSDC(
       _deployProxy(address(_noriUSDCImplementation), initializer)
     );
-    vm.label(address(purchaseTokenProxy), "Purchase Token Proxy");
+    vm.label(address(purchaseTokenProxy), "NoriUSDC Proxy");
     return purchaseTokenProxy;
   }
 }
