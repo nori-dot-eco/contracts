@@ -757,7 +757,6 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
-      purchasingTokenDecimals: _erc20.decimals(),
       priceMultiple: 2000
     });
     assertEq(_market.getPurchasingTokenAddress(), address(_erc20));
@@ -870,7 +869,6 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
-      purchasingTokenDecimals: _erc20.decimals(),
       priceMultiple: 1995 // $19.95
     });
     assertEq(_market.getPurchasingTokenAddress(), address(_erc20));

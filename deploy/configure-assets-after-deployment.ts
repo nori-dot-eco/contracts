@@ -50,15 +50,12 @@ export const deploy: DeployFunction = async (environment) => {
   // SW: Leaving the default local configuration with the assumption
   // of the NORI token as purchase token to minimize test breakage.
   let purchaseTokenAddress = bpNori.address;
-  let purchaseTokenDecimals = 18;
   let priceMultiple = BigNumber.from(100);
   if (hre.network.name === 'polygon') {
     purchaseTokenAddress = PROD_USDC_TOKEN_ADDRESS;
-    purchaseTokenDecimals = 6;
     priceMultiple = BigNumber.from(2000);
   } else if (hre.network.name === 'mumbai') {
     purchaseTokenAddress = noriUSDC.address;
-    purchaseTokenDecimals = 6;
     priceMultiple = BigNumber.from(2000);
   }
   const feeWalletAddress = ['hardhat', 'localhost'].includes(hre.network.name)
@@ -128,7 +125,6 @@ export const deploy: DeployFunction = async (environment) => {
   ) {
     txn = await market.setPurchasingTokenAndPriceMultiple(
       purchaseTokenAddress,
-      purchaseTokenDecimals,
       priceMultiple
     );
     await txn.wait(CONFIRMATIONS);

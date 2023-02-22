@@ -193,7 +193,6 @@ export const deployMarketContract = async ({
     args: [
       deployments.Removal.address,
       deployments.BridgedPolygonNORI.address,
-      18,
       deployments.Certificate.address,
       deployments.RestrictedNORI.address,
       feeWallet,
@@ -202,7 +201,7 @@ export const deployMarketContract = async ({
     ],
     options: {
       initializer:
-        'initialize(address,address,uint8,address,address,address,uint256,uint256)',
+        'initialize(address,address,address,address,address,uint256,uint256)',
       unsafeAllow: ['delegatecall'],
     },
   });

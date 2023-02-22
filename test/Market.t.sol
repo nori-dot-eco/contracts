@@ -79,7 +79,6 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
     );
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _unsafeErc20,
-      purchasingTokenDecimals: 12,
       priceMultiple: 100
     });
     _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
@@ -496,7 +495,6 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
-      purchasingTokenDecimals: 18,
       priceMultiple: 2000
     });
     _removalIds = _seedRemovals({
@@ -594,7 +592,6 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     _erc20 = _deployMockERC20();
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
-      purchasingTokenDecimals: 18,
       priceMultiple: 2000
     });
     _removalIds = _seedRemovals({
@@ -1268,7 +1265,6 @@ contract Market__multicall_initialize_reverts is UpgradeableMarket {
         _market.initialize.selector,
         _removal,
         _bpNori,
-        18,
         _certificate,
         _rNori,
         _namedAccounts.admin,
@@ -1377,25 +1373,17 @@ contract Market_getRemovalIdsForSupplier is UpgradeableMarket {
 contract Market__setPurchasingToken is NonUpgradeableMarket {
   function test() external {
     vm.recordLogs();
-    address erc20 = vm.addr(0xcab00d1e);
+    MockERC20Permit erc20 = new MockERC20Permit();
     IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
-    uint8 newPurchasingTokenDecimals = 18;
-    _setPurchasingToken({
-      purchasingToken: newPurchasingToken,
-      decimals: newPurchasingTokenDecimals
-    });
+    _setPurchasingToken({purchasingToken: newPurchasingToken});
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, 1);
-    assertEq(
-      entries[0].topics[0],
-      keccak256("SetPurchasingToken(address,uint8)")
-    );
-    (address actualPurchasingTokenAddress, uint8 actualDecimals) = abi.decode(
+    assertEq(entries[0].topics[0], keccak256("SetPurchasingToken(address)"));
+    address actualPurchasingTokenAddress = abi.decode(
       entries[0].data,
-      (address, uint8)
+      (address)
     );
     assertEq(actualPurchasingTokenAddress, address(newPurchasingToken));
-    assertEq(actualDecimals, newPurchasingTokenDecimals);
   }
 }
 
@@ -1426,27 +1414,18 @@ contract Market_getPriceMultiple is UpgradeableMarket {
 contract Market_setPurchasingTokenAndPriceMultiple is UpgradeableMarket {
   function test() external {
     vm.recordLogs();
-    address erc20 = vm.addr(0xcab00d1e);
+    MockERC20Permit erc20 = new MockERC20Permit();
     IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
     uint256 newPriceMultiple = 2000;
-    uint8 newDecimals = 12;
-    _market.setPurchasingTokenAndPriceMultiple(
-      newPurchasingToken,
-      newDecimals,
-      newPriceMultiple
-    );
+    _market.setPurchasingTokenAndPriceMultiple({
+      purchasingToken: newPurchasingToken,
+      priceMultiple: newPriceMultiple
+    });
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, 2);
-    assertEq(
-      entries[0].topics[0],
-      keccak256("SetPurchasingToken(address,uint8)")
-    );
-    (address tokenAddress, uint8 decimals) = abi.decode(
-      entries[0].data,
-      (address, uint8)
-    );
+    assertEq(entries[0].topics[0], keccak256("SetPurchasingToken(address)"));
+    address tokenAddress = abi.decode(entries[0].data, (address));
     assertEq(tokenAddress, address(newPurchasingToken));
-    assertEq(decimals, newDecimals);
     assertEq(entries[1].topics[0], keccak256("SetPriceMultiple(uint256)"));
     assertEq(abi.decode(entries[1].data, (uint256)), newPriceMultiple);
   }
@@ -1461,11 +1440,7 @@ contract Market_setPurchasingTokenAndPriceMultiple_revertsIfNotAdmin is
       "AccessControl: account 0xe05fcc23807536bee418f142d19fa0d21bb0cff7 is missing role 0x3fb0aaa9e8051cfc6c234a5d843bed33910f70c647055f27247c10144c7552e1"
     );
     vm.prank(nonAdmin);
-    _market.setPurchasingTokenAndPriceMultiple(
-      IERC20WithPermit(address(0)),
-      0,
-      0
-    );
+    _market.setPurchasingTokenAndPriceMultiple(IERC20WithPermit(address(0)), 0);
   }
 }
 

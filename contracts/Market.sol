@@ -127,12 +127,6 @@ contract Market is
   IERC20WithPermit private _purchasingToken;
 
   /**
-   * @notice The number of decimals configure on the _purchasingToken contract.
-   * Used to adapt between Removal amounts and payment token amounts.
-   */
-  uint8 private _purchasingTokenDecimals;
-
-  /**
    * @notice The RestrictedNORI contract.
    */
   RestrictedNORI private _restrictedNORI;
@@ -197,7 +191,7 @@ contract Market is
    * @notice Emitted on setting of `_purchasingToken`.
    * @param purchasingToken The updated address of the IERC20WithPermit token used to purchase from this market.
    */
-  event SetPurchasingToken(IERC20WithPermit purchasingToken, uint8 decimals);
+  event SetPurchasingToken(IERC20WithPermit purchasingToken);
 
   /**
    * @notice Emitted on setting of `_priceMultiple`.
@@ -216,7 +210,6 @@ contract Market is
     Removal removal,
     Certificate certificate,
     IERC20WithPermit purchasingToken,
-    uint8 purchasingTokenDecimals,
     RestrictedNORI restrictedNORI
   );
 
@@ -337,7 +330,6 @@ contract Market is
   function initialize(
     Removal removal,
     IERC20WithPermit purchasingToken,
-    uint8 purchasingTokenDecimals,
     Certificate certificate,
     RestrictedNORI restrictedNori,
     address noriFeeWalletAddress,
@@ -360,10 +352,7 @@ contract Market is
     _noriFeeWallet = noriFeeWalletAddress;
     _priorityRestrictedThreshold = 0;
     _currentSupplierAddress = address(0);
-    _setPurchasingToken({
-      purchasingToken: purchasingToken,
-      decimals: purchasingTokenDecimals
-    });
+    _setPurchasingToken({purchasingToken: purchasingToken});
     _setPriceMultiple({priceMultiple: priceMultiple_});
     _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
     _grantRole({role: ALLOWLIST_ROLE, account: _msgSender()});
@@ -506,19 +495,16 @@ contract Market is
     Removal removal,
     Certificate certificate,
     IERC20WithPermit purchasingToken,
-    uint8 purchasingTokenDecimals,
     RestrictedNORI restrictedNORI
   ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
     _removal = removal;
     _certificate = certificate;
     _purchasingToken = purchasingToken;
-    _purchasingTokenDecimals = purchasingTokenDecimals;
     _restrictedNORI = restrictedNORI;
     emit RegisterContractAddresses({
       removal: _removal,
       certificate: _certificate,
       purchasingToken: _purchasingToken,
-      purchasingTokenDecimals: _purchasingTokenDecimals,
       restrictedNORI: _restrictedNORI
     });
   }
@@ -537,13 +523,9 @@ contract Market is
    */
   function setPurchasingTokenAndPriceMultiple(
     IERC20WithPermit purchasingToken,
-    uint8 purchasingTokenDecimals,
     uint256 priceMultiple
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    _setPurchasingToken({
-      purchasingToken: purchasingToken,
-      decimals: purchasingTokenDecimals
-    });
+    _setPurchasingToken({purchasingToken: purchasingToken});
     _setPriceMultiple({priceMultiple: priceMultiple});
   }
 
@@ -1074,20 +1056,20 @@ contract Market is
     view
     returns (uint256)
   {
-    if (_purchasingTokenDecimals == 18) {
+    if (_purchasingToken.decimals() == 18) {
       return removalAmount;
     }
-    int8 decimalDelta = 18 - int8(_purchasingTokenDecimals);
+    int8 decimalDelta = 18 - int8(_purchasingToken.decimals());
     return removalAmount / 10**uint8(decimalDelta);
   }
 
   function convertPurchasingTokenAmountToRemovalAmount(
     uint256 purchasingTokenAmount
   ) public view returns (uint256) {
-    if (_purchasingTokenDecimals == 18) {
+    if (_purchasingToken.decimals() == 18) {
       return purchasingTokenAmount;
     }
-    int8 decimalDelta = 18 - int8(_purchasingTokenDecimals);
+    int8 decimalDelta = 18 - int8(_purchasingToken.decimals());
     return purchasingTokenAmount * 10**uint8(decimalDelta);
   }
 
@@ -1196,14 +1178,6 @@ contract Market is
   }
 
   /**
-   * @notice Get the number of decimals configured on the purchasing token ERC20 contract.
-   * @return Returns the number of decimals
-   */
-  function getPurchasingTokenDecimals() external view returns (uint8) {
-    return _purchasingTokenDecimals;
-  }
-
-  /**
    * @notice Get a list of all suppliers which have listed removals in the marketplace.
    * @return suppliers Returns an array of all suppliers that currently have removals listed in the market.
    */
@@ -1267,18 +1241,12 @@ contract Market is
    * @notice Set the purchasing token contract address, an IERC20WithPermit token used to purchase from this market.
    * @param purchasingToken The new purchasing token contract address.
    */
-  function _setPurchasingToken(IERC20WithPermit purchasingToken, uint8 decimals)
-    internal
-  {
-    if (decimals > 18 || decimals < 6) {
-      revert InvalidPurchasingTokenDecimals(decimals);
+  function _setPurchasingToken(IERC20WithPermit purchasingToken) internal {
+    if (purchasingToken.decimals() > 18 || purchasingToken.decimals() < 6) {
+      revert InvalidPurchasingTokenDecimals(purchasingToken.decimals());
     }
     _purchasingToken = IERC20WithPermit(purchasingToken);
-    _purchasingTokenDecimals = decimals;
-    emit SetPurchasingToken({
-      purchasingToken: purchasingToken,
-      decimals: decimals
-    });
+    emit SetPurchasingToken({purchasingToken: purchasingToken});
   }
 
   /**
@@ -1934,7 +1902,7 @@ contract Market is
    * @param amount Proposed amount to purchase.
    */
   function _validateCertificateAmount(uint256 amount) internal view {
-    if (amount == 0 || amount % (_purchasingTokenDecimals - 2) != 0) {
+    if (amount == 0 || amount % (_purchasingToken.decimals() - 2) != 0) {
       revert InvalidCertificateAmount(amount);
     }
   }
