@@ -455,7 +455,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
 }
 
 contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
-  UpgradeableMarket
+  UpgradeableUSDCMarket
 {
   uint8 holdbackPercentage = 10;
   uint256 checkoutTotal;
@@ -464,8 +464,6 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
   SignedPermit signedPermit;
   uint256[] _removalIds;
   uint256 removalId;
-  MockERC20Permit internal _erc20;
-  SignatureUtils internal _mockERC20SignatureUtils;
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 amount;
@@ -491,12 +489,6 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
   }
 
   function setUp() external {
-    _erc20 = _deployMockERC20();
-    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
-    _market.setPurchasingTokenAndPriceMultiple({
-      purchasingToken: _erc20,
-      priceMultiple: 2000
-    });
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
@@ -507,14 +499,19 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     certificateAmount = 1 ether;
     checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
     fee = _market.calculateNoriFee(certificateAmount);
-    rNoriToMint = ((checkoutTotal - fee) * holdbackPercentage) / 100;
-    _erc20.transfer(owner, checkoutTotal);
-    signedPermit = _mockERC20SignatureUtils.generatePermit(
+    // This assumes that rnori will only ever be backed by NORI or a 1:1 18 decimal token ...
+    rNoriToMint = _market.convertPurchasingTokenAmountToRemovalAmount(
+      ((checkoutTotal - fee) * holdbackPercentage) / 100
+    );
+    vm.prank(_namedAccounts.admin);
+    _noriUSDC.transfer(owner, checkoutTotal);
+    vm.stopPrank();
+    signedPermit = _noriUSDCSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
       1 days,
-      _erc20
+      _noriUSDC
     );
   }
 
@@ -545,26 +542,25 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
         ) = abi.decode(entries[i].data, (uint256, address, address));
         assertEq(currentHoldbackPercentage, holdbackPercentage);
         assertEq(rNoriUnderlyingToken, address(_bpNori));
-        assertEq(purchasingTokenAddress, address(_erc20));
+        assertEq(purchasingTokenAddress, address(_noriUSDC));
       }
     }
     assertEq(containsTransferSkippedEventSelector, true);
-    assertEq(_erc20.balanceOf(owner), 0);
-    assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal - fee);
-    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
-    assertEq(_erc20.balanceOf(address(_rNori)), 0);
+    assertEq(_noriUSDC.balanceOf(owner), 0);
+    assertEq(_noriUSDC.balanceOf(_namedAccounts.supplier), checkoutTotal - fee);
+    assertEq(_noriUSDC.balanceOf(_market.getNoriFeeWallet()), fee);
+    assertEq(_noriUSDC.balanceOf(address(_rNori)), 0);
   }
 }
 
 contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
-  UpgradeableMarket
+  UpgradeableUSDCMarket
 {
   uint8 holdbackPercentage = 10;
   uint256 checkoutTotal;
   uint256 certificateAmount;
   uint256 rNoriToMint;
   uint256[] _removalIds;
-  MockERC20Permit internal _erc20;
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 amount;
@@ -582,18 +578,7 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     address purchasingTokenAddress
   );
 
-  function _deployMockERC20() internal returns (MockERC20Permit) {
-    MockERC20Permit impl = new MockERC20Permit();
-    bytes memory initializer = abi.encodeWithSignature("initialize()");
-    return MockERC20Permit(_deployProxy(address(impl), initializer));
-  }
-
   function setUp() external {
-    _erc20 = _deployMockERC20();
-    _market.setPurchasingTokenAndPriceMultiple({
-      purchasingToken: _erc20,
-      priceMultiple: 2000
-    });
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
@@ -603,10 +588,14 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
 
     certificateAmount = 1 ether;
     checkoutTotal = _market.calculateCheckoutTotalWithoutFee(certificateAmount);
-    rNoriToMint = (checkoutTotal * holdbackPercentage) / 100;
-    _erc20.transfer(owner, checkoutTotal);
+    rNoriToMint = _market.convertPurchasingTokenAmountToRemovalAmount(
+      (checkoutTotal * holdbackPercentage) / 100
+    );
+    vm.prank(_namedAccounts.admin);
+    _noriUSDC.transfer(owner, checkoutTotal);
+    vm.stopPrank();
     vm.prank(owner);
-    _erc20.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+    _noriUSDC.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
   }
 
@@ -629,14 +618,14 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
         ) = abi.decode(entries[i].data, (uint256, address, address));
         assertEq(currentHoldbackPercentage, holdbackPercentage);
         assertEq(rNoriUnderlyingToken, address(_bpNori));
-        assertEq(purchasingTokenAddress, address(_erc20));
+        assertEq(purchasingTokenAddress, address(_noriUSDC));
       }
     }
     assertEq(containsTransferSkippedEventSelector, true);
-    assertEq(_erc20.balanceOf(owner), 0);
-    assertEq(_erc20.balanceOf(_namedAccounts.supplier), checkoutTotal);
-    assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), 0);
-    assertEq(_erc20.balanceOf(address(_rNori)), 0);
+    assertEq(_noriUSDC.balanceOf(owner), 0);
+    assertEq(_noriUSDC.balanceOf(_namedAccounts.supplier), checkoutTotal);
+    assertEq(_noriUSDC.balanceOf(_market.getNoriFeeWallet()), 0);
+    assertEq(_noriUSDC.balanceOf(address(_rNori)), 0);
   }
 }
 

@@ -36,7 +36,7 @@ abstract contract UpgradeableMarket is
       Certificate(_certificate)
     );
     _rNori.registerContractAddresses( // todo move to rnori helper
-      _purchasingToken,
+      IERC20WithPermit(address(_bpNori)),
       Removal(_removal),
       Market(_market)
     );
@@ -56,7 +56,7 @@ abstract contract UpgradeableMarket is
       purchasingTokenAddress,
       address(_certificate),
       address(_rNori),
-      address(_namedAccounts.admin),
+      address(_namedAccounts.feeWallet),
       25,
       2000
     );

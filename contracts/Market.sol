@@ -1042,7 +1042,7 @@ contract Market is
   /**
    * @notice Calculates the Nori fee required for a purchase of `amount` tonnes of carbon removals.
    * @param amount The amount of carbon removals for the purchase.
-   * @return The amount of the fee for Nori.
+   * @return The amount of the fee charged by Nori in purchasingToken.
    */
   function calculateNoriFee(uint256 amount) external view returns (uint256) {
     return
@@ -1051,6 +1051,10 @@ contract Market is
       );
   }
 
+  /**
+   * @notice Converts a removal amount to a purchasing token amount.
+   * @return The amount of purchasing tokens required to purchase the specified amount of removals.
+   */
   function convertRemovalAmountToPurchasingTokenAmount(uint256 removalAmount)
     public
     view
@@ -1063,6 +1067,9 @@ contract Market is
     return removalAmount / 10**uint8(decimalDelta);
   }
 
+  /** @dev Converts a purchasing token amount to a removal amount.
+   * @return The amount of removals that can be purchased with the specified amount of purchasing tokens.
+   */
   function convertPurchasingTokenAmountToRemovalAmount(
     uint256 purchasingTokenAmount
   ) public view returns (uint256) {
@@ -1290,16 +1297,17 @@ contract Market is
     });
     bool isTransferSuccessful;
     uint8 holdbackPercentage;
-    uint256 restrictedSupplierFee;
-    uint256 unrestrictedSupplierFee;
+    uint256 restrictedSupplierFee; // purchasing token units
+    uint256 unrestrictedSupplierFee; // purchasing token units
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
       holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
 
-      unrestrictedSupplierFee = removalAmounts[i].mulDiv(_priceMultiple, 100);
+      unrestrictedSupplierFee = convertRemovalAmountToPurchasingTokenAmount(
+        removalAmounts[i].mulDiv(_priceMultiple, 100)
+      );
       if (holdbackPercentage > 0) {
-        restrictedSupplierFee = removalAmounts[i].mulDiv(
-          _priceMultiple * holdbackPercentage,
-          10000
+        restrictedSupplierFee = convertRemovalAmountToPurchasingTokenAmount(
+          removalAmounts[i].mulDiv(_priceMultiple * holdbackPercentage, 10000)
         );
         unrestrictedSupplierFee -= restrictedSupplierFee;
         if (
@@ -1307,7 +1315,9 @@ contract Market is
           address(_purchasingToken)
         ) {
           emit SkipRestrictedNORIERC20Transfer({
-            amount: convertRemovalAmountToPurchasingTokenAmount(
+            // This assumes that rnori will only ever be backed by NORI or a 1:1 18 decimal token ...
+            // Not ideal to have to convert back to Removal units here but it minimizes the code changes elsewhere.
+            amount: convertPurchasingTokenAmountToRemovalAmount(
               restrictedSupplierFee
             ),
             removalId: removalIds[i],
@@ -1321,24 +1331,18 @@ contract Market is
         } else {
           try
             _restrictedNORI.mint({
-              amount: convertRemovalAmountToPurchasingTokenAmount(
-                restrictedSupplierFee
-              ),
+              amount: restrictedSupplierFee,
               removalId: removalIds[i]
             })
           {
             // solhint-disable-previous-line no-empty-blocks, Nothing should happen here.
           } catch {
             emit RestrictedNORIMintFailure({
-              amount: convertPurchasingTokenAmountToRemovalAmount(
-                restrictedSupplierFee
-              ),
+              amount: restrictedSupplierFee,
               removalId: removalIds[i]
             });
             _restrictedNORI.incrementDeficitForSupplier({
-              amount: convertPurchasingTokenAmountToRemovalAmount(
-                restrictedSupplierFee
-              ),
+              amount: restrictedSupplierFee,
               originalSupplier: RemovalIdLib.supplierAddress({
                 removalId: removalIds[i]
               })
@@ -1347,9 +1351,7 @@ contract Market is
           isTransferSuccessful = _purchasingToken.transferFrom({
             from: from,
             to: address(_restrictedNORI),
-            amount: convertRemovalAmountToPurchasingTokenAmount(
-              restrictedSupplierFee
-            )
+            amount: restrictedSupplierFee
           });
           if (!isTransferSuccessful) {
             revert ERC20TransferFailed();
@@ -1369,9 +1371,7 @@ contract Market is
       isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
-        amount: convertRemovalAmountToPurchasingTokenAmount(
-          unrestrictedSupplierFee
-        )
+        amount: unrestrictedSupplierFee
       });
       if (!isTransferSuccessful) {
         revert ERC20TransferFailed();
