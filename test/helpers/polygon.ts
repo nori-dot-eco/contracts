@@ -1,5 +1,22 @@
 import type { BigNumberish, Signer } from 'ethers';
 
+export const depositNoriUSDC = async ({
+  hre,
+  contracts,
+  to,
+  amount,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  contracts: RequiredKeys<Contracts, 'NoriUSDC'>;
+  to: string;
+  amount: BigNumberish;
+  signer: Signer;
+}): Promise<void> => {
+  await contracts.NoriUSDC.connect(signer).transfer(to, amount);
+  hre.trace(`NoriUSDC: Sent ${amount} NoriUSDC to ${to}`);
+};
+
 export const mockDepositNoriToPolygon = async ({
   hre,
   contracts,

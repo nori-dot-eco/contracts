@@ -271,7 +271,7 @@ contract Market is
   /**
    * @notice Emitted when the ERC20 token that would be transferred to the RestrictedNORI contract is not the token
    * address that RestrictedNORI was configured to wrap.
-   * @param amount The amount of RestrictedNORI in the transfer attempt.
+   * @param amount The amount of _purchasingToken currency in the failed transfer attempt.
    * @param currentHoldbackPercentage The holdback percentage for this removal id's project at the time of this event
    * emission.
    * @param removalId The removal id being processed during the transfer attempt.
@@ -670,8 +670,7 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * @param recipient The address to which the certificate will be issued.
    * @param permitOwner The address that signed the EIP2612 permit and will pay for the removals.
-   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
-   * purchased and the fee paid to Nori.
+   * @param amount The total amount of Removals being purchased.
    * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature.
    * @param r The r value for the permit's secp256k1 signature.
@@ -686,20 +685,16 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _allocateRemovals({
-        purchaser: _msgSender(),
-        certificateAmount: certificateAmount
-      });
+    ) = _allocateRemovals({purchaser: _msgSender(), certificateAmount: amount});
     _permit({
       owner: permitOwner,
-      amount: amount,
+      amount: this.calculateCheckoutTotal({amount: amount}),
       deadline: deadline,
       v: v,
       r: r,
@@ -708,7 +703,7 @@ contract Market is
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: permitOwner,
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -735,25 +730,20 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
    * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
-   * purchased and the fee paid to Nori.
+   * @param amount The total amount of Removals to purchase.
    */
   function swap(address recipient, uint256 amount) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _allocateRemovals({
-        purchaser: _msgSender(),
-        certificateAmount: certificateAmount
-      });
+    ) = _allocateRemovals({purchaser: _msgSender(), certificateAmount: amount});
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: _msgSender(),
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -799,8 +789,7 @@ contract Market is
     bytes32 r,
     bytes32 s
   ) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -808,12 +797,12 @@ contract Market is
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
         purchaser: permitOwner,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         supplier: supplier
       });
     _permit({
       owner: permitOwner,
-      amount: amount,
+      amount: this.calculateCheckoutTotal({amount: amount}),
       deadline: deadline,
       v: v,
       r: r,
@@ -822,7 +811,7 @@ contract Market is
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: permitOwner,
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -859,8 +848,7 @@ contract Market is
     uint256 amount,
     address supplier
   ) external whenNotPaused {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotal({purchaseTotal: amount});
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -868,13 +856,13 @@ contract Market is
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
         purchaser: _msgSender(),
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         supplier: supplier
       });
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: _msgSender(),
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -911,23 +899,17 @@ contract Market is
     address purchaser,
     uint256 amount
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotalWithoutFee({
-        purchaseTotal: amount
-      });
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
       uint256[] memory amounts,
       address[] memory suppliers
-    ) = _allocateRemovals({
-        purchaser: purchaser,
-        certificateAmount: certificateAmount
-      });
+    ) = _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: purchaser,
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -968,10 +950,7 @@ contract Market is
     uint256 amount,
     address supplier
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    uint256 certificateAmount = this
-      .calculateCertificateAmountFromPurchaseTotalWithoutFee({
-        purchaseTotal: amount
-      });
+    _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
       uint256[] memory ids,
@@ -979,13 +958,13 @@ contract Market is
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
         purchaser: purchaser,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         supplier: supplier
       });
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
-        certificateAmount: certificateAmount,
+        certificateAmount: amount,
         from: purchaser,
         recipient: recipient,
         countOfRemovalsAllocated: countOfRemovalsAllocated,
@@ -1063,26 +1042,65 @@ contract Market is
   /**
    * @notice Calculates the Nori fee required for a purchase of `amount` tonnes of carbon removals.
    * @param amount The amount of carbon removals for the purchase.
-   * @return The amount of the fee for Nori.
+   * @return The amount of the fee charged by Nori in `_purchasingToken`.
    */
   function calculateNoriFee(uint256 amount) external view returns (uint256) {
-    return amount.mulDiv(_priceMultiple * _noriFeePercentage, 10000);
+    return
+      this.convertRemovalAmountToPurchasingTokenAmount(
+        amount.mulDiv({
+          y: _priceMultiple * _noriFeePercentage,
+          denominator: 10_000
+        })
+      );
+  }
+
+  /**
+   * @notice Converts a removal amount to a purchasing token amount.
+   * @return The amount of purchasing tokens required to purchase the specified amount of removals.
+   */
+  function convertRemovalAmountToPurchasingTokenAmount(uint256 removalAmount)
+    external
+    view
+    returns (uint256)
+  {
+    uint8 decimals = _purchasingToken.decimals();
+    if (decimals == 18) {
+      return removalAmount;
+    }
+    int8 decimalDelta = 18 - int8(decimals);
+    return removalAmount / 10**uint8(decimalDelta);
+  }
+
+  /** @dev Converts a purchasing token amount to a removal amount.
+   * @return The amount of removals that can be purchased with the specified amount of purchasing tokens.
+   */
+  function convertPurchasingTokenAmountToRemovalAmount(
+    uint256 purchasingTokenAmount
+  ) external view returns (uint256) {
+    uint8 decimals = _purchasingToken.decimals();
+    if (decimals == 18) {
+      return purchasingTokenAmount;
+    }
+    int8 decimalDelta = 18 - int8(decimals);
+    return purchasingTokenAmount * 10**uint8(decimalDelta);
   }
 
   /**
    * @notice Calculates the total quantity of ERC20 tokens required to make a purchase of the specified `amount` (in
    * tonnes of carbon removals).
    * @param amount The amount of carbon removals for the purchase.
-   * @return The total quantity of ERC20 tokens required to make the purchase, including the fee.
+   * @return The total quantity of the `_purchaseToken` required to make the purchase.
    */
   function calculateCheckoutTotal(uint256 amount)
     external
     view
     returns (uint256)
   {
+    _validateCertificateAmount({amount: amount});
     return
-      amount.mulDiv(_priceMultiple, 100) +
-      this.calculateNoriFee({amount: amount});
+      this.convertRemovalAmountToPurchasingTokenAmount(
+        amount.mulDiv({y: _priceMultiple, denominator: 100})
+      ) + this.calculateNoriFee({amount: amount});
   }
 
   /**
@@ -1096,14 +1114,18 @@ contract Market is
     view
     returns (uint256)
   {
-    return amount.mulDiv(_priceMultiple, 100);
+    _validateCertificateAmount({amount: amount});
+    return
+      this.convertRemovalAmountToPurchasingTokenAmount(
+        amount.mulDiv({y: _priceMultiple, denominator: 100})
+      );
   }
 
   /**
-   * @notice Calculates the quantity of carbon removals being purchased given the purchase total, the price multiple,
-   * and the percentage of that purchase total that is due to Nori as a transaction fee.
+   * @notice Calculates the quantity of carbon removals that can be purchased given some payment amount taking into
+   * account NRT price and fees (i.e., I have $100 (100_000_000 USDC), how many NRTs can I buy?).
    * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
-   * @return certificateAmount Amount for the certificate, excluding the transaction fee.
+   * @return Amount for the certificate, excluding the transaction fee.
    */
   function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal)
     external
@@ -1111,18 +1133,31 @@ contract Market is
     returns (uint256)
   {
     return
-      purchaseTotal.mulDiv(10000, (100 + _noriFeePercentage) * _priceMultiple);
+      this
+        .convertPurchasingTokenAmountToRemovalAmount({
+          purchasingTokenAmount: purchaseTotal
+        })
+        .mulDiv({
+          y: 10_000,
+          denominator: (100 + _noriFeePercentage) * _priceMultiple
+        });
   }
 
   /**
-   * @notice Calculates the quantity of carbon removals being purchased given the purchase total and the price multiple.
+   * @notice Calculates the quantity of carbon removals that can be purchased given some payment amount taking into
+   * account NRT price but excluding fees (i.e., I have $100 (100_000_000 USDC), how many NRTs can I buy?).
    * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
-   * @return certificateAmount Amount for the certificate.
+   * @return Amount for the certificate.
    */
   function calculateCertificateAmountFromPurchaseTotalWithoutFee(
     uint256 purchaseTotal
   ) external view returns (uint256) {
-    return purchaseTotal.mulDiv(10000, 100 * _priceMultiple);
+    return
+      this
+        .convertPurchasingTokenAmountToRemovalAmount({
+          purchasingTokenAmount: purchaseTotal
+        })
+        .mulDiv({y: 10_000, denominator: 100 * _priceMultiple});
   }
 
   /**
@@ -1222,6 +1257,10 @@ contract Market is
    * @param purchasingToken The new purchasing token contract address.
    */
   function _setPurchasingToken(IERC20WithPermit purchasingToken) internal {
+    uint8 decimals = purchasingToken.decimals();
+    if (decimals > 18 || decimals < 6) {
+      revert InvalidPurchasingTokenDecimals({decimals: decimals});
+    }
     _purchasingToken = IERC20WithPermit(purchasingToken);
     emit SetPurchasingToken({purchasingToken: purchasingToken});
   }
@@ -1241,7 +1280,6 @@ contract Market is
   /**
    * @notice Pays the suppliers for the removals being purchased, routes funds to the RestrictedNORI contract if
    * necessary, and pays a fee to Nori if `chargeFee` is true.
-   *
    * @param chargeFee Whether to charge a transaction fee for Nori.
    * @param from The address of the spender.
    * @param countOfRemovalsAllocated The number of removals being purchased.
@@ -1272,12 +1310,18 @@ contract Market is
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
       holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
 
-      unrestrictedSupplierFee = removalAmounts[i].mulDiv(_priceMultiple, 100);
-      if (holdbackPercentage > 0) {
-        restrictedSupplierFee = removalAmounts[i].mulDiv(
-          _priceMultiple * holdbackPercentage,
-          10000
+      unrestrictedSupplierFee = this
+        .convertRemovalAmountToPurchasingTokenAmount(
+          removalAmounts[i].mulDiv({y: _priceMultiple, denominator: 100})
         );
+      if (holdbackPercentage > 0) {
+        restrictedSupplierFee = this
+          .convertRemovalAmountToPurchasingTokenAmount(
+            removalAmounts[i].mulDiv({
+              y: _priceMultiple * holdbackPercentage,
+              denominator: 10_000
+            })
+          );
         unrestrictedSupplierFee -= restrictedSupplierFee;
         if (
           _restrictedNORI.getUnderlyingTokenAddress() !=
@@ -1520,6 +1564,16 @@ contract Market is
     _listedSupply[supplierAddress].remove({removalId: removalId});
     if (_listedSupply[supplierAddress].isEmpty()) {
       _removeActiveSupplier({supplierToRemove: supplierAddress});
+    }
+  }
+
+  /**
+   * @dev Validates the certificate purchase amount.
+   * @param amount Proposed amount to purchase.
+   */
+  function _validateCertificateAmount(uint256 amount) internal view {
+    if (amount == 0 || (amount % (_purchasingToken.decimals() - 2)) != 0) {
+      revert InvalidCertificateAmount({amount: amount});
     }
   }
 

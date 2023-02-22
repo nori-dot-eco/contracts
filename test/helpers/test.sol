@@ -16,6 +16,7 @@ abstract contract Global is PRBTest {
     address supplier2;
     address supplier3;
     address buyer;
+    address feeWallet;
   }
 
   NamedAccounts internal _namedAccounts =
@@ -27,7 +28,8 @@ abstract contract Global is PRBTest {
       supplier: account("supplier"),
       supplier2: account("supplier2"),
       supplier3: account("supplier3"),
-      buyer: account("buyer")
+      buyer: account("buyer"),
+      feeWallet: account("feeWallet")
     });
 
   event LogNamedArray(string key, uint8[] value);
