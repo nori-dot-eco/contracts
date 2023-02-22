@@ -1376,23 +1376,15 @@ contract Market__setPurchasingToken is NonUpgradeableMarket {
     vm.recordLogs();
     address erc20 = vm.addr(0xcab00d1e);
     IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
-    uint8 newPurchasingTokenDecimals = 18;
-    _setPurchasingToken({
-      purchasingToken: newPurchasingToken,
-      decimals: newPurchasingTokenDecimals
-    });
+    _setPurchasingToken({purchasingToken: newPurchasingToken});
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, 1);
-    assertEq(
-      entries[0].topics[0],
-      keccak256("SetPurchasingToken(address,uint8)")
-    );
-    (address actualPurchasingTokenAddress, uint8 actualDecimals) = abi.decode(
+    assertEq(entries[0].topics[0], keccak256("SetPurchasingToken(address)"));
+    address actualPurchasingTokenAddress = abi.decode(
       entries[0].data,
-      (address, uint8)
+      (address)
     );
     assertEq(actualPurchasingTokenAddress, address(newPurchasingToken));
-    assertEq(actualDecimals, newPurchasingTokenDecimals);
   }
 }
 
@@ -1426,24 +1418,15 @@ contract Market_setPurchasingTokenAndPriceMultiple is UpgradeableMarket {
     address erc20 = vm.addr(0xcab00d1e);
     IERC20WithPermit newPurchasingToken = IERC20WithPermit(erc20);
     uint256 newPriceMultiple = 2000;
-    uint8 newDecimals = 12;
     _market.setPurchasingTokenAndPriceMultiple(
       newPurchasingToken,
-      newDecimals,
       newPriceMultiple
     );
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, 2);
-    assertEq(
-      entries[0].topics[0],
-      keccak256("SetPurchasingToken(address,uint8)")
-    );
-    (address tokenAddress, uint8 decimals) = abi.decode(
-      entries[0].data,
-      (address, uint8)
-    );
+    assertEq(entries[0].topics[0], keccak256("SetPurchasingToken(address)"));
+    address tokenAddress = abi.decode(entries[0].data, (address));
     assertEq(tokenAddress, address(newPurchasingToken));
-    assertEq(decimals, newDecimals);
     assertEq(entries[1].topics[0], keccak256("SetPriceMultiple(uint256)"));
     assertEq(abi.decode(entries[1].data, (uint256)), newPriceMultiple);
   }
