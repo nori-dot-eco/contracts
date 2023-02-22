@@ -271,7 +271,7 @@ contract Market is
   /**
    * @notice Emitted when the ERC20 token that would be transferred to the RestrictedNORI contract is not the token
    * address that RestrictedNORI was configured to wrap.
-   * @param amount The amount of RestrictedNORI in the transfer attempt.
+   * @param amount The amount of _purchasingToken currency in the failed transfer attempt.
    * @param currentHoldbackPercentage The holdback percentage for this removal id's project at the time of this event
    * emission.
    * @param removalId The removal id being processed during the transfer attempt.
@@ -1315,11 +1315,7 @@ contract Market is
           address(_purchasingToken)
         ) {
           emit SkipRestrictedNORIERC20Transfer({
-            // This assumes that rnori will only ever be backed by NORI or a 1:1 18 decimal token ...
-            // Not ideal to have to convert back to Removal units here but it minimizes the code changes elsewhere.
-            amount: convertPurchasingTokenAmountToRemovalAmount(
-              restrictedSupplierFee
-            ),
+            amount: restrictedSupplierFee, // units of _purchasingToken
             removalId: removalIds[i],
             currentHoldbackPercentage: holdbackPercentage,
             rNoriUnderlyingToken: _restrictedNORI.getUnderlyingTokenAddress(),

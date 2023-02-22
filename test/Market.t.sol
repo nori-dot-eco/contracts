@@ -499,10 +499,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     certificateAmount = 1 ether;
     checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
     fee = _market.calculateNoriFee(certificateAmount);
-    // This assumes that rnori will only ever be backed by NORI or a 1:1 18 decimal token ...
-    rNoriToMint = _market.convertPurchasingTokenAmountToRemovalAmount(
-      ((checkoutTotal - fee) * holdbackPercentage) / 100
-    );
+    rNoriToMint = ((checkoutTotal - fee) * holdbackPercentage) / 100;
     vm.prank(_namedAccounts.admin);
     _noriUSDC.transfer(owner, checkoutTotal);
     vm.stopPrank();
@@ -588,9 +585,7 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
 
     certificateAmount = 1 ether;
     checkoutTotal = _market.calculateCheckoutTotalWithoutFee(certificateAmount);
-    rNoriToMint = _market.convertPurchasingTokenAmountToRemovalAmount(
-      (checkoutTotal * holdbackPercentage) / 100
-    );
+    rNoriToMint = (checkoutTotal * holdbackPercentage) / 100;
     vm.prank(_namedAccounts.admin);
     _noriUSDC.transfer(owner, checkoutTotal);
     vm.stopPrank();
