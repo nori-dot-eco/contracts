@@ -130,14 +130,16 @@ error NoriFeeWalletZeroAddress();
  */
 error InvalidHoldbackPercentage(uint8 holdbackPercentage);
 /**
- * @notice Thrown when a purchsing token decimals value is not between 6 and 18.
+ * @notice Thrown when a purchasing token decimals value is not between 6 and 18.
+ * @param decimals The purchasing token decimals value that is invalid.
  */
 error InvalidPurchasingTokenDecimals(uint256 decimals);
 /**
- * @notice Thrown when a swap attempt is made for zero removals or
- * a fractional amount less than the purchasing tokens decimal precision - 2.
+ * @notice Thrown when a swap attempt is made for zero removals or a fractional amount less than the purchasing token's
+ * decimal precision - 2.
+ * @param amount The purchase amount of the certificate that is invalid.
  */
-error InvalidCertificateAmount(uint256 decimals);
+error InvalidCertificateAmount(uint256 amount);
 /**
  * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market
  * contracts.

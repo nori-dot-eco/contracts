@@ -694,7 +694,7 @@ contract Market is
     ) = _allocateRemovals({purchaser: _msgSender(), certificateAmount: amount});
     _permit({
       owner: permitOwner,
-      amount: calculateCheckoutTotal(amount),
+      amount: this.calculateCheckoutTotal({amount: amount}),
       deadline: deadline,
       v: v,
       r: r,
@@ -802,7 +802,7 @@ contract Market is
       });
     _permit({
       owner: permitOwner,
-      amount: calculateCheckoutTotal(amount),
+      amount: this.calculateCheckoutTotal({amount: amount}),
       deadline: deadline,
       v: v,
       r: r,
@@ -1042,12 +1042,15 @@ contract Market is
   /**
    * @notice Calculates the Nori fee required for a purchase of `amount` tonnes of carbon removals.
    * @param amount The amount of carbon removals for the purchase.
-   * @return The amount of the fee charged by Nori in purchasingToken.
+   * @return The amount of the fee charged by Nori in `_purchasingToken`.
    */
   function calculateNoriFee(uint256 amount) external view returns (uint256) {
     return
-      convertRemovalAmountToPurchasingTokenAmount(
-        amount.mulDiv(_priceMultiple * _noriFeePercentage, 10000)
+      this.convertRemovalAmountToPurchasingTokenAmount(
+        amount.mulDiv({
+          y: _priceMultiple * _noriFeePercentage,
+          denominator: 10_000
+        })
       );
   }
 
@@ -1056,14 +1059,15 @@ contract Market is
    * @return The amount of purchasing tokens required to purchase the specified amount of removals.
    */
   function convertRemovalAmountToPurchasingTokenAmount(uint256 removalAmount)
-    public
+    external
     view
     returns (uint256)
   {
-    if (_purchasingToken.decimals() == 18) {
+    uint8 decimals = _purchasingToken.decimals();
+    if (decimals == 18) {
       return removalAmount;
     }
-    int8 decimalDelta = 18 - int8(_purchasingToken.decimals());
+    int8 decimalDelta = 18 - int8(decimals);
     return removalAmount / 10**uint8(decimalDelta);
   }
 
@@ -1072,11 +1076,12 @@ contract Market is
    */
   function convertPurchasingTokenAmountToRemovalAmount(
     uint256 purchasingTokenAmount
-  ) public view returns (uint256) {
-    if (_purchasingToken.decimals() == 18) {
+  ) external view returns (uint256) {
+    uint8 decimals = _purchasingToken.decimals();
+    if (decimals == 18) {
       return purchasingTokenAmount;
     }
-    int8 decimalDelta = 18 - int8(_purchasingToken.decimals());
+    int8 decimalDelta = 18 - int8(decimals);
     return purchasingTokenAmount * 10**uint8(decimalDelta);
   }
 
@@ -1084,17 +1089,17 @@ contract Market is
    * @notice Calculates the total quantity of ERC20 tokens required to make a purchase of the specified `amount` (in
    * tonnes of carbon removals).
    * @param amount The amount of carbon removals for the purchase.
-   * @return The total quantity of ERC20 purchase token required to make the purchase.
+   * @return The total quantity of the `_purchaseToken` required to make the purchase.
    */
   function calculateCheckoutTotal(uint256 amount)
-    public
+    external
     view
     returns (uint256)
   {
     _validateCertificateAmount({amount: amount});
     return
-      convertRemovalAmountToPurchasingTokenAmount(
-        amount.mulDiv(_priceMultiple, 100)
+      this.convertRemovalAmountToPurchasingTokenAmount(
+        amount.mulDiv({y: _priceMultiple, denominator: 100})
       ) + this.calculateNoriFee({amount: amount});
   }
 
@@ -1111,17 +1116,16 @@ contract Market is
   {
     _validateCertificateAmount({amount: amount});
     return
-      convertRemovalAmountToPurchasingTokenAmount(
-        amount.mulDiv(_priceMultiple, 100)
+      this.convertRemovalAmountToPurchasingTokenAmount(
+        amount.mulDiv({y: _priceMultiple, denominator: 100})
       );
   }
 
   /**
-   * @notice Calculates the quantity of carbon removals that can be purchased given
-   * some payment amount taking into account NRT price and fees.
-   * i.e. I have $100 (100_000_000 USDC), how many NRTs can I buy?
+   * @notice Calculates the quantity of carbon removals that can be purchased given some payment amount taking into
+   * account NRT price and fees (i.e., I have $100 (100_000_000 USDC), how many NRTs can I buy?).
    * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
-   * @return certificateAmount Amount for the certificate, excluding the transaction fee.
+   * @return Amount for the certificate, excluding the transaction fee.
    */
   function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal)
     external
@@ -1129,27 +1133,31 @@ contract Market is
     returns (uint256)
   {
     return
-      convertPurchasingTokenAmountToRemovalAmount(purchaseTotal).mulDiv(
-        10000,
-        (100 + _noriFeePercentage) * _priceMultiple
-      );
+      this
+        .convertPurchasingTokenAmountToRemovalAmount({
+          purchasingTokenAmount: purchaseTotal
+        })
+        .mulDiv({
+          y: 10_000,
+          denominator: (100 + _noriFeePercentage) * _priceMultiple
+        });
   }
 
   /**
-   * @notice Calculates the quantity of carbon removals that can be purchased given
-   * some payment amount taking into account NRT price but excluding fees.
-   * i.e. I have $100 (100_000_000 USDC), how many NRTs can I buy?
+   * @notice Calculates the quantity of carbon removals that can be purchased given some payment amount taking into
+   * account NRT price but excluding fees (i.e., I have $100 (100_000_000 USDC), how many NRTs can I buy?).
    * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
-   * @return certificateAmount Amount for the certificate.
+   * @return Amount for the certificate.
    */
   function calculateCertificateAmountFromPurchaseTotalWithoutFee(
     uint256 purchaseTotal
   ) external view returns (uint256) {
     return
-      convertPurchasingTokenAmountToRemovalAmount(purchaseTotal).mulDiv(
-        10000,
-        100 * _priceMultiple
-      );
+      this
+        .convertPurchasingTokenAmountToRemovalAmount({
+          purchasingTokenAmount: purchaseTotal
+        })
+        .mulDiv({y: 10_000, denominator: 100 * _priceMultiple});
   }
 
   /**
@@ -1249,8 +1257,9 @@ contract Market is
    * @param purchasingToken The new purchasing token contract address.
    */
   function _setPurchasingToken(IERC20WithPermit purchasingToken) internal {
-    if (purchasingToken.decimals() > 18 || purchasingToken.decimals() < 6) {
-      revert InvalidPurchasingTokenDecimals(purchasingToken.decimals());
+    uint8 decimals = purchasingToken.decimals();
+    if (decimals > 18 || decimals < 6) {
+      revert InvalidPurchasingTokenDecimals({decimals: decimals});
     }
     _purchasingToken = IERC20WithPermit(purchasingToken);
     emit SetPurchasingToken({purchasingToken: purchasingToken});
@@ -1271,7 +1280,6 @@ contract Market is
   /**
    * @notice Pays the suppliers for the removals being purchased, routes funds to the RestrictedNORI contract if
    * necessary, and pays a fee to Nori if `chargeFee` is true.
-   *
    * @param chargeFee Whether to charge a transaction fee for Nori.
    * @param from The address of the spender.
    * @param countOfRemovalsAllocated The number of removals being purchased.
@@ -1297,25 +1305,30 @@ contract Market is
     });
     bool isTransferSuccessful;
     uint8 holdbackPercentage;
-    uint256 restrictedSupplierFee; // purchasing token units
-    uint256 unrestrictedSupplierFee; // purchasing token units
+    uint256 restrictedSupplierFee;
+    uint256 unrestrictedSupplierFee;
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
       holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
 
-      unrestrictedSupplierFee = convertRemovalAmountToPurchasingTokenAmount(
-        removalAmounts[i].mulDiv(_priceMultiple, 100)
-      );
-      if (holdbackPercentage > 0) {
-        restrictedSupplierFee = convertRemovalAmountToPurchasingTokenAmount(
-          removalAmounts[i].mulDiv(_priceMultiple * holdbackPercentage, 10000)
+      unrestrictedSupplierFee = this
+        .convertRemovalAmountToPurchasingTokenAmount(
+          removalAmounts[i].mulDiv({y: _priceMultiple, denominator: 100})
         );
+      if (holdbackPercentage > 0) {
+        restrictedSupplierFee = this
+          .convertRemovalAmountToPurchasingTokenAmount(
+            removalAmounts[i].mulDiv({
+              y: _priceMultiple * holdbackPercentage,
+              denominator: 10_000
+            })
+          );
         unrestrictedSupplierFee -= restrictedSupplierFee;
         if (
           _restrictedNORI.getUnderlyingTokenAddress() !=
           address(_purchasingToken)
         ) {
           emit SkipRestrictedNORIERC20Transfer({
-            amount: restrictedSupplierFee, // units of _purchasingToken
+            amount: restrictedSupplierFee,
             removalId: removalIds[i],
             currentHoldbackPercentage: holdbackPercentage,
             rNoriUnderlyingToken: _restrictedNORI.getUnderlyingTokenAddress(),
@@ -1551,6 +1564,16 @@ contract Market is
     _listedSupply[supplierAddress].remove({removalId: removalId});
     if (_listedSupply[supplierAddress].isEmpty()) {
       _removeActiveSupplier({supplierToRemove: supplierAddress});
+    }
+  }
+
+  /**
+   * @dev Validates the certificate purchase amount.
+   * @param amount Proposed amount to purchase.
+   */
+  function _validateCertificateAmount(uint256 amount) internal view {
+    if (amount == 0 || (amount % (_purchasingToken.decimals() - 2)) != 0) {
+      revert InvalidCertificateAmount({amount: amount});
     }
   }
 
@@ -1891,15 +1914,5 @@ contract Market is
       next: nextOfRemovedSupplierAddress,
       previous: previousOfRemovedSupplierAddress
     });
-  }
-
-  /**
-   * @dev Validates the certificate purchase amount.
-   * @param amount Proposed amount to purchase.
-   */
-  function _validateCertificateAmount(uint256 amount) internal view {
-    if (amount == 0 || amount % (_purchasingToken.decimals() - 2) != 0) {
-      revert InvalidCertificateAmount(amount);
-    }
   }
 }
