@@ -17,6 +17,4 @@ export default deploy;
 deploy.tags = ['NoriUSDC', 'assets'];
 deploy.dependencies = ['preconditions'];
 deploy.skip = async (hre) =>
-  Promise.resolve(
-    !['mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
-  );
+  Promise.resolve(!['localhost', 'hardhat'].includes(hre.network.name));

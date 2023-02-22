@@ -4,6 +4,7 @@ import type { ContractTransaction } from 'ethers';
 import { BigNumber } from 'ethers';
 
 import {
+  STAGING_USDC_TOKEN_ADDRESS,
   PROD_USDC_TOKEN_ADDRESS,
   PROD_NORI_FEE_WALLET_ADDRESS,
   STAGING_NORI_FEE_WALLET_ADDRESS,
@@ -13,7 +14,6 @@ import {
   getBridgedPolygonNori,
   getCertificate,
   getMarket,
-  getNoriUSDC,
   getRemoval,
   getRestrictedNORI,
 } from '@/utils/contracts';
@@ -45,17 +45,16 @@ export const deploy: DeployFunction = async (environment) => {
   const rNori = await getRestrictedNORI({ hre, signer });
   const removal = await getRemoval({ hre, signer });
   const bpNori = await getBridgedPolygonNori({ hre, signer });
-  const noriUSDC = await getNoriUSDC({ hre, signer });
 
-  // SW: Leaving the default local configuration with the assumption
-  // of the NORI token as purchase token to minimize test breakage.
+  // SW: Leaving the default local configuration as bridged polygon NORI
+  // for the purchase token to minimize test breakage.
   let purchaseTokenAddress = bpNori.address;
   let priceMultiple = BigNumber.from(100);
   if (hre.network.name === 'polygon') {
     purchaseTokenAddress = PROD_USDC_TOKEN_ADDRESS;
     priceMultiple = BigNumber.from(2000);
   } else if (hre.network.name === 'mumbai') {
-    purchaseTokenAddress = noriUSDC.address;
+    purchaseTokenAddress = STAGING_USDC_TOKEN_ADDRESS;
     priceMultiple = BigNumber.from(2000);
   }
   const feeWalletAddress = ['hardhat', 'localhost'].includes(hre.network.name)

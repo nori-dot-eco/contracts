@@ -13,6 +13,6 @@ export const STAGING_NORI_FEE_WALLET_ADDRESS =
 
 export const PROD_USDC_TOKEN_ADDRESS =
   '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
-// Note we're currently using NoriUSDC to simplify getting test funds.
+// https://developers.circle.com/developer/docs/usdc-on-testnet#bridged-usdc-on-polygon-testnet
 export const STAGING_USDC_TOKEN_ADDRESS =
-  '0xe6b8a5CF854791412c1f6EFC7CAf629f5Df1c747';
+  '0x0fa8781a83e46826621b3bc094ea2a0212e71b23';
