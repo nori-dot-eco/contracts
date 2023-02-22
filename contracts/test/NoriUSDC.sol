@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-import "./IERC20WithPermit.sol";
-import "./ERC20Preset.sol";
+import "../IERC20WithPermit.sol";
+import "../ERC20Preset.sol";
 
 contract NoriUSDC is ERC20Preset {
   function initialize(address mintee) public initializer {

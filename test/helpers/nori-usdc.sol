@@ -1,7 +1,7 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/contracts/NoriUSDC.sol";
+import "@/contracts/test/NoriUSDC.sol";
 import "@/test/helpers/test.sol";
 import "@/test/helpers/signature-utils.sol";
 
