@@ -1265,7 +1265,6 @@ contract Market__multicall_initialize_reverts is UpgradeableMarket {
         _market.initialize.selector,
         _removal,
         _bpNori,
-        18,
         _certificate,
         _rNori,
         _namedAccounts.admin,
