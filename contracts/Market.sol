@@ -1137,7 +1137,7 @@ contract Market is
 
   /**
    * @notice Calculates the quantity of carbon removals that can be purchased given
-   * some payment amount taking into account NRT price but excludign fees.
+   * some payment amount taking into account NRT price but excluding fees.
    * i.e. I have $100 (100_000_000 USDC), how many NRTs can I buy?
    * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
    * @return certificateAmount Amount for the certificate.
