@@ -1,10 +1,10 @@
 import { Logger } from 'ethers/lib/utils';
-import type { DeployFunction } from 'hardhat-deploy/types';
 
 import { deployNoriUSDC, finalizeDeployments } from '@/utils/deploy';
 
-export const deploy: DeployFunction = async (environment) => {
-  const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
+export const deploy = async (
+  hre: CustomHardHatRuntimeEnvironment
+): Promise<void> => {
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`deploy-nori-usdc`);
   const contract = await deployNoriUSDC({
@@ -16,5 +16,5 @@ export const deploy: DeployFunction = async (environment) => {
 export default deploy;
 deploy.tags = ['NoriUSDC', 'assets'];
 deploy.dependencies = ['preconditions'];
-deploy.skip = async (hre) =>
+deploy.skip = async (hre: CustomHardHatRuntimeEnvironment) =>
   Promise.resolve(!['localhost', 'hardhat'].includes(hre.network.name));
