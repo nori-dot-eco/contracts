@@ -294,7 +294,7 @@ address that RestrictedNORI was configured to wrap.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| amount | uint256 | The amount of RestrictedNORI in the transfer attempt. |
+| amount | uint256 | The amount of _purchasingToken currency in the failed transfer attempt. |
 | removalId | uint256 | The removal id being processed during the transfer attempt. |
 | currentHoldbackPercentage | uint256 | The holdback percentage for this removal id's project at the time of this event emission. |
 | rNoriUnderlyingToken | address | The address of the token contract that RestrictedNORI was configured to wrap. |
@@ -600,7 +600,7 @@ to Nori Inc. as a market operator fee.
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
 | permitOwner | address | The address that signed the EIP2612 permit and will pay for the removals. |
-| amount | uint256 | The total purchase amount in ERC20 tokens. This is the combined total price of the removals being purchased and the fee paid to Nori. |
+| amount | uint256 | The total amount of Removals being purchased. |
 | deadline | uint256 | The EIP2612 permit deadline in Unix time. |
 | v | uint8 | The recovery identifier for the permit's secp256k1 signature. |
 | r | bytes32 | The r value for the permit's secp256k1 signature. |
@@ -632,7 +632,7 @@ to Nori Inc. as a market operator fee.
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
-| amount | uint256 | The total purchase amount in ERC20 tokens. This is the combined total price of the removals being purchased and the fee paid to Nori. |
+| amount | uint256 | The total amount of Removals to purchase. |
 
 
 ### swapFromSupplier
@@ -850,7 +850,35 @@ Calculates the Nori fee required for a purchase of `amount` tonnes of carbon rem
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | The amount of the fee for Nori. |
+| [0] | uint256 | The amount of the fee charged by Nori in &#x60;_purchasingToken&#x60;. |
+
+### convertRemovalAmountToPurchasingTokenAmount
+
+```solidity
+function convertRemovalAmountToPurchasingTokenAmount(uint256 removalAmount) external view returns (uint256)
+```
+
+Converts a removal amount to a purchasing token amount.
+
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The amount of purchasing tokens required to purchase the specified amount of removals. |
+
+### convertPurchasingTokenAmountToRemovalAmount
+
+```solidity
+function convertPurchasingTokenAmountToRemovalAmount(uint256 purchasingTokenAmount) external view returns (uint256)
+```
+
+
+<i>Converts a purchasing token amount to a removal amount.</i>
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The amount of removals that can be purchased with the specified amount of purchasing tokens. |
 
 ### calculateCheckoutTotal
 
@@ -868,7 +896,7 @@ tonnes of carbon removals).
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | The total quantity of ERC20 tokens required to make the purchase, including the fee. |
+| [0] | uint256 | The total quantity of the &#x60;_purchaseToken&#x60; required to make the purchase. |
 
 ### calculateCheckoutTotalWithoutFee
 
@@ -894,8 +922,8 @@ tonnes of carbon removals) without a transaction fee.
 function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal) external view returns (uint256)
 ```
 
-Calculates the quantity of carbon removals being purchased given the purchase total, the price multiple,
-and the percentage of that purchase total that is due to Nori as a transaction fee.
+Calculates the quantity of carbon removals that can be purchased given some payment amount taking into
+account NRT price and fees (i.e., I have $100 (100_000_000 USDC), how many NRTs can I buy?).
 
 
 | Name | Type | Description |
@@ -904,7 +932,7 @@ and the percentage of that purchase total that is due to Nori as a transaction f
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | certificateAmount Amount for the certificate, excluding the transaction fee. |
+| [0] | uint256 | Amount for the certificate, excluding the transaction fee. |
 
 ### calculateCertificateAmountFromPurchaseTotalWithoutFee
 
@@ -912,7 +940,8 @@ and the percentage of that purchase total that is due to Nori as a transaction f
 function calculateCertificateAmountFromPurchaseTotalWithoutFee(uint256 purchaseTotal) external view returns (uint256)
 ```
 
-Calculates the quantity of carbon removals being purchased given the purchase total and the price multiple.
+Calculates the quantity of carbon removals that can be purchased given some payment amount taking into
+account NRT price but excluding fees (i.e., I have $100 (100_000_000 USDC), how many NRTs can I buy?).
 
 
 | Name | Type | Description |
@@ -921,7 +950,7 @@ Calculates the quantity of carbon removals being purchased given the purchase to
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | certificateAmount Amount for the certificate. |
+| [0] | uint256 | Amount for the certificate. |
 
 ### getRemovalAddress
 
@@ -1191,6 +1220,20 @@ listed removal, the supplier is also removed from the active supplier queue.</i>
 | ---- | ---- | ----------- |
 | removalId | uint256 | The ID of the removal to remove. |
 | supplierAddress | address | The address of the supplier of the removal. |
+
+
+### _validateCertificateAmount
+
+```solidity
+function _validateCertificateAmount(uint256 amount) internal view
+```
+
+
+<i>Validates the certificate purchase amount.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| amount | uint256 | Proposed amount to purchase. |
 
 
 ### _validatePrioritySupply

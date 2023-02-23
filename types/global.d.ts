@@ -42,6 +42,7 @@ import type {
   LockedNORI,
   RestrictedNORI,
   NORI,
+  NoriUSDC,
   Removal,
   LockedNORILibTestHarness,
   RemovalTestHarness,
@@ -200,6 +201,7 @@ declare global {
     LockedNORI?: LockedNORI;
     RestrictedNORI?: RestrictedNORI;
     Certificate?: Certificate;
+    NoriUSDC?: NoriUSDC;
     LockedNORILibTestHarness?: LockedNORILibTestHarness;
     RemovalTestHarness?: RemovalTestHarness;
   }
