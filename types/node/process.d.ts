@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention -- this file overwrites many predefined types */
 declare namespace NodeJS {
-  // eslint-disable-next-line unicorn/prevent-abbreviations -- this is a type augmentation
   interface ProcessEnv {
     MNEMONIC?: string;
     INFURA_STAGING_KEY?: string;
@@ -15,6 +14,9 @@ declare namespace NodeJS {
     COINMARKETCAP_API_KEY?: string;
     GITHUB_PERSONAL_ACCESS_TOKEN?: string;
     TRACE: boolean;
+    /**
+     * @deprecated
+     */
     FORCE_PROXY_DEPLOYMENT: boolean;
     LOG_HARDHAT_NETWORK: boolean;
     REPORT_GAS_FILE?: string;

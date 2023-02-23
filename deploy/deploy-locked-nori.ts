@@ -3,8 +3,7 @@ import type { DeployFunction } from 'hardhat-deploy/types';
 
 import { finalizeDeployments, deployLockedNORIContract } from '@/utils/deploy';
 
-export const deploy: DeployFunction = async (environment) => {
-  const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
+export const deploy: DeployFunction = async (hre) => {
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`deploy-locked-nori`);
   const contract = await deployLockedNORIContract({

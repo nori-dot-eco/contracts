@@ -7,8 +7,7 @@ import {
 } from '@/constants/addresses';
 import { deployMarketContract, finalizeDeployments } from '@/utils/deploy';
 
-export const deploy: DeployFunction = async (environment) => {
-  const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
+export const deploy: DeployFunction = async (hre) => {
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`deploy-market`);
   const feeWallet = ['hardhat', 'localhost'].includes(hre.network.name)

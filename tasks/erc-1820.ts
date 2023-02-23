@@ -1,5 +1,8 @@
 import { task } from 'hardhat/config';
-import type { EthereumProvider } from 'hardhat/types';
+import type {
+  EthereumProvider,
+  HardhatRuntimeEnvironment,
+} from 'hardhat/types';
 
 const ERC1820_ADDRESS = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24';
 const ERC1820_DEPLOYER = '0xa990077c3205cbDf861e17Fa532eeB069cE9fF96';
@@ -25,7 +28,7 @@ async function ensureERC1820(provider: EthereumProvider): Promise<void> {
 export const TASK = {
   name: 'deploy:erc1820',
   description: 'deploy erc 1820',
-  run: async (taskArguments: void, hre: CustomHardHatRuntimeEnvironment) => {
+  run: async (_taskArguments: void, hre: HardhatRuntimeEnvironment) => {
     return ensureERC1820(hre.network.provider);
   },
 } as const;

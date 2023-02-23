@@ -1,4 +1,5 @@
 import { task } from 'hardhat/config';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import {
   CONTRACT_FUNCTION_TASK_PARAMETERS,
@@ -24,7 +25,7 @@ export const TASK = {
       >;
       args?: unknown[];
     },
-    hre: CustomHardHatRuntimeEnvironment
+    hre: HardhatRuntimeEnvironment
   ): Promise<void> => {
     if (hre.network.name === 'mainnet') {
       return CONTRACT_FUNCTION_TASK_RUN({

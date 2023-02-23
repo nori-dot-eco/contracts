@@ -2,6 +2,9 @@ import path from 'path';
 
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+
+import type { Contracts } from '../types/contracts';
 
 import type {
   LockedNORI,
@@ -40,10 +43,12 @@ export const updateContractsConfig = ({
   networkName,
   contractName,
   proxyAddress,
+  hre,
 }: {
   networkName: string;
   contractName: string;
   proxyAddress: string;
+  hre: HardhatRuntimeEnvironment;
 }): void => {
   const config = readContractsConfig();
   hre.trace('updateContractsConfig', networkName, contractName, proxyAddress);
@@ -64,7 +69,7 @@ export const verifyContracts = async ({
   hre,
   contracts,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
   if (!['localhost', 'hardhat'].includes(hre.network.name)) {
@@ -94,8 +99,10 @@ export const verifyContracts = async ({
 
 export const writeContractsConfig = ({
   contracts,
+  hre,
 }: {
   contracts: Contracts;
+  hre: HardhatRuntimeEnvironment;
 }): void => {
   hre.trace('Writing contracts.json config', hre.network.name);
   for (const [name, contract] of Object.entries(contracts).filter(
@@ -103,6 +110,7 @@ export const writeContractsConfig = ({
   )) {
     updateContractsConfig({
       networkName: hre.network.name,
+      hre,
       contractName: name,
       proxyAddress: contract.address,
     });
@@ -112,7 +120,7 @@ export const writeContractsConfig = ({
 export const configureDeploymentSettings = async ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<void> => {
   if (hre.network.name === 'hardhat' || hre.network.name === 'localhost') {
     await hre.run('deploy:erc1820');
@@ -122,7 +130,7 @@ export const configureDeploymentSettings = async ({
 export const validateDeploymentSettings = ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): void => {
   if (hre.network.live === true && process.env.SOLC_PROFILE !== 'production') {
     throw new Error(
@@ -134,9 +142,10 @@ export const validateDeploymentSettings = ({
 export const deployRemovalContract = async ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<InstanceOfContract<Removal>> => {
-  return hre.deployOrUpgradeProxy<Removal, Removal__factory>({
+  return hre.deployments.deployOrUpgradeProxy<Removal, Removal__factory>({
+    hre,
     contractName: 'Removal',
     // TODO:sw from config by environment
     args: ['https://registry.nori.com/removals/'],
@@ -150,7 +159,7 @@ export const deployRemovalContract = async ({
 export const deployRemovalTestHarness = async ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<InstanceOfContract<RemovalTestHarness>> => {
   const RemovalTestHarness =
     await hre.ethers.getContractFactory<RemovalTestHarness__factory>(
@@ -163,9 +172,13 @@ export const deployRemovalTestHarness = async ({
 export const deployCertificateContract = async ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<InstanceOfContract<Certificate>> => {
-  return hre.deployOrUpgradeProxy<Certificate, Certificate__factory>({
+  return hre.deployments.deployOrUpgradeProxy<
+    Certificate,
+    Certificate__factory
+  >({
+    hre,
     contractName: 'Certificate',
     // TODO:sw from config by environment
     args: ['https://registry.nori.com/certificates/'],
@@ -182,13 +195,14 @@ export const deployMarketContract = async ({
   feePercentage,
   priceMultiple,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   feeWallet: Address;
   feePercentage: number;
   priceMultiple: number;
 }): Promise<InstanceOfContract<Market>> => {
   const deployments = await hre.deployments.all<Required<Contracts>>();
-  return hre.deployOrUpgradeProxy<Market, Market__factory>({
+  return hre.deployments.deployOrUpgradeProxy<Market, Market__factory>({
+    hre,
     contractName: 'Market',
     args: [
       deployments.Removal.address,
@@ -210,9 +224,13 @@ export const deployMarketContract = async ({
 export const deployRestrictedNORI = async ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<InstanceOfContract<RestrictedNORI>> => {
-  return hre.deployOrUpgradeProxy<RestrictedNORI, RestrictedNORI__factory>({
+  return hre.deployments.deployOrUpgradeProxy<
+    RestrictedNORI,
+    RestrictedNORI__factory
+  >({
+    hre,
     contractName: 'RestrictedNORI',
     args: [],
     options: {
@@ -226,13 +244,14 @@ export const deployBridgedPolygonNORIContract = async ({
   hre,
   childChainManagerProxyAddress,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   childChainManagerProxyAddress: Address;
 }): Promise<InstanceOfContract<BridgedPolygonNORI>> => {
-  return hre.deployOrUpgradeProxy<
+  return hre.deployments.deployOrUpgradeProxy<
     BridgedPolygonNORI,
     BridgedPolygonNORI__factory
   >({
+    hre,
     contractName: 'BridgedPolygonNORI',
     args: [childChainManagerProxyAddress],
     options: {
@@ -245,9 +264,10 @@ export const deployBridgedPolygonNORIContract = async ({
 export const deployNORIContract = async ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<InstanceOfContract<NORI>> => {
-  return hre.deployOrUpgradeProxy<NORI, NORI__factory>({
+  return hre.deployments.deployOrUpgradeProxy<NORI, NORI__factory>({
+    hre,
     contractName: 'NORI',
     args: [],
     options: {
@@ -259,9 +279,10 @@ export const deployNORIContract = async ({
 export const deployLockedNORIContract = async ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<InstanceOfContract<LockedNORI>> => {
-  return hre.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
+  return hre.deployments.deployOrUpgradeProxy<LockedNORI, LockedNORI__factory>({
+    hre,
     contractName: 'LockedNORI',
     args: [(await hre.deployments.get('BridgedPolygonNORI'))!.address],
     options: {
@@ -274,7 +295,7 @@ export const deployLockedNORIContract = async ({
 export const deployNoriUSDC = async ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<InstanceOfContract<NoriUSDC>> => {
   const isTestnet = ['mumbai', 'localhost', 'hardhat'].includes(
     hre.network.name
@@ -282,7 +303,8 @@ export const deployNoriUSDC = async ({
   if (!isTestnet) {
     throw new Error('Testnet USDC contract can only be deployed on testnets');
   }
-  return hre.deployOrUpgradeProxy<NoriUSDC, NoriUSDC__factory>({
+  return hre.deployments.deployOrUpgradeProxy<NoriUSDC, NoriUSDC__factory>({
+    hre,
     contractName: 'NoriUSDC',
     args: [hre.namedAccounts.admin],
     options: {
@@ -296,16 +318,17 @@ export const deployTestContracts = async ({
   hre,
   contractNames: contracts,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   contractNames: (keyof Contracts)[];
 }): Promise<Contracts> => {
   const isTestnet = ['mumbai', 'goerli'].includes(hre.network.name);
   const scheduleTestHarnessInstance =
     isTestnet !== null && contracts.includes('LockedNORILibTestHarness')
-      ? await hre.deployNonUpgradeable<
+      ? await hre.deployments.deployNonUpgradeable<
           LockedNORILibTestHarness,
           LockedNORILibTestHarness__factory
         >({
+          hre,
           contractName: 'LockedNORILibTestHarness',
           args: [],
         })
@@ -326,7 +349,7 @@ export const pushContractsToEthernal = async ({
   hre,
   contracts,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
   if (!Boolean(hre.userConfig.ethernal?.disableSync)) {
@@ -351,7 +374,7 @@ export const pushContractsToEthernal = async ({
 export const resetEthernalWorkspace = async ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<void> => {
   const { workspace, disabled } = hre.config.ethernal ?? {};
   if (disabled === false && typeof workspace === 'string') {
@@ -365,7 +388,7 @@ export const addContractsToDefender = async ({
   hre,
   contracts,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
   if (hre.network.name !== 'hardhat') {
@@ -382,7 +405,7 @@ export const saveDeployments = async ({
   hre,
   contracts,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
   hre.trace('saving deployments');
@@ -415,7 +438,7 @@ export const seedContracts = async ({
   hre,
   contracts,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
   if (
@@ -455,11 +478,11 @@ export const finalizeDeployments = async ({
   hre,
   contracts,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   contracts: Contracts;
 }): Promise<void> => {
   await pushContractsToEthernal({ hre, contracts });
-  writeContractsConfig({ contracts });
+  writeContractsConfig({ hre, contracts });
   await addContractsToDefender({ hre, contracts });
   await verifyContracts({ hre, contracts });
   await saveDeployments({

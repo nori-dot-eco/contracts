@@ -4,6 +4,9 @@ import { types, task } from 'hardhat/config';
 import { AdminClient } from 'defender-admin-client';
 import type { Network } from 'defender-base-client/lib/utils/network';
 import { readJsonSync } from 'fs-extra';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+
+import type { Contracts } from '../types/contracts';
 
 const isDefenderNetwork = (network: string): network is Network => {
   return [
@@ -31,7 +34,7 @@ const addContractsToDefender = async (
   }: {
     contractNames: (keyof Contracts)[];
   },
-  hre: CustomHardHatRuntimeEnvironment
+  hre: HardhatRuntimeEnvironment
 ): Promise<void> => {
   const deployed = readJsonSync(path.join(__dirname, '../contracts.json'));
   const {

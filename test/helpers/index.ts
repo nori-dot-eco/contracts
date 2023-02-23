@@ -1,5 +1,9 @@
 import { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
+import hardhat from 'hardhat';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+
+import type { Contracts } from '../../types/contracts';
 
 import { mockDepositNoriToPolygon, depositNoriUSDC } from './polygon';
 
@@ -42,7 +46,7 @@ export const NOW = Math.floor(Date.now() / 1000);
 export const getLatestBlockTime = async ({
   hre,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<number> => {
   const block = await hre.ethers.provider.getBlock('latest');
   return block.timestamp;
@@ -52,7 +56,7 @@ export const advanceTime = async ({
   hre,
   timestamp,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   timestamp: number;
 }): Promise<void> => {
   await hre.network.provider.send('evm_setNextBlockTimestamp', [
@@ -94,7 +98,7 @@ type TestEnvironment<TOptions extends SetupTestOptions = SetupTestOptions> =
   ContractInstances &
     Required<TOptions> &
     RemovalDataFromListing & {
-      hre: CustomHardHatRuntimeEnvironment;
+      hre: HardhatRuntimeEnvironment;
       contracts: Required<Contracts>; // todo deprecate
     } & {
       userFixtures: RequiredKeys<UserFixtures, 'admin' | 'buyer'> &
@@ -110,7 +114,7 @@ export const createBatchMintData = async ({
   scheduleStartTime,
   holdbackPercentage = Zero,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   projectId?: number;
   scheduleStartTime?: number;
   holdbackPercentage?: BigNumber;
@@ -173,7 +177,7 @@ const getTotalAmountOfRemovals = ({
 // todo de-dupe this logic from tests
 // todo helpers/removal.ts
 export const batchMintAndListRemovalsForSale = async (options: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   removal: Removal;
   market: Market;
   removalDataToList: RemovalDataForListing;
@@ -227,9 +231,9 @@ export const batchMintAndListRemovalsForSale = async (options: {
 };
 
 // todo helpers/setup.ts
-export const setupTest = global.hre.deployments.createFixture(
+export const setupTest = hardhat.deployments.createFixture(
   async (
-    hre: CustomHardHatRuntimeEnvironment,
+    hre: HardhatRuntimeEnvironment,
     options?: SetupTestOptions
   ): Promise<TestEnvironment<SetupTestOptions>> => {
     const userFixtures: UserFixtures = {

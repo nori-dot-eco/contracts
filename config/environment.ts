@@ -1,6 +1,11 @@
 import dotenvDefaults from 'dotenv-defaults';
 import dotenvParseVariables from 'dotenv-parse-variables';
 
+/**
+ * Load environment variables from .env files and `process.env`.
+ *
+ * @todo set DEBUG=hardhat* when verbose/trace/log is true
+ */
 const loadEnvironment = (): void => {
   const defaults = dotenvDefaults.config();
 

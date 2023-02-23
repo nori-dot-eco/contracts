@@ -1,10 +1,10 @@
 import { Logger } from 'ethers/lib/utils';
+import type { DeployFunction } from 'hardhat-deploy/types';
 
 import { seedContracts } from '@/utils/deploy';
 import { getContractsFromDeployments } from '@/utils/contracts';
 
-export const deploy: CustomHardhatDeployFunction = async (environment) => {
-  const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
+export const deploy: DeployFunction = async (hre) => {
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`seed`);
   const contracts = await getContractsFromDeployments(hre);

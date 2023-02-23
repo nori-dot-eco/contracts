@@ -2,6 +2,7 @@ import '@nomiclabs/hardhat-ethers';
 import '@/plugins/fireblocks';
 import { types } from 'hardhat/config';
 import { Contract } from 'ethers';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 export const CONTRACT_FUNCTION_TASK_PARAMETERS = {
   func: {
@@ -37,7 +38,7 @@ export const CONTRACT_FUNCTION_TASK_RUN = async ({
   from: number;
   func: string;
   args: unknown[];
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): Promise<void> => {
   if (hre.network.provider) {
     const signers = await hre.getSigners();

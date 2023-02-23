@@ -1,5 +1,6 @@
 import type { ContractTransaction } from 'ethers';
 import { BigNumber } from 'ethers';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import {
@@ -28,7 +29,7 @@ interface TokenGrantOptions {
   grant: TokenGrantUserData;
 }
 interface BuildTokenGrantOptionFunctionParameters {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   startTime: number;
 }
 
@@ -38,7 +39,7 @@ type BuildTokenGrantOptionFunction = (
 
 interface PausableFunctionParameters {
   lNori: LockedNORI;
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }
 
 const NOW = Math.floor(Date.now() / 1000);
@@ -57,7 +58,7 @@ const createGrant = async (
   grantAmount: BigNumber,
   lNori: LockedNORI,
   bpNori: BridgedPolygonNORI,
-  hre: CustomHardHatRuntimeEnvironment
+  hre: HardhatRuntimeEnvironment
 ): Promise<ContractTransaction> => {
   const { namedAccounts, ethers } = hre;
   const { admin } = namedAccounts;
@@ -128,7 +129,7 @@ const defaultParameters = ({
   hre,
 }: {
   startTime?: number;
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): TokenGrantOptions => {
   return {
     grantAmount: GRANT_AMOUNT,
@@ -157,7 +158,7 @@ const employeeParameters = ({
   hre,
 }: {
   startTime?: number;
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): TokenGrantOptions => {
   const VEST_END_OFFSET = 80_000;
   const VEST_CLIFF1_AMOUNT = formatTokenAmount(150);
@@ -184,7 +185,7 @@ const investorParameters = ({
   hre,
 }: {
   startTime?: number;
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): TokenGrantOptions => {
   return {
     grantAmount: GRANT_AMOUNT,
@@ -208,7 +209,7 @@ const linearParameters = ({
   hre,
 }: {
   startTime?: number;
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
 }): TokenGrantOptions => {
   return {
     grantAmount: GRANT_AMOUNT,
@@ -272,7 +273,6 @@ const setupWithGrant = async (
 };
 
 describe('LockedNORI', () => {
-  // todo test supported interfaces
   describe('when paused', () => {
     for (const { method, pausableFunction, postSetupHook } of [
       {
@@ -391,7 +391,6 @@ describe('LockedNORI', () => {
 });
 
 describe('initialization', () => {
-  // it.todo('should fire events');
   describe('roles', () => {
     for (const { role } of [
       { role: 'DEFAULT_ADMIN_ROLE' },
@@ -413,7 +412,6 @@ describe('initialization', () => {
 });
 
 describe('role access', () => {
-  // it.todo('only the token granter role can deposit tokens')
   describe('roles', () => {
     describe('TOKEN_GRANTER_ROLE', () => {
       for (const { role, accountWithRole, accountWithoutRole } of [
@@ -496,7 +494,7 @@ describe('authorizeOperator', () => {
 
 describe('unlockedBalanceOf', () => {
   it('returns zero before startTime', async () => {
-    const { lNori, grantAmount } = await setupWithGrant();
+    const { lNori, grantAmount, hre } = await setupWithGrant();
     const { investor1 } = await hre.getNamedAccounts();
     expect(await lNori.balanceOf(investor1)).to.equal(grantAmount);
     expect(await lNori.vestedBalanceOf(investor1)).to.equal(0);
@@ -551,7 +549,7 @@ describe('batchCreateGrants', () => {
 
 describe('locked tokens', () => {
   it('Should fail to *send*', async () => {
-    const { lNori, bpNori } = await setupWithGrant();
+    const { lNori, bpNori, hre } = await setupWithGrant();
     const { investor1, investor2 } = await hre.getNamedAccounts();
     const addr1Signer = await hre.ethers.getSigner(investor1);
     expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
@@ -564,7 +562,7 @@ describe('locked tokens', () => {
   });
 
   it('Should fail to *transfer*', async () => {
-    const { lNori, bpNori } = await setupWithGrant();
+    const { lNori, bpNori, hre } = await setupWithGrant();
     const { investor1, investor2 } = await hre.getNamedAccounts();
     const addr1Signer = await hre.ethers.getSigner(investor1);
     await expect(
@@ -577,7 +575,7 @@ describe('locked tokens', () => {
 
   it('Should fail to *operatorSend*', async () => {
     const { lNori, bpNori } = await setupWithGrant();
-    const { admin, investor1, investor2 } = await hre.getNamedAccounts();
+    const { admin, investor1, investor2, hre } = await hre.getNamedAccounts();
     const addr1Signer = await hre.ethers.getSigner(investor1);
     expect(await lNori.balanceOf(investor1)).to.equal(GRANT_AMOUNT);
     await expect(
@@ -991,8 +989,8 @@ describe('batchRevokeUnvestedTokenAmounts', () => {
     expect(await lNori.totalSupply()).to.eq(grantAmount);
   });
   it('Should revert when revoking from a non-vesting grant', async () => {
-    const { lNori, grantAmount, grant } = await setupWithGrant((parameters) =>
-      investorParameters(parameters)
+    const { lNori, grantAmount, grant, hre } = await setupWithGrant(
+      (parameters) => investorParameters(parameters)
     );
     const { namedAccounts, namedSigners } = hre;
     await expect(

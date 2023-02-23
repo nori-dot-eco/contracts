@@ -1,4 +1,5 @@
 import { task } from 'hardhat/config';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 export interface ForceUpgradeTaskParameters {
   proxyAddress: string;
@@ -10,7 +11,7 @@ export const TASK = {
   description: 'Force upgrades a contract when network file is lost',
   run: async (
     taskArguments: ForceUpgradeTaskParameters,
-    hre: CustomHardHatRuntimeEnvironment
+    hre: HardhatRuntimeEnvironment
   ): Promise<void> => {
     const signers = await hre.getSigners();
     await hre.upgrades.forceImport(

@@ -17,7 +17,13 @@ import type { MarketEvents } from './Market';
 import type { CertificateEvents } from './Certificate';
 import type { RestrictedNORIEvents } from './RestrictedNORI';
 
-export type ContractWithEvents = Contracts[keyof Contracts];
+export type ContractWithEvents = Exclude<
+  Contracts[keyof Omit<
+    Contracts,
+    'NoriUSDC' | 'LockedNORILibTestHarness' | 'RemovalTestHarness'
+  >],
+  undefined
+>;
 
 export type ContractEventInterface<TInterface extends ContractWithEvents> =
   TInterface extends Removal

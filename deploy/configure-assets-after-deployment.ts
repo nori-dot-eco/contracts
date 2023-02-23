@@ -18,8 +18,7 @@ import {
   getRestrictedNORI,
 } from '@/utils/contracts';
 
-export const deploy: DeployFunction = async (environment) => {
-  const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
+export const deploy: DeployFunction = async (hre) => {
   const CONFIRMATIONS =
     hre.network.name === 'localhost' || hre.network.name === 'hardhat' ? 1 : 5;
 

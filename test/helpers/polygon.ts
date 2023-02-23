@@ -1,4 +1,7 @@
 import type { BigNumberish, Signer } from 'ethers';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+
+import type { Contracts } from '../../types/contracts';
 
 export const depositNoriUSDC = async ({
   hre,
@@ -7,7 +10,7 @@ export const depositNoriUSDC = async ({
   amount,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   contracts: RequiredKeys<Contracts, 'NoriUSDC'>;
   to: string;
   amount: BigNumberish;
@@ -24,7 +27,7 @@ export const mockDepositNoriToPolygon = async ({
   amount,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   contracts: RequiredKeys<Contracts, 'BridgedPolygonNORI' | 'NORI'>;
   to: string;
   amount: BigNumberish;

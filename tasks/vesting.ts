@@ -12,6 +12,7 @@ import type { Signer } from '@ethersproject/abstract-signer';
 import type { CSVParseParam } from 'csvtojson/v2/Parameters';
 import { isAddress, getAddress } from 'ethers/lib/utils';
 import moment from 'moment';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
 
@@ -497,7 +498,7 @@ export const GET_VESTING_TASK = () =>
     description: 'Utilities for handling vesting',
     run: async (
       options: VestingTaskOptions,
-      _: CustomHardHatRuntimeEnvironment
+      hre: HardhatRuntimeEnvironment
     ): Promise<void> => {
       const {
         diff: showDiff,
@@ -591,7 +592,7 @@ const DIFF_SUBTASK = {
       expand: boolean;
       asJson: boolean;
     },
-    hre: CustomHardHatRuntimeEnvironment
+    hre: HardhatRuntimeEnvironment
   ): Promise<void> => {
     const runSubtask = hre.run as RunVestingWithSubTasks;
     const blockchainGrants = await runSubtask('get-blockchain', {
@@ -653,7 +654,7 @@ const GET_GITHUB_SUBTASK = {
       Parameters<Awaited<ReturnType<typeof GET_VESTING_TASK>>['run']>[0],
       'commit'
     >,
-    _hre: CustomHardHatRuntimeEnvironment
+    _hre: HardhatRuntimeEnvironment
   ): Promise<string> => {
     const { data } = await getOctokit().rest.repos.getContent({
       mediaType: {
@@ -682,7 +683,7 @@ const GET_BLOCKCHAIN_SUBTASK = {
         githubGrants: Grants['github'];
       };
     },
-    _hre: CustomHardHatRuntimeEnvironment
+    hre: HardhatRuntimeEnvironment
   ): Promise<ParsedGrants> => {
     const totalSupply = await lNori.totalSupply();
     hre.log(`Total supply: ${totalSupply}`);
@@ -723,9 +724,9 @@ const GET_BLOCKCHAIN_SUBTASK = {
         'WARNING: total supply of LockedNORI does not equal the amounts of all grants.',
         ' Was a line removed from grants CSV?'
       );
-      hre.log(`Total supply: ${ethers.utils.formatEther(totalSupply)}`);
+      hre.log(`Total supply: ${hre.ethers.utils.formatEther(totalSupply)}`);
       hre.log(
-        `Total amount of grants provided: ${ethers.utils.formatEther(
+        `Total amount of grants provided: ${hre.ethers.utils.formatEther(
           actualAmounts
         )}`
       );
@@ -751,7 +752,7 @@ const CREATE_SUBTASK = {
       dryRun: boolean;
       memo?: string;
     },
-    hre: CustomHardHatRuntimeEnvironment
+    hre: HardhatRuntimeEnvironment
   ): Promise<void> => {
     const runSubtask = hre.run as RunVestingWithSubTasks;
     const blockchainGrants = await runSubtask('get-blockchain', {
@@ -829,7 +830,7 @@ const CREATE_SUBTASK = {
       });
       const userData = grantDiffs.map((grant) => buildUserData({ grant }));
       hre.log(
-        `Total bpNORI to lock: ${ethers.utils.formatEther(
+        `Total bpNORI to lock: ${hre.ethers.utils.formatEther(
           amounts.reduce((accumulator, v) => accumulator.add(v))
         )}`
       );
@@ -871,7 +872,7 @@ const CREATE_SUBTASK = {
           deadline,
         }
       );
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+      const { v, r, s } = hre.ethers.utils.splitSignature(signature);
       if (!dryRun) {
         if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
           fireblocksSigner.setNextTransactionMemo(
@@ -941,7 +942,7 @@ const REVOKE_SUBTASK = {
       dryRun: boolean;
       memo?: string;
     },
-    hre: CustomHardHatRuntimeEnvironment
+    hre: HardhatRuntimeEnvironment
   ): Promise<void> => {
     const runSubtask = hre.run as RunVestingWithSubTasks;
     const blockchainGrants = await runSubtask('get-blockchain', {

@@ -6,6 +6,7 @@ import { extendConfig, extendEnvironment } from 'hardhat/config';
 import { lazyObject } from 'hardhat/plugins';
 import type {
   HardhatConfig,
+  HardhatRuntimeEnvironment,
   HardhatUserConfig,
   HttpNetworkConfig,
 } from 'hardhat/types';
@@ -16,7 +17,7 @@ import { FireblocksSigner } from './fireblocks-signer';
 import { JsonRpcBatchProviderWithGasFees } from './provider-gas-wrapper';
 
 type NetworkMap = {
-  [K in CustomHardHatRuntimeEnvironment['network']['name']]: Chain | undefined;
+  [K in HardhatRuntimeEnvironment['network']['name']]: Chain | undefined;
 };
 
 // TODO: move network name translation to our config and make Chain a required config property
@@ -30,7 +31,7 @@ const networkNameToChain: NetworkMap = {
 };
 
 const setupFireblocksSigner = async (
-  hre: CustomHardHatRuntimeEnvironment
+  hre: HardhatRuntimeEnvironment
 ): Promise<FireblocksSigner | undefined> => {
   const networkConfig: HttpNetworkConfig = hre.network
     .config as HttpNetworkConfig;

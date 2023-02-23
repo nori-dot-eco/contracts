@@ -1,10 +1,9 @@
-import { readFileSync, writeFileSync } from 'fs';
-
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
 import type { BigNumber } from 'ethers';
 import { ethers } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
 
@@ -29,7 +28,7 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
       'Utility to list migrated removals for sale that were not included in migrated certificates',
     run: async (
       options: ListMigratedRemovalsTaskOptions,
-      _: CustomHardHatRuntimeEnvironment
+      hre: HardhatRuntimeEnvironment
     ): Promise<void> => {
       const {
         file,

@@ -1,4 +1,7 @@
 import type { Contract } from 'ethers';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+
+import type { Contracts } from '../types/contracts';
 
 import type {
   BridgedPolygonNORI,
@@ -18,7 +21,7 @@ export const getContract = async <TContractName extends keyof Contracts>({
   signer,
 }: {
   contractName: TContractName;
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<Required<Contracts>[TContractName]> => {
   const deployment = await hre.deployments.get(contractName);
@@ -30,7 +33,7 @@ export const getContract = async <TContractName extends keyof Contracts>({
     throw new Error(`Unsupported network: ${hre.network.name}`);
   }
   return (
-    signer != undefined ? contract.connect(signer) : contract
+    signer !== undefined ? contract.connect(signer) : contract
   ) as Required<Contracts>[TContractName];
 };
 
@@ -38,7 +41,7 @@ export const getBridgedPolygonNori = async ({
   hre,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<BridgedPolygonNORI> => {
   return getContract({
@@ -52,7 +55,7 @@ export const getNORI = async ({
   hre,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<NORI> =>
   getContract({
@@ -65,7 +68,7 @@ export const getNoriUSDC = async ({
   hre,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<NoriUSDC> =>
   getContract({
@@ -78,7 +81,7 @@ export const getLockedNORI = ({
   hre,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<LockedNORI> =>
   getContract({
@@ -91,7 +94,7 @@ export const getRestrictedNORI = ({
   hre,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<RestrictedNORI> =>
   getContract({
@@ -104,7 +107,7 @@ export const getCertificate = async ({
   hre,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<Certificate> =>
   getContract({
@@ -117,7 +120,7 @@ export const getRemoval = async ({
   hre,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<Removal> =>
   getContract({
@@ -130,7 +133,7 @@ export const getRemovalTestHarness = async ({
   hre,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<RemovalTestHarness> =>
   getContract({
@@ -143,7 +146,7 @@ export const getMarket = async ({
   hre,
   signer,
 }: {
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   signer?: ConstructorParameters<typeof Contract>[2];
 }): Promise<Market> =>
   getContract({
@@ -153,33 +156,46 @@ export const getMarket = async ({
   });
 
 export const getContractsFromDeployments = async (
-  hre: CustomHardHatRuntimeEnvironment
+  hre: HardhatRuntimeEnvironment
 ): Promise<Required<Contracts>> => {
   const deployments = await hre.deployments.all();
   const contracts = {
-    NORI: deployments.NORI?.address ? await getNORI({ hre }) : undefined,
-    BridgedPolygonNORI: deployments.BridgedPolygonNORI?.address
-      ? await getBridgedPolygonNori({ hre })
-      : undefined,
-    LockedNORI: deployments.LockedNORI?.address
-      ? await getLockedNORI({ hre })
-      : undefined,
-    RestrictedNORI: deployments.RestrictedNORI?.address
-      ? await getRestrictedNORI({ hre })
-      : undefined,
-    Market: deployments.Market?.address ? await getMarket({ hre }) : undefined,
-    Removal: deployments.Removal?.address
-      ? await getRemoval({ hre })
-      : undefined,
-    Certificate: deployments.Certificate?.address
-      ? await getCertificate({ hre })
-      : undefined,
-    RemovalTestHarness: deployments.RemovalTestHarness?.address
-      ? await getRemovalTestHarness({ hre })
-      : undefined,
-    NoriUSDC: deployments.NoriUSDC?.address
-      ? await getNoriUSDC({ hre })
-      : undefined,
+    NORI:
+      typeof deployments.NORI?.address === 'string'
+        ? await getNORI({ hre })
+        : undefined,
+    BridgedPolygonNORI:
+      typeof deployments.BridgedPolygonNORI?.address === 'string'
+        ? await getBridgedPolygonNori({ hre })
+        : undefined,
+    LockedNORI:
+      typeof deployments.LockedNORI?.address === 'string'
+        ? await getLockedNORI({ hre })
+        : undefined,
+    RestrictedNORI:
+      typeof deployments.RestrictedNORI?.address === 'string'
+        ? await getRestrictedNORI({ hre })
+        : undefined,
+    Market:
+      typeof deployments.Market?.address === 'string'
+        ? await getMarket({ hre })
+        : undefined,
+    Removal:
+      typeof deployments.Removal?.address === 'string'
+        ? await getRemoval({ hre })
+        : undefined,
+    Certificate:
+      typeof deployments.Certificate?.address === 'string'
+        ? await getCertificate({ hre })
+        : undefined,
+    RemovalTestHarness:
+      typeof deployments.RemovalTestHarness?.address === 'string'
+        ? await getRemovalTestHarness({ hre })
+        : undefined,
+    NoriUSDC:
+      typeof deployments.NoriUSDC?.address === 'string'
+        ? await getNoriUSDC({ hre })
+        : undefined,
   } as Required<Contracts>;
   return contracts;
 };

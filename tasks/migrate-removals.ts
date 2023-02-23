@@ -1,14 +1,14 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 
-import type { Contract, ContractReceipt, ContractTransaction } from 'ethers';
+import type { ContractReceipt, ContractTransaction } from 'ethers';
 import { BigNumber, FixedNumber } from 'ethers';
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { TransactionReceipt } from '@ethersproject/providers';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import type { Removal } from '@/typechain-types';
-import { getLogger } from '@/utils/log';
 import { parseTransactionLogs } from '@/utils/events';
 import { getRemoval } from '@/utils/contracts';
 import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
@@ -115,9 +115,11 @@ const summarize = async ({
 const validate = ({
   logger,
   summary,
+  hre,
 }: {
-  logger: ReturnType<typeof getLogger>;
+  logger: ReturnType<typeof hre.getLogger>;
   summary: Summary;
+  hre: HardhatRuntimeEnvironment;
 }): void => {
   const onChainSupplyTonnesInWei = summary.totalRemovalSupplyOnChain.sum;
   const offChainSupplyTonnesInWei = BigNumber.from(
@@ -139,9 +141,9 @@ const printSummary = ({
   hre,
   summary,
 }: {
-  logger: ReturnType<typeof getLogger>;
+  logger: ReturnType<typeof hre.getLogger>;
   outputFileName: string;
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   summary: Summary;
 }): void => {
   logger.info(`\n\nMigration summary:`);
@@ -195,7 +197,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
     description: 'Utility to mint legacy removals',
     run: async (
       options: MigrateRemovalsTaskOptions,
-      _: CustomHardHatRuntimeEnvironment
+      hre: HardhatRuntimeEnvironment
     ): Promise<void> => {
       const TIMEOUT_DURATION = 1000 * 60 * 2; // 2 minutes
 
@@ -204,7 +206,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         outputFile = 'migrated-removals.json',
         dryRun,
       } = options as ParsedMigrateRemovalsTaskOptions;
-      const logger = getLogger({
+      const logger = hre.getLogger({
         prefix: dryRun === true ? '[DRY RUN]' : undefined,
         hre,
       });
@@ -279,7 +281,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           };
           return removalData;
         });
-        let migrationFunction =
+        const migrationFunction =
           dryRun === true
             ? removalContract.callStatic.mintBatch
             : removalContract.mintBatch;
@@ -305,28 +307,30 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             // localhost non-dry-run requires manually setting gas price
             const gasPrice = await signer.getGasPrice();
             maybePendingTx = await callWithTimeout(
-             () =>  migrationFunction(
-                signerAddress, // mint to the consignor
-                amounts,
-                removals,
-                project.projectId,
-                project.scheduleStartTime,
-                project.holdbackPercentage,
-                { gasPrice }
-              ),
+              () =>
+                migrationFunction(
+                  signerAddress, // mint to the consignor
+                  amounts,
+                  removals,
+                  project.projectId,
+                  project.scheduleStartTime,
+                  project.holdbackPercentage,
+                  { gasPrice }
+                ),
               TIMEOUT_DURATION
             );
           } else {
             // all other cases
             maybePendingTx = await callWithTimeout(
-             () =>  migrationFunction(
-                signerAddress, // mint to the consignor
-                amounts,
-                removals,
-                project.projectId,
-                project.scheduleStartTime,
-                project.holdbackPercentage
-              ),
+              () =>
+                migrationFunction(
+                  signerAddress, // mint to the consignor
+                  amounts,
+                  removals,
+                  project.projectId,
+                  project.scheduleStartTime,
+                  project.holdbackPercentage
+                ),
               TIMEOUT_DURATION
             );
           }
@@ -340,12 +344,19 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             logger.info(`📝 Awaiting transaction: ${pendingTx.hash}`);
             const txResult =
               network === `localhost`
-                ? await callWithTimeout(() => pendingTx.wait(), TIMEOUT_DURATION)
-                : await callWithTimeout(() => pendingTx.wait(2), TIMEOUT_DURATION); // TODO what is the correct number of confirmations for mainnet?
+                ? await callWithTimeout(
+                    () => pendingTx.wait(),
+                    TIMEOUT_DURATION
+                  )
+                : await callWithTimeout(
+                    () => pendingTx.wait(2),
+                    TIMEOUT_DURATION
+                  ); // TODO what is the correct number of confirmations for mainnet?
             txReceipt = (await callWithTimeout(
-              () => removalContract.provider.getTransactionReceipt(
-                (txResult as ContractReceipt).transactionHash
-              ),
+              () =>
+                removalContract.provider.getTransactionReceipt(
+                  (txResult as ContractReceipt).transactionHash
+                ),
               TIMEOUT_DURATION
             )) as TransactionReceipt;
             tokenIds = parseTransactionLogs({
@@ -402,7 +413,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           summary,
         });
         logger.info('starting validation');
-        await validate({ summary, logger });
+        await validate({ summary, logger, hre });
       } else {
         logger.info(
           `📝 Skipping validation and summary as it is not possible to do either in a dry run`

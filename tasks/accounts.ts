@@ -1,5 +1,6 @@
 import { task } from 'hardhat/config';
 import { formatEther } from 'ethers/lib/utils';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import { accounts, namedAccounts } from '@/config/accounts';
 
@@ -8,7 +9,7 @@ export const TASK = {
   description: 'Prints the list of accounts',
   run: async (
     _taskArguments: void,
-    hre: CustomHardHatRuntimeEnvironment
+    _hre: HardhatRuntimeEnvironment
   ): Promise<void> => {
     const accountTable = Object.fromEntries(
       Object.entries(namedAccounts).map(([name, address], index) => {

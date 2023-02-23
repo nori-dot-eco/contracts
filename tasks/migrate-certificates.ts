@@ -5,10 +5,10 @@ import type { ContractReceipt, ContractTransaction } from 'ethers';
 import { BigNumber, FixedNumber } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { TransactionReceipt } from '@ethersproject/providers';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import type { Certificate, Removal } from '../types/typechain-types';
 
-import { getLogger } from '@/utils/log';
 import { parseTransactionLogs } from '@/utils/events';
 import { Zero } from '@/constants/units';
 import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
@@ -105,7 +105,7 @@ const validateMigrateEvents = ({
 }: {
   txResult: ContractReceipt;
   removalContract: Removal;
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   startingCertificateIndex: number;
   certificateBatchSize: number;
   inputData: InputData[];
@@ -189,8 +189,8 @@ const validateEvents = ({
 }: {
   txResult: ContractReceipt;
   removalContract: Removal;
-  hre: CustomHardHatRuntimeEnvironment;
-  logger: ReturnType<typeof getLogger>;
+  hre: HardhatRuntimeEnvironment;
+  logger: ReturnType<typeof hre.getLogger>;
   startingCertificateIndex: number;
   certificateBatchSize: number;
   inputData: InputData[];
@@ -244,12 +244,14 @@ const validateState = async ({
   certificateContract,
   recipient,
   inputData,
+  hre,
 }: {
-  logger: ReturnType<typeof getLogger>;
+  logger: ReturnType<typeof hre.getLogger>;
   summary: Summary;
   removalContract: Removal;
   certificateContract: Certificate;
   recipient: string;
+  hre: HardhatRuntimeEnvironment;
   inputData: InputData[];
 }): Promise<void> => {
   const onChainSupplyTonnesInWei = summary.totalCertificateSupplyOnChain.sum;
@@ -332,9 +334,9 @@ const printSummary = ({
   hre,
   summary,
 }: {
-  logger: ReturnType<typeof getLogger>;
+  logger: ReturnType<typeof hre.getLogger>;
   outputFileName: string;
-  hre: CustomHardHatRuntimeEnvironment;
+  hre: HardhatRuntimeEnvironment;
   summary: Summary;
 }): void => {
   logger.info(`\n\nMigration summary:`);
@@ -378,14 +380,14 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
     description: 'Utility to migrate legacy certificates',
     run: async (
       options: MigrateCertificatesTaskOptions,
-      _: CustomHardHatRuntimeEnvironment
+      hre: HardhatRuntimeEnvironment
     ): Promise<void> => {
       const {
         file,
         outputFile = 'migrated-certificates.json',
         dryRun,
       } = options as ParsedMigrateCertificatesTaskOptions;
-      const logger = getLogger({
+      const logger = hre.getLogger({
         prefix: dryRun === true ? '[DRY RUN]' : undefined,
         hre,
       });
@@ -522,7 +524,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             totalAmount,
           ]);
         });
-        let migrationFunction =
+        const migrationFunction =
           dryRun === true
             ? removalContract.callStatic.multicall
             : removalContract.multicall;
@@ -590,9 +592,10 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
                   )) as ContractReceipt); // TODO what is the correct number of confirmations for mainnet?
             logger.info('Getting txReceipt...');
             txReceipt = (await callWithTimeout(
-              () => removalContract.provider.getTransactionReceipt(
-                txResult.transactionHash
-              ),
+              () =>
+                removalContract.provider.getTransactionReceipt(
+                  txResult.transactionHash
+                ),
               TIMEOUT_DURATION
             )) as TransactionReceipt;
 
@@ -687,6 +690,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           certificateContract,
           recipient: signerAddress,
           inputData: originalInputData,
+          hre,
         });
       } else {
         logger.info(

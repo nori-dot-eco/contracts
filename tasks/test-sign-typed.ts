@@ -1,4 +1,5 @@
 import { task } from 'hardhat/config';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 export interface TestSignTypesTaskParameters {}
 
@@ -17,7 +18,7 @@ export const TASK = {
   description: 'Test signing typed data',
   run: async (
     taskArguments: TestSignTypesTaskParameters,
-    hre: CustomHardHatRuntimeEnvironment
+    hre: HardhatRuntimeEnvironment
   ): Promise<void> => {
     const [signer] = await hre.getSigners();
     const domain = {
@@ -31,12 +32,12 @@ export const TASK = {
     const value = {
       owner,
       spender,
-      value: ethers.BigNumber.from('46425588600000000000000'), // ethers.utils.parseEther('100'),
-      nonce: ethers.BigNumber.from('0'),
+      value: hre.ethers.BigNumber.from('46425588600000000000000'), // ethers.utils.parseEther('100'),
+      nonce: hre.ethers.BigNumber.from('0'),
       deadline: 1_664_492_773,
     };
     const signature = await signer._signTypedData(domain, types, value);
-    const verified = ethers.utils.verifyTypedData(
+    const verified = hre.ethers.utils.verifyTypedData(
       domain,
       types,
       value,
