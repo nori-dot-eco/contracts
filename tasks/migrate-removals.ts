@@ -274,12 +274,12 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             vintage: removal.vintage,
             country: asciiStringToHexString(removal.country),
             subdivision: asciiStringToHexString(removal.subdivision),
-            supplierAddress: removal.supplierAddress, // TODO need real supplier address on the project
+            supplierAddress: removal.supplierAddress,
             subIdentifier: removal.subIdentifier,
           };
           return removalData;
         });
-        let migrationFunction =
+        const migrationFunction =
           dryRun === true
             ? removalContract.callStatic.mintBatch
             : removalContract.mintBatch;
@@ -305,28 +305,30 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             // localhost non-dry-run requires manually setting gas price
             const gasPrice = await signer.getGasPrice();
             maybePendingTx = await callWithTimeout(
-             () =>  migrationFunction(
-                signerAddress, // mint to the consignor
-                amounts,
-                removals,
-                project.projectId,
-                project.scheduleStartTime,
-                project.holdbackPercentage,
-                { gasPrice }
-              ),
+              () =>
+                migrationFunction(
+                  signerAddress, // mint to the consignor
+                  amounts,
+                  removals,
+                  project.projectId,
+                  project.scheduleStartTime,
+                  project.holdbackPercentage,
+                  { gasPrice }
+                ),
               TIMEOUT_DURATION
             );
           } else {
             // all other cases
             maybePendingTx = await callWithTimeout(
-             () =>  migrationFunction(
-                signerAddress, // mint to the consignor
-                amounts,
-                removals,
-                project.projectId,
-                project.scheduleStartTime,
-                project.holdbackPercentage
-              ),
+              () =>
+                migrationFunction(
+                  signerAddress, // mint to the consignor
+                  amounts,
+                  removals,
+                  project.projectId,
+                  project.scheduleStartTime,
+                  project.holdbackPercentage
+                ),
               TIMEOUT_DURATION
             );
           }
@@ -340,12 +342,19 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             logger.info(`📝 Awaiting transaction: ${pendingTx.hash}`);
             const txResult =
               network === `localhost`
-                ? await callWithTimeout(() => pendingTx.wait(), TIMEOUT_DURATION)
-                : await callWithTimeout(() => pendingTx.wait(2), TIMEOUT_DURATION); // TODO what is the correct number of confirmations for mainnet?
+                ? await callWithTimeout(
+                    () => pendingTx.wait(),
+                    TIMEOUT_DURATION
+                  )
+                : await callWithTimeout(
+                    () => pendingTx.wait(2),
+                    TIMEOUT_DURATION
+                  ); // TODO what is the correct number of confirmations for mainnet?
             txReceipt = (await callWithTimeout(
-              () => removalContract.provider.getTransactionReceipt(
-                (txResult as ContractReceipt).transactionHash
-              ),
+              () =>
+                removalContract.provider.getTransactionReceipt(
+                  (txResult as ContractReceipt).transactionHash
+                ),
               TIMEOUT_DURATION
             )) as TransactionReceipt;
             tokenIds = parseTransactionLogs({
@@ -359,6 +368,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
               logger.error(
                 `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
               );
+              logger.error(JSON.stringify(txReceipt));
               return;
             }
           }
