@@ -103,9 +103,6 @@
     },
     "RestrictedNORI": {
       "proxyAddress": "0x79c0F95a44b33550695372C58e9E89cCD71f60fd"
-    },
-    "NoriUSDC": {
-      "proxyAddress": "0xF2Cf51E3Fd4b3834b9DA0EEAdF529F4334625D3B"
     }
   },
   "goerli": {
