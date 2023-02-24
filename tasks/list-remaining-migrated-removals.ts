@@ -2,8 +2,8 @@ import { readFileSync, writeFileSync } from 'fs';
 
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
-import type { BigNumber } from 'ethers';
-import { ethers } from 'ethers';
+import type { ContractTransaction } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 
 import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
@@ -91,15 +91,22 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
 
       hre.log(chalk.white(`👀 Querying unsold removal balances...`));
 
-      const remainingBalanceData = await Promise.all(
-        allMigratedRemovalIds.map(async (tokenId: BigNumber) => {
-          const balance = await removalContract.balanceOf(
-            signerAddress,
-            tokenId
-          );
-          return { tokenId, balance };
-        })
+      const multicallDataForBalances = allMigratedRemovalIds.map((tokenId) =>
+        removalContract.interface.encodeFunctionData('balanceOf', [
+          signerAddress,
+          tokenId,
+        ])
       );
+      const stringRemainingBalances =
+        await removalContract.callStatic.multicall(multicallDataForBalances);
+      const remainingBalances = stringRemainingBalances.map((amount) =>
+        BigNumber.from(amount)
+      );
+      const remainingBalanceData = remainingBalances.map((balance, index) => ({
+        tokenId: allMigratedRemovalIds[index],
+        balance,
+      }));
+
       // filter out token ids that have a balance of 0
       const listableData = remainingBalanceData.filter((data) =>
         data.balance.gt(0)
@@ -129,23 +136,47 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
         );
         return;
       }
+      const TIMEOUT_DURATION = 1000 * 60 * 2; // 2 minutes
       if (!dryRun) {
         hre.log(chalk.white(`🤞 Submitting multicall consign transaction...`));
         let txReceipt: ethers.providers.TransactionReceipt;
+        let pendingTx: ContractTransaction;
+        let maybePendingTx;
         try {
-          const pendingTx = await removalContract.multicall(
-            listableTokenIds.map((id, index) =>
-              removalContract.interface.encodeFunctionData('consign', [
-                signerAddress,
-                id,
-                listableBalances[index],
-              ])
-            )
-          );
+          if (network === `localhost` && dryRun === false) {
+            // localhost non-dry-run requires manually setting gas price
+            const gasPrice = await signer.getGasPrice();
+            maybePendingTx = await removalContract.multicall(
+              listableTokenIds.map((id, index) =>
+                removalContract.interface.encodeFunctionData('consign', [
+                  signerAddress,
+                  id,
+                  listableBalances[index],
+                ])
+              ),
+              { gasPrice }
+            );
+          } else {
+            maybePendingTx = await removalContract.multicall(
+              listableTokenIds.map((id, index) =>
+                removalContract.interface.encodeFunctionData('consign', [
+                  signerAddress,
+                  id,
+                  listableBalances[index],
+                ])
+              )
+            );
+          }
+
+          if (maybePendingTx === undefined) {
+            throw new Error(`No pending transaction returned`);
+          } else {
+            pendingTx = maybePendingTx as ContractTransaction;
+          }
           hre.log(`txHash: ${chalk.green(pendingTx.hash)}`);
           hre.log(chalk.white('\n👷 Waiting for transaction to finalize...'));
+          const result = await pendingTx.wait(2); // TODO specify more than one confirmation?
 
-          const result = await pendingTx.wait(); // TODO specify more than one confirmation?
           txReceipt = await removalContract.provider.getTransactionReceipt(
             result.transactionHash
           );
