@@ -91,11 +91,12 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
 
       hre.log(chalk.white(`👀 Querying unsold removal balances...`));
 
-      const multicallDataForBalances = allMigratedRemovalIds.map((tokenId) =>
-        removalContract.interface.encodeFunctionData('balanceOf', [
-          signerAddress,
-          tokenId,
-        ])
+      const multicallDataForBalances = allMigratedRemovalIds.map(
+        (tokenId: any) =>
+          removalContract.interface.encodeFunctionData('balanceOf', [
+            signerAddress,
+            tokenId,
+          ])
       );
       const stringRemainingBalances =
         await removalContract.callStatic.multicall(multicallDataForBalances);
