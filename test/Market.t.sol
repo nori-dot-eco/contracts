@@ -74,9 +74,7 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
 
   function setUp() external {
     _unsafeErc20 = _deployMockUnsafeERC20();
-    _mockERC20SignatureUtils = new SignatureUtils(
-      _unsafeErc20.DOMAIN_SEPARATOR()
-    );
+    _mockERC20SignatureUtils = new SignatureUtils();
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _unsafeErc20,
       priceMultiple: 100

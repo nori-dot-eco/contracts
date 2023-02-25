@@ -12,7 +12,7 @@ abstract contract UpgradeableNoriUSDC is Upgradeable {
 
   constructor() {
     _noriUSDC = _deployPurchaseToken();
-    _noriUSDCSignatureUtils = new SignatureUtils(_noriUSDC.DOMAIN_SEPARATOR());
+    _noriUSDCSignatureUtils = new SignatureUtils();
   }
 
   function _deployPurchaseToken() internal returns (NoriUSDC) {
