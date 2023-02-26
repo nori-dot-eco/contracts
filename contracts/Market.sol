@@ -1045,44 +1045,12 @@ contract Market is
    * @return The amount of the fee charged by Nori in `_purchasingToken`.
    */
   function calculateNoriFee(uint256 amount) external view returns (uint256) {
+    // todo: given that this is an external function, should we validate amount?
     return
-      this.convertRemovalAmountToPurchasingTokenAmount(
-        amount.mulDiv({
-          y: _priceMultiple * _noriFeePercentage,
-          denominator: 10_000
-        })
-      );
-  }
-
-  /**
-   * @notice Converts a removal amount to a purchasing token amount.
-   * @return The amount of purchasing tokens required to purchase the specified amount of removals.
-   */
-  function convertRemovalAmountToPurchasingTokenAmount(uint256 removalAmount)
-    external
-    view
-    returns (uint256)
-  {
-    uint8 decimals = _purchasingToken.decimals();
-    if (decimals == 18) {
-      return removalAmount;
-    }
-    int8 decimalDelta = 18 - int8(decimals);
-    return removalAmount / 10**uint8(decimalDelta);
-  }
-
-  /** @dev Converts a purchasing token amount to a removal amount.
-   * @return The amount of removals that can be purchased with the specified amount of purchasing tokens.
-   */
-  function convertPurchasingTokenAmountToRemovalAmount(
-    uint256 purchasingTokenAmount
-  ) external view returns (uint256) {
-    uint8 decimals = _purchasingToken.decimals();
-    if (decimals == 18) {
-      return purchasingTokenAmount;
-    }
-    int8 decimalDelta = 18 - int8(decimals);
-    return purchasingTokenAmount * 10**uint8(decimalDelta);
+      amount.mulDiv({
+        y: _priceMultiple * _noriFeePercentage,
+        denominator: 10_000
+      });
   }
 
   /**
@@ -1096,11 +1064,12 @@ contract Market is
     view
     returns (uint256)
   {
-    _validateCertificateAmount({amount: amount});
+    // todo: given that this is an external function, should we validate amount?
+    // In all cases where the market currently calls this function, the validation is redundant, so we should either
+    // All current market usage is already validating before calling this fn.
     return
-      this.convertRemovalAmountToPurchasingTokenAmount(
-        amount.mulDiv({y: _priceMultiple, denominator: 100})
-      ) + this.calculateNoriFee({amount: amount});
+      amount.mulDiv({y: _priceMultiple, denominator: 100}) +
+      this.calculateNoriFee({amount: amount});
   }
 
   /**
@@ -1114,11 +1083,9 @@ contract Market is
     view
     returns (uint256)
   {
-    _validateCertificateAmount({amount: amount});
-    return
-      this.convertRemovalAmountToPurchasingTokenAmount(
-        amount.mulDiv({y: _priceMultiple, denominator: 100})
-      );
+    //todo where is this used and who is the intended consumer?
+    // todo: given that this is an external function, should we validate amount?
+    return amount.mulDiv({y: _priceMultiple, denominator: 100});
   }
 
   /**
@@ -1132,15 +1099,13 @@ contract Market is
     view
     returns (uint256)
   {
+    //todo where is this used and who is the intended consumer?
+    // todo: given that this is an external function, should we validate amount?
     return
-      this
-        .convertPurchasingTokenAmountToRemovalAmount({
-          purchasingTokenAmount: purchaseTotal
-        })
-        .mulDiv({
-          y: 10_000,
-          denominator: (100 + _noriFeePercentage) * _priceMultiple
-        });
+      purchaseTotal.mulDiv({
+        y: 10_000,
+        denominator: (100 + _noriFeePercentage) * _priceMultiple
+      });
   }
 
   /**
@@ -1152,12 +1117,8 @@ contract Market is
   function calculateCertificateAmountFromPurchaseTotalWithoutFee(
     uint256 purchaseTotal
   ) external view returns (uint256) {
-    return
-      this
-        .convertPurchasingTokenAmountToRemovalAmount({
-          purchasingTokenAmount: purchaseTotal
-        })
-        .mulDiv({y: 10_000, denominator: 100 * _priceMultiple});
+    //todo where is this used?
+    return purchaseTotal.mulDiv({y: 10_000, denominator: 100 * _priceMultiple});
   }
 
   /**
@@ -1295,6 +1256,7 @@ contract Market is
     uint256[] memory amounts,
     address[] memory suppliers
   ) internal {
+    // todo whenNotPaused audit (we can use slither to check for this)
     uint256[] memory removalIds = ids.slice({
       from: 0,
       to: countOfRemovalsAllocated
@@ -1310,18 +1272,15 @@ contract Market is
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
       holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
 
-      unrestrictedSupplierFee = this
-        .convertRemovalAmountToPurchasingTokenAmount(
-          removalAmounts[i].mulDiv({y: _priceMultiple, denominator: 100})
-        );
+      unrestrictedSupplierFee = removalAmounts[i].mulDiv({
+        y: _priceMultiple,
+        denominator: 100
+      });
       if (holdbackPercentage > 0) {
-        restrictedSupplierFee = this
-          .convertRemovalAmountToPurchasingTokenAmount(
-            removalAmounts[i].mulDiv({
-              y: _priceMultiple * holdbackPercentage,
-              denominator: 10_000
-            })
-          );
+        restrictedSupplierFee = removalAmounts[i].mulDiv({
+          y: _priceMultiple * holdbackPercentage,
+          denominator: 10_000
+        });
         unrestrictedSupplierFee -= restrictedSupplierFee;
         if (
           _restrictedNORI.getUnderlyingTokenAddress() !=
@@ -1344,7 +1303,9 @@ contract Market is
               removalId: removalIds[i]
             })
           {
-            // solhint-disable-previous-line no-empty-blocks, Nothing should happen here.
+            {
+              // solhint-disable-previous-line no-empty-blocks, Nothing should happen here.
+            }
           } catch {
             emit RestrictedNORIMintFailure({
               amount: restrictedSupplierFee,
@@ -1371,7 +1332,7 @@ contract Market is
         isTransferSuccessful = _purchasingToken.transferFrom({
           from: from,
           to: _noriFeeWallet,
-          amount: this.calculateNoriFee(removalAmounts[i])
+          amount: this.calculateNoriFee({amount: removalAmounts[i]})
         });
         if (!isTransferSuccessful) {
           revert ERC20TransferFailed();
@@ -1572,7 +1533,16 @@ contract Market is
    * @param amount Proposed amount to purchase.
    */
   function _validateCertificateAmount(uint256 amount) internal view {
-    if (amount == 0 || (amount % (_purchasingToken.decimals() - 2)) != 0) {
+    // todo good use case for a modifier
+    uint256 maxAmount = ((type(uint256).max - 1) /
+      (_priceMultiple * _noriFeePercentage)); // todo test, verify correct max calc
+    uint256 minAmount = 100; // we can't calc a fee on anything smaller (alt: round up the fee to 1 when amount < 100)
+    if (
+      amount % minAmount != 0 || // increment of minAmount
+      amount == 0 ||
+      amount > maxAmount ||
+      amount < minAmount
+    ) {
       revert InvalidCertificateAmount({amount: amount});
     }
   }

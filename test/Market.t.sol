@@ -1583,35 +1583,18 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
   }
 }
 
-contract Market_converts_decimals is UpgradeableUSDCMarket {
-  function test() external {
-    assertEq(
-      _market.convertRemovalAmountToPurchasingTokenAmount(1 ether),
-      1_000_000
-    );
-    // truncates cleanly
-    assertEq(
-      _market.convertRemovalAmountToPurchasingTokenAmount(1 ether + 1),
-      1_000_000
-    );
-    assertEq(
-      _market.convertPurchasingTokenAmountToRemovalAmount(1_000_000),
-      1 ether
-    );
-  }
-}
-
+// todo does this test suite name make sense?
 contract Market_calculates_prices_using_decimal is UpgradeableUSDCMarket {
   function test() external {
-    assertEq(_market.calculateCheckoutTotal(1 ether), 25_000_000);
-    assertEq(_market.calculateNoriFee(1 ether), 5_000_000);
-    assertEq(_market.calculateCheckoutTotalWithoutFee(1 ether), 20_000_000);
+    assertEq(_market.calculateCheckoutTotal(1 ether), 25 ether);
+    assertEq(_market.calculateNoriFee(1 ether), 5 ether);
+    assertEq(_market.calculateCheckoutTotalWithoutFee(1 ether), 20 ether);
     assertEq(
-      _market.calculateCertificateAmountFromPurchaseTotal(25_000_000),
+      _market.calculateCertificateAmountFromPurchaseTotal(25 ether),
       1 ether
     );
     assertEq(
-      _market.calculateCertificateAmountFromPurchaseTotalWithoutFee(20_000_000),
+      _market.calculateCertificateAmountFromPurchaseTotalWithoutFee(20 ether),
       1 ether
     );
   }
@@ -1744,11 +1727,11 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
         InvalidCertificateAmount.selector,
         numberOfNRTsToPurchase
       );
-
-      vm.expectRevert(revertData);
+      // todo see questions in market about how to handle this
+      //vm.expectRevert(revertData);
       checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
-
-      vm.expectRevert(revertData);
+      // todo see questions in market about how to handle this
+      // vm.expectRevert(revertData);
       checkoutTotal = _market.calculateCheckoutTotalWithoutFee(
         numberOfNRTsToPurchase
       );
