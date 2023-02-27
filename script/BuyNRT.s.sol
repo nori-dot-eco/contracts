@@ -12,7 +12,7 @@ import "@/contracts/Market.sol";
  * Contextual information is bound in using environment variables, i.e. for Mumbai:
  *
  * export PURCHASING_TOKEN_ADDRESS="0x0FA8781a83E46826621b3BC094Ea2A0212e71B23" # USDC
- * export TONNES=1
+ * export NRTS=1
  * export MNEMONIC="..."
  * export RECIPIENT_ADDRESS="<0x00>"
  * export MUMBAI_RPC_URL="https://..."
@@ -31,7 +31,7 @@ contract BuyNRT is Script {
       )
     );
 
-  uint256 private immutable _tonnes = vm.envUint("TONNES") * 1 ether;
+  uint256 private immutable _nrts = vm.envUint("NRTS") * 1 ether;
 
   IERC20WithPermit private immutable _purchasingToken =
     IERC20WithPermit(vm.envAddress("PURCHASING_TOKEN_ADDRESS"));
@@ -43,14 +43,14 @@ contract BuyNRT is Script {
     SignedPermit memory signedPermit = _signatureUtils.generatePermit({
       ownerPrivateKey: vm.deriveKey(vm.envString("MNEMONIC"), 0),
       spender: address(_market),
-      amount: _market.calculateCheckoutTotal({amount: _tonnes}),
+      amount: _market.calculateCheckoutTotal({amount: _nrts}),
       deadline: block.timestamp + 1 days,
       token: _purchasingToken
     });
     _market.swap({
       recipient: _recipient,
       permitOwner: signedPermit.permit.owner,
-      amount: _tonnes,
+      amount: _nrts,
       deadline: signedPermit.permit.deadline,
       v: signedPermit.v,
       r: signedPermit.r,
