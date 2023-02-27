@@ -1603,6 +1603,7 @@ contract Market_converts_decimals is UpgradeableUSDCMarket {
 
 contract Market_calculates_prices_using_decimal is UpgradeableUSDCMarket {
   function test() external {
+    // expectRevert(_market.calculateCheckoutTotal(1), 0);
     assertEq(_market.calculateCheckoutTotal(1 ether), 25_000_000);
     assertEq(_market.calculateNoriFee(1 ether), 5_000_000);
     assertEq(_market.calculateCheckoutTotalWithoutFee(1 ether), 20_000_000);
@@ -1732,12 +1733,13 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
     uint256 ownerPrivateKey = 0xA11CE;
     owner = vm.addr(ownerPrivateKey);
 
-    uint256[] memory testValues = new uint256[](3);
+    uint256[] memory testValues = new uint256[](4);
     testValues[0] = 0;
     testValues[1] = 1;
     testValues[2] = 1 ether + 1;
+    testValues[3] = 10e30 + 1;
 
-    for (uint256 i = 0; i < 3; i++) {
+    for (uint256 i = 0; i < testValues.length; i++) {
       uint256 numberOfNRTsToPurchase = testValues[i];
 
       bytes memory revertData = abi.encodeWithSelector(

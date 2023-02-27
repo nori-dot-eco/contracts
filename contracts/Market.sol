@@ -1063,7 +1063,7 @@ contract Market is
     view
     returns (uint256)
   {
-    uint8 decimals = _purchasingToken.decimals();
+    uint8 decimals = _purchasingToken.decimals(); // 6
     if (decimals == 18) {
       return removalAmount;
     }
@@ -1572,7 +1572,19 @@ contract Market is
    * @param amount Proposed amount to purchase.
    */
   function _validateCertificateAmount(uint256 amount) internal view {
-    if (amount == 0 || (amount % (_purchasingToken.decimals() - 2)) != 0) {
+    uint256 maxAllowedRemovalAmount = 10e30;
+
+    // For NORI 2 decimals places must be zero to allow for fees
+    //  (i.e. Smallest purchase using NORI is 100)
+    // For USDC 14 decimals places must be zero to allows for decimal resolution and fee
+    //  (i.e. Smallest purchase using USDC is 100_000_000_000_000)
+    uint256 safeDecimals = 18 - _purchasingToken.decimals() + 2;
+    if (
+      // 10 ** (safeDecimals + 1) == 10e[safeDecimals]
+      amount == 0 ||
+      amount > maxAllowedRemovalAmount ||
+      (amount % (10**(safeDecimals + 1))) != 0
+    ) {
       revert InvalidCertificateAmount({amount: amount});
     }
   }
