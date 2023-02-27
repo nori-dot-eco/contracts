@@ -18,12 +18,14 @@ abstract contract UpgradeableMarket is
   UpgradeableBridgedPolygonNORI
 {
   IERC20WithPermit internal _purchasingToken;
+  IERC20WithPermit internal _restrictedToken;
   SignatureUtils internal _signatureUtils;
   Market internal _market;
   uint256 MAX_INT = 2**256 - 1;
 
   constructor() {
     _purchasingToken = IERC20WithPermit(address(_bpNori));
+    _restrictedToken = _purchasingToken;
     _signatureUtils = _bpNoriSignatureUtils;
     _construct();
   }
@@ -36,7 +38,7 @@ abstract contract UpgradeableMarket is
       Certificate(_certificate)
     );
     _rNori.registerContractAddresses( // todo move to rnori helper
-      IERC20WithPermit(address(_bpNori)),
+      IERC20WithPermit(address(_restrictedToken)),
       Removal(_removal),
       Market(_market)
     );
@@ -85,6 +87,19 @@ abstract contract UpgradeableUSDCMarket is
   constructor() {
     _purchasingToken = IERC20WithPermit(address(_noriUSDC));
     _signatureUtils = _noriUSDCSignatureUtils;
+    _restrictedToken = IERC20WithPermit(address(_noriUSDC));
+    _construct();
+  }
+}
+
+abstract contract UpgradeableMisconfiguredMarket is
+  UpgradeableMarket,
+  UpgradeableNoriUSDC
+{
+  constructor() {
+    _purchasingToken = IERC20WithPermit(address(_noriUSDC));
+    _signatureUtils = _noriUSDCSignatureUtils;
+    _restrictedToken = IERC20WithPermit(address(_bpNori));
     _construct();
   }
 }
