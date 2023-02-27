@@ -434,11 +434,11 @@ contract Market is
       address[] memory suppliers
     ) = _allocateSupply({amount: totalAmountToReplace});
 
-    uint256[] memory removalIds = ids.slice({
+    uint256[] memory removalIds = ids.slice({ // todo here
       from: 0,
       to: countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = amounts.slice({
+    uint256[] memory removalAmounts = amounts.slice({ // todo here
       from: 0,
       to: countOfRemovalsAllocated
     });
@@ -1295,11 +1295,11 @@ contract Market is
     uint256[] memory amounts,
     address[] memory suppliers
   ) internal {
-    uint256[] memory removalIds = ids.slice({
+    uint256[] memory removalIds = ids.slice({ // todo here
       from: 0,
       to: countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = amounts.slice({
+    uint256[] memory removalAmounts = amounts.slice({ // todo here
       from: 0,
       to: countOfRemovalsAllocated
     });
@@ -1352,9 +1352,7 @@ contract Market is
             });
             _restrictedNORI.incrementDeficitForSupplier({
               amount: restrictedSupplierFee,
-              originalSupplier: RemovalIdLib.supplierAddress({
-                removalId: removalIds[i]
-              })
+              originalSupplier: suppliers[i]
             });
           }
           isTransferSuccessful = _purchasingToken.transferFrom({
@@ -1395,11 +1393,11 @@ contract Market is
 
    */
   function _fulfillOrder(FulfillOrderData memory params) internal {
-    uint256[] memory removalIds = params.ids.slice({
+    uint256[] memory removalIds = params.ids.slice({ // todo here
       from: 0,
       to: params.countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = params.amounts.slice({
+    uint256[] memory removalAmounts = params.amounts.slice({ // todo here
       from: 0,
       to: params.countOfRemovalsAllocated
     });
