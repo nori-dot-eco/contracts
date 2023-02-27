@@ -852,33 +852,45 @@ Calculates the Nori fee required for a purchase of `amount` tonnes of carbon rem
 | ---- | ---- | ----------- |
 | [0] | uint256 | The amount of the fee charged by Nori in &#x60;_purchasingToken&#x60;. |
 
-### convertRemovalAmountToPurchasingTokenAmount
+### convertRemovalDecimalsToPurchasingTokenDecimals
 
 ```solidity
-function convertRemovalAmountToPurchasingTokenAmount(uint256 removalAmount) external view returns (uint256)
+function convertRemovalDecimalsToPurchasingTokenDecimals(uint256 removalAmount) external view returns (uint256)
 ```
 
-Converts a removal amount to a purchasing token amount.
+Convert an amount of removals into an equivalent amount expressed in the purchasing token's decimals.
 
+<i>If the purchasing token's decimals is not 18, we need to convert the `removalAmount` (which is expressed with
+18 decimals) to a unit that is expressed in the purchasing token's decimals. For example, if `removalAmount` is
+1 ether (18 decimals) and the purchasing token's decimals is 6, the return value would be 1,000,000.</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| removalAmount | uint256 | The amount of removals to express in the purchasing token's decimals. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | uint256 | The amount of purchasing tokens required to purchase the specified amount of removals. |
 
-### convertPurchasingTokenAmountToRemovalAmount
+### convertPurchasingTokenDecimalsToRemovalDecimals
 
 ```solidity
-function convertPurchasingTokenAmountToRemovalAmount(uint256 purchasingTokenAmount) external view returns (uint256)
+function convertPurchasingTokenDecimalsToRemovalDecimals(uint256 purchasingTokenAmount) external view returns (uint256)
 ```
 
+Convert an amount of purchasing tokens into an equivalent amount expressed with 18 decimals.
 
-<i>Converts a purchasing token amount to a removal amount.</i>
-
+<i>If the purchasing token's decimal precision is different from 18, we need to perform a conversion to match the
+precision of the removal token, which has 18 decimal places. For instance, if the `purchasingTokenAmount` is
+1,000,000 (expressed with 6 decimals), the return value would be 1 ether (expressed with 18 decimals).</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | The amount of removals that can be purchased with the specified amount of purchasing tokens. |
+| purchasingTokenAmount | uint256 | The amount of purchasing tokens to express in the removal's decimals. |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The amount of purchasing tokens required to purchase the specified amount of removals. |
 
 ### calculateCheckoutTotal
 
@@ -1120,6 +1132,9 @@ Fulfill an order.
 <i>This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
 the order fee, updating accounting, and minting the Certificate.</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| params | struct Market.FulfillOrderData | The order fullfilment data. |
 
 
 ### _allocateRemovals
@@ -1228,12 +1243,20 @@ listed removal, the supplier is also removed from the active supplier queue.</i>
 function _validateCertificateAmount(uint256 amount) internal view
 ```
 
+Validates the certificate purchase amount.
 
-<i>Validates the certificate purchase amount.</i>
+<i>Check if a certificate amount is valid according to the requirements criteria.
+
+##### Requirements:
+
+- Amount is not zero.
+- Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + 2). This requirement means that the smallest
+purchase amount for a token with 18 decimals (e.g., NORI) is 100, whilst the smallest purchase amount for a token
+with 6 decimals (e.g., USDC) is 100,000,000,000,000.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| amount | uint256 | Proposed amount to purchase. |
+| amount | uint256 | The proposed certificate purchase amount. |
 
 
 ### _validatePrioritySupply
