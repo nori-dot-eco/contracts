@@ -274,7 +274,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             vintage: removal.vintage,
             country: asciiStringToHexString(removal.country),
             subdivision: asciiStringToHexString(removal.subdivision),
-            supplierAddress: removal.supplierAddress, // TODO need real supplier address on the project
+            supplierAddress: removal.supplierAddress,
             subIdentifier: removal.subIdentifier,
           };
           return removalData;
@@ -368,6 +368,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
               logger.error(
                 `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
               );
+              logger.error(JSON.stringify(txReceipt));
               return;
             }
           }

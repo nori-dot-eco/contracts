@@ -289,7 +289,7 @@ describe('RestrictedNORI', () => {
             removalDataToList: {
               removals: [
                 {
-                  amount: 100,
+                  amount: formatTokenAmount(100),
                   vintage: 2018,
                 },
               ],
@@ -324,7 +324,7 @@ describe('RestrictedNORI', () => {
               scheduleStartTime: Number.MAX_SAFE_INTEGER - 1,
               removals: [
                 {
-                  amount: 100,
+                  amount: formatTokenAmount(100),
                   vintage: 2020,
                 },
               ],
@@ -373,7 +373,7 @@ describe('RestrictedNORI', () => {
             removalDataToList: {
               removals: [
                 {
-                  amount: 100,
+                  amount: formatTokenAmount(100),
                   vintage: 2018,
                 },
               ],
@@ -425,8 +425,8 @@ describe('RestrictedNORI', () => {
           supplier: {
             removalDataToList: {
               removals: [
-                { amount: 100, vintage: 2018 },
-                { amount: 100, vintage: 2019 },
+                { amount: formatTokenAmount(100), vintage: 2018 },
+                { amount: formatTokenAmount(100), vintage: 2019 },
               ],
             },
           },
@@ -482,7 +482,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 100, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(100), vintage: 2018 }],
               },
             },
           },
@@ -546,7 +546,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 100, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(100), vintage: 2018 }],
               },
             },
           },
@@ -601,7 +601,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 100, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(100), vintage: 2018 }],
               },
             },
           },
@@ -666,7 +666,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 1000, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(1000), vintage: 2018 }],
               },
             },
           },
@@ -699,7 +699,7 @@ describe('RestrictedNORI', () => {
           scheduleStartTime,
           listNow: false,
           removals: [
-            { amount: 1000, vintage: 2018, supplierAddress: investor1 },
+            { amount: formatTokenAmount(1000), vintage: 2018, supplierAddress: investor1 },
           ],
         };
         const investorRemovalMintingResults =
@@ -717,7 +717,7 @@ describe('RestrictedNORI', () => {
             )
           ),
           removalAmountsToRestrict: [
-            formatTokenAmount(investorRemovalData.removals[0].amount),
+            investorRemovalData.removals[0].amount,
           ],
         });
         // create some RestrictedNORI for a third holder
@@ -726,7 +726,7 @@ describe('RestrictedNORI', () => {
           scheduleStartTime,
           listNow: false,
           removals: [
-            { amount: 1000, vintage: 2018, supplierAddress: employee },
+            { amount: formatTokenAmount(1000), vintage: 2018, supplierAddress: employee },
           ],
         };
         const employeeRemovalMintingResults =
@@ -744,7 +744,7 @@ describe('RestrictedNORI', () => {
             )
           ),
           removalAmountsToRestrict: [
-            formatTokenAmount(employeeRemovalData.removals[0].amount),
+            employeeRemovalData.removals[0].amount,
           ],
         });
         await advanceTime({
@@ -826,7 +826,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 100, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(100), vintage: 2018 }],
               },
             },
           },
@@ -881,7 +881,7 @@ describe('RestrictedNORI', () => {
               },
             },
             supplier: {
-              removalDataToList: { removals: [{ amount: 100, vintage: 2018 }] },
+              removalDataToList: { removals: [{ amount: formatTokenAmount(100), vintage: 2018 }] },
             },
           },
         });
@@ -978,7 +978,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: supplierAmount, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(supplierAmount), vintage: 2018 }],
               },
             },
           },
@@ -1014,7 +1014,7 @@ describe('RestrictedNORI', () => {
           listNow: false,
           removals: [
             {
-              amount: investorAmount,
+              amount: formatTokenAmount(investorAmount),
               vintage: 2018,
               supplierAddress: investor1,
             },
@@ -1035,7 +1035,7 @@ describe('RestrictedNORI', () => {
             )
           ),
           removalAmountsToRestrict: [
-            formatTokenAmount(investorRemovalData.removals[0].amount),
+            investorRemovalData.removals[0].amount,
           ],
         });
         const quantityToRevoke = restrictedAmount.div(2);
@@ -1097,7 +1097,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 1000, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(1000), vintage: 2018 }],
               },
             },
           },
@@ -1130,7 +1130,7 @@ describe('RestrictedNORI', () => {
           scheduleStartTime,
           listNow: false,
           removals: [
-            { amount: 1000, vintage: 2018, supplierAddress: investor1 },
+            { amount: formatTokenAmount(1000), vintage: 2018, supplierAddress: investor1 },
           ],
         };
         const investorRemovalMintingResults =
@@ -1148,7 +1148,7 @@ describe('RestrictedNORI', () => {
             )
           ),
           removalAmountsToRestrict: [
-            formatTokenAmount(investorRemovalData.removals[0].amount),
+            investorRemovalData.removals[0].amount,
           ],
         });
         // create some RestrictedNORI for a third holder
@@ -1157,7 +1157,7 @@ describe('RestrictedNORI', () => {
           scheduleStartTime,
           listNow: false,
           removals: [
-            { amount: 1000, vintage: 2018, supplierAddress: employee },
+            { amount: formatTokenAmount(1000), vintage: 2018, supplierAddress: employee },
           ],
         };
         const employeeRemovalMintingResults =
@@ -1175,7 +1175,7 @@ describe('RestrictedNORI', () => {
             )
           ),
           removalAmountsToRestrict: [
-            formatTokenAmount(employeeRemovalData.removals[0].amount),
+            employeeRemovalData.removals[0].amount,
           ],
         });
         const restrictedAmount = formatTokenAmount(3000);
@@ -1252,7 +1252,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 3000, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(3000), vintage: 2018 }],
               },
             },
           },
@@ -1323,7 +1323,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 1000, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(1000), vintage: 2018 }],
               },
             },
           },
@@ -1429,7 +1429,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 100, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(100), vintage: 2018 }],
               },
             },
           },
@@ -1467,7 +1467,7 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: 100, vintage: 2018 }],
+                removals: [{ amount: formatTokenAmount(100), vintage: 2018 }],
               },
             },
           },

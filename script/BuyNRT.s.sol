@@ -55,11 +55,14 @@ contract BuyNRT is Script {
     address recipientAddress = vm.envAddress("RECIPIENT_ADDRESS");
     // Buy 10  NRTs
     uint256 NRT_PURCHASE_QUANTITY = 10.0 ether;
+    uint256 totalPaymentAmount = _market.calculateCheckoutTotal(
+      NRT_PURCHASE_QUANTITY
+    );
 
     Permit memory permit = Permit({
       owner: buyerAddress,
       spender: marketAddress,
-      value: NRT_PURCHASE_QUANTITY,
+      value: totalPaymentAmount,
       nonce: _bridgedPolygonNORI.nonces(buyerAddress),
       deadline: block.timestamp + 1 days
     });
@@ -72,7 +75,7 @@ contract BuyNRT is Script {
     _market.swap(
       recipientAddress,
       buyerAddress,
-      permit.value,
+      NRT_PURCHASE_QUANTITY,
       permit.deadline,
       v,
       r,

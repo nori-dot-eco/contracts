@@ -9,6 +9,7 @@ import type {
   NORI,
   Removal,
   RemovalTestHarness,
+  NoriUSDC,
 } from '@/typechain-types';
 
 export const getContract = async <TContractName extends keyof Contracts>({
@@ -56,6 +57,19 @@ export const getNORI = async ({
 }): Promise<NORI> =>
   getContract({
     contractName: 'NORI',
+    hre,
+    signer,
+  });
+
+export const getNoriUSDC = async ({
+  hre,
+  signer,
+}: {
+  hre: CustomHardHatRuntimeEnvironment;
+  signer?: ConstructorParameters<typeof Contract>[2];
+}): Promise<NoriUSDC> =>
+  getContract({
+    contractName: 'NoriUSDC',
     hre,
     signer,
   });
@@ -162,6 +176,9 @@ export const getContractsFromDeployments = async (
       : undefined,
     RemovalTestHarness: deployments.RemovalTestHarness?.address
       ? await getRemovalTestHarness({ hre })
+      : undefined,
+    NoriUSDC: deployments.NoriUSDC?.address
+      ? await getNoriUSDC({ hre })
       : undefined,
   } as Required<Contracts>;
   return contracts;

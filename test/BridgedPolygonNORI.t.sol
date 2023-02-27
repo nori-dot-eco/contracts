@@ -15,7 +15,7 @@ contract BridgedPolygonNORI_permit is UpgradableBridgedPolygonNORIMock {
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
     uint256 amount = 1;
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       _namedAccounts.admin,
       amount,

@@ -22,7 +22,7 @@ describe('Removal', () => {
           supplier: {
             removalDataToList: {
               listNow: false,
-              removals: [{ amount: 100 }],
+              removals: [{ amount: formatTokenAmount(100) }],
             },
           },
         },

@@ -109,7 +109,7 @@ contract Removal_consign_revertsForSoldRemovals is UpgradeableMarket {
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      amount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -796,7 +796,8 @@ contract Removal_release_retired_burned is UpgradeableMarket {
     });
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
-    uint256 checkoutTotal = _market.calculateCheckoutTotal(1 ether); // todo replace other test usage of _market.calculateNoriFee
+    uint256 certificateAmount = 1 ether;
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount); // todo replace other test usage of _market.calculateNoriFee
     vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -810,7 +811,7 @@ contract Removal_release_retired_burned is UpgradeableMarket {
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -854,7 +855,8 @@ contract Removal_release_retired is UpgradeableMarket {
     });
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
-    uint256 checkoutTotal = _market.calculateCheckoutTotal(1 ether); // todo replace other test usage of _market.calculateNoriFee
+    uint256 certificateAmount = 1 ether;
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount); // todo replace other test usage of _market.calculateNoriFee
     vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -868,7 +870,7 @@ contract Removal_release_retired is UpgradeableMarket {
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -908,7 +910,8 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
     vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
     _bpNori.deposit(owner, abi.encode(cumulativeCheckoutTotal));
     for (uint256 i = 0; i < 100; i++) {
-      uint256 checkoutTotal = _market.calculateCheckoutTotal(1 ether); // todo replace other test usage of _market.calculateNoriFee
+      uint256 certificateAmount = 1 ether;
+      uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount); // todo replace other test usage of _market.calculateNoriFee
       SignedPermit memory signedPermit = _signatureUtils.generatePermit(
         ownerPrivateKey,
         address(_market),
@@ -920,7 +923,7 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
       _market.swap(
         owner,
         owner,
-        checkoutTotal,
+        certificateAmount,
         signedPermit.permit.deadline,
         signedPermit.v,
         signedPermit.r,
@@ -1033,7 +1036,8 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
     assertEq(_removal.balanceOf(address(_market), _removalIds[0]), 0.5 ether);
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
-    uint256 checkoutTotal = _market.calculateCheckoutTotal(0.25 ether);
+    uint256 certificateAmount = 0.25 ether;
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -1047,7 +1051,7 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -1145,7 +1149,8 @@ contract Removal_release_retired_2x is UpgradeableMarket {
     assertEq(_removal.balanceOf(address(_market), _removalIds[0]), 1 ether);
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
-    uint256 checkoutTotal = _market.calculateCheckoutTotal(0.5 ether);
+    uint256 certificateAmount = 0.5 ether;
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal * 2));
     for (uint256 i = 0; i < 2; i++) {
@@ -1160,7 +1165,7 @@ contract Removal_release_retired_2x is UpgradeableMarket {
       _market.swap(
         owner,
         owner,
-        checkoutTotal,
+        certificateAmount,
         signedPermit.permit.deadline,
         signedPermit.v,
         signedPermit.r,
@@ -1262,7 +1267,7 @@ contract Removal_getMarketBalance is UpgradeableMarket {
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      amountToSell,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
