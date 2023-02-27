@@ -754,7 +754,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
   function setUp() external {
     _erc20 = _deployMockERC20();
 
-    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
+    _mockERC20SignatureUtils = new SignatureUtils();
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
       priceMultiple: 2000
@@ -866,7 +866,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
   function setUp() external {
     _erc20 = _deployMockERC20();
 
-    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
+    _mockERC20SignatureUtils = new SignatureUtils();
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
       priceMultiple: 1995 // $19.95
