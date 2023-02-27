@@ -11,11 +11,11 @@ import type { Certificate, Removal } from '../types/typechain-types';
 import { getLogger } from '@/utils/log';
 import { parseTransactionLogs } from '@/utils/events';
 import { Zero } from '@/constants/units';
-import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { getCertificate, getRemoval } from '@/utils/contracts';
 
 export interface MigrateCertificatesTaskOptions {
   file: string;
+  recipient: string;
   outputFile?: string;
   dryRun?: boolean;
 }
@@ -57,6 +57,9 @@ interface InputData {
     gramsOfNrtsInWei: string;
   };
 }
+
+const BLOCK_CONFIRMATIONS = 5;
+const TIMEOUT_DURATION = 60 * 1000 * 60; // 60 minutes
 
 const summarize = async ({
   outputData,
@@ -382,6 +385,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
     ): Promise<void> => {
       const {
         file,
+        recipient,
         outputFile = 'migrated-certificates.json',
         dryRun,
       } = options as ParsedMigrateCertificatesTaskOptions;
@@ -499,8 +503,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         cliProgress.Presets.shades_classic
       );
       PROGRESS_BAR.start(multicallBatches.length, 0);
-
-      const TIMEOUT_DURATION = 60 * 1000 * 2; // 2 minutes
       // multicallBatches = multicallBatches.slice(0, 3); // if needed to try smaller batches
       let batchStartingTokenId = alreadyMigrated ?? 0;
       for (const batch of multicallBatches) {
@@ -518,11 +520,11 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           return removalContract.interface.encodeFunctionData('migrate', [
             ids,
             amounts,
-            signerAddress,
+            recipient,
             totalAmount,
           ]);
         });
-        let migrationFunction =
+        const migrationFunction =
           dryRun === true
             ? removalContract.callStatic.multicall
             : removalContract.multicall;
@@ -585,14 +587,18 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
                     TIMEOUT_DURATION
                   )) as ContractReceipt)
                 : ((await callWithTimeout(
-                    () => (pendingTx as ContractTransaction).wait(2),
+                    () =>
+                      (pendingTx as ContractTransaction).wait(
+                        BLOCK_CONFIRMATIONS
+                      ),
                     TIMEOUT_DURATION
                   )) as ContractReceipt); // TODO what is the correct number of confirmations for mainnet?
             logger.info('Getting txReceipt...');
             txReceipt = (await callWithTimeout(
-              () => removalContract.provider.getTransactionReceipt(
-                txResult.transactionHash
-              ),
+              () =>
+                removalContract.provider.getTransactionReceipt(
+                  txResult.transactionHash
+                ),
               TIMEOUT_DURATION
             )) as TransactionReceipt;
 
@@ -624,7 +630,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               startingCertificateIndex: batchStartingTokenId,
               certificateBatchSize: batch.length,
               inputData: originalInputData,
-              recipient: signerAddress,
+              recipient,
             });
           }
           PROGRESS_BAR.increment();
@@ -685,7 +691,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           summary,
           removalContract,
           certificateContract,
-          recipient: signerAddress,
+          recipient,
           inputData: originalInputData,
         });
       } else {
@@ -703,6 +709,13 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
     .addParam(
       'file',
       'JSON removal data to read',
+      undefined,
+      types.string,
+      false
+    )
+    .addParam(
+      'recipient',
+      'The address of the recipient of the migrated certificates',
       undefined,
       types.string,
       false
