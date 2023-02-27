@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
 
-import type { Contract, ContractReceipt, ContractTransaction } from 'ethers';
+import type { ContractReceipt, ContractTransaction } from 'ethers';
 import { BigNumber, FixedNumber } from 'ethers';
 import cliProgress from 'cli-progress';
 import { task, types } from 'hardhat/config';
@@ -11,8 +11,10 @@ import type { Removal } from '@/typechain-types';
 import { getLogger } from '@/utils/log';
 import { parseTransactionLogs } from '@/utils/events';
 import { getRemoval } from '@/utils/contracts';
-import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { Zero } from '@/constants/units';
+
+const BLOCK_CONFIRMATIONS = 5;
+const TIMEOUT_DURATION = 60 * 1000 * 60; // 60 minutes
 
 export interface MigrateRemovalsTaskOptions {
   file: string;
@@ -197,8 +199,6 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       options: MigrateRemovalsTaskOptions,
       _: CustomHardHatRuntimeEnvironment
     ): Promise<void> => {
-      const TIMEOUT_DURATION = 1000 * 60 * 2; // 2 minutes
-
       const {
         file,
         outputFile = 'migrated-removals.json',
@@ -279,7 +279,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
           };
           return removalData;
         });
-        let migrationFunction =
+        const migrationFunction =
           dryRun === true
             ? removalContract.callStatic.mintBatch
             : removalContract.mintBatch;
@@ -305,28 +305,30 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             // localhost non-dry-run requires manually setting gas price
             const gasPrice = await signer.getGasPrice();
             maybePendingTx = await callWithTimeout(
-             () =>  migrationFunction(
-                signerAddress, // mint to the consignor
-                amounts,
-                removals,
-                project.projectId,
-                project.scheduleStartTime,
-                project.holdbackPercentage,
-                { gasPrice }
-              ),
+              () =>
+                migrationFunction(
+                  signerAddress, // mint to the consignor
+                  amounts,
+                  removals,
+                  project.projectId,
+                  project.scheduleStartTime,
+                  project.holdbackPercentage,
+                  { gasPrice }
+                ),
               TIMEOUT_DURATION
             );
           } else {
             // all other cases
             maybePendingTx = await callWithTimeout(
-             () =>  migrationFunction(
-                signerAddress, // mint to the consignor
-                amounts,
-                removals,
-                project.projectId,
-                project.scheduleStartTime,
-                project.holdbackPercentage
-              ),
+              () =>
+                migrationFunction(
+                  signerAddress, // mint to the consignor
+                  amounts,
+                  removals,
+                  project.projectId,
+                  project.scheduleStartTime,
+                  project.holdbackPercentage
+                ),
               TIMEOUT_DURATION
             );
           }
@@ -340,12 +342,19 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
             logger.info(`📝 Awaiting transaction: ${pendingTx.hash}`);
             const txResult =
               network === `localhost`
-                ? await callWithTimeout(() => pendingTx.wait(), TIMEOUT_DURATION)
-                : await callWithTimeout(() => pendingTx.wait(2), TIMEOUT_DURATION); // TODO what is the correct number of confirmations for mainnet?
+                ? await callWithTimeout(
+                    () => pendingTx.wait(),
+                    TIMEOUT_DURATION
+                  )
+                : await callWithTimeout(
+                    () => pendingTx.wait(BLOCK_CONFIRMATIONS),
+                    TIMEOUT_DURATION
+                  );
             txReceipt = (await callWithTimeout(
-              () => removalContract.provider.getTransactionReceipt(
-                (txResult as ContractReceipt).transactionHash
-              ),
+              () =>
+                removalContract.provider.getTransactionReceipt(
+                  (txResult as ContractReceipt).transactionHash
+                ),
               TIMEOUT_DURATION
             )) as TransactionReceipt;
             tokenIds = parseTransactionLogs({
