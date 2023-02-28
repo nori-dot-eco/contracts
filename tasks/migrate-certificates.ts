@@ -461,7 +461,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
 
       const multicallBatches = [];
       let removalCountForBatch = 0;
-      const maxRemovalCountPerBatch = 60; // make this as high as possible to minimize the total number of transactions but without reverting
+      const maxRemovalCountPerBatch = 100; // make this as high as possible to minimize the total number of transactions but without reverting
       let batch = [];
       for (const certificate of inputData) {
         const thisCertsRemovalCount = certificate.ids.length;
