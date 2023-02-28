@@ -458,31 +458,23 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         outputData = outputData.concat(alreadyMintedResults);
       }
       const inputData = originalInputData.slice(alreadyMigrated);
-      // const certificateLengths = inputData
-      //   .map((certificate) => certificate.ids.length)
-      //   .sort((a, b) => b - a);
-      // console.log(certificateLengths.slice(0, 10));
-      // return;
 
       const multicallBatches = [];
-      const batchSize = 100;
+      let removalCountForBatch = 0;
+      const maxRemovalCountPerBatch = 60; // make this as high as possible to minimize the total number of transactions but without reverting
       let batch = [];
-      let singularBatchCount = 0;
       for (const certificate of inputData) {
-        if (batch.length === batchSize) {
+        const thisCertsRemovalCount = certificate.ids.length;
+        if (
+          removalCountForBatch + thisCertsRemovalCount >
+          maxRemovalCountPerBatch
+        ) {
           multicallBatches.push(batch);
           batch = [];
-        }
-        if (certificate.ids.length > 30) {
-          if (batch.length > 0) {
-            multicallBatches.push(batch);
-          }
-          batch = [certificate];
-          multicallBatches.push(batch);
-          singularBatchCount += 1;
-          batch = [];
+          removalCountForBatch = 0;
         }
         batch.push(certificate);
+        removalCountForBatch += thisCertsRemovalCount;
       }
       multicallBatches.push(batch);
       for (const batch of multicallBatches) {
@@ -491,12 +483,8 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         }
       }
 
-      // for (let i = 0; i < inputData.length; i += batchSize) {
-      //   multicallBatches.push(inputData.slice(i, i + batchSize));
-      // }
-      // multicallBatches = multicallBatches.slice(0, 3);
       logger.info(
-        `✨ Migrating ${inputData.length} legacy certificates using ${multicallBatches.length} total transactions and max batch size ${batchSize} with ${singularBatchCount} singular transactions for large certificates...`
+        `✨ Migrating ${inputData.length} legacy certificates using ${multicallBatches.length} total transactions...`
       );
       const PROGRESS_BAR = new cliProgress.SingleBar(
         {},
@@ -506,7 +494,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       // multicallBatches = multicallBatches.slice(0, 3); // if needed to try smaller batches
       let batchStartingTokenId = alreadyMigrated ?? 0;
       for (const batch of multicallBatches) {
-        console.log('batch length', batch.length);
         const multicallData = batch.map((certificate) => {
           const amounts = certificate.amounts.map((amount) =>
             BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
@@ -529,18 +516,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             ? removalContract.callStatic.multicall
             : removalContract.multicall;
 
-        // Enable this code to simulate a timeout on a batch
-        // if (batchStartingTokenId > batchSize * 2 && network === 'localhost') {
-        //   logger.info(`🚧 Intentionally timing out on third batch`);
-        //   migrationFunction = async (_multicallData: any) => {
-        //     console.log('Calling the timeout fake migrate function...');
-        //     await new Promise((resolve) =>
-        //       // eslint-disable-next-line no-promise-executor-return -- script
-        //       setTimeout(resolve, TIMEOUT_DURATION * 2)
-        //     ); // will time out
-        //     return Promise.resolve(['Timeout']);
-        //   };
-        // }
         let pendingTx: Awaited<ReturnType<typeof migrationFunction>>;
 
         let txReceipt: TransactionReceipt | undefined;
