@@ -11,11 +11,11 @@ import type { Certificate, Removal } from '../types/typechain-types';
 import { getLogger } from '@/utils/log';
 import { parseTransactionLogs } from '@/utils/events';
 import { Zero } from '@/constants/units';
-import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { getCertificate, getRemoval } from '@/utils/contracts';
 
 export interface MigrateCertificatesTaskOptions {
   file: string;
+  recipient: string;
   outputFile?: string;
   dryRun?: boolean;
 }
@@ -57,6 +57,9 @@ interface InputData {
     gramsOfNrtsInWei: string;
   };
 }
+
+const BLOCK_CONFIRMATIONS = 5;
+const TIMEOUT_DURATION = 60 * 1000 * 60; // 60 minutes
 
 const summarize = async ({
   outputData,
@@ -382,6 +385,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
     ): Promise<void> => {
       const {
         file,
+        recipient,
         outputFile = 'migrated-certificates.json',
         dryRun,
       } = options as ParsedMigrateCertificatesTaskOptions;
@@ -454,31 +458,23 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         outputData = outputData.concat(alreadyMintedResults);
       }
       const inputData = originalInputData.slice(alreadyMigrated);
-      // const certificateLengths = inputData
-      //   .map((certificate) => certificate.ids.length)
-      //   .sort((a, b) => b - a);
-      // console.log(certificateLengths.slice(0, 10));
-      // return;
 
       const multicallBatches = [];
-      const batchSize = 100;
+      let removalCountForBatch = 0;
+      const maxRemovalCountPerBatch = 100; // make this as high as possible to minimize the total number of transactions but without reverting
       let batch = [];
-      let singularBatchCount = 0;
       for (const certificate of inputData) {
-        if (batch.length === batchSize) {
+        const thisCertsRemovalCount = certificate.ids.length;
+        if (
+          removalCountForBatch + thisCertsRemovalCount >
+          maxRemovalCountPerBatch
+        ) {
           multicallBatches.push(batch);
           batch = [];
-        }
-        if (certificate.ids.length > 30) {
-          if (batch.length > 0) {
-            multicallBatches.push(batch);
-          }
-          batch = [certificate];
-          multicallBatches.push(batch);
-          singularBatchCount += 1;
-          batch = [];
+          removalCountForBatch = 0;
         }
         batch.push(certificate);
+        removalCountForBatch += thisCertsRemovalCount;
       }
       multicallBatches.push(batch);
       for (const batch of multicallBatches) {
@@ -487,24 +483,17 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         }
       }
 
-      // for (let i = 0; i < inputData.length; i += batchSize) {
-      //   multicallBatches.push(inputData.slice(i, i + batchSize));
-      // }
-      // multicallBatches = multicallBatches.slice(0, 3);
       logger.info(
-        `✨ Migrating ${inputData.length} legacy certificates using ${multicallBatches.length} total transactions and max batch size ${batchSize} with ${singularBatchCount} singular transactions for large certificates...`
+        `✨ Migrating ${inputData.length} legacy certificates using ${multicallBatches.length} total transactions...`
       );
       const PROGRESS_BAR = new cliProgress.SingleBar(
         {},
         cliProgress.Presets.shades_classic
       );
       PROGRESS_BAR.start(multicallBatches.length, 0);
-
-      const TIMEOUT_DURATION = 60 * 1000 * 2; // 2 minutes
       // multicallBatches = multicallBatches.slice(0, 3); // if needed to try smaller batches
       let batchStartingTokenId = alreadyMigrated ?? 0;
       for (const batch of multicallBatches) {
-        console.log('batch length', batch.length);
         const multicallData = batch.map((certificate) => {
           const amounts = certificate.amounts.map((amount) =>
             BigNumber.from(FixedNumber.from(amount)).div(1_000_000)
@@ -518,27 +507,15 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           return removalContract.interface.encodeFunctionData('migrate', [
             ids,
             amounts,
-            signerAddress,
+            recipient,
             totalAmount,
           ]);
         });
-        let migrationFunction =
+        const migrationFunction =
           dryRun === true
             ? removalContract.callStatic.multicall
             : removalContract.multicall;
 
-        // Enable this code to simulate a timeout on a batch
-        // if (batchStartingTokenId > batchSize * 2 && network === 'localhost') {
-        //   logger.info(`🚧 Intentionally timing out on third batch`);
-        //   migrationFunction = async (_multicallData: any) => {
-        //     console.log('Calling the timeout fake migrate function...');
-        //     await new Promise((resolve) =>
-        //       // eslint-disable-next-line no-promise-executor-return -- script
-        //       setTimeout(resolve, TIMEOUT_DURATION * 2)
-        //     ); // will time out
-        //     return Promise.resolve(['Timeout']);
-        //   };
-        // }
         let pendingTx: Awaited<ReturnType<typeof migrationFunction>>;
 
         let txReceipt: TransactionReceipt | undefined;
@@ -585,14 +562,18 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
                     TIMEOUT_DURATION
                   )) as ContractReceipt)
                 : ((await callWithTimeout(
-                    () => (pendingTx as ContractTransaction).wait(2),
+                    () =>
+                      (pendingTx as ContractTransaction).wait(
+                        BLOCK_CONFIRMATIONS
+                      ),
                     TIMEOUT_DURATION
                   )) as ContractReceipt); // TODO what is the correct number of confirmations for mainnet?
             logger.info('Getting txReceipt...');
             txReceipt = (await callWithTimeout(
-              () => removalContract.provider.getTransactionReceipt(
-                txResult.transactionHash
-              ),
+              () =>
+                removalContract.provider.getTransactionReceipt(
+                  txResult.transactionHash
+                ),
               TIMEOUT_DURATION
             )) as TransactionReceipt;
 
@@ -624,7 +605,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
               startingCertificateIndex: batchStartingTokenId,
               certificateBatchSize: batch.length,
               inputData: originalInputData,
-              recipient: signerAddress,
+              recipient,
             });
           }
           PROGRESS_BAR.increment();
@@ -685,7 +666,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           summary,
           removalContract,
           certificateContract,
-          recipient: signerAddress,
+          recipient,
           inputData: originalInputData,
         });
       } else {
@@ -703,6 +684,13 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
     .addParam(
       'file',
       'JSON removal data to read',
+      undefined,
+      types.string,
+      false
+    )
+    .addParam(
+      'recipient',
+      'The address of the recipient of the migrated certificates',
       undefined,
       types.string,
       false

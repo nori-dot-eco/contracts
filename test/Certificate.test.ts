@@ -16,7 +16,7 @@ describe('Certificate', () => {
       userFixtures: {
         supplier: {
           removalDataToList: {
-            removals: [{ amount: removalAmount }],
+            removals: [{ amount: formatTokenAmount(removalAmount) }],
           },
         },
       },
@@ -40,7 +40,7 @@ describe('Certificate', () => {
         ](
           buyer.address,
           buyer.address,
-          value,
+          purchaseAmount,
           hre.namedAccounts.supplier,
           MaxUint256,
           v,

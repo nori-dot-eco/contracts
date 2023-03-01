@@ -4,7 +4,7 @@ pragma solidity =0.8.17;
 import "@/test/helpers/test.sol";
 import "@/contracts/test/MockERC777.sol";
 import "@/contracts/test/MockERC20Permit.sol";
-import "@/contracts/test/PermitSigner.sol";
+import "@/test/helpers/signature-utils.sol";
 import "@/contracts/test/LockedNORIHelper.sol";
 import "@/contracts/LockedNORI.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC1820RegistryUpgradeable.sol";
@@ -16,8 +16,7 @@ import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 abstract contract ERC777ERC1820 is
   IERC777RecipientUpgradeable,
-  IERC777SenderUpgradeable,
-  PermitSigner
+  IERC777SenderUpgradeable
 {
   function tokensReceived(
     address,
@@ -138,7 +137,8 @@ contract LockedNORITest is
   MockERC777 internal _erc777;
   MockERC20Permit internal _erc20;
   LockedNORIHelper internal _helper;
-  PermitSigner internal _signer;
+  SignatureUtils internal _signatureUtils;
+  uint256 private constant _GRANT_ADMIN_KEY = 0xabcdef;
 
   event Approval(address indexed owner, address indexed spender, uint256 value); // todo
 
@@ -211,7 +211,7 @@ contract LockedNORITest is
     _erc20 = _deployMockERC20(); // todo
     _lNori = _deployLockedNORI(address(_erc20)); // todo
     _helper = new LockedNORIHelper(); // todo
-    _signer = new PermitSigner(); // todo
+    _signatureUtils = new SignatureUtils(); // todo
     // if (bpNori.balanceOf(address(this)) != _SEED_AMOUNT) { // todo
     //   revert("Seed amount does not equal balance");
     // }
@@ -220,8 +220,7 @@ contract LockedNORITest is
   function testBatchGrantCreation() external {
     // todo
     address recipient = vm.addr(0xa11ce);
-    uint256 grantAdminKey = 0xabcdef;
-    address grantAdmin = vm.addr(grantAdminKey);
+    address grantAdmin = vm.addr(_GRANT_ADMIN_KEY);
     _erc20.transfer(grantAdmin, _GRANT_AMOUNT);
     assertEq(_erc20.balanceOf(address(grantAdmin)), _GRANT_AMOUNT);
     _lNori.grantRole(_lNori.TOKEN_GRANTER_ROLE(), grantAdmin);
@@ -231,20 +230,27 @@ contract LockedNORITest is
       1 days
     );
     vm.startPrank(grantAdmin);
-    bytes32 digest = _signer.digestPermitCall(
-      address(_erc20),
-      address(_lNori),
-      _GRANT_AMOUNT,
-      deadline
-    );
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(grantAdminKey, digest);
+    SignedPermit memory signedPermit = _signatureUtils.generatePermit({
+      ownerPrivateKey: _GRANT_ADMIN_KEY,
+      spender: address(_lNori),
+      amount: _GRANT_AMOUNT,
+      deadline: deadline,
+      token: IERC20PermitUpgradeable(address(_erc20))
+    });
     uint256[] memory amounts = new uint256[](1);
     amounts[0] = _GRANT_AMOUNT;
     bytes[] memory data = new bytes[](1);
     data[0] = params;
     vm.expectEmit(true, true, true, false);
     emit Approval(address(grantAdmin), address(_lNori), _GRANT_AMOUNT);
-    _lNori.batchCreateGrants(amounts, data, deadline, v, r, s);
+    _lNori.batchCreateGrants(
+      amounts,
+      data,
+      deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
     _helper.assertSimplePastGrant(address(_lNori), _lNori.getGrant(recipient));
     assertEq(_erc20.balanceOf(grantAdmin), 0);
     assertEq(_erc20.balanceOf(address(_lNori)), _GRANT_AMOUNT);
@@ -304,8 +310,7 @@ contract LockedNORITest is
   }
 
   function _issueGrant(address recipientAddress, uint256 fromTime) internal {
-    uint256 grantAdminKey = 0xabcdef;
-    address grantAdmin = vm.addr(grantAdminKey);
+    address grantAdmin = vm.addr(_GRANT_ADMIN_KEY);
     _erc20.transfer(grantAdmin, _GRANT_AMOUNT);
     assertEq(_erc20.balanceOf(address(grantAdmin)), _GRANT_AMOUNT);
     _lNori.grantRole(_lNori.TOKEN_GRANTER_ROLE(), grantAdmin);
@@ -315,18 +320,25 @@ contract LockedNORITest is
       fromTime
     );
     vm.startPrank(grantAdmin);
-    bytes32 digest = _signer.digestPermitCall(
-      address(_erc20),
-      address(_lNori),
-      _GRANT_AMOUNT,
-      deadline
-    );
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(grantAdminKey, digest);
+    SignedPermit memory signedPermit = _signatureUtils.generatePermit({
+      ownerPrivateKey: _GRANT_ADMIN_KEY,
+      spender: address(_lNori),
+      amount: _GRANT_AMOUNT,
+      deadline: deadline,
+      token: IERC20PermitUpgradeable(address(_erc20))
+    });
     uint256[] memory amounts = new uint256[](1);
     amounts[0] = _GRANT_AMOUNT;
     bytes[] memory data = new bytes[](1);
     data[0] = params;
-    _lNori.batchCreateGrants(amounts, data, deadline, v, r, s);
+    _lNori.batchCreateGrants(
+      amounts,
+      data,
+      deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
     vm.stopPrank();
   }
 
