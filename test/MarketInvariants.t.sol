@@ -3,23 +3,21 @@
 pragma solidity =0.8.17;
 import "@/test/helpers/test.sol";
 import "@/test/helpers/market.sol";
-import "@/test/helpers/MarketHandler.sol";
-import "@/contracts/Certificate.sol";
-import "@/contracts/Removal.sol";
-import "forge-std/InvariantTest.sol";
-import "forge-std/console2.sol";
-import {console} from "forge-std/console.sol";
+import {MarketHandler} from "@/test/helpers/MarketHandler.sol";
+import {Certificate} from "@/contracts/Certificate.sol";
+import {Removal} from "@/contracts/Removal.sol";
+import {StdInvariant} from "forge-std/StdInvariant.sol";
 
-contract MarketInvariantTest is InvariantTest, Global {
-  MarketHandler marketHandler;
+contract MarketInvariantTest is StdInvariant, Global {
+  MarketHandler _marketHandler;
   Certificate internal _certificate;
   Removal internal _removal;
 
   function setUp() external {
-    marketHandler = new MarketHandler();
-    _certificate = Certificate(marketHandler.getCertificateAddress());
-    _removal = Removal(marketHandler.getRemovalAddress());
-    targetContract(address(marketHandler)); // only target the handler
+    _marketHandler = new MarketHandler();
+    _certificate = Certificate(_marketHandler.getCertificateAddress());
+    _removal = Removal(_marketHandler.getRemovalAddress());
+    targetContract(address(_marketHandler)); // only target the handler
   }
 
   function invariant_sumOfPurchaseAmounts() external {
@@ -30,8 +28,8 @@ contract MarketInvariantTest is InvariantTest, Global {
       sumOfPurchaseAmounts += _certificate.getPurchaseAmount(i);
     }
     uint256 sumOfCertificateRemovalBalances = 0;
-    for (uint256 i = 0; i < marketHandler.getCountOfSoldRemovalIds(); i++) {
-      uint256 removalId = marketHandler.getSoldRemovalIdAtIndex(i);
+    for (uint256 i = 0; i < _marketHandler.getCountOfSoldRemovalIds(); i++) {
+      uint256 removalId = _marketHandler.getSoldRemovalIdAtIndex(i);
       sumOfCertificateRemovalBalances += _removal.balanceOf(
         address(_certificate),
         removalId
@@ -54,34 +52,34 @@ contract MarketInvariantTest is InvariantTest, Global {
   //    (consider writing contract-specific handlers for this with minimal setup)
 
   /**
-   * @dev Will report the number of times each function in the MarketHandler contract has been called.
+   * @dev Will report the number of times each function in the _marketHandler contract has been called.
    * Note that this is not a true invariant, but it is useful for debugging and monitoring.
    * It will only report the number of calls on the last run of the test, so it is only useful for a
    * general sense of the probability of each function being called.
    * Note that a reverted call will not be counted here but will increase the depth counter for that run.
    */
-  function invariant_callSummary() external {
-    console.log("\nCall Summary\n");
-    console.log(
+  function invariant_callSummary() external view {
+    console2.log("\nCall Summary\n");
+    console2.log(
       "mintRemovalMinimizeReverts         ",
-      marketHandler.numCalls("mintRemovalMinimizeReverts")
+      _marketHandler.numCalls("mintRemovalMinimizeReverts")
     );
-    console.log(
+    console2.log(
       "consignRandomRemovalToMarket       ",
-      marketHandler.numCalls("consignRandomRemovalToMarket")
+      _marketHandler.numCalls("consignRandomRemovalToMarket")
     );
-    console.log(
+    console2.log(
       "purchaseFromMarket        ",
-      marketHandler.numCalls("purchaseFromMarket")
+      _marketHandler.numCalls("purchaseFromMarket")
     );
-    console.log(
+    console2.log(
       "releaseRandomRemoval       ",
-      marketHandler.numCalls("releaseRandomRemoval")
+      _marketHandler.numCalls("releaseRandomRemoval")
     );
-    console.log(
+    console2.log(
       "replaceRandomPortionOfNrtDeficit   ",
-      marketHandler.numCalls("replaceRandomPortionOfNrtDeficit")
+      _marketHandler.numCalls("replaceRandomPortionOfNrtDeficit")
     );
-    console.log("endToEnd              ", marketHandler.numCalls("endToEnd"));
+    console2.log("endToEnd              ", _marketHandler.numCalls("endToEnd"));
   }
 }
