@@ -6,11 +6,8 @@ defaults: &defaults
     - image: cimg/node:16.19
 
 jobs:
-  <<: *defaults
   test:
-    executor:
-      name: node/default
-      tag: '16'
+    <<: *defaults
     steps:
       - checkout
       - node/install-packages:
