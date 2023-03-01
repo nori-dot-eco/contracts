@@ -173,6 +173,10 @@ contract Certificate_safeTransferFrom_reverts_ForbiddenTransferAfterMinting is
 {
   function setUp() external {
     _mint(_namedAccounts.deployer, 1);
+    _revokeRole({
+      role: CERTIFICATE_OPERATOR_ROLE,
+      account: _namedAccounts.deployer
+    });
   }
 
   function test() external {
@@ -228,6 +232,10 @@ contract Certificate_transferFrom_reverts_ForbiddenTransferAfterMinting is
 {
   function setUp() external {
     _mint(_namedAccounts.deployer, 1);
+    _revokeRole({
+      role: CERTIFICATE_OPERATOR_ROLE,
+      account: _namedAccounts.deployer
+    });
   }
 
   function test() external {

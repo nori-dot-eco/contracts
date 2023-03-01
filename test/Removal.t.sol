@@ -1,12 +1,26 @@
-/* solhint-disable contract-name-camelcase, func-name-mixedcase, reason-string */
+/* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/test/helpers/market.sol";
-import {InvalidTokenTransfer} from "@/contracts/Errors.sol";
-import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-
-using UInt256ArrayLib for uint256[];
-using AddressArrayLib for address[];
+import {
+  InvalidTokenTransfer,
+  ForbiddenTransfer,
+  InvalidHoldbackPercentage,
+  RemovalNotYetMinted,
+  InvalidData
+} from "@/contracts/Errors.sol";
+import {UInt256ArrayLib, AddressArrayLib} from "@/contracts/ArrayLib.sol";
+import {RemovalAlreadySoldOrConsigned} from "@/contracts/Errors.sol";
+import {RemovalIdLib, DecodedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
+import {UpgradeableMarket} from "@/test/helpers/market.sol";
+import {
+  UpgradeableRemoval,
+  NonUpgradeableRemoval
+} from "@/test/helpers/removal.sol";
+import {SignedPermit, SignatureUtils} from "@/test/helpers/signature-utils.sol";
+import {
+  StringsUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
+import {Vm} from "@prb/test/Vm.sol";
 
 // todo fuzz RemovalIdLib
 // todo test that checks Removal.consign can happen using multi call with mix-match project IDs
@@ -14,6 +28,8 @@ using AddressArrayLib for address[];
 contract Removal_migrate_revertsIfRemovalBalanceSumDifferentFromCertificateAmount is
   UpgradeableMarket
 {
+  using UInt256ArrayLib for uint256[];
+
   /*//////////////////////////////////////////////////////////////
                                 INPUTS
     //////////////////////////////////////////////////////////////*/
@@ -98,7 +114,7 @@ contract Removal_consign_revertsForSoldRemovals is UpgradeableMarket {
     uint256 checkoutTotal = _market.calculateCheckoutTotal(amount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
@@ -136,6 +152,8 @@ contract Removal_consign_revertsForSoldRemovals is UpgradeableMarket {
 }
 
 contract Removal_migrate is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   /*//////////////////////////////////////////////////////////////
                                 INPUTS
     //////////////////////////////////////////////////////////////*/
@@ -154,6 +172,14 @@ contract Removal_migrate is UpgradeableMarket {
   uint256[] idsForAllSuppliers;
   uint256[] amountsPerSupplier;
   address[] suppliers;
+
+  event Migrate(
+    address indexed certificateRecipient,
+    uint256 indexed certificateAmount,
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] removalAmounts
+  );
 
   function setUp() external {
     // todo reuse setup in Removal_migrate_gasLimit
@@ -187,14 +213,6 @@ contract Removal_migrate is UpgradeableMarket {
     vm.startPrank(_namedAccounts.admin);
   }
 
-  event Migrate(
-    address indexed certificateRecipient,
-    uint256 indexed certificateAmount,
-    uint256 indexed certificateId,
-    uint256[] removalIds,
-    uint256[] removalAmounts
-  );
-
   function test() external {
     vm.recordLogs();
     _removal.migrate({
@@ -215,7 +233,7 @@ contract Removal_migrate is UpgradeableMarket {
     assertEq(entries.length, 4);
     assertEq(
       entries[0].topics[0],
-      keccak256("Migrate(address,uint256,uint256,uint256[],uint256[])") // todo if we move contract events to interfaces we can use IRemoval.Migrate.selector instead
+      keccak256("Migrate(address,uint256,uint256,uint256[],uint256[])")
     );
     assertEq(entries[0].topics.length, 4);
     assertEq(
@@ -234,6 +252,8 @@ contract Removal_migrate is UpgradeableMarket {
 }
 
 contract Removal_migrate_gasLimit is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   /*//////////////////////////////////////////////////////////////
                                 INPUTS
     //////////////////////////////////////////////////////////////*/
@@ -333,6 +353,8 @@ contract Removal_mintBatch_multiple is UpgradeableMarket {
 
 /** @dev Tests that a supplier can be listed in the queue twice with two sequential calls to `mintBatch` */
 contract Removal_mintBatch_list_sequential is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   function test() external {
     _seedRemovals({to: _namedAccounts.supplier, count: 1, list: true});
     DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
@@ -358,6 +380,8 @@ contract Removal_mintBatch_list_sequential is UpgradeableMarket {
 }
 
 contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   function test() external {
     DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
     ids[0] = DecodedRemovalIdV0({
@@ -383,6 +407,8 @@ contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
 }
 
 contract Removal_mintBatch_zero_amount_removal is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   function test() external {
     DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
     ids[0] = DecodedRemovalIdV0({
@@ -409,6 +435,8 @@ contract Removal_mintBatch_zero_amount_removal is UpgradeableMarket {
 contract Removal_mintBatch_zero_amount_removal_to_market_reverts is
   UpgradeableMarket
 {
+  using UInt256ArrayLib for uint256[];
+
   function test() external {
     DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
     ids[0] = DecodedRemovalIdV0({
@@ -439,6 +467,8 @@ contract Removal_mintBatch_zero_amount_removal_to_market_reverts is
 contract Removal_mintBatch_revertsInvalidHoldbackPercentage is
   UpgradeableMarket
 {
+  using UInt256ArrayLib for uint256[];
+
   function test() external {
     DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
     ids[0] = DecodedRemovalIdV0({
@@ -471,6 +501,8 @@ contract Removal_mintBatch_revertsInvalidHoldbackPercentage is
 }
 
 contract Removal_addBalance is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   uint256[] _removalIds;
 
   function setUp() external {
@@ -493,6 +525,8 @@ contract Removal_addBalance is UpgradeableMarket {
 }
 
 contract Removal_addBalance_reverts_RemovalNotYetMinted is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   function test() external {
     uint256 unmintedTokenId = RemovalIdLib.createRemovalId({
       removal: DecodedRemovalIdV0({
@@ -593,13 +627,13 @@ contract Removal__validateRemoval is NonUpgradeableRemoval {
     _createRemoval({id: 1, projectId: 1});
   }
 
-  function test() external view {
-    _validateRemoval({id: 2});
-  }
-
   function test_reverts_InvalidData() external {
     vm.expectRevert(InvalidData.selector);
     _validateRemoval({id: 1});
+  }
+
+  function test() external view {
+    _validateRemoval({id: 2});
   }
 }
 
@@ -610,7 +644,7 @@ contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
 
   function setUp() external {
     DecodedRemovalIdV0[] memory removalBatch = new DecodedRemovalIdV0[](1);
-    removalBatch[0] = REMOVAL_DATA_FIXTURE;
+    removalBatch[0] = _REMOVAL_DATA_FIXTURE;
     _removal.mintBatch({
       to: _namedAccounts.supplier,
       amounts: _asSingletonUintArray(1),
@@ -619,7 +653,7 @@ contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
       projectId: 1_234_567_890,
       holdbackPercentage: 50
     });
-    _removalIds = [REMOVAL_ID_FIXTURE];
+    _removalIds = [_REMOVAL_ID_FIXTURE];
     _holdbackPercentages = [50];
     uint256 numberOfRemovalIds = _removalIds.length;
     bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovalIds);
@@ -651,7 +685,7 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
   function setUp() external {
     DecodedRemovalIdV0[]
       memory firstRemovalBatchFixture = new DecodedRemovalIdV0[](1);
-    firstRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
+    firstRemovalBatchFixture[0] = _REMOVAL_DATA_FIXTURE;
     _removal.mintBatch(
       _namedAccounts.supplier,
       _asSingletonUintArray(1),
@@ -662,9 +696,9 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
     );
     DecodedRemovalIdV0[]
       memory secondRemovalBatchFixture = new DecodedRemovalIdV0[](1);
-    secondRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
+    secondRemovalBatchFixture[0] = _REMOVAL_DATA_FIXTURE;
     secondRemovalBatchFixture[0].subIdentifier =
-      REMOVAL_DATA_FIXTURE.subIdentifier +
+      _REMOVAL_DATA_FIXTURE.subIdentifier +
       1;
     _secondRemovalId = RemovalIdLib.createRemovalId(
       secondRemovalBatchFixture[0]
@@ -677,7 +711,7 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
       block.timestamp,
       _secondHoldbackPercentage
     );
-    _removalIds = [REMOVAL_ID_FIXTURE, _secondRemovalId];
+    _removalIds = [_REMOVAL_ID_FIXTURE, _secondRemovalId];
     _holdbackPercentages = [
       _firstHoldbackPercentage,
       _secondHoldbackPercentage
@@ -712,10 +746,10 @@ contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
       holdbackPercentage: 50
     });
     assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      _removal.balanceOf(_namedAccounts.supplier, _REMOVAL_ID_FIXTURE),
       0
     );
-    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 1);
+    assertEq(_removal.balanceOf(address(_market), _REMOVAL_ID_FIXTURE), 1);
 
     // Expect the Removal to be listed on the Market
     assertEq(
@@ -723,12 +757,12 @@ contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
       1
     );
 
-    _removal.release(REMOVAL_ID_FIXTURE, 1);
+    _removal.release(_REMOVAL_ID_FIXTURE, 1);
     assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      _removal.balanceOf(_namedAccounts.supplier, _REMOVAL_ID_FIXTURE),
       0
     );
-    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.balanceOf(address(_market), _REMOVAL_ID_FIXTURE), 0);
 
     // Expect the Removal to be pulled from the Market
     assertEq(
@@ -751,7 +785,7 @@ contract Removal_release_reverts_AccessControl is UpgradeableMarket {
         )
       )
     );
-    _removal.release(REMOVAL_ID_FIXTURE, 1);
+    _removal.release(_REMOVAL_ID_FIXTURE, 1);
   }
 }
 
@@ -795,12 +829,12 @@ contract Removal_release_retired_burned is UpgradeableMarket {
       list: true
     });
     uint256 ownerPrivateKey = 0xA11CE;
-    address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
+    address owner = vm.addr(ownerPrivateKey);
     uint256 certificateAmount = 1 ether;
-    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount); // todo replace other test usage of _market.calculateNoriFee
-    vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
+    vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
@@ -854,12 +888,12 @@ contract Removal_release_retired is UpgradeableMarket {
       list: true
     });
     uint256 ownerPrivateKey = 0xA11CE;
-    address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
+    address owner = vm.addr(ownerPrivateKey);
     uint256 certificateAmount = 1 ether;
-    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount); // todo replace other test usage of _market.calculateNoriFee
-    vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
+    vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
@@ -895,6 +929,8 @@ contract Removal_release_retired is UpgradeableMarket {
  * of 100 certificates.
  */
 contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   function setUp() external {
     _removal.mintBatch({
       to: address(_market),
@@ -905,14 +941,14 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
       holdbackPercentage: 50
     });
     uint256 ownerPrivateKey = 0xA11CE; // todo use named accounts
-    address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
+    address owner = vm.addr(ownerPrivateKey);
     uint256 cumulativeCheckoutTotal = _market.calculateCheckoutTotal(100 ether);
-    vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
+    vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(cumulativeCheckoutTotal));
     for (uint256 i = 0; i < 100; i++) {
       uint256 certificateAmount = 1 ether;
-      uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount); // todo replace other test usage of _market.calculateNoriFee
-      SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+      uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
+      SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
         ownerPrivateKey,
         address(_market),
         checkoutTotal,
@@ -931,17 +967,17 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
       );
     }
     assertEq(
-      _removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE),
+      _removal.balanceOf(address(_certificate), _REMOVAL_ID_FIXTURE),
       100 ether
     );
   }
 
   function test() external {
-    _removal.release(REMOVAL_ID_FIXTURE, 100 ether);
-    assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.balanceOf(address(_certificate), REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.totalSupply(REMOVAL_ID_FIXTURE), 0);
-    assertEq(_removal.exists(REMOVAL_ID_FIXTURE), false);
+    _removal.release(_REMOVAL_ID_FIXTURE, 100 ether);
+    assertEq(_removal.balanceOf(address(_certificate), _REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.balanceOf(address(_certificate), _REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.totalSupply(_REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.exists(_REMOVAL_ID_FIXTURE), false);
   }
 }
 
@@ -952,7 +988,7 @@ contract Removal_release_listed is UpgradeableMarket {
       address(0),
       address(0),
       address(_namedAccounts.supplier),
-      _asSingletonUintArray(REMOVAL_ID_FIXTURE),
+      _asSingletonUintArray(_REMOVAL_ID_FIXTURE),
       _asSingletonUintArray(1)
     );
     _removal.mintBatch({
@@ -964,21 +1000,23 @@ contract Removal_release_listed is UpgradeableMarket {
       holdbackPercentage: 50
     });
     assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      _removal.balanceOf(_namedAccounts.supplier, _REMOVAL_ID_FIXTURE),
       0
     );
-    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 1);
-    _removal.release(REMOVAL_ID_FIXTURE, 1);
+    assertEq(_removal.balanceOf(address(_market), _REMOVAL_ID_FIXTURE), 1);
+    _removal.release(_REMOVAL_ID_FIXTURE, 1);
     assertEq(
-      _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
+      _removal.balanceOf(_namedAccounts.supplier, _REMOVAL_ID_FIXTURE),
       0
     );
-    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 0);
+    assertEq(_removal.balanceOf(address(_market), _REMOVAL_ID_FIXTURE), 0);
     // todo test events
   }
 }
 
 contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   uint256[] private _removalIds;
   address[] private _expectedOwners;
   uint256[] private _expectedBalances = [
@@ -1040,7 +1078,7 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
     uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
@@ -1072,6 +1110,19 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
    * correct arguments (e.g., every second call to each event respectively iterates through `_expectedOwners` and
    * `_expectedReleasedBalances`)
    */
+
+  function test() external {
+    _removal.release(_removalIds[0], 0.9 ether);
+    validateReleaseEvents();
+    assertEq(
+      _removal.balanceOfBatch(
+        _expectedOwners,
+        new uint256[](3).fill(_removalIds[0])
+      ),
+      _expectedBalances
+    );
+  }
+
   function validateReleaseEvents() private {
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, expectedReleaseEventSelectors.length);
@@ -1121,18 +1172,6 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
       }
     }
   }
-
-  function test() external {
-    _removal.release(_removalIds[0], 0.9 ether);
-    validateReleaseEvents();
-    assertEq(
-      _removal.balanceOfBatch(
-        _expectedOwners,
-        new uint256[](3).fill(_removalIds[0])
-      ),
-      _expectedBalances
-    );
-  }
 }
 
 /** @dev A test that asserts the ability to release a removal retired across 2 certificates */
@@ -1154,7 +1193,7 @@ contract Removal_release_retired_2x is UpgradeableMarket {
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal * 2));
     for (uint256 i = 0; i < 2; i++) {
-      SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+      SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
         ownerPrivateKey,
         address(_market),
         checkoutTotal,
@@ -1209,6 +1248,9 @@ contract Removal_release_partial_listed is UpgradeableMarket {
 }
 
 contract Removal_multicall is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+  using AddressArrayLib for address[];
+
   /** @dev Asserts that we can get a cumulative balance for a list of removals owned by an account using multicall */
   function test_balanceOfBatch() external {
     uint256[] memory ids = _seedRemovals({
@@ -1256,7 +1298,7 @@ contract Removal_getMarketBalance is UpgradeableMarket {
     uint256 checkoutTotal = _market.calculateCheckoutTotal(amountToSell);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
@@ -1280,6 +1322,8 @@ contract Removal_getMarketBalance is UpgradeableMarket {
 }
 
 contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
+  using UInt256ArrayLib for uint256[];
+
   uint256 private _removalId;
 
   function setUp() external {
@@ -1353,6 +1397,8 @@ contract Removal_safeTransferFrom_reverts_ForbiddenTransfer is
 contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
   UpgradeableMarket
 {
+  using UInt256ArrayLib for uint256[];
+
   uint256[] private _removalIds;
 
   function setUp() external {
@@ -1416,6 +1462,8 @@ contract Removal_revokeRole is UpgradeableMarket {
 }
 
 contract Removal_getOwnedTokenIds is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   uint256[] private _removalIds;
 
   function test_no_tokens() external {
@@ -1478,11 +1526,13 @@ contract Removal_getOwnedTokenIds is UpgradeableMarket {
 }
 
 contract Removal_setHoldbackPercentage is UpgradeableMarket {
-  event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage);
+  using UInt256ArrayLib for uint256[];
 
-  uint256 immutable projectId = 1234567890;
-  uint8 immutable originalHoldbackPercentage = 50;
-  uint256 removalTokenId;
+  uint256 private immutable projectId = 1234567890;
+  uint8 private immutable originalHoldbackPercentage = 50;
+  uint256 private removalTokenId;
+
+  event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage);
 
   function setUp() external {
     DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
@@ -1537,12 +1587,12 @@ contract Removal_setHoldbackPercentage is UpgradeableMarket {
   }
 
   function test_reverts_InvalidHoldbackPercentage() external {
-    uint8 originalHoldbackPercentage = 50;
+    uint8 originalHoldbackPercentage_ = 50;
     uint8 newHoldbackPercentage = 120;
 
     assertEq(
       _removal.getHoldbackPercentage(removalTokenId),
-      originalHoldbackPercentage
+      originalHoldbackPercentage_
     );
     vm.expectRevert(
       abi.encodeWithSelector(

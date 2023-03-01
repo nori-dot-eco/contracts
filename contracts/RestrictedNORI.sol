@@ -265,31 +265,6 @@ contract RestrictedNORI is
   }
 
   /**
-   * @notice Initialize the RestrictedNORI contract.
-   */
-  function initialize() external initializer {
-    __ERC1155_init_unchained({
-      uri_: "https://nori.com/api/restrictionschedule/{id}.json"
-    });
-    __Context_init_unchained();
-    __ERC165_init_unchained();
-    __AccessControl_init_unchained();
-    __AccessControlEnumerable_init_unchained();
-    __Pausable_init_unchained();
-    __ERC1155Supply_init_unchained();
-    __Multicall_init_unchained();
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
-    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
-    _grantRole({role: SCHEDULE_CREATOR_ROLE, account: _msgSender()});
-    _grantRole({role: TOKEN_REVOKER_ROLE, account: _msgSender()});
-    setRestrictionDurationForMethodologyAndVersion({
-      methodology: 1,
-      methodologyVersion: 0,
-      durationInSeconds: 315_569_520 // Seconds in 10 years (accounts for leap years)
-    });
-  }
-
-  /**
    * @notice Increments the value of `_supplierToDeficit[originalSupplier]` by `amount`.
    * @dev This function is only callable by the Market contract, and is used to account for the number
    * of RestrictedNORI tokens that have failed to be minted to the specified non-ERC1155-compatible wallet
@@ -715,6 +690,31 @@ contract RestrictedNORI is
         scheduleId: scheduleId,
         totalSupply: totalSupply({id: scheduleId})
       });
+  }
+
+  /**
+   * @notice Initialize the RestrictedNORI contract.
+   */
+  function initialize() public initializer {
+    __ERC1155_init_unchained({
+      uri_: "https://nori.com/api/restrictionschedule/{id}.json"
+    });
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    __Pausable_init_unchained();
+    __ERC1155Supply_init_unchained();
+    __Multicall_init_unchained();
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
+    _grantRole({role: SCHEDULE_CREATOR_ROLE, account: _msgSender()});
+    _grantRole({role: TOKEN_REVOKER_ROLE, account: _msgSender()});
+    setRestrictionDurationForMethodologyAndVersion({
+      methodology: 1,
+      methodologyVersion: 0,
+      durationInSeconds: 315_569_520 // Seconds in 10 years (accounts for leap years)
+    });
   }
 
   /**

@@ -316,50 +316,6 @@ contract Market is
   }
 
   /**
-   * @notice Initializes the Market contract.
-   * @dev Reverts if `_noriFeeWallet` is not set.
-   * @param removal The address of the Removal contract.
-   * @param purchasingToken The address of the IERC20WithPermit token used to purchase from this market.
-   * @param certificate The address of the Certificate contract.
-   * @param restrictedNori The address of the RestrictedNORI contract.
-   * @param noriFeeWalletAddress The address for Nori's fee wallet.
-   * @param noriFeePercentage_ The percentage to take from every transaction. This fee is sent to the address
-   * specified by `noriFeeWalletAddress`.
-   * @param priceMultiple_ The number of base tokens required to purchase one NRT.
-   */
-  function initialize(
-    Removal removal,
-    IERC20WithPermit purchasingToken,
-    Certificate certificate,
-    RestrictedNORI restrictedNori,
-    address noriFeeWalletAddress,
-    uint256 noriFeePercentage_,
-    uint256 priceMultiple_
-  ) external initializer {
-    if (noriFeeWalletAddress == address(0)) {
-      revert NoriFeeWalletZeroAddress();
-    }
-    __Context_init_unchained();
-    __ERC165_init_unchained();
-    __Pausable_init_unchained();
-    __AccessControl_init_unchained();
-    __AccessControlEnumerable_init_unchained();
-    __Multicall_init_unchained();
-    _removal = removal;
-    _certificate = certificate;
-    _restrictedNORI = restrictedNori;
-    _noriFeePercentage = noriFeePercentage_;
-    _noriFeeWallet = noriFeeWalletAddress;
-    _priorityRestrictedThreshold = 0;
-    _currentSupplierAddress = address(0);
-    _setPurchasingToken({purchasingToken: purchasingToken});
-    _setPriceMultiple({priceMultiple: priceMultiple_});
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
-    _grantRole({role: ALLOWLIST_ROLE, account: _msgSender()});
-    _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
-  }
-
-  /**
    * @notice Releases a removal from the market.
    * @dev This function is called by the Removal contract when releasing removals.
    *
@@ -1239,6 +1195,50 @@ contract Market is
   {
     RemovalsByYear storage removalsByYear = _listedSupply[supplier];
     return removalsByYear.getAllRemovalIds();
+  }
+
+  /**
+   * @notice Initializes the Market contract.
+   * @dev Reverts if `_noriFeeWallet` is not set.
+   * @param removal The address of the Removal contract.
+   * @param purchasingToken The address of the IERC20WithPermit token used to purchase from this market.
+   * @param certificate The address of the Certificate contract.
+   * @param restrictedNori The address of the RestrictedNORI contract.
+   * @param noriFeeWalletAddress The address for Nori's fee wallet.
+   * @param noriFeePercentage_ The percentage to take from every transaction. This fee is sent to the address
+   * specified by `noriFeeWalletAddress`.
+   * @param priceMultiple_ The number of base tokens required to purchase one NRT.
+   */
+  function initialize(
+    Removal removal,
+    IERC20WithPermit purchasingToken,
+    Certificate certificate,
+    RestrictedNORI restrictedNori,
+    address noriFeeWalletAddress,
+    uint256 noriFeePercentage_,
+    uint256 priceMultiple_
+  ) public initializer {
+    if (noriFeeWalletAddress == address(0)) {
+      revert NoriFeeWalletZeroAddress();
+    }
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __Pausable_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    __Multicall_init_unchained();
+    _removal = removal;
+    _certificate = certificate;
+    _restrictedNORI = restrictedNori;
+    _noriFeePercentage = noriFeePercentage_;
+    _noriFeeWallet = noriFeeWalletAddress;
+    _priorityRestrictedThreshold = 0;
+    _currentSupplierAddress = address(0);
+    _setPurchasingToken({purchasingToken: purchasingToken});
+    _setPriceMultiple({priceMultiple: priceMultiple_});
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: ALLOWLIST_ROLE, account: _msgSender()});
+    _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
   }
 
   /**

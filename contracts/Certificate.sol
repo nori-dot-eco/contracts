@@ -154,30 +154,6 @@ contract Certificate is
   }
 
   /**
-   * @notice Initialize the Certificate contract.
-   * @param baseURI The base URI for all certificate NFTs.
-   */
-  function initialize(string memory baseURI)
-    external
-    initializerERC721A
-    initializer
-  {
-    _baseURIValue = baseURI;
-    __Context_init_unchained();
-    __ERC165_init_unchained();
-    __ERC721A_init_unchained("Certificate", "NCCR");
-    __ERC721ABurnable_init_unchained();
-    __ERC721AQueryable_init_unchained();
-    __Pausable_init_unchained();
-    __AccessControl_init_unchained();
-    __AccessControlEnumerable_init_unchained();
-    __Multicall_init_unchained();
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
-    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
-    _grantRole({role: CERTIFICATE_OPERATOR_ROLE, account: _msgSender()});
-  }
-
-  /**
    * @notice Register the address of the Removal contract.
    * @dev This function emits a `RegisterContractAddresses` event.
    *
@@ -284,6 +260,30 @@ contract Certificate is
     returns (uint256)
   {
     return _purchaseAmounts[certificateId];
+  }
+
+  /**
+   * @notice Initialize the Certificate contract.
+   * @param baseURI The base URI for all certificate NFTs.
+   */
+  function initialize(string memory baseURI)
+    public
+    initializerERC721A
+    initializer
+  {
+    _baseURIValue = baseURI;
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __ERC721A_init_unchained("Certificate", "NCCR");
+    __ERC721ABurnable_init_unchained();
+    __ERC721AQueryable_init_unchained();
+    __Pausable_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    __Multicall_init_unchained();
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
+    _grantRole({role: CERTIFICATE_OPERATOR_ROLE, account: _msgSender()});
   }
 
   /**

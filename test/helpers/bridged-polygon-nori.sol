@@ -1,9 +1,9 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/contracts/BridgedPolygonNORI.sol";
-import "@/test/helpers/test.sol";
-import "@/test/helpers/signature-utils.sol";
+import {BridgedPolygonNORI} from "@/contracts/BridgedPolygonNORI.sol";
+import {Global, Upgradeable} from "@/test/helpers/test.sol";
+import {SignatureUtils} from "@/test/helpers/signature-utils.sol";
 
 abstract contract UpgradeableBridgedPolygonNORI is Upgradeable {
   BridgedPolygonNORI internal _bpNori;
@@ -33,6 +33,6 @@ abstract contract UpgradeableBridgedPolygonNORI is Upgradeable {
 }
 
 // solhint-disable-next-line no-empty-blocks, this is a test
-contract NonUpgradeableBridgedPolygonNORI is BridgedPolygonNORI {
+contract NonUpgradeableBridgedPolygonNORI is BridgedPolygonNORI, Global {
 
 }

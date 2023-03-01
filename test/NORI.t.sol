@@ -1,21 +1,21 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/test/helpers/nori.sol";
+import {UpgradeableNORI} from "@/test/helpers/nori.sol";
 import {SignedPermit} from "@/test/helpers/signature-utils.sol";
 
-contract NORI_name is UpgradeableNORIMock {
+contract NORI_name is UpgradeableNORI {
   function test() external {
     assertEq(_nori.name(), "NORI");
   }
 }
 
-contract NORI_permit is UpgradeableNORIMock {
+contract NORI_permit is UpgradeableNORI {
   function test() external {
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
     uint256 amount = 1;
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _noriSignatureUtils.generatePermit(
       ownerPrivateKey,
       _namedAccounts.admin,
       amount,

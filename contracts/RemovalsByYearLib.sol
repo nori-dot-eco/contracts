@@ -18,7 +18,7 @@ struct RemovalsByYear {
   uint256 latestYear;
 }
 
-/**
+/** 
  * @title A library that provides a set of functions for managing removals by year.
  * @author Nori Inc.
  * @dev This library is used to manage the market's removal vintages.

@@ -1,22 +1,37 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, var-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/test/helpers/market.sol";
+import {IERC20WithPermit} from "@/contracts/IERC20WithPermit.sol";
+import {RestrictedNORI} from "@/contracts/RestrictedNORI.sol";
+import {
+  RemovalsByYearLib,
+  RemovalsByYear
+} from "@/contracts/RemovalsByYearLib.sol";
+import {RemovalIdLib} from "@/contracts/RemovalIdLib.sol";
+import {UInt256ArrayLib, AddressArrayLib} from "@/contracts/ArrayLib.sol";
+import {
+  NonUpgradeableMarket,
+  NonUpgradeableNORIMarket
+} from "@/test/helpers/market.sol";
+import {
+  UpgradeableRemoval,
+  NonUpgradeableRemoval
+} from "@/test/helpers/removal.sol";
+import {
+  NonUpgradeableBridgedPolygonNORI
+} from "@/test/helpers/bridged-polygon-nori.sol";
+import {console2} from "forge-std/console2.sol";
 
-contract RemovalQueue__getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
+contract RemovalQueue__getTotalBalanceFromRemovalQueue is
+  NonUpgradeableNORIMarket
+{
   using RemovalsByYearLib for RemovalsByYear;
   using AddressArrayLib for address[];
   using UInt256ArrayLib for uint256[];
 
   NonUpgradeableRemoval private _removal;
 
-  constructor()
-    NonUpgradeableMarket(
-      IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-      25,
-      1
-    )
-  {
+  constructor() {
     _removal = new NonUpgradeableRemoval();
     vm.store(
       address(_removal),
@@ -95,23 +110,14 @@ contract RemovalQueue__getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
   }
 }
 
-contract RemovalQueue_insertRemovalByVintage is NonUpgradeableMarket {
+contract RemovalQueue_insertRemovalByVintage is NonUpgradeableNORIMarket {
   using RemovalsByYearLib for RemovalsByYear;
   using RemovalIdLib for uint256;
 
-  NonUpgradeableRemoval private _removal;
   uint256[] private _removalIds;
 
-  constructor()
-    NonUpgradeableMarket(
-      IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-      25,
-      1
-    )
-  {}
-
   function setUp() external {
-    _removalIds = _removal.seedRemovals({
+    _removalIds = NonUpgradeableRemoval(this.getRemovalAddress()).seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
       list: false,
@@ -120,6 +126,7 @@ contract RemovalQueue_insertRemovalByVintage is NonUpgradeableMarket {
   }
 
   function test_insertRemovalOnce() external {
+    console2.log("test_insertRemovalOnce", this.getRemovalAddress());
     RemovalsByYear storage collection = _listedSupply[_namedAccounts.supplier];
     uint256 removalId = _removalIds[0];
     collection.insert(removalId);

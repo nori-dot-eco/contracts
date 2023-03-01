@@ -1,8 +1,8 @@
-/* solhint-disable contract-name-camelcase, func-name-mixedcase, reason-string */
+/* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/test/helpers/nori-usdc.sol";
-import "@/test/helpers/signature-utils.sol";
+import {UpgradeableNoriUSDC} from "@/test/helpers/nori-usdc.sol";
+import {SignedPermit} from "@/test/helpers/signature-utils.sol";
 
 contract NoriUSDC_permit is UpgradeableNoriUSDC {
   function test() external {

@@ -1,13 +1,13 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, not-rely-on-time */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/test/helpers/market.sol";
-import "@/contracts/test/MockERC20Permit.sol";
+import {UpgradeableMarket} from "@/test/helpers/market.sol";
+import {MockERC20Permit} from "@/contracts/test/MockERC20Permit.sol";
 import {DecodedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
 import {AddressArrayLib, UInt256ArrayLib} from "@/contracts/ArrayLib.sol";
-
-using AddressArrayLib for address[];
-using UInt256ArrayLib for uint256[];
+import {SignedPermit, SignatureUtils} from "@/test/helpers/signature-utils.sol";
+import {IERC721AUpgradeable} from "erc721a-upgradeable/contracts/IERC721AUpgradeable.sol";
+import {Vm} from "@prb/test/Vm.sol";
 
 abstract contract Checkout is UpgradeableMarket {
   uint256[] internal _removalIds;
@@ -63,7 +63,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       amount,
@@ -110,7 +110,7 @@ contract Checkout_buyingFromOneRemoval_byApproval is Checkout {
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(amount));
     vm.prank(owner);
-    _bpNori.approve(address(_market), MAX_INT);
+    _bpNori.approve(address(_market), type(uint256).max - 1);
     assertEq(_removal.getMarketBalance(), 1 ether);
     assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
@@ -156,7 +156,7 @@ contract Checkout_swapWithDifferentPermitSignerAndMsgSender is Checkout {
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       amount,
@@ -186,6 +186,9 @@ contract Checkout_swapWithDifferentPermitSignerAndMsgSender is Checkout {
 }
 
 contract Checkout_buyingFromTenRemovals is Checkout {
+  using AddressArrayLib for address[];
+  using UInt256ArrayLib for uint256[];
+
   uint256 private _expectedCertificateAmount;
   uint256 private _purchaseAmount;
   address private _owner;
@@ -219,7 +222,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     vm.prank(_owner);
-    _signedPermit = _signatureUtils.generatePermit(
+    _signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       _purchaseAmount,
@@ -278,6 +281,9 @@ contract Checkout_buyingFromTenRemovals is Checkout {
 }
 
 contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
+  using AddressArrayLib for address[];
+  using UInt256ArrayLib for uint256[];
+
   uint256 private _expectedCertificateAmount;
   uint256 private _purchaseAmount;
   address private _owner;
@@ -309,7 +315,7 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
     vm.prank(_owner);
-    _bpNori.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+    _bpNori.approve(address(_market), type(uint256).max - 1); // infinite approval for Market to spend owner's tokens
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
@@ -356,6 +362,9 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
 }
 
 contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
+  using AddressArrayLib for address[];
+  using UInt256ArrayLib for uint256[];
+
   uint256 private _expectedCertificateAmount;
   uint256 private _purchaseAmount;
   address private _owner;
@@ -389,7 +398,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     vm.prank(_owner);
-    _signedPermit = _signatureUtils.generatePermit(
+    _signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       _purchaseAmount,
@@ -454,6 +463,9 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
 }
 
 contract Checkout_buyingFromTenRemovals_singleSupplier_byApproval is Checkout {
+  using AddressArrayLib for address[];
+  using UInt256ArrayLib for uint256[];
+
   uint256 private _expectedCertificateAmount;
   uint256 private _purchaseAmount;
   address private _owner;
@@ -485,11 +497,11 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_byApproval is Checkout {
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
     vm.prank(_owner);
-    _bpNori.approve(address(_market), MAX_INT);
+    _bpNori.approve(address(_market), type(uint256).max - 1);
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     vm.prank(_owner);
-    _signedPermit = _signatureUtils.generatePermit(
+    _signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       _purchaseAmount,
@@ -554,6 +566,9 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_byApproval is Checkout {
 }
 
 contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
+  using AddressArrayLib for address[];
+  using UInt256ArrayLib for uint256[];
+
   uint256 private _expectedCertificateAmount;
   uint256 private _purchaseAmount;
   address private _owner;
@@ -584,7 +599,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
     vm.prank(_owner);
-    _bpNori.approve(address(_market), MAX_INT);
+    _bpNori.approve(address(_market), type(uint256).max - 1);
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: _owner});
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
@@ -643,6 +658,9 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
 }
 
 contract Checkout_buyingFromTenSuppliers is Checkout {
+  using AddressArrayLib for address[];
+  using UInt256ArrayLib for uint256[];
+
   uint256 private _expectedCertificateAmount;
   uint256 private _purchaseAmount;
   address private _owner;
@@ -679,7 +697,7 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     vm.prank(_owner);
-    _signedPermit = _signatureUtils.generatePermit(
+    _signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       _purchaseAmount,

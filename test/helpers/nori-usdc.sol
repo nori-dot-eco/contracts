@@ -1,10 +1,12 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/contracts/test/NoriUSDC.sol";
-import "@/test/helpers/test.sol";
-import "@/test/helpers/signature-utils.sol";
+import {NoriUSDC} from "@/contracts/test/NoriUSDC.sol";
+import {Global, Upgradeable} from "@/test/helpers/test.sol";
+import {SignatureUtils} from "@/test/helpers/signature-utils.sol";
 
+// todo set up forked tests instead
+// example: https://github.com/Uniswap/permit2/blob/4382d768f/test/integration/MainnetToken.t.sol#L175
 abstract contract UpgradeableNoriUSDC is Upgradeable {
   NoriUSDC internal _noriUSDC;
   NoriUSDC internal _noriUSDCImplementation;
@@ -30,4 +32,7 @@ abstract contract UpgradeableNoriUSDC is Upgradeable {
   }
 }
 
-contract NonUpgradeablePurchaseToken is NoriUSDC, Global {}
+// solhint-disable-next-line no-empty-blocks, this is a test
+contract NonUpgradeableNoriUSDC is NoriUSDC, Global {
+
+}

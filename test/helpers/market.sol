@@ -1,35 +1,59 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/contracts/Market.sol";
-import "@/contracts/IERC20WithPermit.sol";
-import "@/test/helpers/test.sol";
-import "@/test/helpers/bridged-polygon-nori.sol";
-import "@/test/helpers/removal.sol";
-import "@/test/helpers/certificate.sol";
-import "@/test/helpers/restricted-nori.sol";
-import "@/test/helpers/nori-usdc.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import {Market} from "@/contracts/Market.sol";
+import {Removal} from "@/contracts/Removal.sol";
+import {RestrictedNORI} from "@/contracts/RestrictedNORI.sol";
+import {Certificate} from "@/contracts/Certificate.sol";
+import {IERC20WithPermit} from "@/contracts/IERC20WithPermit.sol";
+import {Global} from "@/test/helpers/test.sol";
+import {
+  UpgradeableBridgedPolygonNORI,
+  NonUpgradeableBridgedPolygonNORI
+} from "@/test/helpers/bridged-polygon-nori.sol";
+import {
+  UpgradeableRemoval,
+  NonUpgradeableRemoval
+} from "@/test/helpers/removal.sol";
+import {
+  UpgradeableCertificate,
+  NonUpgradeableCertificate
+} from "@/test/helpers/certificate.sol";
+import {
+  UpgradeableRestrictedNORI,
+  NonUpgradeableRestrictedNORI
+} from "@/test/helpers/restricted-nori.sol";
+import {
+  UpgradeableNoriUSDC,
+  NonUpgradeableNoriUSDC
+} from "@/test/helpers/nori-usdc.sol";
+import {
+  SafeMathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
-abstract contract MarketHelper {
-  SignatureUtils internal _signatureUtils;
-  uint256 MAX_INT = 2**256 - 1; // todo just use type(uint256).max - 1
-
-  function _construct(
+abstract contract MarketHelper is Global {
+  /** @dev Configures the various marketplace contracts as if we would in a fresh/live deployment */
+  function _configure(
     Market market,
     Removal removal,
     RestrictedNORI rNori,
     Certificate certificate,
     IERC20WithPermit restrictedToken
   ) internal {
-    removal.registerContractAddresses({market:market, certificate:certificate}); // todo move to removal helper
-    rNori.registerContractAddresses({ // todo move to rnori helper
+    removal.registerContractAddresses({
+      market: market,
+      certificate: certificate
+    });
+    rNori.registerContractAddresses({
       wrappedToken: restrictedToken,
       removal: removal,
       market: market
     });
-    rNori.grantRole(rNori.MINTER_ROLE(), address(market)); // todo move to rnori helper
-    rNori.grantRole(rNori.SCHEDULE_CREATOR_ROLE(), address(removal)); // todo move to rnori helper
+    rNori.grantRole({role: rNori.MINTER_ROLE(), account: address(market)});
+    rNori.grantRole({
+      role: rNori.SCHEDULE_CREATOR_ROLE(),
+      account: address(removal)
+    });
   }
 }
 
@@ -40,26 +64,18 @@ abstract contract UpgradeableMarket is
   UpgradeableBridgedPolygonNORI,
   MarketHelper
 {
-  IERC20WithPermit internal _purchasingToken;
-  IERC20WithPermit internal _restrictedToken;
   Market internal _market;
 
   constructor() {
-    _purchasingToken = IERC20WithPermit(address(_bpNori));
-    _restrictedToken = _purchasingToken;
-    _signatureUtils = _bpNoriSignatureUtils;
-    _construct();
-  }
-
-  function _construct() internal {
-    _market = _deployMarket(address(_purchasingToken));
+    // todo match constructor to style of NonUpgradeableMarket (allows setting fee, multiple, token)
+    _market = _deployMarket(address(_bpNori));
     _marketAddress = address(_market);
-    _construct({
+    _configure({
       market: _market,
       removal: _removal,
       rNori: _rNori,
       certificate: _certificate,
-      restrictedToken: _restrictedToken
+      restrictedToken: IERC20WithPermit(address(_bpNori))
     });
   }
 
@@ -77,7 +93,7 @@ abstract contract UpgradeableMarket is
       address(_rNori),
       address(_namedAccounts.feeWallet),
       25,
-      2000
+      100
     );
     Market marketProxy = Market(_deployProxy(address(impl), initializer));
     vm.label(address(marketProxy), "Market Proxy");
@@ -102,37 +118,57 @@ abstract contract UpgradeableUSDCMarket is
   UpgradeableNoriUSDC
 {
   constructor() {
+    // todo just call this.initialize()
     vm.label(address(this), "UpgradeableUSDCMarket");
-    _purchasingToken = IERC20WithPermit(address(_noriUSDC));
-    vm.label(
-      address(_purchasingToken),
-      "UpgradeableUSDCMarket_purchasingToken"
-    );
-    _signatureUtils = _noriUSDCSignatureUtils; // todo why the alias?
-    _restrictedToken = IERC20WithPermit(address(_noriUSDC));
-    vm.label(
-      address(_restrictedToken),
-      "UpgradeableUSDCMarket_restrictedToken"
-    );
-    _construct();
+    _market.setPurchasingTokenAndPriceMultiple({
+      purchasingToken: IERC20WithPermit(address(_noriUSDC)),
+      priceMultiple: 2000
+    });
+    _configure({
+      market: _market,
+      removal: _removal,
+      rNori: _rNori,
+      certificate: _certificate,
+      restrictedToken: IERC20WithPermit(address(_noriUSDC))
+    });
   }
 }
 
+// abstract contract UpgradeableBridgedPolygonNORIMarket is UpgradeableMarket {
+//   constructor()
+//     UpgradeableMarket(
+//       IERC20WithPermit(address(new UpgradeableBridgedPolygonNORI())),
+//       25,
+//       100
+//     )
+//   {
+//     // solhint-disable-previous-line no-empty-blocks, this is a test
+//   }
+// }
+
+// todo just deprecate and misconfigure without a base contract using _rNori.registerContractAddresses
 abstract contract UpgradeableMisconfiguredMarket is
   UpgradeableMarket,
   UpgradeableNoriUSDC
 {
   constructor() {
     vm.label(address(this), "UpgradeableMisconfiguredMarket");
-    _purchasingToken = IERC20WithPermit(address(_noriUSDC));
-    _signatureUtils = _noriUSDCSignatureUtils;
-    _restrictedToken = IERC20WithPermit(address(_bpNori));
-    _construct();
+    _market.setPurchasingTokenAndPriceMultiple({
+      purchasingToken: IERC20WithPermit(address(_noriUSDC)),
+      priceMultiple: 2000
+    });
+    _configure({
+      market: _market,
+      removal: _removal,
+      rNori: _rNori,
+      certificate: _certificate,
+      restrictedToken: IERC20WithPermit(address(_bpNori)) // intentionally different than the purchasingToken above
+    });
   }
 }
 
-abstract contract NonUpgradeableMarket is Market, MarketHelper, Global {
-  // exposed_ //todo
+abstract contract NonUpgradeableMarket is Market, MarketHelper {
+  error NonUpgradeableMarketInitializationFailed();
 
   constructor(
     IERC20WithPermit _purchasingToken,
@@ -140,40 +176,19 @@ abstract contract NonUpgradeableMarket is Market, MarketHelper, Global {
     uint256 priceMultiple
   ) {
     vm.label(address(this), "NonUpgradeableMarket");
-    _purchasingToken = _purchasingToken; // todo ?
-    noriFeePercentage = noriFeePercentage; // todo pass to construct or call initializer here
-    priceMultiple = priceMultiple; // todo pass to construct or call initializer here
-    Certificate certificate = new NonUpgradeableCertificate();
-    RestrictedNORI restrictedNori = new NonUpgradeableRestrictedNORI();
-    Removal removal = new NonUpgradeableRemoval();
-    /**
-     * Solidity doesn't allow you to use this.fn() to call external functions in the context of a constructor
-     * even if they are part of the current contract. This syntax exploits that limitation.
-     */
-    (bool success, ) = address(this).call(
-      abi.encodeWithSelector(
-        this.initialize.selector,
-        address(removal),
-        _purchasingToken,
-        address(certificate),
-        address(restrictedNori),
-        address(_namedAccounts.feeWallet),
-        25,
-        2000
-      )
+    NonUpgradeableCertificate certificate = new NonUpgradeableCertificate();
+    NonUpgradeableRestrictedNORI restrictedNori = new NonUpgradeableRestrictedNORI();
+    NonUpgradeableRemoval removal = new NonUpgradeableRemoval();
+    initialize(
+      removal,
+      _purchasingToken,
+      certificate,
+      restrictedNori,
+      _namedAccounts.feeWallet,
+      noriFeePercentage,
+      priceMultiple
     );
-    require(success, "NOPE!");
-    // _stdstore.target(address(this)).sig("_initialized").checked_write(2);
-    // initialize({
-    //   removal: removal,
-    //   purchasingToken: purchasingToken,
-    //   certificate: certificate,
-    //   restrictedNori: restrictedNori,
-    //   noriFeeWalletAddress: _namedAccounts.feeWallet,
-    //   noriFeePercentage_: 25,
-    //   priceMultiple_: 1
-    // });
-    _construct({
+    _configure({
       market: this,
       removal: removal,
       rNori: restrictedNori,
@@ -182,17 +197,34 @@ abstract contract NonUpgradeableMarket is Market, MarketHelper, Global {
     });
   }
 
-  function _disableInitializers() internal override {}
+  function _disableInitializers() internal virtual override {
+    // solhint-disable-previous-line no-empty-blocks, this allows us to initialize an implementation contract
+  }
 }
 
-// abstract contract NonUpgradeableNORIMarket is NonUpgradeableMarket {
-//   constructor() {
-//     _construct();
-//   }
-// }
+abstract contract NonUpgradeableNORIMarket is NonUpgradeableMarket {
+  constructor()
+    NonUpgradeableMarket(
+      IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+      25,
+      100
+    )
+  {
+    // solhint-disable-previous-line no-empty-blocks, this is a test
+  }
+}
 
-// abstract contract NonUpgradeableUSDCMarket is NonUpgradeableMarket {
-//   constructor() {
-//     _construct();
-//   }
-// }
+abstract contract NonUpgradeableUSDCMarket is NonUpgradeableMarket {
+  constructor()
+    NonUpgradeableMarket(
+      IERC20WithPermit(address(new NonUpgradeableNoriUSDC())),
+      25,
+      2000
+    )
+  {
+    // solhint-disable-previous-line no-empty-blocks, this is a test
+  }
+}
+
+// nonupgradeablemarket -- base contract for nonupgradeablenorimarket and nonupgradeableusdcmarket
+// upgradeablemarket -- base contract for upgradeablenorimarket and upgradeableusdcmarket

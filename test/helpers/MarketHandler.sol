@@ -1,16 +1,19 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase, not-rely-on-time */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/test/helpers/market.sol";
-import "@/contracts/test/MockERC20Permit.sol";
-import {StdUtils} from "forge-std/StdUtils.sol";
-import {DecodedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
+import {DecodedRemovalIdV0, RemovalIdLib} from "@/contracts/RemovalIdLib.sol";
 import {AddressArrayLib, UInt256ArrayLib} from "@/contracts/ArrayLib.sol";
-
-using AddressArrayLib for address[];
-using UInt256ArrayLib for uint256[];
+import {UpgradeableMarket} from "@/test/helpers/market.sol";
+import {SignedPermit, SignatureUtils} from "@/test/helpers/signature-utils.sol";
+import {
+  EnumerableSetUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import {StdUtils} from "forge-std/StdUtils.sol";
+import {Vm} from "@prb/test/Vm.sol";
 
 contract MarketHandler is UpgradeableMarket, StdUtils {
+  using AddressArrayLib for address[];
+  using UInt256ArrayLib for uint256[];
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   mapping(bytes32 => uint256) public numCalls;
@@ -44,14 +47,15 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
     );
 
   /**
-   * @dev Mint a batch of removals incporporating randomness but minimizing reverts:
+   * @dev Mint a batch of removals incorporating randomness but minimizing reverts:
    * - the batch size is between 1 and 10
    * - the vintage is between 1990 and 2019
    * - the subIdentifier is between 0 and 100 million
    * - the supplier is chosen randomly from a predefined set of possible suppliers
    * - the amounts are chosen randomly between 0 and 1 ether-
    * - the projectId is between 1 and 1 billion
-   * - the scheduleStartTime is between 1 and intMax minus 10 years (avoid overflow when calculating end time for schedules)
+   * - the scheduleStartTime is between 1 and intMax minus 10 years (avoid overflow when calculating end time for
+   * schedules)
    * - the holdbackPercentage is between 0 and 100
    * - other ID fields are hardcoded
    */
@@ -112,7 +116,8 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
 
   /**
    * @dev Make a random purchase from the market.
-   * - The buyer is generated randomly but avoids collision with the market proxy admin which cannot make calls to the proxy.
+   * - The buyer is generated randomly but avoids collision with the market proxy admin which cannot make calls to the
+   * proxy.
    * - The amount is chosen randomly but is bounded by the market balance.
    * - Logs are recorded to perform ghost variable bookkeeping on the removals that have changed ownership.
    */
@@ -124,7 +129,7 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
     uint256 purchaseAmount = _market.calculateCheckoutTotal(amount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(buyerAddress, abi.encode(purchaseAmount));
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       buyerPrivateKey,
       address(_market),
       purchaseAmount,
@@ -178,7 +183,7 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
     uint256 removalId = allRemovalIds.at(fuzz % allRemovalIds.length());
     uint256 totalSupply = _removal.totalSupply(removalId);
     if (!(totalSupply == 0)) {
-      _removal.release({id: removalId, amount: (fuzz % totalSupply) + 1}); // release a random amount up to the total supply
+      _removal.release({id: removalId, amount: (fuzz % totalSupply) + 1}); // release random amount <= totalSupply
     }
     totalSupply = _removal.totalSupply(removalId);
     releasedIds.add(removalId);
@@ -197,11 +202,15 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
    */
   function replaceRandomPortionOfNrtDeficit(uint256 fuzz) external {
     numCalls["replaceRandomPortionOfNrtDeficit"]++;
-    // avoid modulo by 0 if no deficit:
-    if (_certificate.getNrtDeficit() > 0) {
-      uint256 replaceAmount = (fuzz % _certificate.getNrtDeficit()) + 1; // avoid trying to replace more than deficit - we know this reverts
-      // avoid trying to replace more than is available in the market - we know this reverts
-      if (_removal.getMarketBalance() >= replaceAmount) {
+    uint256 deficit = _certificate.getNrtDeficit();
+    uint256 marketBalance = _removal.getMarketBalance();
+    if (
+      deficit > 0 // avoid modulo by 0 if no deficit:
+    ) {
+      uint256 replaceAmount = (fuzz % deficit) + 1; // avoid replacing more than deficit - we know this reverts
+      if (
+        marketBalance >= replaceAmount // avoid replacing more than is available in the market - we know this reverts
+      ) {
         uint256 replacementCost = _market.calculateCheckoutTotalWithoutFee(
           replaceAmount
         ); // incorporates price multiple!
@@ -214,22 +223,20 @@ contract MarketHandler is UpgradeableMarket, StdUtils {
           treasury: _namedAccounts.admin,
           certificateId: 0, // shouldn't matter which cert is specified -- this is just re-emitted in events
           totalAmountToReplace: replaceAmount,
-          removalIdsBeingReplaced: new uint256[](1).fill(fuzz), // doesn't matter which ids being replaced -- re-emitted in events
-          amountsBeingReplaced: new uint256[](1).fill(replaceAmount) // same with amounts, though these need to total to the totalAmountToReplace
+          removalIdsBeingReplaced: new uint256[](1).fill({
+            val: fuzz // doesn't matter which ids being replaced -- re-emitted in events
+          }),
+          amountsBeingReplaced: new uint256[](1).fill({
+            val: replaceAmount // same with amounts, though these need to total to the totalAmountToReplace
+          })
         });
         Vm.Log[] memory entries = vm.getRecordedLogs();
         for (uint256 i = 0; i < entries.length; ++i) {
           if (entries[i].topics[0] == UPDATE_CERTIFICATE_EVENT_SELECTOR) {
-            (
-              uint256[] memory removalIds,
-              uint256[] memory amounts,
-              uint256[] memory removalIdsBeingReplaced,
-              uint256[] memory amountsBeingReplaced,
-              uint256 priceMultiple
-            ) = abi.decode(
-                entries[i].data,
-                (uint256[], uint256[], uint256[], uint256[], uint256)
-              );
+            (uint256[] memory removalIds, , , , ) = abi.decode(
+              entries[i].data,
+              (uint256[], uint256[], uint256[], uint256[], uint256)
+            );
             for (uint256 i = 0; i < removalIds.length; i++) {
               soldRemovalIds.add(removalIds[i]);
               if (_removal.balanceOf(address(_market), removalIds[i]) == 0)

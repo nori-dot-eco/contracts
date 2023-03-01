@@ -5,16 +5,10 @@ import "@/test/helpers/test.sol";
 import "@/contracts/Removal.sol";
 import "@/contracts/ArrayLib.sol";
 
-using UInt256ArrayLib for uint256[];
-using AddressArrayLib for address[];
-
-abstract contract UpgradeableRemoval is Upgradeable {
-  DecodedRemovalIdV0[] _REMOVAL_FIXTURES;
-
-  address internal _marketAddress;
-
+// todo convert to library
+contract RemovalFixtures is Global {
   /**
-   * @dev REMOVAL_ID_FIXTURE is the result of:
+   * @dev _REMOVAL_ID_FIXTURE is the result of:
    * RemovalIdLib.createRemovalId(DecodedRemovalIdV0({
    *   idVersion: 0,
    *   methodology: 1,
@@ -26,10 +20,12 @@ abstract contract UpgradeableRemoval is Upgradeable {
    *   subIdentifier: 99_039_930
    * }))
    */
-  uint256 public constant REMOVAL_ID_FIXTURE =
+  uint256 internal constant _REMOVAL_ID_FIXTURE =
     28323967194635191374224967253542818032149542492774326996283828950022961850;
 
-  DecodedRemovalIdV0 public REMOVAL_DATA_FIXTURE =
+  DecodedRemovalIdV0[] internal _REMOVAL_FIXTURES;
+
+  DecodedRemovalIdV0 internal _REMOVAL_DATA_FIXTURE =
     DecodedRemovalIdV0({
       idVersion: 0,
       methodology: 1,
@@ -40,6 +36,13 @@ abstract contract UpgradeableRemoval is Upgradeable {
       supplierAddress: _namedAccounts.supplier,
       subIdentifier: 99_039_930
     });
+}
+
+abstract contract UpgradeableRemoval is Upgradeable, RemovalFixtures {
+  using UInt256ArrayLib for uint256[];
+  using AddressArrayLib for address[];
+
+  address internal _marketAddress;
 
   Removal internal _removal;
   Removal internal _removalImplementation;
@@ -223,10 +226,29 @@ abstract contract UpgradeableRemoval is Upgradeable {
 }
 
 contract NonUpgradeableRemoval is Removal, Global {
+  using UInt256ArrayLib for uint256[];
+
   constructor() {
     vm.label(address(this), "NonUpgradeableRemoval");
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: msg.sender});
-    _grantRole({role: CONSIGNOR_ROLE, account: address(this)});
+    initialize({baseURI: "https://registry.nori.com/removals/"});
+
+    _grantRole({role: CONSIGNOR_ROLE, account: address(this)}); // todo rm, only use this where needed
+  }
+
+  /** todo de-duplicate with UpgradeableRemoval._seedRemovals */
+  function seedRemovals(
+    address to,
+    uint32 count,
+    bool list,
+    bool uniqueVintages
+  ) external returns (uint256[] memory) {
+    return
+      _seedRemovals({
+        to: to,
+        count: count,
+        list: list,
+        uniqueVintages: uniqueVintages
+      });
   }
 
   function _seedRemovals(
@@ -261,19 +283,7 @@ contract NonUpgradeableRemoval is Removal, Global {
     return _removalIds;
   }
 
-  /** todo de-duplicate with UpgradeableRemoval._seedRemovals */
-  function seedRemovals(
-    address to,
-    uint32 count,
-    bool list,
-    bool uniqueVintages
-  ) external returns (uint256[] memory) {
-    return
-      _seedRemovals({
-        to: to,
-        count: count,
-        list: list,
-        uniqueVintages: uniqueVintages
-      });
+  function _disableInitializers() internal override {
+    // solhint-disable-previous-line no-empty-blocks, this allows us to initialize an implementation contract
   }
 }

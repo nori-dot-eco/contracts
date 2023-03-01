@@ -1,24 +1,68 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/test/helpers/market.sol";
-import "@/test/helpers/bridged-polygon-nori.sol";
-import "@/test/helpers/removal.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@/contracts/test/MockERC20Permit.sol";
-import "@/contracts/ArrayLib.sol";
-import "@/contracts/Removal.sol";
-import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
-import "@/contracts/test/MockERC20Permit.sol";
-import "@/contracts/test/MockUnsafeERC20Permit.sol";
-
-using UInt256ArrayLib for uint256[];
-using AddressArrayLib for address[];
-using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+import {AddressArrayLib, UInt256ArrayLib} from "@/contracts/ArrayLib.sol";
+import {Market} from "@/contracts/Market.sol";
+import {Certificate} from "@/contracts/Certificate.sol";
+import {
+  ERC20TransferFailed,
+  CertificateNotYetMinted,
+  ReplacementAmountMismatch,
+  InvalidNoriFeePercentage,
+  ReplacementAmountMismatch,
+  InvalidCertificateAmount,
+  InsufficientSupply,
+  LowSupplyAllowlistRequired,
+  UnauthorizedWithdrawal
+} from "@/contracts/Errors.sol";
+import {RemovalIdLib, DecodedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
+import {Removal} from "@/contracts/Removal.sol";
+import {IERC20WithPermit} from "@/contracts/IERC20WithPermit.sol";
+import {MockERC20Permit} from "@/contracts/test/MockERC20Permit.sol";
+import {
+  MockUnsafeERC20Permit
+} from "@/contracts/test/MockUnsafeERC20Permit.sol";
+import {
+  UpgradeableRemoval,
+  RemovalFixtures,
+  NonUpgradeableRemoval
+} from "@/test/helpers/removal.sol";
+import {SignedPermit, SignatureUtils} from "@/test/helpers/signature-utils.sol";
+import {
+  UpgradeableMarket,
+  UpgradeableUSDCMarket,
+  UpgradeableMisconfiguredMarket,
+  NonUpgradeableNORIMarket
+} from "@/test/helpers/market.sol";
+import {
+  NonUpgradeableBridgedPolygonNORI
+} from "@/test/helpers/bridged-polygon-nori.sol";
+import {
+  IERC1155Upgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
+import {
+  IERC1155ReceiverUpgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
+import {
+  MathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
+import {
+  StringsUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
+import {
+  EnumerableSetUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import {
+  EnumerableMapUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableMapUpgradeable.sol";
+import {
+  IERC721AUpgradeable
+} from "erc721a-upgradeable/contracts/IERC721AUpgradeable.sol";
+import {Vm} from "@prb/test/Vm.sol";
 
 abstract contract MarketBalanceTestHelper is UpgradeableMarket {
+  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+
   uint256[] internal _removalIds;
   address[] internal _suppliers;
   uint256[] internal _expectedRemovalBalances;
@@ -67,12 +111,6 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
   SignatureUtils internal _mockERC20SignatureUtils;
   SignedPermit signedPermit;
 
-  function _deployMockUnsafeERC20() internal returns (MockUnsafeERC20Permit) {
-    MockUnsafeERC20Permit impl = new MockUnsafeERC20Permit();
-    bytes memory initializer = abi.encodeWithSignature("initialize()");
-    return MockUnsafeERC20Permit(_deployProxy(address(impl), initializer));
-  }
-
   function setUp() external {
     _unsafeErc20 = _deployMockUnsafeERC20();
     _mockERC20SignatureUtils = new SignatureUtils();
@@ -86,7 +124,7 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
     checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
     _unsafeErc20.transfer(owner, checkoutTotal);
     vm.prank(owner);
-    _unsafeErc20.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+    _unsafeErc20.approve(address(_market), type(uint256).max - 1); // give Market infinite allowance of owner's tokens
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
     signedPermit = _mockERC20SignatureUtils.generatePermit(
       ownerPrivateKey,
@@ -111,11 +149,15 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
     );
     vm.stopPrank();
   }
+
+  function _deployMockUnsafeERC20() internal returns (MockUnsafeERC20Permit) {
+    MockUnsafeERC20Permit impl = new MockUnsafeERC20Permit();
+    bytes memory initializer = abi.encodeWithSignature("initialize()");
+    return MockUnsafeERC20Permit(_deployProxy(address(impl), initializer));
+  }
 }
 
 contract ERC1155Recipient {
-  constructor() {}
-
   function onERC1155Received(
     address,
     address from,
@@ -167,7 +209,7 @@ contract MarketReplaceTestHelper is UpgradeableMarket {
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       amount,
@@ -214,6 +256,8 @@ contract MarketReplaceTestHelper is UpgradeableMarket {
 }
 
 contract Market_replace is MarketReplaceTestHelper {
+  using UInt256ArrayLib for uint256[];
+
   function setUp() external {
     _listRemovals();
     _createCertificate();
@@ -263,6 +307,8 @@ contract Market_replace is MarketReplaceTestHelper {
 contract Market_replace_reverts_ReplacementAmountExceedsNrtDeficit is
   MarketReplaceTestHelper
 {
+  using UInt256ArrayLib for uint256[];
+
   function setUp() external {
     _listRemovals();
     _createCertificate();
@@ -303,6 +349,8 @@ contract Market_replace_reverts_ReplacementAmountExceedsNrtDeficit is
 contract Market_replace_reverts_CertificateNotYetMinted is
   MarketReplaceTestHelper
 {
+  using UInt256ArrayLib for uint256[];
+
   function setUp() external {
     _listRemovals();
     // do not create a certificate
@@ -338,6 +386,8 @@ contract Market_replace_reverts_CertificateNotYetMinted is
 contract Market_replace_reverts_ReplacementAmountMismatch is
   MarketReplaceTestHelper
 {
+  using UInt256ArrayLib for uint256[];
+
   function setUp() external {
     _listRemovals();
     _createCertificate();
@@ -373,6 +423,8 @@ contract Market_replace_reverts_ReplacementAmountMismatch is
 contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155Receiver is
   UpgradeableMarket
 {
+  using UInt256ArrayLib for uint256[];
+
   address owner;
   uint256 holdbackPercentage = 10;
   uint256 checkoutTotal;
@@ -423,7 +475,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
 
-    signedPermit = _signatureUtils.generatePermit(
+    signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
@@ -481,12 +533,6 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     address purchasingTokenAddress
   );
 
-  function _deployMockERC20() internal returns (MockERC20Permit) {
-    MockERC20Permit impl = new MockERC20Permit();
-    bytes memory initializer = abi.encodeWithSignature("initialize()");
-    return MockERC20Permit(_deployProxy(address(impl), initializer));
-  }
-
   function setUp() external {
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
@@ -502,7 +548,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     vm.prank(_namedAccounts.admin);
     _noriUSDC.transfer(owner, checkoutTotal);
     vm.stopPrank();
-    signedPermit = _noriUSDCSignatureUtils.generatePermit(
+    signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
@@ -547,6 +593,12 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     assertEq(_noriUSDC.balanceOf(_market.getNoriFeeWallet()), fee);
     assertEq(_noriUSDC.balanceOf(address(_rNori)), 0);
   }
+
+  function _deployMockERC20() internal returns (MockERC20Permit) {
+    MockERC20Permit impl = new MockERC20Permit();
+    bytes memory initializer = abi.encodeWithSignature("initialize()");
+    return MockERC20Permit(_deployProxy(address(impl), initializer));
+  }
 }
 
 contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
@@ -589,7 +641,7 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     _noriUSDC.transfer(owner, checkoutTotal);
     vm.stopPrank();
     vm.prank(owner);
-    _noriUSDC.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+    _noriUSDC.approve(address(_market), type(uint256).max - 1); // infinite approval for Market to spend owner's tokens
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
   }
 
@@ -633,6 +685,9 @@ contract Market_setNoriFeePercentage_revertsInvalidPercentage is
 }
 
 contract Market_setPriorityRestrictedThreshold is MarketBalanceTestHelper {
+  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+  using AddressArrayLib for address[];
+
   function setUp() external {
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
@@ -671,6 +726,9 @@ contract Market_setPriorityRestrictedThreshold is MarketBalanceTestHelper {
 }
 
 contract Market_withdraw_as_supplier is MarketBalanceTestHelper {
+  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+  using AddressArrayLib for address[];
+
   function setUp() external {
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
@@ -697,6 +755,9 @@ contract Market_withdraw_as_supplier is MarketBalanceTestHelper {
 }
 
 contract Market_withdraw_as_operator is MarketBalanceTestHelper {
+  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+  using AddressArrayLib for address[];
+
   function setUp() external {
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
@@ -730,6 +791,9 @@ contract Market_withdraw_as_operator is MarketBalanceTestHelper {
 }
 
 contract Market_withdraw_as_DEFAULT_ADMIN_ROLE is MarketBalanceTestHelper {
+  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+  using AddressArrayLib for address[];
+
   function setUp() external {
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
@@ -755,6 +819,9 @@ contract Market_withdraw_as_DEFAULT_ADMIN_ROLE is MarketBalanceTestHelper {
 }
 
 contract Market_withdraw_reverts is MarketBalanceTestHelper {
+  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+  using AddressArrayLib for address[];
+
   function setUp() external {
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
@@ -778,6 +845,9 @@ contract Market_withdraw_reverts is MarketBalanceTestHelper {
 }
 
 contract Market_withdraw_1x3_center is MarketBalanceTestHelper {
+  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+  using AddressArrayLib for address[];
+
   function setUp() external {
     _suppliers = new address[](3).fill(_namedAccounts.supplier);
     _expectedRemovalBalances = [0, 0, 0];
@@ -805,6 +875,9 @@ contract Market_withdraw_1x3_center is MarketBalanceTestHelper {
 
 /** @dev Test withdraw from the front of the market when the market has 1 removal across two suppliers */
 contract Market_withdraw_2x1_front is MarketBalanceTestHelper {
+  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+  using AddressArrayLib for address[];
+
   function setUp() external {
     _suppliers = [_namedAccounts.supplier, _namedAccounts.supplier2];
     _removalIds = [
@@ -831,13 +904,8 @@ contract Market_withdraw_2x1_front is MarketBalanceTestHelper {
 
 /** @dev Test withdraw from the front of the market when the market has 1 removal across two suppliers, then relists */
 contract Market_withdraw_2x1_front_relist is MarketBalanceTestHelper {
-  function _assertListedState() internal {
-    _expectedRemovalBalances = [0, 0];
-    _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
-    _expectedTokenCount.set(_namedAccounts.supplier, 0);
-    _expectedTokenCount.set(address(_market), _removalIds.length);
-    _assertCorrectStates();
-  }
+  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+  using AddressArrayLib for address[];
 
   function setUp() external {
     _suppliers = [_namedAccounts.supplier, _namedAccounts.supplier2];
@@ -863,10 +931,21 @@ contract Market_withdraw_2x1_front_relist is MarketBalanceTestHelper {
     });
     _assertListedState();
   }
+
+  function _assertListedState() internal {
+    _expectedRemovalBalances = [0, 0];
+    _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
+    _expectedTokenCount.set(_namedAccounts.supplier, 0);
+    _expectedTokenCount.set(address(_market), _removalIds.length);
+    _assertCorrectStates();
+  }
 }
 
 /** @dev Test withdraw from the back of the market when the market has 1 removal across two suppliers */
 contract Market_withdraw_2x1_back is MarketBalanceTestHelper {
+  using EnumerableMapUpgradeable for EnumerableMapUpgradeable.AddressToUintMap;
+  using AddressArrayLib for address[];
+
   function setUp() external {
     _suppliers = [_namedAccounts.supplier, _namedAccounts.supplier2];
     _removalIds = [
@@ -899,13 +978,7 @@ contract Market_ALLOWLIST_ROLE is UpgradeableMarket {
   }
 }
 
-contract Market__isAuthorizedWithdrawal_true is
-  NonUpgradeableMarket(
-    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-    25,
-    1
-  )
-{
+contract Market__isAuthorizedWithdrawal_true is NonUpgradeableNORIMarket {
   function setUp() external {
     vm.store(
       address(this),
@@ -933,24 +1006,9 @@ contract Market__isAuthorizedWithdrawal_true is
   }
 }
 
-contract Market__isAuthorizedWithdrawal_false is
-  NonUpgradeableMarket(
-    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-    25,
-    1
-  )
-{
+contract Market__isAuthorizedWithdrawal_false is NonUpgradeableNORIMarket {
   function setUp() external {
-    vm.store(
-      address(this),
-      bytes32(uint256(301)), // sets the _removal storage slot to the market contract to enable mock calls
-      bytes32(uint256(uint160(address(this))))
-    );
-    vm.mockCall(
-      address(this),
-      abi.encodeWithSelector(IERC1155Upgradeable.isApprovedForAll.selector),
-      abi.encode(false)
-    );
+    _revokeRole({role: MARKET_ADMIN_ROLE, account: _namedAccounts.deployer});
   }
 
   function test_returnsFalseWhenAllConditionsAreFalse() external {
@@ -958,13 +1016,7 @@ contract Market__isAuthorizedWithdrawal_false is
   }
 }
 
-contract Market__validatePrioritySupply is
-  NonUpgradeableMarket(
-    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-    25,
-    1
-  )
-{
+contract Market__validatePrioritySupply is NonUpgradeableNORIMarket {
   function test_supplyAfterPurchaseIsLessThanPriorityRestrictedThreshold()
     external
     view
@@ -986,11 +1038,7 @@ contract Market__validatePrioritySupply is
 }
 
 contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriorityRestrictedThreshold is
-  NonUpgradeableMarket(
-    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-    25,
-    1
-  )
+  NonUpgradeableNORIMarket
 {
   function setUp() external {
     _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
@@ -1009,64 +1057,54 @@ contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriori
 }
 
 contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
-  NonUpgradeableMarket(
-    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-    25,
-    1
-  )
+  NonUpgradeableNORIMarket
 {
-  function setUp() external {
+  // function setUp() external {
+
+  // }
+
+  function test() external {
     _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
     vm.prank(_msgSender());
     this.setPriorityRestrictedThreshold({threshold: 1 ether});
-  }
-
-  function test() external {
     vm.expectRevert(LowSupplyAllowlistRequired.selector);
     _validatePrioritySupply({
-      purchaser: _msgSender(),
+      purchaser: _namedAccounts.buyer,
       certificateAmount: 1 ether,
       availableSupply: 1 ether
     });
   }
 }
 
-contract Market__addActiveRemoval is
-  NonUpgradeableMarket(
-    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-    25,
-    1
-  ),
-  UpgradeableRemoval
-{
+contract Market__addActiveRemoval is NonUpgradeableNORIMarket, RemovalFixtures {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   function test() external {
-    _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
+    _addActiveRemoval({removalId: _REMOVAL_ID_FIXTURE});
   }
 
   function test__list1VintageFor1Supplier() external {
-    _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
-    address supplier = RemovalIdLib.supplierAddress(REMOVAL_ID_FIXTURE);
+    _addActiveRemoval({removalId: _REMOVAL_ID_FIXTURE});
+    address supplier = RemovalIdLib.supplierAddress(_REMOVAL_ID_FIXTURE);
     uint256 earliestYear = _listedSupply[supplier].earliestYear;
-    assertEq(earliestYear, REMOVAL_DATA_FIXTURE.vintage);
-    assertEq(_listedSupply[supplier].latestYear, REMOVAL_DATA_FIXTURE.vintage);
+    assertEq(earliestYear, _REMOVAL_DATA_FIXTURE.vintage);
+    assertEq(_listedSupply[supplier].latestYear, _REMOVAL_DATA_FIXTURE.vintage);
     EnumerableSetUpgradeable.UintSet storage yearToRemovals = _listedSupply[
       supplier
     ].yearToRemovals[earliestYear];
     assertEq(yearToRemovals.length(), 1);
-    assertEq(yearToRemovals.at(0), REMOVAL_ID_FIXTURE);
+    assertEq(yearToRemovals.at(0), _REMOVAL_ID_FIXTURE);
     assertEq(_suppliers[supplier].next, supplier);
     assertEq(_suppliers[supplier].previous, supplier);
   }
 
   function test__list2VintagesFor1SupplierFor1SubIdentifier() external {
-    DecodedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
-    secondRemovalsData.vintage = REMOVAL_DATA_FIXTURE.vintage + 1;
+    DecodedRemovalIdV0 memory secondRemovalsData = _REMOVAL_DATA_FIXTURE;
+    secondRemovalsData.vintage = _REMOVAL_DATA_FIXTURE.vintage + 1;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
-    _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
+    _addActiveRemoval({removalId: _REMOVAL_ID_FIXTURE});
     _addActiveRemoval({removalId: secondRemovalsId});
-    uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
+    uint256 earliestYear = _REMOVAL_DATA_FIXTURE.vintage;
     uint256 latestYear = secondRemovalsData.vintage;
     address supplier = RemovalIdLib.supplierAddress(secondRemovalsId);
     EnumerableSetUpgradeable.UintSet storage yearToRemovals = _listedSupply[
@@ -1081,12 +1119,12 @@ contract Market__addActiveRemoval is
   }
 
   function test__lis2VintagesFor1SupplierFor2SubIdentifiers() external {
-    DecodedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
-    secondRemovalsData.subIdentifier = REMOVAL_DATA_FIXTURE.subIdentifier + 1;
+    DecodedRemovalIdV0 memory secondRemovalsData = _REMOVAL_DATA_FIXTURE;
+    secondRemovalsData.subIdentifier = _REMOVAL_DATA_FIXTURE.subIdentifier + 1;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
-    _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
+    _addActiveRemoval({removalId: _REMOVAL_ID_FIXTURE});
     _addActiveRemoval({removalId: secondRemovalsId});
-    uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
+    uint256 earliestYear = _REMOVAL_DATA_FIXTURE.vintage;
     uint256 latestYear = secondRemovalsData.vintage;
     EnumerableSetUpgradeable.UintSet storage yearToRemovals = _listedSupply[
       _namedAccounts.supplier
@@ -1094,7 +1132,7 @@ contract Market__addActiveRemoval is
     assertEq(_listedSupply[_namedAccounts.supplier].earliestYear, earliestYear);
     assertEq(_listedSupply[_namedAccounts.supplier].latestYear, latestYear);
     assertEq(yearToRemovals.length(), 2);
-    assertEq(yearToRemovals.at(0), REMOVAL_ID_FIXTURE);
+    assertEq(yearToRemovals.at(0), _REMOVAL_ID_FIXTURE);
     assertEq(yearToRemovals.at(1), secondRemovalsId);
     assertEq(_suppliers[_namedAccounts.supplier].next, _namedAccounts.supplier);
     assertEq(
@@ -1104,13 +1142,13 @@ contract Market__addActiveRemoval is
   }
 
   function test__list1VintageFor2Suppliers() external {
-    DecodedRemovalIdV0 memory secondRemovalsData = REMOVAL_DATA_FIXTURE;
+    DecodedRemovalIdV0 memory secondRemovalsData = _REMOVAL_DATA_FIXTURE;
     secondRemovalsData.supplierAddress = _namedAccounts.supplier2;
     uint256 secondRemovalsId = RemovalIdLib.createRemovalId(secondRemovalsData);
-    _addActiveRemoval({removalId: REMOVAL_ID_FIXTURE});
+    _addActiveRemoval({removalId: _REMOVAL_ID_FIXTURE});
     _addActiveRemoval({removalId: secondRemovalsId});
-    uint256 earliestYear = REMOVAL_DATA_FIXTURE.vintage;
-    uint256 latestYear = REMOVAL_DATA_FIXTURE.vintage;
+    uint256 earliestYear = _REMOVAL_DATA_FIXTURE.vintage;
+    uint256 latestYear = _REMOVAL_DATA_FIXTURE.vintage;
     EnumerableSetUpgradeable.UintSet storage yearToRemovals = _listedSupply[
       _namedAccounts.supplier
     ].yearToRemovals[earliestYear];
@@ -1126,7 +1164,7 @@ contract Market__addActiveRemoval is
     assertEq(_listedSupply[_namedAccounts.supplier2].latestYear, latestYear);
     assertEq(yearToRemovals.length(), 1);
     assertEq(queueByVintage2.length(), 1);
-    assertEq(yearToRemovals.at(0), REMOVAL_ID_FIXTURE);
+    assertEq(yearToRemovals.at(0), _REMOVAL_ID_FIXTURE);
     assertEq(queueByVintage2.at(0), secondRemovalsId);
     assertEq(
       _suppliers[_namedAccounts.supplier].next,
@@ -1154,7 +1192,7 @@ contract Market_onERC1155Received is UpgradeableMarket {
       _market.onERC1155Received(
         address(0),
         address(0),
-        REMOVAL_ID_FIXTURE,
+        _REMOVAL_ID_FIXTURE,
         uint256(1),
         ""
       ),
@@ -1208,13 +1246,15 @@ contract Market_onERC1155Received_reverts_SenderNotRemovalContract is
 }
 
 contract Market_onERC1155BatchReceived is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   function test() external {
     vm.prank(address(_removal));
     assertEq(
       _market.onERC1155BatchReceived(
         address(0),
         address(0),
-        new uint256[](1).fill(REMOVAL_ID_FIXTURE),
+        new uint256[](1).fill(_REMOVAL_ID_FIXTURE),
         new uint256[](1).fill(1),
         ""
       ),
@@ -1262,21 +1302,14 @@ contract Market_onERC1155BatchReceived_reverts_SenderNotRemovalContract is
   }
 }
 
-contract Market__validateSupply is
-  NonUpgradeableMarket(
-    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-    25,
-    1
-  ),
-  UpgradeableRemoval
-{
-  function test() external pure {
-    _validateSupply({certificateAmount: 1 ether, availableSupply: 1 ether});
-  }
-
+contract Market__validateSupply is NonUpgradeableNORIMarket, RemovalFixtures {
   function test_reverts_OutOfSupply() external {
     vm.expectRevert(InsufficientSupply.selector);
     _validateSupply({certificateAmount: 1 ether, availableSupply: 0.9 ether});
+  }
+
+  function test() external pure {
+    _validateSupply({certificateAmount: 1 ether, availableSupply: 1 ether});
   }
 }
 
@@ -1309,6 +1342,8 @@ contract Market__multicall_empty_bytes_reverts is UpgradeableMarket {
 }
 
 contract Market_getActiveSuppliers is UpgradeableMarket {
+  using AddressArrayLib for address[];
+
   uint256[] private _removalIds;
 
   function test_no_suppliers() external {
@@ -1393,13 +1428,7 @@ contract Market_getRemovalIdsForSupplier is UpgradeableMarket {
   }
 }
 
-contract Market__setPurchasingToken is
-  NonUpgradeableMarket(
-    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-    25,
-    1
-  )
-{
+contract Market__setPurchasingToken is NonUpgradeableNORIMarket {
   function test() external {
     vm.recordLogs();
     MockERC20Permit erc20 = new MockERC20Permit();
@@ -1422,13 +1451,7 @@ contract Market_purchasingTokenAddress is UpgradeableMarket {
   }
 }
 
-contract Market__setPriceMultiple is
-  NonUpgradeableMarket(
-    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-    25,
-    1
-  )
-{
+contract Market__setPriceMultiple is NonUpgradeableNORIMarket {
   function test() external {
     vm.recordLogs();
     uint256 newPriceMultiple = 20;
@@ -1440,13 +1463,7 @@ contract Market__setPriceMultiple is
   }
 }
 
-contract Market__validateCertificateAmount is
-  NonUpgradeableMarket(
-    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
-    25,
-    1
-  )
-{
+contract Market__validateCertificateAmount is NonUpgradeableNORIMarket {
   function test__validateCertificateAmount() external {
     uint256 newPriceMultiple = 20;
     _setPriceMultiple({priceMultiple: newPriceMultiple});
@@ -1455,7 +1472,7 @@ contract Market__validateCertificateAmount is
 
 contract Market_getPriceMultiple is UpgradeableMarket {
   function test() external {
-    assertEq(_market.getPriceMultiple(), 2000);
+    assertEq(_market.getPriceMultiple(), 100);
   }
 }
 
@@ -1485,7 +1502,12 @@ contract Market_setPurchasingTokenAndPriceMultiple_revertsIfNotAdmin is
   function test() external {
     address nonAdmin = vm.addr(0xa11ce);
     vm.expectRevert(
-      "AccessControl: account 0xe05fcc23807536bee418f142d19fa0d21bb0cff7 is missing role 0x3fb0aaa9e8051cfc6c234a5d843bed33910f70c647055f27247c10144c7552e1"
+      abi.encodePacked(
+        string.concat(
+          "AccessControl: account 0xe05fcc23807536bee418f142d19fa0d21bb0cff7 is missing role ",
+          "0x3fb0aaa9e8051cfc6c234a5d843bed33910f70c647055f27247c10144c7552e1"
+        )
+      )
     );
     vm.prank(nonAdmin);
     _market.setPurchasingTokenAndPriceMultiple(IERC20WithPermit(address(0)), 0);
@@ -1515,7 +1537,7 @@ contract Market_supplierSelectionUsingUpSuppliersLastRemoval is
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
 
-    signedPermit = _signatureUtils.generatePermit(
+    signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
@@ -1596,7 +1618,7 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
 
-    signedPermit = _signatureUtils.generatePermit(
+    signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
@@ -1692,12 +1714,8 @@ contract Market_calculates_prices_using_decimal is UpgradeableUSDCMarket {
 }
 
 contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
-  address owner;
-  uint256 checkoutTotal;
-  SignedPermit signedPermit;
-  uint256 removalId;
-
   using MathUpgradeable for uint256;
+  using UInt256ArrayLib for uint256[];
 
   struct CertificateData {
     bool isReplacement;
@@ -1707,6 +1725,12 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
     uint256 priceMultiple;
     uint256 noriFeePercentage;
   }
+
+  address private _owner;
+  uint256 private _checkoutTotal;
+  SignedPermit private _signedPermit;
+  uint256 private _removalId;
+  IERC20WithPermit private _purchasingToken;
 
   event CreateCertificate(
     address from,
@@ -1732,8 +1756,9 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
       supplierAddress: address(_namedAccounts.supplier),
       subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
     });
+    _purchasingToken = IERC20WithPermit(_market.getPurchasingTokenAddress());
 
-    removalId = RemovalIdLib.createRemovalId(removals[0]);
+    _removalId = RemovalIdLib.createRemovalId(removals[0]);
 
     _removal.mintBatch(
       address(_market),
@@ -1749,27 +1774,26 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
     uint256 numberOfNRTsToPurchase = 1 ether;
     uint256 ownerPrivateKey = 0xA11CE;
     uint256 certificateTokenId = 0;
-    owner = vm.addr(ownerPrivateKey);
-    checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
-
+    _owner = vm.addr(ownerPrivateKey);
+    _checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
     vm.prank(_namedAccounts.admin);
-    _purchasingToken.transfer(owner, checkoutTotal);
+    _purchasingToken.transfer(_owner, _checkoutTotal);
 
-    signedPermit = _signatureUtils.generatePermit(
+    _signedPermit = _noriUSDCSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
-      checkoutTotal,
+      _checkoutTotal,
       1 days,
       _purchasingToken
     );
 
-    vm.prank(owner);
+    vm.prank(_owner);
     vm.expectEmit(false, false, false, true);
-    uint256[] memory removalIds = new uint256[](1).fill(removalId);
+    uint256[] memory removalIds = new uint256[](1).fill(_removalId);
     uint256[] memory amounts = new uint256[](1).fill(numberOfNRTsToPurchase);
     emit CreateCertificate(
       address(_removal),
-      owner,
+      _owner,
       certificateTokenId,
       numberOfNRTsToPurchase,
       removalIds,
@@ -1779,17 +1803,17 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
       _market.getNoriFeePercentage()
     );
     _market.swap(
-      owner,
-      owner,
+      _owner,
+      _owner,
       numberOfNRTsToPurchase,
-      signedPermit.permit.deadline,
-      signedPermit.v,
-      signedPermit.r,
-      signedPermit.s
+      _signedPermit.permit.deadline,
+      _signedPermit.v,
+      _signedPermit.r,
+      _signedPermit.s
     );
     vm.stopPrank();
-    assertEq(_certificate.ownerOf(certificateTokenId), owner);
-    assertEq(_purchasingToken.balanceOf(owner), 0);
+    assertEq(_certificate.ownerOf(certificateTokenId), _owner);
+    assertEq(_purchasingToken.balanceOf(_owner), 0);
     assertEq(_purchasingToken.balanceOf(_namedAccounts.supplier), 20_000_000);
     assertEq(_purchasingToken.balanceOf(_market.getNoriFeeWallet()), 5_000_000);
     assertEq(_purchasingToken.balanceOf(address(_rNori)), 0);
@@ -1797,12 +1821,8 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
 }
 
 contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
-  address owner;
-  uint256 checkoutTotal;
-  SignedPermit signedPermit;
-  uint256 removalId;
-
   using MathUpgradeable for uint256;
+  using UInt256ArrayLib for uint256[];
 
   struct CertificateData {
     bool isReplacement;
@@ -1812,6 +1832,12 @@ contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
     uint256 priceMultiple;
     uint256 noriFeePercentage;
   }
+
+  address private _owner;
+  uint256 private _checkoutTotal;
+  SignedPermit private _signedPermit;
+  uint256 private _removalId;
+  IERC20WithPermit private _purchasingToken;
 
   event CreateCertificate(
     address from,
@@ -1826,6 +1852,7 @@ contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
   );
 
   function setUp() external {
+    _purchasingToken = IERC20WithPermit(address(_noriUSDC));
     DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
     removals[0] = DecodedRemovalIdV0({
       idVersion: 0,
@@ -1838,7 +1865,7 @@ contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
       subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
     });
 
-    removalId = RemovalIdLib.createRemovalId(removals[0]);
+    _removalId = RemovalIdLib.createRemovalId(removals[0]);
 
     _removal.mintBatch(
       address(_market),
@@ -1854,27 +1881,27 @@ contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
     uint256 numberOfNRTsToPurchase = 1 ether;
     uint256 ownerPrivateKey = 0xA11CE;
     uint256 certificateTokenId = 0;
-    owner = vm.addr(ownerPrivateKey);
-    checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
+    _owner = vm.addr(ownerPrivateKey);
+    _checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
 
     vm.prank(_namedAccounts.admin);
-    _purchasingToken.transfer(owner, checkoutTotal);
+    _purchasingToken.transfer(_owner, _checkoutTotal);
 
-    signedPermit = _signatureUtils.generatePermit(
+    _signedPermit = _noriUSDCSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
-      checkoutTotal,
+      _checkoutTotal,
       1 days,
       _purchasingToken
     );
 
-    vm.prank(owner);
+    vm.prank(_owner);
     vm.expectEmit(false, false, false, true);
-    uint256[] memory removalIds = new uint256[](1).fill(removalId);
+    uint256[] memory removalIds = new uint256[](1).fill(_removalId);
     uint256[] memory amounts = new uint256[](1).fill(numberOfNRTsToPurchase);
     emit CreateCertificate(
       address(_removal),
-      owner,
+      _owner,
       certificateTokenId,
       numberOfNRTsToPurchase,
       removalIds,
@@ -1884,20 +1911,40 @@ contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
       _market.getNoriFeePercentage()
     );
     _market.swap(
-      owner,
-      owner,
+      _owner,
+      _owner,
       numberOfNRTsToPurchase,
-      signedPermit.permit.deadline,
-      signedPermit.v,
-      signedPermit.r,
-      signedPermit.s
+      _signedPermit.permit.deadline,
+      _signedPermit.v,
+      _signedPermit.r,
+      _signedPermit.s
     );
     vm.stopPrank();
-    assertEq(_certificate.ownerOf(certificateTokenId), owner);
-    assertEq(_purchasingToken.balanceOf(owner), 0);
-    assertEq(_purchasingToken.balanceOf(_namedAccounts.supplier), 18_000_000);
-    assertEq(_purchasingToken.balanceOf(_market.getNoriFeeWallet()), 5_000_000);
-    assertEq(_purchasingToken.balanceOf(address(_rNori)), 2_000_000);
+    assertEq(
+      _certificate.ownerOf(certificateTokenId),
+      _owner,
+      "Unexpected cretificate owner"
+    );
+    assertEq(
+      _purchasingToken.balanceOf(_owner),
+      0,
+      "Unexpected rNori usdc balance"
+    );
+    assertEq(
+      _purchasingToken.balanceOf(_namedAccounts.supplier),
+      18_000_000,
+      "Unexpected supplier usdc balance"
+    );
+    assertEq(
+      _purchasingToken.balanceOf(_market.getNoriFeeWallet()),
+      5_000_000,
+      "Unexpected fee wallet usdc balance"
+    );
+    assertEq(
+      _purchasingToken.balanceOf(address(_rNori)),
+      2_000_000,
+      "Unexpected rNori usdc balance"
+    );
   }
 }
 

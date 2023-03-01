@@ -200,25 +200,6 @@ contract Removal is
   }
 
   /**
-   * @notice Initializes the Removal contract.
-   * @param baseURI The base URI for the removal NFTs.
-   */
-  function initialize(string memory baseURI) external initializer {
-    __Context_init_unchained();
-    __ERC165_init_unchained();
-    __ERC1155_init_unchained({uri_: string(abi.encodePacked(baseURI, "{id}"))});
-    __Pausable_init_unchained();
-    __ERC1155Supply_init_unchained();
-    __AccessControl_init_unchained();
-    __AccessControlEnumerable_init_unchained();
-    __Multicall_init_unchained();
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
-    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
-    _grantRole({role: CONSIGNOR_ROLE, account: _msgSender()});
-    _grantRole({role: RELEASER_ROLE, account: _msgSender()});
-  }
-
-  /**
    * @notice Registers the market and certificate contracts so that they can be referenced in this contract.
    * Called as part of the market contract system deployment process.
    * @dev Emits a `RegisterContractAddresses` event.
@@ -559,6 +540,25 @@ contract Removal is
     returns (DecodedRemovalIdV0 memory)
   {
     return RemovalIdLib.decodeRemovalIdV0({removalId: id});
+  }
+
+  /**
+   * @notice Initializes the Removal contract.
+   * @param baseURI The base URI for the removal NFTs.
+   */
+  function initialize(string memory baseURI) public initializer {
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __ERC1155_init_unchained({uri_: string(abi.encodePacked(baseURI, "{id}"))});
+    __Pausable_init_unchained();
+    __ERC1155Supply_init_unchained();
+    __AccessControl_init_unchained();
+    __AccessControlEnumerable_init_unchained();
+    __Multicall_init_unchained();
+    _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
+    _grantRole({role: PAUSER_ROLE, account: _msgSender()});
+    _grantRole({role: CONSIGNOR_ROLE, account: _msgSender()});
+    _grantRole({role: RELEASER_ROLE, account: _msgSender()});
   }
 
   /**

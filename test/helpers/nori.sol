@@ -7,11 +7,11 @@ import "@/test/helpers/signature-utils.sol";
 
 abstract contract UpgradeableNORI is Upgradeable {
   NORI internal _nori;
-  SignatureUtils internal _signatureUtils;
+  SignatureUtils internal _noriSignatureUtils;
 
   constructor() {
     _nori = _deployNORI();
-    _signatureUtils = new SignatureUtils();
+    _noriSignatureUtils = new SignatureUtils();
   }
 
   function _deployNORI() internal returns (NORI) {
@@ -24,6 +24,7 @@ abstract contract UpgradeableNORI is Upgradeable {
   }
 }
 
-contract NonUpgradeableNORIMock is NORI, Global {}
+// solhint-disable-next-line no-empty-blocks, this is a test
+contract NonUpgradeableNORIMock is NORI, Global {
 
-abstract contract UpgradeableNORIMock is UpgradeableNORI {}
+}

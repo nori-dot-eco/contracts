@@ -30,5 +30,10 @@ abstract contract UpgradeableCertificate is Upgradeable, UpgradeableRemoval {
 contract NonUpgradeableCertificate is Certificate, Global {
   constructor() {
     vm.label(address(this), "NonUpgradeableCertificate");
+    initialize({baseURI: "https://registry.nori.com/removals/"});
+  }
+
+  function _disableInitializers() internal override {
+    // solhint-disable-previous-line no-empty-blocks, this allows us to initialize an implementation contract
   }
 }

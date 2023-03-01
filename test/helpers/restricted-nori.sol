@@ -23,12 +23,13 @@ abstract contract UpgradeableRestrictedNORI is Upgradeable {
   }
 }
 
-// solhint-disable-next-line no-empty-blocks, this is a test
 contract NonUpgradeableRestrictedNORI is RestrictedNORI, Global {
   constructor() {
     vm.label(address(this), "NonUpgradeableRestrictedNORI");
-    _grantRole({role: DEFAULT_ADMIN_ROLE, account: msg.sender});
-    // this.initialize();
+    initialize();
   }
-  // function _disableInitializers() internal override {}
+
+  function _disableInitializers() internal override {
+    // solhint-disable-previous-line no-empty-blocks, this allows us to initialize an implementation contract
+  }
 }

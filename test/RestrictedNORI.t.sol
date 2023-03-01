@@ -1,8 +1,16 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@/test/helpers/restricted-nori.sol";
-import "@/test/checkout.int.t.sol";
+import {RestrictedNORILib, Schedule} from "@/contracts/RestrictedNORILib.sol";
+import {RemovalIdLib, DecodedRemovalIdV0} from "@/contracts/RemovalIdLib.sol";
+import {AddressArrayLib, UInt256ArrayLib} from "@/contracts/ArrayLib.sol";
+import {ScheduleExists, FunctionDisabled} from "@/contracts/Errors.sol";
+import {SignedPermit, SignatureUtils} from "@/test/helpers/signature-utils.sol";
+import {UpgradeableMarket} from "@/test/helpers/market.sol";
+import {
+  UpgradeableRestrictedNORI,
+  NonUpgradeableRestrictedNORI
+} from "@/test/helpers/restricted-nori.sol";
 
 contract RestrictedNORI_initialize is UpgradeableRestrictedNORI {
   function test() external {
@@ -118,12 +126,12 @@ contract RestrictedNORI_revokeUnreleasedTokens is UpgradeableMarket {
       _removalIds.push(localRemovalIds[0]);
     }
     uint256 ownerPrivateKey = 0xA11CE;
-    address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
+    address owner = vm.addr(ownerPrivateKey);
     uint256 certificateAmount = 3 ether;
-    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount); // todo replace other test usage of _market.calculateNoriFee
-    vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
+    vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
+    SignedPermit memory signedPermit = _bpNoriSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
       checkoutTotal,
@@ -152,13 +160,13 @@ contract RestrictedNORI_revokeUnreleasedTokens is UpgradeableMarket {
 }
 
 contract RestrictedNORI_transfers_revert is UpgradeableMarket {
+  using UInt256ArrayLib for uint256[];
+
   uint256 scheduleId = 1;
   uint256[] scheduleIds = [scheduleId];
   uint256 removalId;
   uint256 amount = 1 ether;
   uint256[] amounts = [amount];
-
-  using UInt256ArrayLib for uint256[];
 
   function setUp() external {
     DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
