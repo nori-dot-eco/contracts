@@ -4,13 +4,13 @@ pragma solidity =0.8.17;
 import "@/test/helpers/bridged-polygon-nori.sol";
 import {SignedPermit} from "@/test/helpers/signature-utils.sol";
 
-contract BridgedPolygonNORI_name is UpgradableBridgedPolygonNORIMock {
+contract BridgedPolygonNORI_name is UpgradeableBridgedPolygonNORI {
   function test() external {
     assertEq(_bpNori.name(), "NORI");
   }
 }
 
-contract BridgedPolygonNORI_permit is UpgradableBridgedPolygonNORIMock {
+contract BridgedPolygonNORI_permit is UpgradeableBridgedPolygonNORI {
   function test() external {
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);

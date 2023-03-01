@@ -4,13 +4,13 @@ pragma solidity =0.8.17;
 import "@/test/helpers/nori.sol";
 import {SignedPermit} from "@/test/helpers/signature-utils.sol";
 
-contract NORI_name is UpgradableNORIMock {
+contract NORI_name is UpgradeableNORIMock {
   function test() external {
     assertEq(_nori.name(), "NORI");
   }
 }
 
-contract NORI_permit is UpgradableNORIMock {
+contract NORI_permit is UpgradeableNORIMock {
   function test() external {
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);

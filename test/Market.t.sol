@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 import "@/test/helpers/market.sol";
+import "@/test/helpers/bridged-polygon-nori.sol";
 import "@/test/helpers/removal.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
@@ -898,7 +899,13 @@ contract Market_ALLOWLIST_ROLE is UpgradeableMarket {
   }
 }
 
-contract Market__isAuthorizedWithdrawal_true is NonUpgradeableMarket {
+contract Market__isAuthorizedWithdrawal_true is
+  NonUpgradeableMarket(
+    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+    25,
+    1
+  )
+{
   function setUp() external {
     vm.store(
       address(this),
@@ -926,7 +933,13 @@ contract Market__isAuthorizedWithdrawal_true is NonUpgradeableMarket {
   }
 }
 
-contract Market__isAuthorizedWithdrawal_false is NonUpgradeableMarket {
+contract Market__isAuthorizedWithdrawal_false is
+  NonUpgradeableMarket(
+    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+    25,
+    1
+  )
+{
   function setUp() external {
     vm.store(
       address(this),
@@ -945,7 +958,13 @@ contract Market__isAuthorizedWithdrawal_false is NonUpgradeableMarket {
   }
 }
 
-contract Market__validatePrioritySupply is NonUpgradeableMarket {
+contract Market__validatePrioritySupply is
+  NonUpgradeableMarket(
+    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+    25,
+    1
+  )
+{
   function test_supplyAfterPurchaseIsLessThanPriorityRestrictedThreshold()
     external
     view
@@ -967,7 +986,11 @@ contract Market__validatePrioritySupply is NonUpgradeableMarket {
 }
 
 contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriorityRestrictedThreshold is
-  NonUpgradeableMarket
+  NonUpgradeableMarket(
+    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+    25,
+    1
+  )
 {
   function setUp() external {
     _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
@@ -986,7 +1009,11 @@ contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriori
 }
 
 contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
-  NonUpgradeableMarket
+  NonUpgradeableMarket(
+    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+    25,
+    1
+  )
 {
   function setUp() external {
     _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
@@ -1004,7 +1031,14 @@ contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
   }
 }
 
-contract Market__addActiveRemoval is NonUpgradeableMarket, UpgradeableRemoval {
+contract Market__addActiveRemoval is
+  NonUpgradeableMarket(
+    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+    25,
+    1
+  ),
+  UpgradeableRemoval
+{
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
 
   function test() external {
@@ -1228,7 +1262,14 @@ contract Market_onERC1155BatchReceived_reverts_SenderNotRemovalContract is
   }
 }
 
-contract Market__validateSupply is NonUpgradeableMarket, UpgradeableRemoval {
+contract Market__validateSupply is
+  NonUpgradeableMarket(
+    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+    25,
+    1
+  ),
+  UpgradeableRemoval
+{
   function test() external pure {
     _validateSupply({certificateAmount: 1 ether, availableSupply: 1 ether});
   }
@@ -1352,7 +1393,13 @@ contract Market_getRemovalIdsForSupplier is UpgradeableMarket {
   }
 }
 
-contract Market__setPurchasingToken is NonUpgradeableMarket {
+contract Market__setPurchasingToken is
+  NonUpgradeableMarket(
+    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+    25,
+    1
+  )
+{
   function test() external {
     vm.recordLogs();
     MockERC20Permit erc20 = new MockERC20Permit();
@@ -1375,7 +1422,13 @@ contract Market_purchasingTokenAddress is UpgradeableMarket {
   }
 }
 
-contract Market__setPriceMultiple is NonUpgradeableMarket {
+contract Market__setPriceMultiple is
+  NonUpgradeableMarket(
+    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+    25,
+    1
+  )
+{
   function test() external {
     vm.recordLogs();
     uint256 newPriceMultiple = 20;
@@ -1384,6 +1437,19 @@ contract Market__setPriceMultiple is NonUpgradeableMarket {
     assertEq(entries.length, 1);
     assertEq(entries[0].topics[0], keccak256("SetPriceMultiple(uint256)"));
     assertEq(abi.decode(entries[0].data, (uint256)), newPriceMultiple);
+  }
+}
+
+contract Market__validateCertificateAmount is
+  NonUpgradeableMarket(
+    IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+    25,
+    1
+  )
+{
+  function test__validateCertificateAmount() external {
+    uint256 newPriceMultiple = 20;
+    _setPriceMultiple({priceMultiple: newPriceMultiple});
   }
 }
 

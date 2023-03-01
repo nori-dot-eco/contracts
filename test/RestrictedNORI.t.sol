@@ -4,7 +4,7 @@ pragma solidity =0.8.17;
 import "@/test/helpers/restricted-nori.sol";
 import "@/test/checkout.int.t.sol";
 
-contract RestrictedNORI_initialize is UpgradableRestrictedNORI {
+contract RestrictedNORI_initialize is UpgradeableRestrictedNORI {
   function test() external {
     assertEq(
       _rNori.uri(0),
@@ -14,7 +14,7 @@ contract RestrictedNORI_initialize is UpgradableRestrictedNORI {
 }
 
 contract RestrictedNORI_linearReleaseAmountAvailable is
-  NonUpgradableRestrictedNORI
+  NonUpgradeableRestrictedNORI
 {
   using RestrictedNORILib for Schedule;
   uint256 scheduleKey = 0;
@@ -76,14 +76,14 @@ contract RestrictedNORI_scheduleExists is UpgradeableMarket {
   }
 }
 
-contract RestrictedNORI__validateSchedule is NonUpgradableRestrictedNORI {
+contract RestrictedNORI__validateSchedule is NonUpgradeableRestrictedNORI {
   function test_startTimeNotZero() external pure {
     _validateSchedule({startTime: 1, restrictionDuration: 1});
   }
 }
 
 contract RestrictedNORI__validateSchedule_reverts is
-  NonUpgradableRestrictedNORI
+  NonUpgradeableRestrictedNORI
 {
   function test_startTimeZero() external {
     vm.expectRevert("rNORI: Invalid start time");

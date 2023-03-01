@@ -30,4 +30,4 @@ abstract contract UpgradeableNoriUSDC is Upgradeable {
   }
 }
 
-contract NonUpgradablePurchaseToken is NoriUSDC, Global {}
+contract NonUpgradeablePurchaseToken is NoriUSDC, Global {}

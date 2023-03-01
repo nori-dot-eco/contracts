@@ -5,8 +5,11 @@ pragma solidity =0.8.17;
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "forge-std/console2.sol";
 import "@prb/test/PRBTest.sol";
+import {stdStorage, StdStorage} from "forge-std/StdStorage.sol";
 
 abstract contract Global is PRBTest {
+  using stdStorage for StdStorage;
+
   struct NamedAccounts {
     // todo investigate why _this and deployer aren't always the same address and rename accordingly
     address deployer; // the default sender account for transactions configured in foundry.toml
@@ -18,6 +21,8 @@ abstract contract Global is PRBTest {
     address buyer;
     address feeWallet;
   }
+
+  StdStorage internal _stdstore;
 
   NamedAccounts internal _namedAccounts =
     NamedAccounts({
@@ -74,6 +79,8 @@ abstract contract Global is PRBTest {
   }
 
   function assertEq(uint8[] memory a, uint8[] memory b) internal virtual {
+    _stdstore.target(address(this));
+
     if (!eq(a, b)) {
       emit Log("Error: a == b not satisfied [uint8[]]");
       emit LogNamedArray("  Expected", b);

@@ -3,14 +3,20 @@
 pragma solidity =0.8.17;
 import "@/test/helpers/market.sol";
 
-contract RemovalQueue_getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
+contract RemovalQueue__getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
   using RemovalsByYearLib for RemovalsByYear;
   using AddressArrayLib for address[];
   using UInt256ArrayLib for uint256[];
 
   NonUpgradeableRemoval private _removal;
 
-  constructor() {
+  constructor()
+    NonUpgradeableMarket(
+      IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+      25,
+      1
+    )
+  {
     _removal = new NonUpgradeableRemoval();
     vm.store(
       address(_removal),
@@ -55,7 +61,25 @@ contract RemovalQueue_getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
     });
   }
 
-  function getTotalBalance(RemovalsByYear storage collection)
+  function test() external {
+    assertEq(_getTotalBalance(_listedSupply[_namedAccounts.supplier]), 1 ether);
+  }
+
+  function test_100xRemovalsOfTheSameVintage() external {
+    assertEq(
+      _getTotalBalance(_listedSupply[_namedAccounts.supplier2]),
+      100 ether
+    );
+  }
+
+  function test_100xRemovalsOfTheDifferentVintages() external {
+    assertEq(
+      _getTotalBalance(_listedSupply[_namedAccounts.supplier3]),
+      100 ether
+    );
+  }
+
+  function _getTotalBalance(RemovalsByYear storage collection)
     internal
     view
     returns (uint256)
@@ -69,24 +93,6 @@ contract RemovalQueue_getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
         )
         .sum();
   }
-
-  function test() external {
-    assertEq(getTotalBalance(_listedSupply[_namedAccounts.supplier]), 1 ether);
-  }
-
-  function test_100xRemovalsOfTheSameVintage() external {
-    assertEq(
-      getTotalBalance(_listedSupply[_namedAccounts.supplier2]),
-      100 ether
-    );
-  }
-
-  function test_100xRemovalsOfTheDifferentVintages() external {
-    assertEq(
-      getTotalBalance(_listedSupply[_namedAccounts.supplier3]),
-      100 ether
-    );
-  }
 }
 
 contract RemovalQueue_insertRemovalByVintage is NonUpgradeableMarket {
@@ -96,26 +102,15 @@ contract RemovalQueue_insertRemovalByVintage is NonUpgradeableMarket {
   NonUpgradeableRemoval private _removal;
   uint256[] private _removalIds;
 
-  constructor() {
-    _removal = new NonUpgradeableRemoval();
-    vm.store(
-      address(_removal),
-      bytes32(uint256(401)), // sets the Removal._market storage slot to this contract to enable mock calls
-      bytes32(uint256(uint160(address(this))))
-    );
-    vm.store(
-      address(this),
-      bytes32(uint256(304)), // sets the markets _restrictedNORI storage slot to this contract to enable mock calls
-      bytes32(uint256(uint160(address(this))))
-    );
-  }
+  constructor()
+    NonUpgradeableMarket(
+      IERC20WithPermit(address(new NonUpgradeableBridgedPolygonNORI())),
+      25,
+      1
+    )
+  {}
 
   function setUp() external {
-    vm.mockCall(
-      address(this),
-      abi.encodeWithSelector(RestrictedNORI.scheduleExists.selector),
-      abi.encode(true)
-    );
     _removalIds = _removal.seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,

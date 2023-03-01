@@ -24,6 +24,6 @@ abstract contract UpgradeableNORI is Upgradeable {
   }
 }
 
-contract NonUpgradableNORIMock is NORI, Global {}
+contract NonUpgradeableNORIMock is NORI, Global {}
 
-abstract contract UpgradableNORIMock is UpgradeableNORI {}
+abstract contract UpgradeableNORIMock is UpgradeableNORI {}

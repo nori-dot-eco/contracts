@@ -32,8 +32,7 @@ abstract contract UpgradeableBridgedPolygonNORI is Upgradeable {
   }
 }
 
-contract NonUpgradableBridgedPolygonNORIMock is BridgedPolygonNORI, Global {}
+// solhint-disable-next-line no-empty-blocks, this is a test
+contract NonUpgradeableBridgedPolygonNORI is BridgedPolygonNORI {
 
-abstract contract UpgradableBridgedPolygonNORIMock is
-  UpgradeableBridgedPolygonNORI
-{}
+}
