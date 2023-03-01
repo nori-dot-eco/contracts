@@ -13,6 +13,7 @@ optimizer = true
 optimizer_runs = 200
 via_ir = false
 gas_reports = [ '*' ]
+fs_permissions = [ { access = "read", path = "./contracts.json" } ]
 
 [profile.production]
 via_ir = true
@@ -29,5 +30,10 @@ mumbai = "${MUMBAI_RPC_URL}"
 mainnet = "${ETHEREUM_RPC_URL}"
 goerli = "${GOERLI_RPC_URL}"
 polygon = "${POLYGON_RPC_URL}"
+
+[invariant]
+runs = 400
+depth = 15
+fail_on_revert = false
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

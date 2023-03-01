@@ -11,7 +11,7 @@ abstract contract UpgradeableNORI is Upgradeable {
 
   constructor() {
     _nori = _deployNORI();
-    _signatureUtils = new SignatureUtils(_nori.DOMAIN_SEPARATOR());
+    _signatureUtils = new SignatureUtils();
   }
 
   function _deployNORI() internal returns (NORI) {
