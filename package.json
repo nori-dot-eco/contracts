@@ -92,7 +92,7 @@
   "gitHead": "33a26fa09e6f5d89c3dd2a12fe4b2381e169b60e",
   "scripts": {
     "test": "yarn run test:hardhat && yarn run test:forge",
-    "test:hardhat": "hardhat test",
+    "test:hardhat": "SOLC_PROFILE=test hardhat test",
     "test:hardhat:unsafe": "TS_NODE_TRANSPILE_ONLY=1 yarn test:unoptimized --no-compile",
     "test:forge": "FOUNDRY_PROFILE=test forge test",
     "prepare": "SOLC_PROFILE=test yarn build",
