@@ -814,14 +814,18 @@ contract Removal is
     uint256 countOfRemovals = ids.length;
     for (uint256 i = 0; i < countOfRemovals; ++i) {
       uint256 id = ids[i];
+      uint256 amount = amounts[i];
+      if (!_isValidTransferAmount({amount: amount})) {
+        revert ForbiddenTransfer();
+      }
       if (to == market) {
-        if (amounts[i] == 0) {
+        if (amount == 0) {
           revert InvalidTokenTransfer({tokenId: id});
         }
-        _currentMarketBalance += amounts[i];
+        _currentMarketBalance += amount;
       }
       if (from == market) {
-        _currentMarketBalance -= amounts[i];
+        _currentMarketBalance -= amount;
       }
       if (
         !isValidTransfer && to != RemovalIdLib.supplierAddress({removalId: id})
@@ -922,5 +926,9 @@ contract Removal is
     if (_removalIdToProjectId[id] != 0) {
       revert InvalidData();
     }
+  }
+
+  function _isValidTransferAmount(uint256 amount) internal pure returns (bool) {
+    return amount % (10**2) == 0;
   }
 }
