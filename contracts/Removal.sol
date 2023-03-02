@@ -466,7 +466,7 @@ contract Removal is
   {
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
-      account: RemovalIdLib.supplierAddress(id),
+      account: RemovalIdLib.supplierAddress({removalId: id}),
       id: id
     });
     if (unlistedBalance > 0) {
@@ -774,7 +774,7 @@ contract Removal is
    */
   function _releaseFromMarket(uint256 id, uint256 amount) internal {
     super._burn({from: this.getMarketAddress(), id: id, amount: amount});
-    _market.release(id);
+    _market.release({removalId: id});
     emit ReleaseRemoval({
       id: id,
       fromAddress: this.getMarketAddress(),
@@ -791,7 +791,7 @@ contract Removal is
   function _releaseFromCertificate(uint256 id, uint256 amount) internal {
     address certificateAddress_ = this.getCertificateAddress();
     super._burn({from: certificateAddress_, id: id, amount: amount});
-    _certificate.incrementNrtDeficit(amount);
+    _certificate.incrementNrtDeficit({amount: amount});
     emit ReleaseRemoval({
       id: id,
       fromAddress: certificateAddress_,
