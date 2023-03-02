@@ -929,6 +929,6 @@ contract Removal is
   }
 
   function _isValidTransferAmount(uint256 amount) internal pure returns (bool) {
-    return amount % (10**2) == 0;
+    return amount % (10**14) == 0;
   }
 }
