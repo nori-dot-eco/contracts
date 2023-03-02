@@ -12,7 +12,7 @@ abstract contract UpgradeableBridgedPolygonNORI is Upgradeable {
   constructor() {
     _bpNori = _deployBridgedPolygonNORI();
     _bpNori.grantRole(_bpNori.DEPOSITOR_ROLE(), _namedAccounts.admin);
-    _bpNoriSignatureUtils = new SignatureUtils(_bpNori.DOMAIN_SEPARATOR());
+    _bpNoriSignatureUtils = new SignatureUtils();
   }
 
   function _deployBridgedPolygonNORI() internal returns (BridgedPolygonNORI) {

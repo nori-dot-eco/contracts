@@ -74,9 +74,7 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
 
   function setUp() external {
     _unsafeErc20 = _deployMockUnsafeERC20();
-    _mockERC20SignatureUtils = new SignatureUtils(
-      _unsafeErc20.DOMAIN_SEPARATOR()
-    );
+    _mockERC20SignatureUtils = new SignatureUtils();
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _unsafeErc20,
       priceMultiple: 100
@@ -455,7 +453,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
 }
 
 contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
-  UpgradeableUSDCMarket
+  UpgradeableMisconfiguredMarket
 {
   uint8 holdbackPercentage = 10;
   uint256 checkoutTotal;
@@ -551,7 +549,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
 }
 
 contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
-  UpgradeableUSDCMarket
+  UpgradeableMisconfiguredMarket
 {
   uint8 holdbackPercentage = 10;
   uint256 checkoutTotal;
@@ -1583,19 +1581,28 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
   }
 }
 
-contract Market_converts_decimals is UpgradeableUSDCMarket {
+contract Market_convertRemovalDecimalsToPurchasingTokenDecimals is
+  UpgradeableUSDCMarket
+{
   function test() external {
     assertEq(
-      _market.convertRemovalAmountToPurchasingTokenAmount(1 ether),
+      _market.convertRemovalDecimalsToPurchasingTokenDecimals(1 ether),
       1_000_000
     );
     // truncates cleanly
     assertEq(
-      _market.convertRemovalAmountToPurchasingTokenAmount(1 ether + 1),
+      _market.convertRemovalDecimalsToPurchasingTokenDecimals(1 ether + 1),
       1_000_000
     );
+  }
+}
+
+contract Market_convertPurchasingTokenDecimalsToRemovalDecimals is
+  UpgradeableUSDCMarket
+{
+  function test() external {
     assertEq(
-      _market.convertPurchasingTokenAmountToRemovalAmount(1_000_000),
+      _market.convertPurchasingTokenDecimalsToRemovalDecimals(1_000_000),
       1 ether
     );
   }
@@ -1603,6 +1610,7 @@ contract Market_converts_decimals is UpgradeableUSDCMarket {
 
 contract Market_calculates_prices_using_decimal is UpgradeableUSDCMarket {
   function test() external {
+    // expectRevert(_market.calculateCheckoutTotal(1), 0);
     assertEq(_market.calculateCheckoutTotal(1 ether), 25_000_000);
     assertEq(_market.calculateNoriFee(1 ether), 5_000_000);
     assertEq(_market.calculateCheckoutTotalWithoutFee(1 ether), 20_000_000);
@@ -1715,6 +1723,115 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
     );
     vm.stopPrank();
     assertEq(_certificate.ownerOf(certificateTokenId), owner);
+    assertEq(_purchasingToken.balanceOf(owner), 0);
+    assertEq(_purchasingToken.balanceOf(_namedAccounts.supplier), 20_000_000);
+    assertEq(_purchasingToken.balanceOf(_market.getNoriFeeWallet()), 5_000_000);
+    assertEq(_purchasingToken.balanceOf(address(_rNori)), 0);
+  }
+}
+
+contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
+  address owner;
+  uint256 checkoutTotal;
+  SignedPermit signedPermit;
+  uint256 removalId;
+
+  using MathUpgradeable for uint256;
+
+  struct CertificateData {
+    bool isReplacement;
+    address recipient;
+    uint256 certificateAmount;
+    address purchasingTokenAddress;
+    uint256 priceMultiple;
+    uint256 noriFeePercentage;
+  }
+
+  event CreateCertificate(
+    address from,
+    address indexed recipient,
+    uint256 indexed certificateId,
+    uint256 certificateAmount,
+    uint256[] removalIds,
+    uint256[] removalAmounts,
+    address indexed purchasingTokenAddress,
+    uint256 priceMultiple,
+    uint256 noriFeePercentage
+  );
+
+  function setUp() external {
+    DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
+    removals[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "US",
+      subdivision: "IA",
+      supplierAddress: address(_namedAccounts.supplier),
+      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
+    });
+
+    removalId = RemovalIdLib.createRemovalId(removals[0]);
+
+    _removal.mintBatch(
+      address(_market),
+      new uint256[](1).fill(2 ether),
+      removals,
+      1_234_567_890,
+      block.timestamp,
+      uint8(10)
+    );
+  }
+
+  function test() external {
+    uint256 numberOfNRTsToPurchase = 1 ether;
+    uint256 ownerPrivateKey = 0xA11CE;
+    uint256 certificateTokenId = 0;
+    owner = vm.addr(ownerPrivateKey);
+    checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
+
+    vm.prank(_namedAccounts.admin);
+    _purchasingToken.transfer(owner, checkoutTotal);
+
+    signedPermit = _signatureUtils.generatePermit(
+      ownerPrivateKey,
+      address(_market),
+      checkoutTotal,
+      1 days,
+      _purchasingToken
+    );
+
+    vm.prank(owner);
+    vm.expectEmit(false, false, false, true);
+    uint256[] memory removalIds = new uint256[](1).fill(removalId);
+    uint256[] memory amounts = new uint256[](1).fill(numberOfNRTsToPurchase);
+    emit CreateCertificate(
+      address(_removal),
+      owner,
+      certificateTokenId,
+      numberOfNRTsToPurchase,
+      removalIds,
+      amounts,
+      address(_market.getPurchasingTokenAddress()),
+      _market.getPriceMultiple(),
+      _market.getNoriFeePercentage()
+    );
+    _market.swap(
+      owner,
+      owner,
+      numberOfNRTsToPurchase,
+      signedPermit.permit.deadline,
+      signedPermit.v,
+      signedPermit.r,
+      signedPermit.s
+    );
+    vm.stopPrank();
+    assertEq(_certificate.ownerOf(certificateTokenId), owner);
+    assertEq(_purchasingToken.balanceOf(owner), 0);
+    assertEq(_purchasingToken.balanceOf(_namedAccounts.supplier), 18_000_000);
+    assertEq(_purchasingToken.balanceOf(_market.getNoriFeeWallet()), 5_000_000);
+    assertEq(_purchasingToken.balanceOf(address(_rNori)), 2_000_000);
   }
 }
 
@@ -1732,12 +1849,13 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
     uint256 ownerPrivateKey = 0xA11CE;
     owner = vm.addr(ownerPrivateKey);
 
-    uint256[] memory testValues = new uint256[](3);
+    uint256[] memory testValues = new uint256[](4);
     testValues[0] = 0;
     testValues[1] = 1;
     testValues[2] = 1 ether + 1;
+    testValues[3] = 10e30 + 1;
 
-    for (uint256 i = 0; i < 3; i++) {
+    for (uint256 i = 0; i < testValues.length; i++) {
       uint256 numberOfNRTsToPurchase = testValues[i];
 
       bytes memory revertData = abi.encodeWithSelector(
