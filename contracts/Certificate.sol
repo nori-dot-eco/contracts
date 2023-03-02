@@ -400,7 +400,7 @@ contract Certificate is
     });
     uint256 certificateId = _nextTokenId();
     _purchaseAmounts[certificateId] = certificateAmount;
-    _mint(recipient, 1);
+    _mint({to: recipient, quantity: 1});
     emit CreateCertificate({
       from: _msgSender(),
       recipient: recipient,
