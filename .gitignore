@@ -95,10 +95,6 @@ deployments/hardhat*
 # typechain
 typechain-types
 
-# gas-reporter
-gasReporterOutput.json
-gasreport.txt
-
 # local grants for the hardhat vesting task
 grants.csv
 

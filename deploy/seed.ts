@@ -15,4 +15,4 @@ export default deploy;
 deploy.tags = ['seed'];
 deploy.dependencies = ['assets', 'market'];
 deploy.skip = async (hre) =>
-  Promise.resolve(process.env.REPORT_GAS === true || hre.network.live === true);
+  Promise.resolve(process.env.CI === true || hre.network.live === true);
