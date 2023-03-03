@@ -287,6 +287,18 @@ contract Certificate is
   }
 
   /**
+   * @notice This function is unsupported and will always revert.
+   * @dev Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.
+   */
+  function approve(address, uint256)
+    public
+    payable
+    override(ERC721AUpgradeable, IERC721AUpgradeable)
+  {
+    revert FunctionDisabled();
+  }
+
+  /**
    * @dev See [IERC165.supportsInterface](
    * https://docs.openzeppelin.com/contracts/4.x/api/utils#IERC165-supportsInterface-bytes4-) for more.
    * @param interfaceId The interface ID to check for support.
@@ -313,18 +325,6 @@ contract Certificate is
    * @dev Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.
    */
   function setApprovalForAll(address, bool)
-    public
-    pure
-    override(ERC721AUpgradeable, IERC721AUpgradeable)
-  {
-    revert FunctionDisabled();
-  }
-
-  /**
-   * @notice This function is unsupported and will always revert.
-   * @dev Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.
-   */
-  function approve(address, uint256)
     public
     pure
     override(ERC721AUpgradeable, IERC721AUpgradeable)
