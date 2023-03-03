@@ -1,14 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import "./AccessPresetPausable.sol";
-import "./Errors.sol";
-import "./IMarket.sol";
-import "./ICertificate.sol";
-import "./IRemoval.sol";
-import "./IRestrictedNORI.sol";
+import {
+  ERC1155SupplyUpgradeable,
+  ERC1155Upgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import {
+  MathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
+import {
+  MulticallUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+import {
+  EnumerableSetUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import {
+  AccessPresetPausable,
+  AccessControlEnumerableUpgradeable
+} from "./AccessPresetPausable.sol";
+import {
+  RemovalNotYetMinted,
+  RemovalAlreadySoldOrConsigned,
+  ForbiddenTransfer,
+  ForbiddenTransfer,
+  InvalidHoldbackPercentage,
+  InvalidTokenTransfer,
+  ForbiddenTransfer,
+  InvalidData
+} from "./Errors.sol";
+import {IMarket} from "./IMarket.sol";
+import {ICertificate} from "./ICertificate.sol";
+import {IRemoval} from "./IRemoval.sol";
+import {IRestrictedNORI} from "./IRestrictedNORI.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
 
 /**
@@ -444,7 +466,7 @@ contract Removal is
   {
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
-      account: RemovalIdLib.supplierAddress(id),
+      account: RemovalIdLib.supplierAddress({removalId: id}),
       id: id
     });
     if (unlistedBalance > 0) {
@@ -752,7 +774,7 @@ contract Removal is
    */
   function _releaseFromMarket(uint256 id, uint256 amount) internal {
     super._burn({from: this.getMarketAddress(), id: id, amount: amount});
-    _market.release(id);
+    _market.release({removalId: id});
     emit ReleaseRemoval({
       id: id,
       fromAddress: this.getMarketAddress(),
@@ -769,7 +791,7 @@ contract Removal is
   function _releaseFromCertificate(uint256 id, uint256 amount) internal {
     address certificateAddress_ = this.getCertificateAddress();
     super._burn({from: certificateAddress_, id: id, amount: amount});
-    _certificate.incrementNrtDeficit(amount);
+    _certificate.incrementNrtDeficit({amount: amount});
     emit ReleaseRemoval({
       id: id,
       fromAddress: certificateAddress_,
