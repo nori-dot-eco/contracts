@@ -432,32 +432,42 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateSupply({amount: totalAmountToReplace});
+
+    uint256[] memory removalIds = ids.slice({ // todo here
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+    uint256[] memory removalAmounts = amounts.slice({ // todo here
+      from: 0,
+      to: countOfRemovalsAllocated
+    });
+
     _validateReplacementAmounts({
       totalAmountToReplace: totalAmountToReplace,
-      removalAmounts: amounts,
+      removalAmounts: removalAmounts,
       removalAmountsBeingReplaced: amountsBeingReplaced
     });
     _transferFunds({
       chargeFee: false,
       from: treasury,
       countOfRemovalsAllocated: countOfRemovalsAllocated,
-      ids: ids,
-      amounts: amounts,
+      ids: removalIds,
+      amounts: removalAmounts,
       suppliers: suppliers
     });
     _removal.safeBatchTransferFrom({
       from: address(this),
       to: address(_certificate),
-      ids: ids,
-      amounts: amounts,
+      ids: removalIds,
+      amounts: removalAmounts,
       data: abi.encode(
         true // isReplacement
       )
     });
     emit UpdateCertificate({
       certificateId: certificateId,
-      removalIds: ids,
-      amounts: amounts,
+      removalIds: removalIds,
+      amounts: removalAmounts,
       removalIdsBeingReplaced: removalIdsBeingReplaced,
       amountsBeingReplaced: amountsBeingReplaced,
       purchasingTokenAddress: address(_purchasingToken),
@@ -1383,12 +1393,20 @@ contract Market is
    * @param params The order fullfilment data.
    */
   function _fulfillOrder(FulfillOrderData memory params) internal {
+    uint256[] memory removalIds = params.ids.slice({ // todo here
+      from: 0,
+      to: params.countOfRemovalsAllocated
+    });
+    uint256[] memory removalAmounts = params.amounts.slice({ // todo here
+      from: 0,
+      to: params.countOfRemovalsAllocated
+    });
     _transferFunds({
       chargeFee: params.chargeFee,
       from: params.from,
       countOfRemovalsAllocated: params.countOfRemovalsAllocated,
-      ids: params.ids,
-      amounts: params.amounts,
+      ids: removalIds,
+      amounts: removalAmounts,
       suppliers: params.suppliers
     });
     bytes memory data = abi.encode(
@@ -1402,8 +1420,8 @@ contract Market is
     _removal.safeBatchTransferFrom({
       from: address(this),
       to: address(_certificate),
-      ids: params.ids,
-      amounts: params.amounts,
+      ids: removalIds,
+      amounts: removalAmounts,
       data: data
     });
   }
