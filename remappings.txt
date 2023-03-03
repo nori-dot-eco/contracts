@@ -2,7 +2,6 @@
 @/test/=test/
 @ensdomains/=node_modules/@ensdomains/
 @openzeppelin/=node_modules/@openzeppelin/
-ds-test/=lib/ds-test/src/
 erc721a-upgradeable/=node_modules/erc721a-upgradeable/
 eth-gas-reporter/=node_modules/eth-gas-reporter/
 forge-std/=lib/forge-std/src/
