@@ -12,6 +12,7 @@ import {
 } from '@nomiclabs/hardhat-etherscan/dist/src/constants';
 
 import { TASK as ERC_1820_TASK } from './erc-1820';
+import { TASK as UPGRADE_TASK } from './upgrade';
 import { TASK as ACCOUNTS_TASK } from './accounts';
 import { TASK as NCCR_V0_TASK } from './nccr-v0';
 import { TASK as REMOVAL_TASK } from './removal';
@@ -75,6 +76,7 @@ export const TASKS = {
   [LOCKED_NORI_TASK.name]: { ...LOCKED_NORI_TASK }, // todo make work with forked repo
   [BRIDGED_POLYGON_NORI_TASK.name]: { ...BRIDGED_POLYGON_NORI_TASK },
   [DEFENDER_ADD_TASK.name]: { ...DEFENDER_ADD_TASK },
+  [UPGRADE_TASK.name]: { ...UPGRADE_TASK },
   [VESTING_TASK().name]: { ...VESTING_TASK() }, // todo make work with forked repo
   [GET_MIGRATE_REMOVALS_TASK().name]: { ...GET_MIGRATE_REMOVALS_TASK() },
   [GET_MIGRATE_CERTIFICATES_TASK().name]: {
