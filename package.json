@@ -52,7 +52,7 @@
     "dotenv": "^16.0.2",
     "dotenv-defaults": "^5.0.2",
     "dotenv-parse-variables": "^2.0.0",
-    "erc721a-upgradeable": "4.2.2",
+    "erc721a-upgradeable": "4.2.3",
     "eslint": "^8.15.0",
     "ethereum-waffle": "^3.4.4",
     "ethernal": "^2.0.2",
