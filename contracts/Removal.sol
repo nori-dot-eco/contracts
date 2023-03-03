@@ -1,14 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import "./AccessPresetPausable.sol";
-import "./Errors.sol";
-import "./IMarket.sol";
-import "./ICertificate.sol";
-import "./IRemoval.sol";
-import "./IRestrictedNORI.sol";
+import {
+  ERC1155SupplyUpgradeable,
+  ERC1155Upgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import {
+  MathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
+import {
+  MulticallUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+import {
+  EnumerableSetUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import {
+  AccessPresetPausable,
+  AccessControlEnumerableUpgradeable
+} from "./AccessPresetPausable.sol";
+import {
+  RemovalNotYetMinted,
+  RemovalAlreadySoldOrConsigned,
+  ForbiddenTransfer,
+  ForbiddenTransfer,
+  InvalidHoldbackPercentage,
+  InvalidTokenTransfer,
+  ForbiddenTransfer,
+  InvalidData
+} from "./Errors.sol";
+import {IMarket} from "./IMarket.sol";
+import {ICertificate} from "./ICertificate.sol";
+import {IRemoval} from "./IRemoval.sol";
+import {IRestrictedNORI} from "./IRestrictedNORI.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
 
 /**
