@@ -223,7 +223,7 @@ during a purchase.</i>
 function revokeUnreleasedTokens(uint256 removalId, uint256 amount, address toAccount) external
 ```
 
-Revokes `amount` of tokens from the project (schedule) associated with the specificed
+Revokes `amount` of tokens from the project (schedule) associated with the specified
 `removalId` and transfers them to `toAccount`.
 
 <i>The behavior of this function can be used in two specific ways:
@@ -297,10 +297,10 @@ Sets up a restriction schedule with parameters determined from the project ID.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| projectId | uint256 | The ID that will be used as this schedule's token ID |
-| startTime | uint256 | The schedule's start time in seconds since the unix epoch |
-| methodology | uint8 | The methodology of this project, used to look up correct schedule duration |
-| methodologyVersion | uint8 | The methodology version, used to look up correct schedule duration |
+| projectId | uint256 | The ID that will be used as this schedule's token ID. |
+| startTime | uint256 | The schedule's start time in seconds since the unix epoch. |
+| methodology | uint8 | The methodology of this project, used to look up correct schedule duration. |
+| methodologyVersion | uint8 | The methodology version, used to look up correct schedule duration. |
 
 
 ### mint
@@ -420,7 +420,7 @@ Batch version of `getScheduleDetailForAccount`.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | struct ScheduleDetailForAddress[] | Returns an array of &#x60;ScheduleDetails&#x60; structs containing the details of the schedules |
+| [0] | struct ScheduleDetailForAddress[] | Returns an array of &#x60;ScheduleDetails&#x60; structs containing the details of the schedules. |
 
 ### scheduleExists
 

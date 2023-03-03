@@ -433,15 +433,14 @@ contract Market is
       address[] memory suppliers
     ) = _allocateSupply({amount: totalAmountToReplace});
 
-    uint256[] memory removalIds = ids.slice({ // todo here
+    uint256[] memory removalIds = ids.slice({
       from: 0,
       to: countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = amounts.slice({ // todo here
+    uint256[] memory removalAmounts = amounts.slice({
       from: 0,
       to: countOfRemovalsAllocated
     });
-
     _validateReplacementAmounts({
       totalAmountToReplace: totalAmountToReplace,
       removalAmounts: removalAmounts,
@@ -1390,14 +1389,14 @@ contract Market is
    * @notice Fulfill an order.
    * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
    * the order fee, updating accounting, and minting the Certificate.
-   * @param params The order fullfilment data.
+   * @param params The order fulfillment data.
    */
   function _fulfillOrder(FulfillOrderData memory params) internal {
-    uint256[] memory removalIds = params.ids.slice({ // todo here
+    uint256[] memory removalIds = params.ids.slice({
       from: 0,
       to: params.countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = params.amounts.slice({ // todo here
+    uint256[] memory removalAmounts = params.amounts.slice({
       from: 0,
       to: params.countOfRemovalsAllocated
     });

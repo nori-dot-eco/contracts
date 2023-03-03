@@ -175,7 +175,7 @@ contract RestrictedNORI is
    * purchase will fail and cause an event to be emitted. This data structure tracks the maximum amount
    * of RestrictedNORI that should be remedially minted to a supplier's compatible address to avoid over-
    * minting the wrapper token and failing to have enough RestrictedNORI backed by wrapped NORI.
-   * TODO This variable should be used to enforce the maximum number of tokens that can ever be minted manually
+   * @custom:todo This variable should be used to enforce the maximum number of tokens that can ever be minted manually
    * on behalf of a given address, and should be decremented when this occurs, which is not yet implemented.
    */
   mapping(address => uint256) private _supplierToDeficit;
@@ -307,7 +307,7 @@ contract RestrictedNORI is
   }
 
   /**
-   * @notice Revokes `amount` of tokens from the project (schedule) associated with the specificed
+   * @notice Revokes `amount` of tokens from the project (schedule) associated with the specified
    * `removalId` and transfers them to `toAccount`.
    * @dev The behavior of this function can be used in two specific ways:
    * 1. To revoke a specific number of tokens as specified by the `amount` parameter.
@@ -443,10 +443,10 @@ contract RestrictedNORI is
    *
    * - Can only be used when the contract is not paused.
    * - Can only be used when the caller has the `SCHEDULE_CREATOR_ROLE` role.
-   * @param projectId The ID that will be used as this schedule's token ID
-   * @param startTime The schedule's start time in seconds since the unix epoch
-   * @param methodology The methodology of this project, used to look up correct schedule duration
-   * @param methodologyVersion The methodology version, used to look up correct schedule duration
+   * @param projectId The ID that will be used as this schedule's token ID.
+   * @param startTime The schedule's start time in seconds since the unix epoch.
+   * @param methodology The methodology of this project, used to look up correct schedule duration.
+   * @param methodologyVersion The methodology version, used to look up correct schedule duration.
    */
   function createSchedule(
     uint256 projectId,
@@ -599,7 +599,7 @@ contract RestrictedNORI is
    * @notice Batch version of `getScheduleDetailForAccount`.
    * @param account The account for which to provide schedule details.
    * @param scheduleIds The token IDs of the schedules for which to retrieve details.
-   * @return Returns an array of `ScheduleDetails` structs containing the details of the schedules
+   * @return Returns an array of `ScheduleDetails` structs containing the details of the schedules.
    */
   function batchGetScheduleDetailsForAccount(
     address account,
