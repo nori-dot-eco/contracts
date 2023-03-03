@@ -8431,10 +8431,10 @@ fireblocks-sdk@^1.14.0:
     query-string "6.13.1"
     uuid "^8.3.2"
 
-fireblocks-sdk@^3.1.2:
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/fireblocks-sdk/-/fireblocks-sdk-3.1.2.tgz#97c022a701c96cf7401c28cafe1cf42d5985e8c0"
-  integrity sha512-LOywivsJ7RKBWALWYnbtNO9s0L9lHA7tAInE81uTzANxZ3pLQgWAh6s0emRiGupjw2TLIJdAlinKcEQh+nAUEA==
+fireblocks-sdk@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/fireblocks-sdk/-/fireblocks-sdk-4.0.0.tgz#5ac5c2abb76d9c5c4550d6e548373c68567be730"
+  integrity sha512-VJfZWn7FFMyUnCItZ7Rw+c1B56wLdub8B0L6sFwUpG4AQj9tOKiaMzS2br87a2O3t/bgZTfzmt0sBubixZ/Ynw==
   dependencies:
     axios "^0.27.2"
     jsonwebtoken "9.0.0"
