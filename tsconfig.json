@@ -33,7 +33,6 @@
     "**/*.ts",
     "types/**/*.d.ts",
     "./.eslintrc.js",
-    ".solcover.js",
     "contracts.json",
     "artifacts/contracts/**/*.json"
   ]

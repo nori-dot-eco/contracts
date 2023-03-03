@@ -1,14 +1,35 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import "./AccessPresetPausable.sol";
-import "./Errors.sol";
-import "./IMarket.sol";
-import "./ICertificate.sol";
-import "./IRemoval.sol";
-import "./IRestrictedNORI.sol";
+import {
+  ERC1155SupplyUpgradeable,
+  ERC1155Upgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
+import {
+  MathUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
+import {
+  MulticallUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
+import {
+  EnumerableSetUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import {
+  AccessPresetPausable,
+  AccessControlEnumerableUpgradeable
+} from "./AccessPresetPausable.sol";
+import {
+  RemovalNotYetMinted,
+  RemovalAlreadySoldOrConsigned,
+  ForbiddenTransfer,
+  ForbiddenTransfer,
+  InvalidHoldbackPercentage,
+  ForbiddenTransfer,
+  InvalidData
+} from "./Errors.sol";
+import {IMarket} from "./IMarket.sol";
+import {ICertificate} from "./ICertificate.sol";
+import {IRemoval} from "./IRemoval.sol";
+import {IRestrictedNORI} from "./IRestrictedNORI.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
 
 /**
@@ -444,7 +465,7 @@ contract Removal is
   {
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
-      account: RemovalIdLib.supplierAddress(id),
+      account: RemovalIdLib.supplierAddress({removalId: id}),
       id: id
     });
     if (unlistedBalance > 0) {
@@ -752,7 +773,7 @@ contract Removal is
    */
   function _releaseFromMarket(uint256 id, uint256 amount) internal {
     super._burn({from: this.getMarketAddress(), id: id, amount: amount});
-    _market.release(id);
+    _market.release({removalId: id});
     emit ReleaseRemoval({
       id: id,
       fromAddress: this.getMarketAddress(),
@@ -769,7 +790,7 @@ contract Removal is
   function _releaseFromCertificate(uint256 id, uint256 amount) internal {
     address certificateAddress_ = this.getCertificateAddress();
     super._burn({from: certificateAddress_, id: id, amount: amount});
-    _certificate.incrementNrtDeficit(amount);
+    _certificate.incrementNrtDeficit({amount: amount});
     emit ReleaseRemoval({
       id: id,
       fromAddress: certificateAddress_,
@@ -814,14 +835,15 @@ contract Removal is
     uint256 countOfRemovals = ids.length;
     for (uint256 i = 0; i < countOfRemovals; ++i) {
       uint256 id = ids[i];
+      uint256 amount = amounts[i];
+      if (!_isValidTransfer({amount: amount, to: to})) {
+        revert ForbiddenTransfer();
+      }
       if (to == market) {
-        if (amounts[i] == 0) {
-          revert InvalidTokenTransfer({tokenId: id});
-        }
-        _currentMarketBalance += amounts[i];
+        _currentMarketBalance += amount;
       }
       if (from == market) {
-        _currentMarketBalance -= amounts[i];
+        _currentMarketBalance -= amount;
       }
       if (
         !isValidTransfer && to != RemovalIdLib.supplierAddress({removalId: id})
@@ -922,5 +944,33 @@ contract Removal is
     if (_removalIdToProjectId[id] != 0) {
       revert InvalidData();
     }
+  }
+
+  /**
+   * @notice Check if the amount and recipient constitute a valid transfer.
+   * @dev Ensure that the amount of tokens in circulation always multiples of 1e14.
+   *
+   * ##### Examples:
+   * - `_isValidTransfer({amount: 1e14, to: address(1)}) == true`
+   * - `_isValidTransfer({amount: 0, to: address(1)}) == true`
+   * - `_isValidTransfer({amount: 0, to: address(_certificate)}) == false`
+   * - `_isValidTransfer({amount: 1, to: address(1)}) == false`
+   * - `_isValidTransfer({amount: 1e14 - 1, to: address(_market)}) == false`
+   *
+   * ##### Requirements:
+   *
+   * - If the recipient is the Market or the Certificate, the amount must be divisible by 1e14 (100,000,000,000,000)
+   * and non-zero.
+   * - If the recipient is neither the Market nor the Certificate the amount may also be zero.
+   */
+  function _isValidTransfer(uint256 amount, address to)
+    internal
+    view
+    returns (bool)
+  {
+    return
+      to == address(_market) || to == address(_certificate)
+        ? amount > 0 && amount % 1e14 == 0
+        : amount % 1e14 == 0;
   }
 }

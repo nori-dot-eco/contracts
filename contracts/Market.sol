@@ -1580,7 +1580,7 @@ contract Market is
   function _validateCertificateAmount(uint256 amount) internal view {
     uint256 feeDecimals = 2;
     uint256 safeDecimals = 18 - _purchasingToken.decimals() + feeDecimals;
-    if (amount == 0 || (amount % (10**(safeDecimals + 1))) != 0) {
+    if (amount == 0 || (amount % (10**(safeDecimals))) != 0) {
       revert InvalidCertificateAmount({amount: amount});
     }
   }

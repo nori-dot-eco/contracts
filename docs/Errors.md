@@ -269,20 +269,6 @@ Thrown when transaction data contains invalid data.
 
 
 
-## InvalidTokenTransfer
-
-```solidity
-error InvalidTokenTransfer(uint256 tokenId)
-```
-
-Thrown when the token specified by `tokenId` is transferred, but the type of transfer is unsupported.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| tokenId | uint256 | The token ID that is used in the invalid transfer. |
-
-
 ## InvalidNoriFeePercentage
 
 ```solidity
