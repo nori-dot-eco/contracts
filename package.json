@@ -21,7 +21,7 @@
     "@ethersproject/properties": "5.7.0",
     "@ethersproject/providers": "5.7.2",
     "@nomiclabs/hardhat-ethers": "^2.2.1",
-    "@nomiclabs/hardhat-etherscan": "^3.1.4",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
     "@nori-dot-com/eslint-config-nori": "^1.9.0",
     "@octokit/rest": "^18.12.0",
