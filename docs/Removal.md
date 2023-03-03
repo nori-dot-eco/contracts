@@ -646,7 +646,7 @@ the new IDs to prevent minting a pre-existing ID, stores the project ID in a map
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| removals | struct DecodedRemovalIdV0[] | An array of `DecodedRemovalIdV0` structs containing data about each removal |
+| removals | struct DecodedRemovalIdV0[] | An array of `DecodedRemovalIdV0` structs containing data about each removal. |
 | projectId | uint256 | The project IDentifier for this batch of removals. |
 
 | Name | Type | Description |

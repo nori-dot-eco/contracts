@@ -433,11 +433,11 @@ contract Market is
       address[] memory suppliers
     ) = _allocateSupply({amount: totalAmountToReplace});
 
-    uint256[] memory removalIds = ids.slice({ // todo here
+    uint256[] memory removalIds = ids.slice({
       from: 0,
       to: countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = amounts.slice({ // todo here
+    uint256[] memory removalAmounts = amounts.slice({
       from: 0,
       to: countOfRemovalsAllocated
     });
@@ -1301,28 +1301,20 @@ contract Market is
     uint256[] memory amounts,
     address[] memory suppliers
   ) internal {
-    uint256[] memory removalIds = ids.slice({ // todo here
-      from: 0,
-      to: countOfRemovalsAllocated
-    });
-    uint256[] memory removalAmounts = amounts.slice({ // todo here
-      from: 0,
-      to: countOfRemovalsAllocated
-    });
     bool isTransferSuccessful;
     uint8 holdbackPercentage;
     uint256 restrictedSupplierFee;
     uint256 unrestrictedSupplierFee;
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
-      holdbackPercentage = _removal.getHoldbackPercentage({id: removalIds[i]});
+      holdbackPercentage = _removal.getHoldbackPercentage({id: ids[i]});
       unrestrictedSupplierFee = this
         .convertRemovalDecimalsToPurchasingTokenDecimals(
-          removalAmounts[i].mulDiv({y: _priceMultiple, denominator: 100})
+          amounts[i].mulDiv({y: _priceMultiple, denominator: 100})
         );
       if (holdbackPercentage > 0) {
         restrictedSupplierFee = this
           .convertRemovalDecimalsToPurchasingTokenDecimals(
-            removalAmounts[i].mulDiv({
+            amounts[i].mulDiv({
               y: _priceMultiple * holdbackPercentage,
               denominator: 10_000
             })
@@ -1334,7 +1326,7 @@ contract Market is
         ) {
           emit SkipRestrictedNORIERC20Transfer({
             amount: restrictedSupplierFee,
-            removalId: removalIds[i],
+            removalId: ids[i],
             currentHoldbackPercentage: holdbackPercentage,
             rNoriUnderlyingToken: _restrictedNORI.getUnderlyingTokenAddress(),
             purchasingTokenAddress: address(_purchasingToken)
@@ -1346,7 +1338,7 @@ contract Market is
           try
             _restrictedNORI.mint({
               amount: restrictedSupplierFee,
-              removalId: removalIds[i]
+              removalId: ids[i]
             })
           {
             {
@@ -1355,7 +1347,7 @@ contract Market is
           } catch {
             emit RestrictedNORIMintFailure({
               amount: restrictedSupplierFee,
-              removalId: removalIds[i]
+              removalId: ids[i]
             });
             _restrictedNORI.incrementDeficitForSupplier({
               amount: restrictedSupplierFee,
@@ -1376,7 +1368,7 @@ contract Market is
         isTransferSuccessful = _purchasingToken.transferFrom({
           from: from,
           to: _noriFeeWallet,
-          amount: this.calculateNoriFee({amount: removalAmounts[i]})
+          amount: this.calculateNoriFee({amount: amounts[i]})
         });
         if (!isTransferSuccessful) {
           revert ERC20TransferFailed();
@@ -1397,14 +1389,14 @@ contract Market is
    * @notice Fulfill an order.
    * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
    * the order fee, updating accounting, and minting the Certificate.
-   * @param params The order fullfilment data.
+   * @param params The order fulfillment data.
    */
   function _fulfillOrder(FulfillOrderData memory params) internal {
-    uint256[] memory removalIds = params.ids.slice({ // todo here
+    uint256[] memory removalIds = params.ids.slice({
       from: 0,
       to: params.countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = params.amounts.slice({ // todo here
+    uint256[] memory removalAmounts = params.amounts.slice({
       from: 0,
       to: params.countOfRemovalsAllocated
     });

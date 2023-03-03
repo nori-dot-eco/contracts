@@ -722,7 +722,7 @@ contract Removal is
   /**
    * @notice Called during `mintBatch`, creates the removal IDs from the removal data, validates
    * the new IDs to prevent minting a pre-existing ID, stores the project ID in a mapping.
-   * @param removals An array of `DecodedRemovalIdV0` structs containing data about each removal
+   * @param removals An array of `DecodedRemovalIdV0` structs containing data about each removal.
    * @param projectId The project IDentifier for this batch of removals.
    * @return An array of removal IDs that were created.
    */
