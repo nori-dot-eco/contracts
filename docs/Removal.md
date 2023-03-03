@@ -822,13 +822,15 @@ Check if the amount and recipient constitute a valid transfer.
 
 ##### Examples:
 - `_isValidTransfer({amount: 1e14, to: address(1)}) == true`
-- `_isValidTransfer({amount: 0, to: address(_certificate)}) == true`
+- `_isValidTransfer({amount: 0, to: address(1)}) == true`
+- `_isValidTransfer({amount: 0, to: address(_certificate)}) == false`
 - `_isValidTransfer({amount: 1, to: address(1)}) == false`
 - `_isValidTransfer({amount: 1e14 - 1, to: address(_market)}) == false`
 
 ##### Requirements:
 
-- If the recipient is the Market or the Certificate, the amount must be divisible by 1e14 (100,000,000,000,000).
+- If the recipient is the Market or the Certificate, the amount must be divisible by 1e14 (100,000,000,000,000)
+and non-zero.
 - If the recipient is neither the Market nor the Certificate the amount may also be zero.</i>
 
 
