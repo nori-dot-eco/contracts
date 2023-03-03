@@ -810,5 +810,28 @@ Validates that the provided `id` should be minted.
 | id | uint256 | The ID to validate. |
 
 
+### _isValidTransfer
+
+```solidity
+function _isValidTransfer(uint256 amount, address to) internal view returns (bool)
+```
+
+Check if the amount and recipient constitute a valid transfer.
+
+<i>Ensure that the amount of tokens in circulation always multiples of 1e14.
+
+##### Examples:
+- `_isValidTransfer({amount: 1e14, to: address(1)}) == true`
+- `_isValidTransfer({amount: 0, to: address(_certificate)}) == true`
+- `_isValidTransfer({amount: 1, to: address(1)}) == false`
+- `_isValidTransfer({amount: 1e14 - 1, to: address(_market)}) == false`
+
+##### Requirements:
+
+- If the recipient is the Market or the Certificate, the amount must be divisible by 1e14 (100,000,000,000,000).
+- If the recipient is neither the Market nor the Certificate the amount may also be zero.</i>
+
+
+
 
 
