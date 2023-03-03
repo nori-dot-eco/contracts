@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import {UnsupportedIdVersion, MethodologyVersionTooLarge, MethodologyTooLarge, UncapitalizedString} from "./Errors.sol";
+import {
+  UnsupportedIdVersion,
+  MethodologyVersionTooLarge,
+  MethodologyTooLarge,
+  UncapitalizedString
+} from "./Errors.sol";
 
 /**
  * @notice Decoded removal data.
@@ -161,9 +166,11 @@ library RemovalIdLib {
    * @param removal A removal in `DecodedRemovalIdV0` notation.
    * @return The removal ID.
    */
-  function createRemovalId(
-    DecodedRemovalIdV0 memory removal // todo rename create
-  ) internal pure returns (uint256) {
+  function createRemovalId(DecodedRemovalIdV0 memory removal)
+    internal
+    pure
+    returns (uint256)
+  {
     removal.validate();
     uint256 methodologyData = (removal.methodology << 4) |
       removal.methodologyVersion;

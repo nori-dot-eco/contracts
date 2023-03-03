@@ -1134,7 +1134,7 @@ the order fee, updating accounting, and minting the Certificate.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| params | struct Market.FulfillOrderData | The order fullfilment data. |
+| params | struct Market.FulfillOrderData | The order fulfillment data. |
 
 
 ### _allocateRemovals
