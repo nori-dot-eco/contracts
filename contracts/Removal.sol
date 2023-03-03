@@ -23,7 +23,6 @@ import {
   ForbiddenTransfer,
   ForbiddenTransfer,
   InvalidHoldbackPercentage,
-  InvalidTokenTransfer,
   ForbiddenTransfer,
   InvalidData
 } from "./Errors.sol";
@@ -837,13 +836,10 @@ contract Removal is
     for (uint256 i = 0; i < countOfRemovals; ++i) {
       uint256 id = ids[i];
       uint256 amount = amounts[i];
-      if (!_isValidTransferAmount({amount: amount})) {
+      if (!_isValidTransfer({amount: amount, to: to})) {
         revert ForbiddenTransfer();
       }
       if (to == market) {
-        if (amount == 0) {
-          revert InvalidTokenTransfer({tokenId: id});
-        }
         _currentMarketBalance += amount;
       }
       if (from == market) {
@@ -950,7 +946,29 @@ contract Removal is
     }
   }
 
-  function _isValidTransferAmount(uint256 amount) internal pure returns (bool) {
-    return amount % (10**14) == 0;
+  /**
+   * @notice Check if the amount and recipient constitute a valid transfer.
+   * @dev Ensure that the amount of tokens in circulation always multiples of 1e14.
+   *
+   * ##### Examples:
+   * - `_isValidTransfer({amount: 1e14, to: address(1)}) == true`
+   * - `_isValidTransfer({amount: 0, to: address(_certificate)}) == true`
+   * - `_isValidTransfer({amount: 1, to: address(1)}) == false`
+   * - `_isValidTransfer({amount: 1e14 - 1, to: address(_market)}) == false`
+   *
+   * ##### Requirements:
+   *
+   * - If the recipient is the Market or the Certificate, the amount must be divisible by 1e14 (100,000,000,000,000).
+   * - If the recipient is neither the Market nor the Certificate the amount may also be zero.
+   */
+  function _isValidTransfer(uint256 amount, address to)
+    internal
+    view
+    returns (bool)
+  {
+    return
+      to == address(_market) || to == address(_certificate)
+        ? amount > 0 && amount % 1e14 == 0
+        : amount % 1e14 == 0;
   }
 }
