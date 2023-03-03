@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
 import "@/test/helpers/market.sol";
-import {InvalidTokenTransfer} from "@/contracts/Errors.sol";
+import {ForbiddenTransfer} from "@/contracts/Errors.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
 using UInt256ArrayLib for uint256[];
@@ -421,10 +421,7 @@ contract Removal_mintBatch_zero_amount_removal_to_market_reverts is
       supplierAddress: _namedAccounts.supplier,
       subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
     });
-    uint256 removalId = RemovalIdLib.createRemovalId(ids[0]);
-    vm.expectRevert(
-      abi.encodeWithSelector(InvalidTokenTransfer.selector, removalId)
-    );
+    vm.expectRevert(abi.encodeWithSelector(ForbiddenTransfer.selector));
     _removal.mintBatch({
       to: address(_market),
       amounts: new uint256[](1).fill(0 ether),
@@ -613,7 +610,7 @@ contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
     removalBatch[0] = REMOVAL_DATA_FIXTURE;
     _removal.mintBatch({
       to: _namedAccounts.supplier,
-      amounts: _asSingletonUintArray(1),
+      amounts: _asSingletonUintArray(1 ether),
       removals: removalBatch,
       scheduleStartTime: block.timestamp,
       projectId: 1_234_567_890,
@@ -654,7 +651,7 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
     firstRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
     _removal.mintBatch(
       _namedAccounts.supplier,
-      _asSingletonUintArray(1),
+      _asSingletonUintArray(1 ether),
       firstRemovalBatchFixture,
       1_234_567_890,
       block.timestamp,
@@ -671,7 +668,7 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
     );
     _removal.mintBatch(
       _namedAccounts.supplier,
-      _asSingletonUintArray(1),
+      _asSingletonUintArray(1 ether),
       secondRemovalBatchFixture,
       1_234_567_891,
       block.timestamp,
@@ -702,10 +699,12 @@ contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
 }
 
 contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
+  uint256 private constant _REMOVAL_AMOUNT = 1 ether;
+
   function test() external {
     _removal.mintBatch({
       to: _marketAddress,
-      amounts: _asSingletonUintArray(1),
+      amounts: _asSingletonUintArray(_REMOVAL_AMOUNT),
       removals: _REMOVAL_FIXTURES,
       projectId: 1_234_567_890,
       scheduleStartTime: block.timestamp,
@@ -715,7 +714,10 @@ contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       0
     );
-    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 1);
+    assertEq(
+      _removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE),
+      _REMOVAL_AMOUNT
+    );
 
     // Expect the Removal to be listed on the Market
     assertEq(
@@ -723,7 +725,7 @@ contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
       1
     );
 
-    _removal.release(REMOVAL_ID_FIXTURE, 1);
+    _removal.release(REMOVAL_ID_FIXTURE, _REMOVAL_AMOUNT);
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       0
@@ -946,6 +948,8 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
 }
 
 contract Removal_release_listed is UpgradeableMarket {
+  uint256 private constant _REMOVAL_AMOUNT = 1 ether;
+
   function test() external {
     vm.expectEmit(false, false, false, false); // todo
     emit TransferBatch(
@@ -953,11 +957,11 @@ contract Removal_release_listed is UpgradeableMarket {
       address(0),
       address(_namedAccounts.supplier),
       _asSingletonUintArray(REMOVAL_ID_FIXTURE),
-      _asSingletonUintArray(1)
+      _asSingletonUintArray(_REMOVAL_AMOUNT)
     );
     _removal.mintBatch({
       to: _marketAddress,
-      amounts: _asSingletonUintArray(1),
+      amounts: _asSingletonUintArray(_REMOVAL_AMOUNT),
       removals: _REMOVAL_FIXTURES,
       projectId: 1_234_567_890,
       scheduleStartTime: block.timestamp,
@@ -967,8 +971,11 @@ contract Removal_release_listed is UpgradeableMarket {
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       0
     );
-    assertEq(_removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE), 1);
-    _removal.release(REMOVAL_ID_FIXTURE, 1);
+    assertEq(
+      _removal.balanceOf(address(_market), REMOVAL_ID_FIXTURE),
+      _REMOVAL_AMOUNT
+    );
+    _removal.release(REMOVAL_ID_FIXTURE, _REMOVAL_AMOUNT);
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
       0
@@ -1304,10 +1311,9 @@ contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
       _namedAccounts.admin,
       _namedAccounts.supplier,
       new uint256[](1).fill(_removalId),
-      _asSingletonUintArray(1),
+      _asSingletonUintArray(1 ether),
       ""
     );
-    // todo assert?
   }
 
   function test_paused_reverts_Paused() external {
@@ -1537,7 +1543,6 @@ contract Removal_setHoldbackPercentage is UpgradeableMarket {
   }
 
   function test_reverts_InvalidHoldbackPercentage() external {
-    uint8 originalHoldbackPercentage = 50;
     uint8 newHoldbackPercentage = 120;
 
     assertEq(
@@ -1554,5 +1559,80 @@ contract Removal_setHoldbackPercentage is UpgradeableMarket {
       projectId: projectId,
       holdbackPercentage: newHoldbackPercentage
     });
+  }
+}
+
+contract Removal__isValidTransfer is NonUpgradeableRemoval {
+  address private constant _MOCK_MARKET_ADDRESS = address(1);
+  address private constant _MOCK_CERTIFICATE_ADDRESS = address(2);
+
+  function setUp() external {
+    vm.prank(_namedAccounts.deployer);
+    this.registerContractAddresses({
+      market: Market(_MOCK_MARKET_ADDRESS),
+      certificate: Certificate(_MOCK_CERTIFICATE_ADDRESS)
+    });
+  }
+
+  function testFuzz_ReturnTrue_SmallestGranularity() external {
+    assertEq(
+      _isValidTransfer({amount: 1e14, to: _namedAccounts.supplier}),
+      true
+    );
+  }
+
+  function testFuzz_ReturnTrue_MultiplesOf1e14(uint256 amount) external {
+    amount = 1e14 * bound({x: amount, min: 1e14, max: 1e63});
+    vm.assume(amount % 1e14 == 0);
+    assertEq(
+      _isValidTransfer({amount: amount, to: _namedAccounts.supplier}),
+      true
+    );
+  }
+
+  function test_ReturnTrue_AmountIsZeroAndToIsNeitherTheMarketNorCertificate()
+    external
+  {
+    assertEq(_isValidTransfer({amount: 0, to: _namedAccounts.supplier}), true);
+  }
+
+  function test_ReturnFalse_AmountIsZeroAndToIsTheMarket() external {
+    assertEq(_isValidTransfer({amount: 0, to: _MOCK_MARKET_ADDRESS}), false);
+  }
+
+  function test_ReturnFalse_AmountIsZeroAndToIsTheCertificate() external {
+    assertEq(
+      _isValidTransfer({amount: 0, to: _MOCK_CERTIFICATE_ADDRESS}),
+      false
+    );
+  }
+
+  function test_ReturnFalse_AmountIsTooGranularAndToIsTheCertificate()
+    external
+  {
+    assertEq(
+      _isValidTransfer({amount: 1, to: _MOCK_CERTIFICATE_ADDRESS}),
+      false
+    );
+  }
+
+  function test_ReturnFalse_AmountIsTooGranularAndToIsTheMarket() external {
+    assertEq(_isValidTransfer({amount: 1, to: _MOCK_MARKET_ADDRESS}), false);
+  }
+
+  function test_ReturnFalse_AmountIsTooGranular() external {
+    assertEq(
+      _isValidTransfer({amount: 1e13, to: _namedAccounts.supplier}),
+      false
+    );
+  }
+
+  function testFuzz_ReturnFalse_NonMultiplesOf1e14(uint256 amount) external {
+    amount = bound({x: amount, min: 1, max: type(uint256).max - 1});
+    vm.assume(amount % 1e14 != 0);
+    assertEq(
+      _isValidTransfer({amount: amount, to: _namedAccounts.supplier}),
+      false
+    );
   }
 }

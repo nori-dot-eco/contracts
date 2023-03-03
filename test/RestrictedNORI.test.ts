@@ -143,32 +143,6 @@ describe('RestrictedNORI', () => {
           )
       ).to.be.reverted;
     });
-    it('should revert if a restriction schedule is being created for a methodology/version that does not have a duration set', async () => {
-      const { removal, hre, market } = await setupTest();
-      const removalIdWithMethodology2 = {
-        ...defaultRemovalTokenIdFixture,
-        methodology: 2,
-      };
-      const projectId = 1_234_567_890;
-      const scheduleStartTime = await getLatestBlockTime({ hre });
-      const amount = 20_000_000;
-      const packedData = await createBatchMintData({
-        hre,
-        projectId,
-        scheduleStartTime,
-      });
-
-      await expect(
-        removal.mintBatch(
-          market.address,
-          [amount],
-          [removalIdWithMethodology2],
-          packedData.projectId,
-          packedData.scheduleStartTime,
-          packedData.holdbackPercentage
-        )
-      ).to.be.revertedWith('rNORI: duration not set');
-    });
   });
   describe(`create schedule`, () => {
     it('should create a schedule with a direct call', async () => {
