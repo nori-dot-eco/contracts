@@ -104,11 +104,6 @@ error Unauthorized();
  */
 error InvalidData();
 /**
- * @notice Thrown when the token specified by `tokenId` is transferred, but the type of transfer is unsupported.
- * @param tokenId The token ID that is used in the invalid transfer.
- */
-error InvalidTokenTransfer(uint256 tokenId);
-/**
  * @notice Thrown when the specified fee percentage is not a valid value.
  */
 error InvalidNoriFeePercentage();
