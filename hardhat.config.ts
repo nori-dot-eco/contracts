@@ -9,10 +9,8 @@ import { networks } from '@/config/networks';
 import { namedAccountIndices } from '@/config/accounts';
 import { defender } from '@/config/defender';
 import { getEthernalConfig } from '@/config/ethernal';
-import { getGasReporterConfig } from '@/config/gas-reporter';
 import { solidity } from '@/config/solidity';
 import { docgen } from '@/config/docgen';
-import { getMochaConfig } from '@/config/mocha';
 import { fireblocks } from '@/config/fireblocks';
 import { tracer } from '@/config/tracer';
 import { typechain } from '@/config/typechain';
@@ -26,9 +24,7 @@ export const getConfig = (
     networks,
     etherscan,
     defender,
-    gasReporter: getGasReporterConfig(environment), // todo getter vs object consistency
     solidity,
-    mocha: getMochaConfig(environment),
     fireblocks,
     ethernal: getEthernalConfig(environment),
     paths: {
