@@ -161,9 +161,7 @@ Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openz
 
 ## Audits
 
-- [Macro](https://library.0xmacro.com/library/audits/nori-1) audited _AccessPresetPausable_, _ArrayLib_, _BridgedPolygonNORI_, _Certificate_, _ERC20Preset_, _Errors_, _LockedNORI_, _LockedNORILib_, _Market_, _NORI_, _Removal_, _RemovalIdLib_, _RemovalsByYearLib_, _RestrictedNORI_, and _RestrictedNORILib_ in December of 2022.
-
-- [Omniscia](https://omniscia.io/nori-multiple-token-implementations/) audited _NORI_, _BridgedPolygonNORI_ and _LockedNORI_ in March of 2022.
+See [here](../docs/audits/README.md) for the latest audit reports.
 
 [^1]: Initially, suppliers will be paid in _USDC_ at a price set by Nori instead of at a rate of 1 _NORI_ per 1 NRT.
 [^2]: This mechanism will be enabled once the marketplace is configured to receive _NORI_ as payment instead of _USDC_.
