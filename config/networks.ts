@@ -41,7 +41,7 @@ const localhost: NetworkUserConfig = {
   }),
   allowUnlimitedContractSize: true,
   loggingEnabled: LOG_HARDHAT_NETWORK,
-  url: 'http://127.0.0.1:8545',
+  url: 'http://127.0.0.1:4001',
   tags: ['test'],
   saveDeployments: true,
 };
