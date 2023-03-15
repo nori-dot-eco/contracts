@@ -1,10 +1,27 @@
 version: 2.1
 orbs:
   node: circleci/node@5.1.0
+  gcp-cli: circleci/gcp-cli@3.0.1
+
 defaults: &defaults
   docker:
     - image: cimg/node:16.19
 
+commands:
+  auth-gcloud:
+    description: 'Authenticate with google cloud'
+    steps:
+      - gcp-cli/install
+      - run:
+          name: Authenticate with gcloud
+          command: |
+            sudo mkdir -p /var/secrets/google;
+            sudo chown -R circleci:circleci /var/secrets/google;
+            echo $NORI_INTERNAL_SERVICE_KEY > /var/secrets/google/key.json;
+            echo 'export GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/google/key.json' >> $BASH_ENV;
+
+            gcloud auth activate-service-account --key-file /var/secrets/google/key.json;
+            gcloud config set project nori-internal;
 jobs:
   test:
     <<: *defaults
@@ -15,8 +32,64 @@ jobs:
       - run:
           command: yarn test:hardhat
           name: Run yarn tests
+      - persist_to_workspace:
+          root: /home/circleci
+          paths:
+            - repo
+
+  publish-package:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+      - auth-gcloud
+      - run:
+          name: Checking for Existing Package Versions
+          command: |
+            echo "Configuring registry auth...";
+            touch ~/.npmrc;
+            yarn run artifactregistry-login;
+
+            echo "Detecting existing package versions...";
+            export PACKAGE='@nori-dot-com/contracts'
+            export CURRENT_VERSION=$(yarn versions --json | jq -r '.data[env.PACKAGE]');
+
+            VERSION_EXISTS=$(
+              gcloud artifacts versions list \
+                --location us-central1 \
+                --repository npm-release \
+                --package=$PACKAGE \
+                --format json | jq \
+                  '[ .[].name | capture(".*/versions/(?<version>.*)").version | contains(env.CURRENT_VERSION)] 
+                  | . += [false] | max'
+            );
+
+            if [[ "$VERSION_EXISTS" = "false" ]]; then
+              echo "Published package does not exist for $PACKAGE@$CURRENT_VERSION";
+              echo 'export PUBLISHED_PACKAGE_EXISTS="true";
+            fi
+      - run:
+          name: Publishing Packages
+          command: |
+            if [[ $PUBLISHED_PACKAGE_EXISTS" = "true" ]]; then
+              echo "Published package already exists. Skipping...";
+            else
+              export PACKAGE='@nori-dot-com/contracts';
+              echo "Publishing $PACKAGE...";
+              export CURRENT_VERSION=$(yarn versions --json | jq -r '.data[env.PACKAGE]');
+              yarn publish --new-version $CURRENT_VERSION;
+            fi
+
 workflows:
-  test_my_app:
+  continuous-integration:
     jobs:
       - test
+      - publish-package:
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - master
+                - NO-2774-publish-package-in-ci
 # VS Code Extension Version: 1.5.1
