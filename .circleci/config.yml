@@ -71,7 +71,7 @@ jobs:
       - run:
           name: Publishing Packages
           command: |
-            if [[ $PUBLISHED_PACKAGE_EXISTS" = "true" ]]; then
+            if [[ "$PUBLISHED_PACKAGE_EXISTS" = "true" ]]; then
               echo "Published package already exists. Skipping...";
             else
               export PACKAGE='@nori-dot-com/contracts';
