@@ -69,7 +69,7 @@ jobs:
               echo 'export PUBLISHED_PACKAGE_EXISTS="true"' >> $BASH_ENV;
             fi
       - run:
-          name: Publishing Packages
+          name: Publishing Package
           command: |
             if [[ "$PUBLISHED_PACKAGE_EXISTS" = "true" ]]; then
               echo "Published package already exists. Skipping...";
@@ -92,4 +92,3 @@ workflows:
               only:
                 - master
                 - NO-2774-publish-package-in-ci
-# VS Code Extension Version: 1.5.1
