@@ -2,13 +2,12 @@ version: 2.1
 orbs:
   node: circleci/node@5.1.0
   gcp-cli: circleci/gcp-cli@3.0.1
+  nori-package-management-orb: nori-dot-com/nori-package-management-orb@dev:alpha 
 
 defaults: &defaults
   docker:
     - image: cimg/node:16.19
 
-commands:
-  auth-gcloud:
     description: 'Authenticate with google cloud'
     steps:
       - gcp-cli/install
@@ -42,44 +41,7 @@ jobs:
     steps:
       - attach_workspace:
           at: /home/circleci
-      - auth-gcloud
-      - run:
-          name: Checking for Existing Package Versions
-          command: |
-            echo "Configuring registry auth...";
-            touch ~/.npmrc;
-            yarn run artifactregistry-login;
-
-            echo "Detecting existing package versions...";
-            export PACKAGE='@nori-dot-com/contracts'
-            export CURRENT_VERSION=$(yarn versions --json | jq -r '.data[env.PACKAGE]');
-
-            VERSION_EXISTS=$(
-              gcloud artifacts versions list \
-                --location us-central1 \
-                --repository npm-release \
-                --package=$PACKAGE \
-                --format json | jq \
-                  '[ .[].name | capture(".*/versions/(?<version>.*)").version | contains(env.CURRENT_VERSION)] 
-                  | . += [false] | max'
-            );
-
-            if [[ "$VERSION_EXISTS" = "false" ]]; then
-              echo "Published package does not exist for $PACKAGE@$CURRENT_VERSION";
-              echo 'export PUBLISHED_PACKAGE_EXISTS="true"' >> $BASH_ENV;
-            fi
-      - run:
-          name: Publishing Package
-          command: |
-            if [[ "$PUBLISHED_PACKAGE_EXISTS" = "true" ]]; then
-              echo "Published package already exists. Skipping...";
-            else
-              export PACKAGE='@nori-dot-com/contracts';
-              echo "Publishing $PACKAGE...";
-              export CURRENT_VERSION=$(yarn versions --json | jq -r '.data[env.PACKAGE]');
-              yarn publish --new-version $CURRENT_VERSION;
-            fi
-
+      - nori-package-management-orb/publish-packages
 workflows:
   continuous-integration:
     jobs:
