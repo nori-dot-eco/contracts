@@ -2,25 +2,12 @@ version: 2.1
 orbs:
   node: circleci/node@5.1.0
   gcp-cli: circleci/gcp-cli@3.0.1
-  nori-package-management-orb: nori-dot-com/nori-package-management-orb@dev:alpha 
+  nori-package-management-orb: nori-dot-com/nori-package-management-orb@dev:alpha
 
 defaults: &defaults
   docker:
     - image: cimg/node:16.19
 
-    description: 'Authenticate with google cloud'
-    steps:
-      - gcp-cli/install
-      - run:
-          name: Authenticate with gcloud
-          command: |
-            sudo mkdir -p /var/secrets/google;
-            sudo chown -R circleci:circleci /var/secrets/google;
-            echo $NORI_INTERNAL_SERVICE_KEY > /var/secrets/google/key.json;
-            echo 'export GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/google/key.json' >> $BASH_ENV;
-
-            gcloud auth activate-service-account --key-file /var/secrets/google/key.json;
-            gcloud config set project nori-internal;
 jobs:
   test:
     <<: *defaults
