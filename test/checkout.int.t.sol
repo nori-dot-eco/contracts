@@ -961,3 +961,69 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
   }
 }
+
+contract Checkout_buyingWithCustomFee is Checkout {
+  uint256 ownerPrivateKey = 0xA11CE;
+  address owner = vm.addr(ownerPrivateKey);
+  uint256 customFee = 5;
+  uint256 certificateAmount = 1 ether;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
+      certificateAmount
+    );
+    _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(purchaseAmount));
+    vm.prank(owner);
+    _bpNori.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+  }
+
+  function test() external {
+    vm.startPrank(owner);
+    vm.recordLogs();
+    _market.swapWithoutFee(owner, owner, certificateAmount, customFee);
+    vm.stopPrank();
+
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bool containsCreateCertificateEventSelector = false;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
+        containsCreateCertificateEventSelector = true;
+        assertEq(
+          entries[i].topics[1],
+          bytes32(uint256(uint160(address(owner))))
+        );
+        assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
+        assertEq(
+          entries[i].topics[3],
+          bytes32(uint256(uint160(address(_bpNori))))
+        );
+        (
+          address from,
+          uint256 eventCertificateAmount,
+          uint256[] memory removalIds,
+          uint256[] memory removalAmounts,
+          uint256 priceMultiple,
+          uint256 noriFeePercentage
+        ) = abi.decode(
+            entries[i].data,
+            (address, uint256, uint256[], uint256[], uint256, uint256)
+          );
+        assertEq(from, address(_removal));
+        assertEq(eventCertificateAmount, certificateAmount);
+        assertEq(priceMultiple, _market.getPriceMultiple());
+        assertEq(noriFeePercentage, customFee);
+        assertEq(removalIds.length, 1);
+        assertEq(removalAmounts.length, 1);
+        assertEq(removalIds[0], _removalIds[0]);
+        assertEq(removalAmounts[0], certificateAmount);
+      }
+    }
+  }
+}

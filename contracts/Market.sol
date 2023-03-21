@@ -92,6 +92,7 @@ contract Market is
    * @notice The data required to pass to the `_fulfillOrder` function.
    * @dev This is packaged as a struct to avoid stack too deep errors.
    * @param chargeFee Whether or not to charge the Nori fee.
+   * @param feePercentage The fee percentage.
    * @param certificateAmount The total amount for the certificate.
    * @param from The message sender.
    * @param recipient The recipient of the certificate.
@@ -102,6 +103,7 @@ contract Market is
    */
   struct FulfillOrderData {
     bool chargeFee;
+    uint256 feePercentage;
     uint256 certificateAmount;
     address from;
     address recipient;
@@ -702,6 +704,7 @@ contract Market is
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
+        feePercentage: _noriFeePercentage,
         certificateAmount: amount,
         from: permitOwner,
         recipient: recipient,
@@ -742,6 +745,7 @@ contract Market is
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
+        feePercentage: _noriFeePercentage,
         certificateAmount: amount,
         from: _msgSender(),
         recipient: recipient,
@@ -810,6 +814,7 @@ contract Market is
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
+        feePercentage: _noriFeePercentage,
         certificateAmount: amount,
         from: permitOwner,
         recipient: recipient,
@@ -861,6 +866,7 @@ contract Market is
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
+        feePercentage: _noriFeePercentage,
         certificateAmount: amount,
         from: _msgSender(),
         recipient: recipient,
@@ -908,6 +914,60 @@ contract Market is
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
+        feePercentage: _noriFeePercentage,
+        certificateAmount: amount,
+        from: purchaser,
+        recipient: recipient,
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      })
+    });
+  }
+
+  /**
+   * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
+   * certificate without charging a transaction fee, but allowing specification of the fee percentage that was paid
+   * off-chain.
+   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
+   * for more.
+   * The purchaser must have granted approval to this contract to authorize this market to transfer their
+   * supported ERC20 to complete the purchase. A certificate is minted in the Certificate
+   * contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
+   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+   * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
+   * @param recipient The address to which the certificate will be issued.
+   * @param purchaser The address that will pay for the removals and has granted approval to this contract
+   * to transfer their ERC20 tokens.
+   * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
+   * purchased, scaled by the price multiple.
+   * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
+   * inclusion in emitted events.
+   */
+  function swapWithoutFee(
+    // TODO should we rename this or allow `swapWithoutFee` to be overloaded?
+    address recipient,
+    address purchaser,
+    uint256 amount,
+    uint256 customFee
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    _validateCertificateAmount({amount: amount});
+    (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    ) = _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
+    _fulfillOrder({
+      params: FulfillOrderData({
+        chargeFee: false,
+        feePercentage: customFee,
         certificateAmount: amount,
         from: purchaser,
         recipient: recipient,
@@ -963,6 +1023,7 @@ contract Market is
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
+        feePercentage: _noriFeePercentage,
         certificateAmount: amount,
         from: purchaser,
         recipient: recipient,
@@ -1414,7 +1475,7 @@ contract Market is
       params.certificateAmount,
       address(_purchasingToken),
       _priceMultiple,
-      _noriFeePercentage
+      params.feePercentage
     );
     _removal.safeBatchTransferFrom({
       from: address(this),
