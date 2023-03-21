@@ -1,39 +1,14 @@
 # Nori Smart Contracts
 
-Nori's core product is the Nori _Removal_ Tonne (NRT). NRTs can be understood as carbon removal credits that are granted to a supplier for the CO2 they have removed from the atmosphere. For each tonne of carbon removed, a supplier is granted 1 NRT. Suppliers then consign their NRTs to Nori's marketplace, effectively listing them for sale at a rate of 1 NRT per 1 _NORI_ token (an [ERC20](https://github.com/ethereum/ethereum-org-website/blob/b17088f97b805dbc947e629d3ae5358ed27ac076/src/content/developers/docs/standards/tokens/erc-20/index.md) compatible token on [the Polygon blockchain](https://polygon.technology/)).
-
-When a supplier's listed NRTs are sold, the supplier gets paid in _NORI_ tokens at a constant rate of 1 _NORI_ token (or USDC equivalent[^1]) per 1 NRT. This mechanism is designed to enable price discovery for carbon removal.
-
-Furthermore, when NRTs are sold, a percentage of the supplier's proceeds of each swap is held in an insurance reserve and released linearly over the supplier's ten-year contract with Nori. _RestrictedNORI_ implements this restriction and scheduled release mechanism within a transferable [ERC1155 compatible](https://github.com/ethereum/ethereum-org-website/blob/b17088f97b805dbc947e629d3ae5358ed27ac076/src/content/developers/docs/standards/tokens/erc-1155/index.md) token contract[^3].
+Nori's core product is the Nori _Removal_ Tonne (NRT). NRTs can be understood as carbon removal credits that are granted to a supplier for the CO2 they have removed from the atmosphere via [regenerative agriculture](https://www.weforum.org/agenda/2023/01/5-ways-to-scale-regenerative-agriculture-davos23/). For each tonne of carbon removed, a supplier is granted 1 NRT. Suppliers then consign their NRTs to Nori's marketplace, effectively listing them for sale at a fixed amount of USDC. 
 
 If a supplier is found to have released the sequestered carbon the corresponding Removals will be burned and funds from the insurance reserve used to replace them making the _Certificate_ and buyer whole. Automating the replacement of those burned Removals is on the future roadmap but is not implemented here.
 
 When NRTs are purchased, the buyer is minted a non-transferrable _Certificate_ (NCCR) and the NRTs purchased are transferred to the ownership of the _Certificate_, ultimately retiring the NRTs.
 
-During the purchase lifecycle, Nori collects a configurable marketplace fee (currently 15%) from each transaction[^2].
+During the purchase lifecycle, Nori collects a configurable marketplace fee (currently 25%) from each transaction.
 
 ## Contracts Overview
-
-### ERC20 Tokens
-
-#### [_NORI_](NORI.md)
-
-The _NORI_ token is Nori's fungible token which functions as a gift card to purchase NRTs. One NRT is worth one _$NORI_. The marketplace is configurable with respect to which ERC20 token it is willing to accept as payment. The initial launch of the market will be configured to receive _USDC_, with the intention of switching to receive _NORI_ once that token is launched publicly with sufficient liquidity.
-
-- Deployed on: Ethereum mainnet.
-- Initial supply minted at deployment: 500M.
-- Minting is disabled.
-
-[_NORI_ on Etherscan](https://etherscan.io/token/0xFAdEDFe89B5A530C0a7f69bE442E190751a13093)
-
-#### [_BridgedPolygonNORI_](BridgedPolygonNORI.md)
-
-_BridgedPolygonNORI_ is the [_$NORI_](NORI.md) token bridged to Polygon PoS.
-
-- Polygon child chain mapper is the only contract with mint / burn permission (`DEPOSITOR_ROLE`).
-- Initially deployed with a total supply of zero.
-
-[_BridgedPolygonNORI_ on PolygonScan](https://polygonscan.com/token/0x5922Da38963429b12CA3d7a60f9435AA1f3e8C1D).
 
 ### Marketplace Contracts
 
@@ -75,7 +50,7 @@ The `swap` function is the primary point of interaction with the market for buye
 
 The ERC20 tokens transferred from the buyer to this contract are distributed as follows:
 
-- A configurable market fee percentage to Nori's fee wallet (currently 15%).
+- A configurable market fee percentage to Nori's fee wallet (currently 25%).
 - If the supported ERC20 is _NORI_, a configurable percentage of the sale proceeds due to the supplier(s) are forwarded to the _RestrictedNORI_ contract to be withheld for insurance purposes and released over the life of their NRT agreement(s). (Configured on each _Removal_).
 - The balance of the proceeds of the sale are forwarded to the supplier(s) address.
 
@@ -86,26 +61,6 @@ An unsold _Removal_ can be withdrawn from the market (delisted for sale) by the 
 ##### Priority Supply Mechanism
 
 The market may be configured with a priority supply threshold. When supply listed for sale drops below this threshold purchases are restricted to addresses having the `ALLOWLIST_ROLE` role. This mechanism gives Nori the ability to reserve supply for pre-committed partnerships or other off-chain arrangements.
-
-### Vesting and Lockup
-
-#### [_LockedNORI_](LockedNORI.md)
-
-A contract managing investor and employee timed vesting and unlocking contract.
-
-V2 of this contract was updated to support the new [ERC20Permit](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/draft-ERC20Permit.sol) pattern with _BridgedPolygonNORI_ and to remove reliance on the ERC777 `tokensReceived` callback. A setter was added to allow us to replace the underlying wrapper token contract with the newer ERC20Permit version of _BridgedPolygonNORI_.
-
-> **Note**
-> Investors and employees have received _NORI_ token grants bound by vesting and lockup terms. These grants are implemented by _LockedNORI_ which does not currently support transfer of locked tokens and allows a maximum of one grant schedule per wallet address.
-
-[_LockedNORI_ on PolygonScan](https://polygonscan.com/token/0xccfffa6c2a030821331cc113b63babdc60bff82a)
-
-#### [_RestrictedNORI_](RestrictedNORI.md)
-
-A contract managing supplier insurance holdbacks.
-
-Operates similarly to _LockedNORI_ by acting as a wrapper token that governs the scheduled release of the underlying _BridgedPolygonNori_ asset. Implemented as an ERC1155, each token ID has its own schedule parameters that control the linear release of the underlying assets over the duration of the schedule. It is possible to create more than one schedule per owner address. It is not currently
-possible to transfer restricted balances between addresses, though this feature may be implemented in a future release.
 
 ### Support Libraries
 
@@ -163,6 +118,52 @@ Contracts in this repo use the [OpenZeppelin Upgrades Plugin](https://docs.openz
 
 See [here](../docs/audits/README.md) for the latest audit reports.
 
-[^1]: Initially, suppliers will be paid in _USDC_ at a price set by Nori instead of at a rate of 1 _NORI_ per 1 NRT.
-[^2]: This mechanism will be enabled once the marketplace is configured to receive _NORI_ as payment instead of _USDC_.
-[^3]: Initially, _RestrictedNORI_ is non-transferrable.
+## Contracts for the Future
+
+### ERC20 Tokens
+
+#### [_NORI_](NORI.md)
+
+The _NORI_ token is Nori's fungible token which functions as a gift card to purchase NRTs. One NRT is worth one _$NORI_. The marketplace is configurable with respect to which ERC20 token it is willing to accept as payment. The initial launch of the market will be configured to receive _USDC_, with the intention of switching to receive _NORI_ once that token is launched publicly with sufficient liquidity.
+
+When a supplier's listed NRTs are sold, the supplier gets paid in _NORI_ tokens at a constant rate of 1 NRT per 1 _NORI_ token (an [ERC20](https://github.com/ethereum/ethereum-org-website/blob/b17088f97b805dbc947e629d3ae5358ed27ac076/src/content/developers/docs/standards/tokens/erc-20/index.md) compatible token on [the Polygon blockchain](https://polygon.technology/)). This mechanism is designed to enable price discovery for carbon removal.
+
+- Deployed on: Ethereum mainnet.
+- Initial supply minted at deployment: 500M.
+- Minting is disabled.
+
+[_NORI_ on Etherscan](https://etherscan.io/token/0xFAdEDFe89B5A530C0a7f69bE442E190751a13093)
+
+Furthermore, when NRTs are sold, a percentage of the supplier's proceeds of each swap is held in an insurance reserve and released linearly over the supplier's ten-year contract with Nori.[^1] _RestrictedNORI_ implements this restriction and scheduled release mechanism within a transferable [ERC1155 compatible](https://github.com/ethereum/ethereum-org-website/blob/b17088f97b805dbc947e629d3ae5358ed27ac076/src/content/developers/docs/standards/tokens/erc-1155/index.md) token contract[^2].
+
+#### [_BridgedPolygonNORI_](BridgedPolygonNORI.md)
+
+_BridgedPolygonNORI_ is the [_$NORI_](NORI.md) token bridged to Polygon PoS.
+
+- Polygon child chain mapper is the only contract with mint / burn permission (`DEPOSITOR_ROLE`).
+- Initially deployed with a total supply of zero.
+
+[_BridgedPolygonNORI_ on PolygonScan](https://polygonscan.com/token/0x5922Da38963429b12CA3d7a60f9435AA1f3e8C1D).
+
+### Vesting and Lockup
+
+#### [_LockedNORI_](LockedNORI.md)
+
+A contract managing investor and employee timed vesting and unlocking contract.
+
+V2 of this contract was updated to support the new [ERC20Permit](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/draft-ERC20Permit.sol) pattern with _BridgedPolygonNORI_ and to remove reliance on the ERC777 `tokensReceived` callback. A setter was added to allow us to replace the underlying wrapper token contract with the newer ERC20Permit version of _BridgedPolygonNORI_.
+
+> **Note**
+> Investors and employees have received _NORI_ token grants bound by vesting and lockup terms. These grants are implemented by _LockedNORI_ which does not currently support transfer of locked tokens and allows a maximum of one grant schedule per wallet address.
+
+[_LockedNORI_ on PolygonScan](https://polygonscan.com/token/0xccfffa6c2a030821331cc113b63babdc60bff82a)
+
+#### [_RestrictedNORI_](RestrictedNORI.md)
+
+A contract managing supplier insurance holdbacks.
+
+Operates similarly to _LockedNORI_ by acting as a wrapper token that governs the scheduled release of the underlying _BridgedPolygonNori_ asset. Implemented as an ERC1155, each token ID has its own schedule parameters that control the linear release of the underlying assets over the duration of the schedule. It is possible to create more than one schedule per owner address. It is not currently
+possible to transfer restricted balances between addresses, though this feature may be implemented in a future release.
+
+[^1]: This mechanism will be enabled once the marketplace is configured to receive _NORI_ as payment instead of _USDC_.
+[^2]: Initially, _RestrictedNORI_ is non-transferrable.
