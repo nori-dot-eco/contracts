@@ -1,6 +1,6 @@
 {
   "name": "@nori-dot-com/contracts",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "main": "index.js",
   "exports": {
     "./utils/*": "./dist/utils/*.js",
@@ -60,6 +60,7 @@
     "fireblocks-defi-sdk": "1.2.15",
     "fireblocks-sdk": "^4.0.0",
     "fs-extra": "^10.1.0",
+    "google-artifactregistry-auth": "^3.1.0",
     "handlebars": "^4.7.7",
     "hardhat": "2.12.5",
     "hardhat-contract-sizer": "^2.6.1",
@@ -107,6 +108,7 @@
     "snapshot": "forge snapshot",
     "snapshot:test": "FOUNDRY_PROFILE=test forge snapshot --snap .gas-snapshot-test",
     "snapshot:production": "FOUNDRY_PROFILE=production forge snapshot --snap .gas-snapshot-production",
-    "lint:diff": "npx eslint --cache --cache-location ./.eslintcache  -c .eslintrc.js $(git diff --relative --name-only --diff-filter=d $(git merge-base HEAD origin/master) -- \"*.ts\" \"*.js\" \"*.jsx\" \"*.env\" \"*.md\" \"*.toml\")"
+    "lint:diff": "npx eslint --cache --cache-location ./.eslintcache  -c .eslintrc.js $(git diff --relative --name-only --diff-filter=d $(git merge-base HEAD origin/master) -- \"*.ts\" \"*.js\" \"*.jsx\" \"*.env\" \"*.md\" \"*.toml\")",
+    "artifactregistry-login": "npx google-artifactregistry-auth"
   }
 }
