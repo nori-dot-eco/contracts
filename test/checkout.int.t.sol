@@ -997,9 +997,9 @@ contract Checkout_buyingWithCustomFee is Checkout {
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
     uint256 createCertificateEventIndex = 6;
-    assert(
-      entries[createCertificateEventIndex].topics[0] ==
-        CREATE_CERTIFICATE_EVENT_SELECTOR
+    assertEq(
+      entries[createCertificateEventIndex].topics[0],
+      CREATE_CERTIFICATE_EVENT_SELECTOR
     );
     assertEq(
       entries[createCertificateEventIndex].topics[1],
@@ -1071,9 +1071,9 @@ contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
     uint256 createCertificateEventIndex = 6;
-    assert(
-      entries[createCertificateEventIndex].topics[0] ==
-        CREATE_CERTIFICATE_EVENT_SELECTOR
+    assertEq(
+      entries[createCertificateEventIndex].topics[0],
+      CREATE_CERTIFICATE_EVENT_SELECTOR
     );
     assertEq(
       entries[createCertificateEventIndex].topics[1],
