@@ -950,8 +950,7 @@ contract Market is
    * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
    * inclusion in emitted events.
    */
-  function swapWithoutFee(
-    // TODO should we rename this or allow `swapWithoutFee` to be overloaded? (same question applies to swapWithoutFeeFromSupplier)
+  function swapWithoutFeeSpecialOrder(
     address recipient,
     address purchaser,
     uint256 amount,
@@ -1036,11 +1035,10 @@ contract Market is
   }
 
   /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported
-   * ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the
-   * specified supplier to that certificate, without charging a transaction fee, but allowing specification of the fee
-   * percentage that was paid off-chain.. If the specified supplier does not have enough carbon removals for sale to
-   * fulfill the order the transaction will revert.
+   * @notice Exchanges supported ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens
+   * supplied only from the specified supplier to that certificate, without charging a transaction fee, but allowing
+   * specification of the fee percentage that was paid off-chain.. If the specified supplier does not have enough carbon
+   * removals for sale to fulfill the order the transaction will revert.
    * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
    * more. The purchaser must have granted approval to this contract to authorize this market to transfer their
    * supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
@@ -1062,7 +1060,7 @@ contract Market is
    * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
    * inclusion in emitted events.
    */
-  function swapFromSupplierWithoutFee(
+  function swapFromSupplierWithoutFeeSpecialOrder(
     address recipient,
     address purchaser,
     uint256 amount,

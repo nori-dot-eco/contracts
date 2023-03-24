@@ -987,44 +987,51 @@ contract Checkout_buyingWithCustomFee is Checkout {
   function test() external {
     vm.startPrank(owner);
     vm.recordLogs();
-    _market.swapWithoutFee(owner, owner, certificateAmount, customFee);
+    _market.swapWithoutFeeSpecialOrder(
+      owner,
+      owner,
+      certificateAmount,
+      customFee
+    );
     vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    bool containsCreateCertificateEventSelector = false;
-    for (uint256 i = 0; i < entries.length; ++i) {
-      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
-        containsCreateCertificateEventSelector = true;
-        assertEq(
-          entries[i].topics[1],
-          bytes32(uint256(uint160(address(owner))))
-        );
-        assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
-        assertEq(
-          entries[i].topics[3],
-          bytes32(uint256(uint160(address(_bpNori))))
-        );
-        (
-          address from,
-          uint256 eventCertificateAmount,
-          uint256[] memory removalIds,
-          uint256[] memory removalAmounts,
-          uint256 priceMultiple,
-          uint256 noriFeePercentage
-        ) = abi.decode(
-            entries[i].data,
-            (address, uint256, uint256[], uint256[], uint256, uint256)
-          );
-        assertEq(from, address(_removal));
-        assertEq(eventCertificateAmount, certificateAmount);
-        assertEq(priceMultiple, _market.getPriceMultiple());
-        assertEq(noriFeePercentage, customFee);
-        assertEq(removalIds.length, 1);
-        assertEq(removalAmounts.length, 1);
-        assertEq(removalIds[0], _removalIds[0]);
-        assertEq(removalAmounts[0], certificateAmount);
-      }
-    }
+    uint256 createCertificateEventIndex = 6;
+    assert(
+      entries[createCertificateEventIndex].topics[0] ==
+        CREATE_CERTIFICATE_EVENT_SELECTOR
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[1],
+      bytes32(uint256(uint160(address(owner))))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[2],
+      bytes32(uint256(uint256(0)))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[3],
+      bytes32(uint256(uint160(address(_bpNori))))
+    );
+    (
+      address from,
+      uint256 eventCertificateAmount,
+      uint256[] memory removalIds,
+      uint256[] memory removalAmounts,
+      uint256 priceMultiple,
+      uint256 noriFeePercentage
+    ) = abi.decode(
+        entries[createCertificateEventIndex].data,
+        (address, uint256, uint256[], uint256[], uint256, uint256)
+      );
+    assertEq(from, address(_removal));
+    assertEq(eventCertificateAmount, certificateAmount);
+    assertEq(priceMultiple, _market.getPriceMultiple());
+    assertEq(noriFeePercentage, customFee);
+    assertEq(removalIds.length, 1);
+    assertEq(removalAmounts.length, 1);
+    assertEq(removalIds[0], _removalIds[0]);
+    assertEq(removalAmounts[0], certificateAmount);
   }
 }
 
@@ -1053,7 +1060,7 @@ contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
   function test() external {
     vm.startPrank(owner);
     vm.recordLogs();
-    _market.swapFromSupplierWithoutFee(
+    _market.swapFromSupplierWithoutFeeSpecialOrder(
       owner,
       owner,
       certificateAmount,
@@ -1063,39 +1070,41 @@ contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
     vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    bool containsCreateCertificateEventSelector = false;
-    for (uint256 i = 0; i < entries.length; ++i) {
-      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
-        containsCreateCertificateEventSelector = true;
-        assertEq(
-          entries[i].topics[1],
-          bytes32(uint256(uint160(address(owner))))
-        );
-        assertEq(entries[i].topics[2], bytes32(uint256(uint256(0))));
-        assertEq(
-          entries[i].topics[3],
-          bytes32(uint256(uint160(address(_bpNori))))
-        );
-        (
-          address from,
-          uint256 eventCertificateAmount,
-          uint256[] memory removalIds,
-          uint256[] memory removalAmounts,
-          uint256 priceMultiple,
-          uint256 noriFeePercentage
-        ) = abi.decode(
-            entries[i].data,
-            (address, uint256, uint256[], uint256[], uint256, uint256)
-          );
-        assertEq(from, address(_removal));
-        assertEq(eventCertificateAmount, certificateAmount);
-        assertEq(priceMultiple, _market.getPriceMultiple());
-        assertEq(noriFeePercentage, customFee);
-        assertEq(removalIds.length, 1);
-        assertEq(removalAmounts.length, 1);
-        assertEq(removalIds[0], _removalIds[0]);
-        assertEq(removalAmounts[0], certificateAmount);
-      }
-    }
+    uint256 createCertificateEventIndex = 6;
+    assert(
+      entries[createCertificateEventIndex].topics[0] ==
+        CREATE_CERTIFICATE_EVENT_SELECTOR
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[1],
+      bytes32(uint256(uint160(address(owner))))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[2],
+      bytes32(uint256(uint256(0)))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[3],
+      bytes32(uint256(uint160(address(_bpNori))))
+    );
+    (
+      address from,
+      uint256 eventCertificateAmount,
+      uint256[] memory removalIds,
+      uint256[] memory removalAmounts,
+      uint256 priceMultiple,
+      uint256 noriFeePercentage
+    ) = abi.decode(
+        entries[createCertificateEventIndex].data,
+        (address, uint256, uint256[], uint256[], uint256, uint256)
+      );
+    assertEq(from, address(_removal));
+    assertEq(eventCertificateAmount, certificateAmount);
+    assertEq(priceMultiple, _market.getPriceMultiple());
+    assertEq(noriFeePercentage, customFee);
+    assertEq(removalIds.length, 1);
+    assertEq(removalAmounts.length, 1);
+    assertEq(removalIds[0], _removalIds[0]);
+    assertEq(removalAmounts[0], certificateAmount);
   }
 }
