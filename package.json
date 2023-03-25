@@ -108,7 +108,7 @@
     "snapshot": "forge snapshot",
     "snapshot:test": "FOUNDRY_PROFILE=test forge snapshot --snap .gas-snapshot-test",
     "snapshot:production": "FOUNDRY_PROFILE=production forge snapshot --snap .gas-snapshot-production",
-    "lint:diff": "npx eslint --cache --cache-location ./.eslintcache  -c .eslintrc.js $(git diff --relative --name-only --diff-filter=d $(git merge-base HEAD origin/master) -- \"*.ts\" \"*.js\" \"*.jsx\" \"*.env\" \"*.md\" \"*.toml\")",
+    "lint:diff": "npx eslint --cache --cache-location ./.eslintcache -c .eslintrc.js $(git diff --relative --name-only --diff-filter=d $(git merge-base HEAD origin/master) -- \"*.ts\" \"*.js\" \"*.env\" \"*.toml\")",
     "artifactregistry-login": "npx google-artifactregistry-auth"
   }
 }
