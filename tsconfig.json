@@ -34,7 +34,6 @@
     "types/**/*.d.ts",
     "./.eslintrc.js",
     "./eslint-local-rules/index.js",
-    ".solcover.js",
     "contracts.json",
     "artifacts/contracts/**/*.json"
   ]
