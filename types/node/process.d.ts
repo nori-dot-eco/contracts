@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention -- this file overwrites many predefined types */
 declare namespace NodeJS {
-  // eslint-disable-next-line unicorn/prevent-abbreviations -- this is a type augmentation
   interface ProcessEnv {
     MNEMONIC?: string;
     INFURA_STAGING_KEY?: string;
