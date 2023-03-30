@@ -76,6 +76,7 @@ struct LinkedListNode {
 ```solidity
 struct FulfillOrderData {
   bool chargeFee;
+  uint256 feePercentage;
   uint256 certificateAmount;
   address from;
   address recipient;
@@ -728,6 +729,37 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
 
 
+### swapWithoutFeeSpecialOrder
+
+```solidity
+function swapWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, uint256 customFee) external
+```
+
+Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
+certificate without charging a transaction fee, but allowing specification of the fee percentage that was paid
+off-chain.
+
+<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
+for more.
+The purchaser must have granted approval to this contract to authorize this market to transfer their
+supported ERC20 to complete the purchase. A certificate is minted in the Certificate
+contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
+potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
+
+##### Requirements:
+
+- Can only be used when this contract is not paused.
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+- Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| recipient | address | The address to which the certificate will be issued. |
+| purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
+| amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
+| customFee | uint256 | The custom fee percentage that was paid to Nori, as an integer, specified here for inclusion in emitted events. |
+
+
 ### swapFromSupplierWithoutFee
 
 ```solidity
@@ -758,6 +790,39 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 | purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
 | supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
+
+
+### swapFromSupplierWithoutFeeSpecialOrder
+
+```solidity
+function swapFromSupplierWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, address supplier, uint256 customFee) external
+```
+
+Exchanges supported ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens
+supplied only from the specified supplier to that certificate, without charging a transaction fee, but allowing
+specification of the fee percentage that was paid off-chain.. If the specified supplier does not have enough carbon
+removals for sale to fulfill the order the transaction will revert.
+
+<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
+more. The purchaser must have granted approval to this contract to authorize this market to transfer their
+supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
+to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
+potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
+
+##### Requirements:
+
+- Can only be used when this contract is not paused.
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+- Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
+- Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| recipient | address | The address to which the certificate will be issued. |
+| purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
+| amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
+| supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
+| customFee | uint256 | The custom fee percentage that was paid to Nori, as an integer, specified here for inclusion in emitted events. |
 
 
 ### withdraw
@@ -1134,7 +1199,7 @@ the order fee, updating accounting, and minting the Certificate.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| params | struct Market.FulfillOrderData | The order fullfilment data. |
+| params | struct Market.FulfillOrderData | The order fulfillment data. |
 
 
 ### _allocateRemovals

@@ -229,7 +229,7 @@ contract Certificate is
   ) external returns (bytes4) {
     require(
       _msgSender() == address(_removal),
-      "Certificate: Sender not removal contract"
+      "Certificate: Sender not Removal"
     );
     bool isReplacement = abi.decode(data, (bool));
     if (isReplacement) {
