@@ -14,5 +14,4 @@ export const deploy: CustomHardhatDeployFunction = async (environment) => {
 export default deploy;
 deploy.tags = ['seed'];
 deploy.dependencies = ['assets', 'market'];
-deploy.skip = async (hre) =>
-  Promise.resolve(process.env.CI === true || hre.network.live === true);
+deploy.skip = async (hre) => Promise.resolve(hre.network.live === true);
