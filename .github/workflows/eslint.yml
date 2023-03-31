@@ -25,7 +25,7 @@ jobs:
             ${{ runner.os }}-yarn-
       - run: yarn install --frozen-lockfile --ignore-scripts --ignore-engines
       - name: ESLint diff only
-        run: yarn run lint:diff
+        run: yarn run lint:diff --max-warnings=0
       - name: Eslint cache
         id: eslint-cache
         uses: actions/cache@v3
