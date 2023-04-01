@@ -8154,10 +8154,10 @@ hardhat-ethernal@^3.1.0:
     axios "^0.27.2"
     firebase "9.9.4"
 
-hardhat-tracer@^1.2.1:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/hardhat-tracer/-/hardhat-tracer-1.2.1.tgz#2877a21e187ac5ad17e2e09a83d337375e50f1b0"
-  integrity sha512-ZZVXZfWfRzPkjGdkLoxC4v3Dqja7cpG1mOOr+3+m9xGmqfw9P6cKMDo+wYtGPNM6KttwsJ226Gqt5AwBjMxgTg==
+hardhat-tracer@^2.1.2:
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/hardhat-tracer/-/hardhat-tracer-2.1.2.tgz#9a1a3896856a59461594e2ee4a54871eafb2ab63"
+  integrity sha512-Uee7EgMGZPmGA1NFu6at8zk3u184irfPQ+AK50a7s2Ep8jbsAc55mSFs844+UhSH/uNNuk7fqAsx/Qa5gHzPpQ==
   dependencies:
     ethers "^5.6.1"
 
