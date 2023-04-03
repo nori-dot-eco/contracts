@@ -28,16 +28,16 @@ export const deploy: DeployFunction = async (environment) => {
 export default deploy;
 deploy.tags = ['Market', 'market'];
 deploy.dependencies = [
-  // 'preconditions',
-  // 'Removal',
-  // 'Certificate',
-  // 'BridgedPolygonNORI',
-  // 'RestrictedNORI',
+  'preconditions',
+  'Removal',
+  'Certificate',
+  'BridgedPolygonNORI',
+  'RestrictedNORI',
 ];
-// if (hre.network.name !== 'polygon') {
-//   deploy.dependencies = [...deploy.dependencies, 'NoriUSDC'];
-// }
-// deploy.skip = async (hre) =>
-//   Promise.resolve(
-//     !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
-//   );
+if (hre.network.name !== 'polygon') {
+  deploy.dependencies = [...deploy.dependencies];
+}
+deploy.skip = async (hre) =>
+  Promise.resolve(
+    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+  );

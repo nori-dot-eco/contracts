@@ -184,10 +184,8 @@ const deployOrUpgradeProxy = async <
         }) as InstanceOfContract<TContract>;
       }
     } catch (error) {
-      hre.trace(`Failed to upgrade ${contractName} with error:`, error);
-      contract = hre.deployments.get(
-        contractName
-      ) as InstanceOfContract<TContract>;
+      hre.log(`Failed to upgrade ${contractName} with error:`, error);
+      throw new Error(`Failed to upgrade ${contractName} with error: ${error}`);
     }
   }
   return contract;
