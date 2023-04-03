@@ -1,7 +1,7 @@
 {
   "hardhat": {
     "NORI": {
-      "proxyAddress": "0x143ddB67B749FeB5e2E1b2135bC55Dc8de729Db2"
+      "proxyAddress": "0xEdf0bef28943aE9d2ee7d84cF1AEEC85588655b7"
     },
     "BridgedPolygonNORI": {
       "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
