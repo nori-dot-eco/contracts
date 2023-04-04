@@ -57,6 +57,7 @@ export const deploy: DeployFunction = async (environment) => {
     purchaseTokenAddress = STAGING_USDC_TOKEN_ADDRESS;
     priceMultiple = BigNumber.from(2000);
   }
+  const restrictionScheduleDuration = 315_569_520; // seconds in 10 years
   const feeWalletAddress = ['hardhat', 'localhost'].includes(hre.network.name)
     ? hre.namedAccounts.noriWallet
     : hre.network.name === 'polygon'
@@ -88,6 +89,29 @@ export const deploy: DeployFunction = async (environment) => {
     await txn.wait(CONFIRMATIONS);
     hre.trace("Granted Market the role 'MINTER_ROLE' for RestrictedNORI");
   }
+  if (
+    !(
+      (await rNori.getRestrictionDurationForMethodologyAndVersion(1, 1)) ===
+      BigNumber.from(restrictionScheduleDuration)
+    )
+  ) {
+    hre.trace(
+      'Setting restriction schedule durations for RestrictedNORI, methodology 1 and versions 1, 2, 3...'
+    );
+    const methodologyVersions = [1, 2, 3];
+    const multicallData = methodologyVersions.map((version) => {
+      return rNori.interface.encodeFunctionData(
+        'setRestrictionDurationForMethodologyAndVersion',
+        [1, version, restrictionScheduleDuration]
+      );
+    });
+    txn = await rNori.multicall(multicallData);
+    await txn.wait(CONFIRMATIONS);
+    hre.trace(
+      'Set additional schedule durations in RestrictedNORI for methdology 1 and versions 1, 2, 3.'
+    );
+  }
+
   // TODO figure out how to make a check about what these addresses are currently set to
   // bigger TODO: expose getters for these on the contract
   txn = await rNori.registerContractAddresses(

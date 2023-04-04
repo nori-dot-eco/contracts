@@ -35,7 +35,7 @@ deploy.dependencies = [
   'RestrictedNORI',
 ];
 if (hre.network.name !== 'polygon') {
-  deploy.dependencies = [...deploy.dependencies, 'NoriUSDC'];
+  deploy.dependencies = [...deploy.dependencies];
 }
 deploy.skip = async (hre) =>
   Promise.resolve(

@@ -3,13 +3,11 @@ import type { HardhatUserConfig, SolcUserConfig } from 'hardhat/types';
 const DEFAULT_SOLC_CONFIG: SolcUserConfig = {
   version: '0.8.17',
   settings: {
-    viaIR: process.env.VIA_IR && !process.env.CI,
-    ...(!process.env.CI && {
-      optimizer: {
-        enabled: process.env.OPTIMIZER,
-        runs: process.env.OPTIMIZER_RUNS,
-      },
-    }),
+    viaIR: process.env.VIA_IR,
+    optimizer: {
+      enabled: process.env.OPTIMIZER,
+      runs: process.env.OPTIMIZER_RUNS,
+    },
   },
 };
 
@@ -30,7 +28,7 @@ const PRODUCTION_SOLC_CONFIG: SolcUserConfig = {
     viaIR: true,
     optimizer: {
       enabled: true,
-      runs: 4980,
+      runs: 3000,
     },
   },
 };

@@ -337,7 +337,11 @@ describe('Market', () => {
           userFixtures: {
             supplier: {
               removalDataToList: {
-                removals: [{ amount: formatTokenAmount(3) }, { amount: formatTokenAmount(3) }, { amount: formatTokenAmount(4) }],
+                removals: [
+                  { amount: formatTokenAmount(3) },
+                  { amount: formatTokenAmount(3) },
+                  { amount: formatTokenAmount(4) },
+                ],
               },
             },
           },
@@ -357,7 +361,11 @@ describe('Market', () => {
           userFixtures: {
             supplier: {
               removalDataToList: {
-                removals: [{ amount: formatTokenAmount(5) }, { amount: formatTokenAmount(5) }, { amount: formatTokenAmount(5) }],
+                removals: [
+                  { amount: formatTokenAmount(5) },
+                  { amount: formatTokenAmount(5) },
+                  { amount: formatTokenAmount(5) },
+                ],
               },
             },
           },
@@ -399,7 +407,9 @@ describe('Market', () => {
         await setupTest({
           userFixtures: {
             supplier: {
-              removalDataToList: { removals: [{ amount: formatTokenAmount(100) }] },
+              removalDataToList: {
+                removals: [{ amount: formatTokenAmount(100) }],
+              },
             },
           },
         });
@@ -1133,10 +1143,22 @@ describe('purchasing from a specified supplier', () => {
           supplier: {
             removalDataToList: {
               removals: [
-                { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.supplier }, // 2 removals each for 2 different suppliers
-                { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.supplier },
-                { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.investor1 },
-                { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.investor1 },
+                {
+                  amount: formatTokenAmount(10),
+                  supplierAddress: hre.namedAccounts.supplier,
+                }, // 2 removals each for 2 different suppliers
+                {
+                  amount: formatTokenAmount(10),
+                  supplierAddress: hre.namedAccounts.supplier,
+                },
+                {
+                  amount: formatTokenAmount(10),
+                  supplierAddress: hre.namedAccounts.investor1,
+                },
+                {
+                  amount: formatTokenAmount(10),
+                  supplierAddress: hre.namedAccounts.investor1,
+                },
               ],
             },
           },
@@ -1156,7 +1178,16 @@ describe('purchasing from a specified supplier', () => {
       .connect(buyer)
       [
         'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-      ](buyer.address, buyer.address, purchaseAmount, hre.namedAccounts.supplier, MaxUint256, v, r, s);
+      ](
+        buyer.address,
+        buyer.address,
+        purchaseAmount,
+        hre.namedAccounts.supplier,
+        MaxUint256,
+        v,
+        r,
+        s
+      );
     const [supplierFinalNoriBalance, investor1FinalNoriBalance] =
       await Promise.all([
         bpNori.balanceOf(hre.namedAccounts.supplier),
@@ -1183,10 +1214,22 @@ describe('purchasing from a specified supplier', () => {
         supplier: {
           removalDataToList: {
             removals: [
-              { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.supplier }, // 2 removals each for 2 different suppliers
-              { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.supplier },
-              { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.investor1 },
-              { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.investor1 },
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.supplier,
+              }, // 2 removals each for 2 different suppliers
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.supplier,
+              },
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.investor1,
+              },
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.investor1,
+              },
             ],
           },
         },
@@ -1205,7 +1248,16 @@ describe('purchasing from a specified supplier', () => {
         .connect(buyer)
         [
           'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](buyer.address, buyer.address, purchaseAmount, hre.namedAccounts.supplier, MaxUint256, v, r, s)
+        ](
+          buyer.address,
+          buyer.address,
+          purchaseAmount,
+          hre.namedAccounts.supplier,
+          MaxUint256,
+          v,
+          r,
+          s
+        )
     ).to.be.revertedWith('InsufficientSupply()');
   });
   it('should revert when purchasing supply from a specific supplier who does not exist in the market', async () => {
@@ -1214,10 +1266,22 @@ describe('purchasing from a specified supplier', () => {
         supplier: {
           removalDataToList: {
             removals: [
-              { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.supplier }, // 2 removals each for 2 different suppliers
-              { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.supplier },
-              { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.investor1 },
-              { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.investor1 },
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.supplier,
+              }, // 2 removals each for 2 different suppliers
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.supplier,
+              },
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.investor1,
+              },
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.investor1,
+              },
             ],
           },
         },
@@ -1254,7 +1318,10 @@ describe('purchasing from a specified supplier', () => {
         supplier: {
           removalDataToList: {
             removals: [
-              { amount: formatTokenAmount(10), supplierAddress: hre.namedAccounts.supplier },
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.supplier,
+              },
             ],
           },
         },
@@ -1275,7 +1342,16 @@ describe('purchasing from a specified supplier', () => {
         .connect(buyer)
         [
           'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](buyer.address, buyer.address, purchaseAmount, hre.namedAccounts.supplier, MaxUint256, v, r, s)
+        ](
+          buyer.address,
+          buyer.address,
+          purchaseAmount,
+          hre.namedAccounts.supplier,
+          MaxUint256,
+          v,
+          r,
+          s
+        )
     ).to.be.revertedWith('LowSupplyAllowlistRequired()');
   });
 });

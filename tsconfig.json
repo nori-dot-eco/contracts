@@ -33,7 +33,7 @@
     "**/*.ts",
     "types/**/*.d.ts",
     "./.eslintrc.js",
-    ".solcover.js",
+    "./eslint-local-rules/index.js",
     "contracts.json",
     "artifacts/contracts/**/*.json"
   ]

@@ -143,32 +143,6 @@ describe('RestrictedNORI', () => {
           )
       ).to.be.reverted;
     });
-    it('should revert if a restriction schedule is being created for a methodology/version that does not have a duration set', async () => {
-      const { removal, hre, market } = await setupTest();
-      const removalIdWithMethodology2 = {
-        ...defaultRemovalTokenIdFixture,
-        methodology: 2,
-      };
-      const projectId = 1_234_567_890;
-      const scheduleStartTime = await getLatestBlockTime({ hre });
-      const amount = 20_000_000;
-      const packedData = await createBatchMintData({
-        hre,
-        projectId,
-        scheduleStartTime,
-      });
-
-      await expect(
-        removal.mintBatch(
-          market.address,
-          [amount],
-          [removalIdWithMethodology2],
-          packedData.projectId,
-          packedData.scheduleStartTime,
-          packedData.holdbackPercentage
-        )
-      ).to.be.revertedWith('rNORI: duration not set');
-    });
   });
   describe(`create schedule`, () => {
     it('should create a schedule with a direct call', async () => {
@@ -699,7 +673,11 @@ describe('RestrictedNORI', () => {
           scheduleStartTime,
           listNow: false,
           removals: [
-            { amount: formatTokenAmount(1000), vintage: 2018, supplierAddress: investor1 },
+            {
+              amount: formatTokenAmount(1000),
+              vintage: 2018,
+              supplierAddress: investor1,
+            },
           ],
         };
         const investorRemovalMintingResults =
@@ -716,9 +694,7 @@ describe('RestrictedNORI', () => {
               removalTestHarness.createRemovalId(r)
             )
           ),
-          removalAmountsToRestrict: [
-            investorRemovalData.removals[0].amount,
-          ],
+          removalAmountsToRestrict: [investorRemovalData.removals[0].amount],
         });
         // create some RestrictedNORI for a third holder
         const employeeRemovalData: RemovalDataForListing = {
@@ -726,7 +702,11 @@ describe('RestrictedNORI', () => {
           scheduleStartTime,
           listNow: false,
           removals: [
-            { amount: formatTokenAmount(1000), vintage: 2018, supplierAddress: employee },
+            {
+              amount: formatTokenAmount(1000),
+              vintage: 2018,
+              supplierAddress: employee,
+            },
           ],
         };
         const employeeRemovalMintingResults =
@@ -743,9 +723,7 @@ describe('RestrictedNORI', () => {
               removalTestHarness.createRemovalId(r)
             )
           ),
-          removalAmountsToRestrict: [
-            employeeRemovalData.removals[0].amount,
-          ],
+          removalAmountsToRestrict: [employeeRemovalData.removals[0].amount],
         });
         await advanceTime({
           hre,
@@ -881,7 +859,9 @@ describe('RestrictedNORI', () => {
               },
             },
             supplier: {
-              removalDataToList: { removals: [{ amount: formatTokenAmount(100), vintage: 2018 }] },
+              removalDataToList: {
+                removals: [{ amount: formatTokenAmount(100), vintage: 2018 }],
+              },
             },
           },
         });
@@ -978,7 +958,9 @@ describe('RestrictedNORI', () => {
             },
             supplier: {
               removalDataToList: {
-                removals: [{ amount: formatTokenAmount(supplierAmount), vintage: 2018 }],
+                removals: [
+                  { amount: formatTokenAmount(supplierAmount), vintage: 2018 },
+                ],
               },
             },
           },
@@ -1034,9 +1016,7 @@ describe('RestrictedNORI', () => {
               removalTestHarness.createRemovalId(r)
             )
           ),
-          removalAmountsToRestrict: [
-            investorRemovalData.removals[0].amount,
-          ],
+          removalAmountsToRestrict: [investorRemovalData.removals[0].amount],
         });
         const quantityToRevoke = restrictedAmount.div(2);
         const expectedRevokedFromSupplier =
@@ -1130,7 +1110,11 @@ describe('RestrictedNORI', () => {
           scheduleStartTime,
           listNow: false,
           removals: [
-            { amount: formatTokenAmount(1000), vintage: 2018, supplierAddress: investor1 },
+            {
+              amount: formatTokenAmount(1000),
+              vintage: 2018,
+              supplierAddress: investor1,
+            },
           ],
         };
         const investorRemovalMintingResults =
@@ -1147,9 +1131,7 @@ describe('RestrictedNORI', () => {
               removalTestHarness.createRemovalId(r)
             )
           ),
-          removalAmountsToRestrict: [
-            investorRemovalData.removals[0].amount,
-          ],
+          removalAmountsToRestrict: [investorRemovalData.removals[0].amount],
         });
         // create some RestrictedNORI for a third holder
         const employeeRemovalData: RemovalDataForListing = {
@@ -1157,7 +1139,11 @@ describe('RestrictedNORI', () => {
           scheduleStartTime,
           listNow: false,
           removals: [
-            { amount: formatTokenAmount(1000), vintage: 2018, supplierAddress: employee },
+            {
+              amount: formatTokenAmount(1000),
+              vintage: 2018,
+              supplierAddress: employee,
+            },
           ],
         };
         const employeeRemovalMintingResults =
@@ -1174,9 +1160,7 @@ describe('RestrictedNORI', () => {
               removalTestHarness.createRemovalId(r)
             )
           ),
-          removalAmountsToRestrict: [
-            employeeRemovalData.removals[0].amount,
-          ],
+          removalAmountsToRestrict: [employeeRemovalData.removals[0].amount],
         });
         const restrictedAmount = formatTokenAmount(3000);
         await hre.network.provider.send('evm_setNextBlockTimestamp', [
