@@ -98,7 +98,7 @@
     "test:forge": "FOUNDRY_PROFILE=test forge test",
     "prepare": "yarn build",
     "typechain": "TS_NODE_TRANSPILE_ONLY=1 hardhat typechain",
-    "build": "SOLC_PROFILE=test typechain && tsc -b",
+    "build": "SOLC_PROFILE=test yarn run typechain && tsc -b",
     "slither": "yarn prepare && slither .",
     "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
     "deploy": "SOLC_PROFILE=production TRACE=true LOG_HARDHAT_NETWORK=true hardhat deploy",
@@ -129,7 +129,7 @@
           "{projectRoot}/**/*"
         ],
         "outputs": [
-          "{projectRoot}/dist"
+          "{projectRoot}/dist/**/*"
         ]
       }
     }
