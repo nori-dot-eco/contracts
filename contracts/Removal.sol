@@ -836,19 +836,17 @@ contract Removal is
     for (uint256 i = 0; i < countOfRemovals; ++i) {
       uint256 id = ids[i];
       uint256 amount = amounts[i];
-      if (!_isValidTransfer({amount: amount, to: to})) {
+      if (
+        !_isValidTransferAmount({amount: amount, to: to}) ||
+        (!isValidTransfer &&
+          to != RemovalIdLib.supplierAddress({removalId: id}))
+      ) {
         revert ForbiddenTransfer();
       }
       if (to == market) {
         _currentMarketBalance += amount;
-      }
-      if (from == market) {
+      } else if (from == market) {
         _currentMarketBalance -= amount;
-      }
-      if (
-        !isValidTransfer && to != RemovalIdLib.supplierAddress({removalId: id})
-      ) {
-        revert ForbiddenTransfer();
       }
     }
     super._beforeTokenTransfer({
@@ -951,11 +949,11 @@ contract Removal is
    * @dev Ensure that the amount of tokens in circulation always multiples of 1e14.
    *
    * ##### Examples:
-   * - `_isValidTransfer({amount: 1e14, to: address(1)}) == true`
-   * - `_isValidTransfer({amount: 0, to: address(1)}) == true`
-   * - `_isValidTransfer({amount: 0, to: address(_certificate)}) == false`
-   * - `_isValidTransfer({amount: 1, to: address(1)}) == false`
-   * - `_isValidTransfer({amount: 1e14 - 1, to: address(_market)}) == false`
+   * - `_isValidTransferAmount({amount: 1e14, to: address(1)}) == true`
+   * - `_isValidTransferAmount({amount: 0, to: address(1)}) == true`
+   * - `_isValidTransferAmount({amount: 0, to: address(_certificate)}) == false`
+   * - `_isValidTransferAmount({amount: 1, to: address(1)}) == false`
+   * - `_isValidTransferAmount({amount: 1e14 - 1, to: address(_market)}) == false`
    *
    * ##### Requirements:
    *
@@ -963,7 +961,7 @@ contract Removal is
    * and non-zero.
    * - If the recipient is neither the Market nor the Certificate the amount may also be zero.
    */
-  function _isValidTransfer(uint256 amount, address to)
+  function _isValidTransferAmount(uint256 amount, address to)
     internal
     view
     returns (bool)

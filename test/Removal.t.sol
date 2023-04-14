@@ -1576,7 +1576,7 @@ contract Removal__isValidTransfer is NonUpgradeableRemoval {
 
   function testFuzz_ReturnTrue_SmallestGranularity() external {
     assertEq(
-      _isValidTransfer({amount: 1e14, to: _namedAccounts.supplier}),
+      _isValidTransferAmount({amount: 1e14, to: _namedAccounts.supplier}),
       true
     );
   }
@@ -1585,7 +1585,7 @@ contract Removal__isValidTransfer is NonUpgradeableRemoval {
     amount = 1e14 * bound({x: amount, min: 1e14, max: 1e63});
     vm.assume(amount % 1e14 == 0);
     assertEq(
-      _isValidTransfer({amount: amount, to: _namedAccounts.supplier}),
+      _isValidTransferAmount({amount: amount, to: _namedAccounts.supplier}),
       true
     );
   }
@@ -1593,16 +1593,22 @@ contract Removal__isValidTransfer is NonUpgradeableRemoval {
   function test_ReturnTrue_AmountIsZeroAndToIsNeitherTheMarketNorCertificate()
     external
   {
-    assertEq(_isValidTransfer({amount: 0, to: _namedAccounts.supplier}), true);
+    assertEq(
+      _isValidTransferAmount({amount: 0, to: _namedAccounts.supplier}),
+      true
+    );
   }
 
   function test_ReturnFalse_AmountIsZeroAndToIsTheMarket() external {
-    assertEq(_isValidTransfer({amount: 0, to: _MOCK_MARKET_ADDRESS}), false);
+    assertEq(
+      _isValidTransferAmount({amount: 0, to: _MOCK_MARKET_ADDRESS}),
+      false
+    );
   }
 
   function test_ReturnFalse_AmountIsZeroAndToIsTheCertificate() external {
     assertEq(
-      _isValidTransfer({amount: 0, to: _MOCK_CERTIFICATE_ADDRESS}),
+      _isValidTransferAmount({amount: 0, to: _MOCK_CERTIFICATE_ADDRESS}),
       false
     );
   }
@@ -1611,18 +1617,21 @@ contract Removal__isValidTransfer is NonUpgradeableRemoval {
     external
   {
     assertEq(
-      _isValidTransfer({amount: 1, to: _MOCK_CERTIFICATE_ADDRESS}),
+      _isValidTransferAmount({amount: 1, to: _MOCK_CERTIFICATE_ADDRESS}),
       false
     );
   }
 
   function test_ReturnFalse_AmountIsTooGranularAndToIsTheMarket() external {
-    assertEq(_isValidTransfer({amount: 1, to: _MOCK_MARKET_ADDRESS}), false);
+    assertEq(
+      _isValidTransferAmount({amount: 1, to: _MOCK_MARKET_ADDRESS}),
+      false
+    );
   }
 
   function test_ReturnFalse_AmountIsTooGranular() external {
     assertEq(
-      _isValidTransfer({amount: 1e13, to: _namedAccounts.supplier}),
+      _isValidTransferAmount({amount: 1e13, to: _namedAccounts.supplier}),
       false
     );
   }
@@ -1631,7 +1640,7 @@ contract Removal__isValidTransfer is NonUpgradeableRemoval {
     amount = bound({x: amount, min: 1, max: type(uint256).max - 1});
     vm.assume(amount % 1e14 != 0);
     assertEq(
-      _isValidTransfer({amount: amount, to: _namedAccounts.supplier}),
+      _isValidTransferAmount({amount: amount, to: _namedAccounts.supplier}),
       false
     );
   }
