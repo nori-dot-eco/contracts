@@ -60,7 +60,7 @@
     "fireblocks-defi-sdk": "1.2.15",
     "fireblocks-sdk": "^4.0.0",
     "fs-extra": "^10.1.0",
-    "google-artifactregistry-auth": "^3.1.0",
+    "google-artifactregistry-auth": "^3.1.1",
     "handlebars": "^4.7.7",
     "hardhat": "2.12.5",
     "hardhat-contract-sizer": "^2.6.1",
