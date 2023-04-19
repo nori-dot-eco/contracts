@@ -110,28 +110,5 @@
     "snapshot:production": "FOUNDRY_PROFILE=production forge snapshot --snap .gas-snapshot-production",
     "lint:diff": "npx eslint --cache --cache-location ./.eslintcache -c .eslintrc.js $(git diff --relative --name-only --diff-filter=d $(git merge-base HEAD origin/master) -- \"*.ts\" \"*.js\" \"*.env\" \"*.toml\")",
     "artifactregistry-login": "npx google-artifactregistry-auth"
-  },
-  "nx": {
-    "targets": {
-      "prepare": {
-        "inputs": [
-          "{projectRoot}/**/*"
-        ],
-        "outputs": [
-          "{projectRoot}/dist"
-        ]
-      },
-      "build": {
-        "dependsOn": [
-          "!prepare"
-        ],
-        "inputs": [
-          "{projectRoot}/**/*"
-        ],
-        "outputs": [
-          "{projectRoot}/dist/**/*"
-        ]
-      }
-    }
   }
 }
