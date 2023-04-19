@@ -100,7 +100,7 @@
     "typechain": "TS_NODE_TRANSPILE_ONLY=1 hardhat typechain",
     "build": "SOLC_PROFILE=test yarn run typechain && tsc -b",
     "slither": "yarn prepare && slither .",
-    "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
+    "clean": "rm -rf dist && TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
     "deploy": "SOLC_PROFILE=production TRACE=true LOG_HARDHAT_NETWORK=true hardhat deploy",
     "hardhat": "hardhat",
     "node:verbose": "TRACE=true LOG_HARDHAT_NETWORK=true hardhat node",
@@ -110,5 +110,14 @@
     "snapshot:production": "FOUNDRY_PROFILE=production forge snapshot --snap .gas-snapshot-production",
     "lint:diff": "npx eslint --cache --cache-location ./.eslintcache -c .eslintrc.js $(git diff --relative --name-only --diff-filter=d $(git merge-base HEAD origin/master) -- \"*.ts\" \"*.js\" \"*.env\" \"*.toml\")",
     "artifactregistry-login": "npx google-artifactregistry-auth"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "outputs": [
+          "{projectRoot}/dist/**/*"
+        ]
+      }
+    }
   }
 }
