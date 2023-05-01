@@ -81,7 +81,7 @@
     "tsconfig-paths": "^4.1.0",
     "typechain": "^8.1.1",
     "typescript": "^4.9.5",
-    "yup": "1.0.0-beta.7"
+    "yup": "1.1.1"
   },
   "resolutions": {
     "firebase": "9.10.0",
