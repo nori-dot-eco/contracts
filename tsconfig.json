@@ -13,7 +13,6 @@
     "baseUrl": ".",
     "skipLibCheck": true,
     "paths": {
-      // todo Stop using "@/*" as the base name as it makes it hard to use in the monorepo. Perhaps use "@/contracts/*" instead.
       "@/tasks": ["./tasks/index.ts"],
       "@/tasks/utils": ["./tasks/utils/*"],
       "@/test/helpers": ["./test/helpers/index.ts"],
@@ -33,7 +32,7 @@
     "**/*.ts",
     "types/**/*.d.ts",
     "./.eslintrc.js",
-    ".solcover.js",
+    "./eslint-local-rules/index.js",
     "contracts.json",
     "artifacts/contracts/**/*.json"
   ]

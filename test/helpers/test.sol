@@ -5,8 +5,9 @@ pragma solidity =0.8.17;
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "forge-std/console2.sol";
 import "@prb/test/PRBTest.sol";
+import {StdUtils} from "forge-std/StdUtils.sol";
 
-abstract contract Global is PRBTest {
+abstract contract Global is PRBTest, StdUtils {
   struct NamedAccounts {
     // todo investigate why _this and deployer aren't always the same address and rename accordingly
     address deployer; // the default sender account for transactions configured in foundry.toml
@@ -16,6 +17,7 @@ abstract contract Global is PRBTest {
     address supplier2;
     address supplier3;
     address buyer;
+    address feeWallet;
   }
 
   NamedAccounts internal _namedAccounts =
@@ -27,7 +29,8 @@ abstract contract Global is PRBTest {
       supplier: account("supplier"),
       supplier2: account("supplier2"),
       supplier3: account("supplier3"),
-      buyer: account("buyer")
+      buyer: account("buyer"),
+      feeWallet: account("feeWallet")
     });
 
   event LogNamedArray(string key, uint8[] value);

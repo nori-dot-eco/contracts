@@ -104,11 +104,6 @@ error Unauthorized();
  */
 error InvalidData();
 /**
- * @notice Thrown when the token specified by `tokenId` is transferred, but the type of transfer is unsupported.
- * @param tokenId The token ID that is used in the invalid transfer.
- */
-error InvalidTokenTransfer(uint256 tokenId);
-/**
  * @notice Thrown when the specified fee percentage is not a valid value.
  */
 error InvalidNoriFeePercentage();
@@ -129,6 +124,17 @@ error NoriFeeWalletZeroAddress();
  * @notice Thrown when a holdback percentage greater than 100 is submitted to `mintBatch`.
  */
 error InvalidHoldbackPercentage(uint8 holdbackPercentage);
+/**
+ * @notice Thrown when a purchasing token decimals value is not between 6 and 18.
+ * @param decimals The purchasing token decimals value that is invalid.
+ */
+error InvalidPurchasingTokenDecimals(uint256 decimals);
+/**
+ * @notice Thrown when a swap attempt is made for zero removals or a fractional amount less than the purchasing token's
+ * decimal precision - 2.
+ * @param amount The purchase amount of the certificate that is invalid.
+ */
+error InvalidCertificateAmount(uint256 amount);
 /**
  * @notice Thrown when attempting to list for sale a removal that already belongs to the Certificate or Market
  * contracts.

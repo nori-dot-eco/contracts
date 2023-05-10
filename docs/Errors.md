@@ -269,20 +269,6 @@ Thrown when transaction data contains invalid data.
 
 
 
-## InvalidTokenTransfer
-
-```solidity
-error InvalidTokenTransfer(uint256 tokenId)
-```
-
-Thrown when the token specified by `tokenId` is transferred, but the type of transfer is unsupported.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| tokenId | uint256 | The token ID that is used in the invalid transfer. |
-
-
 ## InvalidNoriFeePercentage
 
 ```solidity
@@ -339,6 +325,35 @@ error InvalidHoldbackPercentage(uint8 holdbackPercentage)
 Thrown when a holdback percentage greater than 100 is submitted to `mintBatch`.
 
 
+
+
+## InvalidPurchasingTokenDecimals
+
+```solidity
+error InvalidPurchasingTokenDecimals(uint256 decimals)
+```
+
+Thrown when a purchasing token decimals value is not between 6 and 18.
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| decimals | uint256 | The purchasing token decimals value that is invalid. |
+
+
+## InvalidCertificateAmount
+
+```solidity
+error InvalidCertificateAmount(uint256 amount)
+```
+
+Thrown when a swap attempt is made for zero removals or a fractional amount less than the purchasing token's
+decimal precision - 2.
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| amount | uint256 | The purchase amount of the certificate that is invalid. |
 
 
 ## RemovalAlreadySoldOrConsigned

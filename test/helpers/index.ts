@@ -1,10 +1,11 @@
 import { BigNumber } from 'ethers';
 import type { namedAccounts } from 'hardhat';
 
+import { mockDepositNoriToPolygon, depositNoriUSDC } from './polygon';
+
 import type { DecodedRemovalIdV0Struct } from '@/typechain-types/artifacts/contracts/Removal';
 import { defaultRemovalTokenIdFixture } from '@/test/fixtures/removal';
 import { sum } from '@/utils/math';
-import { mockDepositNoriToPolygon } from '@/test/helpers/polygon';
 import { generateRandomSubIdentifier } from '@/utils/removal';
 import type {
   Removal,
@@ -15,6 +16,7 @@ import type {
   NORI,
   BridgedPolygonNORI,
   RemovalTestHarness,
+  NoriUSDC,
 } from '@/typechain-types';
 import { formatTokenAmount } from '@/utils/units';
 import { getContractsFromDeployments } from '@/utils/contracts';
@@ -26,6 +28,7 @@ export * from './polygon';
 interface ContractInstances {
   nori: NORI;
   bpNori: BridgedPolygonNORI;
+  noriUSDC: NoriUSDC;
   removal: Removal;
   certificate: Certificate;
   market: Market;
@@ -59,6 +62,7 @@ export const advanceTime = async ({
 };
 
 interface UserFixture {
+  purchaseTokenBalance?: BigNumber;
   bpBalance?: BigNumber;
   removalDataToList?: RemovalDataForListing;
   roles?: RoleFixtures;
@@ -95,7 +99,7 @@ type TestEnvironment<TOptions extends SetupTestOptions = SetupTestOptions> =
     } & {
       userFixtures: RequiredKeys<UserFixtures, 'admin' | 'buyer'> &
         TOptions['userFixtures'] & {
-          buyer: RequiredKeys<UserFixture, 'bpBalance'>;
+          buyer: RequiredKeys<UserFixture, 'purchaseTokenBalance'>;
         };
     };
 
@@ -145,7 +149,7 @@ export interface RemovalDataForListing {
   listNow?: boolean;
   removals: (Partial<DecodedRemovalIdV0Struct> & {
     tokenId?: BigNumber;
-    amount: number; // todo bignumber
+    amount: BigNumber;
     projectId?: number;
     scheduleStartTime?: number;
     holdbackPercentage?: number;
@@ -194,8 +198,8 @@ export const batchMintAndListRemovalsForSale = async (options: {
     };
     removals.push(removalTokenId);
   }
-  const removalAmounts = removalDataToList.removals.map((removalData) =>
-    formatTokenAmount(removalData.amount)
+  const removalAmounts = removalDataToList.removals.map(
+    (removalData) => removalData.amount
   );
   await removal.mintBatch(
     removalDataToList.listNow === false
@@ -242,7 +246,13 @@ export const setupTest = global.hre.deployments.createFixture(
     const contractFixtures: ContractFixtures = {
       ...options?.contractFixtures,
     };
-    await hre.deployments.fixture(['assets', 'market', 'LockedNORI', 'test']);
+    await hre.deployments.fixture([
+      'assets',
+      'market',
+      'configure',
+      'LockedNORI',
+      'test',
+    ]);
     const contracts = await getContractsFromDeployments(hre);
     for (const [contract, fixture] of Object.entries(contractFixtures) as [
       keyof Contracts,
@@ -302,24 +312,34 @@ export const setupTest = global.hre.deployments.createFixture(
         scheduleStartTime = mintResultData.scheduleStartTime; // todo allow multiple schedules/projects/percentages per fixture
         holdbackPercentage = mintResultData.holdbackPercentage; // todo allow multiple schedules/projects/percentages per fixture
       }
-      const amount = v.bpBalance;
-      if (amount !== undefined) {
-        // eslint-disable-next-line no-await-in-loop -- these need to run serially or it breaks the gas reporter
+      if (v.bpBalance !== undefined) {
+        // eslint-disable-next-line no-await-in-loop -- these need to run serially
         await mockDepositNoriToPolygon({
           hre,
           contracts,
-          amount,
+          amount: v.bpBalance,
           to: hre.namedAccounts[k],
           signer: hre.namedSigners[k],
+        });
+      }
+      if (v.purchaseTokenBalance !== undefined) {
+        // eslint-disable-next-line no-await-in-loop -- these need to run serially
+        await depositNoriUSDC({
+          hre,
+          contracts,
+          amount: v.purchaseTokenBalance,
+          to: hre.namedAccounts[k],
+          signer: hre.namedSigners.admin,
         });
       }
     }
     return {
       hre,
-      feePercentage: options?.feePercentage ?? 15,
+      feePercentage: options?.feePercentage ?? 25,
       contracts,
       nori: contracts.NORI,
       bpNori: contracts.BridgedPolygonNORI,
+      noriUSDC: contracts.NoriUSDC,
       removal: contracts.Removal,
       certificate: contracts.Certificate,
       market: contracts.Market,

@@ -1,0 +1,36 @@
+name: eslint
+on: push
+jobs:
+  lint:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # allows diff with origin/master
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v3
+        id: yarn-cache
+        with:
+          path: |
+            **/node_modules
+            ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - run: yarn install --frozen-lockfile --ignore-scripts --ignore-engines
+      - name: ESLint diff only
+        run: yarn run lint:diff --max-warnings=0
+      - name: Eslint cache
+        id: eslint-cache
+        uses: actions/cache@v3
+        with:
+          path: ./.eslintcache
+          key: eslint-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            eslint-${{ runner.os }}

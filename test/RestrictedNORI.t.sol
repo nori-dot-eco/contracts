@@ -40,24 +40,34 @@ contract RestrictedNORI_linearReleaseAmountAvailable is
 }
 
 contract RestrictedNORI_createSchedule is UpgradeableMarket {
-  uint256[] removalIds;
+  uint256[] private _removalIds;
 
   function setUp() external {
-    removalIds = _seedRemovals({
+    _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
       list: false
     });
   }
 
-  function test() external {
-    uint256 projectId = _removal.getProjectId(removalIds[0]);
+  function test_RevertWhen_ScheduleExists() external {
+    uint256 projectId = _removal.getProjectId(_removalIds[0]);
     vm.expectRevert(abi.encodeWithSelector(ScheduleExists.selector, projectId));
     _rNori.createSchedule({
       projectId: projectId,
       startTime: 999_999_999,
       methodology: 2,
       methodologyVersion: 1
+    });
+  }
+
+  function test_RevertWhen_MethodologyVersionHasNoDurationSet() external {
+    vm.expectRevert("rNORI: duration not set");
+    _rNori.createSchedule({
+      projectId: 0xD00D,
+      startTime: 999_999_999,
+      methodology: 2,
+      methodologyVersion: 2
     });
   }
 }
@@ -119,7 +129,8 @@ contract RestrictedNORI_revokeUnreleasedTokens is UpgradeableMarket {
     }
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
-    uint256 checkoutTotal = _market.calculateCheckoutTotal(3 ether); // todo replace other test usage of _market.calculateNoriFee
+    uint256 certificateAmount = 3 ether;
+    uint256 checkoutTotal = _market.calculateCheckoutTotal(certificateAmount); // todo replace other test usage of _market.calculateNoriFee
     vm.prank(_namedAccounts.admin); // todo investigate why this is the only time we need to prank the admin
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
     SignedPermit memory signedPermit = _signatureUtils.generatePermit(
@@ -133,7 +144,7 @@ contract RestrictedNORI_revokeUnreleasedTokens is UpgradeableMarket {
     _market.swap(
       owner,
       owner,
-      checkoutTotal,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,

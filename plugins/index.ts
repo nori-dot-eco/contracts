@@ -9,10 +9,7 @@ import 'hardhat-ethernal';
 import 'hardhat-deploy';
 import '@typechain/hardhat';
 import '@nomiclabs/hardhat-etherscan';
-import 'hardhat-gas-reporter';
 import 'solidity-docgen';
-import '@nomiclabs/hardhat-solhint';
-import 'solidity-coverage';
 import 'hardhat-tracer';
 import 'hardhat-contract-sizer';
 import '@/config/environment';
@@ -187,10 +184,8 @@ const deployOrUpgradeProxy = async <
         }) as InstanceOfContract<TContract>;
       }
     } catch (error) {
-      hre.trace(`Failed to upgrade ${contractName} with error:`, error);
-      contract = hre.deployments.get(
-        contractName
-      ) as InstanceOfContract<TContract>;
+      hre.log(`Failed to upgrade ${contractName} with error:`, error);
+      throw new Error(`Failed to upgrade ${contractName} with error: ${error}`);
     }
   }
   return contract;

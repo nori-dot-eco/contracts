@@ -52,9 +52,8 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     // todo refactor so setup lives in this contracts setUp function (improves gas reporting)
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
-    uint256 amount = _market.calculateCheckoutTotal(1 ether);
-    uint256 certificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotal(amount);
+    uint256 certificateAmount = 1 ether;
+    uint256 amount = _market.calculateCheckoutTotal(certificateAmount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(amount));
     assertEq(_removal.getMarketBalance(), 1 ether);
@@ -75,7 +74,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     _market.swap(
       owner,
       owner,
-      amount,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -106,9 +105,8 @@ contract Checkout_buyingFromOneRemoval_byApproval is Checkout {
     // todo refactor so setup lives in this contracts setUp function (improves gas reporting)
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
-    uint256 amount = _market.calculateCheckoutTotal(1 ether);
-    uint256 certificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotal(amount);
+    uint256 certificateAmount = 1 ether;
+    uint256 amount = _market.calculateCheckoutTotal(certificateAmount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(amount));
     vm.prank(owner);
@@ -121,7 +119,7 @@ contract Checkout_buyingFromOneRemoval_byApproval is Checkout {
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
     vm.prank(owner);
-    _market.swap(owner, amount);
+    _market.swap(owner, certificateAmount);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), certificateAmount, true, 1);
@@ -147,9 +145,8 @@ contract Checkout_swapWithDifferentPermitSignerAndMsgSender is Checkout {
     // todo refactor so setup lives in this contracts setUp function (improves gas reporting)
     uint256 ownerPrivateKey = 0xA11CE;
     address owner = vm.addr(ownerPrivateKey);
-    uint256 amount = _market.calculateCheckoutTotal(1 ether);
-    uint256 certificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotal(amount);
+    uint256 certificateAmount = 1 ether;
+    uint256 amount = _market.calculateCheckoutTotal(certificateAmount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(amount));
     assertEq(_removal.getMarketBalance(), 1 ether);
@@ -171,7 +168,7 @@ contract Checkout_swapWithDifferentPermitSignerAndMsgSender is Checkout {
     _market.swap(
       owner,
       owner,
-      amount,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -200,9 +197,10 @@ contract Checkout_buyingFromTenRemovals is Checkout {
       count: 10,
       list: true
     });
-    _purchaseAmount = _market.calculateCheckoutTotal(10 ether);
-    _expectedCertificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotal(_purchaseAmount);
+    _expectedCertificateAmount = 10 ether;
+    _purchaseAmount = _market.calculateCheckoutTotal(
+      _expectedCertificateAmount
+    );
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -238,7 +236,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
     _market.swap(
       _owner,
       _owner,
-      _purchaseAmount,
+      _expectedCertificateAmount,
       _signedPermit.permit.deadline,
       _signedPermit.v,
       _signedPermit.r,
@@ -290,9 +288,10 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
       count: 10,
       list: true
     });
-    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee(10 ether);
-    _expectedCertificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotalWithoutFee(_purchaseAmount);
+    _expectedCertificateAmount = 10 ether;
+    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
+      _expectedCertificateAmount
+    );
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -320,7 +319,7 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
 
   function test() external {
     vm.prank(_owner);
-    _market.swapWithoutFee(_owner, _owner, _purchaseAmount);
+    _market.swapWithoutFee(_owner, _owner, _expectedCertificateAmount);
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     assertEq(
@@ -368,9 +367,10 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
       count: 10,
       list: true
     });
-    _purchaseAmount = _market.calculateCheckoutTotal(10 ether);
-    _expectedCertificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotal(_purchaseAmount);
+    _expectedCertificateAmount = 10 ether;
+    _purchaseAmount = _market.calculateCheckoutTotal(
+      _expectedCertificateAmount
+    );
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -411,7 +411,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
     _market.swapFromSupplier({
       recipient: _owner,
       permitOwner: _owner,
-      amount: _purchaseAmount,
+      amount: _expectedCertificateAmount,
       supplier: _namedAccounts.supplier,
       deadline: _signedPermit.permit.deadline,
       v: _signedPermit.v,
@@ -465,9 +465,10 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_byApproval is Checkout {
       count: 10,
       list: true
     });
-    _purchaseAmount = _market.calculateCheckoutTotal(10 ether);
-    _expectedCertificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotal(_purchaseAmount);
+    _expectedCertificateAmount = 10 ether;
+    _purchaseAmount = _market.calculateCheckoutTotal(
+      _expectedCertificateAmount
+    );
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -510,7 +511,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_byApproval is Checkout {
     _market.swapFromSupplier({
       recipient: _owner,
       permitOwner: _owner,
-      amount: _purchaseAmount,
+      amount: _expectedCertificateAmount,
       supplier: _namedAccounts.supplier,
       deadline: _signedPermit.permit.deadline,
       v: _signedPermit.v,
@@ -563,9 +564,10 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
       count: 10,
       list: true
     });
-    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee(10 ether);
-    _expectedCertificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotalWithoutFee(_purchaseAmount);
+    _expectedCertificateAmount = 10 ether;
+    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
+      _expectedCertificateAmount
+    );
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -602,7 +604,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
     _market.swapFromSupplierWithoutFee({
       recipient: _owner,
       purchaser: _owner,
-      amount: _purchaseAmount,
+      amount: _expectedCertificateAmount,
       supplier: _namedAccounts.supplier
     });
     _assertExpectedBalances(address(_market), 0, false, 0);
@@ -655,9 +657,10 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
       });
       _removalIds.push(localRemovalIds[0]);
     }
-    _purchaseAmount = _market.calculateCheckoutTotal(10 ether);
-    _expectedCertificateAmount = _market
-      .calculateCertificateAmountFromPurchaseTotal(_purchaseAmount);
+    _expectedCertificateAmount = 10 ether;
+    _purchaseAmount = _market.calculateCheckoutTotal(
+      _expectedCertificateAmount
+    );
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -697,7 +700,7 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
     _market.swap(
       _owner,
       _owner,
-      _purchaseAmount,
+      _expectedCertificateAmount,
       _signedPermit.permit.deadline,
       _signedPermit.v,
       _signedPermit.r,
@@ -751,17 +754,15 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
   function setUp() external {
     _erc20 = _deployMockERC20();
 
-    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
+    _mockERC20SignatureUtils = new SignatureUtils();
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
       priceMultiple: 2000
     });
     assertEq(_market.getPurchasingTokenAddress(), address(_erc20));
-    amount = _market.calculateCheckoutTotal(1 ether);
-    fee = _market.calculateNoriFee(1 ether);
-    certificateAmount = _market.calculateCertificateAmountFromPurchaseTotal(
-      amount
-    );
+    certificateAmount = 1 ether;
+    amount = _market.calculateCheckoutTotal(certificateAmount);
+    fee = _market.calculateNoriFee(certificateAmount);
     _erc20.transfer(owner, amount);
     assertEq(_erc20.balanceOf(address(owner)), amount);
     _removalIds = _seedRemovals({
@@ -792,7 +793,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     _market.swap(
       owner,
       owner,
-      amount,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -865,17 +866,15 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
   function setUp() external {
     _erc20 = _deployMockERC20();
 
-    _mockERC20SignatureUtils = new SignatureUtils(_erc20.DOMAIN_SEPARATOR());
+    _mockERC20SignatureUtils = new SignatureUtils();
     _market.setPurchasingTokenAndPriceMultiple({
       purchasingToken: _erc20,
       priceMultiple: 1995 // $19.95
     });
     assertEq(_market.getPurchasingTokenAddress(), address(_erc20));
-    amount = _market.calculateCheckoutTotal(1 ether);
-    fee = _market.calculateNoriFee(1 ether);
-    certificateAmount = _market.calculateCertificateAmountFromPurchaseTotal(
-      amount
-    );
+    certificateAmount = 1 ether;
+    amount = _market.calculateCheckoutTotal(certificateAmount);
+    fee = _market.calculateNoriFee(certificateAmount);
     _erc20.transfer(owner, amount);
     assertEq(_erc20.balanceOf(address(owner)), amount);
     _removalIds = _seedRemovals({
@@ -906,7 +905,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     _market.swap(
       owner,
       owner,
-      amount,
+      certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
@@ -960,5 +959,152 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     assertEq(_erc20.balanceOf(address(owner)), 0);
     assertEq(_erc20.balanceOf(_namedAccounts.supplier), amount - fee);
     assertEq(_erc20.balanceOf(_market.getNoriFeeWallet()), fee);
+  }
+}
+
+contract Checkout_buyingWithCustomFee is Checkout {
+  uint256 ownerPrivateKey = 0xA11CE;
+  address owner = vm.addr(ownerPrivateKey);
+  uint256 customFee = 5;
+  uint256 certificateAmount = 1 ether;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
+      certificateAmount
+    );
+    _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(purchaseAmount));
+    vm.prank(owner);
+    _bpNori.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+  }
+
+  function test() external {
+    vm.startPrank(owner);
+    vm.recordLogs();
+    _market.swapWithoutFeeSpecialOrder(
+      owner,
+      owner,
+      certificateAmount,
+      customFee
+    );
+    vm.stopPrank();
+
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    uint256 createCertificateEventIndex = 6;
+    assertEq(
+      entries[createCertificateEventIndex].topics[0],
+      CREATE_CERTIFICATE_EVENT_SELECTOR
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[1],
+      bytes32(uint256(uint160(address(owner))))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[2],
+      bytes32(uint256(uint256(0)))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[3],
+      bytes32(uint256(uint160(address(_bpNori))))
+    );
+    (
+      address from,
+      uint256 eventCertificateAmount,
+      uint256[] memory removalIds,
+      uint256[] memory removalAmounts,
+      uint256 priceMultiple,
+      uint256 noriFeePercentage
+    ) = abi.decode(
+        entries[createCertificateEventIndex].data,
+        (address, uint256, uint256[], uint256[], uint256, uint256)
+      );
+    assertEq(from, address(_removal));
+    assertEq(eventCertificateAmount, certificateAmount);
+    assertEq(priceMultiple, _market.getPriceMultiple());
+    assertEq(noriFeePercentage, customFee);
+    assertEq(removalIds.length, 1);
+    assertEq(removalAmounts.length, 1);
+    assertEq(removalIds[0], _removalIds[0]);
+    assertEq(removalAmounts[0], certificateAmount);
+  }
+}
+
+contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
+  uint256 ownerPrivateKey = 0xA11CE;
+  address owner = vm.addr(ownerPrivateKey);
+  uint256 customFee = 5;
+  uint256 certificateAmount = 1 ether;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
+      certificateAmount
+    );
+    _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(purchaseAmount));
+    vm.prank(owner);
+    _bpNori.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+  }
+
+  function test() external {
+    vm.startPrank(owner);
+    vm.recordLogs();
+    _market.swapFromSupplierWithoutFeeSpecialOrder(
+      owner,
+      owner,
+      certificateAmount,
+      _namedAccounts.supplier,
+      customFee
+    );
+    vm.stopPrank();
+
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    uint256 createCertificateEventIndex = 6;
+    assertEq(
+      entries[createCertificateEventIndex].topics[0],
+      CREATE_CERTIFICATE_EVENT_SELECTOR
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[1],
+      bytes32(uint256(uint160(address(owner))))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[2],
+      bytes32(uint256(uint256(0)))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[3],
+      bytes32(uint256(uint160(address(_bpNori))))
+    );
+    (
+      address from,
+      uint256 eventCertificateAmount,
+      uint256[] memory removalIds,
+      uint256[] memory removalAmounts,
+      uint256 priceMultiple,
+      uint256 noriFeePercentage
+    ) = abi.decode(
+        entries[createCertificateEventIndex].data,
+        (address, uint256, uint256[], uint256[], uint256, uint256)
+      );
+    assertEq(from, address(_removal));
+    assertEq(eventCertificateAmount, certificateAmount);
+    assertEq(priceMultiple, _market.getPriceMultiple());
+    assertEq(noriFeePercentage, customFee);
+    assertEq(removalIds.length, 1);
+    assertEq(removalAmounts.length, 1);
+    assertEq(removalIds[0], _removalIds[0]);
+    assertEq(removalAmounts[0], certificateAmount);
   }
 }

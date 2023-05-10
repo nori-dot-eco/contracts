@@ -1,79 +1,42 @@
 version: 2.1
 orbs:
-  coveralls: coveralls/coveralls@1.0.6
-defaults: &defaults
-  working_directory: ~/repo
-  environment:
-    NODE_ENV: test
-  docker:
-    - image: cimg/node:16.18.0
+  node: circleci/node@5.1.0
+  gcp-cli: circleci/gcp-cli@3.0.1
+  nori-package-management-orb: nori-dot-com/nori-package-management-orb@0.0.1
 
-commands:
-  build-typechain-types:
-    description: 'Build typechain types'
-    steps:
-      - run:
-          name: Run typechain with TS in transpile-only mode
-          command: |
-            yarn typechain
+defaults: &defaults
+  docker:
+    - image: cimg/node:16.19
 
 jobs:
-  setup-contract-tests:
-    <<: *defaults
-    steps:
-      - checkout
-      - run:
-          name: Setup Environment
-          command: |
-            echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
-            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
-      - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-      - run:
-          name: Install Dependencies
-          command: |
-            sudo apt-get update && sudo apt -y install libsecret-1-0
-            if [ ! -d "node_modules" ]; then
-              for i in 1 2; do
-                yarn install --prefer-offline && break || sleep 15;
-              done
-              git checkout yarn.lock
-            fi
-      - build-typechain-types
-      - save_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-          paths:
-            - node_modules
-            - ~/.cache
-
-  run-tests:
-    <<: *defaults
-    resource_class: xlarge
-    steps:
-      - checkout
-      - restore_cache:
-          key: v6-node_modules_dir-{{ checksum "yarn.lock" }}
-      - run:
-          name: Setup Environment
-          command: |
-            echo 'export PATH=$HOME/repo/node_modules/.bin:$PATH' >> $BASH_ENV
-            echo 'export PATH=$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH' >> $BASH_ENV
-      - run:
-          name: Install Dependencies
-          command: |
-            sudo apt-get update && sudo apt -y install libsecret-1-0
-      - build-typechain-types
-      - run:
-          name: Run Contract Tests and Collect Coverage
-          command: |
-            yarn build && yarn run test:coverage
-      - coveralls/upload
-
-workflows:
   test:
+    <<: *defaults
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: yarn
+      - run:
+          command: yarn test:hardhat
+          name: Run yarn tests
+      - persist_to_workspace:
+          root: /home/circleci
+          paths:
+            - project
+
+  publish-package:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+      - nori-package-management-orb/publish-packages
+workflows:
+  continuous-integration:
     jobs:
-      - setup-contract-tests
-      - run-tests:
+      - test
+      - publish-package:
           requires:
-            - setup-contract-tests
-# VS Code Extension Version: 1.5.1
+            - test
+          filters:
+            branches:
+              only:
+                - master

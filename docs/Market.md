@@ -76,6 +76,7 @@ struct LinkedListNode {
 ```solidity
 struct FulfillOrderData {
   bool chargeFee;
+  uint256 feePercentage;
   uint256 certificateAmount;
   address from;
   address recipient;
@@ -294,7 +295,7 @@ address that RestrictedNORI was configured to wrap.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| amount | uint256 | The amount of RestrictedNORI in the transfer attempt. |
+| amount | uint256 | The amount of _purchasingToken currency in the failed transfer attempt. |
 | removalId | uint256 | The removal id being processed during the transfer attempt. |
 | currentHoldbackPercentage | uint256 | The holdback percentage for this removal id's project at the time of this event emission. |
 | rNoriUnderlyingToken | address | The address of the token contract that RestrictedNORI was configured to wrap. |
@@ -600,7 +601,7 @@ to Nori Inc. as a market operator fee.
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
 | permitOwner | address | The address that signed the EIP2612 permit and will pay for the removals. |
-| amount | uint256 | The total purchase amount in ERC20 tokens. This is the combined total price of the removals being purchased and the fee paid to Nori. |
+| amount | uint256 | The total amount of Removals being purchased. |
 | deadline | uint256 | The EIP2612 permit deadline in Unix time. |
 | v | uint8 | The recovery identifier for the permit's secp256k1 signature. |
 | r | bytes32 | The r value for the permit's secp256k1 signature. |
@@ -632,7 +633,7 @@ to Nori Inc. as a market operator fee.
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
-| amount | uint256 | The total purchase amount in ERC20 tokens. This is the combined total price of the removals being purchased and the fee paid to Nori. |
+| amount | uint256 | The total amount of Removals to purchase. |
 
 
 ### swapFromSupplier
@@ -728,6 +729,37 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
 
 
+### swapWithoutFeeSpecialOrder
+
+```solidity
+function swapWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, uint256 customFee) external
+```
+
+Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
+certificate without charging a transaction fee, but allowing specification of the fee percentage that was paid
+off-chain.
+
+<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
+for more.
+The purchaser must have granted approval to this contract to authorize this market to transfer their
+supported ERC20 to complete the purchase. A certificate is minted in the Certificate
+contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
+potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
+
+##### Requirements:
+
+- Can only be used when this contract is not paused.
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+- Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| recipient | address | The address to which the certificate will be issued. |
+| purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
+| amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
+| customFee | uint256 | The custom fee percentage that was paid to Nori, as an integer, specified here for inclusion in emitted events. |
+
+
 ### swapFromSupplierWithoutFee
 
 ```solidity
@@ -758,6 +790,39 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 | purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
 | supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
+
+
+### swapFromSupplierWithoutFeeSpecialOrder
+
+```solidity
+function swapFromSupplierWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, address supplier, uint256 customFee) external
+```
+
+Exchanges supported ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens
+supplied only from the specified supplier to that certificate, without charging a transaction fee, but allowing
+specification of the fee percentage that was paid off-chain.. If the specified supplier does not have enough carbon
+removals for sale to fulfill the order the transaction will revert.
+
+<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
+more. The purchaser must have granted approval to this contract to authorize this market to transfer their
+supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
+to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
+potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
+
+##### Requirements:
+
+- Can only be used when this contract is not paused.
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+- Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
+- Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| recipient | address | The address to which the certificate will be issued. |
+| purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
+| amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
+| supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
+| customFee | uint256 | The custom fee percentage that was paid to Nori, as an integer, specified here for inclusion in emitted events. |
 
 
 ### withdraw
@@ -850,7 +915,47 @@ Calculates the Nori fee required for a purchase of `amount` tonnes of carbon rem
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | The amount of the fee for Nori. |
+| [0] | uint256 | The amount of the fee charged by Nori in &#x60;_purchasingToken&#x60;. |
+
+### convertRemovalDecimalsToPurchasingTokenDecimals
+
+```solidity
+function convertRemovalDecimalsToPurchasingTokenDecimals(uint256 removalAmount) external view returns (uint256)
+```
+
+Convert an amount of removals into an equivalent amount expressed in the purchasing token's decimals.
+
+<i>If the purchasing token's decimals is not 18, we need to convert the `removalAmount` (which is expressed with
+18 decimals) to a unit that is expressed in the purchasing token's decimals. For example, if `removalAmount` is
+1 ether (18 decimals) and the purchasing token's decimals is 6, the return value would be 1,000,000.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| removalAmount | uint256 | The amount of removals to express in the purchasing token's decimals. |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The amount of purchasing tokens required to purchase the specified amount of removals. |
+
+### convertPurchasingTokenDecimalsToRemovalDecimals
+
+```solidity
+function convertPurchasingTokenDecimalsToRemovalDecimals(uint256 purchasingTokenAmount) external view returns (uint256)
+```
+
+Convert an amount of purchasing tokens into an equivalent amount expressed with 18 decimals.
+
+<i>If the purchasing token's decimal precision is different from 18, we need to perform a conversion to match the
+precision of the removal token, which has 18 decimal places. For instance, if the `purchasingTokenAmount` is
+1,000,000 (expressed with 6 decimals), the return value would be 1 ether (expressed with 18 decimals).</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| purchasingTokenAmount | uint256 | The amount of purchasing tokens to express in the removal's decimals. |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The amount of purchasing tokens required to purchase the specified amount of removals. |
 
 ### calculateCheckoutTotal
 
@@ -868,7 +973,7 @@ tonnes of carbon removals).
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | The total quantity of ERC20 tokens required to make the purchase, including the fee. |
+| [0] | uint256 | The total quantity of the &#x60;_purchaseToken&#x60; required to make the purchase. |
 
 ### calculateCheckoutTotalWithoutFee
 
@@ -894,8 +999,8 @@ tonnes of carbon removals) without a transaction fee.
 function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal) external view returns (uint256)
 ```
 
-Calculates the quantity of carbon removals being purchased given the purchase total, the price multiple,
-and the percentage of that purchase total that is due to Nori as a transaction fee.
+Calculates the quantity of carbon removals that can be purchased given some payment amount taking into
+account NRT price and fees (i.e., I have $100 (100_000_000 USDC), how many NRTs can I buy?).
 
 
 | Name | Type | Description |
@@ -904,7 +1009,7 @@ and the percentage of that purchase total that is due to Nori as a transaction f
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | certificateAmount Amount for the certificate, excluding the transaction fee. |
+| [0] | uint256 | Amount for the certificate, excluding the transaction fee. |
 
 ### calculateCertificateAmountFromPurchaseTotalWithoutFee
 
@@ -912,7 +1017,8 @@ and the percentage of that purchase total that is due to Nori as a transaction f
 function calculateCertificateAmountFromPurchaseTotalWithoutFee(uint256 purchaseTotal) external view returns (uint256)
 ```
 
-Calculates the quantity of carbon removals being purchased given the purchase total and the price multiple.
+Calculates the quantity of carbon removals that can be purchased given some payment amount taking into
+account NRT price but excluding fees (i.e., I have $100 (100_000_000 USDC), how many NRTs can I buy?).
 
 
 | Name | Type | Description |
@@ -921,7 +1027,7 @@ Calculates the quantity of carbon removals being purchased given the purchase to
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | certificateAmount Amount for the certificate. |
+| [0] | uint256 | Amount for the certificate. |
 
 ### getRemovalAddress
 
@@ -1091,6 +1197,9 @@ Fulfill an order.
 <i>This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
 the order fee, updating accounting, and minting the Certificate.</i>
 
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| params | struct Market.FulfillOrderData | The order fulfillment data. |
 
 
 ### _allocateRemovals
@@ -1191,6 +1300,28 @@ listed removal, the supplier is also removed from the active supplier queue.</i>
 | ---- | ---- | ----------- |
 | removalId | uint256 | The ID of the removal to remove. |
 | supplierAddress | address | The address of the supplier of the removal. |
+
+
+### _validateCertificateAmount
+
+```solidity
+function _validateCertificateAmount(uint256 amount) internal view
+```
+
+Validates the certificate purchase amount.
+
+<i>Check if a certificate amount is valid according to the requirements criteria.
+
+##### Requirements:
+
+- Amount is not zero.
+- Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + 2). This requirement means that the smallest
+purchase amount for a token with 18 decimals (e.g., NORI) is 100, whilst the smallest purchase amount for a token
+with 6 decimals (e.g., USDC) is 100,000,000,000,000.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| amount | uint256 | The proposed certificate purchase amount. |
 
 
 ### _validatePrioritySupply
