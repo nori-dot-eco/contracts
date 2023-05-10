@@ -62,7 +62,7 @@
     "fs-extra": "^10.1.0",
     "google-artifactregistry-auth": "^3.1.0",
     "handlebars": "^4.7.7",
-    "hardhat": "2.12.5",
+    "hardhat": "2.14.0",
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-deploy": "^0.11.22",
     "hardhat-ethernal": "^3.1.0",
