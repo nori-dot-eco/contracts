@@ -98,7 +98,7 @@
     "test:forge": "FOUNDRY_PROFILE=test forge test",
     "prepare": "SOLC_PROFILE=test yarn build",
     "typechain": "TS_NODE_TRANSPILE_ONLY=1 hardhat typechain",
-    "build": "yarn run typechain && tsc -b -f",
+    "build": "yarn run typechain && ls -la types && tsc -b -f",
     "slither": "yarn prepare && slither .",
     "clean": "TS_NODE_TRANSPILE_ONLY=1 hardhat clean",
     "deploy": "SOLC_PROFILE=production TRACE=true LOG_HARDHAT_NETWORK=true hardhat deploy",
