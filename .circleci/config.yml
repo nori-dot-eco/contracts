@@ -13,9 +13,6 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - run:
-          command: SOLC_PROFILE=test npx hardhat compile
-          name: compile
       - node/install-packages:
           pkg-manager: yarn
       - run:
