@@ -15,7 +15,7 @@ jobs:
         run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
       - uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version-file: '.nvmrc'
       - uses: actions/cache@v3
         id: yarn-cache
         with:
@@ -30,7 +30,7 @@ jobs:
         id: slither
         with:
           sarif: results.sarif
-          node-version: 14
+          node-version: 18.15.0
           slither-version: 0.9.1
           fail-on: none
       - name: Upload SARIF file
