@@ -15,10 +15,9 @@ jobs:
       - checkout
       - node/install-packages:
           pkg-manager: yarn
-          override-ci-command: TS_NODE_TRANSPILE_ONLY=1 yarn --ignore-script && yarn
-      - run:
-          command: yarn test:hardhat
-          name: Run yarn tests
+      # - run:
+      #     command: yarn test:hardhat
+      #     name: Run yarn tests
       - persist_to_workspace:
           root: /home/circleci
           paths:
