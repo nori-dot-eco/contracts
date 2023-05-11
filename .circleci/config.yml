@@ -15,7 +15,7 @@ jobs:
       - checkout
       - node/install-packages:
           pkg-manager: yarn
-          override-ci-command: TS_NODE_TRANSPILE_ONLY=1 yarn install --frozen-lockfile
+          override-ci-command: TS_NODE_TRANSPILE_ONLY=1 yarn --ignore-script && yarn
       - run:
           command: yarn test:hardhat
           name: Run yarn tests
