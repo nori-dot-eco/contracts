@@ -17,7 +17,7 @@ import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
 
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import { getOctokit } from '@/tasks/utils/github';
-import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
+import { formatTokenString } from '@/utils/units';
 
 // todo cleanup: move utils to utils folder
 // todo cli: add optional param to allow a revoking tokens to a different address than the first signer index
@@ -598,7 +598,7 @@ const DIFF_SUBTASK = {
       grants: { githubGrants },
       lNori,
     });
-    hre.log(`Blockchain grants: ${blockchainGrants}`);
+    hre.log(`Blockchain grants`, blockchainGrants);
     const grantsDiff = getDiff({
       grants: {
         blockchain: Object.fromEntries(
@@ -639,7 +639,7 @@ const DIFF_SUBTASK = {
       expand,
       asJson,
     });
-    hre.log(grantsDiff);
+    hre.log('Diff:', grantsDiff);
   },
 } as const;
 

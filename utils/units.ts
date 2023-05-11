@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 export const formatTokenAmount = (
   amount: number
 ): InstanceType<typeof ethers['BigNumber']> => {
@@ -19,15 +17,4 @@ export const formatTokenString = (
     amount = '0';
   }
   return hre.ethers.utils.parseUnits(amount.toString(), 18);
-};
-
-export const utcToEvmTime = (date: string | number | moment.Moment): number => {
-  if (date === '') {
-    return 0;
-  }
-  return moment(date).unix();
-};
-
-export const evmTimeToUtc = (date: number): moment.Moment => {
-  return moment(moment.unix(date));
 };
