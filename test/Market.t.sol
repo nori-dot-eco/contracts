@@ -448,7 +448,6 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
       _rNori.getDeficitForAddress(RemovalIdLib.supplierAddress(removalId)),
       rNoriToMint
     );
-    vm.stopPrank();
   }
 }
 
@@ -500,7 +499,6 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     rNoriToMint = ((checkoutTotal - fee) * holdbackPercentage) / 100;
     vm.prank(_namedAccounts.admin);
     _noriUSDC.transfer(owner, checkoutTotal);
-    vm.stopPrank();
     signedPermit = _noriUSDCSignatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
@@ -586,7 +584,6 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     rNoriToMint = (checkoutTotal * holdbackPercentage) / 100;
     vm.prank(_namedAccounts.admin);
     _noriUSDC.transfer(owner, checkoutTotal);
-    vm.stopPrank();
     vm.prank(owner);
     _noriUSDC.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
@@ -1721,7 +1718,6 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
       signedPermit.r,
       signedPermit.s
     );
-    vm.stopPrank();
     assertEq(_certificate.ownerOf(certificateTokenId), owner);
     assertEq(_purchasingToken.balanceOf(owner), 0);
     assertEq(_purchasingToken.balanceOf(_namedAccounts.supplier), 20_000_000);
@@ -1826,7 +1822,6 @@ contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
       signedPermit.r,
       signedPermit.s
     );
-    vm.stopPrank();
     assertEq(_certificate.ownerOf(certificateTokenId), owner);
     assertEq(_purchasingToken.balanceOf(owner), 0);
     assertEq(_purchasingToken.balanceOf(_namedAccounts.supplier), 18_000_000);
@@ -1896,7 +1891,6 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
         0,
         0
       );
-      vm.stopPrank();
 
       vm.prank(_namedAccounts.admin);
       vm.expectRevert(revertData);
@@ -1909,7 +1903,6 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
         numberOfNRTsToPurchase,
         _namedAccounts.supplier
       );
-      vm.stopPrank();
     }
   }
 }
