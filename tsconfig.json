@@ -13,18 +13,36 @@
     "baseUrl": ".",
     "skipLibCheck": true,
     "paths": {
-      "@/tasks": ["./tasks/index.ts"],
-      "@/tasks/utils": ["./tasks/utils/*"],
-      "@/test/helpers": ["./test/helpers/index.ts"],
-      "@/plugins": ["./plugins/index.ts"],
-      "@/contracts.json": ["./contracts.json"],
-      "@/artifacts/*": ["./artifacts/contracts/*"],
-      "@/legacy-artifacts/*": ["./legacy-artifacts/contracts/*"],
+      "@/tasks": [
+        "./tasks/index.ts"
+      ],
+      "@/tasks/utils": [
+        "./tasks/utils/*"
+      ],
+      "@/test/helpers": [
+        "./test/helpers/index.ts"
+      ],
+      "@/plugins": [
+        "./plugins/index.ts"
+      ],
+      "@/contracts.json": [
+        "./contracts.json"
+      ],
+      "@/artifacts/*": [
+        "./artifacts/contracts/*"
+      ],
+      "@/legacy-artifacts/*": [
+        "./legacy-artifacts/contracts/*"
+      ],
       "@/typechain-types/artifacts/contracts/*": [
         "./types/typechain-types/artifacts/contracts/*"
       ],
-      "@/typechain-types": ["./types/typechain-types/index.ts"],
-      "@/*": ["./*"]
+      "@/typechain-types": [
+        "./types/typechain-types/index.ts"
+      ],
+      "@/*": [
+        "./*"
+      ]
     }
   },
   "include": [
@@ -32,7 +50,6 @@
     "**/*.ts",
     "types/**/*.d.ts",
     "./.eslintrc.js",
-    "./eslint-local-rules/index.js",
     "contracts.json",
     "artifacts/contracts/**/*.json"
   ]
