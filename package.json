@@ -1,6 +1,6 @@
 {
   "name": "@nori-dot-com/contracts",
-  "version": "1.6.1",
+  "version": "1.6.3",
   "main": "index.js",
   "exports": {
     "./utils/*": "./dist/utils/*.js",
@@ -23,7 +23,7 @@
     "@nomiclabs/hardhat-ethers": "^2.2.1",
     "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
-    "@nori-dot-com/eslint-config-nori": "^1.9.0",
+    "@nori-dot-com/eslint-config-nori": "^1.9.2",
     "@octokit/rest": "^19.0.7",
     "@openzeppelin/contracts": "4.8.2",
     "@openzeppelin/contracts-upgradeable": "4.8.2",
@@ -38,8 +38,8 @@
     "@types/dotenv-defaults": "^2.0.1",
     "@types/dotenv-parse-variables": "^2.0.1",
     "@types/fs-extra": "^9.0.13",
-    "@types/json-diff": "^0.9.0",
     "@types/jest": "^29.2.0",
+    "@types/json-diff": "^0.9.0",
     "@types/proper-lockfile": "^4.1.2",
     "@types/sinon": "^10.0.13",
     "@types/sinon-chai": "^3.2.9",
