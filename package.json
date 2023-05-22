@@ -1,6 +1,6 @@
 {
   "name": "@nori-dot-com/contracts",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "main": "index.js",
   "exports": {
     "./*": "./dist/*"
