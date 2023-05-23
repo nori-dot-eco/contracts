@@ -9,7 +9,7 @@
     "./types/*": "./dist/types/*.js",
     "./constants/*": "./dist/constants/*.js",
     "./contracts.json": "./dist/contracts.json",
-    "./legacy-artifacts/contracts/NCCR_V0.sol/NCCR_V0.json": "./dist/contracts/NCCR_V0.sol/NCCR_V0.json",
+    "./legacy-artifacts/contracts/NCCR_V0.sol/NCCR_V0.json": "./dist/legacy-artifacts/contracts/NCCR_V0.sol/NCCR_V0.json",
     "./artifacts/contracts/Removal.sol/Removal.json": "./dist/artifacts/contracts/Removal.sol/Removal.json",
     "./artifacts/contracts/BridgedPolygonNORI.sol/BridgedPolygonNORI.json": "./dist/artifacts/contracts/BridgedPolygonNORI.sol/BridgedPolygonNORI.json",
     "./artifacts/contracts/Certificate.sol/Certificate.json": "./dist/artifacts/contracts/Certificate.sol/Certificate.json",
