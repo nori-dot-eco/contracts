@@ -17,7 +17,7 @@ yarn add -D @nori-dot-com/contracts
 Then, in your solidity code, you can import the contracts you need:
 
 ```solidity
-import "@nori-dot-com/contracts/contracts/Market.sol";
+import "@nori-dot-com/contracts/dist/solidity/Market.sol";
 ```
 
 ### Solidity
@@ -40,7 +40,7 @@ yarn add -D @nori-dot-com/contracts @openzeppelin/contracts-upgradeable@4.8.2 er
 Then, in your solidity code, you can import the contracts you need:
 
 ```solidity
-import "@nori-dot-com/contracts/contracts/Market.sol";
+import "@nori-dot-com/contracts/dist/solidity/Market.sol";
 ```
 
 ## :notebook_with_decorative_cover: Documentation
