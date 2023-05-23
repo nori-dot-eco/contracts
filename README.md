@@ -2,6 +2,47 @@
 
 # [Nori](https://nori.com) marketplace smart contracts
 
+
+
+## 🏗️ Integrations
+
+### JavaScript/TypeScript
+ 
+This package can be used in your project by installing it the package:
+
+```bash
+yarn add -D @nori-dot-com/contracts
+```
+
+Then, in your solidity code, you can import the contracts you need:
+
+```solidity
+import "@nori-dot-com/contracts/contracts/Market.sol";
+```
+
+### Solidity
+
+#### [Foundry](https://github.com/foundry-rs/foundry)
+
+```bash
+forge install nori-dot-eco/contracts
+```
+
+> **Note**
+> You may also need to [configure path remapping](https://book.getfoundry.sh/projects/dependencies?highlight=remap#remapping-dependencies) if you are using foundry.
+
+#### [Hardhat](https://github.com/NomicFoundation/hardhat)/[Truffle](https://github.com/trufflesuite/truffle)
+
+```bash
+yarn add -D @nori-dot-com/contracts @openzeppelin/contracts-upgradeable@4.8.2 erc721a-upgradeable@4.2.2
+```
+
+Then, in your solidity code, you can import the contracts you need:
+
+```solidity
+import "@nori-dot-com/contracts/contracts/Market.sol";
+```
+
 ## :notebook_with_decorative_cover: Documentation
 
 Refer to the contracts [README](./docs/README.md) for detailed documentation about how each smart contract works.
