@@ -19,7 +19,6 @@ module.exports = {
         '@typescript-eslint/no-unused-expressions': 0,
         'jest/valid-expect': 0, // this package does not use jest explicitly
         'jest/no-deprecated-functions': 0, // this package does not use jest explicitly
-        'local-rules/waffle-as-promised': 2,
       },
     },
   ],
