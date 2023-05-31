@@ -32,8 +32,8 @@
     "**/*.ts",
     "types/**/*.d.ts",
     "./.eslintrc.js",
-    "./eslint-local-rules/index.js",
     "contracts.json",
-    "artifacts/contracts/**/*.json"
+    "artifacts/contracts/**/*.json",
+    "legacy-artifacts/**/*.json"
   ]
 }
