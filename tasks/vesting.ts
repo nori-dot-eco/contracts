@@ -263,7 +263,7 @@ export const grantSchema = yup
     vestEndTime: rules
       .requiredPositiveInteger()
       .when('startTime', ([startTime], schema, value) => {
-        if (value > 0) {
+        if (value.value > 0) {
           return schema
             .min(startTime)
             .test(validations.isBeforeMaxYears({ maxFutureYears: 10 }));
@@ -302,7 +302,7 @@ export const grantSchema = yup
       .when(
         ['originalAmount', 'vestEndTime', 'startTime'],
         ([originalAmount, vestEndTime, startTime], schema, value) => {
-          if (value > 0 && vestEndTime > startTime) {
+          if (value.value > 0 && vestEndTime > startTime) {
             return schema.test(validations.isBigNumberLTE(originalAmount));
           }
           return schema;
@@ -317,7 +317,7 @@ export const grantSchema = yup
           schema,
           value
         ) => {
-          if (value > 0 && vestEndTime > startTime) {
+          if (value.value > 0 && vestEndTime > startTime) {
             return schema.test(
               validations.isBigNumberLTE(
                 BigNumber.from(originalAmount).sub(vestCliff1Amount)
