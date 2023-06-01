@@ -79,7 +79,7 @@
     "sinon": "^14.0.0",
     "sinon-chai": "^3.7.0",
     "solc": "0.8.17",
-    "solhint": "^3.3.7",
+    "solhint": "^3.4.1",
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-docgen": "0.6.0-beta.34",
     "ts-node": "^10.9.1",
