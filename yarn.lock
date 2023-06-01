@@ -94,7 +94,7 @@
   resolved "https://registry.yarnpkg.com/@babel/helper-string-parser/-/helper-string-parser-7.18.10.tgz#181f22d28ebe1b3857fa575f5c290b1aaf659b56"
   integrity sha512-XtIfWmeNY3i4t7t4D2t02q50HvqHybPqW2ki1kosnvWCwuCMeo81Jf0gwr85jy/neUdg5XDdeFE/80DXiO+njw==
 
-"@babel/helper-validator-identifier@^7.15.7", "@babel/helper-validator-identifier@^7.18.6", "@babel/helper-validator-identifier@^7.19.1":
+"@babel/helper-validator-identifier@^7.18.6", "@babel/helper-validator-identifier@^7.19.1":
   version "7.19.1"
   resolved "https://registry.yarnpkg.com/@babel/helper-validator-identifier/-/helper-validator-identifier-7.19.1.tgz#7eea834cf32901ffdc1a7ee555e2f9c27e249ca2"
   integrity sha512-awrNfaMtnHUr653GgGEs++LlAvW6w+DcPrOliSMXWCKo597CwL5Acf/wWdNkf/tfEQE3mjkeD1YOVZOUV/od1w==
@@ -206,7 +206,7 @@
     esquery "^1.4.0"
     jsdoc-type-pratt-parser "~3.1.0"
 
-"@eslint-community/eslint-utils@^4.2.0":
+"@eslint-community/eslint-utils@^4.1.2", "@eslint-community/eslint-utils@^4.2.0":
   version "4.4.0"
   resolved "https://registry.yarnpkg.com/@eslint-community/eslint-utils/-/eslint-utils-4.4.0.tgz#a23514e8fb9af1269d5f7788aa556798d61c6b59"
   integrity sha512-1/sA4dwrzBAyeUoQ6oxahHKmrZvsnLCg4RfxW3ZFGGmQkSNQPFNLV9CUEFQP1x9EYXHTo5p6xdhZM1Ne9p/AfA==
@@ -1911,10 +1911,10 @@
     "@types/sinon-chai" "^3.2.3"
     "@types/web3" "1.0.19"
 
-"@nori-dot-com/eslint-config-nori@^1.9.2":
-  version "1.9.2"
-  resolved "https://registry.npmjs.org/@nori-dot-com/eslint-config-nori/-/eslint-config-nori-1.9.2.tgz#3636cd9a9978947ea84dd1b2baa4eade0f235ffd"
-  integrity sha512-8qXMlaTFOGAwUXNh5sVl1eGQHgafRb6itCOnjjU0TgDCi9FZJQppUNZv1b5IW3/WhlXEaxjbjHWh2bpagtbHCw==
+"@nori-dot-com/eslint-config-nori@^1.9.4":
+  version "1.9.4"
+  resolved "https://registry.npmjs.org/@nori-dot-com/eslint-config-nori/-/eslint-config-nori-1.9.4.tgz#6af370ef6f9ccd8ef9211b5b3dc6573db5982a28"
+  integrity sha512-xCeNfRvWMJTrji+pm2dR6ypnVRX2Avs1QNttwZiqZ3f2NnuyQ/i2C18zcPcwUsGT0X4ULPpd+Da1ipisnlY+CQ==
   dependencies:
     "@fintechstudios/eslint-plugin-chai-as-promised" "3.1.0"
     "@graphql-eslint/eslint-plugin" "^3.13.1"
@@ -1937,7 +1937,6 @@
     eslint-plugin-jest "^26.2.2"
     eslint-plugin-jsdoc "^39.2.9"
     eslint-plugin-jsx-a11y "^6.5.1"
-    eslint-plugin-local-rules "^1.3.0"
     eslint-plugin-md "1.0.19"
     eslint-plugin-mui-unused-classes "^1.0.3"
     eslint-plugin-only-warn "^1.1.0"
@@ -1948,7 +1947,7 @@
     eslint-plugin-require-path-exists "^1.1.9"
     eslint-plugin-sort-imports-es6-autofix "^0.6.0"
     eslint-plugin-toml "^0.3.1"
-    eslint-plugin-unicorn "42.0.0"
+    eslint-plugin-unicorn "46.0.1"
     prettier "^2.8.8"
     prettier-plugin-solidity "^1.0.0-dev.23"
     solhint "^3.3.7"
@@ -2401,6 +2400,13 @@
   version "0.14.3"
   resolved "https://registry.yarnpkg.com/@solidity-parser/parser/-/parser-0.14.3.tgz#0d627427b35a40d8521aaa933cc3df7d07bfa36f"
   integrity sha512-29g2SZ29HtsqA58pLCtopI1P/cPy5/UAzlcAXO6T/CNJimG6yA8kx4NaseMyJULiC+TEs02Y9/yeHzClqoA0hw==
+  dependencies:
+    antlr4ts "^0.5.0-alpha.4"
+
+"@solidity-parser/parser@^0.16.0":
+  version "0.16.0"
+  resolved "https://registry.npmjs.org/@solidity-parser/parser/-/parser-0.16.0.tgz#1fb418c816ca1fc3a1e94b08bcfe623ec4e1add4"
+  integrity sha512-ESipEcHyRHg4Np4SqBCfcXwyxxna1DgFVz69bgpLV8vzl/NP1DtcKsJ4dJZXWQhY/Z4J2LeKBiOkOVZn9ct33Q==
   dependencies:
     antlr4ts "^0.5.0-alpha.4"
 
@@ -4654,10 +4660,10 @@ ci-info@^3.2.0:
   resolved "https://registry.yarnpkg.com/ci-info/-/ci-info-3.7.1.tgz#708a6cdae38915d597afdf3b145f2f8e1ff55f3f"
   integrity sha512-4jYS4MOAaCIStSRwiuxc4B8MYhIe676yO1sYGzARnjXkWpmzZMMYxY6zu8WYWDhSuth5zhrQ1rhNSibyyvv4/w==
 
-ci-info@^3.3.0:
-  version "3.4.0"
-  resolved "https://registry.yarnpkg.com/ci-info/-/ci-info-3.4.0.tgz#b28484fd436cbc267900364f096c9dc185efb251"
-  integrity sha512-t5QdPT5jq3o262DOQ8zA6E1tlH2upmUc4Hlvrbx1pGYJuiiHl7O7rvVNI+l8HTVhd/q3Qc9vqimkNk5yiXsAug==
+ci-info@^3.6.1:
+  version "3.8.0"
+  resolved "https://registry.npmjs.org/ci-info/-/ci-info-3.8.0.tgz#81408265a5380c929f0bc665d62256628ce9ef91"
+  integrity sha512-eXTggHWSooYhq49F2opQhuHWgzucfF2YgODK4e1566GQs5BIfP30B0oenwBJHfWxAs2fyPB1s7Mg949zLf61Yw==
 
 cids@^0.7.1:
   version "0.7.5"
@@ -6147,11 +6153,6 @@ eslint-plugin-jsx-a11y@^6.5.1:
     minimatch "^3.1.2"
     semver "^6.3.0"
 
-eslint-plugin-local-rules@^1.3.0:
-  version "1.3.2"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-local-rules/-/eslint-plugin-local-rules-1.3.2.tgz#b9c9522915faeb9e430309fb909fc1dbcd7aedb3"
-  integrity sha512-X4ziX+cjlCYnZa+GB1ly3mmj44v2PeIld3tQVAxelY6AMrhHSjz6zsgsT6nt0+X5b7eZnvL/O7Q3pSSK2kF/+Q==
-
 eslint-plugin-md@1.0.19:
   version "1.0.19"
   resolved "https://registry.npmjs.org/eslint-plugin-md/-/eslint-plugin-md-1.0.19.tgz#af6f2ea37ef4df9b981475b669a5f055cde0563c"
@@ -6237,24 +6238,26 @@ eslint-plugin-toml@^0.3.1:
     lodash "^4.17.19"
     toml-eslint-parser "^0.4.0"
 
-eslint-plugin-unicorn@42.0.0:
-  version "42.0.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-unicorn/-/eslint-plugin-unicorn-42.0.0.tgz#47d60c00c263ad743403b052db689e39acbacff1"
-  integrity sha512-ixBsbhgWuxVaNlPTT8AyfJMlhyC5flCJFjyK3oKE8TRrwBnaHvUbuIkCM1lqg8ryYrFStL/T557zfKzX4GKSlg==
+eslint-plugin-unicorn@46.0.1:
+  version "46.0.1"
+  resolved "https://registry.npmjs.org/eslint-plugin-unicorn/-/eslint-plugin-unicorn-46.0.1.tgz#222ff65b30b2d9ed6f90de908ceb6a05dd0514d9"
+  integrity sha512-setGhMTiLAddg1asdwjZ3hekIN5zLznNa5zll7pBPwFOka6greCKDQydfqy4fqyUhndi74wpDzClSQMEcmOaew==
   dependencies:
-    "@babel/helper-validator-identifier" "^7.15.7"
-    ci-info "^3.3.0"
+    "@babel/helper-validator-identifier" "^7.19.1"
+    "@eslint-community/eslint-utils" "^4.1.2"
+    ci-info "^3.6.1"
     clean-regexp "^1.0.0"
-    eslint-utils "^3.0.0"
     esquery "^1.4.0"
     indent-string "^4.0.0"
-    is-builtin-module "^3.1.0"
+    is-builtin-module "^3.2.0"
+    jsesc "^3.0.2"
     lodash "^4.17.21"
     pluralize "^8.0.0"
     read-pkg-up "^7.0.1"
     regexp-tree "^0.1.24"
+    regjsparser "^0.9.1"
     safe-regex "^2.1.1"
-    semver "^7.3.5"
+    semver "^7.3.8"
     strip-indent "^3.0.0"
 
 eslint-scope@^4.0.3:
@@ -8857,10 +8860,10 @@ is-buffer@^2.0.0, is-buffer@^2.0.5:
   resolved "https://registry.npmjs.org/is-buffer/-/is-buffer-2.0.5.tgz#ebc252e400d22ff8d77fa09888821a24a658c191"
   integrity sha512-i2R6zNFDwgEHJyQUtJEk0XFi1i0dPFn/oqjK3/vPCcDeJvW5NQ83V8QbicfF1SupOaB0h8ntgBC2YiE7dfyctQ==
 
-is-builtin-module@^3.1.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/is-builtin-module/-/is-builtin-module-3.2.0.tgz#bb0310dfe881f144ca83f30100ceb10cf58835e0"
-  integrity sha512-phDA4oSGt7vl1n5tJvTWooWWAsXLY+2xCnxNqvKhGEzujg+A43wPlPOyDg3C8XQHN+6k/JTQWJ/j0dQh/qr+Hw==
+is-builtin-module@^3.2.0:
+  version "3.2.1"
+  resolved "https://registry.npmjs.org/is-builtin-module/-/is-builtin-module-3.2.1.tgz#f03271717d8654cfcaf07ab0463faa3571581169"
+  integrity sha512-BSLE3HnV2syZ0FK0iMA/yUGplUeMmNz4AW5fnTunbCIqZi4vG3WjJT9FHMy5D69xmAYBHXQhJdALdpwVxV501A==
   dependencies:
     builtin-modules "^3.3.0"
 
@@ -9466,6 +9469,11 @@ jsesc@^2.5.1:
   version "2.5.2"
   resolved "https://registry.yarnpkg.com/jsesc/-/jsesc-2.5.2.tgz#80564d2e483dacf6e8ef209650a67df3f0c283a4"
   integrity sha512-OYu7XEzjkCQ3C5Ps3QIZsQfNpqoJyZZA99wd9aWd05NCtC5pWOkShK2mkL6HXQR6/Cy2lbNdPlZBpuQHXE63gA==
+
+jsesc@^3.0.2:
+  version "3.0.2"
+  resolved "https://registry.npmjs.org/jsesc/-/jsesc-3.0.2.tgz#bb8b09a6597ba426425f2e4a07245c3d00b9343e"
+  integrity sha512-xKqzzWXDttJuOcawBt4KnKHHIf5oQ/Cxax+0PWFG+DFDgHNAdi+TXECADI+RYiFUMmx8792xsMbbgXj4CwnP4g==
 
 jsesc@~0.5.0:
   version "0.5.0"
@@ -11682,18 +11690,6 @@ prettier-linter-helpers@^1.0.0:
   dependencies:
     fast-diff "^1.1.2"
 
-prettier-plugin-solidity@^1.0.0-beta.24:
-  version "1.0.0-beta.24"
-  resolved "https://registry.yarnpkg.com/prettier-plugin-solidity/-/prettier-plugin-solidity-1.0.0-beta.24.tgz#67573ca87098c14f7ccff3639ddd8a4cab2a87eb"
-  integrity sha512-6JlV5BBTWzmDSq4kZ9PTXc3eLOX7DF5HpbqmmaF+kloyUwOZbJ12hIYsUaZh2fVgZdV2t0vWcvY6qhILhlzgqg==
-  dependencies:
-    "@solidity-parser/parser" "^0.14.3"
-    emoji-regex "^10.1.0"
-    escape-string-regexp "^4.0.0"
-    semver "^7.3.7"
-    solidity-comments-extractor "^0.0.7"
-    string-width "^4.2.3"
-
 prettier-plugin-solidity@^1.0.0-dev.23:
   version "1.0.0-dev.23"
   resolved "https://registry.yarnpkg.com/prettier-plugin-solidity/-/prettier-plugin-solidity-1.0.0-dev.23.tgz#e1edf0693d69fe1518519ab704d5e46ee4f842fc"
@@ -11705,6 +11701,15 @@ prettier-plugin-solidity@^1.0.0-dev.23:
     semver "^7.3.7"
     solidity-comments-extractor "^0.0.7"
     string-width "^4.2.3"
+
+prettier-plugin-solidity@^1.1.3:
+  version "1.1.3"
+  resolved "https://registry.npmjs.org/prettier-plugin-solidity/-/prettier-plugin-solidity-1.1.3.tgz#9a35124f578404caf617634a8cab80862d726cba"
+  integrity sha512-fQ9yucPi2sBbA2U2Xjh6m4isUTJ7S7QLc/XDDsktqqxYfTwdYKJ0EnnywXHwCGAaYbQNK+HIYPL1OemxuMsgeg==
+  dependencies:
+    "@solidity-parser/parser" "^0.16.0"
+    semver "^7.3.8"
+    solidity-comments-extractor "^0.0.7"
 
 prettier@^1.14.3:
   version "1.19.1"
@@ -12230,6 +12235,13 @@ regjsparser@^0.1.4:
   version "0.1.5"
   resolved "https://registry.yarnpkg.com/regjsparser/-/regjsparser-0.1.5.tgz#7ee8f84dc6fa792d3fd0ae228d24bd949ead205c"
   integrity sha512-jlQ9gYLfk2p3V5Ag5fYhA7fv7OHzd1KUH0PRP46xc3TgwjwgROIW572AfYg/X9kaNq/LJnu6oJcFRXlIrGoTRw==
+  dependencies:
+    jsesc "~0.5.0"
+
+regjsparser@^0.9.1:
+  version "0.9.1"
+  resolved "https://registry.npmjs.org/regjsparser/-/regjsparser-0.9.1.tgz#272d05aa10c7c1f67095b1ff0addae8442fc5709"
+  integrity sha512-dQUtn90WanSNl+7mQKcXAgZxvUe7Z0SqXlgzv0za4LwiUhyzBC58yQO3liFoUgu8GiJVInAhJjkj1N0EtQ5nkQ==
   dependencies:
     jsesc "~0.5.0"
 
