@@ -9,6 +9,7 @@ import type { BigNumber } from '@ethersproject/bignumber';
  *
  * I'd like to packge this up into a gas feee estimation provider abstraction
  * and have the fireblocks signer take it as a constructor argument
+ *
  */
 
 enum GasSpeed {
@@ -67,14 +68,17 @@ const polygonGasStation = async (
   const fees: GasStationResponse = await response.json();
   let feeData;
   switch (level) {
-    case GasSpeed.SAFE_LOW:
+    case GasSpeed.SAFE_LOW: {
       feeData = fees.safeLow;
       break;
-    case GasSpeed.FAST:
+    }
+    case GasSpeed.FAST: {
       feeData = fees.fast;
       break;
-    default:
+    }
+    default: {
       feeData = fees.standard;
+    }
   }
   return {
     maxFeePerGas: parseGwei(feeData.maxFee),
@@ -86,6 +90,7 @@ const polygonGasStation = async (
 
 /**
  * {"status":"1","message":"OK","result":{"LastBlock":"15691953","SafeGasPrice":"8","ProposeGasPrice":"9","FastGasPrice":"9","suggestBaseFee":"7.376342631","gasUsedRatio":"0.9845104,0,0.978863833333333,0.2985338,0.4101417"}}
+ *
  */
 
 interface EtherscanGasStationResponse {

@@ -53,7 +53,7 @@ export const parseTransactionLogs = <
       return log.address === contractInstance.address;
     })
     .reduce<NamedLogs<TContract, TEventNames>>((accumulator, log) => {
-      const parsedLog = iface.parseLog(log) as typeof accumulator[number];
+      const parsedLog = iface.parseLog(log) as (typeof accumulator)[number];
       if (!('name' in parsedLog)) {
         throw new Error('Something went wrong when parsing logs!');
       }

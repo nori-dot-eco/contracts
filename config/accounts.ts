@@ -25,7 +25,7 @@ export const namedAccountIndices = {
 } as const;
 
 export const namedAccounts: NamedAccounts = Object.fromEntries(
-  [...Array.from({ length: 10 })].map((_, index) => {
+  Array.from({ length: 10 }).map((_, index) => {
     return [
       Object.keys(namedAccountIndices)[index],
       typeof MNEMONIC === 'string'
@@ -37,8 +37,9 @@ export const namedAccounts: NamedAccounts = Object.fromEntries(
 ) as NamedAccounts;
 
 export const accounts: HardhatNetworkAccountUserConfig[] | undefined =
-  MNEMONIC !== undefined
-    ? [...Array.from({ length: 10 })].map((_, index) => {
+  MNEMONIC === undefined
+    ? undefined
+    : Array.from({ length: 10 }).map((_, index) => {
         return {
           privateKey: ethers.Wallet.fromMnemonic(
             MNEMONIC,
@@ -48,5 +49,4 @@ export const accounts: HardhatNetworkAccountUserConfig[] | undefined =
             .parseEther([7, 9].includes(index) ? '0.0' : '1000000.0') // accounts 7 and 9 are given 0.0 ETH
             .toString(),
         };
-      })
-    : undefined;
+      });

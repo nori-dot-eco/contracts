@@ -397,7 +397,11 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       }
       PROGRESS_BAR.stop();
       writeJsonSync(outputFileName, outputData);
-      if (!Boolean(dryRun)) {
+      if (Boolean(dryRun)) {
+        logger.info(
+          `📝 Skipping validation and summary as it is not possible to do either in a dry run`
+        );
+      } else {
         logger.info('Starting validation and summary...');
         const summary = await summarize({
           outputData,
@@ -413,10 +417,6 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
         });
         logger.info('starting validation');
         await validate({ summary, logger });
-      } else {
-        logger.info(
-          `📝 Skipping validation and summary as it is not possible to do either in a dry run`
-        );
       }
       logger.success(`🎉 Done!`);
     },

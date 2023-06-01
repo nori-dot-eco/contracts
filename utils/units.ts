@@ -2,7 +2,7 @@ import moment from 'moment';
 
 export const formatTokenAmount = (
   amount: number
-): InstanceType<typeof ethers['BigNumber']> => {
+): InstanceType<(typeof ethers)['BigNumber']> => {
   if (typeof amount !== 'number') {
     throw new TypeError(`Expected number but received ${typeof amount}`);
   }
@@ -11,7 +11,7 @@ export const formatTokenAmount = (
 
 export const formatTokenString = (
   amount: string
-): InstanceType<typeof ethers['BigNumber']> => {
+): InstanceType<(typeof ethers)['BigNumber']> => {
   if (typeof amount !== 'string') {
     throw new TypeError(`Expected string but received ${typeof amount}`);
   }

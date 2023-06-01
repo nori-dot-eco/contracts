@@ -30,7 +30,7 @@ export const getContract = async <TContractName extends keyof Contracts>({
     throw new Error(`Unsupported network: ${hre.network.name}`);
   }
   return (
-    signer != undefined ? contract.connect(signer) : contract
+    signer == undefined ? contract : contract.connect(signer)
   ) as Required<Contracts>[TContractName];
 };
 

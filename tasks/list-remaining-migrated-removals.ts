@@ -63,16 +63,16 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
           `Signer does not have the CONSIGNOR role in the removal contract`
         );
       }
-      if (!dryRun) {
+      if (dryRun) {
         hre.log(
           chalk.bold.white(
-            `✨ Listing unsold removals for ${jsonData.length} projects...`
+            `DRY RUN 🌵 Listing unsold removals for ${jsonData.length} projects...`
           )
         );
       } else {
         hre.log(
           chalk.bold.white(
-            `DRY RUN 🌵 Listing unsold removals for ${jsonData.length} projects...`
+            `✨ Listing unsold removals for ${jsonData.length} projects...`
           )
         );
       }
@@ -137,8 +137,27 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
         );
         return;
       }
-      const TIMEOUT_DURATION = 1000 * 60 * 2; // 2 minutes
-      if (!dryRun) {
+      if (dryRun) {
+        // dry run
+        try {
+          await removalContract.callStatic.multicall(
+            listableTokenIds.map((id, index) =>
+              removalContract.interface.encodeFunctionData('consign', [
+                signerAddress,
+                id,
+                listableBalances[index],
+              ])
+            )
+          );
+          hre.log(
+            chalk.bold.bgWhiteBright.black(`🎉  Dry run was successful!`)
+          );
+        } catch (error) {
+          hre.log(
+            chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
+          );
+        }
+      } else {
         hre.log(chalk.white(`🤞 Submitting multicall consign transaction...`));
         let txReceipt: ethers.providers.TransactionReceipt;
         let pendingTx: ContractTransaction;
@@ -214,26 +233,6 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
         });
         hre.log(chalk.white(`📝 Wrote results to ${outputFile}`));
         hre.log(chalk.white.bold(`🎉 Done!`));
-      } else {
-        // dry run
-        try {
-          await removalContract.callStatic.multicall(
-            listableTokenIds.map((id, index) =>
-              removalContract.interface.encodeFunctionData('consign', [
-                signerAddress,
-                id,
-                listableBalances[index],
-              ])
-            )
-          );
-          hre.log(
-            chalk.bold.bgWhiteBright.black(`🎉  Dry run was successful!`)
-          );
-        } catch (error) {
-          hre.log(
-            chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
-          );
-        }
       }
     },
   } as const);
