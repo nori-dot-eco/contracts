@@ -58,29 +58,29 @@ type ParseGrantFunction<
 
 type RunVestingWithSubTasks = <TTaskName extends string>(
   name: TTaskName,
-  taskArguments: typeof name extends typeof DIFF_SUBTASK['name']
-    ? Parameters<typeof DIFF_SUBTASK['run']>[0]
-    : typeof name extends typeof CREATE_SUBTASK['name']
-    ? Parameters<typeof CREATE_SUBTASK['run']>[0]
-    : typeof name extends typeof GET_GITHUB_SUBTASK['name']
-    ? Parameters<typeof GET_GITHUB_SUBTASK['run']>[0]
-    : typeof name extends typeof GET_BLOCKCHAIN_SUBTASK['name']
-    ? Parameters<typeof GET_BLOCKCHAIN_SUBTASK['run']>[0]
-    : typeof name extends typeof REVOKE_SUBTASK['name']
-    ? Parameters<typeof REVOKE_SUBTASK['run']>[0]
+  taskArguments: typeof name extends (typeof DIFF_SUBTASK)['name']
+    ? Parameters<(typeof DIFF_SUBTASK)['run']>[0]
+    : typeof name extends (typeof CREATE_SUBTASK)['name']
+    ? Parameters<(typeof CREATE_SUBTASK)['run']>[0]
+    : typeof name extends (typeof GET_GITHUB_SUBTASK)['name']
+    ? Parameters<(typeof GET_GITHUB_SUBTASK)['run']>[0]
+    : typeof name extends (typeof GET_BLOCKCHAIN_SUBTASK)['name']
+    ? Parameters<(typeof GET_BLOCKCHAIN_SUBTASK)['run']>[0]
+    : typeof name extends (typeof REVOKE_SUBTASK)['name']
+    ? Parameters<(typeof REVOKE_SUBTASK)['run']>[0]
     : never
 ) => Promise<
   ReturnType<
-    typeof name extends typeof DIFF_SUBTASK['name']
-      ? typeof DIFF_SUBTASK['run']
-      : typeof name extends typeof CREATE_SUBTASK['name']
-      ? typeof CREATE_SUBTASK['run']
-      : typeof name extends typeof GET_GITHUB_SUBTASK['name']
-      ? typeof GET_GITHUB_SUBTASK['run']
-      : typeof name extends typeof GET_BLOCKCHAIN_SUBTASK['name']
-      ? typeof GET_BLOCKCHAIN_SUBTASK['run']
-      : typeof name extends typeof REVOKE_SUBTASK['name']
-      ? typeof REVOKE_SUBTASK['run']
+    typeof name extends (typeof DIFF_SUBTASK)['name']
+      ? (typeof DIFF_SUBTASK)['run']
+      : typeof name extends (typeof CREATE_SUBTASK)['name']
+      ? (typeof CREATE_SUBTASK)['run']
+      : typeof name extends (typeof GET_GITHUB_SUBTASK)['name']
+      ? (typeof GET_GITHUB_SUBTASK)['run']
+      : typeof name extends (typeof GET_BLOCKCHAIN_SUBTASK)['name']
+      ? (typeof GET_BLOCKCHAIN_SUBTASK)['run']
+      : typeof name extends (typeof REVOKE_SUBTASK)['name']
+      ? (typeof REVOKE_SUBTASK)['run']
       : never
   >
 >;
@@ -623,9 +623,9 @@ const DIFF_SUBTASK = {
                       : vestEndTime,
                   ...(Boolean(lastQuantityRevoked) && {
                     lastQuantityRevoked:
-                      githubGrants[k1].lastQuantityRevoked !== '0'
-                        ? lastQuantityRevoked
-                        : '0',
+                      githubGrants[k1].lastQuantityRevoked === '0'
+                        ? '0'
+                        : lastQuantityRevoked,
                   }),
                   startTime,
                   ...rest,
@@ -872,7 +872,23 @@ const CREATE_SUBTASK = {
         }
       );
       const { v, r, s } = ethers.utils.splitSignature(signature);
-      if (!dryRun) {
+      if (dryRun) {
+        try {
+          await lNori.callStatic.batchCreateGrants(
+            amounts,
+            userData,
+            deadline,
+            v,
+            r,
+            s
+          );
+          hre.log(chalk.bold.bgWhiteBright.black(`🎉 Dry run was successful!`));
+        } catch (error) {
+          hre.log(
+            chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
+          );
+        }
+      } else {
         if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
           fireblocksSigner.setNextTransactionMemo(
             `Vesting Create: ${memo || ''}`
@@ -902,22 +918,6 @@ const CREATE_SUBTASK = {
           const error = `💀 Failed to create ${grantDiffs.length} grants (tx: ${result.transactionHash})`;
           hre.log(chalk.bold.bgWhiteBright.red(error));
           throw new Error(error);
-        }
-      } else {
-        try {
-          await lNori.callStatic.batchCreateGrants(
-            amounts,
-            userData,
-            deadline,
-            v,
-            r,
-            s
-          );
-          hre.log(chalk.bold.bgWhiteBright.black(`🎉 Dry run was successful!`));
-        } catch (error) {
-          hre.log(
-            chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
-          );
         }
       }
     }
@@ -976,7 +976,23 @@ const REVOKE_SUBTASK = {
           grant.lastQuantityRevoked.__new ?? grant.lastQuantityRevoked
         )
       );
-      if (!Boolean(dryRun)) {
+      if (Boolean(dryRun)) {
+        try {
+          await lNori.callStatic.batchRevokeUnvestedTokenAmounts(
+            fromAccounts,
+            toAccounts,
+            atTimes,
+            amounts
+          );
+          hre.log(
+            chalk.bold.bgWhiteBright.black(`🎉  Dry run was successful!`)
+          );
+        } catch (error) {
+          hre.log(
+            chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
+          );
+        }
+      } else {
         const fireblocksSigner = lNori.signer as FireblocksSigner;
         if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
           fireblocksSigner.setNextTransactionMemo(
@@ -1006,22 +1022,6 @@ const REVOKE_SUBTASK = {
           const error = `💀 Failed to revoke ${grantRevocationDiffs.length} grants (tx: ${result.transactionHash})`;
           hre.log(chalk.bold.bgWhiteBright.red(error));
           throw new Error(error);
-        }
-      } else {
-        try {
-          await lNori.callStatic.batchRevokeUnvestedTokenAmounts(
-            fromAccounts,
-            toAccounts,
-            atTimes,
-            amounts
-          );
-          hre.log(
-            chalk.bold.bgWhiteBright.black(`🎉  Dry run was successful!`)
-          );
-        } catch (error) {
-          hre.log(
-            chalk.bold.bgRed.black(`💀 Dry run was unsuccessful!`, error)
-          );
         }
       }
     }

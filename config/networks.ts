@@ -6,7 +6,7 @@ import { accounts } from './accounts';
 
 export type ContractsInNetwork<
   T extends SupportedNetworks = SupportedNetworks
-> = T extends SupportedNetworks ? keyof typeof contractsConfig[T] : never;
+> = T extends SupportedNetworks ? keyof (typeof contractsConfig)[T] : never;
 
 export type SupportedNetworks = keyof typeof networks;
 

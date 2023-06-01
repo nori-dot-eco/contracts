@@ -2,12 +2,10 @@
 
 # [Nori](https://nori.com) marketplace smart contracts
 
-
-
 ## 🏗️ Integrations
 
 ### JavaScript/TypeScript
- 
+
 This package can be used in your project by installing it the package:
 
 ```bash

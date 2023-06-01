@@ -64,7 +64,7 @@ const addContractsToDefender = async (
       )
     );
     const contractsToAddToDefender: Parameters<
-      typeof defenderClient['addContract']
+      (typeof defenderClient)['addContract']
     >[0][] = contracts.filter((c) => {
       return !defenderContracts.has(c.name.concat(c.network));
     });

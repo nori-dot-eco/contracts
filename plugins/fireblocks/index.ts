@@ -97,7 +97,7 @@ extendEnvironment((hre) => {
     const signer = setupFireblocksSigner(hre);
     const getSigners = async (): Promise<FireblocksSigner[]> => {
       const s = await signer;
-      return s !== undefined ? [s] : [];
+      return s === undefined ? [] : [s];
     };
     return {
       getSigners,
