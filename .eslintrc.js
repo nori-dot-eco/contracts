@@ -1,4 +1,6 @@
-const { parserOptions } = require('@nori-dot-com/eslint-config-nori/rules');
+const {
+  parserOptions,
+} = require('@nori-dot-com/eslint-config-nori/dist/rules');
 
 module.exports = {
   extends: '@nori-dot-com/eslint-config-nori',
