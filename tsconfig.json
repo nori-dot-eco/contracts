@@ -25,7 +25,8 @@
       ],
       "@/typechain-types": ["./types/typechain-types/index.ts"],
       "@/*": ["./*"]
-    }
+    },
+    "ignoreDeprecations": "5.0"
   },
   "include": [
     "./plugins/fireblocks/type-extensions.ts",
