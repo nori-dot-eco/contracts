@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 
 import * as yup from 'yup';
 import csv from 'csvtojson';
@@ -239,7 +239,7 @@ export const rules = {
   }: {
     minimumPastYears: number;
     maxFutureYears: number;
-  }): yup.NumberSchema<number, yup.AnyObject, undefined, ''> =>
+  }): yup.NumberSchema<number> =>
     rules
       .requiredPositiveInteger()
       .test(validations.isValidEvmMoment())
@@ -263,6 +263,7 @@ export const grantSchema = yup
     vestEndTime: rules
       .requiredPositiveInteger()
       .when('startTime', ([startTime], schema, value) => {
+        console.log('vestEndTime---', { value, startTime });
         if (value.value > 0) {
           return schema
             .min(startTime)
@@ -421,14 +422,17 @@ export const grantListToObject = ({
 }: {
   listOfGrants: GrantList;
 }): ParsedGrants => {
-  return listOfGrants.reduce((accumulator, value): ParsedGrants => {
-    if (accumulator[value.recipient]) {
-      throw new Error(
-        `Found duplicate recipient address in grants ${value.recipient}`
-      );
-    }
-    return { ...accumulator, [value.recipient]: value };
-  }, {} as ParsedGrants);
+  return listOfGrants.reduce<ParsedGrants>(
+    (accumulator, value): ParsedGrants => {
+      if (accumulator[value.recipient]) {
+        throw new Error(
+          `Found duplicate recipient address in grants ${value.recipient}`
+        );
+      }
+      return { ...accumulator, [value.recipient]: value };
+    },
+    {}
+  );
 };
 
 export const grantCsvToList = async ({
@@ -602,7 +606,7 @@ const DIFF_SUBTASK = {
     const grantsDiff = getDiff({
       grants: {
         blockchain: Object.fromEntries(
-          Object.entries(blockchainGrants).reduce((previous, [k1, v1]) => {
+          Object.entries(blockchainGrants).reduce<any>((previous, [k1, v1]) => {
             const {
               vestEndTime,
               startTime,
@@ -632,7 +636,7 @@ const DIFF_SUBTASK = {
                 },
               ],
             ];
-          }, [] as any)
+          }, [])
         ),
         github: githubGrants,
       },
@@ -689,7 +693,7 @@ const GET_BLOCKCHAIN_SUBTASK = {
     const rawBlockchainGrants = await lNori.batchGetGrant(
       Object.keys(githubGrants)
     );
-    const blockchainGrants = rawBlockchainGrants.reduce(
+    const blockchainGrants = rawBlockchainGrants.reduce<ParsedGrants>(
       (accumulator: ParsedGrants, grant: any): ParsedGrants => {
         return grant.recipient === hre.ethers.constants.AddressZero
           ? accumulator
@@ -713,8 +717,8 @@ const GET_BLOCKCHAIN_SUBTASK = {
               } as any,
             };
       },
-      {} as ParsedGrants
-    ) as ParsedGrants;
+      {}
+    );
     const actualAmounts = Object.values(rawBlockchainGrants)
       .map(({ grantAmount, claimedAmount }) => grantAmount.sub(claimedAmount))
       .reduce((accumulator, v) => accumulator.add(v));
@@ -765,7 +769,7 @@ const CREATE_SUBTASK = {
         ).filter(([dk, d]: [any, any]) => {
           return Object.entries(d).find(([k, v]: [any, any]) => {
             const isDifferent =
-              !Boolean((blockchainGrants[dk] as any)?.exists) &&
+              !Boolean(blockchainGrants[dk]?.exists) &&
               Boolean(v) &&
               k !== 'lastRevocationTime' &&
               k !== 'lastQuantityRevoked' &&
