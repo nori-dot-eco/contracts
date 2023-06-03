@@ -1,7 +1,8 @@
 const {
   parserOptions,
-} = require('@nori-dot-com/eslint-config-nori/dist/rules');
+} = require('@nori-dot-com/eslint-config-nori/dist/settings/parser-options');
 
+/** @type {import('eslint').Linter.Config} */
 module.exports = {
   extends: '@nori-dot-com/eslint-config-nori',
   parserOptions: parserOptions({
