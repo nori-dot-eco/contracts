@@ -266,7 +266,7 @@ export const grantSchema = yup
         console.log('vestEndTime---', { value, startTime });
         if (value.value > 0) {
           return schema
-            .min(startTime)
+            .min(startTime ?? 0)
             .test(validations.isBeforeMaxYears({ maxFutureYears: 10 }));
         }
         return schema;
