@@ -681,7 +681,7 @@ describe('vesting task', () => {
       });
       describe('vestEndTime', () => {
         describe('valid', () => {
-          it('should pass when vestEndTime is defined', () => {
+          it.only('should pass when vestEndTime is defined', () => {
             for (const v of [utcToEvmTime(moment())]) {
               console.log('vestEndTime1---', { v });
               expect(
