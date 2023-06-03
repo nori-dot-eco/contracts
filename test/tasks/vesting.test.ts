@@ -681,9 +681,8 @@ describe('vesting task', () => {
       });
       describe('vestEndTime', () => {
         describe('valid', () => {
-          it.only('should pass when vestEndTime is defined', () => {
+          it('should pass when vestEndTime is defined', () => {
             for (const v of [utcToEvmTime(moment())]) {
-              console.log('vestEndTime1---', { v });
               expect(
                 grantSchema.validateSyncAt('vestEndTime', { vestEndTime: v })
               ).to.eq(v);

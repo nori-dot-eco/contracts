@@ -263,7 +263,6 @@ export const grantSchema = yup
     vestEndTime: rules
       .requiredPositiveInteger()
       .when('startTime', ([startTime], schema, value) => {
-        console.log('vestEndTime---', { value, startTime });
         if (value.value > 0) {
           return schema
             .min(startTime ?? 0)
