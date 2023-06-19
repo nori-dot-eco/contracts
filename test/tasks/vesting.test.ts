@@ -682,10 +682,11 @@ describe('vesting task', () => {
       describe('vestEndTime', () => {
         describe('valid', () => {
           it('should pass when vestEndTime is defined', () => {
-            for (const v of [utcToEvmTime(moment())])
+            for (const v of [utcToEvmTime(moment())]) {
               expect(
                 grantSchema.validateSyncAt('vestEndTime', { vestEndTime: v })
               ).to.eq(v);
+            }
           });
         });
         describe('invalid', () => {

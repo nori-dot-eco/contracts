@@ -64,10 +64,7 @@ describe('RestrictedNORI', () => {
     it('can be paused by the PAUSER_ROLE', async () => {
       const { rNori, hre } = await setupTest();
       expect(
-        await rNori.hasRole(
-          await rNori['PAUSER_ROLE'](),
-          hre.namedAccounts.admin
-        )
+        await rNori.hasRole(await rNori.PAUSER_ROLE(), hre.namedAccounts.admin)
       ).to.be.true;
       await rNori.pause();
       expect(await rNori.paused()).to.be.true;
@@ -75,10 +72,7 @@ describe('RestrictedNORI', () => {
     it('can be unpaused by the PAUSER_ROLE', async () => {
       const { rNori, hre } = await setupTest();
       expect(
-        await rNori.hasRole(
-          await rNori['PAUSER_ROLE'](),
-          hre.namedAccounts.admin
-        )
+        await rNori.hasRole(await rNori.PAUSER_ROLE(), hre.namedAccounts.admin)
       ).to.be.true;
       await rNori.pause();
       expect(await rNori.paused()).to.be.true;
@@ -88,10 +82,7 @@ describe('RestrictedNORI', () => {
     it('can not be paused by an account that does not have the PAUSER_ROLE', async () => {
       const { rNori, hre } = await setupTest();
       expect(
-        await rNori.hasRole(
-          await rNori['PAUSER_ROLE'](),
-          hre.namedAccounts.buyer
-        )
+        await rNori.hasRole(await rNori.PAUSER_ROLE(), hre.namedAccounts.buyer)
       ).to.be.false;
       await expect(rNori.connect(hre.namedSigners.buyer).pause()).to.be
         .reverted;
