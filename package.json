@@ -71,7 +71,7 @@
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-deploy": "^0.11.22",
     "hardhat-ethernal": "^3.1.0",
-    "hardhat-tracer": "^1.2.1",
+    "hardhat-tracer": "^2.4.0",
     "json-diff": "^0.9.0",
     "moment": "^2.29.4",
     "prettier": "^2.8.8",
