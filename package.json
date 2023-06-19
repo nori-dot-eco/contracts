@@ -62,7 +62,7 @@
     "ethereum-waffle": "^3.4.4",
     "ethernal": "^2.0.2",
     "ethers": "^5.7.2",
-    "fireblocks-defi-sdk": "1.2.15",
+    "fireblocks-defi-sdk": "1.2.18",
     "fireblocks-sdk": "^4.0.0",
     "fs-extra": "^10.1.0",
     "google-artifactregistry-auth": "^3.1.0",
