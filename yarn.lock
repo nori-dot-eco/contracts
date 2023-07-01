@@ -8098,10 +8098,10 @@ globby@^11.0.3, globby@^11.1.0:
     merge2 "^1.4.1"
     slash "^3.0.0"
 
-google-artifactregistry-auth@^3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/google-artifactregistry-auth/-/google-artifactregistry-auth-3.1.0.tgz#af38bb7eb63972499ff3a68a5169596b06bbe78d"
-  integrity sha512-8ecRclTXRzUvvnB4h1JqCFOIaPPIqfhO5zLN1vEjVbDVxy9szqT8klLhb3voxvXslfc4oQ0eNQDHO7zw8Idg5Q==
+google-artifactregistry-auth@^3.1.2:
+  version "3.1.2"
+  resolved "https://registry.yarnpkg.com/google-artifactregistry-auth/-/google-artifactregistry-auth-3.1.2.tgz#4e5781105ea6b15730e5673a48f7d613258b8757"
+  integrity sha512-GUM05KXfREOH1qw2Mh74c5exyH+vf/Gt071f9DukjS+FqeF+zRFZLECVFRNltw3BxF2Sf01lEbhyFOPsQIQW/g==
   dependencies:
     google-auth-library "^7.0.0"
     yargs "^17.1.1"
