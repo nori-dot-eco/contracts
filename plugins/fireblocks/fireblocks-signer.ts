@@ -70,9 +70,9 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       chainId: txResolved.chainId || undefined,
       data: txResolved.data ? ethers.utils.hexlify(txResolved.data) : undefined,
       nonce:
-        txResolved.nonce !== undefined
-          ? ethers.BigNumber.from(txResolved.nonce).toNumber()
-          : undefined,
+        txResolved.nonce === undefined
+          ? undefined
+          : ethers.BigNumber.from(txResolved.nonce).toNumber(),
       to: txResolved.to || undefined,
       value: txResolved.value ? BigNumber.from(txResolved.value) : undefined,
     };
@@ -163,20 +163,20 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       gasEstimate = BigNumber.from(3_000_000); // 3M fallback (dangerous, improve this!)
     }
     const gasLimit =
-      transaction.gasLimit !== undefined
-        ? BigNumber.from(await transaction.gasLimit)
-        : gasEstimate?.add(100_000);
+      transaction.gasLimit === undefined
+        ? gasEstimate?.add(100_000)
+        : BigNumber.from(await transaction.gasLimit);
     const maxPriorityFeePerGas =
-      transaction.maxPriorityFeePerGas !== undefined
-        ? ethers.utils.parseUnits(
+      transaction.maxPriorityFeePerGas === undefined
+        ? undefined
+        : ethers.utils.parseUnits(
             `${await transaction.maxPriorityFeePerGas!}`,
             'gwei'
-          )
-        : undefined;
+          );
     const maxFeePerGas =
-      transaction.maxFeePerGas !== undefined
-        ? ethers.utils.parseUnits(`${await transaction.maxFeePerGas!}`, 'gwei')
-        : undefined;
+      transaction.maxFeePerGas === undefined
+        ? undefined
+        : ethers.utils.parseUnits(`${await transaction.maxFeePerGas!}`, 'gwei');
     // fills in the nonce and a few other details.
     const tx = await this.populateTransaction({
       type: 2,
@@ -315,9 +315,9 @@ export class FireblocksSigner extends Signer implements TypedDataSigner {
       gasLimit: BigNumber.from(baseTx.gasLimit!),
       data: ethers.utils.hexlify(baseTx.data!) || '',
       value:
-        baseTx.value !== undefined
-          ? BigNumber.from(baseTx.value)
-          : constants.Zero,
+        baseTx.value === undefined
+          ? constants.Zero
+          : BigNumber.from(baseTx.value),
       chainId: await this.getChainId(),
       wait: async (): Promise<TransactionReceipt> =>
         this.provider!.waitForTransaction(txHash),

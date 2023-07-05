@@ -23,20 +23,20 @@ export class EthersCustomBridge extends EthersBridge {
         id: this.params.vaultAccountId,
       },
       gasPrice:
-        transaction.gasPrice != undefined
-          ? formatUnits(transaction?.gasPrice?.toString() || '0', 'gwei')
-          : undefined,
+        transaction.gasPrice == undefined
+          ? undefined
+          : formatUnits(transaction?.gasPrice?.toString() || '0', 'gwei'),
       maxFee:
-        transaction.maxFeePerGas != undefined
-          ? formatUnits(transaction.maxFeePerGas!.toString() || '0', 'gwei')
-          : undefined,
+        transaction.maxFeePerGas == undefined
+          ? undefined
+          : formatUnits(transaction.maxFeePerGas!.toString() || '0', 'gwei'),
       priorityFee:
-        transaction.maxPriorityFeePerGas != undefined
-          ? formatUnits(
+        transaction.maxPriorityFeePerGas == undefined
+          ? undefined
+          : formatUnits(
               transaction.maxPriorityFeePerGas!.toString() || '0',
               'gwei'
-            )
-          : undefined,
+            ),
       gasLimit: formatUnits(transaction?.gasLimit?.toString() || '0', 'wei'),
       destination: {
         type: this.params.externalWalletId

@@ -21,9 +21,7 @@ describe('events', () => {
       txReceipt: marketSwapTransactionReceipt,
       eventNames: ['TransferBatch'],
     });
-    if (removalLogs[0].name !== 'TransferBatch') {
-      expect.fail('Invalid event name');
-    } else {
+    if (removalLogs[0].name === 'TransferBatch') {
       expect(removalLogs[0].args.ids.length).to.equal(1);
       expect(removalLogs[0].args.vals.length).to.equal(1);
       expect(removalLogs[0].args.ids[0]).to.eq(
@@ -38,6 +36,8 @@ describe('events', () => {
       expect(removalLogs[0].args.operator).to.equal(marketAddress);
       expect(removalLogs[0].args.from).to.equal(marketAddress);
       expect(removalLogs[0].args.to).to.equal(certificateAddress);
+    } else {
+      expect.fail('Invalid event name');
     }
   });
   it('returns an empty array when attempting to parse events using an invalid event name', async () => {

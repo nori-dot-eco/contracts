@@ -1,5 +1,8 @@
-const { parserOptions } = require('@nori-dot-com/eslint-config-nori/rules');
+const {
+  parserOptions,
+} = require('@nori-dot-com/eslint-config-nori/dist/settings/parser-options');
 
+/** @type {import('eslint').Linter.Config} */
 module.exports = {
   extends: '@nori-dot-com/eslint-config-nori',
   parserOptions: parserOptions({
@@ -19,7 +22,6 @@ module.exports = {
         '@typescript-eslint/no-unused-expressions': 0,
         'jest/valid-expect': 0, // this package does not use jest explicitly
         'jest/no-deprecated-functions': 0, // this package does not use jest explicitly
-        'local-rules/waffle-as-promised': 2,
       },
     },
   ],
