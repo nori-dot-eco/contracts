@@ -16,11 +16,7 @@ contract QuickSort {
     return data;
   }
 
-  function quickSort(
-    uint256[] memory arr,
-    int256 left,
-    int256 right
-  ) internal {
+  function quickSort(uint256[] memory arr, int256 left, int256 right) internal {
     int256 i = left;
     int256 j = right;
     if (i == j) return;
@@ -60,7 +56,7 @@ contract QuickSort {
  */
 contract MarketGasExplorer is UpgradeableMarket, QuickSort {
   uint256 RUNS = 80;
-  uint256 MAX_PURCHASE_AMOUNT = 1_000;
+  uint256 MAX_PURCHASE_AMOUNT = 900;
   uint256 MIN_PURCHASE_AMOUNT = 1;
 
   uint256[] internal _removalIds;
@@ -230,17 +226,19 @@ contract MarketGasExplorer is UpgradeableMarket, QuickSort {
   }
 
   function makePurchaseRecordGas(uint256 nrtAmount) internal {
-    _purchaseAmount = _market.calculateCheckoutTotal(nrtAmount * 1 ether);
-    _purchaseAmounts.push(nrtAmount * 1 ether);
+    _purchaseAmount = nrtAmount * 1 ether;
+    uint256 purchaseCost = _market.calculateCheckoutTotal(_purchaseAmount);
+
+    _purchaseAmounts.push(_purchaseAmount);
     uint256 ownerPrivateKey = 0xA11CE;
     _owner = vm.addr(ownerPrivateKey);
     vm.prank(_namedAccounts.admin);
-    _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
+    _bpNori.deposit(_owner, abi.encode(purchaseCost));
     vm.prank(_owner);
     _signedPermit = _signatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
-      _purchaseAmount,
+      purchaseCost,
       1 days,
       _bpNori
     );
