@@ -55,8 +55,8 @@ contract QuickSort {
  * `foundry.toml` config under the `[profile.default]` section to `gas_limit = "18446744073709551615"` which is the max.
  */
 contract MarketGasExplorer is UpgradeableMarket, QuickSort {
-  uint256 RUNS = 80;
-  uint256 MAX_PURCHASE_AMOUNT = 900;
+  uint256 RUNS = 50;
+  uint256 MAX_PURCHASE_AMOUNT = 500;
   uint256 MIN_PURCHASE_AMOUNT = 1;
 
   uint256[] internal _removalIds;
