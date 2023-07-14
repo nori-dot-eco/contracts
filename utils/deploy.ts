@@ -321,6 +321,7 @@ export const deployTestContracts = async ({
  * Note: the named contracts in the ethernal UI are the proxies.
  * The 'name' field in the push command must match the contract name exactly,
  * so labeling the implementations would add confusion.
+ *
  */
 export const pushContractsToEthernal = async ({
   hre,
@@ -408,7 +409,6 @@ export const saveDeployments = async ({
  * Seeds contracts with some initial removals and market listings
  *
  * @deprecated
- *
  * @todo don't do this during deployment
  */
 export const seedContracts = async ({

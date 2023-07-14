@@ -6,7 +6,7 @@ orbs:
 
 defaults: &defaults
   docker:
-    - image: cimg/node:20.1.0
+    - image: cimg/node:20.4.0
 
 jobs:
   test:

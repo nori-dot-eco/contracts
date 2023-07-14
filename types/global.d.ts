@@ -225,8 +225,8 @@ declare global {
     config: HardhatUserConfig;
     run: (
       name: keyof typeof TASKS,
-      taskArguments?: Parameters<typeof TASKS[typeof name]['run']>[0]
-    ) => Promise<ReturnType<typeof TASKS[typeof name]['run']>>;
+      taskArguments?: Parameters<(typeof TASKS)[typeof name]['run']>[0]
+    ) => Promise<ReturnType<(typeof TASKS)[typeof name]['run']>>;
     upgrades: CustomHardhatUpgrades;
     network: Omit<Network, 'name'> & { name: keyof typeof networks };
     ethers: typeof ethers;

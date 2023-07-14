@@ -649,7 +649,11 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       logger.success(`\nMigrated ${inputData.length} certificates!`);
       writeJsonSync(outputFileName, outputData);
       logger.info(`📝 Wrote results to ${outputFileName}`);
-      if (!Boolean(dryRun)) {
+      if (Boolean(dryRun)) {
+        logger.info(
+          `📝 Skipping validation and summary as it is not possible to do either in a dry run`
+        );
+      } else {
         const summary = await summarize({
           outputData,
           certificateContract,
@@ -669,10 +673,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           recipient,
           inputData: originalInputData,
         });
-      } else {
-        logger.info(
-          `📝 Skipping validation and summary as it is not possible to do either in a dry run`
-        );
       }
       logger.success(`🎉 Done!`);
     },

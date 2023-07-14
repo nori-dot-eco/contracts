@@ -156,7 +156,15 @@ const deployOrUpgradeProxy = async <
       }
       const deployment = await hre.deployments.get(contractName);
       const artifact = await hre.deployments.getArtifact(contractName);
-      if (deployment.bytecode !== artifact.bytecode) {
+      if (deployment.bytecode === artifact.bytecode) {
+        hre.trace('Implementation appears unchanged, skipped upgrade attempt.');
+        const name = contractName;
+        contract = getContract({
+          contractName: name,
+          hre,
+          signer,
+        }) as InstanceOfContract<TContract>;
+      } else {
         contract = await hre.upgrades.upgradeProxy<TContract>(
           maybeProxyAddress!,
           contractFactory,
@@ -174,14 +182,6 @@ const deployOrUpgradeProxy = async <
         hre.trace('...awaiting deployment transaction', contractName);
         await contract.deployed();
         hre.trace('...successful deployment transaction', contractName);
-      } else {
-        hre.trace('Implementation appears unchanged, skipped upgrade attempt.');
-        const name = contractName;
-        contract = getContract({
-          contractName: name,
-          hre,
-          signer,
-        }) as InstanceOfContract<TContract>;
       }
     } catch (error) {
       hre.log(`Failed to upgrade ${contractName} with error:`, error);
@@ -224,6 +224,7 @@ const deployNonUpgradeable = async <
 
 /**
  * Note: extendEnvironment cannot take async functions
+ *
  */
 extendEnvironment((hre) => {
   // todo move to @/extensions/signers, @extensions/deployments

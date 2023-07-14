@@ -211,6 +211,36 @@ abstract contract UpgradeableRemoval is Upgradeable {
     return _removalIds;
   }
 
+  function _seedRemovalSpecificAmount(
+    address mintTo,
+    address supplier,
+    uint32 subIdentifier,
+    uint256 removalAmount
+  ) internal returns (uint256[] memory) {
+    DecodedRemovalIdV0[] memory _removals = new DecodedRemovalIdV0[](1);
+    uint256[] memory _removalIds = new uint256[](1);
+    _removals[0] = DecodedRemovalIdV0({
+      idVersion: 0,
+      methodology: 1,
+      methodologyVersion: 0,
+      vintage: 2018,
+      country: "AA",
+      subdivision: "ZZ",
+      supplierAddress: supplier,
+      subIdentifier: subIdentifier
+    });
+    _removalIds[0] = RemovalIdLib.createRemovalId(_removals[0]);
+    _removal.mintBatch(
+      mintTo,
+      new uint256[](1).fill(removalAmount),
+      _removals,
+      1_234_567_890,
+      block.timestamp,
+      50
+    );
+    return _removalIds;
+  }
+
   function _cumulativeBalanceOfRemovalsForOwner(
     address owner,
     uint256[] memory ids
