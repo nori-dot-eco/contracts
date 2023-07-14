@@ -23,7 +23,7 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
-      - run: yarn install --frozen-lockfile --ignore-scripts --ignore-engines
+      - run: yarn install --frozen-lockfile --ignore-scripts
       - name: ESLint diff only
         run: yarn run lint:diff --max-warnings=0
       - name: Eslint cache
