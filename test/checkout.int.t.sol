@@ -962,11 +962,12 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
   }
 }
 
-contract Checkout_buyingWithCustomFee is Checkout {
+contract Checkout_buyingWithCustomFeeAndPrice is Checkout {
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 customFee = 5;
   uint256 certificateAmount = 1 ether;
+  uint256 customPriceMultiple = 1800; // $18.00
 
   function setUp() external {
     _removalIds = _seedRemovals({
@@ -991,12 +992,13 @@ contract Checkout_buyingWithCustomFee is Checkout {
       owner,
       owner,
       certificateAmount,
-      customFee
+      customFee,
+      customPriceMultiple
     );
     vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    uint256 createCertificateEventIndex = 6;
+    uint256 createCertificateEventIndex = 7;
     assertEq(
       entries[createCertificateEventIndex].topics[0],
       CREATE_CERTIFICATE_EVENT_SELECTOR
@@ -1026,12 +1028,18 @@ contract Checkout_buyingWithCustomFee is Checkout {
       );
     assertEq(from, address(_removal));
     assertEq(eventCertificateAmount, certificateAmount);
-    assertEq(priceMultiple, _market.getPriceMultiple());
+    assertEq(priceMultiple, customPriceMultiple);
     assertEq(noriFeePercentage, customFee);
     assertEq(removalIds.length, 1);
     assertEq(removalAmounts.length, 1);
     assertEq(removalIds[0], _removalIds[0]);
     assertEq(removalAmounts[0], certificateAmount);
+
+    assertEq(
+      _bpNori.balanceOf(_namedAccounts.supplier),
+      (certificateAmount * customPriceMultiple) / 100 / 2 // divide to account for price multiple scale and then holdback percentage of 50%
+    );
+    assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
   }
 }
 
