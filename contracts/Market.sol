@@ -943,14 +943,14 @@ contract Market is
    * purchased, scaled by the price multiple.
    * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
    * inclusion in emitted events.
-   * @param customPrice The custom price that will be charged for this transaction.
+   * @param customPriceMultiple The custom price that will be charged for this transaction.
    */
   function swapWithoutFeeSpecialOrder(
     address recipient,
     address purchaser,
     uint256 amount,
     uint256 customFee,
-    uint256 customPrice
+    uint256 customPriceMultiple
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     _validateCertificateAmount({amount: amount});
     (
@@ -960,7 +960,7 @@ contract Market is
       address[] memory suppliers
     ) = _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
     uint256 currentPrice = _priceMultiple;
-    _setPriceMultiple(customPrice);
+    _priceMultiple = customPriceMultiple;
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
@@ -974,7 +974,7 @@ contract Market is
         suppliers: suppliers
       })
     });
-    _setPriceMultiple(currentPrice);
+    _priceMultiple = currentPrice;
   }
 
   /**
@@ -1058,13 +1058,15 @@ contract Market is
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
    * inclusion in emitted events.
+   * @param customPriceMultiple The custom price to be used for this transaction.
    */
   function swapFromSupplierWithoutFeeSpecialOrder(
     address recipient,
     address purchaser,
     uint256 amount,
     address supplier,
-    uint256 customFee
+    uint256 customFee,
+    uint256 customPriceMultiple
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     _validateCertificateAmount({amount: amount});
     (
@@ -1077,6 +1079,8 @@ contract Market is
         certificateAmount: amount,
         supplier: supplier
       });
+    uint256 currentPrice = _priceMultiple;
+    _priceMultiple = customPriceMultiple;
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
@@ -1090,6 +1094,7 @@ contract Market is
         suppliers: suppliers
       })
     });
+    _priceMultiple = currentPrice;
   }
 
   /**

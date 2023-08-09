@@ -998,7 +998,7 @@ contract Checkout_buyingWithCustomFeeAndPrice is Checkout {
     vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    uint256 createCertificateEventIndex = 7;
+    uint256 createCertificateEventIndex = 6;
     assertEq(
       entries[createCertificateEventIndex].topics[0],
       CREATE_CERTIFICATE_EVENT_SELECTOR
@@ -1043,11 +1043,12 @@ contract Checkout_buyingWithCustomFeeAndPrice is Checkout {
   }
 }
 
-contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
+contract Checkout_buyingFromSingleSupplierWithCustomFeeAndPrice is Checkout {
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 customFee = 5;
   uint256 certificateAmount = 1 ether;
+  uint256 customPriceMultiple = 1800; // $18.00
 
   function setUp() external {
     _removalIds = _seedRemovals({
@@ -1073,7 +1074,8 @@ contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
       owner,
       certificateAmount,
       _namedAccounts.supplier,
-      customFee
+      customFee,
+      customPriceMultiple
     );
     vm.stopPrank();
 
@@ -1108,7 +1110,7 @@ contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
       );
     assertEq(from, address(_removal));
     assertEq(eventCertificateAmount, certificateAmount);
-    assertEq(priceMultiple, _market.getPriceMultiple());
+    assertEq(priceMultiple, customPriceMultiple);
     assertEq(noriFeePercentage, customFee);
     assertEq(removalIds.length, 1);
     assertEq(removalAmounts.length, 1);
