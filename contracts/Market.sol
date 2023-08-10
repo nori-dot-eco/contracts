@@ -952,6 +952,8 @@ contract Market is
     uint256 customFee,
     uint256 customPriceMultiple
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    uint256 currentPrice = _priceMultiple;
+    _priceMultiple = customPriceMultiple;
     _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
@@ -959,8 +961,6 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
-    uint256 currentPrice = _priceMultiple;
-    _priceMultiple = customPriceMultiple;
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
@@ -1068,6 +1068,8 @@ contract Market is
     uint256 customFee,
     uint256 customPriceMultiple
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    uint256 currentPrice = _priceMultiple;
+    _priceMultiple = customPriceMultiple;
     _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
@@ -1079,8 +1081,7 @@ contract Market is
         certificateAmount: amount,
         supplier: supplier
       });
-    uint256 currentPrice = _priceMultiple;
-    _priceMultiple = customPriceMultiple;
+
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
