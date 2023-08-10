@@ -30,7 +30,7 @@ jobs:
         id: slither
         with:
           sarif: results.sarif
-          node-version: 18.15.0
+          node-version: 20
           slither-version: 0.9.1
           fail-on: none
       - name: Upload SARIF file
