@@ -35,7 +35,7 @@ jobs:
         run: yarn install --frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Run foundry tests
-        run: yarn test:forge:coverage -vvv
+        run: yarn test:forge:coverage -vvv --report lcov
 
       - name: "Upload coverage report to Codecov"
         uses: "codecov/codecov-action@v3"

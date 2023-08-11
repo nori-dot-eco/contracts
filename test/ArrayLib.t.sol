@@ -266,23 +266,23 @@ contract AddressArrayLib_fill is Global {
   }
 }
 
-// contract TestLib is Global {
-//   UsingForLibraryUser fixture;
+contract TestLib is Global {
+  // function setUp() external {
+  //   fixture = new UsingForLibraryUser();
+  // }
 
-//   function setUp() external {
-//     fixture = new UsingForLibraryUser();
-//   }
+  function test() external {
+    this.useLib();
+  }
 
-//   function test() external {
-//     fixture.useLib();
-//   }
-
-//   // function useLib() external returns (uint256) {
-//   //   // should be marked as covered
-//   //   uint256 c = 10;
-//   //   return c.subPlusOne(b);
-//   // }
-// }
+  function useLib() external returns (address[] memory) {
+    address[] memory filled = AddressArrayLib.fill({
+      values: new address[](100),
+      value: address(0)
+    });
+    return filled;
+  }
+}
 
 // contract UsingForLibraryUser {
 //   using AddressArrayLib for address[];
