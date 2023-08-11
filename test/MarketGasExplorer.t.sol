@@ -243,7 +243,7 @@ contract MarketGasExplorer is UpgradeableMarket, QuickSort {
       _bpNori
     );
 
-    vm.startPrank(_owner);
+    vm.prank(_owner);
     uint256 gasLeft1 = gasleft();
     _market.swap(
       _owner,
@@ -256,7 +256,6 @@ contract MarketGasExplorer is UpgradeableMarket, QuickSort {
     );
     uint256 gasLeft2 = gasleft();
     uint256 gasDelta = gasLeft1 - gasLeft2 - 100; // https://ethereum.stackexchange.com/questions/132323/transaction-gas-cost-in-foundry-forge-unit-tests
-    vm.stopPrank();
     _gasAmounts.push(gasDelta);
   }
 
