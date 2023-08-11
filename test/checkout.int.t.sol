@@ -289,9 +289,10 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
       list: true
     });
     _expectedCertificateAmount = 10 ether;
-    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
-      _expectedCertificateAmount
-    );
+    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: _expectedCertificateAmount,
+      priceMultiple: _market.getPriceMultiple()
+    });
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -565,9 +566,10 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
       list: true
     });
     _expectedCertificateAmount = 10 ether;
-    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
-      _expectedCertificateAmount
-    );
+    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: _expectedCertificateAmount,
+      priceMultiple: _market.getPriceMultiple()
+    });
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -960,11 +962,12 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
   }
 }
 
-contract Checkout_buyingWithCustomFee is Checkout {
+contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 customFee = 5;
   uint256 certificateAmount = 1 ether;
+  uint256 customPriceMultiple = 1800; // $18.00 -- test below the default price multiple of $20.00
 
   function setUp() external {
     _removalIds = _seedRemovals({
@@ -972,14 +975,15 @@ contract Checkout_buyingWithCustomFee is Checkout {
       count: 1,
       list: true
     });
-    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
-      certificateAmount
-    );
+    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: certificateAmount,
+      priceMultiple: customPriceMultiple
+    });
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(purchaseAmount));
     vm.prank(owner);
-    _bpNori.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+    _bpNori.approve(address(_market), purchaseAmount);
   }
 
   function test() external {
@@ -989,11 +993,12 @@ contract Checkout_buyingWithCustomFee is Checkout {
       owner,
       owner,
       certificateAmount,
-      customFee
+      customFee,
+      customPriceMultiple
     );
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    uint256 createCertificateEventIndex = 6;
+    uint256 createCertificateEventIndex = 8;
     assertEq(
       entries[createCertificateEventIndex].topics[0],
       CREATE_CERTIFICATE_EVENT_SELECTOR
@@ -1023,20 +1028,27 @@ contract Checkout_buyingWithCustomFee is Checkout {
       );
     assertEq(from, address(_removal));
     assertEq(eventCertificateAmount, certificateAmount);
-    assertEq(priceMultiple, _market.getPriceMultiple());
+    assertEq(priceMultiple, customPriceMultiple);
     assertEq(noriFeePercentage, customFee);
     assertEq(removalIds.length, 1);
     assertEq(removalAmounts.length, 1);
     assertEq(removalIds[0], _removalIds[0]);
     assertEq(removalAmounts[0], certificateAmount);
+
+    assertEq(
+      _bpNori.balanceOf(_namedAccounts.supplier),
+      (certificateAmount * customPriceMultiple) / 100 / 2 // divide to account for price multiple scale and then holdback percentage of 50%
+    );
+    assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
   }
 }
 
-contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
+contract Checkout_swapFromSupplierWithoutFeeSpecialOrder is Checkout {
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 customFee = 5;
   uint256 certificateAmount = 1 ether;
+  uint256 customPriceMultiple = 2500; // $25.00 -- test above the default price multiple of $20.00
 
   function setUp() external {
     _removalIds = _seedRemovals({
@@ -1044,14 +1056,15 @@ contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
       count: 1,
       list: true
     });
-    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
-      certificateAmount
-    );
+    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: certificateAmount,
+      priceMultiple: customPriceMultiple
+    });
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(purchaseAmount));
     vm.prank(owner);
-    _bpNori.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+    _bpNori.approve(address(_market), purchaseAmount);
   }
 
   function test() external {
@@ -1062,10 +1075,11 @@ contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
       owner,
       certificateAmount,
       _namedAccounts.supplier,
-      customFee
+      customFee,
+      customPriceMultiple
     );
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    uint256 createCertificateEventIndex = 6;
+    uint256 createCertificateEventIndex = 8;
     assertEq(
       entries[createCertificateEventIndex].topics[0],
       CREATE_CERTIFICATE_EVENT_SELECTOR
@@ -1095,11 +1109,16 @@ contract Checkout_buyingFromSingleSupplierWithCustomFee is Checkout {
       );
     assertEq(from, address(_removal));
     assertEq(eventCertificateAmount, certificateAmount);
-    assertEq(priceMultiple, _market.getPriceMultiple());
+    assertEq(priceMultiple, customPriceMultiple);
     assertEq(noriFeePercentage, customFee);
     assertEq(removalIds.length, 1);
     assertEq(removalAmounts.length, 1);
     assertEq(removalIds[0], _removalIds[0]);
     assertEq(removalAmounts[0], certificateAmount);
+    assertEq(
+      _bpNori.balanceOf(_namedAccounts.supplier),
+      (certificateAmount * customPriceMultiple) / 100 / 2 // divide to account for price multiple scale and then holdback percentage of 50%
+    );
+    assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
   }
 }
