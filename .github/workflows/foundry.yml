@@ -43,4 +43,4 @@ jobs:
           files: "./lcov.info"
 
       - name: Run forge snapshot
-        run: NO_COLOR=1 yarn snapshot --diff >> $GITHUB_STEP_SUMMARY
+        run: NO_COLOR=1 yarn snapshot:test --diff >> $GITHUB_STEP_SUMMARY # todo remove snapshot:test, use foundry_profile=test in all snapshots other than prod

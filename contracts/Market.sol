@@ -1615,7 +1615,10 @@ contract Market is
       certificateAmount: certificateAmount,
       supplier: supplier
     });
-    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
+    suppliers = AddressArrayLib.fill({
+      values: new address[](countOfRemovalsAllocated),
+      value: supplier
+    });
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
