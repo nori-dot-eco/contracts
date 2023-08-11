@@ -791,7 +791,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
       _erc20
     );
     vm.recordLogs();
-    vm.startPrank(owner);
+    vm.prank(owner);
     _market.swap(
       owner,
       owner,
@@ -801,7 +801,6 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
       signedPermit.r,
       signedPermit.s
     );
-    vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool containsCreateCertificateEventSelector = false;
@@ -903,7 +902,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
       _erc20
     );
     vm.recordLogs();
-    vm.startPrank(owner);
+    vm.prank(owner);
     _market.swap(
       owner,
       owner,
@@ -913,7 +912,6 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
       signedPermit.r,
       signedPermit.s
     );
-    vm.stopPrank();
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool containsCreateCertificateEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
@@ -989,7 +987,7 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
   }
 
   function test() external {
-    vm.startPrank(owner);
+    vm.prank(owner);
     vm.recordLogs();
     _market.swapWithoutFeeSpecialOrder(
       owner,
@@ -998,7 +996,6 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
       customFee,
       customPriceMultiple
     );
-    vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
     uint256 createCertificateEventIndex = 8;
@@ -1071,7 +1068,7 @@ contract Checkout_swapFromSupplierWithoutFeeSpecialOrder is Checkout {
   }
 
   function test() external {
-    vm.startPrank(owner);
+    vm.prank(owner);
     vm.recordLogs();
     _market.swapFromSupplierWithoutFeeSpecialOrder(
       owner,
@@ -1081,8 +1078,6 @@ contract Checkout_swapFromSupplierWithoutFeeSpecialOrder is Checkout {
       customFee,
       customPriceMultiple
     );
-    vm.stopPrank();
-
     Vm.Log[] memory entries = vm.getRecordedLogs();
     uint256 createCertificateEventIndex = 8;
     assertEq(

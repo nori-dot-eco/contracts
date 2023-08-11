@@ -29,7 +29,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-d4f626bb7f96d46358997d4b27f79358cb2b3401
+          version: nightly
 
       - name: Install Hardhat Dependencies
         run: yarn install --frozen-lockfile --prefer-offline --ignore-scripts
