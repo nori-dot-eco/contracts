@@ -62,10 +62,10 @@ contract Removal_migrate_revertsIfRemovalBalanceSumDifferentFromCertificateAmoun
         ++index;
       }
     }
-    vm.startPrank(_namedAccounts.admin);
   }
 
   function test() external {
+    vm.prank(_namedAccounts.admin);
     vm.expectRevert("Incorrect supply allocation");
     _removal.migrate({
       ids: idsForAllSuppliers,
@@ -184,7 +184,6 @@ contract Removal_migrate is UpgradeableMarket {
         ++index;
       }
     }
-    vm.startPrank(_namedAccounts.admin);
   }
 
   event Migrate(
@@ -196,6 +195,7 @@ contract Removal_migrate is UpgradeableMarket {
   );
 
   function test() external {
+    vm.prank(_namedAccounts.admin);
     vm.recordLogs();
     _removal.migrate({
       ids: idsForAllSuppliers,
@@ -281,10 +281,10 @@ contract Removal_migrate_gasLimit is UpgradeableMarket {
         ++index;
       }
     }
-    vm.startPrank(_namedAccounts.admin);
   }
 
   function test() external {
+    vm.prank(_namedAccounts.admin);
     uint256 initialGas = gasleft();
     _removal.migrate({
       ids: idsForAllSuppliers,
