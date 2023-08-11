@@ -1230,7 +1230,7 @@ Allocates removals to fulfill an order.
 ### _allocateRemovalsFromSupplier
 
 ```solidity
-function _allocateRemovalsFromSupplier(address purchaser, uint256 certificateAmount, address supplier) internal returns (uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers)
+function _allocateRemovalsFromSupplier(uint256 certificateAmount, address supplier) internal returns (uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers)
 ```
 
 Allocates removals from a specific supplier to be fulfilled.
@@ -1239,7 +1239,6 @@ Allocates removals from a specific supplier to be fulfilled.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| purchaser | address | The address of the purchaser. |
 | certificateAmount | uint256 | The total amount of NRTs for the certificate. |
 | supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
 
