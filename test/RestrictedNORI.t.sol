@@ -200,7 +200,7 @@ contract RestrictedNORI_transfers_revert is UpgradeableMarket {
 
   function testSafeTransferFromReverts() external {
     address newSupplier = address(uint160(100));
-    vm.startPrank(_namedAccounts.supplier);
+    vm.prank(_namedAccounts.supplier);
     vm.expectRevert(FunctionDisabled.selector);
     _rNori.safeTransferFrom(
       _namedAccounts.supplier,
@@ -213,7 +213,7 @@ contract RestrictedNORI_transfers_revert is UpgradeableMarket {
 
   function testSafeBatchTransferFromReverts() external {
     address newSupplier = address(uint160(100));
-    vm.startPrank(_namedAccounts.supplier);
+    vm.prank(_namedAccounts.supplier);
     vm.expectRevert(FunctionDisabled.selector);
     _rNori.safeBatchTransferFrom(
       _namedAccounts.supplier,

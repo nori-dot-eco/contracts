@@ -97,7 +97,7 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
   }
 
   function test() external {
-    vm.startPrank(owner);
+    vm.prank(owner);
     vm.expectRevert(ERC20TransferFailed.selector);
     _market.swap(
       owner,
@@ -108,7 +108,6 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
       signedPermit.r,
       signedPermit.s
     );
-    vm.stopPrank();
   }
 }
 
@@ -216,7 +215,6 @@ contract Market_replace is MarketReplaceTestHelper {
   function setUp() external {
     _listRemovals();
     _createCertificate();
-
     _market.grantRole({
       role: _market.MARKET_ADMIN_ROLE(),
       account: _namedAccounts.admin
@@ -227,13 +225,14 @@ contract Market_replace is MarketReplaceTestHelper {
     });
     uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
     vm.startPrank(_namedAccounts.admin);
-    _removal.release(_removalIds[0], _originalCertificateAmount);
-    assertEq(_certificate.getNrtDeficit(), _originalCertificateAmount);
     _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
     _bpNori.approve(address(_market), amount);
+    _removal.release(_removalIds[0], _originalCertificateAmount);
+    vm.stopPrank();
   }
 
   function test() external {
+    assertEq(_certificate.getNrtDeficit(), _originalCertificateAmount);
     vm.expectEmit(true, true, false, true);
     emit UpdateCertificate(
       _certificateTokenId,
@@ -244,6 +243,7 @@ contract Market_replace is MarketReplaceTestHelper {
       address(_bpNori),
       _market.getPriceMultiple()
     );
+    vm.prank(_namedAccounts.admin);
     _market.replace({
       treasury: _namedAccounts.admin,
       certificateId: _certificateTokenId,
@@ -255,7 +255,6 @@ contract Market_replace is MarketReplaceTestHelper {
       _certificate.getNrtDeficit(),
       _originalCertificateAmount - _amountToReplace
     );
-    vm.stopPrank();
   }
 }
 
@@ -265,37 +264,22 @@ contract Market_replace_reverts_ReplacementAmountExceedsNrtDeficit is
   function setUp() external {
     _listRemovals();
     _createCertificate();
-
     _market.grantRole({
       role: _market.MARKET_ADMIN_ROLE(),
       account: _namedAccounts.admin
     });
-    _removal.grantRole({
-      role: _removal.RELEASER_ROLE(),
-      account: _namedAccounts.admin
-    });
-    uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
-    vm.startPrank(_namedAccounts.admin);
-    assertEq(_certificate.getNrtDeficit(), 0); // no discrepancy
-    _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
-    _bpNori.approve(address(_market), amount);
   }
 
   function test() external {
-    // using low level call to get around limitation of vm.expectRevert
-    // see https://book.getfoundry.sh/cheatcodes/expect-revert
-    (bool success, ) = address(_market).call(
-      abi.encodeWithSignature(
-        "replace(address,uint256,uint256,uint256[],uint256[])",
-        _namedAccounts.admin,
-        _certificateTokenId,
-        _amountToReplace,
-        new uint256[](1).fill(_removalIds[0]),
-        new uint256[](1).fill(_amountToReplace)
-      )
+    vm.prank(_namedAccounts.admin);
+    vm.expectRevert(ReplacementAmountExceedsNrtDeficit.selector);
+    _market.replace(
+      _namedAccounts.admin,
+      _certificateTokenId,
+      _amountToReplace,
+      new uint256[](1).fill(_removalIds[0]),
+      new uint256[](1).fill(_amountToReplace)
     );
-    assertFalse(success, "expectRevert: call did not revert");
-    vm.stopPrank();
   }
 }
 
@@ -309,14 +293,10 @@ contract Market_replace_reverts_CertificateNotYetMinted is
       role: _market.MARKET_ADMIN_ROLE(),
       account: _namedAccounts.admin
     });
-    uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
-    vm.startPrank(_namedAccounts.admin);
-
-    _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
-    _bpNori.approve(address(_market), amount);
   }
 
   function test() external {
+    vm.prank(_namedAccounts.admin);
     vm.expectRevert(
       abi.encodeWithSelector(
         CertificateNotYetMinted.selector,
@@ -330,7 +310,6 @@ contract Market_replace_reverts_CertificateNotYetMinted is
       removalIdsBeingReplaced: new uint256[](1).fill(_removalIds[0]),
       amountsBeingReplaced: new uint256[](1).fill(_amountToReplace)
     });
-    vm.stopPrank();
   }
 }
 
@@ -348,16 +327,13 @@ contract Market_replace_reverts_ReplacementAmountMismatch is
       role: _removal.RELEASER_ROLE(),
       account: _namedAccounts.admin
     });
-    uint256 amount = _market.calculateCheckoutTotal(_amountToReplace);
-    vm.startPrank(_namedAccounts.admin);
+    vm.prank(_namedAccounts.admin);
     _removal.release(_removalIds[0], _originalCertificateAmount);
-    assertEq(_certificate.getNrtDeficit(), _originalCertificateAmount);
-    _bpNori.deposit(_namedAccounts.admin, abi.encode(amount));
-    _bpNori.approve(address(_market), amount);
   }
 
   function test() external {
     vm.expectRevert(ReplacementAmountMismatch.selector);
+    vm.prank(_namedAccounts.admin);
     _market.replace({
       treasury: _namedAccounts.admin,
       certificateId: _certificateTokenId,
@@ -365,7 +341,6 @@ contract Market_replace_reverts_ReplacementAmountMismatch is
       removalIdsBeingReplaced: new uint256[](1).fill(_removalIds[0]),
       amountsBeingReplaced: new uint256[](1).fill(_amountToReplace)
     });
-    vm.stopPrank();
   }
 }
 
@@ -509,7 +484,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
   }
 
   function test() external {
-    vm.startPrank(owner);
+    vm.prank(owner);
     vm.recordLogs();
     _market.swap(
       owner,
@@ -520,7 +495,6 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
       signedPermit.r,
       signedPermit.s
     );
-    vm.stopPrank();
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool containsTransferSkippedEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
@@ -590,10 +564,9 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
   }
 
   function test() external {
-    vm.startPrank(owner);
+    vm.prank(owner);
     vm.recordLogs();
     _market.swapWithoutFee(owner, owner, certificateAmount);
-    vm.stopPrank();
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool containsTransferSkippedEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
