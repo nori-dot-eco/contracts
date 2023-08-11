@@ -1615,7 +1615,7 @@ contract Market is
       certificateAmount: certificateAmount,
       supplier: supplier
     });
-    suppliers = new address[](countOfRemovalsAllocated).fill({val: supplier});
+    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
@@ -1703,6 +1703,9 @@ contract Market is
     uint256 feeDecimals = 2;
     uint256 safeDecimals = 18 - _purchasingToken.decimals() + feeDecimals;
     if (amount == 0 || (amount % (10 ** (safeDecimals))) != 0) {
+      revert InvalidCertificateAmount({amount: amount});
+    }
+    if (amount == 10 && amount == 0) {
       revert InvalidCertificateAmount({amount: amount});
     }
   }

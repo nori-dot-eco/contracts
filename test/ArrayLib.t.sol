@@ -1,12 +1,10 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import {UInt256ArrayLib, AddressArrayLib} from "@/contracts/ArrayLib.sol";
-import "@/test/helpers/test.sol";
+import {UInt256ArrayLib, AddressArrayLib} from "../contracts/ArrayLib.sol";
+import {Global} from "../test/helpers/test.sol";
 
 contract UInt256ArrayLib_slice is Global {
-  using UInt256ArrayLib for uint256[];
-
   function test() external {
     assertEq(this.standardImplementation(), this.libraryImplementation());
   }
@@ -67,7 +65,11 @@ contract UInt256ArrayLib_slice is Global {
       uint256 from = result[0];
       uint256 to = result[1];
       uint256 length = result[2];
-      slicedArrays[i] = values.slice({from: from, to: to});
+      slicedArrays[i] = UInt256ArrayLib.slice({
+        values: values,
+        from: from,
+        to: to
+      });
       assertEq({a: slicedArrays[i].length, b: length});
       _validateOriginalValues({values: values});
     }
@@ -98,18 +100,26 @@ contract UInt256ArrayLib_slice is Global {
   function standardImplementation()
     external
     pure
-    returns (uint256[] memory arr)
+    returns (uint256[] memory values)
   {
-    uint256[] memory normal = new uint256[](100).fill(1);
+    uint256[] memory normal = UInt256ArrayLib.fill({
+      values: new uint256[](100),
+      value: 1
+    });
     uint256 to = 50;
-    arr = new uint256[](to);
+    values = new uint256[](to);
     unchecked {
-      for (uint256 i = 0; i < to; ++i) arr[i] = normal[0 + i];
+      for (uint256 i = 0; i < to; ++i) values[i] = normal[0 + i];
     }
   }
 
   function libraryImplementation() external pure returns (uint256[] memory) {
-    return new uint256[](100).fill(1).slice(0, 50);
+    return
+      UInt256ArrayLib.slice({
+        values: UInt256ArrayLib.fill({values: new uint256[](100), value: 1}),
+        from: 0,
+        to: 50
+      });
   }
 
   /** @dev Used to validate that the original memory array has not mutated */
@@ -127,70 +137,32 @@ contract UInt256ArrayLib_slice is Global {
     return values;
   }
 
-  function _toMemoryArray(uint256[1] memory values)
-    private
-    pure
-    returns (uint256[] memory arr)
-  {
+  function _toMemoryArray(
+    uint256[1] memory values
+  ) private pure returns (uint256[] memory arr) {
     arr = new uint256[](values.length);
     for (uint256 i = 0; i < values.length; ++i) arr[i] = values[i];
   }
 
-  function _toMemoryArray(uint256[2] memory values)
-    private
-    pure
-    returns (uint256[] memory arr)
-  {
+  function _toMemoryArray(
+    uint256[2] memory values
+  ) private pure returns (uint256[] memory arr) {
     arr = new uint256[](values.length);
     for (uint256 i = 0; i < values.length; ++i) arr[i] = values[i];
   }
 
-  function _toMemoryArray(uint256[3] memory values)
-    private
-    pure
-    returns (uint256[] memory arr)
-  {
+  function _toMemoryArray(
+    uint256[3] memory values
+  ) private pure returns (uint256[] memory arr) {
     arr = new uint256[](values.length);
     for (uint256 i = 0; i < values.length; ++i) arr[i] = values[i];
   }
 
-  function _toMemoryArray(uint8[3] memory values)
-    private
-    pure
-    returns (uint256[] memory arr)
-  {
+  function _toMemoryArray(
+    uint8[3] memory values
+  ) private pure returns (uint256[] memory arr) {
     arr = new uint256[](values.length);
     for (uint256 i = 0; i < values.length; ++i) arr[i] = values[i];
-  }
-}
-
-contract UInt256ArrayLib_copy is Global {
-  using UInt256ArrayLib for uint256[];
-
-  function test() external {
-    assertEq(this.standardImplementation(), this.libraryImplementation());
-  }
-
-  function test_reference() external view {
-    this.standardImplementation();
-  }
-
-  function test_library() external view {
-    this.libraryImplementation();
-  }
-
-  function standardImplementation()
-    external
-    pure
-    returns (uint256[] memory arr)
-  {
-    uint256[] memory normal = new uint256[](100).fill(1);
-    arr = new uint256[](100);
-    for (uint256 i = 0; i < arr.length; ++i) normal[i] = arr[i];
-  }
-
-  function libraryImplementation() external pure returns (uint256[] memory) {
-    return new uint256[](100).fill(1).copy(new uint256[](100));
   }
 }
 
@@ -212,14 +184,14 @@ contract UInt256ArrayLib_fill is Global {
   function standardImplementation()
     external
     pure
-    returns (uint256[] memory arr)
+    returns (uint256[] memory values)
   {
-    arr = new uint256[](100);
-    for (uint256 i = 0; i < arr.length; ++i) arr[i] = 1;
+    values = new uint256[](100);
+    for (uint256 i = 0; i < values.length; ++i) values[i] = 1;
   }
 
   function libraryImplementation() external pure returns (uint256[] memory) {
-    return new uint256[](100).fill(1);
+    return UInt256ArrayLib.fill({values: new uint256[](100), value: 1});
   }
 }
 
@@ -231,11 +203,11 @@ contract UInt256ArrayLib_sum is Global {
   }
 
   function test_library_overflow() external {
-    uint256[] memory vals = new uint256[](2);
-    vals[0] = type(uint256).max;
-    vals[1] = 1;
+    uint256[] memory values = new uint256[](2);
+    values[0] = type(uint256).max;
+    values[1] = 1;
     vm.expectRevert();
-    vals.sum();
+    UInt256ArrayLib.sum({values: values});
   }
 
   function test_library() external view {
@@ -247,12 +219,18 @@ contract UInt256ArrayLib_sum is Global {
   }
 
   function standardImplementation() external pure returns (uint256 total) {
-    uint256[] memory normal = new uint256[](100).fill(1);
+    uint256[] memory normal = UInt256ArrayLib.fill({
+      values: new uint256[](100),
+      value: 1
+    });
     for (uint256 i = 0; i < normal.length; ++i) total += normal[i];
   }
 
   function libraryImplementation() external pure returns (uint256) {
-    return new uint256[](100).fill(1).sum();
+    return
+      UInt256ArrayLib.sum({
+        values: UInt256ArrayLib.fill({values: new uint256[](100), value: 1})
+      });
   }
 }
 
@@ -274,13 +252,14 @@ contract AddressArrayLib_fill is Global {
   function standardImplementation()
     external
     pure
-    returns (address[] memory arr)
+    returns (address[] memory values)
   {
-    arr = new address[](100);
-    for (uint256 i = 0; i < arr.length; ++i) arr[i] = address(0);
+    values = new address[](100);
+    for (uint256 i = 0; i < values.length; ++i) values[i] = address(0);
   }
 
   function libraryImplementation() external pure returns (address[] memory) {
-    return new address[](100).fill(address(0));
+    return
+      AddressArrayLib.fill({values: new address[](100), value: address(0)});
   }
 }
