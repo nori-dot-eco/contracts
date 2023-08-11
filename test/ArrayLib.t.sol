@@ -261,8 +261,11 @@ contract AddressArrayLib_fill is Global {
     for (uint256 i = 0; i < values.length; ++i) values[i] = address(0);
   }
 
-  // function libraryImplementation() external pure returns (address[] memory) {
-  //   return
-  //     AddressArrayLib.fill({values: new address[](100), value: address(0)});
-  // }
+  function libraryImplementation() external pure returns (address[] memory) {
+    address[] memory filled = AddressArrayLib.fill({
+      values: new address[](100),
+      value: address(0)
+    });
+    return filled;
+  }
 }
