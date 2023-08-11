@@ -209,9 +209,10 @@ contract MarketHandler is UpgradeableMarket {
       uint256 replaceAmount = (fuzz % _certificate.getNrtDeficit()) + 1; // avoid trying to replace more than deficit - we know this reverts
       // avoid trying to replace more than is available in the market - we know this reverts
       if (_removal.getMarketBalance() >= replaceAmount) {
-        uint256 replacementCost = _market.calculateCheckoutTotalWithoutFee(
-          replaceAmount
-        ); // incorporates price multiple!
+        uint256 replacementCost = _market.calculateCheckoutTotalWithoutFee({
+          amount: replaceAmount,
+          priceMultiple: _market.getPriceMultiple()
+        }); // incorporates price multiple!
         vm.startPrank(_namedAccounts.admin);
         _bpNori.deposit(_namedAccounts.admin, abi.encode(replacementCost));
         _bpNori.approve(address(_market), replacementCost);
@@ -278,11 +279,9 @@ contract MarketHandler is UpgradeableMarket {
     return soldRemovalIds.length();
   }
 
-  function getSoldRemovalIdAtIndex(uint256 index)
-    external
-    view
-    returns (uint256)
-  {
+  function getSoldRemovalIdAtIndex(
+    uint256 index
+  ) external view returns (uint256) {
     return soldRemovalIds.at(index);
   }
 

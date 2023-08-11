@@ -289,9 +289,10 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
       list: true
     });
     _expectedCertificateAmount = 10 ether;
-    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
-      _expectedCertificateAmount
-    );
+    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: _expectedCertificateAmount,
+      priceMultiple: _market.getPriceMultiple()
+    });
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -565,9 +566,10 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
       list: true
     });
     _expectedCertificateAmount = 10 ether;
-    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
-      _expectedCertificateAmount
-    );
+    _purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: _expectedCertificateAmount,
+      priceMultiple: _market.getPriceMultiple()
+    });
     assertEq(
       _removal.balanceOfBatch(
         new address[](_removalIds.length).fill(address(_market)),
@@ -962,12 +964,12 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
   }
 }
 
-contract Checkout_buyingWithCustomFeeAndPrice is Checkout {
+contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 customFee = 5;
   uint256 certificateAmount = 1 ether;
-  uint256 customPriceMultiple = 1800; // $18.00
+  uint256 customPriceMultiple = 1800; // $18.00 -- test below the default price multiple of $20.00
 
   function setUp() external {
     _removalIds = _seedRemovals({
@@ -975,14 +977,15 @@ contract Checkout_buyingWithCustomFeeAndPrice is Checkout {
       count: 1,
       list: true
     });
-    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
-      certificateAmount
-    );
+    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: certificateAmount,
+      priceMultiple: customPriceMultiple
+    });
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(purchaseAmount));
     vm.prank(owner);
-    _bpNori.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+    _bpNori.approve(address(_market), purchaseAmount);
   }
 
   function test() external {
@@ -998,7 +1001,7 @@ contract Checkout_buyingWithCustomFeeAndPrice is Checkout {
     vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    uint256 createCertificateEventIndex = 6;
+    uint256 createCertificateEventIndex = 8;
     assertEq(
       entries[createCertificateEventIndex].topics[0],
       CREATE_CERTIFICATE_EVENT_SELECTOR
@@ -1043,12 +1046,13 @@ contract Checkout_buyingWithCustomFeeAndPrice is Checkout {
   }
 }
 
-contract Checkout_buyingFromSingleSupplierWithCustomFeeAndPrice is Checkout {
+// TODO regenerate documentation
+contract Checkout_swapFromSupplierWithoutFeeSpecialOrder is Checkout {
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 customFee = 5;
   uint256 certificateAmount = 1 ether;
-  uint256 customPriceMultiple = 1800; // $18.00
+  uint256 customPriceMultiple = 2500; // $25.00 -- test above the default price multiple of $20.00
 
   function setUp() external {
     _removalIds = _seedRemovals({
@@ -1056,14 +1060,15 @@ contract Checkout_buyingFromSingleSupplierWithCustomFeeAndPrice is Checkout {
       count: 1,
       list: true
     });
-    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee(
-      certificateAmount
-    );
+    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: certificateAmount,
+      priceMultiple: customPriceMultiple
+    });
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(purchaseAmount));
     vm.prank(owner);
-    _bpNori.approve(address(_market), MAX_INT); // infinite approval for Market to spend owner's tokens
+    _bpNori.approve(address(_market), purchaseAmount);
   }
 
   function test() external {
@@ -1080,7 +1085,7 @@ contract Checkout_buyingFromSingleSupplierWithCustomFeeAndPrice is Checkout {
     vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    uint256 createCertificateEventIndex = 6;
+    uint256 createCertificateEventIndex = 8;
     assertEq(
       entries[createCertificateEventIndex].topics[0],
       CREATE_CERTIFICATE_EVENT_SELECTOR
@@ -1116,5 +1121,10 @@ contract Checkout_buyingFromSingleSupplierWithCustomFeeAndPrice is Checkout {
     assertEq(removalAmounts.length, 1);
     assertEq(removalIds[0], _removalIds[0]);
     assertEq(removalAmounts[0], certificateAmount);
+    assertEq(
+      _bpNori.balanceOf(_namedAccounts.supplier),
+      (certificateAmount * customPriceMultiple) / 100 / 2 // divide to account for price multiple scale and then holdback percentage of 50%
+    );
+    assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
   }
 }

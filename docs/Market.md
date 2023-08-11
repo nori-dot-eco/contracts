@@ -732,7 +732,7 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 ### swapWithoutFeeSpecialOrder
 
 ```solidity
-function swapWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, uint256 customFee) external
+function swapWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, uint256 customFee, uint256 customPriceMultiple) external
 ```
 
 Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
@@ -758,6 +758,7 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 | purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
 | customFee | uint256 | The custom fee percentage that was paid to Nori, as an integer, specified here for inclusion in emitted events. |
+| customPriceMultiple | uint256 | The custom price that will be charged for this transaction. |
 
 
 ### swapFromSupplierWithoutFee
@@ -795,7 +796,7 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 ### swapFromSupplierWithoutFeeSpecialOrder
 
 ```solidity
-function swapFromSupplierWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, address supplier, uint256 customFee) external
+function swapFromSupplierWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, address supplier, uint256 customFee, uint256 customPriceMultiple) external
 ```
 
 Exchanges supported ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens
@@ -823,6 +824,7 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
 | supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
 | customFee | uint256 | The custom fee percentage that was paid to Nori, as an integer, specified here for inclusion in emitted events. |
+| customPriceMultiple | uint256 | The custom price to be used for this transaction. |
 
 
 ### withdraw
@@ -978,7 +980,7 @@ tonnes of carbon removals).
 ### calculateCheckoutTotalWithoutFee
 
 ```solidity
-function calculateCheckoutTotalWithoutFee(uint256 amount) external view returns (uint256)
+function calculateCheckoutTotalWithoutFee(uint256 amount, uint256 priceMultiple) external view returns (uint256)
 ```
 
 Calculates the total quantity of ERC20 tokens required to make a purchase of the specified `amount` (in
@@ -988,6 +990,7 @@ tonnes of carbon removals) without a transaction fee.
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | amount | uint256 | The amount of carbon removals for the purchase. |
+| priceMultiple | uint256 | The price multiple to use for the calculation. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

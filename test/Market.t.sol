@@ -580,7 +580,10 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
     });
 
     certificateAmount = 1 ether;
-    checkoutTotal = _market.calculateCheckoutTotalWithoutFee(certificateAmount);
+    checkoutTotal = _market.calculateCheckoutTotalWithoutFee({
+      amount: certificateAmount,
+      priceMultiple: _market.getPriceMultiple()
+    });
     rNoriToMint = (checkoutTotal * holdbackPercentage) / 100;
     vm.prank(_namedAccounts.admin);
     _noriUSDC.transfer(owner, checkoutTotal);
@@ -1607,10 +1610,15 @@ contract Market_convertPurchasingTokenDecimalsToRemovalDecimals is
 
 contract Market_calculates_prices_using_decimal is UpgradeableUSDCMarket {
   function test() external {
-    // expectRevert(_market.calculateCheckoutTotal(1), 0);
     assertEq(_market.calculateCheckoutTotal(1 ether), 25_000_000);
     assertEq(_market.calculateNoriFee(1 ether), 5_000_000);
-    assertEq(_market.calculateCheckoutTotalWithoutFee(1 ether), 20_000_000);
+    assertEq(
+      _market.calculateCheckoutTotalWithoutFee({
+        amount: 1 ether,
+        priceMultiple: _market.getPriceMultiple()
+      }),
+      20_000_000
+    );
     assertEq(
       _market.calculateCertificateAmountFromPurchaseTotal(25_000_000),
       1 ether
@@ -1842,6 +1850,7 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
 
   function test() external {
     uint256 ownerPrivateKey = 0xA11CE;
+    uint256 priceMultiple = _market.getPriceMultiple();
     owner = vm.addr(ownerPrivateKey);
 
     uint256[] memory testValues = new uint256[](4);
@@ -1862,9 +1871,10 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
       checkoutTotal = _market.calculateCheckoutTotal(numberOfNRTsToPurchase);
 
       vm.expectRevert(revertData);
-      checkoutTotal = _market.calculateCheckoutTotalWithoutFee(
-        numberOfNRTsToPurchase
-      );
+      checkoutTotal = _market.calculateCheckoutTotalWithoutFee({
+        amount: numberOfNRTsToPurchase,
+        priceMultiple: priceMultiple
+      });
 
       vm.prank(owner);
       vm.expectRevert(revertData);
