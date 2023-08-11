@@ -1081,7 +1081,6 @@ contract Market is
         certificateAmount: amount,
         supplier: supplier
       });
-
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,

@@ -1046,7 +1046,6 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
   }
 }
 
-// TODO regenerate documentation
 contract Checkout_swapFromSupplierWithoutFeeSpecialOrder is Checkout {
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);

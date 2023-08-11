@@ -36,19 +36,27 @@ const MOCK_VESTING_HEADER = [
 ];
 
 const currentDate = new Date();
+const currentDateISOString = currentDate.toISOString();
+const currentDateUnix = currentDate.getTime();
+
 const dateLessThanOneYearAgoFromToday = new Date(
   currentDate.getFullYear() - 1,
   currentDate.getMonth(),
   currentDate.getDate() + 1
 );
-const currentDatePlusOne = new Date(currentDate.getTime() + 1);
+const dateLessThanOneYearAgoFromTodayISOString = dateLessThanOneYearAgoFromToday.toISOString();
+const dateLessThanOneYearAgoFromTodayUnix = dateLessThanOneYearAgoFromToday.getTime();
+
+const currentDatePlusOne = new Date(currentDateUnix + 1);
+const currentDatePlusOneISOString = currentDatePlusOne.toISOString();
+const currentDatePlusOneUnix = currentDatePlusOne.getTime();
 
 const MOCK_GITHUB_VESTING_GRANTS = [
   [
     '0xDD66B46910918B2F442D6b75C6E55631ad678c99',
     '4c728e75-0aef-42f6-8ee3-3a831734e048',
     '46425.5886',
-    dateLessThanOneYearAgoFromToday.toISOString(),
+    dateLessThanOneYearAgoFromTodayISOString,
     '2026-07-14T00:00:00Z',
     '2027-07-14T00:00:00Z',
     '2023-07-14T00:00:00Z',
@@ -64,11 +72,11 @@ const MOCK_GITHUB_VESTING_GRANTS = [
     '0x465d5a3fFeA4CD109043499Fa576c3E16f918463',
     'ecd76b5a-9188-49c6-b456-d49ed3a68e5e',
     '73000',
-    dateLessThanOneYearAgoFromToday.toISOString(),
-    currentDate.toISOString(),
-    currentDatePlusOne.toISOString(),
-    currentDatePlusOne.toISOString(),
-    currentDatePlusOne.toISOString(),
+    dateLessThanOneYearAgoFromTodayISOString,
+    currentDateISOString,
+    currentDatePlusOneISOString,
+    currentDatePlusOneISOString,
+    currentDatePlusOneISOString,
     '0',
     '0',
     '73000',
@@ -81,11 +89,11 @@ const MOCK_GITHUB_VESTING_GRANTS = [
     '0x3254678253467832548762382348765342765342',
     'e0507d82-9c5a-4eb2-853f-d73a97790fec',
     '120',
-    dateLessThanOneYearAgoFromToday.toISOString(),
-    currentDate.toISOString(),
-    currentDatePlusOne.toISOString(),
-    currentDatePlusOne.toISOString(),
-    currentDatePlusOne.toISOString(),
+    dateLessThanOneYearAgoFromTodayISOString,
+    currentDateISOString,
+    currentDatePlusOneISOString,
+    currentDatePlusOneISOString,
+    currentDatePlusOneISOString,
     '0',
     '0',
     '120',
@@ -97,8 +105,8 @@ const MOCK_GITHUB_VESTING_GRANTS = [
     '0x8eB185e20A9B7b31bd48DA19E834B93bE952795E',
     'fa116039-a696-473a-8be8-4d970e437421',
     '6454545',
-    dateLessThanOneYearAgoFromToday.toISOString(),
-    currentDate.toISOString(),
+    dateLessThanOneYearAgoFromTodayISOString,
+    currentDateISOString,
     '2026-07-14T00:00:00Z',
     '2023-07-14T00:00:00Z',
     '2024-01-14T00:00:00Z',
@@ -113,8 +121,8 @@ const MOCK_GITHUB_VESTING_GRANTS = [
     '0x6b9d03759E9F14a641f0703fBD84F1F726159B6B',
     'ac88ed0f-d4de-4538-a18b-ae6f4c6cfe00',
     '20000000',
-    dateLessThanOneYearAgoFromToday.toISOString(),
-    currentDate.toISOString(),
+    dateLessThanOneYearAgoFromTodayISOString,
+    currentDateISOString,
     '2027-07-14T00:00:00Z',
     '2023-07-14T00:00:00Z',
     '2024-01-14T00:00:00Z',
@@ -145,8 +153,8 @@ const MOCK_GITHUB_VESTING_GRANTS = [
     '0x8aBFd8375DA1521E70d23988eb5a6efA799C15ea',
     '614dadfd-279a-4cb4-886d-32305a3b61e2',
     '14010.6',
-    dateLessThanOneYearAgoFromToday.toISOString(),
-    currentDate.toISOString(),
+    dateLessThanOneYearAgoFromTodayISOString,
+    currentDateISOString,
     '2028-10-02T00:00:00Z',
     '2028-10-02T00:00:00Z',
     '2028-10-02T00:00:00Z',
@@ -381,8 +389,8 @@ describe('vesting task', () => {
         it('should pass if the argument passes isValidEvmMoment validation', () => {
           for (const v of [
             utcToEvmTime(moment()),
-            utcToEvmTime('2022-03-21T20:45:29.496Z'),
-            utcToEvmTime('2022-03-21'),
+            utcToEvmTime('2023-03-21T20:45:29.496Z'),
+            utcToEvmTime('2023-03-21'),
             1,
             0,
           ])
@@ -405,7 +413,7 @@ describe('vesting task', () => {
             '-1.1',
             '',
             'a',
-            '2022-13-21',
+            '2023-13-21',
           ])
             expect(validations.isValidEvmMoment().test(v)).to.be.false;
         });
@@ -835,7 +843,7 @@ describe('vesting task', () => {
             vestEndTime: { __old: 0, __new: 1_783_987_200 },
             startTime: {
               __old: 0,
-              __new: utcToEvmTime(dateLessThanOneYearAgoFromToday.getTime()),
+              __new: utcToEvmTime(dateLessThanOneYearAgoFromTodayUnix),
             },
             originalAmount: {
               __old: '0',
@@ -864,11 +872,11 @@ describe('vesting task', () => {
           '0x465d5a3fFeA4CD109043499Fa576c3E16f918463': {
             vestEndTime: {
               __old: 0,
-              __new: utcToEvmTime(currentDate.getTime()),
+              __new: utcToEvmTime(currentDateUnix),
             },
             startTime: {
               __old: 0,
-              __new: utcToEvmTime(dateLessThanOneYearAgoFromToday.getTime()),
+              __new: utcToEvmTime(dateLessThanOneYearAgoFromTodayUnix),
             },
             originalAmount: {
               __old: '0',
@@ -876,15 +884,15 @@ describe('vesting task', () => {
             },
             unlockEndTime: {
               __old: 0,
-              __new: utcToEvmTime(currentDatePlusOne.getTime()),
+              __new: utcToEvmTime(currentDatePlusOneUnix),
             },
             cliff1Time: {
               __old: 0,
-              __new: utcToEvmTime(currentDatePlusOne.getTime()),
+              __new: utcToEvmTime(currentDatePlusOneUnix),
             },
             cliff2Time: {
               __old: 0,
-              __new: utcToEvmTime(currentDatePlusOne.getTime()),
+              __new: utcToEvmTime(currentDatePlusOneUnix),
             },
             unlockCliff1Amount: {
               __old: '0',
@@ -894,24 +902,24 @@ describe('vesting task', () => {
           '0x3254678253467832548762382348765342765342': {
             vestEndTime: {
               __old: 0,
-              __new: utcToEvmTime(currentDate.getTime()),
+              __new: utcToEvmTime(currentDateUnix),
             },
             startTime: {
               __old: 0,
-              __new: utcToEvmTime(dateLessThanOneYearAgoFromToday.getTime()),
+              __new: utcToEvmTime(dateLessThanOneYearAgoFromTodayUnix),
             },
             originalAmount: { __old: '0', __new: '120000000000000000000' },
             unlockEndTime: {
               __old: 0,
-              __new: utcToEvmTime(currentDatePlusOne.getTime()),
+              __new: utcToEvmTime(currentDatePlusOneUnix),
             },
             cliff1Time: {
               __old: 0,
-              __new: utcToEvmTime(currentDatePlusOne.getTime()),
+              __new: utcToEvmTime(currentDatePlusOneUnix),
             },
             cliff2Time: {
               __old: 0,
-              __new: utcToEvmTime(currentDatePlusOne.getTime()),
+              __new: utcToEvmTime(currentDatePlusOneUnix),
             },
             unlockCliff1Amount: {
               __old: '0',
@@ -921,11 +929,11 @@ describe('vesting task', () => {
           '0x8eB185e20A9B7b31bd48DA19E834B93bE952795E': {
             vestEndTime: {
               __old: 0,
-              __new: utcToEvmTime(currentDate.getTime()),
+              __new: utcToEvmTime(currentDateUnix),
             },
             startTime: {
               __old: 0,
-              __new: utcToEvmTime(dateLessThanOneYearAgoFromToday.getTime()),
+              __new: utcToEvmTime(dateLessThanOneYearAgoFromTodayUnix),
             },
             originalAmount: {
               __old: '0',
@@ -946,11 +954,11 @@ describe('vesting task', () => {
           '0x6b9d03759E9F14a641f0703fBD84F1F726159B6B': {
             vestEndTime: {
               __old: 0,
-              __new: utcToEvmTime(currentDate.getTime()),
+              __new: utcToEvmTime(currentDateUnix),
             },
             startTime: {
               __old: 0,
-              __new: utcToEvmTime(dateLessThanOneYearAgoFromToday.getTime()),
+              __new: utcToEvmTime(dateLessThanOneYearAgoFromTodayUnix),
             },
             originalAmount: {
               __old: '0',
@@ -998,11 +1006,11 @@ describe('vesting task', () => {
           '0x8aBFd8375DA1521E70d23988eb5a6efA799C15ea': {
             vestEndTime: {
               __old: 0,
-              __new: utcToEvmTime(currentDate.getTime()),
+              __new: utcToEvmTime(currentDateUnix),
             },
             startTime: {
               __old: 0,
-              __new: utcToEvmTime(dateLessThanOneYearAgoFromToday.getTime()),
+              __new: utcToEvmTime(dateLessThanOneYearAgoFromTodayUnix),
             },
             originalAmount: {
               __old: '0',
