@@ -1,0 +1,5 @@
+ignore:
+  - 'contracts/deprecated'
+  - 'contracts/test'
+  - 'script'
+  - 'test'
