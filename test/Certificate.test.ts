@@ -35,13 +35,10 @@ describe('Certificate', () => {
     await expect(
       market
         .connect(buyer)
-        [
-          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](
+        ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
           buyer.address,
           buyer.address,
           purchaseAmount,
-          hre.namedAccounts.supplier,
           MaxUint256,
           v,
           r,

@@ -1137,50 +1137,49 @@ describe('Market', () => {
 });
 describe('purchasing from a specified supplier', () => {
   it('should purchase supply from a specific supplier when they have enough supply', async () => {
-    const { bpNori, market, feePercentage, totalAmountOfSupply } =
-      await setupTest({
-        userFixtures: {
-          supplier: {
-            removalDataToList: {
-              removals: [
-                {
-                  amount: formatTokenAmount(10),
-                  supplierAddress: hre.namedAccounts.supplier,
-                }, // 2 removals each for 2 different suppliers
-                {
-                  amount: formatTokenAmount(10),
-                  supplierAddress: hre.namedAccounts.supplier,
-                },
-                {
-                  amount: formatTokenAmount(10),
-                  supplierAddress: hre.namedAccounts.investor1,
-                },
-                {
-                  amount: formatTokenAmount(10),
-                  supplierAddress: hre.namedAccounts.investor1,
-                },
-              ],
-            },
+    const { bpNori, market, totalAmountOfSupply } = await setupTest({
+      userFixtures: {
+        supplier: {
+          removalDataToList: {
+            removals: [
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.supplier,
+              }, // 2 removals each for 2 different suppliers
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.supplier,
+              },
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.investor1,
+              },
+              {
+                amount: formatTokenAmount(10),
+                supplierAddress: hre.namedAccounts.investor1,
+              },
+            ],
           },
         },
-      });
+      },
+    });
     const purchaseAmount = totalAmountOfSupply.div(2); // purchase half of supply, exactly two full removal tokens
     const value = await market.calculateCheckoutTotal(purchaseAmount);
     const supplierInitialNoriBalance = formatTokenAmount(0);
     const investor1InitialNoriBalance = formatTokenAmount(0);
-    const { buyer } = hre.namedSigners;
-    const { v, r, s } = await buyer.permit({
+    const { admin } = hre.namedSigners;
+    const { v, r, s } = await admin.permit({
       verifyingContract: bpNori,
       spender: market.address,
       value,
     });
     await market
-      .connect(buyer)
+      .connect(admin)
       [
         'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
       ](
-        buyer.address,
-        buyer.address,
+        admin.address,
+        admin.address,
         purchaseAmount,
         hre.namedAccounts.supplier,
         MaxUint256,
@@ -1209,7 +1208,7 @@ describe('purchasing from a specified supplier', () => {
     // );
   });
   it('should revert when purchasing supply from a specific supplier who does not have enough supply', async () => {
-    const { bpNori, market, feePercentage } = await setupTest({
+    const { bpNori, market } = await setupTest({
       userFixtures: {
         supplier: {
           removalDataToList: {
@@ -1237,20 +1236,20 @@ describe('purchasing from a specified supplier', () => {
     });
     const purchaseAmount = formatTokenAmount(30); // enough total supply, not enough from specific supplier
     const value = await market.calculateCheckoutTotal(purchaseAmount);
-    const { buyer } = hre.namedSigners;
-    const { v, r, s } = await buyer.permit({
+    const { admin } = hre.namedSigners;
+    const { v, r, s } = await admin.permit({
       verifyingContract: bpNori,
       spender: market.address,
       value,
     });
     await expect(
       market
-        .connect(buyer)
+        .connect(admin)
         [
           'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
         ](
-          buyer.address,
-          buyer.address,
+          admin.address,
+          admin.address,
           purchaseAmount,
           hre.namedAccounts.supplier,
           MaxUint256,
@@ -1289,20 +1288,20 @@ describe('purchasing from a specified supplier', () => {
     });
     const purchaseAmount = formatTokenAmount(30); // enough total supply, but not enough from specific supplier
     const value = await market.calculateCheckoutTotal(purchaseAmount);
-    const { buyer } = hre.namedSigners;
-    const { v, r, s } = await buyer.permit({
+    const { admin } = hre.namedSigners;
+    const { v, r, s } = await admin.permit({
       verifyingContract: bpNori,
       spender: market.address,
       value,
     });
     await expect(
       market
-        .connect(buyer)
+        .connect(admin)
         [
           'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
         ](
-          buyer.address,
-          buyer.address,
+          admin.address,
+          admin.address,
           purchaseAmount,
           hre.namedAccounts.investor2,
           MaxUint256,
@@ -1331,20 +1330,20 @@ describe('purchasing from a specified supplier', () => {
     await market.setPriorityRestrictedThreshold(priorityRestrictedThreshold);
     const purchaseAmount = formatTokenAmount(5);
     const value = await market.calculateCheckoutTotal(purchaseAmount);
-    const { buyer } = hre.namedSigners;
-    const { v, r, s } = await buyer.permit({
+    const { admin } = hre.namedSigners;
+    const { v, r, s } = await admin.permit({
       verifyingContract: bpNori,
       spender: market.address,
       value,
     });
     await expect(
       market
-        .connect(buyer)
+        .connect(admin)
         [
           'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
         ](
-          buyer.address,
-          buyer.address,
+          admin.address,
+          admin.address,
           purchaseAmount,
           hre.namedAccounts.supplier,
           MaxUint256,
