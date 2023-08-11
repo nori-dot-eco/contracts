@@ -793,7 +793,6 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
-        purchaser: permitOwner,
         certificateAmount: amount,
         supplier: supplier
       });
@@ -853,7 +852,6 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
-        purchaser: _msgSender(),
         certificateAmount: amount,
         supplier: supplier
       });
@@ -1014,7 +1012,6 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
-        purchaser: purchaser,
         certificateAmount: amount,
         supplier: supplier
       });
@@ -1077,7 +1074,6 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
-        purchaser: purchaser,
         certificateAmount: amount,
         supplier: supplier
       });
@@ -1585,7 +1581,6 @@ contract Market is
   /**
    * @notice Allocates removals from a specific supplier to be fulfilled.
    * @dev This function is responsible for validating and allocating the supply from a specific supplier.
-   * @param purchaser The address of the purchaser.
    * @param certificateAmount The total amount of NRTs for the certificate.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
@@ -1594,7 +1589,6 @@ contract Market is
    * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
   function _allocateRemovalsFromSupplier(
-    address purchaser,
     uint256 certificateAmount,
     address supplier
   )
@@ -1606,11 +1600,6 @@ contract Market is
       address[] memory suppliers
     )
   {
-    _validatePrioritySupply({
-      purchaser: purchaser,
-      certificateAmount: certificateAmount,
-      availableSupply: _removal.getMarketBalance()
-    });
     (countOfRemovalsAllocated, ids, amounts) = _allocateSupplySingleSupplier({
       certificateAmount: certificateAmount,
       supplier: supplier

@@ -1311,46 +1311,4 @@ describe('purchasing from a specified supplier', () => {
         )
     ).to.be.revertedWith('InsufficientSupply()');
   });
-  it('should revert when purchasing supply when the market is below the priority reserved threshold', async () => {
-    const { bpNori, market } = await setupTest({
-      userFixtures: {
-        supplier: {
-          removalDataToList: {
-            removals: [
-              {
-                amount: formatTokenAmount(10),
-                supplierAddress: hre.namedAccounts.supplier,
-              },
-            ],
-          },
-        },
-      },
-    });
-    const priorityRestrictedThreshold = formatTokenAmount(10);
-    await market.setPriorityRestrictedThreshold(priorityRestrictedThreshold);
-    const purchaseAmount = formatTokenAmount(5);
-    const value = await market.calculateCheckoutTotal(purchaseAmount);
-    const { admin } = hre.namedSigners;
-    const { v, r, s } = await admin.permit({
-      verifyingContract: bpNori,
-      spender: market.address,
-      value,
-    });
-    await expect(
-      market
-        .connect(admin)
-        [
-          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](
-          admin.address,
-          admin.address,
-          purchaseAmount,
-          hre.namedAccounts.supplier,
-          MaxUint256,
-          v,
-          r,
-          s
-        )
-    ).to.be.revertedWith('LowSupplyAllowlistRequired()');
-  });
 });
