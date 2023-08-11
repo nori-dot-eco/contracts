@@ -943,13 +943,17 @@ contract Market is
    * purchased, scaled by the price multiple.
    * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
    * inclusion in emitted events.
+   * @param customPriceMultiple The custom price that will be charged for this transaction.
    */
   function swapWithoutFeeSpecialOrder(
     address recipient,
     address purchaser,
     uint256 amount,
-    uint256 customFee
+    uint256 customFee,
+    uint256 customPriceMultiple
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    uint256 currentPrice = _priceMultiple;
+    _priceMultiple = customPriceMultiple;
     _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
@@ -970,6 +974,7 @@ contract Market is
         suppliers: suppliers
       })
     });
+    _priceMultiple = currentPrice;
   }
 
   /**
@@ -1053,14 +1058,18 @@ contract Market is
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
    * inclusion in emitted events.
+   * @param customPriceMultiple The custom price to be used for this transaction.
    */
   function swapFromSupplierWithoutFeeSpecialOrder(
     address recipient,
     address purchaser,
     uint256 amount,
     address supplier,
-    uint256 customFee
+    uint256 customFee,
+    uint256 customPriceMultiple
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    uint256 currentPrice = _priceMultiple;
+    _priceMultiple = customPriceMultiple;
     _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
@@ -1085,6 +1094,7 @@ contract Market is
         suppliers: suppliers
       })
     });
+    _priceMultiple = currentPrice;
   }
 
   /**
@@ -1224,15 +1234,17 @@ contract Market is
    * @notice Calculates the total quantity of ERC20 tokens required to make a purchase of the specified `amount` (in
    * tonnes of carbon removals) without a transaction fee.
    * @param amount The amount of carbon removals for the purchase.
+   * @param priceMultiple The price multiple to use for the calculation.
    * @return The total quantity of ERC20 tokens required to make the purchase, excluding the fee.
    */
   function calculateCheckoutTotalWithoutFee(
-    uint256 amount
+    uint256 amount,
+    uint256 priceMultiple
   ) external view returns (uint256) {
     _validateCertificateAmount({amount: amount});
     return
       this.convertRemovalDecimalsToPurchasingTokenDecimals(
-        amount.mulDiv({y: _priceMultiple, denominator: 100})
+        amount.mulDiv({y: priceMultiple, denominator: 100})
       );
   }
 
