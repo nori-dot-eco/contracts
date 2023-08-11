@@ -238,7 +238,10 @@ contract AddressArrayLib_fill is Global {
   using AddressArrayLib for address[];
 
   function test() external {
-    assertEq(this.standardImplementation(), this.libraryImplementation());
+    assertEq(
+      this.standardImplementation(),
+      AddressArrayLib.fill({values: new address[](100), value: address(0)})
+    );
   }
 
   function test_reference() external view {
@@ -246,7 +249,7 @@ contract AddressArrayLib_fill is Global {
   }
 
   function test_library() external view {
-    this.libraryImplementation();
+    AddressArrayLib.fill({values: new address[](100), value: address(0)});
   }
 
   function standardImplementation()
@@ -258,8 +261,8 @@ contract AddressArrayLib_fill is Global {
     for (uint256 i = 0; i < values.length; ++i) values[i] = address(0);
   }
 
-  function libraryImplementation() external pure returns (address[] memory) {
-    return
-      AddressArrayLib.fill({values: new address[](100), value: address(0)});
-  }
+  // function libraryImplementation() external pure returns (address[] memory) {
+  //   return
+  //     AddressArrayLib.fill({values: new address[](100), value: address(0)});
+  // }
 }
