@@ -384,6 +384,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
     assertEq(_expectedCertificateAmount, 10 ether);
     uint256 ownerPrivateKey = 0xA11CE;
     _owner = vm.addr(ownerPrivateKey);
+    market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: _owner});
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
@@ -482,6 +483,7 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_byApproval is Checkout {
     assertEq(_expectedCertificateAmount, 10 ether);
     uint256 ownerPrivateKey = 0xA11CE;
     _owner = vm.addr(ownerPrivateKey);
+    _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: _owner});
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
     vm.prank(_owner);
