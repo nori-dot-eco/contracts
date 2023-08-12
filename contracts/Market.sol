@@ -541,11 +541,9 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * @param threshold The updated priority restricted threshold
    */
-  function setPriorityRestrictedThreshold(uint256 threshold)
-    external
-    whenNotPaused
-    onlyRole(MARKET_ADMIN_ROLE)
-  {
+  function setPriorityRestrictedThreshold(
+    uint256 threshold
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     _priorityRestrictedThreshold = threshold;
     emit SetPriorityRestrictedThreshold({threshold: threshold});
   }
@@ -561,11 +559,9 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * @param noriFeePercentage_ The new fee percentage as an integer.
    */
-  function setNoriFeePercentage(uint256 noriFeePercentage_)
-    external
-    onlyRole(MARKET_ADMIN_ROLE)
-    whenNotPaused
-  {
+  function setNoriFeePercentage(
+    uint256 noriFeePercentage_
+  ) external onlyRole(MARKET_ADMIN_ROLE) whenNotPaused {
     if (noriFeePercentage_ > 100) {
       revert InvalidNoriFeePercentage();
     }
@@ -584,11 +580,9 @@ contract Market is
    * - Can only be used when this contract is not paused.
    * @param noriFeeWalletAddress The wallet address where Nori collects market fees.
    */
-  function setNoriFeeWallet(address noriFeeWalletAddress)
-    external
-    onlyRole(MARKET_ADMIN_ROLE)
-    whenNotPaused
-  {
+  function setNoriFeeWallet(
+    address noriFeeWalletAddress
+  ) external onlyRole(MARKET_ADMIN_ROLE) whenNotPaused {
     if (noriFeeWalletAddress == address(0)) {
       revert NoriFeeWalletZeroAddress();
     }
@@ -949,13 +943,17 @@ contract Market is
    * purchased, scaled by the price multiple.
    * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
    * inclusion in emitted events.
+   * @param customPriceMultiple The custom price that will be charged for this transaction.
    */
   function swapWithoutFeeSpecialOrder(
     address recipient,
     address purchaser,
     uint256 amount,
-    uint256 customFee
+    uint256 customFee,
+    uint256 customPriceMultiple
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    uint256 currentPrice = _priceMultiple;
+    _priceMultiple = customPriceMultiple;
     _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
@@ -976,6 +974,7 @@ contract Market is
         suppliers: suppliers
       })
     });
+    _priceMultiple = currentPrice;
   }
 
   /**
@@ -1059,14 +1058,18 @@ contract Market is
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
    * inclusion in emitted events.
+   * @param customPriceMultiple The custom price to be used for this transaction.
    */
   function swapFromSupplierWithoutFeeSpecialOrder(
     address recipient,
     address purchaser,
     uint256 amount,
     address supplier,
-    uint256 customFee
+    uint256 customFee,
+    uint256 customPriceMultiple
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    uint256 currentPrice = _priceMultiple;
+    _priceMultiple = customPriceMultiple;
     _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
@@ -1091,6 +1094,7 @@ contract Market is
         suppliers: suppliers
       })
     });
+    _priceMultiple = currentPrice;
   }
 
   /**
@@ -1188,7 +1192,7 @@ contract Market is
       return removalAmount;
     }
     uint256 decimalDelta = 18 - decimals;
-    return removalAmount / 10**decimalDelta;
+    return removalAmount / 10 ** decimalDelta;
   }
 
   /**
@@ -1207,7 +1211,7 @@ contract Market is
       return purchasingTokenAmount;
     }
     uint256 decimalDelta = 18 - decimals;
-    return purchasingTokenAmount * 10**decimalDelta;
+    return purchasingTokenAmount * 10 ** decimalDelta;
   }
 
   /**
@@ -1216,11 +1220,9 @@ contract Market is
    * @param amount The amount of carbon removals for the purchase.
    * @return The total quantity of the `_purchaseToken` required to make the purchase.
    */
-  function calculateCheckoutTotal(uint256 amount)
-    external
-    view
-    returns (uint256)
-  {
+  function calculateCheckoutTotal(
+    uint256 amount
+  ) external view returns (uint256) {
     _validateCertificateAmount({amount: amount});
     return
       this.convertRemovalDecimalsToPurchasingTokenDecimals(
@@ -1232,17 +1234,17 @@ contract Market is
    * @notice Calculates the total quantity of ERC20 tokens required to make a purchase of the specified `amount` (in
    * tonnes of carbon removals) without a transaction fee.
    * @param amount The amount of carbon removals for the purchase.
+   * @param priceMultiple The price multiple to use for the calculation.
    * @return The total quantity of ERC20 tokens required to make the purchase, excluding the fee.
    */
-  function calculateCheckoutTotalWithoutFee(uint256 amount)
-    external
-    view
-    returns (uint256)
-  {
+  function calculateCheckoutTotalWithoutFee(
+    uint256 amount,
+    uint256 priceMultiple
+  ) external view returns (uint256) {
     _validateCertificateAmount({amount: amount});
     return
       this.convertRemovalDecimalsToPurchasingTokenDecimals(
-        amount.mulDiv({y: _priceMultiple, denominator: 100})
+        amount.mulDiv({y: priceMultiple, denominator: 100})
       );
   }
 
@@ -1252,11 +1254,9 @@ contract Market is
    * @param purchaseTotal The total number of `_purchasingToken`s used for a purchase.
    * @return Amount for the certificate, excluding the transaction fee.
    */
-  function calculateCertificateAmountFromPurchaseTotal(uint256 purchaseTotal)
-    external
-    view
-    returns (uint256)
-  {
+  function calculateCertificateAmountFromPurchaseTotal(
+    uint256 purchaseTotal
+  ) external view returns (uint256) {
     return
       this
         .convertPurchasingTokenDecimalsToRemovalDecimals({
@@ -1351,11 +1351,9 @@ contract Market is
    * @param supplier The supplier for which to return listed removal IDs.
    * @return removalIds The listed removal IDs for this supplier.
    */
-  function getRemovalIdsForSupplier(address supplier)
-    external
-    view
-    returns (uint256[] memory removalIds)
-  {
+  function getRemovalIdsForSupplier(
+    address supplier
+  ) external view returns (uint256[] memory removalIds) {
     RemovalsByYear storage removalsByYear = _listedSupply[supplier];
     return removalsByYear.getAllRemovalIds();
   }
@@ -1367,7 +1365,9 @@ contract Market is
    * @param interfaceId The interface ID to check for support.
    * @return Returns true if the interface is supported, false otherwise.
    */
-  function supportsInterface(bytes4 interfaceId)
+  function supportsInterface(
+    bytes4 interfaceId
+  )
     public
     view
     virtual
@@ -1554,7 +1554,10 @@ contract Market is
    * @return amounts An array of amounts being allocated from each corresponding removal token.
    * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
-  function _allocateRemovals(address purchaser, uint256 certificateAmount)
+  function _allocateRemovals(
+    address purchaser,
+    uint256 certificateAmount
+  )
     internal
     returns (
       uint256 countOfRemovalsAllocated,
@@ -1674,9 +1677,10 @@ contract Market is
    * @param removalId The ID of the removal to remove.
    * @param supplierAddress The address of the supplier of the removal.
    */
-  function _removeActiveRemoval(uint256 removalId, address supplierAddress)
-    internal
-  {
+  function _removeActiveRemoval(
+    uint256 removalId,
+    address supplierAddress
+  ) internal {
     _listedSupply[supplierAddress].remove({removalId: removalId});
     if (_listedSupply[supplierAddress].isEmpty()) {
       _removeActiveSupplier({supplierToRemove: supplierAddress});
@@ -1698,7 +1702,7 @@ contract Market is
   function _validateCertificateAmount(uint256 amount) internal view {
     uint256 feeDecimals = 2;
     uint256 safeDecimals = 18 - _purchasingToken.decimals() + feeDecimals;
-    if (amount == 0 || (amount % (10**(safeDecimals))) != 0) {
+    if (amount == 0 || (amount % (10 ** (safeDecimals))) != 0) {
       revert InvalidCertificateAmount({amount: amount});
     }
   }
@@ -1769,10 +1773,10 @@ contract Market is
    * @param certificateAmount The number of carbon removals being purchased.
    * @param availableSupply The amount of listed supply in the market.
    */
-  function _validateSupply(uint256 certificateAmount, uint256 availableSupply)
-    internal
-    pure
-  {
+  function _validateSupply(
+    uint256 certificateAmount,
+    uint256 availableSupply
+  ) internal pure {
     if (certificateAmount > availableSupply) {
       revert InsufficientSupply();
     }
@@ -1786,7 +1790,9 @@ contract Market is
    * @return amounts An array of amounts being allocated from each corresponding removal token.
    * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
-  function _allocateSupply(uint256 amount)
+  function _allocateSupply(
+    uint256 amount
+  )
     private
     returns (
       uint256 countOfRemovalsAllocated,
