@@ -1,44 +1,67 @@
 /* solhint-disable contract-name-camelcase, func-name-mixedcase */
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.17;
-import {UInt256ArrayLib, AddressArrayLib} from "../contracts/ArrayLib.sol";
-import {Global} from "../test/helpers/test.sol";
+import {
+  UInt256ArrayLibHarness,
+  AddressArrayLibHarness
+} from "@/test/helpers/array-lib.sol";
+import "@/test/helpers/test.sol";
+import {UInt256ArrayLib} from "@/contracts/ArrayLib.sol";
 
 contract UInt256ArrayLib_slice is Global {
+  using UInt256ArrayLib for uint256[];
+
+  UInt256ArrayLibHarness private _harness;
+
+  function setUp() external {
+    _harness = new UInt256ArrayLibHarness();
+  }
+
   function test() external {
-    assertEq(this.standardImplementation(), this.libraryImplementation());
+    assertEq(
+      _harness.sliceUsingStandardImplementation({
+        values: new uint256[](100).fill(1),
+        from: 0,
+        to: 50
+      }),
+      _harness.slice({values: new uint256[](100).fill(1), from: 0, to: 50})
+    );
   }
 
   function test_gas() external {
     uint256 gasLeft = gasleft();
-    this.standardImplementation();
+    _harness.slice({values: new uint256[](100).fill(1), from: 0, to: 50});
     uint256 standardGasUsed = gasLeft - gasleft();
     gasLeft = gasleft();
-    this.libraryImplementation();
+    _harness.sliceUsingStandardImplementation({
+      values: new uint256[](100).fill(1),
+      from: 0,
+      to: 50
+    });
     uint256 libraryGasUsed = gasLeft - gasleft();
     assertLt({a: libraryGasUsed, b: standardGasUsed});
   }
 
   /** @dev Calling slice() with invalid params (e.g., out of bounds access or non-sequential indices) should revert */
-  // function test_revertsWhenArgumentsAreInvalid() external {
-  //   uint256[] memory values = _getTestValues();
-  //   _validateOriginalValues({values: values});
-  //   uint8[3][2] memory expectedSliceResults = [
-  //     [0, uint8(values.length + 1), 0], // `to` is greater than the size of `values`
-  //     [1, 0, 0] // `to` is less than `from`
-  //   ];
-  //   uint256[] memory empty = new uint256[](0);
-  //   for (uint256 i = 0; i < expectedSliceResults.length; ++i) {
-  //     vm.expectRevert();
-  //     uint256[] memory sliceResult = values.slice({
-  //       from: expectedSliceResults[i][0],
-  //       to: expectedSliceResults[i][1]
-  //     });
-  //     assertEq({a: sliceResult.length, b: expectedSliceResults[i][2]});
-  //     assertEq({a: sliceResult, b: empty});
-  //     _validateOriginalValues({values: values});
-  //   }
-  // }
+  function test_revertsWhenArgumentsAreInvalid() external {
+    uint256[] memory values = _getTestValues();
+    _validateOriginalValues({values: values});
+    uint8[3][2] memory expectedSliceResults = [
+      [0, uint8(values.length + 1), 0], // `to` is greater than the size of `values`
+      [1, 0, 0] // `to` is less than `from`
+    ];
+    uint256[] memory empty = new uint256[](0);
+    for (uint256 i = 0; i < expectedSliceResults.length; ++i) {
+      vm.expectRevert();
+      uint256[] memory sliceResult = values.slice({
+        from: expectedSliceResults[i][0],
+        to: expectedSliceResults[i][1]
+      });
+      assertEq({a: sliceResult.length, b: expectedSliceResults[i][2]});
+      assertEq({a: sliceResult, b: empty});
+      _validateOriginalValues({values: values});
+    }
+  }
 
   /** @dev Calling slice() on a memory array should not mutate its value or size */
   function test_shouldNotChangeOriginalArrayValuesOrSize() external {
@@ -65,11 +88,7 @@ contract UInt256ArrayLib_slice is Global {
       uint256 from = result[0];
       uint256 to = result[1];
       uint256 length = result[2];
-      slicedArrays[i] = UInt256ArrayLib.slice({
-        values: values,
-        from: from,
-        to: to
-      });
+      slicedArrays[i] = _harness.slice({values: values, from: from, to: to});
       assertEq({a: slicedArrays[i].length, b: length});
       _validateOriginalValues({values: values});
     }
@@ -89,37 +108,22 @@ contract UInt256ArrayLib_slice is Global {
     assertEq({a: slicedArrays[9], b: empty});
   }
 
-  function test_reference() external view {
-    this.standardImplementation();
-  }
-
-  function test_library() external view {
-    this.libraryImplementation();
-  }
-
-  function standardImplementation()
-    external
-    pure
-    returns (uint256[] memory values)
-  {
-    uint256[] memory normal = UInt256ArrayLib.fill({
-      values: new uint256[](100),
-      value: 1
-    });
-    uint256 to = 50;
-    values = new uint256[](to);
-    unchecked {
-      for (uint256 i = 0; i < to; ++i) values[i] = normal[0 + i];
-    }
-  }
-
-  function libraryImplementation() external pure returns (uint256[] memory) {
-    return
-      UInt256ArrayLib.slice({
-        values: UInt256ArrayLib.fill({values: new uint256[](100), value: 1}),
+  function test_reference() external {
+    assertEq(
+      _harness.sliceUsingStandardImplementation({
+        values: new uint256[](100).fill(1),
         from: 0,
         to: 50
-      });
+      }),
+      new uint256[](50).fill(1)
+    );
+  }
+
+  function test_library() external {
+    assertEq(
+      _harness.slice({values: new uint256[](100).fill(1), from: 0, to: 50}),
+      new uint256[](50).fill(1)
+    );
   }
 
   /** @dev Used to validate that the original memory array has not mutated */
@@ -169,37 +173,92 @@ contract UInt256ArrayLib_slice is Global {
 contract UInt256ArrayLib_fill is Global {
   using UInt256ArrayLib for uint256[];
 
+  UInt256ArrayLibHarness private _harness;
+
+  function setUp() external {
+    _harness = new UInt256ArrayLibHarness();
+  }
+
   function test() external {
-    assertEq(this.standardImplementation(), this.libraryImplementation());
+    assertEq(
+      _harness.fillUsingStandardImplementation({
+        values: new uint256[](100),
+        value: 1
+      }),
+      _harness.fill({values: new uint256[](100), value: 1})
+    );
   }
 
-  function test_reference() external view {
-    this.standardImplementation();
+  function test_gas() external {
+    uint256 gasLeft = gasleft();
+    _harness.fill({values: new uint256[](100), value: 1});
+    uint256 standardGasUsed = gasLeft - gasleft();
+    gasLeft = gasleft();
+    _harness.fillUsingStandardImplementation({
+      values: new uint256[](100),
+      value: 1
+    });
+    uint256 libraryGasUsed = gasLeft - gasleft();
+    assertLt({a: libraryGasUsed, b: standardGasUsed});
   }
 
-  function test_library() external view {
-    this.libraryImplementation();
+  function test_reference() external {
+    assertEq(
+      _harness.fillUsingStandardImplementation({
+        values: new uint256[](5),
+        value: 1
+      }),
+      _toMemoryArray(
+        [uint256(1), uint256(1), uint256(1), uint256(1), uint256(1)]
+      )
+    );
   }
 
-  function standardImplementation()
-    external
-    pure
-    returns (uint256[] memory values)
-  {
-    values = new uint256[](100);
-    for (uint256 i = 0; i < values.length; ++i) values[i] = 1;
+  function test_library() external {
+    assertEq(
+      _harness.fill({values: new uint256[](5), value: 1}),
+      _toMemoryArray(
+        [uint256(1), uint256(1), uint256(1), uint256(1), uint256(1)]
+      )
+    );
   }
 
-  function libraryImplementation() external pure returns (uint256[] memory) {
-    return UInt256ArrayLib.fill({values: new uint256[](100), value: 1});
+  function _toMemoryArray(
+    uint256[5] memory values
+  ) private pure returns (uint256[] memory arr) {
+    arr = new uint256[](values.length);
+    for (uint256 i = 0; i < values.length; ++i) arr[i] = values[i];
   }
 }
 
 contract UInt256ArrayLib_sum is Global {
   using UInt256ArrayLib for uint256[];
 
+  UInt256ArrayLibHarness private _harness;
+
+  function setUp() external {
+    _harness = new UInt256ArrayLibHarness();
+  }
+
   function test() external {
-    assertEq(this.standardImplementation(), this.libraryImplementation());
+    assertEq(
+      _harness.sumUsingStandardImplementation({
+        values: new uint256[](100).fill(1)
+      }),
+      _harness.sum({values: new uint256[](100).fill(1)})
+    );
+  }
+
+  function test_gas() external {
+    uint256 gasLeft = gasleft();
+    _harness.sum({values: new uint256[](100).fill(1)});
+    uint256 standardGasUsed = gasLeft - gasleft();
+    gasLeft = gasleft();
+    _harness.sumUsingStandardImplementation({
+      values: new uint256[](100).fill(1)
+    });
+    uint256 libraryGasUsed = gasLeft - gasleft();
+    assertLt({a: libraryGasUsed, b: standardGasUsed});
   }
 
   function test_library_overflow() external {
@@ -207,91 +266,78 @@ contract UInt256ArrayLib_sum is Global {
     values[0] = type(uint256).max;
     values[1] = 1;
     vm.expectRevert();
-    UInt256ArrayLib.sum({values: values});
+    _harness.sum({values: values});
   }
 
-  function test_library() external view {
-    this.libraryImplementation();
+  function test_library() external {
+    assertEq(_harness.sum({values: new uint256[](100).fill(1)}), 100);
   }
 
-  function test_reference() external view {
-    this.standardImplementation();
-  }
-
-  function standardImplementation() external pure returns (uint256 total) {
-    uint256[] memory normal = UInt256ArrayLib.fill({
-      values: new uint256[](100),
-      value: 1
-    });
-    for (uint256 i = 0; i < normal.length; ++i) total += normal[i];
-  }
-
-  function libraryImplementation() external pure returns (uint256) {
-    return
-      UInt256ArrayLib.sum({
-        values: UInt256ArrayLib.fill({values: new uint256[](100), value: 1})
-      });
+  function test_reference() external {
+    assertEq(
+      _harness.sumUsingStandardImplementation({
+        values: new uint256[](100).fill(1)
+      }),
+      100
+    );
   }
 }
 
 contract AddressArrayLib_fill is Global {
-  using AddressArrayLib for address[];
+  AddressArrayLibHarness private _harness;
+
+  function setUp() external {
+    _harness = new AddressArrayLibHarness();
+  }
 
   function test() external {
     assertEq(
-      this.standardImplementation(),
-      AddressArrayLib.fill({values: new address[](100), value: address(0)})
+      _harness.fillUsingStandardImplementation({
+        values: new address[](100),
+        value: address(0)
+      }),
+      _harness.fill({values: new address[](100), value: address(0)})
     );
   }
 
+  function test_gas() external {
+    uint256 gasLeft = gasleft();
+    _harness.fill({values: new address[](100), value: address(0)});
+    uint256 standardGasUsed = gasLeft - gasleft();
+    gasLeft = gasleft();
+    _harness.fillUsingStandardImplementation({
+      values: new address[](100),
+      value: address(0)
+    });
+    uint256 libraryGasUsed = gasLeft - gasleft();
+    assertLt({a: libraryGasUsed, b: standardGasUsed});
+  }
+
   function test_reference() external {
-    this.standardImplementation();
+    assertEq(
+      _harness.fillUsingStandardImplementation({
+        values: new address[](5),
+        value: address(0)
+      }),
+      _toMemoryArray(
+        [address(0), address(0), address(0), address(0), address(0)]
+      )
+    );
   }
 
   function test_library() external {
-    AddressArrayLib.fill({values: new address[](100), value: address(0)});
+    assertEq(
+      _harness.fill({values: new address[](5), value: address(0)}),
+      _toMemoryArray(
+        [address(0), address(0), address(0), address(0), address(0)]
+      )
+    );
   }
 
-  function standardImplementation() external returns (address[] memory values) {
-    values = new address[](100);
-    for (uint256 i = 0; i < values.length; ++i) values[i] = address(0);
-  }
-
-  function libraryImplementation() external returns (address[] memory) {
-    address[] memory filled = AddressArrayLib.fill({
-      values: new address[](100),
-      value: address(0)
-    });
-    return filled;
-  }
-}
-
-contract TestLib is Global {
-  // function setUp() external {
-  //   fixture = new UsingForLibraryUser();
-  // }
-
-  function test() external {
-    this.useLib();
-  }
-
-  function useLib() external returns (address[] memory) {
-    address[] memory filled = AddressArrayLib.fill({
-      values: new address[](100),
-      value: address(0)
-    });
-    return filled;
+  function _toMemoryArray(
+    address[5] memory values
+  ) private pure returns (address[] memory arr) {
+    arr = new address[](values.length);
+    for (uint256 i = 0; i < values.length; ++i) arr[i] = values[i];
   }
 }
-
-// contract UsingForLibraryUser {
-//   using AddressArrayLib for address[];
-
-//   function useLib() external returns (address[] memory) {
-//     address[] memory filled = AddressArrayLib.fill({
-//       values: new address[](100),
-//       value: address(0)
-//     });
-//     return filled;
-//   }
-// }
