@@ -1783,6 +1783,136 @@ contract Market is
   }
 
   /**
+   * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase, drawing only from
+   * specified vintage years and allocating from the earliest available supply first.
+   * @param amount The number of carbon removals to purchase.
+   * @param validVintagesPriorityOrder An array of the vintage years from which to draw supply, in order of the priority from which to draw supply.
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @return ids An array of the removal IDs being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   */
+  function _allocateSupplyFromSpecificVintages(
+    uint256 amount,
+    uint256[] memory validVintagesPriorityOrder
+  )
+    private
+    returns (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    )
+  {
+    uint256 remainingAmountToFill = amount;
+    uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
+      account: address(this)
+    });
+    ids = new uint256[](countOfListedRemovals);
+    amounts = new uint256[](countOfListedRemovals);
+    suppliers = new address[](countOfListedRemovals);
+    countOfRemovalsAllocated = 0;
+
+    // TODO do we need to sort the vintages first? assume they are coming in in priority order?
+    for (
+      uint256 yearIndex = 0;
+      yearIndex < validVintagesPriorityOrder.length;
+      ++yearIndex
+    ) {
+      uint256 year = validVintagesPriorityOrder[yearIndex];
+      uint256 totalCountRemovalIdsFromYear = 0;
+      // move through suppliers and create local data structure of suppliers that have this vintage
+      // sum the total number of removal ids from this vintage as you go
+      (
+        address[] memory allSupplierAddresses,
+        uint256 countOfAllSuppliers
+      ) = _getAllSuppliers();
+      address[] memory suppliersWithThisVintage = new address[](
+        countOfAllSuppliers
+      );
+      uint256 countOfSuppliersWithThisVintage = 0;
+      for (
+        uint256 supplierIndex = 0;
+        supplierIndex < countOfAllSuppliers;
+        ++supplierIndex
+      ) {
+        // get count of removal tokens for this vintage for this supplier
+        uint256 countOfRemovalIdsFromSupplierFromYear = _listedSupply[
+          allSupplierAddresses[supplierIndex]
+        ].getCountForYear({year: year});
+        if (countOfRemovalIdsFromSupplierFromYear > 0) {
+          totalCountRemovalIdsFromYear += countOfRemovalIdsFromSupplierFromYear;
+          suppliersWithThisVintage[
+            countOfSuppliersWithThisVintage
+          ] = allSupplierAddresses[supplierIndex];
+          countOfSuppliersWithThisVintage += 1;
+        }
+      }
+      // now we have an array of suppliers that have this vintage, and a count of the total number of removal ids from this vintage
+      for (
+        uint256 removalIdIndex = 0;
+        removalIdIndex < totalCountRemovalIdsFromYear;
+        removalIdIndex++
+      ) {
+        // fulfillment works in almost the same way as it does in our existing algorithm
+        // suppliers get removed from the temporary data structure when they run out of this year's removals
+        // they get removed from the global data structure if the using up of this year's removals was also the using up of their last overall removal
+        // on each iteration, we handle the cases of
+        // 1) order is fulfilled by removal amount -- cleanup, BREAK, we're done
+        // 2) order uses up full removal and still has some left to fulfill -- continue in loop
+      } // end for removalIDIndex
+    } // end for year
+
+    for (uint256 i = 0; i < countOfListedRemovals; ++i) {
+      uint256 removalId = _listedSupply[_currentSupplierAddress]
+        .getNextRemovalForSale();
+      uint256 removalAmount = _removal.balanceOf({
+        account: address(this),
+        id: removalId
+      });
+      if (remainingAmountToFill < removalAmount) {
+        /**
+         * The order is complete, not fully using up this removal, don't increment currentSupplierAddress,
+         * don't check about removing active supplier.
+         */
+        ids[countOfRemovalsAllocated] = removalId;
+        amounts[countOfRemovalsAllocated] = remainingAmountToFill;
+        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
+        remainingAmountToFill = 0;
+      } else {
+        /**
+         * We will use up this removal while completing the order, move on to next one.
+         */
+        ids[countOfRemovalsAllocated] = removalId;
+        amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
+        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
+        remainingAmountToFill -= removalAmount;
+        address currentSupplierBeforeRemovingActiveRemoval = _currentSupplierAddress;
+        _removeActiveRemoval({
+          removalId: removalId,
+          supplierAddress: _currentSupplierAddress
+        });
+        if (
+          /**
+           * Only if the current supplier address was not already incremented via removing that supplier's last active
+           * removal, and there is more than one remaining supplier with supply, increment the current supplier address.
+           */
+          currentSupplierBeforeRemovingActiveRemoval ==
+          _currentSupplierAddress &&
+          _suppliers[_currentSupplierAddress].next != _currentSupplierAddress
+        ) {
+          _incrementCurrentSupplierAddress();
+        }
+      }
+      ++countOfRemovalsAllocated;
+      if (remainingAmountToFill == 0) {
+        break;
+      }
+    }
+    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+  }
+
+  /**
    * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase.
    * @param amount The number of carbon removals to purchase.
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
@@ -1944,6 +2074,24 @@ contract Market is
    */
   function _incrementCurrentSupplierAddress() private {
     _currentSupplierAddress = _suppliers[_currentSupplierAddress].next;
+  }
+
+  function _getAllSuppliers() private view returns (address[] memory, uint256) {
+    uint256 totalCountOfRemovals = _removal.numberOfTokensOwnedByAddress({
+      account: address(this)
+    });
+    uint256 countOfSuppliers = 0;
+    address[] memory suppliers = new address[](totalCountOfRemovals);
+    address currentSupplierAddress = _currentSupplierAddress;
+    for (uint256 i = 0; i < totalCountOfRemovals; ++i) {
+      suppliers[i] = currentSupplierAddress;
+      countOfSuppliers += 1;
+      currentSupplierAddress = _suppliers[currentSupplierAddress].next;
+      if (currentSupplierAddress == _currentSupplierAddress) {
+        break;
+      }
+    }
+    return (suppliers, countOfSuppliers);
   }
 
   /**
