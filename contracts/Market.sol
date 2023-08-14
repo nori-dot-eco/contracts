@@ -844,7 +844,7 @@ contract Market is
     address recipient,
     uint256 amount,
     address supplier
-  ) external whenNotPaused {
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
