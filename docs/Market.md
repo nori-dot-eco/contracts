@@ -656,7 +656,8 @@ to Nori Inc. as a market operator fee.
 
 ##### Requirements:
 
-- Can only be used when this contract is not paused.</i>
+- Can only be used when this contract is not paused.
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -691,6 +692,7 @@ any restricted ERC20 tokens owed to the supplier, and finally to Nori Inc. as a 
 ##### Requirements:
 
 - Can only be used when this contract is not paused.
+- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
 - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.</i>
 
 | Name | Type | Description |
