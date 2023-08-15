@@ -766,6 +766,7 @@ contract Market is
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
+   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
    * @param recipient The address to which the certificate will be issued.
    * @param permitOwner The address that signed the EIP2612 permit and will pay for the removals.
    * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
@@ -834,6 +835,7 @@ contract Market is
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
+   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
    * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
    * @param recipient The address to which the certificate will be issued.
    * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
