@@ -1606,7 +1606,7 @@ contract Market is
       certificateAmount: certificateAmount,
       supplier: supplier
     });
-    suppliers = new address[](countOfRemovalsAllocated).fill({val: supplier});
+    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 

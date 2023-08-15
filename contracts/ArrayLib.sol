@@ -11,12 +11,12 @@ pragma solidity =0.8.17;
 library UInt256ArrayLib {
   /**
    * @notice Fill an array.
-   * @dev Fills all of the elements of a `uint256[]` with the specified `uint256` value.
+   * @dev Fills all the elements of a `uint256[]` with the specified `uint256` value.
    *
    * ##### Equivalence:
    *
    * ```solidity
-   * for (let i = 1; i < len + 1; i++) arr[i] = val;
+   * for (let i = 1; i < len + 1; i++) filled[i] = value;
    * ```
    *
    * ##### Example usage:
@@ -25,24 +25,23 @@ library UInt256ArrayLib {
    * new uint256[](3).fill(1); // returns: [1, 1, 1]
    * ```
    * -
-   * @param from The array to fill.
-   * @param val The value to fill all the indexes of the array with.
-   * @return arr An array filled with the value of `val`.
+   * @param values The array to fill.
+   * @param value The value to fill all the indexes of the array with.
+   * @return filled An array filled with the value of `value`.
    */
-  function fill(uint256[] memory from, uint256 val)
-    internal
-    pure
-    returns (uint256[] memory arr)
-  {
-    uint256 len = from.length;
-    arr = new uint256[](len);
+  function fill(
+    uint256[] memory values,
+    uint256 value
+  ) internal pure returns (uint256[] memory filled) {
+    uint256 len = values.length;
+    filled = new uint256[](len);
     assembly {
       for {
         let i := 1
       } lt(i, add(len, 1)) {
         i := add(i, 1)
       } {
-        mstore(add(arr, mul(32, i)), val)
+        mstore(add(filled, mul(32, i)), value)
       }
     }
   }
@@ -54,7 +53,7 @@ library UInt256ArrayLib {
    * ##### Equivalence:
    *
    * ```solidity
-   * for (let i = 0; i < data.length + 1; i++) total += arr[i];
+   * for (let i = 0; i < values.length + 1; i++) total += values[i];
    * ```
    *
    * ##### Example usage:
@@ -63,13 +62,13 @@ library UInt256ArrayLib {
    * new uint256[](10).fill(1).sum(); // sum: 10
    * ```
    * -
-   * @param data The array to sum.
+   * @param values The array to sum.
    * @return total The sum total of the array.
    */
-  function sum(uint256[] memory data) internal pure returns (uint256 total) {
+  function sum(uint256[] memory values) internal pure returns (uint256 total) {
     assembly {
-      let len := mload(data)
-      let element := add(data, 32)
+      let len := mload(values)
+      let element := add(values, 32)
       for {
         let end := add(element, mul(len, 32))
       } lt(element, end) {
@@ -86,7 +85,7 @@ library UInt256ArrayLib {
 
   /**
    * @notice Slice an array.
-   * @dev Slice an array `arr` at index `from` to an index `to` (non-inclusively).
+   * @dev Slice an array `values` at index `from` to an index `to` (non-inclusively).
    *
    * ##### Equivalence:
    *
@@ -100,51 +99,35 @@ library UInt256ArrayLib {
    * new uint256[](100).fill(1).slice(0, 50); // returns: [:50]
    * ```
    * -
-   * @param arr The array to slice.
+   * @param values The array to slice.
    * @param from The starting index of the slice.
    * @param to The ending index of the slice.
-   * @return ret The sliced array.
+   * @return sliced The sliced array.
    */
   function slice(
-    uint256[] memory arr,
+    uint256[] memory values,
     uint256 from,
     uint256 to
-  ) internal pure returns (uint256[] memory ret) {
+  ) internal pure returns (uint256[] memory sliced) {
     assert(from <= to);
-    assert(to <= arr.length);
+    assert(to <= values.length);
     uint256 len;
     unchecked {
       len = to - from;
     }
-    ret = new uint256[](len);
+    sliced = new uint256[](len);
     assembly {
       for {
         let i := 1
       } lt(i, add(len, 1)) {
         i := add(i, 1)
       } {
-        mstore(add(ret, mul(32, i)), mload(add(arr, mul(32, add(from, i)))))
+        mstore(
+          add(sliced, mul(32, i)),
+          mload(add(values, mul(32, add(from, i))))
+        )
       }
     }
-  }
-
-  /**
-   * @notice Copy an array.
-   * @dev Copy an array `from` to an array `to`.
-   * @param to The array to copy to.
-   * @param from The array to copy from.
-   * @return The copied array.
-   */
-  function copy(uint256[] memory to, uint256[] memory from)
-    internal
-    pure
-    returns (uint256[] memory)
-  {
-    uint256 n = from.length;
-    unchecked {
-      for (uint256 i = 0; i < n; ++i) to[i] = from[i];
-    }
-    return to;
   }
 }
 
@@ -163,7 +146,7 @@ library AddressArrayLib {
    * ##### Equivalence:
    *
    * ```solidity
-   * for (let i = 1; i < len + 1; i++) arr[i] = val;
+   * for (let i = 1; i < len + 1; i++) filled[i] = value;
    * ```
    *
    * ##### Example usage:
@@ -172,24 +155,23 @@ library AddressArrayLib {
    * new address[](3).fill(address(0); // returns: [address(0), address(0), address(0)]
    * ```
    * -
-   * @param from The array to fill.
-   * @param val The value to fill all the indexes of the array with.
-   * @return arr An array filled with the value of `val`.
+   * @param values The array to fill.
+   * @param value The value to fill all the indexes of the array with.
+   * @return filled An array filled with the value of `value`.
    */
-  function fill(address[] memory from, address val)
-    internal
-    pure
-    returns (address[] memory arr)
-  {
-    uint256 len = from.length;
-    arr = new address[](len);
+  function fill(
+    address[] memory values,
+    address value
+  ) internal pure returns (address[] memory filled) {
+    uint256 len = values.length;
+    filled = new address[](len);
     assembly {
       for {
         let i := 1
       } lt(i, add(len, 1)) {
         i := add(i, 1)
       } {
-        mstore(add(arr, mul(32, i)), val)
+        mstore(add(filled, mul(32, i)), value)
       }
     }
   }
