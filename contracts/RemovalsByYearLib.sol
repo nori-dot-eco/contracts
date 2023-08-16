@@ -146,22 +146,18 @@ library RemovalsByYearLib {
   }
 
   /**
-   * @notice Gets the next removal in the collection for sale that comes from the specified range of years.
-   * @dev Gets the first item from the Enumerable Set that corresponds to the earliest valid year.
+   * @notice Gets the next removal in the collection for sale that comes from the specified vintage year.
+   * @dev Gets the first item from the Enumerable Set that corresponds to the specified vintage year.
    * @param collection the collection from storage.
-   * @param validYears the range of years to check, nonempty and sorted in ascending order.
+   * @param vintage the year from which to pull the removal ID.
    * @return The next removal to sell.
    */
-  function getNextRemovalForSaleOnRange(
+  function getNextRemovalForSaleSpecificVintage(
     RemovalsByYear storage collection,
-    uint256[] memory validYears
+    uint256 vintage
   ) internal view returns (uint256) {
-    // if the latest available year of the collection is less than the earliest valid year, return 0
-    if (collection.latestYear < validYears[0]) {
-      return 0;
-    }
-    // if the earliest valid year is less than the
-    return collection.yearToRemovals[collection.earliestYear].at({index: 0});
+    // TODO what does this do if there are no removals for the given vintage?
+    return collection.yearToRemovals[vintage].at({index: 0});
   }
 
   /**

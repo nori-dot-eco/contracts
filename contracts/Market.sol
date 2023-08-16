@@ -978,6 +978,68 @@ contract Market is
   }
 
   /**
+   * TODO UPDATE ME
+   * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
+   * certificate without charging a transaction fee, but allowing specification of the fee percentage that was paid
+   * off-chain.
+   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
+   * for more.
+   * The purchaser must have granted approval to this contract to authorize this market to transfer their
+   * supported ERC20 to complete the purchase. A certificate is minted in the Certificate
+   * contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
+   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be used when this contract is not paused.
+   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
+   * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
+   * @param recipient The address to which the certificate will be issued.
+   * @param purchaser The address that will pay for the removals and has granted approval to this contract
+   * to transfer their ERC20 tokens.
+   * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
+   * purchased, scaled by the price multiple.
+   * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
+   * inclusion in emitted events.
+   * @param customPriceMultiple The custom price that will be charged for this transaction.
+   */
+  function swapSpecialOrderSpecificVintages(
+    address recipient,
+    address purchaser,
+    uint256 amount,
+    uint256 customFee,
+    uint256 customPriceMultiple,
+    uint256[] memory vintages
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
+    uint256 currentPrice = _priceMultiple;
+    _priceMultiple = customPriceMultiple;
+    _validateCertificateAmount({amount: amount});
+    (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    ) = _allocateSupplyFromSpecificVintages({
+        amount: amount,
+        validVintagesPriorityOrder: vintages
+      });
+    _fulfillOrder({
+      params: FulfillOrderData({
+        chargeFee: false,
+        feePercentage: customFee,
+        certificateAmount: amount,
+        from: purchaser,
+        recipient: recipient,
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      })
+    });
+    _priceMultiple = currentPrice;
+  }
+
+  /**
    * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported
    * ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the
    * specified supplier to that certificate, without charging a transaction fee. If the specified supplier does not have
@@ -1848,66 +1910,84 @@ contract Market is
           countOfSuppliersWithThisVintage += 1;
         }
       }
-      // now we have an array of suppliers that have this vintage, and a count of the total number of removal ids from this vintage
+      // now we have an array of suppliers owning this vintage and a count of all removal ids with this vintage
+      // from here, for this year, fulfillment works in almost the same way as it does in our existing algorithm
+      // but it uses a different supplier tracking mechanism
+      uint256 localSupplierIndex = 0;
       for (
         uint256 removalIdIndex = 0;
         removalIdIndex < totalCountRemovalIdsFromYear;
         removalIdIndex++
       ) {
-        // fulfillment works in almost the same way as it does in our existing algorithm
-        // suppliers get removed from the temporary data structure when they run out of this year's removals
+        // suppliers get removed from the temporary data structure when they run out of this year's removals (address is zeroed out)
         // they get removed from the global data structure if the using up of this year's removals was also the using up of their last overall removal
-        // on each iteration, we handle the cases of
-        // 1) order is fulfilled by removal amount -- cleanup, BREAK, we're done
-        // 2) order uses up full removal and still has some left to fulfill -- continue in loop
-      } // end for removalIDIndex
-    } // end for year
+        // get the next in-vintage removal id from the current supplier index in our list of suppliers with this vintage
+        // TODO how does this function call behave if there is no removal from this supplier for this vintage? should we add a safeguard?
+        // (this is not a situation that should arise given the math we've done above, but could be worth checking)
+        address currentSupplier = suppliersWithThisVintage[localSupplierIndex];
+        uint256 removalId = _listedSupply[currentSupplier]
+          .getNextRemovalForSaleSpecificVintage({vintage: year});
 
-    for (uint256 i = 0; i < countOfListedRemovals; ++i) {
-      uint256 removalId = _listedSupply[_currentSupplierAddress]
-        .getNextRemovalForSale();
-      uint256 removalAmount = _removal.balanceOf({
-        account: address(this),
-        id: removalId
-      });
-      if (remainingAmountToFill < removalAmount) {
-        /**
-         * The order is complete, not fully using up this removal, don't increment currentSupplierAddress,
-         * don't check about removing active supplier.
-         */
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = remainingAmountToFill;
-        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
-        remainingAmountToFill = 0;
-      } else {
-        /**
-         * We will use up this removal while completing the order, move on to next one.
-         */
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
-        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
-        remainingAmountToFill -= removalAmount;
-        address currentSupplierBeforeRemovingActiveRemoval = _currentSupplierAddress;
-        _removeActiveRemoval({
-          removalId: removalId,
-          supplierAddress: _currentSupplierAddress
+        uint256 removalAmount = _removal.balanceOf({
+          account: address(this),
+          id: removalId
         });
-        if (
+        if (remainingAmountToFill < removalAmount) {
           /**
-           * Only if the current supplier address was not already incremented via removing that supplier's last active
-           * removal, and there is more than one remaining supplier with supply, increment the current supplier address.
+           * The order is complete, not fully using up this removal, don't increment any supplier address,
+           * don't check about removing active supplier.
            */
-          currentSupplierBeforeRemovingActiveRemoval ==
-          _currentSupplierAddress &&
-          _suppliers[_currentSupplierAddress].next != _currentSupplierAddress
-        ) {
-          _incrementCurrentSupplierAddress();
+          ids[countOfRemovalsAllocated] = removalId;
+          amounts[countOfRemovalsAllocated] = remainingAmountToFill;
+          suppliers[countOfRemovalsAllocated] = currentSupplier; // TODO maybe this deserves a variable assignment above
+          remainingAmountToFill = 0;
+        } else {
+          /**
+           * We will use up this removal while completing the order, move on to next one.
+           */
+          // this is where we need to advance the local supplier index if we're using up a removal from the current supplier
+          ids[countOfRemovalsAllocated] = removalId;
+          amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
+          suppliers[countOfRemovalsAllocated] = currentSupplier;
+          remainingAmountToFill -= removalAmount;
+          _removeActiveRemoval({ // this will take care of removing the supplier from the global data structure if necessary
+            removalId: removalId,
+            supplierAddress: currentSupplier
+          });
+          // if the supplier is out of removals for this vintage, they need to be removed from our local data structure
+          if (_listedSupply[currentSupplier].isEmptyForYear({year: year})) {
+            suppliersWithThisVintage[localSupplierIndex] = address(0);
+          }
+          // This is where we need to advance the local supplier index if we're using up a removal from the current supplier
+          // it's complicated because we don't know if there are maybe some empty slots in here already
+          for (
+            uint256 i = localSupplierIndex;
+            i < countOfSuppliersWithThisVintage;
+            ++i
+          ) {
+            uint256 nextIndex = (i + 1) % countOfSuppliersWithThisVintage;
+            if (suppliersWithThisVintage[nextIndex] != address(0)) {
+              localSupplierIndex = nextIndex;
+              break;
+            }
+            // if all suppliers are out of this vintage, the local supplier index simply won't advance.  shouldn't ever happen, but won't throw
+            // until perhaps the last iteration if we use up the very last removal of all the vintages' removals
+          }
         }
-      }
-      ++countOfRemovalsAllocated;
+        ++countOfRemovalsAllocated;
+        if (remainingAmountToFill == 0) {
+          break;
+        }
+      } // end for removalIDIndex
+      // if we've fulfilled the order, break out of the years loop, otherwise, move on to fulfilling from the next year
       if (remainingAmountToFill == 0) {
         break;
       }
+    } // end for year
+    // at this point, we have looked through all of the valid vintage years
+    // if we have fulfilled enough supply, we can return, otherwise we revert with not enough stock
+    if (remainingAmountToFill > 0) {
+      revert InsufficientSupply();
     }
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
