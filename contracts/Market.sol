@@ -766,6 +766,7 @@ contract Market is
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
+   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
    * @param recipient The address to which the certificate will be issued.
    * @param permitOwner The address that signed the EIP2612 permit and will pay for the removals.
    * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
@@ -785,7 +786,7 @@ contract Market is
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external whenNotPaused {
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
@@ -793,7 +794,6 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
-        purchaser: permitOwner,
         certificateAmount: amount,
         supplier: supplier
       });
@@ -835,6 +835,7 @@ contract Market is
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
+   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
    * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
    * @param recipient The address to which the certificate will be issued.
    * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
@@ -845,7 +846,7 @@ contract Market is
     address recipient,
     uint256 amount,
     address supplier
-  ) external whenNotPaused {
+  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     _validateCertificateAmount({amount: amount});
     (
       uint256 countOfRemovalsAllocated,
@@ -853,7 +854,6 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
-        purchaser: _msgSender(),
         certificateAmount: amount,
         supplier: supplier
       });
@@ -1014,7 +1014,6 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
-        purchaser: purchaser,
         certificateAmount: amount,
         supplier: supplier
       });
@@ -1077,7 +1076,6 @@ contract Market is
       uint256[] memory amounts,
       address[] memory suppliers
     ) = _allocateRemovalsFromSupplier({
-        purchaser: purchaser,
         certificateAmount: amount,
         supplier: supplier
       });
@@ -1585,7 +1583,6 @@ contract Market is
   /**
    * @notice Allocates removals from a specific supplier to be fulfilled.
    * @dev This function is responsible for validating and allocating the supply from a specific supplier.
-   * @param purchaser The address of the purchaser.
    * @param certificateAmount The total amount of NRTs for the certificate.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
@@ -1594,7 +1591,6 @@ contract Market is
    * @return suppliers The address of the supplier who owns each corresponding removal token.
    */
   function _allocateRemovalsFromSupplier(
-    address purchaser,
     uint256 certificateAmount,
     address supplier
   )
@@ -1606,11 +1602,6 @@ contract Market is
       address[] memory suppliers
     )
   {
-    _validatePrioritySupply({
-      purchaser: purchaser,
-      certificateAmount: certificateAmount,
-      availableSupply: _removal.getMarketBalance()
-    });
     (countOfRemovalsAllocated, ids, amounts) = _allocateSupplySingleSupplier({
       certificateAmount: certificateAmount,
       supplier: supplier
