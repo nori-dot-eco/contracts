@@ -970,6 +970,7 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
   uint256 customFee = 5;
   uint256 certificateAmount = 1 ether;
   uint256 customPriceMultiple = 1800; // $18.00 -- test below the default price multiple of $20.00
+  uint256[] vintages = new uint256[](0);
 
   function setUp() external {
     _removalIds = _seedRemovals({
@@ -996,7 +997,8 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
       owner,
       certificateAmount,
       customFee,
-      customPriceMultiple
+      customPriceMultiple,
+      vintages
     );
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -1042,6 +1044,126 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
       (certificateAmount * customPriceMultiple) / 100 / 2 // divide to account for price multiple scale and then holdback percentage of 50%
     );
     assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
+  }
+}
+
+contract Checkout_swapWithoutFeeSpecialOrder_specificVintages is Checkout {
+  uint256 ownerPrivateKey = 0xA11CE;
+  address owner = vm.addr(ownerPrivateKey);
+  uint256 customFee = 5;
+  uint256 certificateAmount = 2.5 ether;
+  uint256[] vintages = [2019, 2020];
+  uint256 _priceMultiple = 2000;
+
+  function setUp() external {
+    /**
+     * Supplier 1: 2018 vintage
+     * Supplier 2: 2019 and 2020 vintage
+     * Supplier 3: 2019 vintage
+     * All removals are 1 tonne
+     * Certificate amount is 2.5 tonnes
+     * Fulfillment should result in all of supplier2's removals being used, and .5 tonne of supplier3's removals
+     */
+    _removalIds.push(
+      _seedAndListRemoval({
+        supplier: _namedAccounts.supplier,
+        amount: 1 ether,
+        vintage: 2018
+      })
+    );
+    _removalIds.push(
+      _seedAndListRemoval({
+        supplier: _namedAccounts.supplier2,
+        amount: 1 ether,
+        vintage: 2019
+      })
+    );
+    _removalIds.push(
+      _seedAndListRemoval({
+        supplier: _namedAccounts.supplier2,
+        amount: 1 ether,
+        vintage: 2020
+      })
+    );
+    _removalIds.push(
+      _seedAndListRemoval({
+        supplier: _namedAccounts.supplier3,
+        amount: 1 ether,
+        vintage: 2019
+      })
+    );
+    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: certificateAmount,
+      priceMultiple: _priceMultiple
+    });
+    _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: owner});
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(owner, abi.encode(purchaseAmount));
+    vm.prank(owner);
+    _bpNori.approve(address(_market), purchaseAmount);
+  }
+
+  function test_basicFulfillment() external {
+    vm.prank(owner);
+    vm.recordLogs();
+    _market.swapWithoutFeeSpecialOrder(
+      owner,
+      owner,
+      certificateAmount,
+      customFee,
+      _priceMultiple,
+      vintages
+    );
+
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    // In this test scenario, the `CreateCertificate` event index is 18 because multiple suppliers are getting
+    // paid so we use the event selector to find the event index.
+    uint256 createCertificateEventIndex;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
+        createCertificateEventIndex = i;
+        break;
+      }
+    }
+    assertEq(
+      entries[createCertificateEventIndex].topics[0],
+      CREATE_CERTIFICATE_EVENT_SELECTOR
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[1],
+      bytes32(uint256(uint160(address(owner))))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[2],
+      bytes32(uint256(uint256(0)))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[3],
+      bytes32(uint256(uint160(address(_bpNori))))
+    );
+    (
+      address from,
+      uint256 eventCertificateAmount,
+      uint256[] memory removalIds,
+      uint256[] memory removalAmounts,
+      uint256 priceMultiple,
+      uint256 noriFeePercentage
+    ) = abi.decode(
+        entries[createCertificateEventIndex].data,
+        (address, uint256, uint256[], uint256[], uint256, uint256)
+      );
+    assertEq(from, address(_removal));
+    assertEq(eventCertificateAmount, certificateAmount);
+    assertEq(priceMultiple, _priceMultiple);
+    assertEq(noriFeePercentage, customFee);
+    assertEq(removalIds.length, 3);
+    assertEq(removalAmounts.length, 3);
+    assertEq(removalIds[0], _removalIds[1]);
+    assertEq(removalIds[1], _removalIds[2]);
+    assertEq(removalIds[2], _removalIds[3]);
+    assertEq(removalAmounts[0], 1 ether);
+    assertEq(removalAmounts[1], 1 ether);
+    assertEq(removalAmounts[2], 0.5 ether);
   }
 }
 

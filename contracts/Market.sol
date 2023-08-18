@@ -944,23 +944,40 @@ contract Market is
    * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
    * inclusion in emitted events.
    * @param customPriceMultiple The custom price that will be charged for this transaction.
+   * @param vintages The valid set of vintages from which to fulfill this order, empty if any vintage is valid.
    */
   function swapWithoutFeeSpecialOrder(
     address recipient,
     address purchaser,
     uint256 amount,
     uint256 customFee,
-    uint256 customPriceMultiple
+    uint256 customPriceMultiple,
+    uint256[] memory vintages
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     uint256 currentPrice = _priceMultiple;
     _priceMultiple = customPriceMultiple;
     _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
+    uint256 countOfRemovalsAllocated;
+    uint256[] memory ids;
+    uint256[] memory amounts;
+    address[] memory suppliers;
+    if (vintages.length > 0) {
+      (
+        countOfRemovalsAllocated,
+        ids,
+        amounts,
+        suppliers
+      ) = _allocateRemovalsSpecificVintages({
+        purchaser: purchaser,
+        certificateAmount: amount,
+        vintages: vintages
+      });
+    } else {
+      (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateRemovals({
+        purchaser: purchaser,
+        certificateAmount: amount
+      });
+    }
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
@@ -1611,6 +1628,52 @@ contract Market is
   }
 
   /**
+   * @notice Allocates removals to fulfill an order from the specified vintages.
+   * @dev This function is responsible for validating and allocating the supply to fulfill an order.
+   * @param purchaser The address of the purchaser.
+   * @param certificateAmount The total amount for the certificate.
+   * @param vintages A set of valid vintages from which to allocate removals.
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @return ids An array of the removal IDs being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   */
+  function _allocateRemovalsSpecificVintages(
+    address purchaser,
+    uint256 certificateAmount,
+    uint256[] memory vintages
+  )
+    internal
+    returns (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    )
+  {
+    uint256 availableSupply = _removal.getMarketBalance();
+    _validateSupply({
+      certificateAmount: certificateAmount,
+      availableSupply: availableSupply
+    });
+    _validatePrioritySupply({
+      purchaser: purchaser,
+      certificateAmount: certificateAmount,
+      availableSupply: availableSupply
+    });
+    (
+      countOfRemovalsAllocated,
+      ids,
+      amounts,
+      suppliers
+    ) = _allocateSupplySpecificVintages({
+      amount: certificateAmount,
+      vintages: vintages
+    });
+    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+  }
+
+  /**
    * @notice Permits the transfer of an amount of tokens.
    * @dev This function is responsible permitting the transfer of ERC20 tokens.
    * @param owner The owner of the tokens being transferred.
@@ -1927,6 +1990,83 @@ contract Market is
       }
     }
     return (countOfRemovalsAllocated, ids, amounts);
+  }
+
+  /**
+   * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase drawing only from
+   * the vintages specified.
+   * @param amount The number of carbon removals to purchase.
+   * @param vintages The vintages from which to purchase carbon removals.
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @return ids An array of the removal IDs being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   */
+  function _allocateSupplySpecificVintages(
+    uint256 amount,
+    uint256[] memory vintages
+  )
+    private
+    returns (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    )
+  {
+    uint256 remainingAmountToFill = amount;
+    uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
+      account: address(this)
+    });
+    ids = new uint256[](countOfListedRemovals);
+    amounts = new uint256[](countOfListedRemovals);
+    suppliers = new address[](countOfListedRemovals);
+    countOfRemovalsAllocated = 0;
+    for (uint256 i = 0; i < countOfListedRemovals; ++i) {
+      uint256 removalId = _listedSupply[_currentSupplierAddress]
+        .getNextRemovalForSaleFromVintages({vintages: vintages});
+      // if removalId is 0 here, this supplier doesn't have any removals from the vintages requested
+      // at that point we should simply move on to the next supplier
+      if (removalId == 0) {
+        _incrementCurrentSupplierAddress();
+        continue;
+      }
+      uint256 removalAmount = _removal.balanceOf({
+        account: address(this),
+        id: removalId
+      });
+      if (remainingAmountToFill < removalAmount) {
+        /**
+         * The order is complete, not fully using up this removal, don't check about removing active supplier.
+         */
+        ids[countOfRemovalsAllocated] = removalId;
+        amounts[countOfRemovalsAllocated] = remainingAmountToFill;
+        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
+        remainingAmountToFill = 0;
+      } else {
+        /**
+         * We will use up this removal while completing the order, move on to next one.
+         */
+        ids[countOfRemovalsAllocated] = removalId;
+        amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
+        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
+        remainingAmountToFill -= removalAmount;
+        /**
+        This may remove the supplier from the active suppliers and increment the current supplier address
+        * which is behavior we want in the case that the supplier is out of supply, but otherwise we do not
+        * interact with the global _currentSupplierAddress in this fulfillment flow.
+        */
+        _removeActiveRemoval({
+          removalId: removalId,
+          supplierAddress: _currentSupplierAddress
+        });
+      }
+      ++countOfRemovalsAllocated;
+      if (remainingAmountToFill == 0) {
+        break;
+      }
+    }
+    return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
 
   /**

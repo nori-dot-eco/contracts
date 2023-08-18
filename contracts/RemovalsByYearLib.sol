@@ -35,7 +35,7 @@ library RemovalsByYearLib {
   using AddressArrayLib for address[];
   using UInt256ArrayLib for uint256[];
 
-  uint256 private constant _DEFAULT_EARLIEST_YEAR = 2**256 - 1;
+  uint256 private constant _DEFAULT_EARLIEST_YEAR = 2 ** 256 - 1;
   uint256 private constant _DEFAULT_LATEST_YEAR = 0;
 
   /**
@@ -44,9 +44,10 @@ library RemovalsByYearLib {
    * @param collection the collection from storage.
    * @param removalId a new removal to insert.
    */
-  function insert(RemovalsByYear storage collection, uint256 removalId)
-    internal
-  {
+  function insert(
+    RemovalsByYear storage collection,
+    uint256 removalId
+  ) internal {
     uint256 year = RemovalIdLib.vintage({removalId: removalId});
     if (isEmpty({collection: collection})) {
       collection.earliestYear = year;
@@ -65,9 +66,10 @@ library RemovalsByYearLib {
    * @param collection the collection to search through.
    * @param removalId the removal to remove.
    */
-  function remove(RemovalsByYear storage collection, uint256 removalId)
-    internal
-  {
+  function remove(
+    RemovalsByYear storage collection,
+    uint256 removalId
+  ) internal {
     uint256 year = RemovalIdLib.vintage({removalId: removalId});
     if (!collection.yearToRemovals[year].remove({value: removalId})) {
       revert RemovalNotFoundInYear({removalId: removalId, year: year});
@@ -112,11 +114,9 @@ library RemovalsByYearLib {
    * @param collection the collection from storage.
    * @return True if empty, false otherwise.
    */
-  function isEmpty(RemovalsByYear storage collection)
-    internal
-    view
-    returns (bool)
-  {
+  function isEmpty(
+    RemovalsByYear storage collection
+  ) internal view returns (bool) {
     return collection.latestYear == _DEFAULT_LATEST_YEAR;
   }
 
@@ -126,11 +126,10 @@ library RemovalsByYearLib {
    * @param year the year to check.
    * @return True if empty, false otherwise.
    */
-  function isEmptyForYear(RemovalsByYear storage collection, uint256 year)
-    internal
-    view
-    returns (bool)
-  {
+  function isEmptyForYear(
+    RemovalsByYear storage collection,
+    uint256 year
+  ) internal view returns (bool) {
     return getCountForYear({collection: collection, year: year}) == 0;
   }
 
@@ -140,12 +139,31 @@ library RemovalsByYearLib {
    * @param collection the collection from storage.
    * @return The next removal to sell.
    */
-  function getNextRemovalForSale(RemovalsByYear storage collection)
-    internal
-    view
-    returns (uint256)
-  {
+  function getNextRemovalForSale(
+    RemovalsByYear storage collection
+  ) internal view returns (uint256) {
     return collection.yearToRemovals[collection.earliestYear].at({index: 0});
+  }
+
+  /**
+   * @notice Gets the next removal in the collection for sale that comes from any of the specified vintage years.
+   * If no removal exists on the valid range, 0 is returned.
+   * @param collection the collection from storage.
+   * @param vintages the valid set of years from which to pull the removal ID.
+   * @return The next removal to sell, or 0 if no removal exists on that vintage range.
+   */
+  function getNextRemovalForSaleFromVintages(
+    RemovalsByYear storage collection,
+    uint256[] memory vintages
+  ) internal view returns (uint256) {
+    uint256 vintage;
+    for (uint256 i = 0; i < vintages.length; ++i) {
+      vintage = vintages[i];
+      if (collection.yearToRemovals[vintage].length() > 0) {
+        return collection.yearToRemovals[vintage].at({index: 0});
+      }
+    }
+    return 0;
   }
 
   /**
@@ -155,11 +173,10 @@ library RemovalsByYearLib {
    * @param year the year to check.
    * @return uint256 the size of the collection.
    */
-  function getCountForYear(RemovalsByYear storage collection, uint256 year)
-    internal
-    view
-    returns (uint256)
-  {
+  function getCountForYear(
+    RemovalsByYear storage collection,
+    uint256 year
+  ) internal view returns (uint256) {
     return collection.yearToRemovals[year].length();
   }
 
@@ -168,11 +185,9 @@ library RemovalsByYearLib {
    * @param collection the collection from storage.
    * @return removalIds an array of all removal IDs in the collection.
    */
-  function getAllRemovalIds(RemovalsByYear storage collection)
-    internal
-    view
-    returns (uint256[] memory removalIds)
-  {
+  function getAllRemovalIds(
+    RemovalsByYear storage collection
+  ) internal view returns (uint256[] memory removalIds) {
     uint256 latestYear = collection.latestYear;
     EnumerableSetUpgradeable.UintSet storage removalIdSet;
     uint256 totalNumberOfRemovals = 0;
