@@ -320,7 +320,15 @@ contract Checkout_buyingFromTenRemovals_withoutFee is Checkout {
 
   function test() external {
     vm.prank(_owner);
-    _market.swapWithoutFee(_owner, _owner, _expectedCertificateAmount);
+    _market.swapWithoutFeeSpecialOrder({
+      recipient: _owner,
+      purchaser: _owner,
+      amount: _expectedCertificateAmount,
+      customFee: _market.getNoriFeePercentage(),
+      customPriceMultiple: _market.getPriceMultiple(),
+      supplier: address(0),
+      vintages: new uint256[](0)
+    });
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     assertEq(
@@ -605,11 +613,15 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_withoutFee is Checkout {
 
   function test() external {
     vm.prank(_owner);
-    _market.swapFromSupplierWithoutFee({
+
+    _market.swapWithoutFeeSpecialOrder({
       recipient: _owner,
       purchaser: _owner,
       amount: _expectedCertificateAmount,
-      supplier: _namedAccounts.supplier
+      customFee: _market.getNoriFeePercentage(),
+      customPriceMultiple: _market.getPriceMultiple(),
+      supplier: _namedAccounts.supplier,
+      vintages: new uint256[](0)
     });
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
@@ -992,14 +1004,15 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
   function test() external {
     vm.prank(owner);
     vm.recordLogs();
-    _market.swapWithoutFeeSpecialOrder(
-      owner,
-      owner,
-      certificateAmount,
-      customFee,
-      customPriceMultiple,
-      vintages
-    );
+    _market.swapWithoutFeeSpecialOrder({
+      recipient: owner,
+      purchaser: owner,
+      amount: certificateAmount,
+      customFee: customFee,
+      customPriceMultiple: customPriceMultiple,
+      supplier: address(0),
+      vintages: vintages
+    });
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
     uint256 createCertificateEventIndex = 8;
@@ -1041,7 +1054,7 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
 
     assertEq(
       _bpNori.balanceOf(_namedAccounts.supplier),
-      (certificateAmount * customPriceMultiple) / 100 / 2 // divide to account for price multiple scale and then holdback percentage of 50%
+      (certificateAmount * customPriceMultiple) / 100 / 2 // divide to account for price multiple scale and holdback percentage of 50%
     );
     assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
   }
@@ -1058,7 +1071,7 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificVintages is Checkout {
   function setUp() external {
     /**
      * Supplier 1: 2018 vintage
-     * Supplier 2: 2019 and 2020 vintage
+     * Supplier 2: 2018, 2019 and 2020 vintage
      * Supplier 3: 2019 vintage
      * All removals are 1 tonne
      * Certificate amount is 2.5 tonnes
@@ -1067,6 +1080,13 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificVintages is Checkout {
     _removalIds.push(
       _seedAndListRemoval({
         supplier: _namedAccounts.supplier,
+        amount: 1 ether,
+        vintage: 2018
+      })
+    );
+    _removalIds.push(
+      _seedAndListRemoval({
+        supplier: _namedAccounts.supplier2,
         amount: 1 ether,
         vintage: 2018
       })
@@ -1112,6 +1132,7 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificVintages is Checkout {
       certificateAmount,
       customFee,
       _priceMultiple,
+      address(0),
       vintages
     );
 
@@ -1158,16 +1179,16 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificVintages is Checkout {
     assertEq(noriFeePercentage, customFee);
     assertEq(removalIds.length, 3);
     assertEq(removalAmounts.length, 3);
-    assertEq(removalIds[0], _removalIds[1]);
-    assertEq(removalIds[1], _removalIds[2]);
-    assertEq(removalIds[2], _removalIds[3]);
+    assertEq(removalIds[0], _removalIds[2]);
+    assertEq(removalIds[1], _removalIds[3]);
+    assertEq(removalIds[2], _removalIds[4]);
     assertEq(removalAmounts[0], 1 ether);
     assertEq(removalAmounts[1], 1 ether);
     assertEq(removalAmounts[2], 0.5 ether);
   }
 }
 
-contract Checkout_swapFromSupplierWithoutFeeSpecialOrder is Checkout {
+contract Checkout_swapWithoutFeeSpecialOrder_specificSupplier is Checkout {
   uint256 ownerPrivateKey = 0xA11CE;
   address owner = vm.addr(ownerPrivateKey);
   uint256 customFee = 5;
@@ -1194,14 +1215,15 @@ contract Checkout_swapFromSupplierWithoutFeeSpecialOrder is Checkout {
   function test() external {
     vm.prank(owner);
     vm.recordLogs();
-    _market.swapFromSupplierWithoutFeeSpecialOrder(
-      owner,
-      owner,
-      certificateAmount,
-      _namedAccounts.supplier,
-      customFee,
-      customPriceMultiple
-    );
+    _market.swapWithoutFeeSpecialOrder({
+      recipient: owner,
+      purchaser: owner,
+      amount: certificateAmount,
+      customFee: customFee,
+      customPriceMultiple: customPriceMultiple,
+      supplier: _namedAccounts.supplier,
+      vintages: new uint256[](0)
+    });
     Vm.Log[] memory entries = vm.getRecordedLogs();
     uint256 createCertificateEventIndex = 8;
     assertEq(
@@ -1241,7 +1263,7 @@ contract Checkout_swapFromSupplierWithoutFeeSpecialOrder is Checkout {
     assertEq(removalAmounts[0], certificateAmount);
     assertEq(
       _bpNori.balanceOf(_namedAccounts.supplier),
-      (certificateAmount * customPriceMultiple) / 100 / 2 // divide to account for price multiple scale and then holdback percentage of 50%
+      (certificateAmount * customPriceMultiple) / 100 / 2 // divide to account for price multiple scale and holdback percentage of 50%
     );
     assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
   }

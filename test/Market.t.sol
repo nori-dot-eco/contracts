@@ -520,7 +520,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
   }
 }
 
-contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
+contract Market_swapWithoutFeeSpecialOrder_emits_and_skips_transfer_when_transferring_wrong_erc20_to_rNori is
   UpgradeableMisconfiguredMarket
 {
   uint8 holdbackPercentage = 10;
@@ -569,7 +569,15 @@ contract Market_swapWithoutFee_emits_and_skips_transfer_when_transferring_wrong_
   function test() external {
     vm.prank(owner);
     vm.recordLogs();
-    _market.swapWithoutFee(owner, owner, certificateAmount);
+    _market.swapWithoutFeeSpecialOrder({
+      recipient: owner,
+      purchaser: owner,
+      amount: certificateAmount,
+      customFee: _market.getNoriFeePercentage(),
+      customPriceMultiple: _market.getPriceMultiple(),
+      supplier: address(0),
+      vintages: new uint256[](0)
+    });
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool containsTransferSkippedEventSelector = false;
     for (uint256 i = 0; i < entries.length; ++i) {
@@ -1875,17 +1883,30 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
         0
       );
 
+      uint256 noriFeePercentage = _market.getNoriFeePercentage();
+      uint256 priceMultiple = _market.getPriceMultiple();
       vm.prank(_namedAccounts.admin);
       vm.expectRevert(revertData);
-      _market.swapWithoutFee(owner, owner, numberOfNRTsToPurchase);
+      _market.swapWithoutFeeSpecialOrder({
+        recipient: owner,
+        purchaser: owner,
+        amount: numberOfNRTsToPurchase,
+        customFee: noriFeePercentage,
+        customPriceMultiple: priceMultiple,
+        supplier: address(0),
+        vintages: new uint256[](0)
+      });
 
       vm.expectRevert(revertData);
-      _market.swapFromSupplierWithoutFee(
-        owner,
-        owner,
-        numberOfNRTsToPurchase,
-        _namedAccounts.supplier
-      );
+      _market.swapWithoutFeeSpecialOrder({
+        recipient: owner,
+        purchaser: owner,
+        amount: numberOfNRTsToPurchase,
+        customFee: noriFeePercentage,
+        customPriceMultiple: priceMultiple,
+        supplier: _namedAccounts.supplier,
+        vintages: new uint256[](0)
+      });
     }
   }
 }

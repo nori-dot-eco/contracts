@@ -874,54 +874,6 @@ contract Market is
 
   /**
    * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
-   * certificate without charging a transaction fee.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
-   * for more.
-   * The purchaser must have granted approval to this contract to authorize this market to transfer their
-   * supported ERC20 to complete the purchase. A certificate is minted in the Certificate
-   * contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
-   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
-   * @param recipient The address to which the certificate will be issued.
-   * @param purchaser The address that will pay for the removals and has granted approval to this contract
-   * to transfer their ERC20 tokens.
-   * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
-   * purchased, scaled by the price multiple.
-   */
-  function swapWithoutFee(
-    address recipient,
-    address purchaser,
-    uint256 amount
-  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
-    _fulfillOrder({
-      params: FulfillOrderData({
-        chargeFee: false,
-        feePercentage: _noriFeePercentage,
-        certificateAmount: amount,
-        from: purchaser,
-        recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      })
-    });
-  }
-
-  /**
-   * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
    * certificate without charging a transaction fee, but allowing specification of the fee percentage that was paid
    * off-chain.
    * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
@@ -944,6 +896,8 @@ contract Market is
    * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
    * inclusion in emitted events.
    * @param customPriceMultiple The custom price that will be charged for this transaction.
+   * @param supplier The only supplier address from which to purchase carbon removals in this transaction, or
+   * zero address if any supplier is valid.
    * @param vintages The valid set of vintages from which to fulfill this order, empty if any vintage is valid.
    */
   function swapWithoutFeeSpecialOrder(
@@ -952,6 +906,7 @@ contract Market is
     uint256 amount,
     uint256 customFee,
     uint256 customPriceMultiple,
+    address supplier,
     uint256[] memory vintages
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     uint256 currentPrice = _priceMultiple;
@@ -961,7 +916,8 @@ contract Market is
     uint256[] memory ids;
     uint256[] memory amounts;
     address[] memory suppliers;
-    if (vintages.length > 0) {
+    // case vintage-specific fulfillment only
+    if (vintages.length > 0 && supplier == address(0)) {
       (
         countOfRemovalsAllocated,
         ids,
@@ -972,130 +928,37 @@ contract Market is
         certificateAmount: amount,
         vintages: vintages
       });
-    } else {
+      // case supplier-specific fulfillment only
+    } else if (vintages.length == 0 && supplier != address(0)) {
+      (
+        countOfRemovalsAllocated,
+        ids,
+        amounts,
+        suppliers
+      ) = _allocateRemovalsFromSupplier({
+        certificateAmount: amount,
+        supplier: supplier
+      });
+      // case vintage-specific fulfillment and supplier-specific fulfillment
+    } else if (vintages.length > 0 && supplier != address(0)) {
+      (
+        countOfRemovalsAllocated,
+        ids,
+        amounts,
+        suppliers
+      ) = _allocateRemovalsFromSupplierSpecificVintages({
+        certificateAmount: amount,
+        vintages: vintages,
+        supplier: supplier
+      });
+    }
+    // case no restrictions on fulfillment
+    else {
       (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateRemovals({
         purchaser: purchaser,
         certificateAmount: amount
       });
     }
-    _fulfillOrder({
-      params: FulfillOrderData({
-        chargeFee: false,
-        feePercentage: customFee,
-        certificateAmount: amount,
-        from: purchaser,
-        recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      })
-    });
-    _priceMultiple = currentPrice;
-  }
-
-  /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported
-   * ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the
-   * specified supplier to that certificate, without charging a transaction fee. If the specified supplier does not have
-   * enough carbon removals for sale to fulfill the order the transaction will revert.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
-   * more. The purchaser must have granted approval to this contract to authorize this market to transfer their
-   * supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
-   * to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
-   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * - Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
-   * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
-   * @param recipient The address to which the certificate will be issued.
-   * @param purchaser The address that will pay for the removals and has granted approval to this contract
-   * to transfer their ERC20 tokens.
-   * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
-   * purchased, scaled by the price multiple.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   */
-  function swapFromSupplierWithoutFee(
-    address recipient,
-    address purchaser,
-    uint256 amount,
-    address supplier
-  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovalsFromSupplier({
-        certificateAmount: amount,
-        supplier: supplier
-      });
-    _fulfillOrder({
-      params: FulfillOrderData({
-        chargeFee: false,
-        feePercentage: _noriFeePercentage,
-        certificateAmount: amount,
-        from: purchaser,
-        recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      })
-    });
-  }
-
-  /**
-   * @notice Exchanges supported ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens
-   * supplied only from the specified supplier to that certificate, without charging a transaction fee, but allowing
-   * specification of the fee percentage that was paid off-chain.. If the specified supplier does not have enough carbon
-   * removals for sale to fulfill the order the transaction will revert.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
-   * more. The purchaser must have granted approval to this contract to authorize this market to transfer their
-   * supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
-   * to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
-   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * - Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
-   * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
-   * @param recipient The address to which the certificate will be issued.
-   * @param purchaser The address that will pay for the removals and has granted approval to this contract
-   * to transfer their ERC20 tokens.
-   * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
-   * purchased, scaled by the price multiple.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
-   * inclusion in emitted events.
-   * @param customPriceMultiple The custom price to be used for this transaction.
-   */
-  function swapFromSupplierWithoutFeeSpecialOrder(
-    address recipient,
-    address purchaser,
-    uint256 amount,
-    address supplier,
-    uint256 customFee,
-    uint256 customPriceMultiple
-  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    uint256 currentPrice = _priceMultiple;
-    _priceMultiple = customPriceMultiple;
-    _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovalsFromSupplier({
-        certificateAmount: amount,
-        supplier: supplier
-      });
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
@@ -1628,6 +1491,43 @@ contract Market is
   }
 
   /**
+   * @notice Allocates removals from a specific supplier to be fulfilled.
+   * @dev This function is responsible for validating and allocating the supply from a specific supplier.
+   * @param certificateAmount The total amount of NRTs for the certificate.
+   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
+   * @param vintages A set of valid vintages from which to allocate removals.
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @return ids An array of the removal IDs being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   */
+  function _allocateRemovalsFromSupplierSpecificVintages(
+    uint256 certificateAmount,
+    address supplier,
+    uint256[] memory vintages
+  )
+    internal
+    returns (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    )
+  {
+    (
+      countOfRemovalsAllocated,
+      ids,
+      amounts
+    ) = _allocateSupplySingleSupplierSpecificVintages({
+      amount: certificateAmount,
+      supplier: supplier,
+      vintages: vintages
+    });
+    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
+    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+  }
+
+  /**
    * @notice Allocates removals to fulfill an order from the specified vintages.
    * @dev This function is responsible for validating and allocating the supply to fulfill an order.
    * @param purchaser The address of the purchaser.
@@ -2067,6 +1967,91 @@ contract Market is
       }
     }
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
+  }
+
+  /**
+   * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase drawing only from
+   * the specific supplier and vintages specified.
+   * @param amount The number of carbon removals to purchase.
+   * @param supplier The supplier from which to purchase carbon removals.
+   * @param vintages The vintages from which to purchase carbon removals.
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @return ids An array of the removal IDs being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   */
+  function _allocateSupplySingleSupplierSpecificVintages(
+    uint256 amount,
+    address supplier,
+    uint256[] memory vintages
+  )
+    private
+    returns (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts
+    )
+  {
+    RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
+    uint256 countOfSuppliersListedRemovals = 0;
+    for (
+      uint256 vintage = supplierRemovalQueue.earliestYear;
+      vintage <= supplierRemovalQueue.latestYear;
+      ++vintage
+    ) {
+      countOfSuppliersListedRemovals += supplierRemovalQueue
+        .yearToRemovals[vintage]
+        .length();
+    }
+    if (countOfSuppliersListedRemovals == 0) {
+      revert InsufficientSupply();
+    }
+    ids = new uint256[](countOfSuppliersListedRemovals);
+    amounts = new uint256[](countOfSuppliersListedRemovals);
+    uint256 remainingAmountToFill = amount;
+
+    for (uint256 i = 0; i < countOfSuppliersListedRemovals; ++i) {
+      uint256 removalId = supplierRemovalQueue
+        .getNextRemovalForSaleFromVintages({vintages: vintages});
+      // if removalId is 0 here, this supplier doesn't have any more removals from the valid vintages requested,
+      // so we can end the loop
+      if (removalId == 0) {
+        break;
+      }
+      uint256 removalAmount = _removal.balanceOf({
+        account: address(this),
+        id: removalId
+      });
+      if (remainingAmountToFill < removalAmount) {
+        /**
+         * The order is complete, not fully using up this removal, don't check about removing active supplier.
+         */
+        ids[countOfRemovalsAllocated] = removalId;
+        amounts[countOfRemovalsAllocated] = remainingAmountToFill;
+        remainingAmountToFill = 0;
+      } else {
+        /**
+         * We will use up this removal while completing the order, move on to next one.
+         */
+        ids[countOfRemovalsAllocated] = removalId;
+        amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
+        remainingAmountToFill -= removalAmount;
+        supplierRemovalQueue.remove({removalId: removalId});
+        /**
+         * If the supplier is out of supply, remove them from the active suppliers.
+         */
+        if (supplierRemovalQueue.isEmpty()) {
+          _removeActiveSupplier({supplierToRemove: supplier});
+        }
+      }
+      ++countOfRemovalsAllocated;
+      if (remainingAmountToFill == 0) {
+        break;
+      }
+    }
+    if (remainingAmountToFill > 0) {
+      revert InsufficientSupply();
+    }
+    return (countOfRemovalsAllocated, ids, amounts);
   }
 
   /**
