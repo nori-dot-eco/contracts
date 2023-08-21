@@ -752,127 +752,6 @@ contract Market is
   }
 
   /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange
-   * IERC20WithPermit tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only
-   * from the specified supplier to that certificate. If the specified supplier does not have enough carbon removals
-   * for sale to fulfill the order the transaction will revert.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
-   * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's IERC20WithPermit to complete the purchase. A certificate is issued by the Certificate
-   * contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal,
-   * to the RestrictedNORI contract that controls any restricted ERC20 owed to the supplier, and finally
-   * to Nori Inc. as a market operator fee.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * @param recipient The address to which the certificate will be issued.
-   * @param permitOwner The address that signed the EIP2612 permit and will pay for the removals.
-   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
-   * purchased and the fee paid to Nori.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   * @param deadline The EIP2612 permit deadline in Unix time.
-   * @param v The recovery identifier for the permit's secp256k1 signature.
-   * @param r The r value for the permit's secp256k1 signature.
-   * @param s The s value for the permit's secp256k1 signature.
-   */
-  function swapFromSupplier(
-    address recipient,
-    address permitOwner,
-    uint256 amount,
-    address supplier,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovalsFromSupplier({
-        certificateAmount: amount,
-        supplier: supplier
-      });
-    _permit({
-      owner: permitOwner,
-      amount: this.calculateCheckoutTotal({amount: amount}),
-      deadline: deadline,
-      v: v,
-      r: r,
-      s: s
-    });
-    _fulfillOrder({
-      params: FulfillOrderData({
-        chargeFee: true,
-        feePercentage: _noriFeePercentage,
-        certificateAmount: amount,
-        from: permitOwner,
-        recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      })
-    });
-  }
-
-  /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange
-   * ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only
-   * from the specified supplier to that certificate. If the specified supplier does not have enough carbon removals
-   * for sale to fulfill the order the transaction will revert.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
-   * for more.
-   * The sender must have already granted approval to this contract in order to transfer their ERC20 tokens to
-   * complete the purchase. A certificate is issued by the Certificate contract to the specified recipient and the
-   * ERC20 tokens are distributed to the supplier of the carbon removal, to the RestrictedNORI contract that controls
-   * any restricted ERC20 tokens owed to the supplier, and finally to Nori Inc. as a market operator fee.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
-   * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
-   * purchased and the fee paid to Nori.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   */
-  function swapFromSupplier(
-    address recipient,
-    uint256 amount,
-    address supplier
-  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovalsFromSupplier({
-        certificateAmount: amount,
-        supplier: supplier
-      });
-    _fulfillOrder({
-      params: FulfillOrderData({
-        chargeFee: true,
-        feePercentage: _noriFeePercentage,
-        certificateAmount: amount,
-        from: _msgSender(),
-        recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      })
-    });
-  }
-
-  /**
    * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
    * certificate without charging a transaction fee, but allowing specification of the fee percentage that was paid
    * off-chain.
@@ -893,9 +772,9 @@ contract Market is
    * to transfer their ERC20 tokens.
    * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
    * purchased, scaled by the price multiple.
-   * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
-   * inclusion in emitted events.
-   * @param customPriceMultiple The custom price that will be charged for this transaction.
+   * @param customFee The fee percentage that was paid to Nori off chain, as an integer, specified here
+   * for inclusion in emitted events.
+   * @param customPriceMultiple The price that will be charged for this transaction.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction, or
    * zero address if any supplier is valid.
    * @param vintages The valid set of vintages from which to fulfill this order, empty if any vintage is valid.

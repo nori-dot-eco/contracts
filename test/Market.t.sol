@@ -1831,6 +1831,7 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
 
   function test() external {
     uint256 ownerPrivateKey = 0xA11CE;
+    uint256 noriFeePercentage = _market.getNoriFeePercentage();
     uint256 priceMultiple = _market.getPriceMultiple();
     owner = vm.addr(ownerPrivateKey);
 
@@ -1865,26 +1866,16 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
       _market.swap(owner, owner, numberOfNRTsToPurchase, 0, 0, 0, 0);
 
       vm.expectRevert(revertData);
-      _market.swapFromSupplier(
-        owner,
-        numberOfNRTsToPurchase,
-        _namedAccounts.supplier
-      );
+      _market.swapWithoutFeeSpecialOrder({
+        recipient: owner,
+        purchaser: owner,
+        amount: numberOfNRTsToPurchase,
+        customFee: noriFeePercentage,
+        customPriceMultiple: priceMultiple,
+        supplier: _namedAccounts.supplier,
+        vintages: new uint256[](0)
+      });
 
-      vm.expectRevert(revertData);
-      _market.swapFromSupplier(
-        owner,
-        owner,
-        numberOfNRTsToPurchase,
-        _namedAccounts.supplier,
-        0,
-        0,
-        0,
-        0
-      );
-
-      uint256 noriFeePercentage = _market.getNoriFeePercentage();
-      uint256 priceMultiple = _market.getPriceMultiple();
       vm.prank(_namedAccounts.admin);
       vm.expectRevert(revertData);
       _market.swapWithoutFeeSpecialOrder({

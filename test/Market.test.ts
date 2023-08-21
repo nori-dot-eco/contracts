@@ -1137,7 +1137,7 @@ describe('Market', () => {
 });
 describe('purchasing from a specified supplier', () => {
   it('should revert when purchasing supply from a specific supplier who does not have enough supply', async () => {
-    const { bpNori, market } = await setupTest({
+    const { bpNori, market, feePercentage } = await setupTest({
       userFixtures: {
         supplier: {
           removalDataToList: {
@@ -1166,25 +1166,18 @@ describe('purchasing from a specified supplier', () => {
     const purchaseAmount = formatTokenAmount(30); // enough total supply, not enough from specific supplier
     const value = await market.calculateCheckoutTotal(purchaseAmount);
     const { admin } = hre.namedSigners;
-    const { v, r, s } = await admin.permit({
-      verifyingContract: bpNori,
-      spender: market.address,
-      value,
-    });
+    await bpNori.connect(admin).approve(market.address, value);
     await expect(
       market
         .connect(admin)
-        [
-          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](
+        .swapWithoutFeeSpecialOrder(
           admin.address,
           admin.address,
           purchaseAmount,
+          feePercentage,
+          100,
           hre.namedAccounts.supplier,
-          MaxUint256,
-          v,
-          r,
-          s
+          []
         )
     ).to.be.revertedWith('InsufficientSupply()');
   });
@@ -1215,28 +1208,21 @@ describe('purchasing from a specified supplier', () => {
         },
       },
     });
-    const purchaseAmount = formatTokenAmount(30); // enough total supply, but not enough from specific supplier
+    const purchaseAmount = formatTokenAmount(30);
     const value = await market.calculateCheckoutTotal(purchaseAmount);
     const { admin } = hre.namedSigners;
-    const { v, r, s } = await admin.permit({
-      verifyingContract: bpNori,
-      spender: market.address,
-      value,
-    });
+    await bpNori.connect(admin).approve(market.address, value);
     await expect(
       market
         .connect(admin)
-        [
-          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](
+        .swapWithoutFeeSpecialOrder(
           admin.address,
           admin.address,
           purchaseAmount,
+          feePercentage,
+          100,
           hre.namedAccounts.investor2,
-          MaxUint256,
-          v,
-          r,
-          s
+          []
         )
     ).to.be.revertedWith('InsufficientSupply()');
   });

@@ -396,117 +396,10 @@ contract Checkout_buyingFromTenRemovals_singleSupplier is Checkout {
     _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: _owner});
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
-    vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
-    _certificate.ownerOf(_certificateTokenId);
-    vm.prank(_owner);
-    _signedPermit = _signatureUtils.generatePermit(
-      ownerPrivateKey,
-      address(_market),
-      _purchaseAmount,
-      1 days,
-      _bpNori
-    );
-    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    _assertExpectedBalances(address(_certificate), 0, false, 0);
-    assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
-    assertEq(
-      _certificate.getPurchaseAmount(_certificateTokenId),
-      0,
-      "Certificate balance is wrong"
-    );
-  }
-
-  function test() external {
-    vm.prank(_owner);
-    _market.swapFromSupplier({
-      recipient: _owner,
-      permitOwner: _owner,
-      amount: _expectedCertificateAmount,
-      supplier: _namedAccounts.supplier,
-      deadline: _signedPermit.permit.deadline,
-      v: _signedPermit.v,
-      r: _signedPermit.r,
-      s: _signedPermit.s
-    });
-    _assertExpectedBalances(address(_market), 0, false, 0);
-    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    assertEq(
-      _removal.balanceOfBatch(
-        new address[](_removalIds.length).fill(address(_certificate)),
-        _removalIds
-      ),
-      new uint256[](_removalIds.length).fill(1 ether),
-      "Expected the certificate to own the removals"
-    );
-    assertEq(
-      _removal.numberOfTokensOwnedByAddress(address(_certificate)),
-      _removalIds.length,
-      "Expected the number removals held by the certificate to be equal to the number of removal IDs"
-    );
-    for (uint256 i = 0; i < 10; i++) {
-      assertContains(
-        _removalIds,
-        _removal.getOwnedTokenIds(address(_certificate))[i],
-        "Expected the certificate to hold the removal"
-      );
-    }
-    assertEq(
-      _certificate.getPurchaseAmount(_certificateTokenId),
-      _expectedCertificateAmount,
-      "Certificate balance is wrong"
-    );
-    assertEq(
-      _certificate.ownerOf(_certificateTokenId),
-      _owner,
-      "The wrong owner has the certificate"
-    );
-  }
-}
-
-contract Checkout_buyingFromTenRemovals_singleSupplier_byApproval is Checkout {
-  uint256 private _expectedCertificateAmount;
-  uint256 private _purchaseAmount;
-  address private _owner;
-  SignedPermit private _signedPermit;
-
-  function setUp() external {
-    _removalIds = _seedRemovals({
-      to: _namedAccounts.supplier,
-      count: 10,
-      list: true
-    });
-    _expectedCertificateAmount = 10 ether;
-    _purchaseAmount = _market.calculateCheckoutTotal(
-      _expectedCertificateAmount
-    );
-    assertEq(
-      _removal.balanceOfBatch(
-        new address[](_removalIds.length).fill(address(_market)),
-        _removalIds
-      ),
-      new uint256[](_removalIds.length).fill(1 ether),
-      "Expected the market to own the removals"
-    );
-    assertEq(_removal.getMarketBalance(), 10 ether);
-    assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 10);
-    assertEq(_expectedCertificateAmount, 10 ether);
-    uint256 ownerPrivateKey = 0xA11CE;
-    _owner = vm.addr(ownerPrivateKey);
-    _market.grantRole({role: _market.MARKET_ADMIN_ROLE(), account: _owner});
-    vm.prank(_namedAccounts.admin);
-    _bpNori.deposit(_owner, abi.encode(_purchaseAmount));
     vm.prank(_owner);
     _bpNori.approve(address(_market), MAX_INT);
     vm.expectRevert(IERC721AUpgradeable.OwnerQueryForNonexistentToken.selector);
     _certificate.ownerOf(_certificateTokenId);
-    vm.prank(_owner);
-    _signedPermit = _signatureUtils.generatePermit(
-      ownerPrivateKey,
-      address(_market),
-      _purchaseAmount,
-      1 days,
-      _bpNori
-    );
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
@@ -519,15 +412,14 @@ contract Checkout_buyingFromTenRemovals_singleSupplier_byApproval is Checkout {
 
   function test() external {
     vm.prank(_owner);
-    _market.swapFromSupplier({
+    _market.swapWithoutFeeSpecialOrder({
       recipient: _owner,
-      permitOwner: _owner,
+      purchaser: _owner,
       amount: _expectedCertificateAmount,
+      customFee: _market.getNoriFeePercentage(),
+      customPriceMultiple: _market.getPriceMultiple(),
       supplier: _namedAccounts.supplier,
-      deadline: _signedPermit.permit.deadline,
-      v: _signedPermit.v,
-      r: _signedPermit.r,
-      s: _signedPermit.s
+      vintages: new uint256[](0)
     });
     _assertExpectedBalances(address(_market), 0, false, 0);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
