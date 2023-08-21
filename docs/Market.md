@@ -636,105 +636,10 @@ to Nori Inc. as a market operator fee.
 | amount | uint256 | The total amount of Removals to purchase. |
 
 
-### swapFromSupplier
-
-```solidity
-function swapFromSupplier(address recipient, address permitOwner, uint256 amount, address supplier, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
-```
-
-An overloaded version of `swap` that additionally accepts a supplier address and will exchange
-IERC20WithPermit tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only
-from the specified supplier to that certificate. If the specified supplier does not have enough carbon removals
-for sale to fulfill the order the transaction will revert.
-
-<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
-The message sender must present a valid permit to this contract to temporarily authorize this market
-to transfer the sender's IERC20WithPermit to complete the purchase. A certificate is issued by the Certificate
-contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal,
-to the RestrictedNORI contract that controls any restricted ERC20 owed to the supplier, and finally
-to Nori Inc. as a market operator fee.
-
-##### Requirements:
-
-- Can only be used when this contract is not paused.
-- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| recipient | address | The address to which the certificate will be issued. |
-| permitOwner | address | The address that signed the EIP2612 permit and will pay for the removals. |
-| amount | uint256 | The total purchase amount in ERC20 tokens. This is the combined total price of the removals being purchased and the fee paid to Nori. |
-| supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
-| deadline | uint256 | The EIP2612 permit deadline in Unix time. |
-| v | uint8 | The recovery identifier for the permit's secp256k1 signature. |
-| r | bytes32 | The r value for the permit's secp256k1 signature. |
-| s | bytes32 | The s value for the permit's secp256k1 signature. |
-
-
-### swapFromSupplier
-
-```solidity
-function swapFromSupplier(address recipient, uint256 amount, address supplier) external
-```
-
-An overloaded version of `swap` that additionally accepts a supplier address and will exchange
-ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only
-from the specified supplier to that certificate. If the specified supplier does not have enough carbon removals
-for sale to fulfill the order the transaction will revert.
-
-<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
-for more.
-The sender must have already granted approval to this contract in order to transfer their ERC20 tokens to
-complete the purchase. A certificate is issued by the Certificate contract to the specified recipient and the
-ERC20 tokens are distributed to the supplier of the carbon removal, to the RestrictedNORI contract that controls
-any restricted ERC20 tokens owed to the supplier, and finally to Nori Inc. as a market operator fee.
-
-##### Requirements:
-
-- Can only be used when this contract is not paused.
-- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-- Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| recipient | address | The address to which the certificate will be issued. |
-| amount | uint256 | The total purchase amount in ERC20 tokens. This is the combined total price of the removals being purchased and the fee paid to Nori. |
-| supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
-
-
-### swapWithoutFee
-
-```solidity
-function swapWithoutFee(address recipient, address purchaser, uint256 amount) external
-```
-
-Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
-certificate without charging a transaction fee.
-
-<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
-for more.
-The purchaser must have granted approval to this contract to authorize this market to transfer their
-supported ERC20 to complete the purchase. A certificate is minted in the Certificate
-contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
-potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
-
-##### Requirements:
-
-- Can only be used when this contract is not paused.
-- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-- Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| recipient | address | The address to which the certificate will be issued. |
-| purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
-| amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
-
-
 ### swapWithoutFeeSpecialOrder
 
 ```solidity
-function swapWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, uint256 customFee, uint256 customPriceMultiple) external
+function swapWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, uint256 customFee, uint256 customPriceMultiple, address supplier, uint256[] vintages) external
 ```
 
 Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
@@ -759,74 +664,10 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 | recipient | address | The address to which the certificate will be issued. |
 | purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
-| customFee | uint256 | The custom fee percentage that was paid to Nori, as an integer, specified here for inclusion in emitted events. |
-| customPriceMultiple | uint256 | The custom price that will be charged for this transaction. |
-
-
-### swapFromSupplierWithoutFee
-
-```solidity
-function swapFromSupplierWithoutFee(address recipient, address purchaser, uint256 amount, address supplier) external
-```
-
-An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported
-ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the
-specified supplier to that certificate, without charging a transaction fee. If the specified supplier does not have
-enough carbon removals for sale to fulfill the order the transaction will revert.
-
-<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
-more. The purchaser must have granted approval to this contract to authorize this market to transfer their
-supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
-to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
-potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
-
-##### Requirements:
-
-- Can only be used when this contract is not paused.
-- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-- Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
-- Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| recipient | address | The address to which the certificate will be issued. |
-| purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
-| amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
-| supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
-
-
-### swapFromSupplierWithoutFeeSpecialOrder
-
-```solidity
-function swapFromSupplierWithoutFeeSpecialOrder(address recipient, address purchaser, uint256 amount, address supplier, uint256 customFee, uint256 customPriceMultiple) external
-```
-
-Exchanges supported ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens
-supplied only from the specified supplier to that certificate, without charging a transaction fee, but allowing
-specification of the fee percentage that was paid off-chain.. If the specified supplier does not have enough carbon
-removals for sale to fulfill the order the transaction will revert.
-
-<i>See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
-more. The purchaser must have granted approval to this contract to authorize this market to transfer their
-supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
-to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
-potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
-
-##### Requirements:
-
-- Can only be used when this contract is not paused.
-- Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-- Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
-- Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| recipient | address | The address to which the certificate will be issued. |
-| purchaser | address | The address that will pay for the removals and has granted approval to this contract to transfer their ERC20 tokens. |
-| amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
-| supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
-| customFee | uint256 | The custom fee percentage that was paid to Nori, as an integer, specified here for inclusion in emitted events. |
-| customPriceMultiple | uint256 | The custom price to be used for this transaction. |
+| customFee | uint256 | The fee percentage that was paid to Nori off chain, as an integer, specified here for inclusion in emitted events. |
+| customPriceMultiple | uint256 | The price that will be charged for this transaction. |
+| supplier | address | The only supplier address from which to purchase carbon removals in this transaction, or zero address if any supplier is valid. |
+| vintages | uint256[] | The valid set of vintages from which to fulfill this order, empty if any vintage is valid. |
 
 
 ### withdraw
@@ -1243,6 +1084,52 @@ Allocates removals from a specific supplier to be fulfilled.
 | ---- | ---- | ----------- |
 | certificateAmount | uint256 | The total amount of NRTs for the certificate. |
 | supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| countOfRemovalsAllocated | uint256 | The number of distinct removal IDs used to fulfill this order. |
+| ids | uint256[] | An array of the removal IDs being drawn from to fulfill this order. |
+| amounts | uint256[] | An array of amounts being allocated from each corresponding removal token. |
+| suppliers | address[] | The address of the supplier who owns each corresponding removal token. |
+
+### _allocateRemovalsFromSupplierSpecificVintages
+
+```solidity
+function _allocateRemovalsFromSupplierSpecificVintages(uint256 certificateAmount, address supplier, uint256[] vintages) internal returns (uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers)
+```
+
+Allocates removals from a specific supplier to be fulfilled.
+
+<i>This function is responsible for validating and allocating the supply from a specific supplier.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| certificateAmount | uint256 | The total amount of NRTs for the certificate. |
+| supplier | address | The only supplier address from which to purchase carbon removals in this transaction. |
+| vintages | uint256[] | A set of valid vintages from which to allocate removals. |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| countOfRemovalsAllocated | uint256 | The number of distinct removal IDs used to fulfill this order. |
+| ids | uint256[] | An array of the removal IDs being drawn from to fulfill this order. |
+| amounts | uint256[] | An array of amounts being allocated from each corresponding removal token. |
+| suppliers | address[] | The address of the supplier who owns each corresponding removal token. |
+
+### _allocateRemovalsSpecificVintages
+
+```solidity
+function _allocateRemovalsSpecificVintages(address purchaser, uint256 certificateAmount, uint256[] vintages) internal returns (uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers)
+```
+
+Allocates removals to fulfill an order from the specified vintages.
+
+<i>This function is responsible for validating and allocating the supply to fulfill an order.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| purchaser | address | The address of the purchaser. |
+| certificateAmount | uint256 | The total amount for the certificate. |
+| vintages | uint256[] | A set of valid vintages from which to allocate removals. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

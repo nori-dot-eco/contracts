@@ -13,7 +13,7 @@ This library provides a set of functions to manipulate `address` arrays.
 ### fill
 
 ```solidity
-function fill(address[] from, address val) internal pure returns (address[] arr)
+function fill(address[] values, address value) internal pure returns (address[] filled)
 ```
 
 Fill an array.
@@ -23,7 +23,7 @@ Fill an array.
 ##### Equivalence:
 
 ```solidity
-for (let i = 1; i < len + 1; i++) arr[i] = val;
+for (let i = 1; i < len + 1; i++) filled[i] = value;
 ```
 
 ##### Example usage:
@@ -35,12 +35,12 @@ new address[](3).fill(address(0); // returns: [address(0), address(0), address(0
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| from | address[] | The array to fill. |
-| val | address | The value to fill all the indexes of the array with. |
+| values | address[] | The array to fill. |
+| value | address | The value to fill all the indexes of the array with. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| arr | address[] | An array filled with the value of &#x60;val&#x60;. |
+| filled | address[] | An array filled with the value of &#x60;value&#x60;. |
 
 
 
