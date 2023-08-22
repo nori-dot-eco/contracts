@@ -10,6 +10,5 @@
   ],
   "exclude_dependencies": true,
   "compile_force_framework": "hardhat",
-  "ignore_compile": true,
-  "skip_clean": true
+  "ignore_compile": true
 }
