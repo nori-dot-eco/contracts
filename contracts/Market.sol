@@ -795,48 +795,29 @@ contract Market is
     uint256[] memory ids;
     uint256[] memory amounts;
     address[] memory suppliers;
-    // case vintage-specific fulfillment only
-    if (vintages.length > 0 && supplier == address(0)) {
-      (
-        countOfRemovalsAllocated,
-        ids,
-        amounts,
-        suppliers
-      ) = _allocateRemovalsSpecificVintages({
-        purchaser: purchaser,
-        certificateAmount: amount,
-        vintages: vintages
-      });
-      // case supplier-specific fulfillment only
-    } else if (vintages.length == 0 && supplier != address(0)) {
-      (
-        countOfRemovalsAllocated,
-        ids,
-        amounts,
-        suppliers
-      ) = _allocateRemovalsFromSupplier({
-        certificateAmount: amount,
-        supplier: supplier
-      });
-      // case vintage-specific fulfillment and supplier-specific fulfillment
-    } else if (vintages.length > 0 && supplier != address(0)) {
-      (
-        countOfRemovalsAllocated,
-        ids,
-        amounts,
-        suppliers
-      ) = _allocateRemovalsFromSupplierSpecificVintages({
-        certificateAmount: amount,
-        vintages: vintages,
-        supplier: supplier
-      });
-    }
-    // case no restrictions on fulfillment
-    else {
-      (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateRemovals({
-        purchaser: purchaser,
-        certificateAmount: amount
-      });
+    if (vintages.length == 0) {
+      (countOfRemovalsAllocated, ids, amounts, suppliers) = supplier !=
+        address(0) // case supplier-specific fulfillment only
+        ? _allocateRemovalsFromSupplier({
+          certificateAmount: amount,
+          supplier: supplier
+          // case no restrictions on fulfillment
+        })
+        : _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
+    } else {
+      (countOfRemovalsAllocated, ids, amounts, suppliers) = supplier ==
+        address(0) // case vintage-specific fulfillment only
+        ? _allocateRemovalsSpecificVintages({
+          purchaser: purchaser,
+          certificateAmount: amount,
+          vintages: vintages
+          // case vintage-specific fulfillment and supplier-specific fulfillment
+        })
+        : _allocateRemovalsFromSupplierSpecificVintages({
+          certificateAmount: amount,
+          vintages: vintages,
+          supplier: supplier
+        });
     }
     _fulfillOrder({
       params: FulfillOrderData({
@@ -1844,6 +1825,9 @@ contract Market is
       if (remainingAmountToFill == 0) {
         break;
       }
+    }
+    if (remainingAmountToFill > 0) {
+      revert InsufficientSupply();
     }
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
