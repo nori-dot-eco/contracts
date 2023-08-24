@@ -1683,8 +1683,6 @@ contract Market is
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = _listedSupply[localCurrentSupplier]
         .getNextRemovalForSaleFromVintages({vintages: vintages});
-      // if removalId is 0 here, this supplier doesn't have any removals from the vintages requested
-      // at that point we should simply move on to the next supplier
       if (removalId == 0) {
         localCurrentSupplier = _suppliers[localCurrentSupplier].next;
         continue;
@@ -1761,7 +1759,7 @@ contract Market is
     uint256 countOfSuppliersListedRemovals = 0;
     uint256 vintage = supplierRemovalQueue.earliestYear;
     uint256 latestYear = supplierRemovalQueue.latestYear;
-    for (vintage; vintage <= latestYear; ++vintage) {
+    for (; vintage <= latestYear; ++vintage) {
       countOfSuppliersListedRemovals += supplierRemovalQueue
         .yearToRemovals[vintage]
         .length();
