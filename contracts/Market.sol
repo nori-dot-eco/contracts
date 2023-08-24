@@ -96,10 +96,8 @@ contract Market is
    * @param certificateAmount The total amount for the certificate.
    * @param from The message sender.
    * @param recipient The recipient of the certificate.
-   * @param countOfRemovalsAllocated The number of distinct removal IDs that are involved in fulfilling this order.
-   * @param ids An array of removal IDs involved in fulfilling this order.
-   * @param amounts An array of amounts being allocated from each corresponding removal token.
-   * @param suppliers An array of suppliers.
+   * @param supplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   struct FulfillOrderData {
     bool chargeFee;
@@ -107,6 +105,17 @@ contract Market is
     uint256 certificateAmount;
     address from;
     address recipient;
+    SupplyAllocationData supplyAllocationData;
+  }
+
+  /**
+   * @notice The removals, amounts, suppliers and count data returned from the supply allocation algorithm.
+   * @param countOfRemovalsAllocated The number of distinct removal IDs used to fulfill an order.
+   * @param ids An array of the removal IDs being drawn from to fulfill an order.
+   * @param amounts An array of amounts being allocated from each corresponding removal token.
+   * @param suppliers The address of the supplier who owns each corresponding removal token.
+   */
+  struct SupplyAllocationData {
     uint256 countOfRemovalsAllocated;
     uint256[] ids;
     uint256[] amounts;
@@ -428,20 +437,17 @@ contract Market is
       certificateAmount: totalAmountToReplace,
       availableSupply: availableSupply
     });
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateSupply({amount: totalAmountToReplace});
-
-    uint256[] memory removalIds = ids.slice({
-      from: 0,
-      to: countOfRemovalsAllocated
+    SupplyAllocationData memory supplyAllocationData = _allocateSupply({
+      amount: totalAmountToReplace
     });
-    uint256[] memory removalAmounts = amounts.slice({
+
+    uint256[] memory removalIds = supplyAllocationData.ids.slice({
       from: 0,
-      to: countOfRemovalsAllocated
+      to: supplyAllocationData.countOfRemovalsAllocated
+    });
+    uint256[] memory removalAmounts = supplyAllocationData.amounts.slice({
+      from: 0,
+      to: supplyAllocationData.countOfRemovalsAllocated
     });
     _validateReplacementAmounts({
       totalAmountToReplace: totalAmountToReplace,
@@ -451,10 +457,10 @@ contract Market is
     _transferFunds({
       chargeFee: false,
       from: treasury,
-      countOfRemovalsAllocated: countOfRemovalsAllocated,
+      countOfRemovalsAllocated: supplyAllocationData.countOfRemovalsAllocated,
       ids: removalIds,
       amounts: removalAmounts,
-      suppliers: suppliers
+      suppliers: supplyAllocationData.suppliers
     });
     _removal.safeBatchTransferFrom({
       from: address(this),
@@ -681,12 +687,10 @@ contract Market is
     bytes32 s
   ) external whenNotPaused {
     _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovals({purchaser: _msgSender(), certificateAmount: amount});
+    SupplyAllocationData memory supplyAllocationData = _allocateRemovals({
+      purchaser: _msgSender(),
+      certificateAmount: amount
+    });
     _permit({
       owner: permitOwner,
       amount: this.calculateCheckoutTotal({amount: amount}),
@@ -702,10 +706,7 @@ contract Market is
         certificateAmount: amount,
         from: permitOwner,
         recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
+        supplyAllocationData: supplyAllocationData
       })
     });
   }
@@ -730,12 +731,10 @@ contract Market is
    */
   function swap(address recipient, uint256 amount) external whenNotPaused {
     _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovals({purchaser: _msgSender(), certificateAmount: amount});
+    SupplyAllocationData memory supplyAllocationData = _allocateRemovals({
+      purchaser: _msgSender(),
+      certificateAmount: amount
+    });
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: true,
@@ -743,10 +742,7 @@ contract Market is
         certificateAmount: amount,
         from: _msgSender(),
         recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
+        supplyAllocationData: supplyAllocationData
       })
     });
   }
@@ -791,21 +787,13 @@ contract Market is
     uint256 currentPrice = _priceMultiple;
     _priceMultiple = customPriceMultiple;
     _validateCertificateAmount({amount: amount});
-    uint256 countOfRemovalsAllocated;
-    uint256[] memory ids;
-    uint256[] memory amounts;
-    address[] memory suppliers;
-    (
-      countOfRemovalsAllocated,
-      ids,
-      amounts,
-      suppliers
-    ) = _allocateRemovalsSpecialOrder({
-      purchaser: purchaser,
-      certificateAmount: amount,
-      supplier: supplier,
-      vintages: vintages
-    });
+    SupplyAllocationData
+      memory supplyAllocationData = _allocateRemovalsSpecialOrder({
+        purchaser: purchaser,
+        certificateAmount: amount,
+        supplier: supplier,
+        vintages: vintages
+      });
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
@@ -813,10 +801,7 @@ contract Market is
         certificateAmount: amount,
         from: purchaser,
         recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
+        supplyAllocationData: supplyAllocationData
       })
     });
     _priceMultiple = currentPrice;
@@ -1236,21 +1221,26 @@ contract Market is
    * @param params The order fulfillment data.
    */
   function _fulfillOrder(FulfillOrderData memory params) internal {
-    uint256[] memory removalIds = params.ids.slice({
+    uint256[] memory removalIds = params.supplyAllocationData.ids.slice({
       from: 0,
-      to: params.countOfRemovalsAllocated
+      to: params.supplyAllocationData.countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = params.amounts.slice({
-      from: 0,
-      to: params.countOfRemovalsAllocated
-    });
+    uint256[] memory removalAmounts = params
+      .supplyAllocationData
+      .amounts
+      .slice({
+        from: 0,
+        to: params.supplyAllocationData.countOfRemovalsAllocated
+      });
     _transferFunds({
       chargeFee: params.chargeFee,
       from: params.from,
-      countOfRemovalsAllocated: params.countOfRemovalsAllocated,
+      countOfRemovalsAllocated: params
+        .supplyAllocationData
+        .countOfRemovalsAllocated,
       ids: removalIds,
       amounts: removalAmounts,
-      suppliers: params.suppliers
+      suppliers: params.supplyAllocationData.suppliers
     });
     bytes memory data = abi.encode(
       false,
@@ -1277,29 +1267,16 @@ contract Market is
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction,
    * or zero address if any supplier is valid.
    * @param vintages A set of valid vintages from which to allocate removals, empty if any vintage is valid.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
-   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   function _allocateRemovalsSpecialOrder(
     address purchaser,
     uint256 certificateAmount,
     address supplier,
     uint256[] memory vintages
-  )
-    internal
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    )
-  {
-    uint256 countOfRemovalsAllocated;
-    uint256[] memory ids;
-    uint256[] memory amounts;
-    address[] memory suppliers;
+  ) internal returns (SupplyAllocationData memory) {
+    SupplyAllocationData memory supplyAllocationData;
     if (vintages.length == 0) {
       // case no restrictions on fulfillment
       if (supplier == address(0)) {
@@ -1308,52 +1285,31 @@ contract Market is
           certificateAmount: certificateAmount,
           availableSupply: availableSupply
         });
-        (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply({
-          amount: certificateAmount
-        });
+        supplyAllocationData = _allocateSupply({amount: certificateAmount});
         // case supplier-specific fulfillment only
       } else {
-        (
-          countOfRemovalsAllocated,
-          ids,
-          amounts
-        ) = _allocateSupplySingleSupplier({
+        supplyAllocationData = _allocateSupplySingleSupplier({
           certificateAmount: certificateAmount,
           supplier: supplier
-        });
-        suppliers = new address[](countOfRemovalsAllocated).fill({
-          value: supplier
         });
       }
     } else {
       // case vintage-specific fulfillment only
       if (supplier == address(0)) {
-        (
-          countOfRemovalsAllocated,
-          ids,
-          amounts,
-          suppliers
-        ) = _allocateSupplySpecificVintages({
+        supplyAllocationData = _allocateSupplySpecificVintages({
           amount: certificateAmount,
           vintages: vintages
         });
         // case vintage-specific fulfillment and supplier-specific fulfillment
       } else {
-        (
-          countOfRemovalsAllocated,
-          ids,
-          amounts
-        ) = _allocateSupplySingleSupplierSpecificVintages({
+        supplyAllocationData = _allocateSupplySingleSupplierSpecificVintages({
           amount: certificateAmount,
           supplier: supplier,
           vintages: vintages
         });
-        suppliers = new address[](countOfRemovalsAllocated).fill({
-          value: supplier
-        });
       }
     }
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+    return supplyAllocationData;
   }
 
   /**
@@ -1361,23 +1317,13 @@ contract Market is
    * @dev This function is responsible for validating and allocating the supply to fulfill an order.
    * @param purchaser The address of the purchaser.
    * @param certificateAmount The total amount for the certificate.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
-   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   function _allocateRemovals(
     address purchaser,
     uint256 certificateAmount
-  )
-    internal
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    )
-  {
+  ) internal returns (SupplyAllocationData memory) {
     uint256 availableSupply = _removal.getMarketBalance();
     _validateSupply({
       certificateAmount: certificateAmount,
@@ -1388,10 +1334,14 @@ contract Market is
       certificateAmount: certificateAmount,
       availableSupply: availableSupply
     });
-    (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply({
+    uint256 countOfRemovalsAllocated;
+    uint256[] memory ids;
+    uint256[] memory amounts;
+    address[] memory suppliers;
+    SupplyAllocationData memory supplyAllocationData = _allocateSupply({
       amount: certificateAmount
     });
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+    return supplyAllocationData;
   }
 
   /**
@@ -1560,30 +1510,20 @@ contract Market is
   /**
    * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase.
    * @param amount The number of carbon removals to purchase.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
-   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   function _allocateSupply(
     uint256 amount
-  )
-    private
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    )
-  {
+  ) private returns (SupplyAllocationData memory) {
     uint256 remainingAmountToFill = amount;
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
       account: address(this)
     });
-    ids = new uint256[](countOfListedRemovals);
-    amounts = new uint256[](countOfListedRemovals);
-    suppliers = new address[](countOfListedRemovals);
-    countOfRemovalsAllocated = 0;
+    uint256[] memory ids = new uint256[](countOfListedRemovals);
+    uint256[] memory amounts = new uint256[](countOfListedRemovals);
+    address[] memory suppliers = new address[](countOfListedRemovals);
+    uint256 countOfRemovalsAllocated = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = _listedSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
@@ -1630,28 +1570,26 @@ contract Market is
         break;
       }
     }
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+    return
+      SupplyAllocationData({
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      });
   }
 
   /**
    * @notice Allocates supply for an amount using only a single supplier's removals.
    * @param certificateAmount The number of carbon removals to purchase.
    * @param supplier The supplier from which to purchase carbon removals.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   function _allocateSupplySingleSupplier(
     uint256 certificateAmount,
     address supplier
-  )
-    private
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts
-    )
-  {
+  ) private returns (SupplyAllocationData memory) {
     RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
     uint256 countOfListedRemovals;
     uint256 latestYear = supplierRemovalQueue.latestYear;
@@ -1668,9 +1606,10 @@ contract Market is
       revert InsufficientSupply();
     }
     uint256 remainingAmountToFill = certificateAmount;
-    ids = new uint256[](countOfListedRemovals);
-    amounts = new uint256[](countOfListedRemovals);
-    countOfRemovalsAllocated = 0;
+    uint256[] memory ids = new uint256[](countOfListedRemovals);
+    uint256[] memory amounts = new uint256[](countOfListedRemovals);
+    address[] memory suppliers = new address[](countOfListedRemovals);
+    uint256 countOfRemovalsAllocated = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf({
@@ -1710,7 +1649,14 @@ contract Market is
         break;
       }
     }
-    return (countOfRemovalsAllocated, ids, amounts);
+    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
+    return
+      SupplyAllocationData({
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      });
   }
 
   /**
@@ -1718,32 +1664,22 @@ contract Market is
    * the vintages specified.
    * @param amount The number of carbon removals to purchase.
    * @param vintages The vintages from which to purchase carbon removals.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
-   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   function _allocateSupplySpecificVintages(
     uint256 amount,
     uint256[] memory vintages
-  )
-    private
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    )
-  {
+  ) private returns (SupplyAllocationData memory) {
     uint256 remainingAmountToFill = amount;
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
       account: address(this)
     });
-    ids = new uint256[](countOfListedRemovals);
-    amounts = new uint256[](countOfListedRemovals);
-    suppliers = new address[](countOfListedRemovals);
+    uint256[] memory ids = new uint256[](countOfListedRemovals);
+    uint256[] memory amounts = new uint256[](countOfListedRemovals);
+    address[] memory suppliers = new address[](countOfListedRemovals);
     address localCurrentSupplier = _currentSupplierAddress;
-    countOfRemovalsAllocated = 0;
+    uint256 countOfRemovalsAllocated = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = _listedSupply[localCurrentSupplier]
         .getNextRemovalForSaleFromVintages({vintages: vintages});
@@ -1798,7 +1734,13 @@ contract Market is
     if (remainingAmountToFill > 0) {
       revert InsufficientSupply();
     }
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+    return
+      SupplyAllocationData({
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      });
   }
 
   /**
@@ -1807,22 +1749,14 @@ contract Market is
    * @param amount The number of carbon removals to purchase.
    * @param supplier The supplier from which to purchase carbon removals.
    * @param vintages The vintages from which to purchase carbon removals.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   function _allocateSupplySingleSupplierSpecificVintages(
     uint256 amount,
     address supplier,
     uint256[] memory vintages
-  )
-    private
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts
-    )
-  {
+  ) private returns (SupplyAllocationData memory) {
     RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
     uint256 countOfSuppliersListedRemovals = 0;
     uint256 vintage = supplierRemovalQueue.earliestYear;
@@ -1835,8 +1769,10 @@ contract Market is
     if (countOfSuppliersListedRemovals == 0) {
       revert InsufficientSupply();
     }
-    ids = new uint256[](countOfSuppliersListedRemovals);
-    amounts = new uint256[](countOfSuppliersListedRemovals);
+    uint256[] memory ids = new uint256[](countOfSuppliersListedRemovals);
+    uint256[] memory amounts = new uint256[](countOfSuppliersListedRemovals);
+    address[] memory suppliers = new address[](countOfSuppliersListedRemovals);
+    uint256 countOfRemovalsAllocated = 0;
     uint256 remainingAmountToFill = amount;
 
     for (uint256 i = 0; i < countOfSuppliersListedRemovals; ++i) {
@@ -1881,7 +1817,14 @@ contract Market is
     if (remainingAmountToFill > 0) {
       revert InsufficientSupply();
     }
-    return (countOfRemovalsAllocated, ids, amounts);
+    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
+    return
+      SupplyAllocationData({
+        countOfRemovalsAllocated: countOfRemovalsAllocated,
+        ids: ids,
+        amounts: amounts,
+        suppliers: suppliers
+      });
   }
 
   /**
