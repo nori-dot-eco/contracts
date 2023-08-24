@@ -243,7 +243,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
 
   function _seedAndListRemoval(
     address supplier,
-    uint256 amount, // in ether
+    uint256 amount,
     uint16 vintage
   ) internal returns (uint256) {
     DecodedRemovalIdV0 memory removalData = DecodedRemovalIdV0({

@@ -795,30 +795,17 @@ contract Market is
     uint256[] memory ids;
     uint256[] memory amounts;
     address[] memory suppliers;
-    if (vintages.length == 0) {
-      (countOfRemovalsAllocated, ids, amounts, suppliers) = supplier !=
-        address(0) // case supplier-specific fulfillment only
-        ? _allocateRemovalsFromSupplier({
-          certificateAmount: amount,
-          supplier: supplier
-          // case no restrictions on fulfillment
-        })
-        : _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
-    } else {
-      (countOfRemovalsAllocated, ids, amounts, suppliers) = supplier ==
-        address(0) // case vintage-specific fulfillment only
-        ? _allocateRemovalsSpecificVintages({
-          purchaser: purchaser,
-          certificateAmount: amount,
-          vintages: vintages
-          // case vintage-specific fulfillment and supplier-specific fulfillment
-        })
-        : _allocateRemovalsFromSupplierSpecificVintages({
-          certificateAmount: amount,
-          vintages: vintages,
-          supplier: supplier
-        });
-    }
+    (
+      countOfRemovalsAllocated,
+      ids,
+      amounts,
+      suppliers
+    ) = _allocateRemovalsSpecialOrder({
+      purchaser: purchaser,
+      certificateAmount: amount,
+      supplier: supplier,
+      vintages: vintages
+    });
     _fulfillOrder({
       params: FulfillOrderData({
         chargeFee: false,
@@ -1287,6 +1274,93 @@ contract Market is
    * @dev This function is responsible for validating and allocating the supply to fulfill an order.
    * @param purchaser The address of the purchaser.
    * @param certificateAmount The total amount for the certificate.
+   * @param supplier The only supplier address from which to purchase carbon removals in this transaction,
+   * or zero address if any supplier is valid.
+   * @param vintages A set of valid vintages from which to allocate removals, empty if any vintage is valid.
+   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
+   * @return ids An array of the removal IDs being drawn from to fulfill this order.
+   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   */
+  function _allocateRemovalsSpecialOrder(
+    address purchaser,
+    uint256 certificateAmount,
+    address supplier,
+    uint256[] memory vintages
+  )
+    internal
+    returns (
+      uint256 countOfRemovalsAllocated,
+      uint256[] memory ids,
+      uint256[] memory amounts,
+      address[] memory suppliers
+    )
+  {
+    uint256 countOfRemovalsAllocated;
+    uint256[] memory ids;
+    uint256[] memory amounts;
+    address[] memory suppliers;
+    if (vintages.length == 0) {
+      // case no restrictions on fulfillment
+      if (supplier == address(0)) {
+        uint256 availableSupply = _removal.getMarketBalance();
+        _validateSupply({
+          certificateAmount: certificateAmount,
+          availableSupply: availableSupply
+        });
+        (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply({
+          amount: certificateAmount
+        });
+        // case supplier-specific fulfillment only
+      } else {
+        (
+          countOfRemovalsAllocated,
+          ids,
+          amounts
+        ) = _allocateSupplySingleSupplier({
+          certificateAmount: certificateAmount,
+          supplier: supplier
+        });
+        suppliers = new address[](countOfRemovalsAllocated).fill({
+          value: supplier
+        });
+      }
+    } else {
+      // case vintage-specific fulfillment only
+      if (supplier == address(0)) {
+        (
+          countOfRemovalsAllocated,
+          ids,
+          amounts,
+          suppliers
+        ) = _allocateSupplySpecificVintages({
+          amount: certificateAmount,
+          vintages: vintages
+        });
+        // case vintage-specific fulfillment and supplier-specific fulfillment
+      } else {
+        (
+          countOfRemovalsAllocated,
+          ids,
+          amounts
+        ) = _allocateSupplySingleSupplierSpecificVintages({
+          amount: certificateAmount,
+          supplier: supplier,
+          vintages: vintages
+        });
+        suppliers = new address[](countOfRemovalsAllocated).fill({
+          value: supplier
+        });
+      }
+    }
+    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+  }
+
+  /**
+   * @notice Allocates removals to fulfill an order.
+   * @dev This function is responsible for validating and allocating the supply to fulfill an order.
+   * @param purchaser The address of the purchaser.
+   * @param certificateAmount The total amount for the certificate.
    * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
    * @return ids An array of the removal IDs being drawn from to fulfill this order.
    * @return amounts An array of amounts being allocated from each corresponding removal token.
@@ -1316,115 +1390,6 @@ contract Market is
     });
     (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply({
       amount: certificateAmount
-    });
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
-  }
-
-  /**
-   * @notice Allocates removals from only the specified supplier.
-   * @dev This function is responsible for validating and allocating the supply from a specific supplier.
-   * @param certificateAmount The total amount of NRTs for the certificate.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
-   * @return suppliers The address of the supplier who owns each corresponding removal token.
-   */
-  function _allocateRemovalsFromSupplier(
-    uint256 certificateAmount,
-    address supplier
-  )
-    internal
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    )
-  {
-    (countOfRemovalsAllocated, ids, amounts) = _allocateSupplySingleSupplier({
-      certificateAmount: certificateAmount,
-      supplier: supplier
-    });
-    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
-  }
-
-  /**
-   * @notice Allocates removals from only the specified supplier and vintage years.
-   * @dev This function is responsible for validating and allocating the supply from a specific supplier
-   * and specific set of vintage years.
-   * @param certificateAmount The total amount of NRTs for the certificate.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   * @param vintages A set of valid vintages from which to allocate removals.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
-   * @return suppliers The address of the supplier who owns each corresponding removal token.
-   */
-  function _allocateRemovalsFromSupplierSpecificVintages(
-    uint256 certificateAmount,
-    address supplier,
-    uint256[] memory vintages
-  )
-    internal
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    )
-  {
-    (
-      countOfRemovalsAllocated,
-      ids,
-      amounts
-    ) = _allocateSupplySingleSupplierSpecificVintages({
-      amount: certificateAmount,
-      supplier: supplier,
-      vintages: vintages
-    });
-    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
-  }
-
-  /**
-   * @notice Allocates removals to fulfill an order from the specified vintages.
-   * @dev This function is responsible for validating and allocating the supply to fulfill an order.
-   * @param purchaser The address of the purchaser.
-   * @param certificateAmount The total amount for the certificate.
-   * @param vintages A set of valid vintages from which to allocate removals.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
-   * @return suppliers The address of the supplier who owns each corresponding removal token.
-   */
-  function _allocateRemovalsSpecificVintages(
-    address purchaser,
-    uint256 certificateAmount,
-    uint256[] memory vintages
-  )
-    internal
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    )
-  {
-    uint256 availableSupply = _removal.getMarketBalance();
-    _validateSupply({
-      certificateAmount: certificateAmount,
-      availableSupply: availableSupply
-    });
-    (
-      countOfRemovalsAllocated,
-      ids,
-      amounts,
-      suppliers
-    ) = _allocateSupplySpecificVintages({
-      amount: certificateAmount,
-      vintages: vintages
     });
     return (countOfRemovalsAllocated, ids, amounts, suppliers);
   }
@@ -1860,11 +1825,9 @@ contract Market is
   {
     RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
     uint256 countOfSuppliersListedRemovals = 0;
-    for (
-      uint256 vintage = supplierRemovalQueue.earliestYear;
-      vintage <= supplierRemovalQueue.latestYear;
-      ++vintage
-    ) {
+    uint256 vintage = supplierRemovalQueue.earliestYear;
+    uint256 latestYear = supplierRemovalQueue.latestYear;
+    for (vintage; vintage <= latestYear; ++vintage) {
       countOfSuppliersListedRemovals += supplierRemovalQueue
         .yearToRemovals[vintage]
         .length();
