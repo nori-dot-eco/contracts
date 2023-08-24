@@ -1078,6 +1078,22 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificVintages is Checkout {
     assertEq(removalAmounts[1], 1 ether);
     assertEq(removalAmounts[2], 0.5 ether);
   }
+
+  function test_revertsWhenNoRemovalsFromSpecifiedVintages() external {
+    uint256[] memory nonexistentVintages = new uint256[](2);
+    vintages[0] = 2023; // no such vintages available in market
+    vm.prank(owner);
+    vm.expectRevert(InsufficientSupply.selector);
+    _market.swapWithoutFeeSpecialOrder(
+      owner,
+      owner,
+      certificateAmount,
+      customFee,
+      _priceMultiple,
+      address(0),
+      nonexistentVintages
+    );
+  }
 }
 
 contract Checkout_swapWithoutFeeSpecialOrder_specificSupplier is Checkout {
@@ -1158,6 +1174,20 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificSupplier is Checkout {
       (certificateAmount * customPriceMultiple) / 100 / 2 // divide to account for price multiple scale and holdback percentage of 50%
     );
     assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
+  }
+
+  function test_revertsWhenSupplierDoesNotExistInMarket() external {
+    vm.prank(owner);
+    vm.expectRevert(InsufficientSupply.selector);
+    _market.swapWithoutFeeSpecialOrder({
+      recipient: owner,
+      purchaser: owner,
+      amount: certificateAmount,
+      customFee: customFee,
+      customPriceMultiple: customPriceMultiple,
+      supplier: _namedAccounts.supplier2, // not listed in market
+      vintages: new uint256[](0)
+    });
   }
 }
 

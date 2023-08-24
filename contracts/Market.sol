@@ -1321,7 +1321,7 @@ contract Market is
   }
 
   /**
-   * @notice Allocates removals from a specific supplier to be fulfilled.
+   * @notice Allocates removals from only the specified supplier.
    * @dev This function is responsible for validating and allocating the supply from a specific supplier.
    * @param certificateAmount The total amount of NRTs for the certificate.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
@@ -1351,8 +1351,9 @@ contract Market is
   }
 
   /**
-   * @notice Allocates removals from a specific supplier to be fulfilled.
-   * @dev This function is responsible for validating and allocating the supply from a specific supplier.
+   * @notice Allocates removals from only the specified supplier and vintage years.
+   * @dev This function is responsible for validating and allocating the supply from a specific supplier
+   * and specific set of vintage years.
    * @param certificateAmount The total amount of NRTs for the certificate.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
    * @param vintages A set of valid vintages from which to allocate removals.
@@ -1413,11 +1414,6 @@ contract Market is
   {
     uint256 availableSupply = _removal.getMarketBalance();
     _validateSupply({
-      certificateAmount: certificateAmount,
-      availableSupply: availableSupply
-    });
-    _validatePrioritySupply({
-      purchaser: purchaser,
       certificateAmount: certificateAmount,
       availableSupply: availableSupply
     });
@@ -1753,7 +1749,7 @@ contract Market is
   }
 
   /**
-   * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase drawing only from
+   * @notice Allocates the removals, amounts and suppliers needed to fulfill the purchase, drawing only from
    * the vintages specified.
    * @param amount The number of carbon removals to purchase.
    * @param vintages The vintages from which to purchase carbon removals.
@@ -1781,14 +1777,15 @@ contract Market is
     ids = new uint256[](countOfListedRemovals);
     amounts = new uint256[](countOfListedRemovals);
     suppliers = new address[](countOfListedRemovals);
+    address localCurrentSupplier = _currentSupplierAddress;
     countOfRemovalsAllocated = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
-      uint256 removalId = _listedSupply[_currentSupplierAddress]
+      uint256 removalId = _listedSupply[localCurrentSupplier]
         .getNextRemovalForSaleFromVintages({vintages: vintages});
       // if removalId is 0 here, this supplier doesn't have any removals from the vintages requested
       // at that point we should simply move on to the next supplier
       if (removalId == 0) {
-        _incrementCurrentSupplierAddress();
+        localCurrentSupplier = _suppliers[localCurrentSupplier].next;
         continue;
       }
       uint256 removalAmount = _removal.balanceOf({
@@ -1801,7 +1798,7 @@ contract Market is
          */
         ids[countOfRemovalsAllocated] = removalId;
         amounts[countOfRemovalsAllocated] = remainingAmountToFill;
-        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
+        suppliers[countOfRemovalsAllocated] = localCurrentSupplier;
         remainingAmountToFill = 0;
       } else {
         /**
@@ -1809,17 +1806,24 @@ contract Market is
          */
         ids[countOfRemovalsAllocated] = removalId;
         amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
-        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
+        suppliers[countOfRemovalsAllocated] = localCurrentSupplier;
         remainingAmountToFill -= removalAmount;
         /**
         This may remove the supplier from the active suppliers and increment the current supplier address
         * which is behavior we want in the case that the supplier is out of supply, but otherwise we do not
         * interact with the global _currentSupplierAddress in this fulfillment flow.
         */
+        address successorInCaseSupplierIsRemoved = _suppliers[
+          localCurrentSupplier
+        ].next;
         _removeActiveRemoval({
           removalId: removalId,
-          supplierAddress: _currentSupplierAddress
+          supplierAddress: localCurrentSupplier
         });
+        // if the local current supplier was removed we need to move to the next one
+        if (_listedSupply[localCurrentSupplier].isEmpty()) {
+          localCurrentSupplier = successorInCaseSupplierIsRemoved;
+        }
       }
       ++countOfRemovalsAllocated;
       if (remainingAmountToFill == 0) {
