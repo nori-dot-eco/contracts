@@ -440,14 +440,15 @@ contract Market is
     SupplyAllocationData memory supplyAllocationData = _allocateSupply({
       amount: totalAmountToReplace
     });
-
+    uint256 countOfRemovalsAllocated = supplyAllocationData
+      .countOfRemovalsAllocated;
     uint256[] memory removalIds = supplyAllocationData.ids.slice({
       from: 0,
-      to: supplyAllocationData.countOfRemovalsAllocated
+      to: countOfRemovalsAllocated
     });
     uint256[] memory removalAmounts = supplyAllocationData.amounts.slice({
       from: 0,
-      to: supplyAllocationData.countOfRemovalsAllocated
+      to: countOfRemovalsAllocated
     });
     _validateReplacementAmounts({
       totalAmountToReplace: totalAmountToReplace,
@@ -457,7 +458,7 @@ contract Market is
     _transferFunds({
       chargeFee: false,
       from: treasury,
-      countOfRemovalsAllocated: supplyAllocationData.countOfRemovalsAllocated,
+      countOfRemovalsAllocated: countOfRemovalsAllocated,
       ids: removalIds,
       amounts: removalAmounts,
       suppliers: supplyAllocationData.suppliers
@@ -700,7 +701,7 @@ contract Market is
       s: s
     });
     _fulfillOrder({
-      params: FulfillOrderData({
+      orderData: FulfillOrderData({
         chargeFee: true,
         feePercentage: _noriFeePercentage,
         certificateAmount: amount,
@@ -736,7 +737,7 @@ contract Market is
       certificateAmount: amount
     });
     _fulfillOrder({
-      params: FulfillOrderData({
+      orderData: FulfillOrderData({
         chargeFee: true,
         feePercentage: _noriFeePercentage,
         certificateAmount: amount,
@@ -789,13 +790,12 @@ contract Market is
     _validateCertificateAmount({amount: amount});
     SupplyAllocationData
       memory supplyAllocationData = _allocateRemovalsSpecialOrder({
-        purchaser: purchaser,
         certificateAmount: amount,
         supplier: supplier,
         vintages: vintages
       });
     _fulfillOrder({
-      params: FulfillOrderData({
+      orderData: FulfillOrderData({
         chargeFee: false,
         feePercentage: customFee,
         certificateAmount: amount,
@@ -1218,37 +1218,37 @@ contract Market is
    * @notice Fulfill an order.
    * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
    * the order fee, updating accounting, and minting the Certificate.
-   * @param params The order fulfillment data.
+   * @param orderData The order fulfillment data.
    */
-  function _fulfillOrder(FulfillOrderData memory params) internal {
-    uint256[] memory removalIds = params.supplyAllocationData.ids.slice({
+  function _fulfillOrder(FulfillOrderData memory orderData) internal {
+    uint256[] memory removalIds = orderData.supplyAllocationData.ids.slice({
       from: 0,
-      to: params.supplyAllocationData.countOfRemovalsAllocated
+      to: orderData.supplyAllocationData.countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = params
+    uint256[] memory removalAmounts = orderData
       .supplyAllocationData
       .amounts
       .slice({
         from: 0,
-        to: params.supplyAllocationData.countOfRemovalsAllocated
+        to: orderData.supplyAllocationData.countOfRemovalsAllocated
       });
     _transferFunds({
-      chargeFee: params.chargeFee,
-      from: params.from,
-      countOfRemovalsAllocated: params
+      chargeFee: orderData.chargeFee,
+      from: orderData.from,
+      countOfRemovalsAllocated: orderData
         .supplyAllocationData
         .countOfRemovalsAllocated,
       ids: removalIds,
       amounts: removalAmounts,
-      suppliers: params.supplyAllocationData.suppliers
+      suppliers: orderData.supplyAllocationData.suppliers
     });
     bytes memory data = abi.encode(
       false,
-      params.recipient,
-      params.certificateAmount,
+      orderData.recipient,
+      orderData.certificateAmount,
       address(_purchasingToken),
       _priceMultiple,
-      params.feePercentage
+      orderData.feePercentage
     );
     _removal.safeBatchTransferFrom({
       from: address(this),
@@ -1262,7 +1262,6 @@ contract Market is
   /**
    * @notice Allocates removals to fulfill an order.
    * @dev This function is responsible for validating and allocating the supply to fulfill an order.
-   * @param purchaser The address of the purchaser.
    * @param certificateAmount The total amount for the certificate.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction,
    * or zero address if any supplier is valid.
@@ -1271,37 +1270,36 @@ contract Market is
    * from the supply allocation algorithm.
    */
   function _allocateRemovalsSpecialOrder(
-    address purchaser,
     uint256 certificateAmount,
     address supplier,
     uint256[] memory vintages
   ) internal returns (SupplyAllocationData memory) {
     SupplyAllocationData memory supplyAllocationData;
     if (vintages.length == 0) {
-      // case no restrictions on fulfillment
       if (supplier == address(0)) {
+        // case no restrictions on fulfillment
         uint256 availableSupply = _removal.getMarketBalance();
         _validateSupply({
           certificateAmount: certificateAmount,
           availableSupply: availableSupply
         });
         supplyAllocationData = _allocateSupply({amount: certificateAmount});
-        // case supplier-specific fulfillment only
       } else {
+        // case supplier-specific fulfillment only
         supplyAllocationData = _allocateSupplySingleSupplier({
           certificateAmount: certificateAmount,
           supplier: supplier
         });
       }
     } else {
-      // case vintage-specific fulfillment only
       if (supplier == address(0)) {
+        // case vintage-specific fulfillment only
         supplyAllocationData = _allocateSupplySpecificVintages({
           amount: certificateAmount,
           vintages: vintages
         });
-        // case vintage-specific fulfillment and supplier-specific fulfillment
       } else {
+        // case vintage-specific fulfillment and supplier-specific fulfillment
         supplyAllocationData = _allocateSupplySingleSupplierSpecificVintages({
           amount: certificateAmount,
           supplier: supplier,
@@ -1334,10 +1332,6 @@ contract Market is
       certificateAmount: certificateAmount,
       availableSupply: availableSupply
     });
-    uint256 countOfRemovalsAllocated;
-    uint256[] memory ids;
-    uint256[] memory amounts;
-    address[] memory suppliers;
     SupplyAllocationData memory supplyAllocationData = _allocateSupply({
       amount: certificateAmount
     });
@@ -1515,7 +1509,7 @@ contract Market is
    */
   function _allocateSupply(
     uint256 amount
-  ) private returns (SupplyAllocationData memory) {
+  ) internal returns (SupplyAllocationData memory) {
     uint256 remainingAmountToFill = amount;
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
       account: address(this)
@@ -1589,7 +1583,7 @@ contract Market is
   function _allocateSupplySingleSupplier(
     uint256 certificateAmount,
     address supplier
-  ) private returns (SupplyAllocationData memory) {
+  ) internal returns (SupplyAllocationData memory) {
     RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
     uint256 countOfListedRemovals;
     uint256 latestYear = supplierRemovalQueue.latestYear;
@@ -1670,7 +1664,7 @@ contract Market is
   function _allocateSupplySpecificVintages(
     uint256 amount,
     uint256[] memory vintages
-  ) private returns (SupplyAllocationData memory) {
+  ) internal returns (SupplyAllocationData memory) {
     uint256 remainingAmountToFill = amount;
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
       account: address(this)
@@ -1754,7 +1748,7 @@ contract Market is
     uint256 amount,
     address supplier,
     uint256[] memory vintages
-  ) private returns (SupplyAllocationData memory) {
+  ) internal returns (SupplyAllocationData memory) {
     RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
     uint256 countOfSuppliersListedRemovals = 0;
     uint256 vintage = supplierRemovalQueue.earliestYear;
