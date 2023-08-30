@@ -782,7 +782,7 @@ contract Market is
     uint256 customFee,
     uint256 customPriceMultiple,
     address supplier,
-    uint256[] memory vintages
+    uint256[] calldata vintages
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     uint256 currentPrice = _priceMultiple;
     _priceMultiple = customPriceMultiple;
@@ -1267,7 +1267,7 @@ contract Market is
   function _allocateRemovalsSpecialOrder(
     uint256 certificateAmount,
     address supplier,
-    uint256[] memory vintages
+    uint256[] calldata vintages
   ) internal returns (SupplyAllocationData memory) {
     SupplyAllocationData memory allocationData;
     if (vintages.length == 0) {
@@ -1650,7 +1650,7 @@ contract Market is
    */
   function _allocateSupplySpecificVintages(
     uint256 amount,
-    uint256[] memory vintages
+    uint256[] calldata vintages
   ) internal returns (SupplyAllocationData memory) {
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
       account: address(this)
@@ -1729,7 +1729,7 @@ contract Market is
   function _allocateSupplySingleSupplierSpecificVintages(
     uint256 amount,
     address supplier,
-    uint256[] memory vintages
+    uint256[] calldata vintages
   ) internal returns (SupplyAllocationData memory) {
     RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
     uint256 countOfSuppliersListedRemovals = 0;
