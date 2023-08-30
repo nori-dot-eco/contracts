@@ -1612,15 +1612,14 @@ contract Market is
       allocationData.amounts[
         allocationData.countOfRemovalsAllocated
       ] = amountUsedFromRemoval;
+      if (
+        allocationData.countOfRemovalsAllocated == countOfListedRemovals - 1 &&
+        remainingAmountToFill > removalAmount
+      ) {
+        revert InsufficientSupply();
+      }
       remainingAmountToFill -= amountUsedFromRemoval;
       if (amountUsedFromRemoval == removalAmount) {
-        if (
-          allocationData.countOfRemovalsAllocated ==
-          countOfListedRemovals - 1 &&
-          remainingAmountToFill > removalAmount
-        ) {
-          revert InsufficientSupply();
-        }
         supplierRemovalQueue.remove({removalId: removalId});
         /**
          * If the supplier is out of supply, remove them from the active suppliers.
