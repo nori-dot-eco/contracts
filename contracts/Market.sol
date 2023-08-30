@@ -96,7 +96,7 @@ contract Market is
    * @param certificateAmount The total amount for the certificate.
    * @param from The message sender.
    * @param recipient The recipient of the certificate.
-   * @param supplyAllocationData The removals, amounts, suppliers and count data returned
+   * @param allocationData The removals, amounts, suppliers and count data returned
    * from the supply allocation algorithm.
    */
   struct FulfillOrderData {
@@ -105,7 +105,7 @@ contract Market is
     uint256 certificateAmount;
     address from;
     address recipient;
-    SupplyAllocationData supplyAllocationData;
+    SupplyAllocationData allocationData;
   }
 
   /**
@@ -437,16 +437,15 @@ contract Market is
       certificateAmount: totalAmountToReplace,
       availableSupply: availableSupply
     });
-    SupplyAllocationData memory supplyAllocationData = _allocateSupply({
+    SupplyAllocationData memory allocationData = _allocateSupply({
       amount: totalAmountToReplace
     });
-    uint256 countOfRemovalsAllocated = supplyAllocationData
-      .countOfRemovalsAllocated;
-    uint256[] memory removalIds = supplyAllocationData.ids.slice({
+    uint256 countOfRemovalsAllocated = allocationData.countOfRemovalsAllocated;
+    uint256[] memory removalIds = allocationData.ids.slice({
       from: 0,
       to: countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = supplyAllocationData.amounts.slice({
+    uint256[] memory removalAmounts = allocationData.amounts.slice({
       from: 0,
       to: countOfRemovalsAllocated
     });
@@ -461,7 +460,7 @@ contract Market is
       countOfRemovalsAllocated: countOfRemovalsAllocated,
       ids: removalIds,
       amounts: removalAmounts,
-      suppliers: supplyAllocationData.suppliers
+      suppliers: allocationData.suppliers
     });
     _removal.safeBatchTransferFrom({
       from: address(this),
@@ -688,7 +687,7 @@ contract Market is
     bytes32 s
   ) external whenNotPaused {
     _validateCertificateAmount({amount: amount});
-    SupplyAllocationData memory supplyAllocationData = _allocateRemovals({
+    SupplyAllocationData memory allocationData = _allocateRemovals({
       purchaser: _msgSender(),
       certificateAmount: amount
     });
@@ -707,7 +706,7 @@ contract Market is
         certificateAmount: amount,
         from: permitOwner,
         recipient: recipient,
-        supplyAllocationData: supplyAllocationData
+        allocationData: allocationData
       })
     });
   }
@@ -732,7 +731,7 @@ contract Market is
    */
   function swap(address recipient, uint256 amount) external whenNotPaused {
     _validateCertificateAmount({amount: amount});
-    SupplyAllocationData memory supplyAllocationData = _allocateRemovals({
+    SupplyAllocationData memory allocationData = _allocateRemovals({
       purchaser: _msgSender(),
       certificateAmount: amount
     });
@@ -743,7 +742,7 @@ contract Market is
         certificateAmount: amount,
         from: _msgSender(),
         recipient: recipient,
-        supplyAllocationData: supplyAllocationData
+        allocationData: allocationData
       })
     });
   }
@@ -788,12 +787,11 @@ contract Market is
     uint256 currentPrice = _priceMultiple;
     _priceMultiple = customPriceMultiple;
     _validateCertificateAmount({amount: amount});
-    SupplyAllocationData
-      memory supplyAllocationData = _allocateRemovalsSpecialOrder({
-        certificateAmount: amount,
-        supplier: supplier,
-        vintages: vintages
-      });
+    SupplyAllocationData memory allocationData = _allocateRemovalsSpecialOrder({
+      certificateAmount: amount,
+      supplier: supplier,
+      vintages: vintages
+    });
     _fulfillOrder({
       orderData: FulfillOrderData({
         chargeFee: false,
@@ -801,7 +799,7 @@ contract Market is
         certificateAmount: amount,
         from: purchaser,
         recipient: recipient,
-        supplyAllocationData: supplyAllocationData
+        allocationData: allocationData
       })
     });
     _priceMultiple = currentPrice;
@@ -1221,26 +1219,23 @@ contract Market is
    * @param orderData The order fulfillment data.
    */
   function _fulfillOrder(FulfillOrderData memory orderData) internal {
-    uint256[] memory removalIds = orderData.supplyAllocationData.ids.slice({
+    uint256[] memory removalIds = orderData.allocationData.ids.slice({
       from: 0,
-      to: orderData.supplyAllocationData.countOfRemovalsAllocated
+      to: orderData.allocationData.countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = orderData
-      .supplyAllocationData
-      .amounts
-      .slice({
-        from: 0,
-        to: orderData.supplyAllocationData.countOfRemovalsAllocated
-      });
+    uint256[] memory removalAmounts = orderData.allocationData.amounts.slice({
+      from: 0,
+      to: orderData.allocationData.countOfRemovalsAllocated
+    });
     _transferFunds({
       chargeFee: orderData.chargeFee,
       from: orderData.from,
       countOfRemovalsAllocated: orderData
-        .supplyAllocationData
+        .allocationData
         .countOfRemovalsAllocated,
       ids: removalIds,
       amounts: removalAmounts,
-      suppliers: orderData.supplyAllocationData.suppliers
+      suppliers: orderData.allocationData.suppliers
     });
     bytes memory data = abi.encode(
       false,
@@ -1274,7 +1269,7 @@ contract Market is
     address supplier,
     uint256[] memory vintages
   ) internal returns (SupplyAllocationData memory) {
-    SupplyAllocationData memory supplyAllocationData;
+    SupplyAllocationData memory allocationData;
     if (vintages.length == 0) {
       if (supplier == address(0)) {
         // case no restrictions on fulfillment
@@ -1283,10 +1278,10 @@ contract Market is
           certificateAmount: certificateAmount,
           availableSupply: availableSupply
         });
-        supplyAllocationData = _allocateSupply({amount: certificateAmount});
+        allocationData = _allocateSupply({amount: certificateAmount});
       } else {
         // case supplier-specific fulfillment only
-        supplyAllocationData = _allocateSupplySingleSupplier({
+        allocationData = _allocateSupplySingleSupplier({
           certificateAmount: certificateAmount,
           supplier: supplier
         });
@@ -1294,20 +1289,20 @@ contract Market is
     } else {
       if (supplier == address(0)) {
         // case vintage-specific fulfillment only
-        supplyAllocationData = _allocateSupplySpecificVintages({
+        allocationData = _allocateSupplySpecificVintages({
           amount: certificateAmount,
           vintages: vintages
         });
       } else {
         // case vintage-specific fulfillment and supplier-specific fulfillment
-        supplyAllocationData = _allocateSupplySingleSupplierSpecificVintages({
+        allocationData = _allocateSupplySingleSupplierSpecificVintages({
           amount: certificateAmount,
           supplier: supplier,
           vintages: vintages
         });
       }
     }
-    return supplyAllocationData;
+    return allocationData;
   }
 
   /**
@@ -1332,10 +1327,10 @@ contract Market is
       certificateAmount: certificateAmount,
       availableSupply: availableSupply
     });
-    SupplyAllocationData memory supplyAllocationData = _allocateSupply({
+    SupplyAllocationData memory allocationData = _allocateSupply({
       amount: certificateAmount
     });
-    return supplyAllocationData;
+    return allocationData;
   }
 
   /**
@@ -1510,14 +1505,17 @@ contract Market is
   function _allocateSupply(
     uint256 amount
   ) internal returns (SupplyAllocationData memory) {
-    uint256 remainingAmountToFill = amount;
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
       account: address(this)
     });
-    uint256[] memory ids = new uint256[](countOfListedRemovals);
-    uint256[] memory amounts = new uint256[](countOfListedRemovals);
-    address[] memory suppliers = new address[](countOfListedRemovals);
-    uint256 countOfRemovalsAllocated = 0;
+    SupplyAllocationData memory allocationData = SupplyAllocationData({
+      countOfRemovalsAllocated: 0,
+      ids: new uint256[](countOfListedRemovals),
+      amounts: new uint256[](countOfListedRemovals),
+      suppliers: new address[](countOfListedRemovals)
+    });
+    uint256 remainingAmountToFill = amount;
+    uint256 amountUsedFromRemoval = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = _listedSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
@@ -1525,23 +1523,22 @@ contract Market is
         account: address(this),
         id: removalId
       });
-      if (remainingAmountToFill < removalAmount) {
-        /**
-         * The order is complete, not fully using up this removal, don't increment currentSupplierAddress,
-         * don't check about removing active supplier.
-         */
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = remainingAmountToFill;
-        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
-        remainingAmountToFill = 0;
-      } else {
+      allocationData.ids[allocationData.countOfRemovalsAllocated] = removalId;
+      allocationData.suppliers[
+        allocationData.countOfRemovalsAllocated
+      ] = _currentSupplierAddress;
+      amountUsedFromRemoval = MathUpgradeable.min({
+        a: remainingAmountToFill,
+        b: removalAmount
+      });
+      allocationData.amounts[
+        allocationData.countOfRemovalsAllocated
+      ] = amountUsedFromRemoval;
+      remainingAmountToFill -= amountUsedFromRemoval;
+      if (amountUsedFromRemoval == removalAmount) {
         /**
          * We will use up this removal while completing the order, move on to next one.
          */
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
-        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
-        remainingAmountToFill -= removalAmount;
         address currentSupplierBeforeRemovingActiveRemoval = _currentSupplierAddress;
         _removeActiveRemoval({
           removalId: removalId,
@@ -1559,18 +1556,12 @@ contract Market is
           _incrementCurrentSupplierAddress();
         }
       }
-      ++countOfRemovalsAllocated;
+      ++allocationData.countOfRemovalsAllocated;
       if (remainingAmountToFill == 0) {
         break;
       }
     }
-    return
-      SupplyAllocationData({
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      });
+    return allocationData;
   }
 
   /**
@@ -1599,37 +1590,33 @@ contract Market is
     if (countOfListedRemovals == 0) {
       revert InsufficientSupply();
     }
+    SupplyAllocationData memory allocationData = SupplyAllocationData({
+      countOfRemovalsAllocated: 0,
+      ids: new uint256[](countOfListedRemovals),
+      amounts: new uint256[](countOfListedRemovals),
+      suppliers: new address[](countOfListedRemovals)
+    });
     uint256 remainingAmountToFill = certificateAmount;
-    uint256[] memory ids = new uint256[](countOfListedRemovals);
-    uint256[] memory amounts = new uint256[](countOfListedRemovals);
-    address[] memory suppliers = new address[](countOfListedRemovals);
-    uint256 countOfRemovalsAllocated = 0;
+    uint256 amountUsedFromRemoval = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf({
         account: address(this),
         id: removalId
       });
-      /**
-       * Order complete, not fully using up this removal.
-       */
-      if (remainingAmountToFill < removalAmount) {
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = remainingAmountToFill;
-        remainingAmountToFill = 0;
-        /**
-         * We will use up this removal while completing the order, move on to next one.
-         */
-      } else {
+      allocationData.ids[allocationData.countOfRemovalsAllocated] = removalId;
+      allocationData.amounts[
+        allocationData.countOfRemovalsAllocated
+      ] = amountUsedFromRemoval;
+      remainingAmountToFill -= amountUsedFromRemoval;
+      if (amountUsedFromRemoval == removalAmount) {
         if (
-          countOfRemovalsAllocated == countOfListedRemovals - 1 &&
+          allocationData.countOfRemovalsAllocated ==
+          countOfListedRemovals - 1 &&
           remainingAmountToFill > removalAmount
         ) {
           revert InsufficientSupply();
         }
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = removalAmount; // This removal is getting used up.
-        remainingAmountToFill -= removalAmount;
         supplierRemovalQueue.remove({removalId: removalId});
         /**
          * If the supplier is out of supply, remove them from the active suppliers.
@@ -1638,19 +1625,15 @@ contract Market is
           _removeActiveSupplier({supplierToRemove: supplier});
         }
       }
-      ++countOfRemovalsAllocated;
+      ++allocationData.countOfRemovalsAllocated;
       if (remainingAmountToFill == 0) {
         break;
       }
     }
-    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
-    return
-      SupplyAllocationData({
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      });
+    allocationData.suppliers = new address[](
+      allocationData.countOfRemovalsAllocated
+    ).fill({value: supplier});
+    return allocationData;
   }
 
   /**
@@ -1665,15 +1648,18 @@ contract Market is
     uint256 amount,
     uint256[] memory vintages
   ) internal returns (SupplyAllocationData memory) {
-    uint256 remainingAmountToFill = amount;
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
       account: address(this)
     });
-    uint256[] memory ids = new uint256[](countOfListedRemovals);
-    uint256[] memory amounts = new uint256[](countOfListedRemovals);
-    address[] memory suppliers = new address[](countOfListedRemovals);
+    SupplyAllocationData memory allocationData = SupplyAllocationData({
+      countOfRemovalsAllocated: 0,
+      ids: new uint256[](countOfListedRemovals),
+      amounts: new uint256[](countOfListedRemovals),
+      suppliers: new address[](countOfListedRemovals)
+    });
+    uint256 remainingAmountToFill = amount;
     address localCurrentSupplier = _currentSupplierAddress;
-    uint256 countOfRemovalsAllocated = 0;
+    uint256 amountUsedFromRemoval = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = _listedSupply[localCurrentSupplier]
         .getNextRemovalForSaleFromVintages({vintages: vintages});
@@ -1685,27 +1671,25 @@ contract Market is
         account: address(this),
         id: removalId
       });
-      if (remainingAmountToFill < removalAmount) {
+      allocationData.ids[allocationData.countOfRemovalsAllocated] = removalId;
+      allocationData.suppliers[
+        allocationData.countOfRemovalsAllocated
+      ] = localCurrentSupplier;
+      amountUsedFromRemoval = MathUpgradeable.min({
+        a: remainingAmountToFill,
+        b: removalAmount
+      });
+      allocationData.amounts[
+        allocationData.countOfRemovalsAllocated
+      ] = amountUsedFromRemoval;
+      remainingAmountToFill -= amountUsedFromRemoval;
+      if (amountUsedFromRemoval == removalAmount) {
         /**
-         * The order is complete, not fully using up this removal, don't check about removing active supplier.
+         * We will use up this removal while fulfilling this order and need to remove it from the data structure.
+         * This may remove the supplier from the active suppliers and increment the current supplier address
+         * which is behavior we want in the case that the supplier is fully out of supply, but otherwise we do not
+         * interact with the global _currentSupplierAddress in this special order fulfillment flow.
          */
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = remainingAmountToFill;
-        suppliers[countOfRemovalsAllocated] = localCurrentSupplier;
-        remainingAmountToFill = 0;
-      } else {
-        /**
-         * We will use up this removal while completing the order, move on to next one.
-         */
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
-        suppliers[countOfRemovalsAllocated] = localCurrentSupplier;
-        remainingAmountToFill -= removalAmount;
-        /**
-        This may remove the supplier from the active suppliers and increment the current supplier address
-        * which is behavior we want in the case that the supplier is out of supply, but otherwise we do not
-        * interact with the global _currentSupplierAddress in this fulfillment flow.
-        */
         address successorInCaseSupplierIsRemoved = _suppliers[
           localCurrentSupplier
         ].next;
@@ -1718,7 +1702,7 @@ contract Market is
           localCurrentSupplier = successorInCaseSupplierIsRemoved;
         }
       }
-      ++countOfRemovalsAllocated;
+      ++allocationData.countOfRemovalsAllocated;
       if (remainingAmountToFill == 0) {
         break;
       }
@@ -1726,13 +1710,7 @@ contract Market is
     if (remainingAmountToFill > 0) {
       revert InsufficientSupply();
     }
-    return
-      SupplyAllocationData({
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      });
+    return allocationData;
   }
 
   /**
@@ -1761,12 +1739,14 @@ contract Market is
     if (countOfSuppliersListedRemovals == 0) {
       revert InsufficientSupply();
     }
-    uint256[] memory ids = new uint256[](countOfSuppliersListedRemovals);
-    uint256[] memory amounts = new uint256[](countOfSuppliersListedRemovals);
-    address[] memory suppliers = new address[](countOfSuppliersListedRemovals);
-    uint256 countOfRemovalsAllocated = 0;
+    SupplyAllocationData memory allocationData = SupplyAllocationData({
+      countOfRemovalsAllocated: 0,
+      ids: new uint256[](countOfSuppliersListedRemovals),
+      amounts: new uint256[](countOfSuppliersListedRemovals),
+      suppliers: new address[](0) // populated later
+    });
     uint256 remainingAmountToFill = amount;
-
+    uint256 amountUsedFromRemoval = 0;
     for (uint256 i = 0; i < countOfSuppliersListedRemovals; ++i) {
       uint256 removalId = supplierRemovalQueue
         .getNextRemovalForSaleFromVintages({vintages: vintages});
@@ -1779,20 +1759,19 @@ contract Market is
         account: address(this),
         id: removalId
       });
-      if (remainingAmountToFill < removalAmount) {
-        /**
-         * The order is complete, not fully using up this removal, don't check about removing active supplier.
-         */
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = remainingAmountToFill;
-        remainingAmountToFill = 0;
-      } else {
+      allocationData.ids[allocationData.countOfRemovalsAllocated] = removalId;
+      amountUsedFromRemoval = MathUpgradeable.min({
+        a: remainingAmountToFill,
+        b: removalAmount
+      });
+      allocationData.amounts[
+        allocationData.countOfRemovalsAllocated
+      ] = amountUsedFromRemoval;
+      remainingAmountToFill -= amountUsedFromRemoval;
+      if (amountUsedFromRemoval == removalAmount) {
         /**
          * We will use up this removal while completing the order, move on to next one.
          */
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
-        remainingAmountToFill -= removalAmount;
         supplierRemovalQueue.remove({removalId: removalId});
         /**
          * If the supplier is out of supply, remove them from the active suppliers.
@@ -1801,7 +1780,7 @@ contract Market is
           _removeActiveSupplier({supplierToRemove: supplier});
         }
       }
-      ++countOfRemovalsAllocated;
+      ++allocationData.countOfRemovalsAllocated;
       if (remainingAmountToFill == 0) {
         break;
       }
@@ -1809,14 +1788,10 @@ contract Market is
     if (remainingAmountToFill > 0) {
       revert InsufficientSupply();
     }
-    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
-    return
-      SupplyAllocationData({
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      });
+    allocationData.suppliers = new address[](
+      allocationData.countOfRemovalsAllocated
+    ).fill({value: supplier});
+    return allocationData;
   }
 
   /**
