@@ -1594,7 +1594,7 @@ contract Market is
       countOfRemovalsAllocated: 0,
       ids: new uint256[](countOfListedRemovals),
       amounts: new uint256[](countOfListedRemovals),
-      suppliers: new address[](countOfListedRemovals)
+      suppliers: new address[](0) // populated later
     });
     uint256 remainingAmountToFill = certificateAmount;
     uint256 amountUsedFromRemoval = 0;
@@ -1603,6 +1603,10 @@ contract Market is
       uint256 removalAmount = _removal.balanceOf({
         account: address(this),
         id: removalId
+      });
+      amountUsedFromRemoval = MathUpgradeable.min({
+        a: remainingAmountToFill,
+        b: removalAmount
       });
       allocationData.ids[allocationData.countOfRemovalsAllocated] = removalId;
       allocationData.amounts[
