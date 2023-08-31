@@ -80,7 +80,7 @@ struct FulfillOrderData {
   uint256 certificateAmount;
   address from;
   address recipient;
-  struct Market.SupplyAllocationData supplyAllocationData;
+  struct Market.SupplyAllocationData allocationData;
 }
 ```
 
@@ -679,8 +679,8 @@ potentially to the RestrictedNORI contract that controls any restricted portion 
 | amount | uint256 | The total purchase amount in ERC20 tokens. This is the total number of removals being purchased, scaled by the price multiple. |
 | customFee | uint256 | The fee percentage that was paid to Nori off chain, as an integer, specified here for inclusion in emitted events. |
 | customPriceMultiple | uint256 | The price that will be charged for this transaction. |
-| supplier | address | The only supplier address from which to purchase carbon removals in this transaction, or zero address if any supplier is valid. |
-| vintages | uint256[] | The valid set of vintages from which to fulfill this order, empty if any vintage is valid. |
+| supplier | address | The only supplier address from which to purchase carbon removals in this transaction, or the zero address if any supplier is valid. |
+| vintages | uint256[] | The valid set of vintages from which to fulfill this order, or an empty array if any vintage is valid. |
 
 
 ### withdraw
@@ -1074,8 +1074,8 @@ Allocates removals to fulfill an order.
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | certificateAmount | uint256 | The total amount for the certificate. |
-| supplier | address | The only supplier address from which to purchase carbon removals in this transaction, or zero address if any supplier is valid. |
-| vintages | uint256[] | A set of valid vintages from which to allocate removals, empty if any vintage is valid. |
+| supplier | address | The only supplier address from which to purchase carbon removals in this transaction, or the zero address if any supplier is valid. |
+| vintages | uint256[] | A set of valid vintages from which to allocate removals, or an empty array if any vintage is valid. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -1084,7 +1084,7 @@ Allocates removals to fulfill an order.
 ### _allocateRemovals
 
 ```solidity
-function _allocateRemovals(address purchaser, uint256 certificateAmount) internal returns (struct Market.SupplyAllocationData)
+function _allocateRemovals(uint256 certificateAmount) internal returns (struct Market.SupplyAllocationData)
 ```
 
 Allocates removals to fulfill an order.
@@ -1093,7 +1093,6 @@ Allocates removals to fulfill an order.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| purchaser | address | The address of the purchaser. |
 | certificateAmount | uint256 | The total amount for the certificate. |
 
 | Name | Type | Description |
@@ -1180,7 +1179,7 @@ with 6 decimals (e.g., USDC) is 100,000,000,000,000.</i>
 ### _validatePrioritySupply
 
 ```solidity
-function _validatePrioritySupply(address purchaser, uint256 certificateAmount, uint256 availableSupply) internal view
+function _validatePrioritySupply(uint256 certificateAmount, uint256 availableSupply) internal view
 ```
 
 Validates that the listed supply is enough to fulfill the purchase given the priority restricted threshold.
@@ -1189,7 +1188,6 @@ Validates that the listed supply is enough to fulfill the purchase given the pri
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| purchaser | address | The address of the buyer. |
 | certificateAmount | uint256 | The number of carbon removals being purchased. |
 | availableSupply | uint256 | The amount of listed supply in the market. |
 
