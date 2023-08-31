@@ -932,7 +932,6 @@ contract Market__validatePrioritySupply is NonUpgradeableMarket {
     view
   {
     _validatePrioritySupply({
-      purchaser: _namedAccounts.buyer,
       certificateAmount: 0.5 ether,
       availableSupply: 1 ether
     });
@@ -940,7 +939,6 @@ contract Market__validatePrioritySupply is NonUpgradeableMarket {
 
   function test_supplyAfterPurchaseIsZero() external view {
     _validatePrioritySupply({
-      purchaser: _namedAccounts.buyer,
       certificateAmount: 1 ether,
       availableSupply: 1 ether
     });
@@ -959,7 +957,6 @@ contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriori
 
   function test() external view {
     _validatePrioritySupply({
-      purchaser: _namedAccounts.deployer,
       certificateAmount: 1 ether,
       availableSupply: 1 ether
     });
@@ -978,7 +975,6 @@ contract Market__validatePrioritySupply_reverts_LowSupplyAllowlistRequired is
   function test() external {
     vm.expectRevert(LowSupplyAllowlistRequired.selector);
     _validatePrioritySupply({
-      purchaser: _msgSender(),
       certificateAmount: 1 ether,
       availableSupply: 1 ether
     });

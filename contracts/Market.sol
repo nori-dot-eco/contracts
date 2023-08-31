@@ -688,7 +688,6 @@ contract Market is
   ) external whenNotPaused {
     _validateCertificateAmount({amount: amount});
     SupplyAllocationData memory allocationData = _allocateRemovals({
-      purchaser: _msgSender(),
       certificateAmount: amount
     });
     _permit({
@@ -732,7 +731,6 @@ contract Market is
   function swap(address recipient, uint256 amount) external whenNotPaused {
     _validateCertificateAmount({amount: amount});
     SupplyAllocationData memory allocationData = _allocateRemovals({
-      purchaser: _msgSender(),
       certificateAmount: amount
     });
     _fulfillOrder({
@@ -772,8 +770,9 @@ contract Market is
    * for inclusion in emitted events.
    * @param customPriceMultiple The price that will be charged for this transaction.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction, or
-   * zero address if any supplier is valid.
-   * @param vintages The valid set of vintages from which to fulfill this order, empty if any vintage is valid.
+   * the zero address if any supplier is valid.
+   * @param vintages The valid set of vintages from which to fulfill this order, or an empty array if any
+   * vintage is valid.
    */
   function swapWithoutFeeSpecialOrder(
     address recipient,
@@ -1259,8 +1258,8 @@ contract Market is
    * @dev This function is responsible for validating and allocating the supply to fulfill an order.
    * @param certificateAmount The total amount for the certificate.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction,
-   * or zero address if any supplier is valid.
-   * @param vintages A set of valid vintages from which to allocate removals, empty if any vintage is valid.
+   * or the zero address if any supplier is valid.
+   * @param vintages A set of valid vintages from which to allocate removals, or an empty array if any vintage is valid.
    * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
    * from the supply allocation algorithm.
    */
@@ -1308,13 +1307,11 @@ contract Market is
   /**
    * @notice Allocates removals to fulfill an order.
    * @dev This function is responsible for validating and allocating the supply to fulfill an order.
-   * @param purchaser The address of the purchaser.
    * @param certificateAmount The total amount for the certificate.
    * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
    * from the supply allocation algorithm.
    */
   function _allocateRemovals(
-    address purchaser,
     uint256 certificateAmount
   ) internal returns (SupplyAllocationData memory) {
     uint256 availableSupply = _removal.getMarketBalance();
@@ -1323,7 +1320,6 @@ contract Market is
       availableSupply: availableSupply
     });
     _validatePrioritySupply({
-      purchaser: purchaser,
       certificateAmount: certificateAmount,
       availableSupply: availableSupply
     });
@@ -1424,12 +1420,10 @@ contract Market is
   /**
    * @notice Validates that the listed supply is enough to fulfill the purchase given the priority restricted threshold.
    * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
-   * @param purchaser The address of the buyer.
    * @param certificateAmount The number of carbon removals being purchased.
    * @param availableSupply The amount of listed supply in the market.
    */
   function _validatePrioritySupply(
-    address purchaser,
     uint256 certificateAmount,
     uint256 availableSupply
   ) internal view {
@@ -1438,7 +1432,7 @@ contract Market is
       b: certificateAmount
     });
     if (supplyAfterPurchase < _priorityRestrictedThreshold) {
-      if (!hasRole({role: ALLOWLIST_ROLE, account: purchaser})) {
+      if (!hasRole({role: ALLOWLIST_ROLE, account: _msgSender()})) {
         revert LowSupplyAllowlistRequired();
       }
     }
