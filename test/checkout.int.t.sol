@@ -1104,7 +1104,7 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificSupplier is Checkout {
   uint256 private _customFee = 5;
   uint256 private _certificateAmount = 1 ether;
   uint256 private _customPriceMultiple = 2500; // $25.00 -- test above the default price multiple of $20.00
-  address private _nonexistentSupplier = vm.addr(0x1234);
+  address private _nonexistentSupplier = account("nonexistent supplier");
   uint256 private _holdbackPercentage = 50;
   uint256 private _priceMultipleScale = 100;
 
