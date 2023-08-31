@@ -1628,18 +1628,6 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
     uint256 noriFeePercentage;
   }
 
-  event CreateCertificate(
-    address from,
-    address indexed recipient,
-    uint256 indexed certificateId,
-    uint256 certificateAmount,
-    uint256[] removalIds,
-    uint256[] removalAmounts,
-    address indexed purchasingTokenAddress,
-    uint256 priceMultiple,
-    uint256 noriFeePercentage
-  );
-
   function setUp() external {
     DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
     removals[0] = DecodedRemovalIdV0({
@@ -1731,18 +1719,6 @@ contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
     uint256 priceMultiple;
     uint256 noriFeePercentage;
   }
-
-  event CreateCertificate(
-    address from,
-    address indexed recipient,
-    uint256 indexed certificateId,
-    uint256 certificateAmount,
-    uint256[] removalIds,
-    uint256[] removalAmounts,
-    address indexed purchasingTokenAddress,
-    uint256 priceMultiple,
-    uint256 noriFeePercentage
-  );
 
   function setUp() external {
     DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](1);
