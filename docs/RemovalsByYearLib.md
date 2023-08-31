@@ -101,6 +101,25 @@ Gets the next removal in the collection for sale.
 | ---- | ---- | ----------- |
 | [0] | uint256 | The next removal to sell. |
 
+### getNextRemovalForSaleFromVintages
+
+```solidity
+function getNextRemovalForSaleFromVintages(struct RemovalsByYear collection, uint256[] vintages) internal view returns (uint256)
+```
+
+Gets the next removal in the collection for sale that comes from any of the specified vintage years.
+If no removal exists on the valid range, 0 is returned.
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| collection | struct RemovalsByYear | the collection from storage. |
+| vintages | uint256[] | the valid set of years from which to pull the removal ID. |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | The next removal to sell, or 0 if no removal exists on that vintage range. |
+
 ### getCountForYear
 
 ```solidity

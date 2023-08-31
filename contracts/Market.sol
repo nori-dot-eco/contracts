@@ -96,10 +96,8 @@ contract Market is
    * @param certificateAmount The total amount for the certificate.
    * @param from The message sender.
    * @param recipient The recipient of the certificate.
-   * @param countOfRemovalsAllocated The number of distinct removal IDs that are involved in fulfilling this order.
-   * @param ids An array of removal IDs involved in fulfilling this order.
-   * @param amounts An array of amounts being allocated from each corresponding removal token.
-   * @param suppliers An array of suppliers.
+   * @param allocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   struct FulfillOrderData {
     bool chargeFee;
@@ -107,6 +105,17 @@ contract Market is
     uint256 certificateAmount;
     address from;
     address recipient;
+    SupplyAllocationData allocationData;
+  }
+
+  /**
+   * @notice The removals, amounts, suppliers and count data returned from the supply allocation algorithm.
+   * @param countOfRemovalsAllocated The number of distinct removal IDs used to fulfill an order.
+   * @param ids An array of the removal IDs being drawn from to fulfill an order.
+   * @param amounts An array of amounts being allocated from each corresponding removal token.
+   * @param suppliers The address of the supplier who owns each corresponding removal token.
+   */
+  struct SupplyAllocationData {
     uint256 countOfRemovalsAllocated;
     uint256[] ids;
     uint256[] amounts;
@@ -428,18 +437,15 @@ contract Market is
       certificateAmount: totalAmountToReplace,
       availableSupply: availableSupply
     });
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateSupply({amount: totalAmountToReplace});
-
-    uint256[] memory removalIds = ids.slice({
+    SupplyAllocationData memory allocationData = _allocateSupply({
+      amount: totalAmountToReplace
+    });
+    uint256 countOfRemovalsAllocated = allocationData.countOfRemovalsAllocated;
+    uint256[] memory removalIds = allocationData.ids.slice({
       from: 0,
       to: countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = amounts.slice({
+    uint256[] memory removalAmounts = allocationData.amounts.slice({
       from: 0,
       to: countOfRemovalsAllocated
     });
@@ -454,7 +460,7 @@ contract Market is
       countOfRemovalsAllocated: countOfRemovalsAllocated,
       ids: removalIds,
       amounts: removalAmounts,
-      suppliers: suppliers
+      suppliers: allocationData.suppliers
     });
     _removal.safeBatchTransferFrom({
       from: address(this),
@@ -681,12 +687,9 @@ contract Market is
     bytes32 s
   ) external whenNotPaused {
     _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovals({purchaser: _msgSender(), certificateAmount: amount});
+    SupplyAllocationData memory allocationData = _allocateRemovals({
+      certificateAmount: amount
+    });
     _permit({
       owner: permitOwner,
       amount: this.calculateCheckoutTotal({amount: amount}),
@@ -696,16 +699,13 @@ contract Market is
       s: s
     });
     _fulfillOrder({
-      params: FulfillOrderData({
+      orderData: FulfillOrderData({
         chargeFee: true,
         feePercentage: _noriFeePercentage,
         certificateAmount: amount,
         from: permitOwner,
         recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
+        allocationData: allocationData
       })
     });
   }
@@ -730,192 +730,17 @@ contract Market is
    */
   function swap(address recipient, uint256 amount) external whenNotPaused {
     _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovals({purchaser: _msgSender(), certificateAmount: amount});
+    SupplyAllocationData memory allocationData = _allocateRemovals({
+      certificateAmount: amount
+    });
     _fulfillOrder({
-      params: FulfillOrderData({
+      orderData: FulfillOrderData({
         chargeFee: true,
         feePercentage: _noriFeePercentage,
         certificateAmount: amount,
         from: _msgSender(),
         recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      })
-    });
-  }
-
-  /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange
-   * IERC20WithPermit tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only
-   * from the specified supplier to that certificate. If the specified supplier does not have enough carbon removals
-   * for sale to fulfill the order the transaction will revert.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
-   * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the sender's IERC20WithPermit to complete the purchase. A certificate is issued by the Certificate
-   * contract to the specified recipient and the ERC20 is distributed to the supplier of the carbon removal,
-   * to the RestrictedNORI contract that controls any restricted ERC20 owed to the supplier, and finally
-   * to Nori Inc. as a market operator fee.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * @param recipient The address to which the certificate will be issued.
-   * @param permitOwner The address that signed the EIP2612 permit and will pay for the removals.
-   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
-   * purchased and the fee paid to Nori.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   * @param deadline The EIP2612 permit deadline in Unix time.
-   * @param v The recovery identifier for the permit's secp256k1 signature.
-   * @param r The r value for the permit's secp256k1 signature.
-   * @param s The s value for the permit's secp256k1 signature.
-   */
-  function swapFromSupplier(
-    address recipient,
-    address permitOwner,
-    uint256 amount,
-    address supplier,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovalsFromSupplier({
-        certificateAmount: amount,
-        supplier: supplier
-      });
-    _permit({
-      owner: permitOwner,
-      amount: this.calculateCheckoutTotal({amount: amount}),
-      deadline: deadline,
-      v: v,
-      r: r,
-      s: s
-    });
-    _fulfillOrder({
-      params: FulfillOrderData({
-        chargeFee: true,
-        feePercentage: _noriFeePercentage,
-        certificateAmount: amount,
-        from: permitOwner,
-        recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      })
-    });
-  }
-
-  /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange
-   * ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only
-   * from the specified supplier to that certificate. If the specified supplier does not have enough carbon removals
-   * for sale to fulfill the order the transaction will revert.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
-   * for more.
-   * The sender must have already granted approval to this contract in order to transfer their ERC20 tokens to
-   * complete the purchase. A certificate is issued by the Certificate contract to the specified recipient and the
-   * ERC20 tokens are distributed to the supplier of the carbon removal, to the RestrictedNORI contract that controls
-   * any restricted ERC20 tokens owed to the supplier, and finally to Nori Inc. as a market operator fee.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
-   * @param recipient The address to which the certificate will be issued.
-   * @param amount The total purchase amount in ERC20 tokens. This is the combined total price of the removals being
-   * purchased and the fee paid to Nori.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   */
-  function swapFromSupplier(
-    address recipient,
-    uint256 amount,
-    address supplier
-  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovalsFromSupplier({
-        certificateAmount: amount,
-        supplier: supplier
-      });
-    _fulfillOrder({
-      params: FulfillOrderData({
-        chargeFee: true,
-        feePercentage: _noriFeePercentage,
-        certificateAmount: amount,
-        from: _msgSender(),
-        recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      })
-    });
-  }
-
-  /**
-   * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
-   * certificate without charging a transaction fee.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-)
-   * for more.
-   * The purchaser must have granted approval to this contract to authorize this market to transfer their
-   * supported ERC20 to complete the purchase. A certificate is minted in the Certificate
-   * contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
-   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
-   * @param recipient The address to which the certificate will be issued.
-   * @param purchaser The address that will pay for the removals and has granted approval to this contract
-   * to transfer their ERC20 tokens.
-   * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
-   * purchased, scaled by the price multiple.
-   */
-  function swapWithoutFee(
-    address recipient,
-    address purchaser,
-    uint256 amount
-  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
-    _fulfillOrder({
-      params: FulfillOrderData({
-        chargeFee: false,
-        feePercentage: _noriFeePercentage,
-        certificateAmount: amount,
-        from: purchaser,
-        recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
+        allocationData: allocationData
       })
     });
   }
@@ -941,155 +766,39 @@ contract Market is
    * to transfer their ERC20 tokens.
    * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
    * purchased, scaled by the price multiple.
-   * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
-   * inclusion in emitted events.
-   * @param customPriceMultiple The custom price that will be charged for this transaction.
+   * @param customFee The fee percentage that was paid to Nori off chain, as an integer, specified here
+   * for inclusion in emitted events.
+   * @param customPriceMultiple The price that will be charged for this transaction.
+   * @param supplier The only supplier address from which to purchase carbon removals in this transaction, or
+   * the zero address if any supplier is valid.
+   * @param vintages The valid set of vintages from which to fulfill this order, or an empty array if any
+   * vintage is valid.
    */
   function swapWithoutFeeSpecialOrder(
     address recipient,
     address purchaser,
     uint256 amount,
     uint256 customFee,
-    uint256 customPriceMultiple
-  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    uint256 currentPrice = _priceMultiple;
-    _priceMultiple = customPriceMultiple;
-    _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovals({purchaser: purchaser, certificateAmount: amount});
-    _fulfillOrder({
-      params: FulfillOrderData({
-        chargeFee: false,
-        feePercentage: customFee,
-        certificateAmount: amount,
-        from: purchaser,
-        recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      })
-    });
-    _priceMultiple = currentPrice;
-  }
-
-  /**
-   * @notice An overloaded version of `swap` that additionally accepts a supplier address and will exchange supported
-   * ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens supplied only from the
-   * specified supplier to that certificate, without charging a transaction fee. If the specified supplier does not have
-   * enough carbon removals for sale to fulfill the order the transaction will revert.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
-   * more. The purchaser must have granted approval to this contract to authorize this market to transfer their
-   * supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
-   * to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
-   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * - Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
-   * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
-   * @param recipient The address to which the certificate will be issued.
-   * @param purchaser The address that will pay for the removals and has granted approval to this contract
-   * to transfer their ERC20 tokens.
-   * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
-   * purchased, scaled by the price multiple.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   */
-  function swapFromSupplierWithoutFee(
-    address recipient,
-    address purchaser,
-    uint256 amount,
-    address supplier
-  ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
-    _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovalsFromSupplier({
-        certificateAmount: amount,
-        supplier: supplier
-      });
-    _fulfillOrder({
-      params: FulfillOrderData({
-        chargeFee: false,
-        feePercentage: _noriFeePercentage,
-        certificateAmount: amount,
-        from: purchaser,
-        recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
-      })
-    });
-  }
-
-  /**
-   * @notice Exchanges supported ERC20 tokens for an ERC721 certificate token and transfers ownership of removal tokens
-   * supplied only from the specified supplier to that certificate, without charging a transaction fee, but allowing
-   * specification of the fee percentage that was paid off-chain.. If the specified supplier does not have enough carbon
-   * removals for sale to fulfill the order the transaction will revert.
-   * @dev See [here](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#IERC20-approve-address-uint256-) for
-   * more. The purchaser must have granted approval to this contract to authorize this market to transfer their
-   * supported ERC20 tokens to complete the purchase. A certificate is issued by the Certificate contract
-   * to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removal as well as
-   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to the supplier.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when this contract is not paused.
-   * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
-   * - Can only be used when the specified supplier has enough carbon removals for sale to fulfill the order.
-   * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
-   * @param recipient The address to which the certificate will be issued.
-   * @param purchaser The address that will pay for the removals and has granted approval to this contract
-   * to transfer their ERC20 tokens.
-   * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
-   * purchased, scaled by the price multiple.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   * @param customFee The custom fee percentage that was paid to Nori, as an integer, specified here for
-   * inclusion in emitted events.
-   * @param customPriceMultiple The custom price to be used for this transaction.
-   */
-  function swapFromSupplierWithoutFeeSpecialOrder(
-    address recipient,
-    address purchaser,
-    uint256 amount,
+    uint256 customPriceMultiple,
     address supplier,
-    uint256 customFee,
-    uint256 customPriceMultiple
+    uint256[] calldata vintages
   ) external whenNotPaused onlyRole(MARKET_ADMIN_ROLE) {
     uint256 currentPrice = _priceMultiple;
     _priceMultiple = customPriceMultiple;
     _validateCertificateAmount({amount: amount});
-    (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    ) = _allocateRemovalsFromSupplier({
-        certificateAmount: amount,
-        supplier: supplier
-      });
+    SupplyAllocationData memory allocationData = _allocateRemovalsSpecialOrder({
+      certificateAmount: amount,
+      supplier: supplier,
+      vintages: vintages
+    });
     _fulfillOrder({
-      params: FulfillOrderData({
+      orderData: FulfillOrderData({
         chargeFee: false,
         feePercentage: customFee,
         certificateAmount: amount,
         from: purchaser,
         recipient: recipient,
-        countOfRemovalsAllocated: countOfRemovalsAllocated,
-        ids: ids,
-        amounts: amounts,
-        suppliers: suppliers
+        allocationData: allocationData
       })
     });
     _priceMultiple = currentPrice;
@@ -1506,32 +1215,34 @@ contract Market is
    * @notice Fulfill an order.
    * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
    * the order fee, updating accounting, and minting the Certificate.
-   * @param params The order fulfillment data.
+   * @param orderData The order fulfillment data.
    */
-  function _fulfillOrder(FulfillOrderData memory params) internal {
-    uint256[] memory removalIds = params.ids.slice({
+  function _fulfillOrder(FulfillOrderData memory orderData) internal {
+    uint256[] memory removalIds = orderData.allocationData.ids.slice({
       from: 0,
-      to: params.countOfRemovalsAllocated
+      to: orderData.allocationData.countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = params.amounts.slice({
+    uint256[] memory removalAmounts = orderData.allocationData.amounts.slice({
       from: 0,
-      to: params.countOfRemovalsAllocated
+      to: orderData.allocationData.countOfRemovalsAllocated
     });
     _transferFunds({
-      chargeFee: params.chargeFee,
-      from: params.from,
-      countOfRemovalsAllocated: params.countOfRemovalsAllocated,
+      chargeFee: orderData.chargeFee,
+      from: orderData.from,
+      countOfRemovalsAllocated: orderData
+        .allocationData
+        .countOfRemovalsAllocated,
       ids: removalIds,
       amounts: removalAmounts,
-      suppliers: params.suppliers
+      suppliers: orderData.allocationData.suppliers
     });
     bytes memory data = abi.encode(
       false,
-      params.recipient,
-      params.certificateAmount,
+      orderData.recipient,
+      orderData.certificateAmount,
       address(_purchasingToken),
       _priceMultiple,
-      params.feePercentage
+      orderData.feePercentage
     );
     _removal.safeBatchTransferFrom({
       from: address(this),
@@ -1545,69 +1256,77 @@ contract Market is
   /**
    * @notice Allocates removals to fulfill an order.
    * @dev This function is responsible for validating and allocating the supply to fulfill an order.
-   * @param purchaser The address of the purchaser.
    * @param certificateAmount The total amount for the certificate.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
-   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   * @param supplier The only supplier address from which to purchase carbon removals in this transaction,
+   * or the zero address if any supplier is valid.
+   * @param vintages A set of valid vintages from which to allocate removals, or an empty array if any vintage is valid.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
+   */
+  function _allocateRemovalsSpecialOrder(
+    uint256 certificateAmount,
+    address supplier,
+    uint256[] calldata vintages
+  ) internal returns (SupplyAllocationData memory) {
+    SupplyAllocationData memory allocationData;
+    if (vintages.length == 0) {
+      if (supplier == address(0)) {
+        // case no restrictions on fulfillment
+        uint256 availableSupply = _removal.getMarketBalance();
+        _validateSupply({
+          certificateAmount: certificateAmount,
+          availableSupply: availableSupply
+        });
+        allocationData = _allocateSupply({amount: certificateAmount});
+      } else {
+        // case supplier-specific fulfillment only
+        allocationData = _allocateSupplySingleSupplier({
+          certificateAmount: certificateAmount,
+          supplier: supplier
+        });
+      }
+    } else {
+      if (supplier == address(0)) {
+        // case vintage-specific fulfillment only
+        allocationData = _allocateSupplySpecificVintages({
+          amount: certificateAmount,
+          vintages: vintages
+        });
+      } else {
+        // case vintage-specific fulfillment and supplier-specific fulfillment
+        allocationData = _allocateSupplySingleSupplierSpecificVintages({
+          amount: certificateAmount,
+          supplier: supplier,
+          vintages: vintages
+        });
+      }
+    }
+    return allocationData;
+  }
+
+  /**
+   * @notice Allocates removals to fulfill an order.
+   * @dev This function is responsible for validating and allocating the supply to fulfill an order.
+   * @param certificateAmount The total amount for the certificate.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   function _allocateRemovals(
-    address purchaser,
     uint256 certificateAmount
-  )
-    internal
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    )
-  {
+  ) internal returns (SupplyAllocationData memory) {
     uint256 availableSupply = _removal.getMarketBalance();
     _validateSupply({
       certificateAmount: certificateAmount,
       availableSupply: availableSupply
     });
     _validatePrioritySupply({
-      purchaser: purchaser,
       certificateAmount: certificateAmount,
       availableSupply: availableSupply
     });
-    (countOfRemovalsAllocated, ids, amounts, suppliers) = _allocateSupply({
+    SupplyAllocationData memory allocationData = _allocateSupply({
       amount: certificateAmount
     });
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
-  }
-
-  /**
-   * @notice Allocates removals from a specific supplier to be fulfilled.
-   * @dev This function is responsible for validating and allocating the supply from a specific supplier.
-   * @param certificateAmount The total amount of NRTs for the certificate.
-   * @param supplier The only supplier address from which to purchase carbon removals in this transaction.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
-   * @return suppliers The address of the supplier who owns each corresponding removal token.
-   */
-  function _allocateRemovalsFromSupplier(
-    uint256 certificateAmount,
-    address supplier
-  )
-    internal
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    )
-  {
-    (countOfRemovalsAllocated, ids, amounts) = _allocateSupplySingleSupplier({
-      certificateAmount: certificateAmount,
-      supplier: supplier
-    });
-    suppliers = new address[](countOfRemovalsAllocated).fill({value: supplier});
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+    return allocationData;
   }
 
   /**
@@ -1701,12 +1420,10 @@ contract Market is
   /**
    * @notice Validates that the listed supply is enough to fulfill the purchase given the priority restricted threshold.
    * @dev Reverts if available stock is being reserved for priority buyers and buyer is not priority.
-   * @param purchaser The address of the buyer.
    * @param certificateAmount The number of carbon removals being purchased.
    * @param availableSupply The amount of listed supply in the market.
    */
   function _validatePrioritySupply(
-    address purchaser,
     uint256 certificateAmount,
     uint256 availableSupply
   ) internal view {
@@ -1715,7 +1432,7 @@ contract Market is
       b: certificateAmount
     });
     if (supplyAfterPurchase < _priorityRestrictedThreshold) {
-      if (!hasRole({role: ALLOWLIST_ROLE, account: purchaser})) {
+      if (!hasRole({role: ALLOWLIST_ROLE, account: _msgSender()})) {
         revert LowSupplyAllowlistRequired();
       }
     }
@@ -1776,30 +1493,23 @@ contract Market is
   /**
    * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase.
    * @param amount The number of carbon removals to purchase.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
-   * @return suppliers The address of the supplier who owns each corresponding removal token.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   function _allocateSupply(
     uint256 amount
-  )
-    private
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts,
-      address[] memory suppliers
-    )
-  {
-    uint256 remainingAmountToFill = amount;
+  ) internal returns (SupplyAllocationData memory) {
     uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
       account: address(this)
     });
-    ids = new uint256[](countOfListedRemovals);
-    amounts = new uint256[](countOfListedRemovals);
-    suppliers = new address[](countOfListedRemovals);
-    countOfRemovalsAllocated = 0;
+    SupplyAllocationData memory allocationData = SupplyAllocationData({
+      countOfRemovalsAllocated: 0,
+      ids: new uint256[](countOfListedRemovals),
+      amounts: new uint256[](countOfListedRemovals),
+      suppliers: new address[](countOfListedRemovals)
+    });
+    uint256 remainingAmountToFill = amount;
+    uint256 amountUsedFromRemoval = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = _listedSupply[_currentSupplierAddress]
         .getNextRemovalForSale();
@@ -1807,23 +1517,22 @@ contract Market is
         account: address(this),
         id: removalId
       });
-      if (remainingAmountToFill < removalAmount) {
-        /**
-         * The order is complete, not fully using up this removal, don't increment currentSupplierAddress,
-         * don't check about removing active supplier.
-         */
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = remainingAmountToFill;
-        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
-        remainingAmountToFill = 0;
-      } else {
+      allocationData.ids[allocationData.countOfRemovalsAllocated] = removalId;
+      allocationData.suppliers[
+        allocationData.countOfRemovalsAllocated
+      ] = _currentSupplierAddress;
+      amountUsedFromRemoval = MathUpgradeable.min({
+        a: remainingAmountToFill,
+        b: removalAmount
+      });
+      allocationData.amounts[
+        allocationData.countOfRemovalsAllocated
+      ] = amountUsedFromRemoval;
+      remainingAmountToFill -= amountUsedFromRemoval;
+      if (amountUsedFromRemoval == removalAmount) {
         /**
          * We will use up this removal while completing the order, move on to next one.
          */
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = removalAmount; // this removal is getting used up
-        suppliers[countOfRemovalsAllocated] = _currentSupplierAddress;
-        remainingAmountToFill -= removalAmount;
         address currentSupplierBeforeRemovingActiveRemoval = _currentSupplierAddress;
         _removeActiveRemoval({
           removalId: removalId,
@@ -1841,33 +1550,25 @@ contract Market is
           _incrementCurrentSupplierAddress();
         }
       }
-      ++countOfRemovalsAllocated;
+      ++allocationData.countOfRemovalsAllocated;
       if (remainingAmountToFill == 0) {
         break;
       }
     }
-    return (countOfRemovalsAllocated, ids, amounts, suppliers);
+    return allocationData;
   }
 
   /**
    * @notice Allocates supply for an amount using only a single supplier's removals.
    * @param certificateAmount The number of carbon removals to purchase.
    * @param supplier The supplier from which to purchase carbon removals.
-   * @return countOfRemovalsAllocated The number of distinct removal IDs used to fulfill this order.
-   * @return ids An array of the removal IDs being drawn from to fulfill this order.
-   * @return amounts An array of amounts being allocated from each corresponding removal token.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
    */
   function _allocateSupplySingleSupplier(
     uint256 certificateAmount,
     address supplier
-  )
-    private
-    returns (
-      uint256 countOfRemovalsAllocated,
-      uint256[] memory ids,
-      uint256[] memory amounts
-    )
-  {
+  ) internal returns (SupplyAllocationData memory) {
     RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
     uint256 countOfListedRemovals;
     uint256 latestYear = supplierRemovalQueue.latestYear;
@@ -1883,36 +1584,36 @@ contract Market is
     if (countOfListedRemovals == 0) {
       revert InsufficientSupply();
     }
+    SupplyAllocationData memory allocationData = SupplyAllocationData({
+      countOfRemovalsAllocated: 0,
+      ids: new uint256[](countOfListedRemovals),
+      amounts: new uint256[](countOfListedRemovals),
+      suppliers: new address[](0) // populated later
+    });
     uint256 remainingAmountToFill = certificateAmount;
-    ids = new uint256[](countOfListedRemovals);
-    amounts = new uint256[](countOfListedRemovals);
-    countOfRemovalsAllocated = 0;
+    uint256 amountUsedFromRemoval = 0;
     for (uint256 i = 0; i < countOfListedRemovals; ++i) {
       uint256 removalId = supplierRemovalQueue.getNextRemovalForSale();
       uint256 removalAmount = _removal.balanceOf({
         account: address(this),
         id: removalId
       });
-      /**
-       * Order complete, not fully using up this removal.
-       */
-      if (remainingAmountToFill < removalAmount) {
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = remainingAmountToFill;
-        remainingAmountToFill = 0;
-        /**
-         * We will use up this removal while completing the order, move on to next one.
-         */
-      } else {
-        if (
-          countOfRemovalsAllocated == countOfListedRemovals - 1 &&
-          remainingAmountToFill > removalAmount
-        ) {
-          revert InsufficientSupply();
-        }
-        ids[countOfRemovalsAllocated] = removalId;
-        amounts[countOfRemovalsAllocated] = removalAmount; // This removal is getting used up.
-        remainingAmountToFill -= removalAmount;
+      amountUsedFromRemoval = MathUpgradeable.min({
+        a: remainingAmountToFill,
+        b: removalAmount
+      });
+      allocationData.ids[allocationData.countOfRemovalsAllocated] = removalId;
+      allocationData.amounts[
+        allocationData.countOfRemovalsAllocated
+      ] = amountUsedFromRemoval;
+      if (
+        allocationData.countOfRemovalsAllocated == countOfListedRemovals - 1 &&
+        remainingAmountToFill > removalAmount
+      ) {
+        revert InsufficientSupply();
+      }
+      remainingAmountToFill -= amountUsedFromRemoval;
+      if (amountUsedFromRemoval == removalAmount) {
         supplierRemovalQueue.remove({removalId: removalId});
         /**
          * If the supplier is out of supply, remove them from the active suppliers.
@@ -1921,12 +1622,173 @@ contract Market is
           _removeActiveSupplier({supplierToRemove: supplier});
         }
       }
-      ++countOfRemovalsAllocated;
+      ++allocationData.countOfRemovalsAllocated;
       if (remainingAmountToFill == 0) {
         break;
       }
     }
-    return (countOfRemovalsAllocated, ids, amounts);
+    allocationData.suppliers = new address[](
+      allocationData.countOfRemovalsAllocated
+    ).fill({value: supplier});
+    return allocationData;
+  }
+
+  /**
+   * @notice Allocates the removals, amounts and suppliers needed to fulfill the purchase, drawing only from
+   * the vintages specified.
+   * @param amount The number of carbon removals to purchase.
+   * @param vintages The vintages from which to purchase carbon removals.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
+   */
+  function _allocateSupplySpecificVintages(
+    uint256 amount,
+    uint256[] calldata vintages
+  ) internal returns (SupplyAllocationData memory) {
+    uint256 countOfListedRemovals = _removal.numberOfTokensOwnedByAddress({
+      account: address(this)
+    });
+    SupplyAllocationData memory allocationData = SupplyAllocationData({
+      countOfRemovalsAllocated: 0,
+      ids: new uint256[](countOfListedRemovals),
+      amounts: new uint256[](countOfListedRemovals),
+      suppliers: new address[](countOfListedRemovals)
+    });
+    uint256 remainingAmountToFill = amount;
+    address localCurrentSupplier = _currentSupplierAddress;
+    uint256 amountUsedFromRemoval = 0;
+    for (uint256 i = 0; i < countOfListedRemovals; ++i) {
+      uint256 removalId = _listedSupply[localCurrentSupplier]
+        .getNextRemovalForSaleFromVintages({vintages: vintages});
+      if (removalId == 0) {
+        localCurrentSupplier = _suppliers[localCurrentSupplier].next;
+        continue;
+      }
+      uint256 removalAmount = _removal.balanceOf({
+        account: address(this),
+        id: removalId
+      });
+      allocationData.ids[allocationData.countOfRemovalsAllocated] = removalId;
+      allocationData.suppliers[
+        allocationData.countOfRemovalsAllocated
+      ] = localCurrentSupplier;
+      amountUsedFromRemoval = MathUpgradeable.min({
+        a: remainingAmountToFill,
+        b: removalAmount
+      });
+      allocationData.amounts[
+        allocationData.countOfRemovalsAllocated
+      ] = amountUsedFromRemoval;
+      remainingAmountToFill -= amountUsedFromRemoval;
+      if (amountUsedFromRemoval == removalAmount) {
+        /**
+         * We will use up this removal while fulfilling this order and need to remove it from the data structure.
+         * This may remove the supplier from the active suppliers and increment the current supplier address
+         * which is behavior we want in the case that the supplier is fully out of supply, but otherwise we do not
+         * interact with the global _currentSupplierAddress in this special order fulfillment flow.
+         */
+        address successorInCaseSupplierIsRemoved = _suppliers[
+          localCurrentSupplier
+        ].next;
+        _removeActiveRemoval({
+          removalId: removalId,
+          supplierAddress: localCurrentSupplier
+        });
+        // if the local current supplier was removed we need to move to the next one
+        if (_listedSupply[localCurrentSupplier].isEmpty()) {
+          localCurrentSupplier = successorInCaseSupplierIsRemoved;
+        }
+      }
+      ++allocationData.countOfRemovalsAllocated;
+      if (remainingAmountToFill == 0) {
+        break;
+      }
+    }
+    if (remainingAmountToFill > 0) {
+      revert InsufficientSupply();
+    }
+    return allocationData;
+  }
+
+  /**
+   * @notice Allocates the removals, amounts, and suppliers needed to fulfill the purchase drawing only from
+   * the specific supplier and vintages specified.
+   * @param amount The number of carbon removals to purchase.
+   * @param supplier The supplier from which to purchase carbon removals.
+   * @param vintages The vintages from which to purchase carbon removals.
+   * @return SupplyAllocationData The removals, amounts, suppliers and count data returned
+   * from the supply allocation algorithm.
+   */
+  function _allocateSupplySingleSupplierSpecificVintages(
+    uint256 amount,
+    address supplier,
+    uint256[] calldata vintages
+  ) internal returns (SupplyAllocationData memory) {
+    RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
+    uint256 countOfSuppliersListedRemovals = 0;
+    uint256 vintage = supplierRemovalQueue.earliestYear;
+    uint256 latestYear = supplierRemovalQueue.latestYear;
+    for (; vintage <= latestYear; ++vintage) {
+      countOfSuppliersListedRemovals += supplierRemovalQueue
+        .yearToRemovals[vintage]
+        .length();
+    }
+    if (countOfSuppliersListedRemovals == 0) {
+      revert InsufficientSupply();
+    }
+    SupplyAllocationData memory allocationData = SupplyAllocationData({
+      countOfRemovalsAllocated: 0,
+      ids: new uint256[](countOfSuppliersListedRemovals),
+      amounts: new uint256[](countOfSuppliersListedRemovals),
+      suppliers: new address[](0) // populated later
+    });
+    uint256 remainingAmountToFill = amount;
+    uint256 amountUsedFromRemoval = 0;
+    for (uint256 i = 0; i < countOfSuppliersListedRemovals; ++i) {
+      uint256 removalId = supplierRemovalQueue
+        .getNextRemovalForSaleFromVintages({vintages: vintages});
+      // if removalId is 0 here, this supplier doesn't have any more removals from the valid vintages requested,
+      // so we can end the loop
+      if (removalId == 0) {
+        break;
+      }
+      uint256 removalAmount = _removal.balanceOf({
+        account: address(this),
+        id: removalId
+      });
+      allocationData.ids[allocationData.countOfRemovalsAllocated] = removalId;
+      amountUsedFromRemoval = MathUpgradeable.min({
+        a: remainingAmountToFill,
+        b: removalAmount
+      });
+      allocationData.amounts[
+        allocationData.countOfRemovalsAllocated
+      ] = amountUsedFromRemoval;
+      remainingAmountToFill -= amountUsedFromRemoval;
+      if (amountUsedFromRemoval == removalAmount) {
+        /**
+         * We will use up this removal while completing the order, move on to next one.
+         */
+        supplierRemovalQueue.remove({removalId: removalId});
+        /**
+         * If the supplier is out of supply, remove them from the active suppliers.
+         */
+        if (supplierRemovalQueue.isEmpty()) {
+          _removeActiveSupplier({supplierToRemove: supplier});
+        }
+      }
+      ++allocationData.countOfRemovalsAllocated;
+      if (remainingAmountToFill == 0) {
+        break;
+      }
+    }
+    if (remainingAmountToFill > 0) {
+      revert InsufficientSupply();
+    }
+    allocationData.suppliers = new address[](
+      allocationData.countOfRemovalsAllocated
+    ).fill({value: supplier});
+    return allocationData;
   }
 
   /**
