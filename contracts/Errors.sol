@@ -156,3 +156,7 @@ error CertificateNotYetMinted(uint256 tokenId);
  * @notice Thrown when an ERC20 token transfer fails.
  */
 error ERC20TransferFailed();
+/**
+ * @notice Thrown when the price multiple is set below 100.
+ */
+error InvalidPriceMultiple();
