@@ -195,6 +195,11 @@ contract Market is
   bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
 
   /**
+   * @notice The number of decimal places reserved for Nori fee calculations.
+   */
+  uint256 constant FEE_DECIMALS = 2;
+
+  /**
    * @notice Emitted on setting of `_priorityRestrictedThreshold`.
    * @param threshold The updated threshold for priority restricted supply.
    */
@@ -1409,14 +1414,13 @@ contract Market is
    * ##### Requirements:
    *
    * - Amount is not zero.
-   * - Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + 2). This requirement means that the smallest
-   * purchase amount for a token with 18 decimals (e.g., NORI) is 100, whilst the smallest purchase amount for a token
-   * with 6 decimals (e.g., USDC) is 100,000,000,000,000.
+   * - Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + FEE_DECIMALS). This requirement means that the
+   * smallest purchase amount for a token with 18 decimals (e.g., NORI) and 2 FEE_DECIMALS is 100, whilst the smallest
+   * purchase amount for a token with 6 decimals (e.g., USDC) and 2 FEE_DECIMALS is 100,000,000,000,000.
    * @param amount The proposed certificate purchase amount.
    */
   function _validateCertificateAmount(uint256 amount) internal view {
-    uint256 feeDecimals = 2;
-    uint256 safeDecimals = 18 - _purchasingToken.decimals() + feeDecimals;
+    uint256 safeDecimals = 18 - _purchasingToken.decimals() + FEE_DECIMALS;
     if (amount == 0 || (amount % (10 ** (safeDecimals))) != 0) {
       revert InvalidCertificateAmount({amount: amount});
     }
@@ -1576,12 +1580,9 @@ contract Market is
   ) internal returns (SupplyAllocationData memory) {
     RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
     uint256 countOfListedRemovals;
+    uint256 vintage = supplierRemovalQueue.earliestYear;
     uint256 latestYear = supplierRemovalQueue.latestYear;
-    for (
-      uint256 vintage = supplierRemovalQueue.earliestYear;
-      vintage <= latestYear;
-      ++vintage
-    ) {
+    for (; vintage <= latestYear; ++vintage) {
       countOfListedRemovals += supplierRemovalQueue
         .yearToRemovals[vintage]
         .length();
