@@ -38,7 +38,9 @@ import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
  * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all external functions that mutate
  * state are pausable.
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- * - `MARKET_ADMIN_ROLE`: Can set the fee percentage, fee wallet address, and priority restricted threshold.
+ * - `MARKET_ADMIN_ROLE`: Can set the value of market configuration variables: fee percentage, fee wallet address,
+ *    priority restricted threshold, purchasing token, and price multiple. Can execute replacement operations through
+ *    the `replace` function. Can submit special orders through `swapWithoutFeeSpecialOrder`.
  * - `ALLOWLIST_ROLE`: Can purchase from priority restricted supply.
  * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
  *
