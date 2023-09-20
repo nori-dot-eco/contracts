@@ -251,11 +251,10 @@ contract Removal is
    * @param market The address of the Market contract.
    * @param certificate The address of the Certificate contract.
    */
-  function registerContractAddresses(IMarket market, ICertificate certificate)
-    external
-    whenNotPaused
-    onlyRole(DEFAULT_ADMIN_ROLE)
-  {
+  function registerContractAddresses(
+    IMarket market,
+    ICertificate certificate
+  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     _market = market;
     _certificate = certificate;
     emit RegisterContractAddresses({market: market, certificate: certificate});
@@ -272,11 +271,10 @@ contract Removal is
    * @param projectId The id of the project for which to update the holdback percentage.
    * @param holdbackPercentage The new holdback percentage.
    */
-  function setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage)
-    external
-    whenNotPaused
-    onlyRole(DEFAULT_ADMIN_ROLE)
-  {
+  function setHoldbackPercentage(
+    uint256 projectId,
+    uint8 holdbackPercentage
+  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     _setHoldbackPercentage({
       projectId: projectId,
       holdbackPercentage: holdbackPercentage
@@ -459,10 +457,10 @@ contract Removal is
    * @param id The ID of the removal to release some amount of.
    * @param amount The amount of the removal to release.
    */
-  function release(uint256 id, uint256 amount)
-    external
-    onlyRole(RELEASER_ROLE)
-  {
+  function release(
+    uint256 id,
+    uint256 amount
+  ) external onlyRole(RELEASER_ROLE) {
     uint256 amountReleased = 0;
     uint256 unlistedBalance = balanceOf({
       account: RemovalIdLib.supplierAddress({removalId: id}),
@@ -547,11 +545,9 @@ contract Removal is
    * @param owner The account for which to retrieve owned token IDs.
    * @return An array of all Removal token IDs currently owned by `owner`.
    */
-  function getOwnedTokenIds(address owner)
-    external
-    view
-    returns (uint256[] memory)
-  {
+  function getOwnedTokenIds(
+    address owner
+  ) external view returns (uint256[] memory) {
     return _addressToOwnedTokenIds[owner].values();
   }
 
@@ -561,11 +557,9 @@ contract Removal is
    * @param account The account for which to retrieve the unique number of token IDs owned.
    * @return The number of unique Removal token IDs owned by the given `account`.
    */
-  function numberOfTokensOwnedByAddress(address account)
-    external
-    view
-    returns (uint256)
-  {
+  function numberOfTokensOwnedByAddress(
+    address account
+  ) external view returns (uint256) {
     return _addressToOwnedTokenIds[account].length();
   }
 
@@ -574,11 +568,9 @@ contract Removal is
    * @param id The removal ID to decode.
    * @return The decoded removal ID data.
    */
-  function decodeRemovalIdV0(uint256 id)
-    external
-    pure
-    returns (DecodedRemovalIdV0 memory)
-  {
+  function decodeRemovalIdV0(
+    uint256 id
+  ) external pure returns (DecodedRemovalIdV0 memory) {
     return RemovalIdLib.decodeRemovalIdV0({removalId: id});
   }
 
@@ -666,11 +658,10 @@ contract Removal is
    * @param operator The address to grant or revoke approval from.
    * @param approved Whether or not the `operator` is approved to transfer the caller's tokens.
    */
-  function setApprovalForAll(address operator, bool approved)
-    public
-    override
-    whenNotPaused
-  {
+  function setApprovalForAll(
+    address operator,
+    bool approved
+  ) public override whenNotPaused {
     _setApprovalForAll({
       owner: _msgSender(),
       operator: operator,
@@ -689,7 +680,9 @@ contract Removal is
    * @param interfaceId A bytes4 value which represents an interface ID.
    * @return True if this contract implements the interface defined by `interfaceId`, otherwise false.
    */
-  function supportsInterface(bytes4 interfaceId)
+  function supportsInterface(
+    bytes4 interfaceId
+  )
     public
     view
     override(ERC1155Upgradeable, AccessControlEnumerableUpgradeable)
@@ -704,9 +697,10 @@ contract Removal is
    * @param projectId The id of the project for which to update the holdback percentage.
    * @param holdbackPercentage The new holdback percentage.
    */
-  function _setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage)
-    internal
-  {
+  function _setHoldbackPercentage(
+    uint256 projectId,
+    uint8 holdbackPercentage
+  ) internal {
     if (holdbackPercentage > 100) {
       revert InvalidHoldbackPercentage({
         holdbackPercentage: holdbackPercentage
@@ -836,7 +830,7 @@ contract Removal is
     for (uint256 i = 0; i < countOfRemovals; ++i) {
       uint256 id = ids[i];
       uint256 amount = amounts[i];
-      if (!_isValidTransfer({amount: amount, to: to})) {
+      if (!_isValidTransferAmount({amount: amount, to: to})) {
         revert ForbiddenTransfer();
       }
       if (to == market) {
@@ -951,11 +945,11 @@ contract Removal is
    * @dev Ensure that the amount of tokens in circulation always multiples of 1e14.
    *
    * ##### Examples:
-   * - `_isValidTransfer({amount: 1e14, to: address(1)}) == true`
-   * - `_isValidTransfer({amount: 0, to: address(1)}) == true`
-   * - `_isValidTransfer({amount: 0, to: address(_certificate)}) == false`
-   * - `_isValidTransfer({amount: 1, to: address(1)}) == false`
-   * - `_isValidTransfer({amount: 1e14 - 1, to: address(_market)}) == false`
+   * - `_isValidTransferAmount({amount: 1e14, to: address(1)}) == true`
+   * - `_isValidTransferAmount({amount: 0, to: address(1)}) == true`
+   * - `_isValidTransferAmount({amount: 0, to: address(_certificate)}) == false`
+   * - `_isValidTransferAmount({amount: 1, to: address(1)}) == false`
+   * - `_isValidTransferAmount({amount: 1e14 - 1, to: address(_market)}) == false`
    *
    * ##### Requirements:
    *
@@ -963,11 +957,10 @@ contract Removal is
    * and non-zero.
    * - If the recipient is neither the Market nor the Certificate the amount may also be zero.
    */
-  function _isValidTransfer(uint256 amount, address to)
-    internal
-    view
-    returns (bool)
-  {
+  function _isValidTransferAmount(
+    uint256 amount,
+    address to
+  ) internal view returns (bool) {
     return
       to == address(_market) || to == address(_certificate)
         ? amount > 0 && amount % 1e14 == 0
