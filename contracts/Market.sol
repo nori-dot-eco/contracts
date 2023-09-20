@@ -441,13 +441,11 @@ contract Market is
       amount: totalAmountToReplace
     });
     uint256 countOfRemovalsAllocated = allocationData.countOfRemovalsAllocated;
-    uint256[] memory removalIds = allocationData.ids.slice({
-      from: 0,
-      to: countOfRemovalsAllocated
+    uint256[] memory removalIds = allocationData.ids.cutToLength({
+      length: countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = allocationData.amounts.slice({
-      from: 0,
-      to: countOfRemovalsAllocated
+    uint256[] memory removalAmounts = allocationData.amounts.cutToLength({
+      length: countOfRemovalsAllocated
     });
     _validateReplacementAmounts({
       totalAmountToReplace: totalAmountToReplace,
@@ -1218,14 +1216,13 @@ contract Market is
    * @param orderData The order fulfillment data.
    */
   function _fulfillOrder(FulfillOrderData memory orderData) internal {
-    uint256[] memory removalIds = orderData.allocationData.ids.slice({
-      from: 0,
-      to: orderData.allocationData.countOfRemovalsAllocated
+    uint256[] memory removalIds = orderData.allocationData.ids.cutToLength({
+      length: orderData.allocationData.countOfRemovalsAllocated
     });
-    uint256[] memory removalAmounts = orderData.allocationData.amounts.slice({
-      from: 0,
-      to: orderData.allocationData.countOfRemovalsAllocated
-    });
+    uint256[] memory removalAmounts = orderData
+      .allocationData
+      .amounts
+      .cutToLength({length: orderData.allocationData.countOfRemovalsAllocated});
     _transferFunds({
       chargeFee: orderData.chargeFee,
       from: orderData.from,

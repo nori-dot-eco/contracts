@@ -170,6 +170,63 @@ contract UInt256ArrayLib_slice is Global {
   }
 }
 
+contract UInt256ArrayLib_cutToLength is Global {
+  using UInt256ArrayLib for uint256[];
+
+  UInt256ArrayLibHarness private _harness;
+
+  function setUp() external {
+    _harness = new UInt256ArrayLibHarness();
+  }
+
+  function test() external {
+    assertEq(
+      _harness.cutToLengthUsingStandardImplementation({
+        values: new uint256[](100).fill(1),
+        length: 50
+      }),
+      _harness.cutToLength({values: new uint256[](100).fill(1), length: 50})
+    );
+  }
+
+  function test_gas() external {
+    uint256 gasLeft = gasleft();
+    _harness.cutToLengthUsingStandardImplementation({
+      values: new uint256[](100).fill(1),
+      length: 50
+    });
+    uint256 standardGasUsed = gasLeft - gasleft();
+    gasLeft = gasleft();
+    _harness.cutToLength({values: new uint256[](100).fill(1), length: 50});
+    uint256 libraryGasUsed = gasLeft - gasleft();
+    assertLt({a: libraryGasUsed, b: standardGasUsed});
+  }
+
+  /** @dev Calling cutToLength() with invalid params (e.g., length longer than original array) should revert */
+  function test_revertsWhenArgumentsAreInvalid() external {
+    uint256[] memory values = new uint256[](10);
+    vm.expectRevert();
+    values.cutToLength({length: 11});
+  }
+
+  function test_reference() external {
+    assertEq(
+      _harness.cutToLengthUsingStandardImplementation({
+        values: new uint256[](100).fill(1),
+        length: 50
+      }),
+      new uint256[](50).fill(1)
+    );
+  }
+
+  function test_library() external {
+    assertEq(
+      _harness.cutToLength({values: new uint256[](100).fill(1), length: 50}),
+      new uint256[](50).fill(1)
+    );
+  }
+}
+
 contract UInt256ArrayLib_fill is Global {
   using UInt256ArrayLib for uint256[];
 
