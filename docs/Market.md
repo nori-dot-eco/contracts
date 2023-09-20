@@ -148,6 +148,17 @@ Role conferring the ability to purchase supply when inventory is below the prior
 
 
 
+### FEE_DECIMALS
+
+```solidity
+uint256 FEE_DECIMALS
+```
+
+The number of decimal places reserved for Nori fee calculations.
+
+
+
+
 ### SetPriorityRestrictedThreshold
 
 ```solidity
@@ -1169,9 +1180,9 @@ Validates the certificate purchase amount.
 ##### Requirements:
 
 - Amount is not zero.
-- Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + 2). This requirement means that the smallest
-purchase amount for a token with 18 decimals (e.g., NORI) is 100, whilst the smallest purchase amount for a token
-with 6 decimals (e.g., USDC) is 100,000,000,000,000.</i>
+- Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + FEE_DECIMALS). This requirement means that the
+smallest purchase amount for a token with 18 decimals (e.g., NORI) and 2 FEE_DECIMALS is 100, whilst the smallest
+purchase amount for a token with 6 decimals (e.g., USDC) and 2 FEE_DECIMALS is 100,000,000,000,000.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
