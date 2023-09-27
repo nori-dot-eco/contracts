@@ -1,12 +1,8 @@
-import { readFileSync, writeFileSync } from 'node:fs';
-
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
 import type { ContractTransaction } from 'ethers';
 import { BigNumber, ethers } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
-
-import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
 
 import { Zero } from '@/constants/units';
 import { getRemoval } from '@/utils/contracts';
@@ -66,13 +62,13 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
       if (dryRun) {
         hre.log(
           chalk.bold.white(
-            `DRY RUN 🌵 Listing unsold removals for ${allMigratedRemovalIds.length} projects...`
+            `DRY RUN 🌵 Listing ${allMigratedRemovalIds.length} unsold removals...`
           )
         );
       } else {
         hre.log(
           chalk.bold.white(
-            `✨ Listing unsold removals for ${allMigratedRemovalIds.length} projects...`
+            `✨ Listing ${allMigratedRemovalIds.length} unsold removals......`
           )
         );
       }

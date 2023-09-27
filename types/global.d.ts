@@ -47,6 +47,7 @@ import type {
   LockedNORILibTestHarness,
   RemovalTestHarness,
 } from '@/typechain-types';
+import { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
 
 declare module 'hardhat/config' {
   type EnvironmentExtender = (
@@ -230,7 +231,7 @@ declare global {
     upgrades: CustomHardhatUpgrades;
     network: Omit<Network, 'name'> & { name: keyof typeof networks };
     ethers: typeof ethers;
-    getSigners: () => Promise<(Signer & TypedDataSigner)[]>;
+    getSigners: () => Promise<(FireblocksSigner | Signer)[]>;
     deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
     deployNonUpgradeable: DeployNonUpgradeableFunction;
     log: Console['log'];

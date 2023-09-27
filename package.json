@@ -115,5 +115,9 @@
     "snapshot:production": "FOUNDRY_PROFILE=production forge snapshot --snap .gas-snapshot-production",
     "lint:diff": "npx eslint --cache --cache-location ./.eslintcache -c .eslintrc.js $(git diff --relative --name-only --diff-filter=d $(git merge-base HEAD origin/master) -- \"*.ts\" \"*.js\" \"*.env\" \"*.toml\")",
     "artifactregistry-login": "npx google-artifactregistry-auth"
+  },
+  "dependencies": {
+    "@fireblocks/fireblocks-web3-provider": "^1.2.4",
+    "@fireblocks/hardhat-fireblocks": "^1.2.2"
   }
 }
