@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
@@ -43,7 +43,7 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
         );
       }
 
-      const jsonData = readJsonSync(file, 'utf8');
+      const allMigratedRemovalIds = readJsonSync(file, 'utf8');
 
       const [signer] = await hre.getSigners();
       const signerAddress = await signer.getAddress();
@@ -66,20 +66,17 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
       if (dryRun) {
         hre.log(
           chalk.bold.white(
-            `DRY RUN 🌵 Listing unsold removals for ${jsonData.length} projects...`
+            `DRY RUN 🌵 Listing unsold removals for ${allMigratedRemovalIds.length} projects...`
           )
         );
       } else {
         hre.log(
           chalk.bold.white(
-            `✨ Listing unsold removals for ${jsonData.length} projects...`
+            `✨ Listing unsold removals for ${allMigratedRemovalIds.length} projects...`
           )
         );
       }
 
-      const allMigratedRemovalIds = jsonData.flatMap(
-        (project: any) => project.tokenIds
-      );
       if (allMigratedRemovalIds.includes(undefined)) {
         hre.log(
           chalk.bold.red(
@@ -191,7 +188,7 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
           if (maybePendingTx === undefined) {
             throw new Error(`No pending transaction returned`);
           } else {
-            pendingTx = maybePendingTx as ContractTransaction;
+            pendingTx = maybePendingTx;
           }
           hre.log(`txHash: ${chalk.green(pendingTx.hash)}`);
           hre.log(chalk.white('\n👷 Waiting for transaction to finalize...'));
