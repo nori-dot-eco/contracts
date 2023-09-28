@@ -412,3 +412,14 @@ Thrown when an ERC20 token transfer fails.
 
 
 
+## InvalidPriceMultiple
+
+```solidity
+error InvalidPriceMultiple()
+```
+
+Thrown when the price multiple is set below 100.
+
+
+
+
