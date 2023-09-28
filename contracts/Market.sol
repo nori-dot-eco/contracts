@@ -38,7 +38,9 @@ import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
  * - [Pausable](https://docs.openzeppelin.com/contracts/4.x/api/security#Pausable): all external functions that mutate
  * state are pausable.
  * - [Role-based access control](https://docs.openzeppelin.com/contracts/4.x/access-control)
- * - `MARKET_ADMIN_ROLE`: Can set the fee percentage, fee wallet address, and priority restricted threshold.
+ * - `MARKET_ADMIN_ROLE`: Can set the value of market configuration variables: fee percentage, fee wallet address,
+ *    priority restricted threshold, purchasing token, and price multiple. Can execute replacement operations through
+ *    the `replace` function. Can submit special orders through `swapWithoutFeeSpecialOrder`.
  * - `ALLOWLIST_ROLE`: Can purchase from priority restricted supply.
  * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
  *
@@ -191,6 +193,11 @@ contract Market is
    * @notice Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
    */
   bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
+
+  /**
+   * @notice The number of decimal places reserved for Nori fee calculations.
+   */
+  uint256 constant FEE_DECIMALS = 2;
 
   /**
    * @notice Emitted on setting of `_priorityRestrictedThreshold`.
@@ -1101,10 +1108,13 @@ contract Market is
    * @notice Set the price multiple, which is the number of base tokens required to purchase one NRT.
    * @dev This value is scaled by 100 to allow for decimal precision. For example, a value of 100 means
    * that 1 base token is required to purchase 1 NRT, while a value of 1995 means that 19.95 base tokens
-   * purchase 1 NRT.
+   * purchase 1 NRT. The minimum value for the price multiple is 100, to avoid loss of decimal precision.
    * @param priceMultiple The new price multiple.
    */
   function _setPriceMultiple(uint256 priceMultiple) internal {
+    if (priceMultiple < 100) {
+      revert InvalidPriceMultiple();
+    }
     _priceMultiple = priceMultiple;
     emit SetPriceMultiple({priceMultiple: priceMultiple});
   }
@@ -1404,14 +1414,13 @@ contract Market is
    * ##### Requirements:
    *
    * - Amount is not zero.
-   * - Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + 2). This requirement means that the smallest
-   * purchase amount for a token with 18 decimals (e.g., NORI) is 100, whilst the smallest purchase amount for a token
-   * with 6 decimals (e.g., USDC) is 100,000,000,000,000.
+   * - Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + `FEE_DECIMALS`). This requirement means that the
+   * smallest purchase amount for a token with 18 decimals (e.g., NORI) and 2 `FEE_DECIMALS` is 100, whilst the smallest
+   * purchase amount for a token with 6 decimals (e.g., USDC) and 2 `FEE_DECIMALS` is 100,000,000,000,000.
    * @param amount The proposed certificate purchase amount.
    */
   function _validateCertificateAmount(uint256 amount) internal view {
-    uint256 feeDecimals = 2;
-    uint256 safeDecimals = 18 - _purchasingToken.decimals() + feeDecimals;
+    uint256 safeDecimals = 18 - _purchasingToken.decimals() + FEE_DECIMALS;
     if (amount == 0 || (amount % (10 ** (safeDecimals))) != 0) {
       revert InvalidCertificateAmount({amount: amount});
     }
@@ -1571,12 +1580,9 @@ contract Market is
   ) internal returns (SupplyAllocationData memory) {
     RemovalsByYear storage supplierRemovalQueue = _listedSupply[supplier];
     uint256 countOfListedRemovals;
+    uint256 vintage = supplierRemovalQueue.earliestYear;
     uint256 latestYear = supplierRemovalQueue.latestYear;
-    for (
-      uint256 vintage = supplierRemovalQueue.earliestYear;
-      vintage <= latestYear;
-      ++vintage
-    ) {
+    for (; vintage <= latestYear; ++vintage) {
       countOfListedRemovals += supplierRemovalQueue
         .yearToRemovals[vintage]
         .length();

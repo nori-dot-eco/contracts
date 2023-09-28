@@ -1355,12 +1355,19 @@ contract Market_purchasingTokenAddress is UpgradeableMarket {
 contract Market__setPriceMultiple is NonUpgradeableMarket {
   function test() external {
     vm.recordLogs();
-    uint256 newPriceMultiple = 20;
+    uint256 newPriceMultiple = 3000;
     _setPriceMultiple({priceMultiple: newPriceMultiple});
     Vm.Log[] memory entries = vm.getRecordedLogs();
     assertEq(entries.length, 1);
     assertEq(entries[0].topics[0], keccak256("SetPriceMultiple(uint256)"));
     assertEq(abi.decode(entries[0].data, (uint256)), newPriceMultiple);
+  }
+
+  function test_revertsWhenSetBelow100() external {
+    vm.recordLogs();
+    uint256 newPriceMultiple = 20;
+    vm.expectRevert(InvalidPriceMultiple.selector);
+    _setPriceMultiple({priceMultiple: newPriceMultiple});
   }
 }
 
