@@ -1,5 +1,5 @@
 import '@nomiclabs/hardhat-ethers';
-import '@/plugins/fireblocks';
+import '@fireblocks/hardhat-fireblocks';
 import { types } from 'hardhat/config';
 import { Contract } from 'ethers';
 

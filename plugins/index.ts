@@ -4,11 +4,11 @@ import '@nomiclabs/hardhat-waffle';
 import '@openzeppelin/hardhat-defender';
 import '@openzeppelin/hardhat-upgrades';
 import '@nomiclabs/hardhat-ethers';
-import '@/plugins/fireblocks';
 import 'hardhat-ethernal';
 import 'hardhat-deploy';
 import '@typechain/hardhat';
 import '@nomiclabs/hardhat-etherscan';
+import '@fireblocks/hardhat-fireblocks';
 import 'solidity-docgen';
 import 'hardhat-tracer';
 import 'hardhat-contract-sizer';
@@ -23,7 +23,6 @@ import type { HardhatNetworkHDAccountsConfig } from 'hardhat/types';
 import { Wallet } from 'ethers';
 
 import { Eip2612Signer } from '@/signers/eip-26126';
-import type { FireblocksSigner } from '@/plugins/fireblocks/fireblocks-signer';
 import { namedAccountIndices, namedAccounts } from '@/config/accounts';
 import { trace, log } from '@/utils/log';
 import { getContract } from '@/utils/contracts';
@@ -119,8 +118,8 @@ const deployOrUpgradeProxy = async <
     // )
   ) {
     hre.trace('Deploying proxy and instance', contractName);
-    const fireblocksSigner = signer as FireblocksSigner;
-    if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
+    const fireblocksSigner = signer;
+    if (typeof fireblocksSigner.setNextTransactionMemo === 'function') { // TODO this field doesn't exist on the fireblocks provider?
       fireblocksSigner.setNextTransactionMemo(
         `Deploy proxy and instance for ${contractName}`
       );
@@ -148,7 +147,7 @@ const deployOrUpgradeProxy = async <
       const existingImplementationAddress =
         await hre.upgrades.erc1967.getImplementationAddress(maybeProxyAddress!);
       hre.trace('Existing implementation at:', existingImplementationAddress);
-      const fireblocksSigner = signer as FireblocksSigner;
+      const fireblocksSigner = signer;
       if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
         fireblocksSigner.setNextTransactionMemo(
           `Upgrade contract instance for ${contractName}`
@@ -211,7 +210,7 @@ const deployNonUpgradeable = async <
     contractName,
     { ...options, signer }
   );
-  const fireblocksSigner = signer as FireblocksSigner;
+  const fireblocksSigner = signer;
   if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
     fireblocksSigner.setNextTransactionMemo(`Deploy ${contractName}`);
   }
@@ -234,18 +233,16 @@ extendEnvironment((hre) => {
   // All live networks will try to use fireblocks and fall back to hd wallet
   if (hre.network.config.live) {
     if (Boolean(hre.config.fireblocks.apiKey)) {
-      hre.getSigners = lazyFunction(() => hre.fireblocks.getSigners);
       hre.log('Using fireblocks signer');
     } else {
-      hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
       hre.log('Using alchemy + hd wallet signer');
     }
   } else {
-    hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
     hre.namedSigners = lazyObject(() => getNamedSigners(hre)); // for testing only // todo rename namedHardhatSigners or { hardhat: {...}, fireblocks: {...}}
     hre.namedAccounts = lazyObject(() => namedAccounts); // todo rename namedHardhatAccounts or { hardhat: {...}, fireblocks: {...}}
     hre.log('Using hardhat signer');
   }
+  hre.getSigners = lazyFunction(() => hre.ethers.getSigners);
   hre.deployNonUpgradeable = lazyFunction(() => deployNonUpgradeable);
   hre.deployOrUpgradeProxy = lazyFunction(() => deployOrUpgradeProxy);
 });

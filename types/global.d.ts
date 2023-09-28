@@ -230,7 +230,7 @@ declare global {
     upgrades: CustomHardhatUpgrades;
     network: Omit<Network, 'name'> & { name: keyof typeof networks };
     ethers: typeof ethers;
-    getSigners: () => Promise<(Signer & TypedDataSigner)[]>;
+    getSigners: () => Promise<(Signer)[]>;
     deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
     deployNonUpgradeable: DeployNonUpgradeableFunction;
     log: Console['log'];

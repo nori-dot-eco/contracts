@@ -13,8 +13,6 @@ import type { CSVParseParam } from 'csvtojson/v2/Parameters';
 import { isAddress, getAddress } from 'ethers/lib/utils';
 import moment from 'moment';
 
-import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
-
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import { getOctokit } from '@/tasks/utils/github';
 import { evmTimeToUtc, utcToEvmTime, formatTokenString } from '@/utils/units';
@@ -845,7 +843,7 @@ const CREATE_SUBTASK = {
           { name: 'deadline', type: 'uint256' },
         ],
       };
-      const fireblocksSigner = bpNori.signer as FireblocksSigner;
+      const fireblocksSigner = bpNori.signer;
       const latestBlock = await fireblocksSigner.provider?.getBlock('latest');
       // TODO error handling on undefined latest block
       const deadline = latestBlock!.timestamp + 3600; // one hour into the future
@@ -996,7 +994,7 @@ const REVOKE_SUBTASK = {
           );
         }
       } else {
-        const fireblocksSigner = lNori.signer as FireblocksSigner;
+        const fireblocksSigner = lNori.signer;
         if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
           fireblocksSigner.setNextTransactionMemo(
             `Vesting Revoke: ${memo || ''}`
