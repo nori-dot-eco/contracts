@@ -40,7 +40,7 @@ contract UInt256ArrayLibHarness {
     return UInt256ArrayLib.slice({values: values, from: from, to: to});
   }
 
-  function cutToLengthUsingStandardImplementation(
+  function shrinkUsingStandardImplementation(
     uint256[] memory values,
     uint256 length
   ) external pure returns (uint256[] memory cut) {
@@ -48,11 +48,11 @@ contract UInt256ArrayLibHarness {
     for (uint256 i = 0; i < length; ++i) cut[i] = values[0 + i];
   }
 
-  function cutToLength(
+  function shrink(
     uint256[] memory values,
     uint256 length
   ) external pure returns (uint256[] memory) {
-    return UInt256ArrayLib.cutToLength({values: values, length: length});
+    return UInt256ArrayLib.shrink({values: values, length: length});
   }
 
   function sumUsingStandardImplementation(

@@ -138,14 +138,14 @@ library UInt256ArrayLib {
    * ##### Example usage:
    *
    * ```solidity
-   * new uint256[](100).fill(1).cutToLength(50); // resizes the original array to length 50
+   * new uint256[](100).fill(1).shrink(50); // resizes the original array to length 50
    * ```
    * -
    * @param values The array to shorten.
    * @param length The desired length of the array.
    * @return values The shortened array.
    */
-  function cutToLength(
+  function shrink(
     uint256[] memory values,
     uint256 length
   ) internal pure returns (uint256[] memory) {
