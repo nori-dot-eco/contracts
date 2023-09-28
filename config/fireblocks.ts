@@ -1,9 +1,10 @@
-import "@fireblocks/hardhat-fireblocks";
-import {FireblocksProviderConfig } from "@fireblocks/fireblocks-web3-provider";
+import '@fireblocks/hardhat-fireblocks';
+import type { HardhatUserConfig } from 'hardhat/types/config';
 
 const { FIREBLOCKS_API_KEY, FIREBLOCKS_SECRET_KEY_PATH, FIREBLOCKS_VAULT_ID } =
   process.env;
-export const fireblocks: FireblocksProviderConfig | undefined =
+
+export const fireblocks: HardhatUserConfig['fireblocks'] =
   FIREBLOCKS_API_KEY && FIREBLOCKS_SECRET_KEY_PATH
     ? {
         apiKey: FIREBLOCKS_API_KEY,

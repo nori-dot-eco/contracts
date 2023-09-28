@@ -8,12 +8,12 @@ import 'hardhat-ethernal';
 import 'hardhat-deploy';
 import '@typechain/hardhat';
 import '@nomiclabs/hardhat-etherscan';
-import '@fireblocks/hardhat-fireblocks';
 import 'solidity-docgen';
 import 'hardhat-tracer';
 import 'hardhat-contract-sizer';
 import '@/config/environment';
 import '@/tasks/index';
+import '@fireblocks/hardhat-fireblocks';
 import { extendEnvironment } from 'hardhat/config';
 import type { BaseContract, ContractFactory, Signer } from 'ethers';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/dist/utils';
@@ -21,6 +21,7 @@ import { lazyFunction, lazyObject } from 'hardhat/plugins';
 import type { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
 import type { HardhatNetworkHDAccountsConfig } from 'hardhat/types';
 import { Wallet } from 'ethers';
+import type { FireblocksWeb3Provider } from '@fireblocks/fireblocks-web3-provider';
 
 import { Eip2612Signer } from '@/signers/eip-26126';
 import { namedAccountIndices, namedAccounts } from '@/config/accounts';
@@ -118,12 +119,9 @@ const deployOrUpgradeProxy = async <
     // )
   ) {
     hre.trace('Deploying proxy and instance', contractName);
-    const fireblocksSigner = signer;
-    if (typeof fireblocksSigner.setNextTransactionMemo === 'function') { // TODO this field doesn't exist on the fireblocks provider?
-      fireblocksSigner.setNextTransactionMemo(
-        `Deploy proxy and instance for ${contractName}`
-      );
-    }
+    const fireblocksSigner = signer as unknown as FireblocksWeb3Provider;
+    // eslint-disable-next-line
+      fireblocksSigner['note'] = `Deploy proxy and instance for ${contractName}`;
     contract = await hre.upgrades.deployProxy<TContract>(
       contractFactory,
       args,
@@ -145,14 +143,11 @@ const deployOrUpgradeProxy = async <
         contractName
       );
       const existingImplementationAddress =
-        await hre.upgrades.erc1967.getImplementationAddress(maybeProxyAddress!);
+        await hre.upgrades.erc1967.getImplementationAddress(maybeProxyAddress);
       hre.trace('Existing implementation at:', existingImplementationAddress);
-      const fireblocksSigner = signer;
-      if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-        fireblocksSigner.setNextTransactionMemo(
-          `Upgrade contract instance for ${contractName}`
-        );
-      }
+      const fireblocksSigner = signer as unknown as FireblocksWeb3Provider;
+      // eslint-disable-next-line
+      fireblocksSigner['note'] = `Upgrade contract instance for ${contractName}`;
       const deployment = await hre.deployments.get(contractName);
       const artifact = await hre.deployments.getArtifact(contractName);
       if (deployment.bytecode === artifact.bytecode) {
@@ -165,13 +160,13 @@ const deployOrUpgradeProxy = async <
         }) as InstanceOfContract<TContract>;
       } else {
         contract = await hre.upgrades.upgradeProxy<TContract>(
-          maybeProxyAddress!,
+          maybeProxyAddress,
           contractFactory,
           { ...options }
         );
         const newImplementationAddress =
           await hre.upgrades.erc1967.getImplementationAddress(
-            maybeProxyAddress!
+            maybeProxyAddress
           );
         if (existingImplementationAddress === newImplementationAddress) {
           hre.trace('Implementation unchanged');
@@ -210,10 +205,9 @@ const deployNonUpgradeable = async <
     contractName,
     { ...options, signer }
   );
-  const fireblocksSigner = signer;
-  if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-    fireblocksSigner.setNextTransactionMemo(`Deploy ${contractName}`);
-  }
+  const fireblocksSigner = signer as unknown as FireblocksWeb3Provider;
+  // eslint-disable-next-line
+  fireblocksSigner['note'] = `Deploy ${contractName}`;
   const contract = (await contractFactory.deploy(
     ...args
   )) as InstanceOfContract<TContract>;
@@ -232,6 +226,11 @@ extendEnvironment((hre) => {
   hre.debug = lazyFunction(() => debug);
   // All live networks will try to use fireblocks and fall back to hd wallet
   if (hre.network.config.live) {
+    if (hre.config.fireblocks === undefined) {
+      throw new Error(
+        'Fireblocks config is required for live networks. Please set FIREBLOCKS_API_KEY and FIREBLOCKS_SECRET_KEY_PATH in your environment.'
+      );
+    }
     if (Boolean(hre.config.fireblocks.apiKey)) {
       hre.log('Using fireblocks signer');
     } else {

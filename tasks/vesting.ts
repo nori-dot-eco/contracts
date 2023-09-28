@@ -12,6 +12,7 @@ import type { Signer } from '@ethersproject/abstract-signer';
 import type { CSVParseParam } from 'csvtojson/v2/Parameters';
 import { isAddress, getAddress } from 'ethers/lib/utils';
 import moment from 'moment';
+import type { FireblocksWeb3Provider } from '@fireblocks/fireblocks-web3-provider';
 
 import type { BridgedPolygonNORI, LockedNORI } from '@/typechain-types';
 import { getOctokit } from '@/tasks/utils/github';
@@ -843,19 +844,17 @@ const CREATE_SUBTASK = {
           { name: 'deadline', type: 'uint256' },
         ],
       };
-      const fireblocksSigner = bpNori.signer;
+      const fireblocksSigner =
+        bpNori.signer as unknown as FireblocksWeb3Provider;
       const latestBlock = await fireblocksSigner.provider?.getBlock('latest');
       // TODO error handling on undefined latest block
-      const deadline = latestBlock!.timestamp + 3600; // one hour into the future
+      const deadline = latestBlock.timestamp + 3600; // one hour into the future
       const owner = await fireblocksSigner.getAddress();
       const name = await bpNori.name();
       const nonce = await bpNori.nonces(owner);
       const chainId = await fireblocksSigner.getChainId();
-      if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-        fireblocksSigner.setNextTransactionMemo(
-          `Permit BridgedPolygonNORI Spend by LockedNORI: ${memo || ''}`
-        );
-      }
+      // eslint-disable-next-line
+        fireblocksSigner['note'] = `Permit BridgedPolygonNORI Spend by LockedNORI: ${memo || ''}`;
       const signature = await fireblocksSigner._signTypedData(
         {
           name,
@@ -994,12 +993,11 @@ const REVOKE_SUBTASK = {
           );
         }
       } else {
-        const fireblocksSigner = lNori.signer;
-        if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-          fireblocksSigner.setNextTransactionMemo(
-            `Vesting Revoke: ${memo || ''}`
-          );
-        }
+        const fireblocksSigner =
+          lNori.signer as unknown as FireblocksWeb3Provider;
+        // eslint-disable-next-line
+          fireblocksSigner['note'] =
+            `Vesting Revoke: ${memo || ''}`;
         const batchRevokeUnvestedTokenAmountsTx =
           await lNori.batchRevokeUnvestedTokenAmounts(
             fromAccounts,
