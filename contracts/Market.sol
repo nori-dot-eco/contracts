@@ -1414,9 +1414,9 @@ contract Market is
    * ##### Requirements:
    *
    * - Amount is not zero.
-   * - Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + FEE_DECIMALS). This requirement means that the
-   * smallest purchase amount for a token with 18 decimals (e.g., NORI) and 2 FEE_DECIMALS is 100, whilst the smallest
-   * purchase amount for a token with 6 decimals (e.g., USDC) and 2 FEE_DECIMALS is 100,000,000,000,000.
+   * - Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + `FEE_DECIMALS`). This requirement means that the
+   * smallest purchase amount for a token with 18 decimals (e.g., NORI) and 2 `FEE_DECIMALS` is 100, whilst the smallest
+   * purchase amount for a token with 6 decimals (e.g., USDC) and 2 `FEE_DECIMALS` is 100,000,000,000,000.
    * @param amount The proposed certificate purchase amount.
    */
   function _validateCertificateAmount(uint256 amount) internal view {
