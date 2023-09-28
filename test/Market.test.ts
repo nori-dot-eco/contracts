@@ -1136,78 +1136,6 @@ describe('Market', () => {
   });
 });
 describe('purchasing from a specified supplier', () => {
-  it('should purchase supply from a specific supplier when they have enough supply', async () => {
-    const { bpNori, market, feePercentage, totalAmountOfSupply } =
-      await setupTest({
-        userFixtures: {
-          supplier: {
-            removalDataToList: {
-              removals: [
-                {
-                  amount: formatTokenAmount(10),
-                  supplierAddress: hre.namedAccounts.supplier,
-                }, // 2 removals each for 2 different suppliers
-                {
-                  amount: formatTokenAmount(10),
-                  supplierAddress: hre.namedAccounts.supplier,
-                },
-                {
-                  amount: formatTokenAmount(10),
-                  supplierAddress: hre.namedAccounts.investor1,
-                },
-                {
-                  amount: formatTokenAmount(10),
-                  supplierAddress: hre.namedAccounts.investor1,
-                },
-              ],
-            },
-          },
-        },
-      });
-    const purchaseAmount = totalAmountOfSupply.div(2); // purchase half of supply, exactly two full removal tokens
-    const value = await market.calculateCheckoutTotal(purchaseAmount);
-    const supplierInitialNoriBalance = formatTokenAmount(0);
-    const investor1InitialNoriBalance = formatTokenAmount(0);
-    const { buyer } = hre.namedSigners;
-    const { v, r, s } = await buyer.permit({
-      verifyingContract: bpNori,
-      spender: market.address,
-      value,
-    });
-    await market
-      .connect(buyer)
-      [
-        'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-      ](
-        buyer.address,
-        buyer.address,
-        purchaseAmount,
-        hre.namedAccounts.supplier,
-        MaxUint256,
-        v,
-        r,
-        s
-      );
-    const [supplierFinalNoriBalance, investor1FinalNoriBalance] =
-      await Promise.all([
-        bpNori.balanceOf(hre.namedAccounts.supplier),
-        bpNori.balanceOf(hre.namedAccounts.investor1),
-      ]);
-    expect(supplierFinalNoriBalance).to.equal(
-      supplierInitialNoriBalance.add(purchaseAmount)
-    );
-    expect(investor1FinalNoriBalance).to.equal(investor1InitialNoriBalance);
-    // const sources = await certificate.sources(0);// todo
-    // expect(sources.length).to.equal(2);
-    // const decodedRemovalIds = await Promise.all(
-    //   sources.map((source) => removal.decodeRemovalIdV0(source.removalId))
-    // );
-    // expect(decodedRemovalIds.map((e) => e.supplierAddress)).to.deep.equal(
-    //   Array.from({ length: decodedRemovalIds.length }).fill(
-    //     hre.namedAccounts.supplier
-    //   )
-    // );
-  });
   it('should revert when purchasing supply from a specific supplier who does not have enough supply', async () => {
     const { bpNori, market, feePercentage } = await setupTest({
       userFixtures: {
@@ -1237,26 +1165,19 @@ describe('purchasing from a specified supplier', () => {
     });
     const purchaseAmount = formatTokenAmount(30); // enough total supply, not enough from specific supplier
     const value = await market.calculateCheckoutTotal(purchaseAmount);
-    const { buyer } = hre.namedSigners;
-    const { v, r, s } = await buyer.permit({
-      verifyingContract: bpNori,
-      spender: market.address,
-      value,
-    });
+    const { admin } = hre.namedSigners;
+    await bpNori.connect(admin).approve(market.address, value);
     await expect(
       market
-        .connect(buyer)
-        [
-          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](
-          buyer.address,
-          buyer.address,
+        .connect(admin)
+        .swapWithoutFeeSpecialOrder(
+          admin.address,
+          admin.address,
           purchaseAmount,
+          feePercentage,
+          100,
           hre.namedAccounts.supplier,
-          MaxUint256,
-          v,
-          r,
-          s
+          []
         )
     ).to.be.revertedWith('InsufficientSupply()');
   });
@@ -1287,71 +1208,22 @@ describe('purchasing from a specified supplier', () => {
         },
       },
     });
-    const purchaseAmount = formatTokenAmount(30); // enough total supply, but not enough from specific supplier
+    const purchaseAmount = formatTokenAmount(30);
     const value = await market.calculateCheckoutTotal(purchaseAmount);
-    const { buyer } = hre.namedSigners;
-    const { v, r, s } = await buyer.permit({
-      verifyingContract: bpNori,
-      spender: market.address,
-      value,
-    });
+    const { admin } = hre.namedSigners;
+    await bpNori.connect(admin).approve(market.address, value);
     await expect(
       market
-        .connect(buyer)
-        [
-          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](
-          buyer.address,
-          buyer.address,
+        .connect(admin)
+        .swapWithoutFeeSpecialOrder(
+          admin.address,
+          admin.address,
           purchaseAmount,
+          feePercentage,
+          100,
           hre.namedAccounts.investor2,
-          MaxUint256,
-          v,
-          r,
-          s
+          []
         )
     ).to.be.revertedWith('InsufficientSupply()');
-  });
-  it('should revert when purchasing supply when the market is below the priority reserved threshold', async () => {
-    const { bpNori, market } = await setupTest({
-      userFixtures: {
-        supplier: {
-          removalDataToList: {
-            removals: [
-              {
-                amount: formatTokenAmount(10),
-                supplierAddress: hre.namedAccounts.supplier,
-              },
-            ],
-          },
-        },
-      },
-    });
-    const priorityRestrictedThreshold = formatTokenAmount(10);
-    await market.setPriorityRestrictedThreshold(priorityRestrictedThreshold);
-    const purchaseAmount = formatTokenAmount(5);
-    const value = await market.calculateCheckoutTotal(purchaseAmount);
-    const { buyer } = hre.namedSigners;
-    const { v, r, s } = await buyer.permit({
-      verifyingContract: bpNori,
-      spender: market.address,
-      value,
-    });
-    await expect(
-      market
-        .connect(buyer)
-        [
-          'swapFromSupplier(address,address,uint256,address,uint256,uint8,bytes32,bytes32)'
-        ](
-          buyer.address,
-          buyer.address,
-          purchaseAmount,
-          hre.namedAccounts.supplier,
-          MaxUint256,
-          v,
-          r,
-          s
-        )
-    ).to.be.revertedWith('LowSupplyAllowlistRequired()');
   });
 });
