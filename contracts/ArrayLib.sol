@@ -129,6 +129,34 @@ library UInt256ArrayLib {
       }
     }
   }
+
+  /**
+   * @notice Shorten an array to specified length.
+   * @dev Shortens the specified array to the specified length by directly overwriting
+   * the length of the original array in storage.
+   *
+   * ##### Example usage:
+   *
+   * ```solidity
+   * new uint256[](100).fill(1).shrink(50); // resizes the original array to length 50
+   * ```
+   * -
+   * @param values The array to shorten.
+   * @param length The desired length of the array.
+   * @return values The shortened array.
+   */
+  function shrink(
+    uint256[] memory values,
+    uint256 length
+  ) internal pure returns (uint256[] memory) {
+    assert(length <= values.length);
+    uint256 location;
+    assembly {
+      location := values
+      mstore(location, length)
+    }
+    return values;
+  }
 }
 
 /**
