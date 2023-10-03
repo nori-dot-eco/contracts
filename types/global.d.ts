@@ -11,7 +11,7 @@ import type {
   ContractFactory,
   ethers as defaultEthers,
 } from 'ethers';
-import type { Signer, TypedDataSigner } from '@ethersproject/abstract-signer';
+import type { Signer } from '@ethersproject/abstract-signer';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
   FactoryOptions,
@@ -28,6 +28,8 @@ import type {
 } from 'hardhat-deploy/dist/types';
 import type { HardhatUserConfig } from 'hardhat/types';
 import type { Deployment } from 'hardhat-deploy/types';
+import type { FireblocksProviderConfig } from '@fireblocks/fireblocks-web3-provider';
+import type { FireblocksSigner } from '@plugins/fireblocks/fireblocks-signer';
 
 import type { debug } from '../utils/debug';
 import type { TASKS } from '../tasks';

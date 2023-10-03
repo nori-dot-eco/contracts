@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign -- hre is intended to be configured via assignment in this file */
+
 import 'tsconfig-paths/register';
 import '@nomiclabs/hardhat-waffle';
 import '@openzeppelin/hardhat-defender';
@@ -21,7 +22,8 @@ import { lazyFunction, lazyObject } from 'hardhat/plugins';
 import type { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
 import type { HardhatNetworkHDAccountsConfig } from 'hardhat/types';
 import { Wallet } from 'ethers';
-import type { FireblocksWeb3Provider } from '@fireblocks/fireblocks-web3-provider';
+import type { FireblocksSigner } from 'plugins/fireblocks/fireblocks-signer';
+import { fireblocks } from 'hardhat';
 
 import { Eip2612Signer } from '@/signers/eip-26126';
 import { namedAccountIndices, namedAccounts } from '@/config/accounts';
@@ -94,7 +96,7 @@ const deployOrUpgradeProxy = async <
   //   '0x582a885C03A0104Dc3053FAA8486c178e51E48Db'
   // );
 
-  const [signer] = await hre.getSigners();
+  const [signer]: Signer[] = await hre.getSigners();
 
   hre.trace(
     `deployOrUpgrade: ${contractName} from address ${await signer.getAddress()}`
@@ -119,15 +121,19 @@ const deployOrUpgradeProxy = async <
     // )
   ) {
     hre.trace('Deploying proxy and instance', contractName);
-    const fireblocksSigner = signer as unknown as FireblocksWeb3Provider;
-    // eslint-disable-next-line
-      fireblocksSigner['note'] = `Deploy proxy and instance for ${contractName}`;
+    const fireblocksSigner = signer as FireblocksSigner;
+    if (typeof fireblocksSigner.setNote === 'function') {
+      fireblocksSigner.setNote(`Deploy proxy and instance for ${contractName}`);
+    }
     contract = await hre.upgrades.deployProxy<TContract>(
       contractFactory,
       args,
       options
     );
     await contract.deployed();
+    if (typeof fireblocksSigner.restoreDefaultNote === 'function') {
+      fireblocksSigner.restoreDefaultNote();
+    }
     hre.log(
       'Deployed proxy and instance',
       contractName,
@@ -145,9 +151,12 @@ const deployOrUpgradeProxy = async <
       const existingImplementationAddress =
         await hre.upgrades.erc1967.getImplementationAddress(maybeProxyAddress);
       hre.trace('Existing implementation at:', existingImplementationAddress);
-      const fireblocksSigner = signer as unknown as FireblocksWeb3Provider;
-      // eslint-disable-next-line
-      fireblocksSigner['note'] = `Upgrade contract instance for ${contractName}`;
+      const fireblocksSigner = signer as FireblocksSigner;
+      if (typeof fireblocksSigner.setNote === 'function') {
+        fireblocksSigner.setNote(
+          `Upgrade contract instance for ${contractName}`
+        );
+      }
       const deployment = await hre.deployments.get(contractName);
       const artifact = await hre.deployments.getArtifact(contractName);
       if (deployment.bytecode === artifact.bytecode) {
@@ -177,6 +186,9 @@ const deployOrUpgradeProxy = async <
         await contract.deployed();
         hre.trace('...successful deployment transaction', contractName);
       }
+      if (typeof fireblocksSigner.restoreDefaultNote === 'function') {
+        fireblocksSigner.restoreDefaultNote();
+      }
     } catch (error) {
       hre.log(`Failed to upgrade ${contractName} with error:`, error);
       throw new Error(`Failed to upgrade ${contractName} with error: ${error}`);
@@ -197,7 +209,7 @@ const deployNonUpgradeable = async <
   args: unknown[];
   options?: FactoryOptions;
 }): Promise<InstanceOfContract<TContract>> => {
-  const [signer]: Signer[] = await hre.getSigners();
+  const [signer] = await hre.getSigners();
   hre.log(
     `deployNonUpgradeable: ${contractName} from address ${await signer.getAddress()}`
   );
@@ -205,13 +217,17 @@ const deployNonUpgradeable = async <
     contractName,
     { ...options, signer }
   );
-  const fireblocksSigner = signer as unknown as FireblocksWeb3Provider;
-  // eslint-disable-next-line
-  fireblocksSigner['note'] = `Deploy ${contractName}`;
+  const fireblocksSigner = signer as FireblocksSigner;
+  if (typeof fireblocksSigner.setNote === 'function') {
+    fireblocksSigner.setNote(`Deploy ${contractName}`);
+  }
   const contract = (await contractFactory.deploy(
     ...args
   )) as InstanceOfContract<TContract>;
   hre.log('Deployed non upgradeable contract', contractName, contract.address);
+  if (typeof fireblocksSigner.restoreDefaultNote === 'function') {
+    fireblocksSigner.restoreDefaultNote();
+  }
   return contract;
 };
 
@@ -228,7 +244,7 @@ extendEnvironment((hre) => {
   if (hre.network.config.live) {
     if (hre.config.fireblocks === undefined) {
       throw new Error(
-        'Fireblocks config is required for live networks. Please set FIREBLOCKS_API_KEY and FIREBLOCKS_SECRET_KEY_PATH in your environment.'
+        'Fireblocks config is required for live networks. Please set FIREBLOCKS_API_KEY and FIREBLOCKS_SECRET_KEY_PATH and FIREBLOCKS_VAULT_ID in your environment.'
       );
     }
     if (Boolean(hre.config.fireblocks.apiKey)) {
