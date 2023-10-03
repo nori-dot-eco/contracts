@@ -1,4 +1,3 @@
-import '@fireblocks/hardhat-fireblocks';
 import type { HardhatUserConfig } from 'hardhat/types/config';
 
 const { FIREBLOCKS_API_KEY, FIREBLOCKS_SECRET_KEY_PATH, FIREBLOCKS_VAULT_ID } =

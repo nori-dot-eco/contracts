@@ -28,8 +28,6 @@ import type {
 } from 'hardhat-deploy/dist/types';
 import type { HardhatUserConfig } from 'hardhat/types';
 import type { Deployment } from 'hardhat-deploy/types';
-import type { FireblocksProviderConfig } from '@fireblocks/fireblocks-web3-provider';
-import type { FireblocksSigner } from '@plugins/fireblocks/fireblocks-signer';
 
 import type { debug } from '../utils/debug';
 import type { TASKS } from '../tasks';
@@ -56,14 +54,6 @@ declare module 'hardhat/config' {
   ) => void;
 
   function extendEnvironment(extender: EnvironmentExtender): void;
-
-  interface HardhatConfig {
-    fireblocks?: FireblocksProviderConfig;
-  }
-  interface HardhatUserConfig {
-    fireblocks?: FireblocksProviderConfig;
-  }
-
   export type ActionType<ArgsT extends TaskArguments, TActionReturnType> = (
     taskArgs: ArgsT,
     environment: CustomHardHatRuntimeEnvironment,

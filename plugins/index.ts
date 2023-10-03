@@ -23,7 +23,6 @@ import type { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
 import type { HardhatNetworkHDAccountsConfig } from 'hardhat/types';
 import { Wallet } from 'ethers';
 import type { FireblocksSigner } from 'plugins/fireblocks/fireblocks-signer';
-import { fireblocks } from 'hardhat';
 
 import { Eip2612Signer } from '@/signers/eip-26126';
 import { namedAccountIndices, namedAccounts } from '@/config/accounts';

@@ -13,7 +13,11 @@ declare module 'hardhat/types/config' {
     fireblocks?: FireblocksProviderConfig;
   }
   interface HardhatConfig {
-    fireblocks: FireblocksProviderConfig;
+    fireblocks?: FireblocksProviderConfig;
+  }
+
+  interface HardhatUserConfig {
+    fireblocks?: FireblocksProviderConfig;
   }
 }
 
