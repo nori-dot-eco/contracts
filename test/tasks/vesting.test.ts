@@ -44,8 +44,10 @@ const dateLessThanOneYearAgoFromToday = new Date(
   currentDate.getMonth(),
   currentDate.getDate() + 1
 );
-const dateLessThanOneYearAgoFromTodayISOString = dateLessThanOneYearAgoFromToday.toISOString();
-const dateLessThanOneYearAgoFromTodayUnix = dateLessThanOneYearAgoFromToday.getTime();
+const dateLessThanOneYearAgoFromTodayISOString =
+  dateLessThanOneYearAgoFromToday.toISOString();
+const dateLessThanOneYearAgoFromTodayUnix =
+  dateLessThanOneYearAgoFromToday.getTime();
 
 const currentDatePlusOne = new Date(currentDateUnix + 1);
 const currentDatePlusOneISOString = currentDatePlusOne.toISOString();

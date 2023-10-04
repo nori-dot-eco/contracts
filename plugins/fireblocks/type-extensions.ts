@@ -1,16 +1,23 @@
 import 'hardhat/types/config';
 import 'hardhat/types/runtime';
 
-import type { FireblocksSignerConfig } from './types';
+import type { FireblocksProviderConfig } from '@fireblocks/fireblocks-web3-provider';
+
 import type { FireblocksSigner } from './fireblocks-signer';
 
 declare module 'hardhat/types/config' {
-  interface HardhatUserConfig {
-    fireblocks?: FireblocksSignerConfig;
+  interface HttpNetworkUserConfig {
+    fireblocks?: FireblocksProviderConfig;
+  }
+  interface HttpNetworkConfig {
+    fireblocks?: FireblocksProviderConfig;
+  }
+  interface HardhatConfig {
+    fireblocks?: FireblocksProviderConfig;
   }
 
-  interface HardhatConfig {
-    fireblocks: FireblocksSignerConfig;
+  interface HardhatUserConfig {
+    fireblocks?: FireblocksProviderConfig;
   }
 }
 

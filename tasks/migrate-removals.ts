@@ -241,7 +241,6 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       });
       hre.log(`Removal contract address: ${removalContract.address}`);
       hre.log(`Signer address: ${signerAddress}`);
-      // const fireblocksSigner = removalContract.signer as FireblocksSigner;
       const signerHasConsignorRole = await removalContract.hasRole(
         await removalContract.CONSIGNOR_ROLE(),
         signerAddress

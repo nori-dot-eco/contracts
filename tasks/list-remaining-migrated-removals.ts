@@ -6,8 +6,6 @@ import type { ContractTransaction } from 'ethers';
 import { BigNumber, ethers } from 'ethers';
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 
-import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
-
 import { Zero } from '@/constants/units';
 import { getRemoval } from '@/utils/contracts';
 
@@ -53,7 +51,6 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
       });
       hre.log(`Removal contract address: ${removalContract.address}`);
       hre.log(`Signer address: ${signerAddress}`);
-      // const fireblocksSigner = removalContract.signer as FireblocksSigner;
       const signerHasConsignorRole = await removalContract.hasRole(
         await removalContract.CONSIGNOR_ROLE(),
         signerAddress

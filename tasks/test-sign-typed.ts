@@ -1,5 +1,7 @@
 import { task } from 'hardhat/config';
 
+import type { FireblocksSigner } from '../plugins/fireblocks/fireblocks-signer';
+
 export interface TestSignTypesTaskParameters {}
 
 export const types = {
@@ -19,7 +21,7 @@ export const TASK = {
     taskArguments: TestSignTypesTaskParameters,
     hre: CustomHardHatRuntimeEnvironment
   ): Promise<void> => {
-    const [signer] = await hre.getSigners();
+    const [signer] = (await hre.getSigners()) as FireblocksSigner[];
     const domain = {
       name: 'NORI',
       version: '1',
