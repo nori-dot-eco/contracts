@@ -24,7 +24,7 @@ extendConfig(
   (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
     const userNetworks = userConfig.networks;
     if (userNetworks === undefined) {
-      return;
+      throw new Error('No networks defined in hardhat config.');
     }
     for (const networkName in userNetworks) {
       const network = userNetworks[networkName]! as HttpNetworkUserConfig;
@@ -49,7 +49,8 @@ extendConfig(
 );
 
 extendEnvironment((hre) => {
-  if ((hre.network.config as HttpNetworkUserConfig).fireblocks != undefined) {
+  if ((hre.network.config as HttpNetworkUserConfig).fireblocks !== undefined) {
+    hre.log(`Using Fireblocks signer for network ${hre.network.name}...`);
     const httpNetConfig = hre.network.config as HttpNetworkUserConfig;
     const eip1193Provider = new HttpProvider(
       httpNetConfig.url!,
