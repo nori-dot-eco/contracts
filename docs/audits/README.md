@@ -2,8 +2,7 @@
 ### 2023
 - [Macro Audit #4](https://library.0xmacro.com/library/audits/nori-4) audited _ArrayLib_, _Certificate_, _Errors_, _ICertificate_, _IERC20WithPermit_, _IMarket_, _IRemoval_, _IRestrictedNORI_, _Market_, _Removal_, _RemovalIdLib_, _RemovalsByYearLib_, _RestrictedNORI_, and _RestrictedNORILib_ in September of 2023.
 
-(Audit #3 was only partially completed)
-### 2023
+- [Audit #3](https://github.com/nori-dot-eco/contracts/pull/589) was ended early due to early discovery of additional changes needed.
 
 - [Macro Audit #2](https://library.0xmacro.com/library/audits/nori-2) audited _Certificate_, _Errors_, _ICertificate_, _IMarket_, _Removal_, _IRemoval_, _IRestrictedNORI_, _RestrictedNORI_, and _Market_ in February of 2023.
 
