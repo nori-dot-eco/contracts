@@ -1,108 +1,75 @@
 /* eslint-disable no-param-reassign -- hre and config are intended to be configured via assignment in this file */
 import '@nomiclabs/hardhat-ethers';
-import fs from 'fs';
 
 import { extendConfig, extendEnvironment } from 'hardhat/config';
-import { lazyObject } from 'hardhat/plugins';
+import { BackwardsCompatibilityProviderAdapter } from 'hardhat/internal/core/providers/backwards-compatibility';
+import {
+  AutomaticGasPriceProvider,
+  AutomaticGasProvider,
+} from 'hardhat/internal/core/providers/gas-providers';
+import { HttpProvider } from 'hardhat/internal/core/providers/http';
 import type {
+  EIP1193Provider,
   HardhatConfig,
   HardhatUserConfig,
-  HttpNetworkConfig,
+  HttpNetworkUserConfig,
 } from 'hardhat/types';
+
 import './type-extensions';
-import { FireblocksSDK, Chain } from 'fireblocks-defi-sdk';
+import { version as SDK_VERSION } from '@fireblocks/hardhat-fireblocks/package.json';
 
 import { FireblocksSigner } from './fireblocks-signer';
-import { JsonRpcBatchProviderWithGasFees } from './provider-gas-wrapper';
-
-type NetworkMap = {
-  [K in CustomHardHatRuntimeEnvironment['network']['name']]: Chain | undefined;
-};
-
-// TODO: move network name translation to our config and make Chain a required config property
-const networkNameToChain: NetworkMap = {
-  mumbai: Chain.MUMBAI,
-  goerli: Chain.GOERLI,
-  mainnet: Chain.MAINNET,
-  polygon: Chain.POLYGON,
-  hardhat: undefined,
-  localhost: undefined,
-};
-
-const setupFireblocksSigner = async (
-  hre: CustomHardHatRuntimeEnvironment
-): Promise<FireblocksSigner | undefined> => {
-  const networkConfig: HttpNetworkConfig = hre.network
-    .config as HttpNetworkConfig;
-  const config = hre.config.fireblocks;
-  if (config.apiKey && config.apiSecret) {
-    try {
-      const fireblocksApiClient = new FireblocksSDK(
-        config.apiSecret,
-        config.apiKey
-      );
-      const network = networkNameToChain[hre.network.name];
-      if (network === undefined) {
-        throw new Error(`Invalid network ${hre.network.name}`);
-      }
-      const signer = new FireblocksSigner(
-        fireblocksApiClient,
-        network,
-        new JsonRpcBatchProviderWithGasFees(
-          networkConfig.url,
-          networkConfig.chainId
-        ),
-        config.vaultId
-      );
-      const address = await signer.getAddress();
-      hre.log(
-        `Fireblocks signer created for address: ${address} (${hre.network.name})`
-      );
-      return signer;
-    } catch (error) {
-      hre.log(error, 'ERROR: Constructing fireblocks signer');
-    }
-  } else {
-    console.log(`ERROR: Fireblocks signer missing configuration.`);
-  }
-  return undefined;
-};
 
 extendConfig(
   (config: HardhatConfig, userConfig: Readonly<HardhatUserConfig>) => {
-    const defaultConfig = { apiKey: '', apiSecret: '', vaultId: '0' };
-    if (
-      userConfig.fireblocks == undefined ||
-      !userConfig.fireblocks.apiKey ||
-      !userConfig.fireblocks.apiSecret
-    ) {
-      const sampleConfig = JSON.stringify(
-        { apiKey: 'YOUR_API_KEY', apiSecret: 'YOUR_API_SECRET', vaultId: '0' },
-        undefined,
-        2
-      );
-      config.fireblocks = defaultConfig;
-    } else {
-      config.fireblocks = {
-        apiKey: userConfig.fireblocks!.apiKey,
-        apiSecret: fs.readFileSync(userConfig.fireblocks!.apiSecret, 'utf8'),
-        vaultId: userConfig.fireblocks!.vaultId,
-      };
+    const userNetworks = userConfig.networks;
+    if (userNetworks === undefined) {
+      throw new Error('No networks defined in hardhat config.');
+    }
+    for (const networkName in userNetworks) {
+      const network = userNetworks[networkName]! as HttpNetworkUserConfig;
+      if (network.fireblocks !== undefined) {
+        if (
+          networkName === 'hardhat' ||
+          (network.url || '').includes('localhost') ||
+          (network.url || '').includes('127.0.0.1')
+        ) {
+          throw new Error('Fireblocks is only supported for public networks.');
+        }
+        (config.networks[networkName] as HttpNetworkUserConfig).fireblocks = {
+          note: 'Created by Nori custom Fireblocks Hardhat Plugin',
+          logTransactionStatusChanges: true,
+          ...network.fireblocks,
+          rpcUrl: network.url,
+          userAgent: `hardhat-fireblocks/${SDK_VERSION}`,
+        };
+      }
     }
   }
 );
 
 extendEnvironment((hre) => {
-  hre.fireblocks = lazyObject(() => {
-    const signer = setupFireblocksSigner(hre);
-    const getSigners = async (): Promise<FireblocksSigner[]> => {
-      const s = await signer;
-      return s === undefined ? [] : [s];
-    };
-    return {
-      getSigners,
-      getSigner: async (index: number): Promise<FireblocksSigner | undefined> =>
-        (await getSigners())[index],
-    };
-  });
+  if ((hre.network.config as HttpNetworkUserConfig).fireblocks !== undefined) {
+    hre.log(`Using Fireblocks signer for network ${hre.network.name}...`);
+    const httpNetConfig = hre.network.config as HttpNetworkUserConfig;
+    const eip1193Provider = new HttpProvider(
+      httpNetConfig.url!,
+      hre.network.name,
+      httpNetConfig.httpHeaders,
+      httpNetConfig.timeout
+    );
+    let wrappedProvider: EIP1193Provider;
+    wrappedProvider = new FireblocksSigner(
+      eip1193Provider,
+      (hre.network.config as HttpNetworkUserConfig).fireblocks!
+    );
+    wrappedProvider = new AutomaticGasProvider(
+      wrappedProvider,
+      hre.network.config.gasMultiplier
+    );
+    wrappedProvider = new AutomaticGasPriceProvider(wrappedProvider);
+    hre.network.provider = new BackwardsCompatibilityProviderAdapter(
+      wrappedProvider
+    );
+  }
 });

@@ -11,7 +11,7 @@ import type {
   ContractFactory,
   ethers as defaultEthers,
 } from 'ethers';
-import type { Signer, TypedDataSigner } from '@ethersproject/abstract-signer';
+import type { Signer } from '@ethersproject/abstract-signer';
 import type { DeployProxyOptions } from '@openzeppelin/hardhat-upgrades/src/utils';
 import type {
   FactoryOptions,
@@ -54,7 +54,6 @@ declare module 'hardhat/config' {
   ) => void;
 
   function extendEnvironment(extender: EnvironmentExtender): void;
-
   export type ActionType<ArgsT extends TaskArguments, TActionReturnType> = (
     taskArgs: ArgsT,
     environment: CustomHardHatRuntimeEnvironment,
@@ -120,40 +119,40 @@ interface GenericDeployFunction {
   ): Promise<InstanceOfContract<TC>>;
 }
 
-interface GenericUpgradeFunction {
-  <
-    TC extends Contract = Contract,
-    TFactory extends ContractFactory = ContractFactory
-  >(
-    proxy: ContractAddressOrInstance,
-    ImplFactory: TFactory,
-    options?: UpgradeProxyOptions
-  ): Promise<InstanceOfContract<TC>>;
-}
+type GenericUpgradeFunction = <
+  TC extends Contract = Contract,
+  TFactory extends ContractFactory = ContractFactory
+>(
+  proxy: ContractAddressOrInstance,
+  ImplFactory: TFactory,
+  options?: UpgradeProxyOptions
+) => Promise<InstanceOfContract<TC>>;
 
-interface DeployOrUpgradeProxyFunction {
-  <TContract extends BaseContract, TFactory extends ContractFactory>({
-    contractName,
-    args,
-    options,
-  }: {
-    contractName: keyof Contracts;
-    args: unknown[];
-    options?: DeployProxyOptions;
-  }): Promise<InstanceOfContract<TContract>>;
-}
+type DeployOrUpgradeProxyFunction = <
+  TContract extends BaseContract,
+  TFactory extends ContractFactory
+>({
+  contractName,
+  args,
+  options,
+}: {
+  contractName: keyof Contracts;
+  args: unknown[];
+  options?: DeployProxyOptions;
+}) => Promise<InstanceOfContract<TContract>>;
 
-interface DeployNonUpgradeableFunction {
-  <TContract extends BaseContract, TFactory extends ContractFactory>({
-    contractName,
-    args,
-    options,
-  }: {
-    contractName: keyof Contracts;
-    args: unknown[];
-    options?: FactoryOptions;
-  }): Promise<InstanceOfContract<TContract>>;
-}
+type DeployNonUpgradeableFunction = <
+  TContract extends BaseContract,
+  TFactory extends ContractFactory
+>({
+  contractName,
+  args,
+  options,
+}: {
+  contractName: keyof Contracts;
+  args: unknown[];
+  options?: FactoryOptions;
+}) => Promise<InstanceOfContract<TContract>>;
 
 interface CustomHardhatUpgrades extends HardhatUpgrades {
   deployProxy: GenericDeployFunction; // overridden because of a mismatch in ethers types
@@ -174,9 +173,7 @@ declare global {
     >
   > = TupleToObject<Parameters<TFunction>, TKeys>;
 
-  interface ClassType<T> {
-    new (...args: any[]): T;
-  }
+  type ClassType<T> = new (...args: any[]) => T;
 
   type Constructor = new (...args: any[]) => {};
 
@@ -230,7 +227,7 @@ declare global {
     upgrades: CustomHardhatUpgrades;
     network: Omit<Network, 'name'> & { name: keyof typeof networks };
     ethers: typeof ethers;
-    getSigners: () => Promise<(Signer & TypedDataSigner)[]>;
+    getSigners: () => Promise<Signer[]>;
     deployOrUpgradeProxy: DeployOrUpgradeProxyFunction;
     deployNonUpgradeable: DeployNonUpgradeableFunction;
     log: Console['log'];

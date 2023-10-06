@@ -853,8 +853,8 @@ const CREATE_SUBTASK = {
       const name = await bpNori.name();
       const nonce = await bpNori.nonces(owner);
       const chainId = await fireblocksSigner.getChainId();
-      if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-        fireblocksSigner.setNextTransactionMemo(
+      if (typeof fireblocksSigner.setNote === 'function') {
+        fireblocksSigner.setNote(
           `Permit BridgedPolygonNORI Spend by LockedNORI: ${memo || ''}`
         );
       }
@@ -892,10 +892,8 @@ const CREATE_SUBTASK = {
           );
         }
       } else {
-        if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-          fireblocksSigner.setNextTransactionMemo(
-            `Vesting Create: ${memo || ''}`
-          );
+        if (typeof fireblocksSigner.setNote === 'function') {
+          fireblocksSigner.setNote(`Vesting Create: ${memo || ''}`);
         }
         const batchCreateGrantsTx = await lNori.batchCreateGrants(
           amounts,
@@ -905,6 +903,9 @@ const CREATE_SUBTASK = {
           r,
           s
         );
+        if (typeof fireblocksSigner.restoreDefaultNote === 'function') {
+          fireblocksSigner.restoreDefaultNote();
+        }
         const result = await batchCreateGrantsTx.wait();
         hre.log(
           chalk.bold.bgWhiteBright.black(
@@ -997,10 +998,8 @@ const REVOKE_SUBTASK = {
         }
       } else {
         const fireblocksSigner = lNori.signer as FireblocksSigner;
-        if (typeof fireblocksSigner.setNextTransactionMemo === 'function') {
-          fireblocksSigner.setNextTransactionMemo(
-            `Vesting Revoke: ${memo || ''}`
-          );
+        if (typeof fireblocksSigner.setNote === 'function') {
+          fireblocksSigner.setNote(`Vesting Revoke: ${memo || ''}`);
         }
         const batchRevokeUnvestedTokenAmountsTx =
           await lNori.batchRevokeUnvestedTokenAmounts(
@@ -1009,6 +1008,9 @@ const REVOKE_SUBTASK = {
             atTimes,
             amounts
           );
+        if (typeof fireblocksSigner.restoreDefaultNote === 'function') {
+          fireblocksSigner.restoreDefaultNote();
+        }
         const result = await batchRevokeUnvestedTokenAmountsTx.wait();
         hre.log(
           chalk.bold.bgWhiteBright.black(

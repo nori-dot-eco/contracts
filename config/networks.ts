@@ -3,6 +3,7 @@ import type { NetworksUserConfig, NetworkUserConfig } from 'hardhat/types';
 import type * as contractsConfig from '../contracts.json';
 
 import { accounts } from './accounts';
+import { fireblocks } from './fireblocks';
 
 export type ContractsInNetwork<
   T extends SupportedNetworks = SupportedNetworks
@@ -56,6 +57,7 @@ const goerli: NetworkUserConfig = {
   ...(typeof MNEMONIC === 'string' && {
     accounts: { mnemonic: MNEMONIC },
   }),
+  fireblocks,
 };
 
 const mumbai: NetworkUserConfig = {
@@ -67,6 +69,7 @@ const mumbai: NetworkUserConfig = {
   ...(typeof MNEMONIC === 'string' && {
     accounts: { mnemonic: MNEMONIC },
   }),
+  fireblocks,
 };
 
 const polygon: NetworkUserConfig = {
@@ -75,6 +78,7 @@ const polygon: NetworkUserConfig = {
   gasPrice: 50_000_000_000,
   live: true,
   tags: ['polygon', 'prod'],
+  fireblocks,
 };
 
 const mainnet: NetworkUserConfig = {
@@ -83,6 +87,7 @@ const mainnet: NetworkUserConfig = {
   gasPrice: 50_000_000_000,
   live: true,
   tags: ['mainnet', 'prod'],
+  fireblocks
 };
 
 export const networks = {

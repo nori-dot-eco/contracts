@@ -25,6 +25,8 @@
     "@ethersproject/abstract-signer": "5.7.0",
     "@ethersproject/properties": "5.7.0",
     "@ethersproject/providers": "5.7.2",
+    "@fireblocks/fireblocks-web3-provider": "^1.2.4",
+    "@fireblocks/hardhat-fireblocks": "^1.2.2",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
@@ -62,10 +64,7 @@
     "ethereum-waffle": "^3.4.4",
     "ethernal": "^2.0.2",
     "ethers": "^5.7.2",
-    "fireblocks-defi-sdk": "1.2.15",
-    "fireblocks-sdk": "^4.0.0",
     "fs-extra": "^10.1.0",
-    "google-artifactregistry-auth": "^3.1.0",
     "handlebars": "^4.7.7",
     "hardhat": "2.16.1",
     "hardhat-contract-sizer": "^2.6.1",
@@ -114,7 +113,6 @@
     "snapshot": "forge snapshot",
     "snapshot:test": "FOUNDRY_PROFILE=test forge snapshot --snap .gas-snapshot-test",
     "snapshot:production": "FOUNDRY_PROFILE=production forge snapshot --snap .gas-snapshot-production",
-    "lint:diff": "npx eslint --cache --cache-location ./.eslintcache -c .eslintrc.js $(git diff --relative --name-only --diff-filter=d $(git merge-base HEAD origin/master) -- \"*.ts\" \"*.js\" \"*.env\" \"*.toml\")",
-    "artifactregistry-login": "npx google-artifactregistry-auth"
+    "lint:diff": "npx eslint --cache --cache-location ./.eslintcache -c .eslintrc.js $(git diff --relative --name-only --diff-filter=d $(git merge-base HEAD origin/master) -- \"*.ts\" \"*.js\" \"*.env\" \"*.toml\")"
   }
 }

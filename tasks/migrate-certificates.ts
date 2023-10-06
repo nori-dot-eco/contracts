@@ -417,7 +417,6 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
         `Certificate contract address: ${certificateContract.address}`
       );
       logger.info(`Signer address: ${signerAddress}`);
-      // const fireblocksSigner = removalContract.signer as FireblocksSigner;
       const signerHasConsignorRole = await removalContract.hasRole(
         await removalContract.CONSIGNOR_ROLE(),
         signerAddress
