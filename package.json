@@ -64,6 +64,7 @@
     "ethereum-waffle": "^3.4.4",
     "ethernal": "^2.0.2",
     "ethers": "^5.7.2",
+    "fireblocks-sdk": "^5.8.0",
     "fs-extra": "^10.1.0",
     "handlebars": "^4.7.7",
     "hardhat": "2.16.1",
