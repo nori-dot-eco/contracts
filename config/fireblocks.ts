@@ -9,5 +9,6 @@ export const fireblocks: HardhatUserConfig['fireblocks'] =
         apiKey: FIREBLOCKS_API_KEY,
         privateKey: FIREBLOCKS_SECRET_KEY_PATH,
         vaultAccountIds: FIREBLOCKS_VAULT_ID,
+        fallbackFeeLevel: 'HIGH',
       }
     : undefined;

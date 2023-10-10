@@ -111,10 +111,10 @@ const deployOrUpgradeProxy = async <
     typeof maybeProxyAddress !== 'string';
   if (
     shouldDeployProxy
+    // &&
     // This guard was used during mainnet deployment as an extra barrier to prevent
     // accidental deployment of live contracts. It has to be removed to allow for
     // complete test environment Hardhat deployments.
-    //  &&
     // !['bridgedpolygonnori', 'nori', 'lockednori'].includes(
     //   contractName.toLowerCase()
     // )
