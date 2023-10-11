@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 
 import { types, task } from 'hardhat/config';
 import { AdminClient } from 'defender-admin-client';
@@ -48,7 +48,7 @@ const addContractsToDefender = async (
           deployed[networkName][name].proxyAddress
         );
         return {
-          name,
+          name: `${name}_new`,
           abi: contract.interface.format(
             ethers.utils.FormatTypes.json
           ) as string,
