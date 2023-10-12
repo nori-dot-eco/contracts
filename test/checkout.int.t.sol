@@ -74,7 +74,6 @@ contract Checkout_buyingFromOneRemoval is Checkout {
     vm.prank(_owner);
     _market.swap(
       _owner,
-      _owner,
       _certificateAmount,
       _signedPermit.permit.deadline,
       _signedPermit.v,
@@ -164,9 +163,8 @@ contract Checkout_swapWithDifferentPermitSignerAndMsgSender is Checkout {
   }
 
   function test() external {
-    vm.prank(_msgSender);
+    vm.prank(_owner);
     _market.swap(
-      _owner,
       _owner,
       _certificateAmount,
       _signedPermit.permit.deadline,
@@ -234,7 +232,6 @@ contract Checkout_buyingFromTenRemovals is Checkout {
   function test() external {
     vm.prank(_owner);
     _market.swap(
-      _owner,
       _owner,
       _expectedCertificateAmount,
       _signedPermit.permit.deadline,
@@ -607,7 +604,6 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
     vm.prank(_owner);
     _market.swap(
       _owner,
-      _owner,
       _expectedCertificateAmount,
       _signedPermit.permit.deadline,
       _signedPermit.v,
@@ -698,7 +694,6 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     vm.recordLogs();
     vm.prank(_owner);
     _market.swap(
-      _owner,
       _owner,
       _certificateAmount,
       signedPermit.permit.deadline,
@@ -809,7 +804,6 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     vm.recordLogs();
     vm.prank(_owner);
     _market.swap(
-      _owner,
       _owner,
       _certificateAmount,
       _signedPermit.permit.deadline,

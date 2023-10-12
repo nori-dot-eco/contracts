@@ -49,7 +49,6 @@ contract BuyNRT is Script {
     });
     _market.swap({
       recipient: _recipient,
-      permitOwner: signedPermit.permit.owner,
       amount: _nrts,
       deadline: signedPermit.permit.deadline,
       v: signedPermit.v,

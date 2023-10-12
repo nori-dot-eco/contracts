@@ -142,7 +142,6 @@ contract MarketHandler is UpgradeableMarket {
     vm.prank(buyerAddress);
     _market.swap({
       recipient: buyerAddress,
-      permitOwner: buyerAddress,
       amount: purchaseAmount,
       deadline: signedPermit.permit.deadline,
       v: signedPermit.v,

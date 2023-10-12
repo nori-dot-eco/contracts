@@ -190,8 +190,7 @@ describe('Market', () => {
         await expect(
           market
             .connect(namedSigners[accountWithRole])
-            ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
-              namedAccounts[accountWithRole],
+            ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
               namedAccounts[accountWithRole],
               totalAvailableSupply,
               MaxUint256,
@@ -228,8 +227,7 @@ describe('Market', () => {
         await expect(
           market
             .connect(accountWithoutRole)
-            ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
-              accountWithoutRole.address,
+            ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
               accountWithoutRole.address,
               totalAmountOfSupply,
               MaxUint256,
@@ -380,8 +378,7 @@ describe('Market', () => {
         });
         await market
           .connect(buyer)
-          ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
-            buyer.address,
+          ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
             buyer.address,
             purchaseAmount,
             MaxUint256,
@@ -1035,8 +1032,7 @@ describe('Market', () => {
       });
       await market
         .connect(buyer)
-        ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
-          buyer.address,
+        ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
           buyer.address,
           purchaseAmount,
           MaxUint256,
@@ -1115,9 +1111,8 @@ describe('Market', () => {
       // expect(await certificate.balanceOf(investor1.address, 0)).to.equal(0); // todo
       await market
         .connect(buyer)
-        ['swap(address,address,uint256,uint256,uint8,bytes32,bytes32)'](
+        ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
           investor1.address,
-          buyer.address,
           purchaseAmount,
           deadline,
           v,
