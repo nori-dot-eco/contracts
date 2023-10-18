@@ -665,8 +665,8 @@ contract Market is
    * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
    * certificate. Relies on the EIP-2612 permit extension to facilitate ERC20 token transfer.
    * @dev See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
-   * The message sender must present a valid permit to this contract to temporarily authorize this market
-   * to transfer the permit owner's ERC20 to complete the purchase. A certificate is minted in the Certificate contract
+   * The message sender must sign and present a valid permit to this contract to temporarily authorize this market
+   * to transfer their ERC20 to complete the purchase. A certificate is minted in the Certificate contract
    * to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals,
    * to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
    * to Nori Inc. as a market operator fee.
@@ -675,7 +675,6 @@ contract Market is
    *
    * - Can only be used when this contract is not paused.
    * @param recipient The address to which the certificate will be issued.
-   * @param permitOwner The address that signed the EIP2612 permit and will pay for the removals.
    * @param amount The total amount of Removals being purchased.
    * @param deadline The EIP2612 permit deadline in Unix time.
    * @param v The recovery identifier for the permit's secp256k1 signature.
@@ -684,7 +683,6 @@ contract Market is
    */
   function swap(
     address recipient,
-    address permitOwner,
     uint256 amount,
     uint256 deadline,
     uint8 v,
@@ -696,7 +694,7 @@ contract Market is
       certificateAmount: amount
     });
     _permit({
-      owner: permitOwner,
+      owner: _msgSender(),
       amount: this.calculateCheckoutTotal({amount: amount}),
       deadline: deadline,
       v: v,
@@ -708,7 +706,7 @@ contract Market is
         chargeFee: true,
         feePercentage: _noriFeePercentage,
         certificateAmount: amount,
-        from: permitOwner,
+        from: _msgSender(),
         recipient: recipient,
         allocationData: allocationData
       })

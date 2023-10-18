@@ -101,7 +101,6 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
     vm.expectRevert(ERC20TransferFailed.selector);
     _market.swap(
       owner,
-      owner,
       certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
@@ -174,7 +173,6 @@ contract MarketReplaceTestHelper is UpgradeableMarket {
     );
     vm.prank(owner);
     _market.swap(
-      owner,
       owner,
       _originalCertificateAmount,
       signedPermit.permit.deadline,
@@ -412,7 +410,6 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
     emit RestrictedNORIMintFailure(rNoriToMint, removalId);
     _market.swap(
       owner,
-      owner,
       certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
@@ -487,7 +484,6 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
     vm.prank(owner);
     vm.recordLogs();
     _market.swap(
-      owner,
       owner,
       certificateAmount,
       signedPermit.permit.deadline,
@@ -1454,7 +1450,6 @@ contract Market_supplierSelectionUsingUpSuppliersLastRemoval is
     vm.prank(owner);
     _market.swap(
       owner,
-      owner,
       certificateAmount,
       signedPermit.permit.deadline,
       signedPermit.v,
@@ -1533,7 +1528,6 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
     // purchase 1.5 * 10**18 amount of removals
     vm.prank(owner);
     _market.swap(
-      owner,
       owner,
       certificateAmount,
       signedPermit.permit.deadline,
@@ -1674,7 +1668,7 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
       _purchasingToken
     );
 
-    vm.prank(owner);
+    vm.startPrank(owner);
     vm.expectEmit(false, false, false, true);
     uint256[] memory removalIds = new uint256[](1).fill(removalId);
     uint256[] memory amounts = new uint256[](1).fill(numberOfNRTsToPurchase);
@@ -1691,13 +1685,13 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
     );
     _market.swap(
       owner,
-      owner,
       numberOfNRTsToPurchase,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
       signedPermit.s
     );
+    vm.stopPrank();
     assertEq(_certificate.ownerOf(certificateTokenId), owner);
     assertEq(_purchasingToken.balanceOf(owner), 0);
     assertEq(_purchasingToken.balanceOf(_namedAccounts.supplier), 20_000_000);
@@ -1766,7 +1760,7 @@ contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
       _purchasingToken
     );
 
-    vm.prank(owner);
+    vm.startPrank(owner);
     vm.expectEmit(false, false, false, true);
     uint256[] memory removalIds = new uint256[](1).fill(removalId);
     uint256[] memory amounts = new uint256[](1).fill(numberOfNRTsToPurchase);
@@ -1783,13 +1777,13 @@ contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
     );
     _market.swap(
       owner,
-      owner,
       numberOfNRTsToPurchase,
       signedPermit.permit.deadline,
       signedPermit.v,
       signedPermit.r,
       signedPermit.s
     );
+    vm.stopPrank();
     assertEq(_certificate.ownerOf(certificateTokenId), owner);
     assertEq(_purchasingToken.balanceOf(owner), 0);
     assertEq(_purchasingToken.balanceOf(_namedAccounts.supplier), 18_000_000);
@@ -1842,7 +1836,7 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
       _market.swap(owner, numberOfNRTsToPurchase);
 
       vm.expectRevert(revertData);
-      _market.swap(owner, owner, numberOfNRTsToPurchase, 0, 0, 0, 0);
+      _market.swap(owner, numberOfNRTsToPurchase, 0, 0, 0, 0);
 
       vm.expectRevert(revertData);
       _market.swapWithoutFeeSpecialOrder({
