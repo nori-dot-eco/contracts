@@ -8916,11 +8916,13 @@ hardhat-ethernal@^3.1.0:
     axios "^0.27.2"
     firebase "9.9.4"
 
-hardhat-tracer@^1.2.1:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/hardhat-tracer/-/hardhat-tracer-1.2.1.tgz#2877a21e187ac5ad17e2e09a83d337375e50f1b0"
-  integrity sha512-ZZVXZfWfRzPkjGdkLoxC4v3Dqja7cpG1mOOr+3+m9xGmqfw9P6cKMDo+wYtGPNM6KttwsJ226Gqt5AwBjMxgTg==
+hardhat-tracer@^2.7.0:
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/hardhat-tracer/-/hardhat-tracer-2.7.0.tgz#af04e5cd7ec2525c24a70634f6d1051252992d03"
+  integrity sha512-H+30jj6bCyX7NfhY7Umbzq535jhi9Wd5fGNli9qWcQ+5iOB477Nm8XdGtPtgOV1vQ7VQzIwKFzoEbqy+BuxTlg==
   dependencies:
+    chalk "^4.1.2"
+    debug "^4.3.4"
     ethers "^5.6.1"
 
 hardhat@2.16.1:
