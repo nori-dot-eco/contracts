@@ -736,10 +736,14 @@ contract Market is
    *
    * - Can only be used when this contract is not paused.
    * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
+   * - Can only be used if the message sender has the `SANCTION_ALLOWLIST_ROLE`.
    * @param recipient The address to which the certificate will be issued.
    * @param amount The total amount of Removals to purchase.
    */
-  function swap(address recipient, uint256 amount) external whenNotPaused {
+  function swap(
+    address recipient,
+    uint256 amount
+  ) external whenNotPaused onlyRole(SANCTION_ALLOWLIST_ROLE) {
     _validateCertificateAmount({amount: amount});
     SupplyAllocationData memory allocationData = _allocateRemovals({
       certificateAmount: amount

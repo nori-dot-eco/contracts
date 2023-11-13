@@ -666,7 +666,8 @@ to Nori Inc. as a market operator fee.
 ##### Requirements:
 
 - Can only be used when this contract is not paused.
-- Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.</i>
+- Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
+- Can only be used if the message sender has the `SANCTION_ALLOWLIST_ROLE`.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
