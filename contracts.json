@@ -1,7 +1,7 @@
 {
   "hardhat": {
     "NORI": {
-      "proxyAddress": "0xEdf0bef28943aE9d2ee7d84cF1AEEC85588655b7"
+      "proxyAddress": "0xcb3a9Df3363315fb6E190A77C9421ecc6a92cfF0"
     },
     "BridgedPolygonNORI": {
       "proxyAddress": "0xbF1134A069430ED15FC6AA4Ba7563ca340213eb6"
@@ -31,7 +31,7 @@
       "proxyAddress": "0xb4c857d57b7130F033159958B5af4Fa3Bd0a04c6"
     },
     "NoriUSDC": {
-      "proxyAddress": "0x2AE26a38Bc11CE4FdfCaf0431D5a708b17E0dD99"
+      "proxyAddress": "0xEdf0bef28943aE9d2ee7d84cF1AEEC85588655b7"
     }
   },
   "localhost": {

@@ -187,6 +187,10 @@ describe('Market', () => {
           spender: market.address,
           value,
         });
+        await market.grantRole(
+          hre.ethers.utils.id('SANCTION_ALLOWLIST_ROLE'),
+          hre.namedAccounts[accountWithRole]
+        );
         await expect(
           market
             .connect(namedSigners[accountWithRole])
@@ -224,6 +228,10 @@ describe('Market', () => {
           spender: market.address,
           value,
         });
+        await market.grantRole(
+          hre.ethers.utils.id('SANCTION_ALLOWLIST_ROLE'),
+          accountWithoutRole.address
+        );
         await expect(
           market
             .connect(accountWithoutRole)
@@ -376,6 +384,10 @@ describe('Market', () => {
           spender: market.address,
           value,
         });
+        await market.grantRole(
+          hre.ethers.utils.id('SANCTION_ALLOWLIST_ROLE'),
+          buyer.address
+        );
         await market
           .connect(buyer)
           ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
@@ -1030,6 +1042,10 @@ describe('Market', () => {
         spender: market.address,
         value,
       });
+      await market.grantRole(
+        hre.ethers.utils.id('SANCTION_ALLOWLIST_ROLE'),
+        buyer.address
+      );
       await market
         .connect(buyer)
         ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
@@ -1109,6 +1125,10 @@ describe('Market', () => {
         userFixtures.buyer.bpBalance
       );
       // expect(await certificate.balanceOf(investor1.address, 0)).to.equal(0); // todo
+      await market.grantRole(
+        hre.ethers.utils.id('SANCTION_ALLOWLIST_ROLE'),
+        buyer.address
+      );
       await market
         .connect(buyer)
         ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](

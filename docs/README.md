@@ -1,6 +1,6 @@
 # Nori Smart Contracts
 
-Nori's core product is the Nori _Removal_ Tonne (NRT). NRTs can be understood as carbon removal credits that are granted to a supplier for the CO2 they have removed from the atmosphere via [regenerative agriculture](https://www.weforum.org/agenda/2023/01/5-ways-to-scale-regenerative-agriculture-davos23/). For each tonne of carbon removed, a supplier is granted 1 NRT. Suppliers then consign their NRTs to Nori's marketplace, effectively listing them for sale at a fixed amount of USDC. 
+Nori's core product is the Nori _Removal_ Tonne (NRT). NRTs can be understood as carbon removal credits that are granted to a supplier for the CO2 they have removed from the atmosphere via [regenerative agriculture](https://www.weforum.org/agenda/2023/01/5-ways-to-scale-regenerative-agriculture-davos23/). For each tonne of carbon removed, a supplier is granted 1 NRT. Suppliers then consign their NRTs to Nori's marketplace, effectively listing them for sale at a fixed amount of USDC.
 
 If a supplier is found to have released the sequestered carbon the corresponding Removals will be burned and funds from the insurance reserve used to replace them making the _Certificate_ and buyer whole. Automating the replacement of those burned Removals is on the future roadmap but is not implemented here.
 
@@ -46,7 +46,8 @@ The core swap market contract of the Nori platform. Removals are listed for sale
 
 ##### Swap mechanism
 
-The `swap` function is the primary point of interaction with the market for buyers. Calls to the `swap` function include an amount of supported ERC20 tokens (_USDC_ or _BridgedPolygonNORI_) to spend and a recipient wallet address to which the _Certificate_ is minted. These calls also include a pre-signed authorization to transfer the corresponding amount of the supported ERC20 following the [ERC20Permit](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/draft-ERC20Permit.sol) pattern.
+The `swap` function is the primary point of interaction with the market for buyers. Calls to the `swap` function include an amount of NRTs to purchase and a recipient wallet address to which the _Certificate_ is minted. These calls also include a pre-signed authorization to transfer the corresponding amount (including fees) of the supported ERC20 (_USDC_ or _BridgedPolygonNORI_) following the [ERC20Permit](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/draft-ERC20Permit.sol) pattern. Alternatively, the buyer can pre-approve the Market contract as a spender of the corresponding ERC20 and use the version
+of `swap` that does not require permit arguments. Note that this previously public endpoint now requires buyers to have the `SANCTION_ALLOWLIST_ROLE` to comply with sanctions laws and regulations.
 
 The ERC20 tokens transferred from the buyer to this contract are distributed as follows:
 

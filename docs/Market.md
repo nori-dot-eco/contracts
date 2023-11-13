@@ -24,6 +24,7 @@ state are pausable.
    priority restricted threshold, purchasing token, and price multiple. Can execute replacement operations through
    the `replace` function. Can submit special orders through `swapWithoutFeeSpecialOrder`.
 - `ALLOWLIST_ROLE`: Can purchase from priority restricted supply.
+- `SANCTION_ALLOWLIST_ROLE`: Can purchase using the `swap` endpoint.
 - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
 
 ##### Inherits:
@@ -144,6 +145,17 @@ bytes32 ALLOWLIST_ROLE
 ```
 
 Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
+
+
+
+
+### SANCTION_ALLOWLIST_ROLE
+
+```solidity
+bytes32 SANCTION_ALLOWLIST_ROLE
+```
+
+Role conferring the ability to purchase using the `swap` endpoint.
 
 
 
@@ -606,27 +618,27 @@ https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#ERC1155Receiver) f
 ### swap
 
 ```solidity
-function swap(address recipient, address permitOwner, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
+function swap(address recipient, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
 ```
 
 Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
 certificate. Relies on the EIP-2612 permit extension to facilitate ERC20 token transfer.
 
 <i>See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
-The message sender must present a valid permit to this contract to temporarily authorize this market
-to transfer the permit owner's ERC20 to complete the purchase. A certificate is minted in the Certificate contract
+The message sender must sign and present a valid permit to this contract to temporarily authorize this market
+to transfer their ERC20 to complete the purchase. A certificate is minted in the Certificate contract
 to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals,
 to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
 to Nori Inc. as a market operator fee.
 
 ##### Requirements:
 
-- Can only be used when this contract is not paused.</i>
+- Can only be used when this contract is not paused.
+- Can only be used if the message sender has the `SANCTION_ALLOWLIST_ROLE`.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | recipient | address | The address to which the certificate will be issued. |
-| permitOwner | address | The address that signed the EIP2612 permit and will pay for the removals. |
 | amount | uint256 | The total amount of Removals being purchased. |
 | deadline | uint256 | The EIP2612 permit deadline in Unix time. |
 | v | uint8 | The recovery identifier for the permit's secp256k1 signature. |
@@ -1180,9 +1192,9 @@ Validates the certificate purchase amount.
 ##### Requirements:
 
 - Amount is not zero.
-- Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + FEE_DECIMALS). This requirement means that the
-smallest purchase amount for a token with 18 decimals (e.g., NORI) and 2 FEE_DECIMALS is 100, whilst the smallest
-purchase amount for a token with 6 decimals (e.g., USDC) and 2 FEE_DECIMALS is 100,000,000,000,000.</i>
+- Amount is divisible by 10^(18 - `_purchasingToken.decimals()` + `FEE_DECIMALS`). This requirement means that the
+smallest purchase amount for a token with 18 decimals (e.g., NORI) and 2 `FEE_DECIMALS` is 100, whilst the smallest
+purchase amount for a token with 6 decimals (e.g., USDC) and 2 `FEE_DECIMALS` is 100,000,000,000,000.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |

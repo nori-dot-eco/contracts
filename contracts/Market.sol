@@ -42,6 +42,7 @@ import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
  *    priority restricted threshold, purchasing token, and price multiple. Can execute replacement operations through
  *    the `replace` function. Can submit special orders through `swapWithoutFeeSpecialOrder`.
  * - `ALLOWLIST_ROLE`: Can purchase from priority restricted supply.
+ * - `SANCTION_ALLOWLIST_ROLE`: Can purchase using the `swap` endpoint.
  * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
  *
  * ##### Inherits:
@@ -193,6 +194,12 @@ contract Market is
    * @notice Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
    */
   bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
+
+  /**
+   * @notice Role conferring the ability to purchase using the `swap` endpoint.
+   */
+  bytes32 public constant SANCTION_ALLOWLIST_ROLE =
+    keccak256("SANCTION_ALLOWLIST_ROLE");
 
   /**
    * @notice The number of decimal places reserved for Nori fee calculations.
@@ -674,6 +681,7 @@ contract Market is
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
+   * - Can only be used if the message sender has the `SANCTION_ALLOWLIST_ROLE`.
    * @param recipient The address to which the certificate will be issued.
    * @param amount The total amount of Removals being purchased.
    * @param deadline The EIP2612 permit deadline in Unix time.
@@ -688,7 +696,7 @@ contract Market is
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external whenNotPaused {
+  ) external whenNotPaused onlyRole(SANCTION_ALLOWLIST_ROLE) {
     _validateCertificateAmount({amount: amount});
     SupplyAllocationData memory allocationData = _allocateRemovals({
       certificateAmount: amount

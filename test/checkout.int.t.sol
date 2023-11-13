@@ -68,6 +68,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
       1 days,
       _bpNori
     );
+    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
   }
 
   function test() external {
@@ -106,6 +107,7 @@ contract Checkout_buyingFromOneRemoval_byApproval is Checkout {
     _bpNori.deposit(_namedAccounts.buyer, abi.encode(_amount));
     vm.prank(_namedAccounts.buyer);
     _bpNori.approve(address(_market), MAX_INT);
+    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _namedAccounts.buyer);
     assertEq(_removal.getMarketBalance(), 1 ether);
     assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
@@ -129,7 +131,7 @@ contract Checkout_buyingFromOneRemoval_byApproval is Checkout {
   }
 }
 
-contract Checkout_swapWithDifferentPermitSignerAndMsgSender is Checkout {
+contract Checkout_swapRevertsWithDifferentPermitSignerAndMsgSender is Checkout {
   uint256 private _ownerPrivateKey = 0xA11CE;
   address private _owner = vm.addr(_ownerPrivateKey);
   address private _msgSender = vm.addr(0x12345);
@@ -160,10 +162,11 @@ contract Checkout_swapWithDifferentPermitSignerAndMsgSender is Checkout {
       1 days,
       _bpNori
     );
+    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
   }
 
   function test() external {
-    vm.prank(_owner);
+    vm.expectRevert();
     _market.swap(
       _owner,
       _certificateAmount,
@@ -172,14 +175,47 @@ contract Checkout_swapWithDifferentPermitSignerAndMsgSender is Checkout {
       _signedPermit.r,
       _signedPermit.s
     );
-    _assertExpectedBalances(address(_market), 0, false, 0);
-    _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
-    _assertExpectedBalances(address(_certificate), _certificateAmount, true, 1);
-    assertEq(
-      _removal.balanceOf(address(_certificate), _removalIds[0]),
-      _certificateAmount
+  }
+}
+
+contract Checkout_swapRevertsWhenBuyerIsMissingSANCTION_ALLOWLIST_ROLE is
+  Checkout
+{
+  uint256 private _ownerPrivateKey = 0xA11CE;
+  address private _owner = vm.addr(_ownerPrivateKey);
+  address private _msgSender = vm.addr(0x12345);
+  uint256 private _certificateAmount = 1 ether;
+  uint256 private _amount;
+  SignedPermit private _signedPermit;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    _amount = _market.calculateCheckoutTotal(_certificateAmount);
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(_owner, abi.encode(_amount));
+    _signedPermit = _signatureUtils.generatePermit(
+      _ownerPrivateKey,
+      address(_market),
+      _amount,
+      1 days,
+      _bpNori
     );
-    assertEq(_certificate.ownerOf(_certificateTokenId), _owner);
+  }
+
+  function test() external {
+    vm.expectRevert();
+    _market.swap(
+      _owner,
+      _certificateAmount,
+      _signedPermit.permit.deadline,
+      _signedPermit.v,
+      _signedPermit.r,
+      _signedPermit.s
+    );
   }
 }
 
@@ -224,6 +260,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
       1 days,
       _bpNori
     );
+    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
@@ -591,6 +628,7 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
       1 days,
       _bpNori
     );
+    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(
@@ -674,6 +712,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
       list: true,
       holdbackPercentage: 0
     });
+    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
   }
 
   function test() external {
@@ -798,6 +837,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
       1 days,
       _erc20
     );
+    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
   }
 
   function test() external {
