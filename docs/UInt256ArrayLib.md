@@ -106,5 +106,32 @@ new uint256[](100).fill(1).slice(0, 50); // returns: [:50]
 | ---- | ---- | ----------- |
 | sliced | uint256[] | The sliced array. |
 
+### shrink
+
+```solidity
+function shrink(uint256[] values, uint256 length) internal pure returns (uint256[])
+```
+
+Shorten an array to specified length.
+
+<i>Shortens the specified array to the specified length by directly overwriting
+the length of the original array in storage.
+
+##### Example usage:
+
+```solidity
+new uint256[](100).fill(1).shrink(50); // resizes the original array to length 50
+```
+-</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| values | uint256[] | The array to shorten. |
+| length | uint256 | The desired length of the array. |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256[] | values The shortened array. |
+
 
 
