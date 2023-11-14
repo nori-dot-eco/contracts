@@ -94,7 +94,7 @@ contract Market_swap_revertsWhenUnsafeERC20TransferFails is UpgradeableMarket {
       1 days,
       _unsafeErc20
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
   }
 
   function test() external {
@@ -172,7 +172,7 @@ contract MarketReplaceTestHelper is UpgradeableMarket {
       1 days,
       _bpNori
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
     vm.prank(owner);
     _market.swap(
       owner,
@@ -404,7 +404,7 @@ contract Market_swap_emits_event_and_skips_mint_when_minting_rNori_to_nonERC1155
       1 days,
       _bpNori
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
   }
 
   function test() external {
@@ -481,7 +481,7 @@ contract Market_swap_emits_and_skips_transfer_when_transferring_wrong_erc20_to_r
       1 days,
       _noriUSDC
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
   }
 
   function test() external {
@@ -875,16 +875,16 @@ contract Market_withdraw_2x1_back is MarketBalanceTestHelper {
 
 contract Market_ALLOWLIST_ROLE is UpgradeableMarket {
   function test() external {
-    assertEq(_market.ALLOWLIST_ROLE(), keccak256("ALLOWLIST_ROLE"));
+    assertEq(
+      _market.PRIORITY_ALLOWLIST_ROLE(),
+      keccak256("PRIORITY_ALLOWLIST_ROLE")
+    );
   }
 }
 
 contract Market_SANCTION_ALLOWLIST_ROLE is UpgradeableMarket {
   function test() external {
-    assertEq(
-      _market.SANCTION_ALLOWLIST_ROLE(),
-      keccak256("SANCTION_ALLOWLIST_ROLE")
-    );
+    assertEq(_market.SWAP_ALLOWLIST_ROLE(), keccak256("SWAP_ALLOWLIST_ROLE"));
   }
 }
 
@@ -961,7 +961,10 @@ contract Market__validatePrioritySupply_buyerIsAllowlistedAndAmountExceedsPriori
     _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
     vm.prank(_msgSender());
     this.setPriorityRestrictedThreshold({threshold: 0.5 ether});
-    _grantRole({role: ALLOWLIST_ROLE, account: _namedAccounts.deployer});
+    _grantRole({
+      role: PRIORITY_ALLOWLIST_ROLE,
+      account: _namedAccounts.deployer
+    });
   }
 
   function test() external view {
@@ -1449,7 +1452,7 @@ contract Market_supplierSelectionUsingUpSuppliersLastRemoval is
       1 days,
       _bpNori
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
   }
 
   function test() external {
@@ -1522,7 +1525,7 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
     checkoutTotal = _market.calculateCheckoutTotal(certificateAmount);
     vm.prank(_namedAccounts.admin);
     _bpNori.deposit(owner, abi.encode(checkoutTotal));
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
     signedPermit = _signatureUtils.generatePermit(
       ownerPrivateKey,
       address(_market),
@@ -1530,7 +1533,7 @@ contract MarketSupplierSelectionNotUsingUpSuppliersLastRemoval is
       1 days,
       _bpNori
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
   }
 
   function test() external {
@@ -1682,7 +1685,7 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
       1 days,
       _purchasingToken
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
 
     vm.startPrank(owner);
     vm.expectEmit(false, false, false, true);
@@ -1775,7 +1778,7 @@ contract Market_USDC_swap_withholds_restricted_nori is UpgradeableUSDCMarket {
       1 days,
       _purchasingToken
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
 
     vm.startPrank(owner);
     vm.expectEmit(false, false, false, true);
@@ -1821,7 +1824,7 @@ contract Market_validates_certificate_amount is UpgradeableUSDCMarket {
     _market.grantRole(_market.MARKET_ADMIN_ROLE(), _namedAccounts.admin);
     vm.prank(_namedAccounts.admin);
 
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
   }
 
   function test() external {

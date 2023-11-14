@@ -68,7 +68,7 @@ contract Checkout_buyingFromOneRemoval is Checkout {
       1 days,
       _bpNori
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), _owner);
   }
 
   function test() external {
@@ -107,7 +107,7 @@ contract Checkout_buyingFromOneRemoval_byApproval is Checkout {
     _bpNori.deposit(_namedAccounts.buyer, abi.encode(_amount));
     vm.prank(_namedAccounts.buyer);
     _bpNori.approve(address(_market), MAX_INT);
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _namedAccounts.buyer);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), _namedAccounts.buyer);
     assertEq(_removal.getMarketBalance(), 1 ether);
     assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
@@ -162,7 +162,7 @@ contract Checkout_swapRevertsWithDifferentPermitSignerAndMsgSender is Checkout {
       1 days,
       _bpNori
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), _owner);
   }
 
   function test() external {
@@ -260,7 +260,7 @@ contract Checkout_buyingFromTenRemovals is Checkout {
       1 days,
       _bpNori
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), _owner);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(_removal.balanceOf(address(_certificate), _removalIds[0]), 0);
@@ -628,7 +628,7 @@ contract Checkout_buyingFromTenSuppliers is Checkout {
       1 days,
       _bpNori
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), _owner);
     _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     _assertExpectedBalances(address(_certificate), 0, false, 0);
     assertEq(
@@ -712,7 +712,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
       list: true,
       holdbackPercentage: 0
     });
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), _owner);
   }
 
   function test() external {
@@ -837,7 +837,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
       1 days,
       _erc20
     );
-    _market.grantRole(_market.SANCTION_ALLOWLIST_ROLE(), _owner);
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), _owner);
   }
 
   function test() external {

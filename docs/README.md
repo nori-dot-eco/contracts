@@ -47,7 +47,7 @@ The core swap market contract of the Nori platform. Removals are listed for sale
 ##### Swap mechanism
 
 The `swap` function is the primary point of interaction with the market for buyers. Calls to the `swap` function include an amount of NRTs to purchase and a recipient wallet address to which the _Certificate_ is minted. These calls also include a pre-signed authorization to transfer the corresponding amount (including fees) of the supported ERC20 (_USDC_ or _BridgedPolygonNORI_) following the [ERC20Permit](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/draft-ERC20Permit.sol) pattern. Alternatively, the buyer can pre-approve the Market contract as a spender of the corresponding ERC20 and use the version
-of `swap` that does not require permit arguments. Note that this previously public endpoint now requires buyers to have the `SANCTION_ALLOWLIST_ROLE` to comply with sanctions laws and regulations.
+of `swap` that does not require permit arguments. Note that this previously public endpoint now requires buyers to have the `SWAP_ALLOWLIST_ROLE` to comply with sanctions laws and regulations.
 
 The ERC20 tokens transferred from the buyer to this contract are distributed as follows:
 
@@ -61,7 +61,7 @@ An unsold _Removal_ can be withdrawn from the market (delisted for sale) by the 
 
 ##### Priority Supply Mechanism
 
-The market may be configured with a priority supply threshold. When supply listed for sale drops below this threshold purchases are restricted to addresses having the `ALLOWLIST_ROLE` role. This mechanism gives Nori the ability to reserve supply for pre-committed partnerships or other off-chain arrangements.
+The market may be configured with a priority supply threshold. When supply listed for sale drops below this threshold purchases are restricted to addresses having the `PRIORITY_ALLOWLIST_ROLE` role. This mechanism gives Nori the ability to reserve supply for pre-committed partnerships or other off-chain arrangements.
 
 ### Support Libraries
 

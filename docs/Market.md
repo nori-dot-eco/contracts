@@ -11,7 +11,7 @@ Each of these certificates is a non-transferrable, non-fungible token that owns 
 and token balances that comprise the specific certificate for the amount purchased.
 
 The market maintains a "priority restricted threshold", which is a configurable threshold of supply that is
-always reserved to sell only to buyers who have the `ALLOWLIST_ROLE`.  Purchases that would drop supply below
+always reserved to sell only to buyers who have the `PRIORITY_ALLOWLIST_ROLE`.  Purchases that would drop supply below
 this threshold will revert without the correct role.
 
 ###### Additional behaviors and features
@@ -23,8 +23,8 @@ state are pausable.
 - `MARKET_ADMIN_ROLE`: Can set the value of market configuration variables: fee percentage, fee wallet address,
    priority restricted threshold, purchasing token, and price multiple. Can execute replacement operations through
    the `replace` function. Can submit special orders through `swapWithoutFeeSpecialOrder`.
-- `ALLOWLIST_ROLE`: Can purchase from priority restricted supply.
-- `SANCTION_ALLOWLIST_ROLE`: Can purchase using the `swap` endpoint.
+- `PRIORITY_ALLOWLIST_ROLE`: Can purchase from priority restricted supply.
+- `SWAP_ALLOWLIST_ROLE`: Can purchase using the `swap` endpoint.
 - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
 
 ##### Inherits:
@@ -138,10 +138,10 @@ restricted threshold.
 
 
 
-### ALLOWLIST_ROLE
+### PRIORITY_ALLOWLIST_ROLE
 
 ```solidity
-bytes32 ALLOWLIST_ROLE
+bytes32 PRIORITY_ALLOWLIST_ROLE
 ```
 
 Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
@@ -149,10 +149,10 @@ Role conferring the ability to purchase supply when inventory is below the prior
 
 
 
-### SANCTION_ALLOWLIST_ROLE
+### SWAP_ALLOWLIST_ROLE
 
 ```solidity
-bytes32 SANCTION_ALLOWLIST_ROLE
+bytes32 SWAP_ALLOWLIST_ROLE
 ```
 
 Role conferring the ability to purchase using the `swap` endpoint.
@@ -497,7 +497,7 @@ function setPriorityRestrictedThreshold(uint256 threshold) external
 ```
 
 Sets the current value of the priority restricted threshold, which is the amount of inventory
-that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
+that will always be reserved to sell only to buyers with the `PRIORITY_ALLOWLIST_ROLE` role.
 
 <i>Emits a `SetPriorityRestrictedThreshold` event.
 
@@ -634,7 +634,7 @@ to Nori Inc. as a market operator fee.
 ##### Requirements:
 
 - Can only be used when this contract is not paused.
-- Can only be used if the message sender has the `SANCTION_ALLOWLIST_ROLE`.</i>
+- Can only be used if the message sender has the `SWAP_ALLOWLIST_ROLE`.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -667,7 +667,7 @@ to Nori Inc. as a market operator fee.
 
 - Can only be used when this contract is not paused.
 - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
-- Can only be used if the message sender has the `SANCTION_ALLOWLIST_ROLE`.</i>
+- Can only be used if the message sender has the `SWAP_ALLOWLIST_ROLE`.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
@@ -747,7 +747,7 @@ function getPriorityRestrictedThreshold() external view returns (uint256)
 ```
 
 Returns the current value of the priority restricted threshold, which is the amount of inventory
-that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
+that will always be reserved to sell only to buyers with the `PRIORITY_ALLOWLIST_ROLE` role.
 
 
 

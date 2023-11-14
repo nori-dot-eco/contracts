@@ -29,7 +29,7 @@ import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
  * and token balances that comprise the specific certificate for the amount purchased.
  *
  * The market maintains a "priority restricted threshold", which is a configurable threshold of supply that is
- * always reserved to sell only to buyers who have the `ALLOWLIST_ROLE`.  Purchases that would drop supply below
+ * always reserved to sell only to buyers who have the `PRIORITY_ALLOWLIST_ROLE`.  Purchases that would drop supply below
  * this threshold will revert without the correct role.
  *
  * ###### Additional behaviors and features
@@ -41,8 +41,8 @@ import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
  * - `MARKET_ADMIN_ROLE`: Can set the value of market configuration variables: fee percentage, fee wallet address,
  *    priority restricted threshold, purchasing token, and price multiple. Can execute replacement operations through
  *    the `replace` function. Can submit special orders through `swapWithoutFeeSpecialOrder`.
- * - `ALLOWLIST_ROLE`: Can purchase from priority restricted supply.
- * - `SANCTION_ALLOWLIST_ROLE`: Can purchase using the `swap` endpoint.
+ * - `PRIORITY_ALLOWLIST_ROLE`: Can purchase from priority restricted supply.
+ * - `SWAP_ALLOWLIST_ROLE`: Can purchase using the `swap` endpoint.
  * - [Can receive ERC1155 tokens](https://docs.openzeppelin.com/contracts/4.x/api/token/erc1155#IERC1155Receiver)
  *
  * ##### Inherits:
@@ -193,13 +193,14 @@ contract Market is
   /**
    * @notice Role conferring the ability to purchase supply when inventory is below the priority restricted threshold.
    */
-  bytes32 public constant ALLOWLIST_ROLE = keccak256("ALLOWLIST_ROLE");
+  bytes32 public constant PRIORITY_ALLOWLIST_ROLE =
+    keccak256("PRIORITY_ALLOWLIST_ROLE");
 
   /**
    * @notice Role conferring the ability to purchase using the `swap` endpoint.
    */
-  bytes32 public constant SANCTION_ALLOWLIST_ROLE =
-    keccak256("SANCTION_ALLOWLIST_ROLE");
+  bytes32 public constant SWAP_ALLOWLIST_ROLE =
+    keccak256("SWAP_ALLOWLIST_ROLE");
 
   /**
    * @notice The number of decimal places reserved for Nori fee calculations.
@@ -380,7 +381,8 @@ contract Market is
     _setPurchasingToken({purchasingToken: purchasingToken});
     _setPriceMultiple({priceMultiple: priceMultiple_});
     _grantRole({role: DEFAULT_ADMIN_ROLE, account: _msgSender()});
-    _grantRole({role: ALLOWLIST_ROLE, account: _msgSender()});
+    _grantRole({role: PRIORITY_ALLOWLIST_ROLE, account: _msgSender()});
+    _grantRole({role: SWAP_ALLOWLIST_ROLE, account: _msgSender()});
     _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
   }
 
@@ -550,7 +552,7 @@ contract Market is
 
   /**
    * @notice Sets the current value of the priority restricted threshold, which is the amount of inventory
-   * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
+   * that will always be reserved to sell only to buyers with the `PRIORITY_ALLOWLIST_ROLE` role.
    * @dev Emits a `SetPriorityRestrictedThreshold` event.
    *
    * ##### Requirements:
@@ -681,7 +683,7 @@ contract Market is
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
-   * - Can only be used if the message sender has the `SANCTION_ALLOWLIST_ROLE`.
+   * - Can only be used if the message sender has the `SWAP_ALLOWLIST_ROLE`.
    * @param recipient The address to which the certificate will be issued.
    * @param amount The total amount of Removals being purchased.
    * @param deadline The EIP2612 permit deadline in Unix time.
@@ -696,7 +698,7 @@ contract Market is
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external whenNotPaused onlyRole(SANCTION_ALLOWLIST_ROLE) {
+  ) external whenNotPaused onlyRole(SWAP_ALLOWLIST_ROLE) {
     _validateCertificateAmount({amount: amount});
     SupplyAllocationData memory allocationData = _allocateRemovals({
       certificateAmount: amount
@@ -736,14 +738,14 @@ contract Market is
    *
    * - Can only be used when this contract is not paused.
    * - Can only be used if this contract has been granted approval to transfer the sender's ERC20 tokens.
-   * - Can only be used if the message sender has the `SANCTION_ALLOWLIST_ROLE`.
+   * - Can only be used if the message sender has the `SWAP_ALLOWLIST_ROLE`.
    * @param recipient The address to which the certificate will be issued.
    * @param amount The total amount of Removals to purchase.
    */
   function swap(
     address recipient,
     uint256 amount
-  ) external whenNotPaused onlyRole(SANCTION_ALLOWLIST_ROLE) {
+  ) external whenNotPaused onlyRole(SWAP_ALLOWLIST_ROLE) {
     _validateCertificateAmount({amount: amount});
     SupplyAllocationData memory allocationData = _allocateRemovals({
       certificateAmount: amount
@@ -859,7 +861,7 @@ contract Market is
 
   /**
    * @notice Returns the current value of the priority restricted threshold, which is the amount of inventory
-   * that will always be reserved to sell only to buyers with the `ALLOWLIST_ROLE` role.
+   * that will always be reserved to sell only to buyers with the `PRIORITY_ALLOWLIST_ROLE` role.
    * @return The threshold of supply allowed for priority customers only.
    */
   function getPriorityRestrictedThreshold() external view returns (uint256) {
@@ -1447,7 +1449,7 @@ contract Market is
       b: certificateAmount
     });
     if (supplyAfterPurchase < _priorityRestrictedThreshold) {
-      if (!hasRole({role: ALLOWLIST_ROLE, account: _msgSender()})) {
+      if (!hasRole({role: PRIORITY_ALLOWLIST_ROLE, account: _msgSender()})) {
         revert LowSupplyAllowlistRequired();
       }
     }
