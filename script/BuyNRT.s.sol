@@ -11,7 +11,7 @@ import "@/contracts/Market.sol";
  *
  * Contextual information is bound in using environment variables, i.e. for Mumbai:
  *
- * export PURCHASING_TOKEN_ADDRESS="0x0FA8781a83E46826621b3BC094Ea2A0212e71B23" # USDC
+ * export PURCHASING_TOKEN_ADDRESS="0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97" # USDC
  * export NRTS=1
  * export MNEMONIC="..."
  * export RECIPIENT_ADDRESS="<0x00>"

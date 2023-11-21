@@ -12,7 +12,7 @@ export const STAGING_NORI_FEE_WALLET_ADDRESS =
   '0x366E71CFb383e7e92A49B466dC48c350e56Cf42B';
 
 export const PROD_USDC_TOKEN_ADDRESS =
-  '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
+  '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
 // https://developers.circle.com/developer/docs/usdc-on-testnet#bridged-usdc-on-polygon-testnet
 export const STAGING_USDC_TOKEN_ADDRESS =
-  '0x0fa8781a83e46826621b3bc094ea2a0212e71b23';
+  '0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97';
