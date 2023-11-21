@@ -105,6 +105,7 @@ contract Removal_consign_revertsForSoldRemovals is UpgradeableMarket {
       1 days,
       _bpNori
     );
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
     vm.prank(owner);
     _market.swap(
       owner,
@@ -808,6 +809,7 @@ contract Removal_release_retired_burned is UpgradeableMarket {
       1 days,
       _bpNori
     );
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
     vm.prank(owner);
     _market.swap(
       owner,
@@ -866,6 +868,7 @@ contract Removal_release_retired is UpgradeableMarket {
       1 days,
       _bpNori
     );
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
     vm.prank(owner);
     _market.swap(
       owner,
@@ -918,6 +921,7 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
         1 days,
         _bpNori
       );
+      _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
       vm.prank(owner);
       _market.swap(
         owner,
@@ -1050,6 +1054,7 @@ contract Removal_release_unlisted_listed_and_retired is UpgradeableMarket {
       1 days,
       _bpNori
     );
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
     vm.prank(owner);
     _market.swap(
       owner,
@@ -1163,6 +1168,7 @@ contract Removal_release_retired_2x is UpgradeableMarket {
         1 days,
         _bpNori
       );
+      _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
       vm.prank(owner);
       _market.swap(
         owner,
@@ -1264,6 +1270,7 @@ contract Removal_getMarketBalance is UpgradeableMarket {
       1 days,
       _bpNori
     );
+    _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), owner);
     vm.prank(owner);
     _market.swap(
       owner,

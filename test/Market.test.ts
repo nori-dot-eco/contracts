@@ -14,7 +14,7 @@ describe('Market', () => {
     describe('roles', () => {
       for (const { role } of [
         { role: 'DEFAULT_ADMIN_ROLE' },
-        { role: 'ALLOWLIST_ROLE' },
+        { role: 'PRIORITY_ALLOWLIST_ROLE' },
       ] as const) {
         it(`will assign the role ${role} to the deployer and set the DEFAULT_ADMIN_ROLE as the role admin`, async () => {
           const { market, hre } = await setupTest();
@@ -158,9 +158,9 @@ describe('Market', () => {
         );
       });
     });
-    describe('ALLOWLIST_ROLE', () => {
-      it(`should allow allowlisted accounts to purchase supply when inventory is below threshold`, async () => {
-        const role = 'ALLOWLIST_ROLE';
+    describe('PRIORITY_ALLOWLIST_ROLE', () => {
+      it(`should allow priority allowlisted accounts to purchase supply when inventory is below threshold`, async () => {
+        const role = 'PRIORITY_ALLOWLIST_ROLE';
         const accountWithRole = 'admin';
         const totalAvailableSupply = formatTokenAmount(50);
         const { bpNori, market, hre } = await setupTest({
@@ -187,6 +187,10 @@ describe('Market', () => {
           spender: market.address,
           value,
         });
+        await market.grantRole(
+          hre.ethers.utils.id('SWAP_ALLOWLIST_ROLE'),
+          hre.namedAccounts[accountWithRole]
+        );
         await expect(
           market
             .connect(namedSigners[accountWithRole])
@@ -200,7 +204,7 @@ describe('Market', () => {
             )
         ).not.to.be.reverted;
       });
-      it(`should revert when an account that is not on the allowlist tries purchase supply when inventory is below the threshold`, async () => {
+      it(`should revert when an account that does not have the priority allowlist role tries purchase supply when inventory is below the threshold`, async () => {
         const { bpNori, market, hre, totalAmountOfSupply } = await setupTest({
           userFixtures: {
             supplier: {
@@ -215,7 +219,7 @@ describe('Market', () => {
         await market.setPriorityRestrictedThreshold(
           priorityRestrictedThreshold
         );
-        const roleId = await market.ALLOWLIST_ROLE();
+        const roleId = await market.PRIORITY_ALLOWLIST_ROLE();
         expect(await market.hasRole(roleId, accountWithoutRole.address)).to.be
           .false;
         const value = await market.calculateCheckoutTotal(totalAmountOfSupply);
@@ -224,6 +228,10 @@ describe('Market', () => {
           spender: market.address,
           value,
         });
+        await market.grantRole(
+          hre.ethers.utils.id('SWAP_ALLOWLIST_ROLE'),
+          accountWithoutRole.address
+        );
         await expect(
           market
             .connect(accountWithoutRole)
@@ -376,6 +384,10 @@ describe('Market', () => {
           spender: market.address,
           value,
         });
+        await market.grantRole(
+          hre.ethers.utils.id('SWAP_ALLOWLIST_ROLE'),
+          buyer.address
+        );
         await market
           .connect(buyer)
           ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
@@ -1030,6 +1042,10 @@ describe('Market', () => {
         spender: market.address,
         value,
       });
+      await market.grantRole(
+        hre.ethers.utils.id('SWAP_ALLOWLIST_ROLE'),
+        buyer.address
+      );
       await market
         .connect(buyer)
         ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
@@ -1109,6 +1125,10 @@ describe('Market', () => {
         userFixtures.buyer.bpBalance
       );
       // expect(await certificate.balanceOf(investor1.address, 0)).to.equal(0); // todo
+      await market.grantRole(
+        hre.ethers.utils.id('SWAP_ALLOWLIST_ROLE'),
+        buyer.address
+      );
       await market
         .connect(buyer)
         ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
