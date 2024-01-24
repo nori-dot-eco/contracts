@@ -70,17 +70,11 @@ contract Certificate is
    * certificate and a token batch being received as a replacement for previously released removals.
    * @param recipient The address is the address that will receive the new certificate.
    * @param certificateAmount The amount of the certificate that will be minted.
-   * @param purchasingTokenAddress The address is the address of the token that was used to purchase the certificate.
-   * @param priceMultiple The number of purchasing tokens required to purchase one NRT.
-   * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
   struct CertificateData {
     bool isReplacement;
     address recipient;
     uint256 certificateAmount;
-    address purchasingTokenAddress;
-    uint256 priceMultiple;
-    uint256 noriFeePercentage;
   }
 
   /**
@@ -122,9 +116,6 @@ contract Certificate is
    * @param certificateAmount The total number of NRTs retired in this certificate.
    * @param removalIds The removal IDs used for the certificate.
    * @param removalAmounts The amounts from each removal used for the certificate.
-   * @param purchasingTokenAddress The address of the token used to purchase the certificate.
-   * @param priceMultiple The number of purchasing tokens required to buy one NRT.
-   * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
   event CreateCertificate(
     address from,
@@ -133,9 +124,6 @@ contract Certificate is
     uint256 certificateAmount,
     uint256[] removalIds,
     uint256[] removalAmounts,
-    address indexed purchasingTokenAddress,
-    uint256 priceMultiple,
-    uint256 noriFeePercentage
   );
 
   /**
@@ -157,11 +145,9 @@ contract Certificate is
    * @notice Initialize the Certificate contract.
    * @param baseURI The base URI for all certificate NFTs.
    */
-  function initialize(string memory baseURI)
-    external
-    initializerERC721A
-    initializer
-  {
+  function initialize(
+    string memory baseURI
+  ) external initializerERC721A initializer {
     _baseURIValue = baseURI;
     __Context_init_unchained();
     __ERC165_init_unchained();
@@ -186,11 +172,9 @@ contract Certificate is
    * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
    * @param removal The address of the Removal contract.
    */
-  function registerContractAddresses(IRemoval removal)
-    external
-    whenNotPaused
-    onlyRole(DEFAULT_ADMIN_ROLE)
-  {
+  function registerContractAddresses(
+    IRemoval removal
+  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
     _removal = removal;
     emit RegisterContractAddresses({removal: removal});
   }
@@ -245,9 +229,6 @@ contract Certificate is
         certificateAmount: certificateData.certificateAmount,
         removalIds: removalIds,
         removalAmounts: removalAmounts,
-        purchasingTokenAddress: certificateData.purchasingTokenAddress,
-        priceMultiple: certificateData.priceMultiple,
-        noriFeePercentage: certificateData.noriFeePercentage
       });
     }
     return this.onERC1155BatchReceived.selector;
@@ -278,11 +259,9 @@ contract Certificate is
    * @param certificateId The certificate for which to retrieve the original amount.
    * @return The tonnes of carbon removal purchased for the certificate.
    */
-  function getPurchaseAmount(uint256 certificateId)
-    external
-    view
-    returns (uint256)
-  {
+  function getPurchaseAmount(
+    uint256 certificateId
+  ) external view returns (uint256) {
     return _purchaseAmounts[certificateId];
   }
 
@@ -292,7 +271,9 @@ contract Certificate is
    * @param interfaceId The interface ID to check for support.
    * @return True if the interface is supported, false otherwise.
    */
-  function supportsInterface(bytes4 interfaceId)
+  function supportsInterface(
+    bytes4 interfaceId
+  )
     public
     view
     override(
@@ -312,11 +293,10 @@ contract Certificate is
    * @notice This function is unsupported and will always revert.
    * @dev Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.
    */
-  function setApprovalForAll(address, bool)
-    public
-    pure
-    override(ERC721AUpgradeable, IERC721AUpgradeable)
-  {
+  function setApprovalForAll(
+    address,
+    bool
+  ) public pure override(ERC721AUpgradeable, IERC721AUpgradeable) {
     revert FunctionDisabled();
   }
 
@@ -324,11 +304,10 @@ contract Certificate is
    * @notice This function is unsupported and will always revert.
    * @dev Override to disable ERC721 operator approvals, since certificate tokens are non-transferable.
    */
-  function approve(address, uint256)
-    public
-    pure
-    override(ERC721AUpgradeable, IERC721AUpgradeable)
-  {
+  function approve(
+    address,
+    uint256
+  ) public pure override(ERC721AUpgradeable, IERC721AUpgradeable) {
     revert FunctionDisabled();
   }
 
@@ -380,18 +359,12 @@ contract Certificate is
    * @param certificateAmount The total number of tonnes of carbon removals represented by the new certificate.
    * @param removalIds The Removal token IDs that are being included in the certificate.
    * @param removalAmounts The balances of each corresponding removal token that are being included in the certificate.
-   * @param purchasingTokenAddress The address of the token used to purchase the certificate.
-   * @param priceMultiple The number of purchasing tokens required to purchase one NRT.
-   * @param noriFeePercentage The fee percentage charged by Nori at the time of this purchase.
    */
   function _receiveRemovalBatch(
     address recipient,
     uint256 certificateAmount,
     uint256[] calldata removalIds,
     uint256[] calldata removalAmounts,
-    address purchasingTokenAddress,
-    uint256 priceMultiple,
-    uint256 noriFeePercentage
   ) internal {
     _validateReceivedRemovalBatch({
       removalIds: removalIds,
@@ -408,9 +381,6 @@ contract Certificate is
       certificateAmount: certificateAmount,
       removalIds: removalIds,
       removalAmounts: removalAmounts,
-      purchasingTokenAddress: purchasingTokenAddress,
-      priceMultiple: priceMultiple,
-      noriFeePercentage: noriFeePercentage
     });
   }
 
