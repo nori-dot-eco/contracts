@@ -273,7 +273,7 @@ contract Removal is
       removals: removals,
       projectId: projectId
     });
-d    _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
+    _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
   }
 
   /**

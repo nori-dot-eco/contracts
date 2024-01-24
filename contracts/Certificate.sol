@@ -123,7 +123,7 @@ contract Certificate is
     uint256 indexed certificateId,
     uint256 certificateAmount,
     uint256[] removalIds,
-    uint256[] removalAmounts,
+    uint256[] removalAmounts
   );
 
   /**
@@ -228,7 +228,7 @@ contract Certificate is
         recipient: certificateData.recipient,
         certificateAmount: certificateData.certificateAmount,
         removalIds: removalIds,
-        removalAmounts: removalAmounts,
+        removalAmounts: removalAmounts
       });
     }
     return this.onERC1155BatchReceived.selector;
@@ -364,7 +364,7 @@ contract Certificate is
     address recipient,
     uint256 certificateAmount,
     uint256[] calldata removalIds,
-    uint256[] calldata removalAmounts,
+    uint256[] calldata removalAmounts
   ) internal {
     _validateReceivedRemovalBatch({
       removalIds: removalIds,
@@ -380,7 +380,7 @@ contract Certificate is
       certificateId: certificateId,
       certificateAmount: certificateAmount,
       removalIds: removalIds,
-      removalAmounts: removalAmounts,
+      removalAmounts: removalAmounts
     });
   }
 

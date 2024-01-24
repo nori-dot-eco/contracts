@@ -128,12 +128,12 @@ contract Market is
   /**
    * @notice Deprecated.
    */
-  IERC20WithPermit private _purchasingToken;
+  address private _purchasingToken;
 
   /**
    * @notice Deprecated.
    */
-  RestrictedNORI private _restrictedNORI;
+  address private _restrictedNORI;
 
   /**
    * @notice Deprecated.
@@ -193,17 +193,12 @@ contract Market is
    */
   uint256 constant FEE_DECIMALS = 2;
 
-
   /**
    * @notice Emitted on updating the addresses for contracts.
    * @param removal The address of the new Removal contract.
    * @param certificate The address of the new Certificate contract.
    */
-  event RegisterContractAddresses(
-    Removal removal,
-    Certificate certificate
-  );
-
+  event RegisterContractAddresses(Removal removal, Certificate certificate);
 
   /**
    * @notice Emitted when adding a supplier to `_listedSupply`.
@@ -250,7 +245,7 @@ contract Market is
     uint256[] removalIds,
     uint256[] amounts,
     uint256[] removalIdsBeingReplaced,
-    uint256[] amountsBeingReplaced,
+    uint256[] amountsBeingReplaced
   );
 
   /**
@@ -269,7 +264,7 @@ contract Market is
    */
   function initialize(
     Removal removal,
-    Certificate certificate,
+    Certificate certificate
   ) external initializer {
     __Context_init_unchained();
     __ERC165_init_unchained();
@@ -380,7 +375,7 @@ contract Market is
       removalIds: removalIds,
       amounts: removalAmounts,
       removalIdsBeingReplaced: removalIdsBeingReplaced,
-      amountsBeingReplaced: amountsBeingReplaced,
+      amountsBeingReplaced: amountsBeingReplaced
     });
   }
 
@@ -400,13 +395,13 @@ contract Market is
    */
   function registerContractAddresses(
     Removal removal,
-    Certificate certificate,
+    Certificate certificate
   ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
     _removal = removal;
     _certificate = certificate;
     emit RegisterContractAddresses({
       removal: _removal,
-      certificate: _certificate,
+      certificate: _certificate
     });
   }
 
@@ -467,7 +462,6 @@ contract Market is
     _addActiveRemoval({removalId: id});
     return this.onERC1155Received.selector;
   }
-
 
   /**
    * @notice Exchange ERC20 tokens for an ERC721 certificate by transferring ownership of the removals to the
@@ -639,7 +633,7 @@ contract Market is
     bytes memory data = abi.encode(
       false,
       orderData.recipient,
-      orderData.certificateAmount,
+      orderData.certificateAmount
     );
     _removal.safeBatchTransferFrom({
       from: address(this),
@@ -713,10 +707,6 @@ contract Market is
   ) internal returns (SupplyAllocationData memory) {
     uint256 availableSupply = _removal.getMarketBalance();
     _validateSupply({
-      certificateAmount: certificateAmount,
-      availableSupply: availableSupply
-    });
-    _validatePrioritySupply({
       certificateAmount: certificateAmount,
       availableSupply: availableSupply
     });
