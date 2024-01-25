@@ -107,9 +107,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       to: list ? _marketAddress : to,
       amounts: new uint256[](count).fill(1 ether),
       removals: removals,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
     return _removalIds;
   }
@@ -140,9 +138,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       to: list ? _marketAddress : to,
       amounts: new uint256[](count).fill(1 ether),
       removals: removals,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: holdbackPercentage
+      projectId: 1_234_567_890
     });
     return _removalIds;
   }
@@ -172,9 +168,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       list ? _marketAddress : to,
       new uint256[](count).fill(1 ether),
       _removals,
-      1_234_567_890,
-      block.timestamp,
-      50
+      1_234_567_890
     );
     return _removalIds;
   }
@@ -204,9 +198,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       consignor,
       new uint256[](count).fill(1 ether),
       _removals,
-      1_234_567_890,
-      block.timestamp,
-      50
+      1_234_567_890
     );
     return _removalIds;
   }
@@ -234,9 +226,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       mintTo,
       new uint256[](1).fill(removalAmount),
       _removals,
-      1_234_567_890,
-      block.timestamp,
-      50
+      1_234_567_890
     );
     return _removalIds;
   }
@@ -263,9 +253,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       to: _marketAddress, // list on market
       amounts: new uint256[](1).fill(amount),
       removals: removalsData,
-      projectId: 1_234_567_890, // projectId
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
     return removalId;
   }
@@ -313,9 +301,7 @@ contract NonUpgradeableRemoval is Removal, Global {
       list ? address(_market) : to,
       new uint256[](count).fill(1 ether),
       _removals,
-      1_234_567_890,
-      block.timestamp,
-      50
+      1_234_567_890
     );
     return _removalIds;
   }

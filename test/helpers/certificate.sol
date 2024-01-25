@@ -10,15 +10,11 @@ abstract contract UpgradeableCertificate is Upgradeable, UpgradeableRemoval {
   Certificate internal _certificate;
 
   event CreateCertificate(
-    address from,
     address indexed recipient,
     uint256 indexed certificateId,
     uint256 certificateAmount,
     uint256[] removalIds,
-    uint256[] removalAmounts,
-    address indexed purchasingTokenAddress,
-    uint256 priceMultiple,
-    uint256 noriFeePercentage
+    uint256[] removalAmounts
   );
 
   constructor() {

@@ -42,12 +42,10 @@ contract MarketHandler is UpgradeableMarket {
   ];
 
   bytes32 constant CREATE_CERTIFICATE_EVENT_SELECTOR =
-    keccak256(
-      "CreateCertificate(address,address,uint256,uint256,uint256[],uint256[],address,uint256,uint256)"
-    );
+    keccak256("CreateCertificate(address,uint256,uint256,uint256[],uint256[])");
   bytes32 constant UPDATE_CERTIFICATE_EVENT_SELECTOR =
     keccak256(
-      "UpdateCertificate(uint256,uint256[],uint256[],uint256[],uint256[],address,uint256)"
+      "UpdateCertificate(uint256,uint256[],uint256[],uint256[],uint256[])"
     );
 
   /**
@@ -92,9 +90,7 @@ contract MarketHandler is UpgradeableMarket {
       to: supplierAddress,
       amounts: amounts,
       removals: removals,
-      projectId: (fuzz % 1_000_000_000) + 1,
-      scheduleStartTime: (fuzz % (type(uint256).max - 315_569_520)) + 1,
-      holdbackPercentage: uint8(fuzz % 100)
+      projectId: (fuzz % 1_000_000_000) + 1
     });
   }
 
@@ -128,26 +124,15 @@ contract MarketHandler is UpgradeableMarket {
     uint256 buyerPrivateKey = (fuzz % 1000) + 101; // avoids collision with proxy admin! which is addr(100)
     address buyerAddress = vm.addr(buyerPrivateKey);
     uint256 amount = fuzz % _removal.getMarketBalance();
-    uint256 purchaseAmount = _market.calculateCheckoutTotal(amount);
     vm.prank(_namedAccounts.admin);
-    _bpNori.deposit(buyerAddress, abi.encode(purchaseAmount));
-    SignedPermit memory signedPermit = _signatureUtils.generatePermit(
-      buyerPrivateKey,
-      address(_market),
-      purchaseAmount,
-      1 days,
-      _bpNori
-    );
+    _market.swapWithoutFeeSpecialOrder({
+      recipient: buyerAddress,
+      amount: amount,
+      supplier: address(0),
+      vintages: new uint256[](0)
+    });
     vm.recordLogs();
     vm.prank(buyerAddress);
-    _market.swap({
-      recipient: buyerAddress,
-      amount: purchaseAmount,
-      deadline: signedPermit.permit.deadline,
-      v: signedPermit.v,
-      r: signedPermit.r,
-      s: signedPermit.s
-    });
     Vm.Log[] memory entries = vm.getRecordedLogs();
     for (uint256 i = 0; i < entries.length; ++i) {
       if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
@@ -155,12 +140,10 @@ contract MarketHandler is UpgradeableMarket {
           address from,
           uint256 eventCertificateAmount,
           uint256[] memory removalIds,
-          uint256[] memory removalAmounts,
-          uint256 priceMultiple,
-          uint256 noriFeePercentage
+          uint256[] memory removalAmounts
         ) = abi.decode(
             entries[i].data,
-            (address, uint256, uint256[], uint256[], uint256, uint256)
+            (address, uint256, uint256[], uint256[])
           );
         for (uint256 i = 0; i < removalIds.length; i++) {
           soldRemovalIds.add(removalIds[i]);
@@ -208,13 +191,7 @@ contract MarketHandler is UpgradeableMarket {
       uint256 replaceAmount = (fuzz % _certificate.getNrtDeficit()) + 1; // avoid trying to replace more than deficit - we know this reverts
       // avoid trying to replace more than is available in the market - we know this reverts
       if (_removal.getMarketBalance() >= replaceAmount) {
-        uint256 replacementCost = _market.calculateCheckoutTotalWithoutFee({
-          amount: replaceAmount,
-          priceMultiple: _market.getPriceMultiple()
-        }); // incorporates price multiple!
         vm.startPrank(_namedAccounts.admin);
-        _bpNori.deposit(_namedAccounts.admin, abi.encode(replacementCost));
-        _bpNori.approve(address(_market), replacementCost);
         vm.stopPrank();
         vm.recordLogs();
         _market.replace({
@@ -231,11 +208,10 @@ contract MarketHandler is UpgradeableMarket {
               uint256[] memory removalIds,
               uint256[] memory amounts,
               uint256[] memory removalIdsBeingReplaced,
-              uint256[] memory amountsBeingReplaced,
-              uint256 priceMultiple
+              uint256[] memory amountsBeingReplaced
             ) = abi.decode(
                 entries[i].data,
-                (uint256[], uint256[], uint256[], uint256[], uint256)
+                (uint256[], uint256[], uint256[], uint256[])
               );
             for (uint256 i = 0; i < removalIds.length; i++) {
               soldRemovalIds.add(removalIds[i]);

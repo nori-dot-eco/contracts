@@ -110,7 +110,6 @@ contract Certificate is
 
   /**
    * @notice Emitted when a batch of removals is received to create a certificate.
-   * @param from The sender's address.
    * @param recipient The recipient address.
    * @param certificateId The ID of the certificate that the removals mint.
    * @param certificateAmount The total number of NRTs retired in this certificate.
@@ -118,7 +117,6 @@ contract Certificate is
    * @param removalAmounts The amounts from each removal used for the certificate.
    */
   event CreateCertificate(
-    address from,
     address indexed recipient,
     uint256 indexed certificateId,
     uint256 certificateAmount,
@@ -375,7 +373,6 @@ contract Certificate is
     _purchaseAmounts[certificateId] = certificateAmount;
     _mint(recipient, 1);
     emit CreateCertificate({
-      from: _msgSender(),
       recipient: recipient,
       certificateId: certificateId,
       certificateAmount: certificateAmount,

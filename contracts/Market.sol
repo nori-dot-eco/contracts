@@ -89,14 +89,12 @@ contract Market is
    * @notice The data required to pass to the `_fulfillOrder` function.
    * @dev This is packaged as a struct to avoid stack too deep errors.
    * @param certificateAmount The total amount for the certificate.
-   * @param from The message sender.
    * @param recipient The recipient of the certificate.
    * @param allocationData The removals, amounts, suppliers and count data returned
    * from the supply allocation algorithm.
    */
   struct FulfillOrderData {
     uint256 certificateAmount;
-    address from;
     address recipient;
     SupplyAllocationData allocationData;
   }
@@ -480,8 +478,6 @@ contract Market is
    * - Can only be used when the caller has the `MARKET_ADMIN_ROLE` role.
    * - Can only be used if this contract has been granted approval to spend the purchaser's ERC20 tokens.
    * @param recipient The address to which the certificate will be issued.
-   * @param purchaser The address that will pay for the removals and has granted approval to this contract
-   * to transfer their ERC20 tokens.
    * @param amount The total purchase amount in ERC20 tokens. This is the total number of removals being
    * purchased, scaled by the price multiple.
    * @param supplier The only supplier address from which to purchase carbon removals in this transaction, or
@@ -491,7 +487,6 @@ contract Market is
    */
   function swapWithoutFeeSpecialOrder(
     address recipient,
-    address purchaser,
     uint256 amount,
     address supplier,
     uint256[] calldata vintages
@@ -504,7 +499,6 @@ contract Market is
     _fulfillOrder({
       orderData: FulfillOrderData({
         certificateAmount: amount,
-        from: purchaser,
         recipient: recipient,
         allocationData: allocationData
       })
