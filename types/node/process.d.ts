@@ -2,6 +2,7 @@
 declare namespace NodeJS {
   interface ProcessEnv {
     MNEMONIC?: string;
+    ALCHEMY_API_KEY?: string;
     ETHERNAL_EMAIL?: string;
     ETHERNAL_PASSWORD?: string;
     ETHERNAL: boolean;
