@@ -48,6 +48,8 @@ export const GET_SIMULATE_TXN_TASK = () =>
       const polygonRelayerAddress =
         '0x6fcF5C3E43bE33F4B14BB25B550adb6887C1E48c';
 
+      const supplierWalletAddress =
+        '0xdca851dE155B20CC534b887bD2a1D780D0DEc077';
       const marketBalance = await removalContract.getMarketBalance();
       const marketBalanceInEth = FixedNumber.fromValue(marketBalance, 18);
       console.log(
@@ -72,7 +74,23 @@ export const GET_SIMULATE_TXN_TASK = () =>
       console.log('LATEST BLOCK GAS LIMIT: ', latestBlockGasLimit);
       console.log('LATEST FAST GAS PRICE: ', fastGasPriceHexString);
 
-      const purchaseAmountEth = 9_000;
+      const bayerTokens = await marketContract.getRemovalIdsForSupplier(
+        supplierWalletAddress
+      );
+      const bayerMarketBalances = await removalContract.balanceOfBatch(
+        new Array(bayerTokens.length).fill(marketContract.address),
+        bayerTokens
+      );
+      const bayerBalance = bayerMarketBalances.reduce(
+        (acc, curr) => acc.add(curr),
+        BigNumber.from(0)
+      );
+      console.log(
+        'BAYER MARKET BALANCE (TONNES): ',
+        FixedNumber.fromValue(bayerBalance, 18).toString()
+      );
+
+      const purchaseAmountEth = 7900;
       const purchaseAmountWei = ethers.utils.parseUnits(
         purchaseAmountEth.toString(),
         18
@@ -147,7 +165,7 @@ export const GET_SIMULATE_TXN_TASK = () =>
       //   data: transactionData,
       // });
 
-      console.log('RESPONSE', response);
+      // console.log('RESPONSE', response);
     },
   } as const);
 
