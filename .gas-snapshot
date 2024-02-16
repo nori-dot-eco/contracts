@@ -37,6 +37,7 @@ Checkout_swapWithoutFeeSpecialOrder_specificSupplier:test_revertsWhenSupplierDoe
 Checkout_swapWithoutFeeSpecialOrder_specificVintages:test_basicFulfillment() (gas: 965410)
 Checkout_swapWithoutFeeSpecialOrder_specificVintages:test_revertsWhenNoRemovalsFromSpecifiedVintages() (gas: 91000)
 Checkout_swapWithoutFeeSpecialOrder_specificVintagesSpecificSupplier:test_basicFulfillment() (gas: 701767)
+GasBenchmark_buyingFromManyRemovals_singleSupplier:test() (gas: 30044535)
 LockedNORILib_availableAmount:test() (gas: 12371)
 LockedNORITest:testBatchGrantCreation() (gas: 705179)
 LockedNORITest:testNormalWithdrawal() (gas: 1102743)

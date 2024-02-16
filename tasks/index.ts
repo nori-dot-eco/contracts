@@ -26,10 +26,12 @@ import { GET_VESTING_TASK as VESTING_TASK } from './vesting'; // todo make work 
 import { GET_MIGRATE_REMOVALS_TASK } from './migrate-removals';
 import { GET_MIGRATE_CERTIFICATES_TASK } from './migrate-certificates';
 import { GET_LIST_MIGRATED_REMOVALS_TASK } from './list-remaining-migrated-removals';
+import { GET_LIST_REMOVALS_TASK } from './list-removals';
 import { TASK as FORCE_UPGRADE_TASK } from './force-ugrade';
 import { TASK as SIGN_MESSAGE_TASK } from './sign-message';
 import { TASK as TEST_SIGN_TYPED_TASK } from './test-sign-typed';
 import { GET_SIMULATE_TXN_TASK } from './simulate-txn-alchemy';
+import { GET_SIMULATE_LISTING_TASK } from './simulate-listing';
 
 export interface Task {
   run: ActionType<
@@ -86,8 +88,12 @@ export const TASKS = {
   [GET_LIST_MIGRATED_REMOVALS_TASK().name]: {
     ...GET_LIST_MIGRATED_REMOVALS_TASK(),
   },
+  [GET_LIST_REMOVALS_TASK().name]: {
+    ...GET_LIST_REMOVALS_TASK(),
+  },
   [FORCE_UPGRADE_TASK.name]: { ...FORCE_UPGRADE_TASK },
   [SIGN_MESSAGE_TASK.name]: { ...SIGN_MESSAGE_TASK },
   [TEST_SIGN_TYPED_TASK.name]: { ...TEST_SIGN_TYPED_TASK },
   [GET_SIMULATE_TXN_TASK().name]: { ...GET_SIMULATE_TXN_TASK() },
+  [GET_SIMULATE_LISTING_TASK().name]: { ...GET_SIMULATE_LISTING_TASK() },
 } as const;
