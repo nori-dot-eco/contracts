@@ -196,6 +196,22 @@ contract Removal is
   );
 
   /**
+   * @notice Emitted when legacy removals are minted and then immediately used to migrate a legacy certificate.
+   * @param certificateRecipient The recipient of the certificate to mint via migration.
+   * @param certificateAmount The total amount of the certificate to mint via migration (denominated in NRTs).
+   * @param certificateId The ID of the certificate to mint via migration.
+   * @param removalIds The removal IDs to use to mint the certificate via migration.
+   * @param removalAmounts The amounts for each corresponding removal ID to use to mint the certificate via migration.
+   */
+  event Migrate(
+    address indexed certificateRecipient,
+    uint256 indexed certificateAmount,
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] removalAmounts
+  );
+
+  /**
    * @notice Emitted when removals are directly retired into a certificate by Nori.
    * @param certificateRecipient The recipient of the certificate.
    * @param certificateAmount The total amount of the certificate to mint (denominated in RTs).

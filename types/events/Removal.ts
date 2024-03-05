@@ -4,6 +4,7 @@ import type { BigNumber } from 'ethers';
 import type {
   ApprovalForAllEvent,
   InitializedEvent,
+  MigrateEvent,
   RetireEvent,
   PausedEvent,
   ReleaseRemovalEvent,
@@ -28,6 +29,10 @@ export interface RemovalEventMap {
   Initialized: {
     name: 'Initialized';
     args: InitializedEvent['args'];
+  };
+  Migrate: {
+    name: 'Migrate';
+    args: MigrateEvent['args'];
   };
   Retire: {
     name: 'Retire';
