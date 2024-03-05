@@ -15,7 +15,6 @@ import {
   getCertificate,
   getMarket,
   getRemoval,
-  getRestrictedNORI,
 } from '@/utils/contracts';
 
 export const deploy: DeployFunction = async (environment) => {
@@ -42,7 +41,6 @@ export const deploy: DeployFunction = async (environment) => {
   const [signer] = await hre.getSigners();
   const market = await getMarket({ hre, signer });
   const certificate = await getCertificate({ hre, signer });
-  const rNori = await getRestrictedNORI({ hre, signer });
   const removal = await getRemoval({ hre, signer });
   const bpNori = await getBridgedPolygonNori({ hre, signer });
 
@@ -64,63 +62,6 @@ export const deploy: DeployFunction = async (environment) => {
     ? PROD_NORI_FEE_WALLET_ADDRESS
     : STAGING_NORI_FEE_WALLET_ADDRESS;
   let txn: ContractTransaction;
-  if (
-    !(await rNori.hasRole(await rNori.SCHEDULE_CREATOR_ROLE(), removal.address))
-  ) {
-    hre.trace(
-      "Granting Removal the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI..."
-    );
-    txn = await rNori.grantRole(
-      await rNori.SCHEDULE_CREATOR_ROLE(),
-      removal.address
-    );
-    await txn.wait(CONFIRMATIONS);
-    hre.trace(
-      "Granted Removal the role 'SCHEDULE_CREATOR_ROLE' for RestrictedNORI"
-    );
-  }
-
-  if (!(await rNori.hasRole(await rNori.MINTER_ROLE(), market.address))) {
-    hre.trace("Granting Market the role 'MINTER_ROLE' for RestrictedNORI...");
-    txn = await rNori.grantRole(
-      hre.ethers.utils.id('MINTER_ROLE'),
-      market.address
-    );
-    await txn.wait(CONFIRMATIONS);
-    hre.trace("Granted Market the role 'MINTER_ROLE' for RestrictedNORI");
-  }
-  if (
-    !(
-      (await rNori.getRestrictionDurationForMethodologyAndVersion(1, 1)) ===
-      BigNumber.from(restrictionScheduleDuration)
-    )
-  ) {
-    hre.trace(
-      'Setting restriction schedule durations for RestrictedNORI, methodology 1 and versions 1, 2, 3...'
-    );
-    const methodologyVersions = [1, 2, 3];
-    const multicallData = methodologyVersions.map((version) => {
-      return rNori.interface.encodeFunctionData(
-        'setRestrictionDurationForMethodologyAndVersion',
-        [1, version, restrictionScheduleDuration]
-      );
-    });
-    txn = await rNori.multicall(multicallData);
-    await txn.wait(CONFIRMATIONS);
-    hre.trace(
-      'Set additional schedule durations in RestrictedNORI for methdology 1 and versions 1, 2, 3.'
-    );
-  }
-
-  // TODO figure out how to make a check about what these addresses are currently set to
-  // bigger TODO: expose getters for these on the contract
-  txn = await rNori.registerContractAddresses(
-    purchaseTokenAddress,
-    removal.address,
-    market.address
-  );
-  await txn.wait(CONFIRMATIONS);
-  hre.trace('Set removal, purchase token and market addresses in rNori');
   if ((await certificate.getRemovalAddress()) !== removal.address) {
     hre.trace('Setting removal address in Certificate contract...');
     txn = await certificate.registerContractAddresses(removal.address);

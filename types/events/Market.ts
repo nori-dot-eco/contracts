@@ -6,14 +6,12 @@ import type {
   PausedEvent,
   RegisterContractAddressesEvent,
   RemoveSupplierEvent,
-  RestrictedNORIMintFailureEvent,
   RoleAdminChangedEvent,
   RoleGrantedEvent,
   RoleRevokedEvent,
   SetPriceMultipleEvent,
   SetPriorityRestrictedThresholdEvent,
   SetPurchasingTokenEvent,
-  SkipRestrictedNORIERC20TransferEvent,
   UnpausedEvent,
   UpdateCertificateEvent,
   UpdateNoriFeePercentageEvent,
@@ -47,10 +45,6 @@ export interface MarketEventMap {
     args: RemoveSupplierEvent['args'];
     name: 'RemoveSupplier';
   };
-  RestrictedNORIMintFailure: {
-    args: RestrictedNORIMintFailureEvent['args'];
-    name: 'RestrictedNORIMintFailure';
-  };
   RoleAdminChanged: {
     args: RoleAdminChangedEvent['args'];
     name: 'RoleAdminChanged';
@@ -74,10 +68,6 @@ export interface MarketEventMap {
   SetPurchasingToken: {
     args: SetPurchasingTokenEvent['args'];
     name: 'SetPurchasingToken';
-  };
-  SkipRestrictedNORIERC20Transfer: {
-    args: SkipRestrictedNORIERC20TransferEvent['args'];
-    name: 'SkipRestrictedNORIERC20Transfer';
   };
   Unpaused: {
     args: UnpausedEvent['args'];

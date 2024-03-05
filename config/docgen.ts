@@ -21,8 +21,6 @@ export const docgen: HardhatUserConfig['docgen'] = {
       'LockedNORILib',
       'RemovalsByYearLib',
       'RemovalIdLib',
-      'RestrictedNORI',
-      'RestrictedNORILib',
     ].includes((item as any)?.canonicalName)
       ? (item as any)?.canonicalName?.concat('.md')
       : (item as any)?.nodeType === 'ErrorDefinition'

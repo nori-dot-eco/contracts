@@ -4,14 +4,14 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155SupplyUpgradeable.sol";
-import "./AccessPresetPausable.sol";
-import "./Errors.sol";
-import "./IERC20WithPermit.sol";
-import "./IRemoval.sol";
-import "./IMarket.sol";
+import "../AccessPresetPausable.sol";
+import "../Errors.sol";
+import "../IERC20WithPermit.sol";
+import "../IRemoval.sol";
+import "../IMarket.sol";
 import "./IRestrictedNORI.sol";
 import {RestrictedNORILib, Schedule} from "./RestrictedNORILib.sol";
-import {RemovalIdLib} from "./RemovalIdLib.sol";
+import {RemovalIdLib} from "../RemovalIdLib.sol";
 
 /**
  * @notice View information for the current state of one schedule.
@@ -297,9 +297,10 @@ contract RestrictedNORI is
    * @param originalSupplier The original intended recipient of failed RestrictedNORI mint(s).
    * @param amount The amount to increment `_supplierToDeficit` by.
    */
-  function incrementDeficitForSupplier(address originalSupplier, uint256 amount)
-    external
-  {
+  function incrementDeficitForSupplier(
+    address originalSupplier,
+    uint256 amount
+  ) external {
     if (_msgSender() != address(_market)) {
       revert SenderNotMarketContract();
     }
@@ -543,11 +544,9 @@ contract RestrictedNORI is
    * of the original supplier.
    * @param originalSupplier The original supplier address for which to retrieve the deficit.
    */
-  function getDeficitForAddress(address originalSupplier)
-    external
-    view
-    returns (uint256)
-  {
+  function getDeficitForAddress(
+    address originalSupplier
+  ) external view returns (uint256) {
     return _supplierToDeficit[originalSupplier];
   }
 
@@ -574,11 +573,10 @@ contract RestrictedNORI is
    * @param scheduleId The token ID of the schedule for which to retrieve details.
    * @return Returns a `ScheduleDetails` struct containing the details of the schedule.
    */
-  function getScheduleDetailForAccount(address account, uint256 scheduleId)
-    external
-    view
-    returns (ScheduleDetailForAddress memory)
-  {
+  function getScheduleDetailForAccount(
+    address account,
+    uint256 scheduleId
+  ) external view returns (ScheduleDetailForAddress memory) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
       ScheduleDetailForAddress({
@@ -628,12 +626,9 @@ contract RestrictedNORI is
    * @param scheduleId The token ID of the schedule for which to check existence.
    * @return Returns a boolean indicating whether or not the schedule exists.
    */
-  function scheduleExists(uint256 scheduleId)
-    external
-    view
-    override
-    returns (bool)
-  {
+  function scheduleExists(
+    uint256 scheduleId
+  ) external view override returns (bool) {
     return _scheduleIdToScheduleStruct[scheduleId].doesExist();
   }
 
@@ -642,11 +637,9 @@ contract RestrictedNORI is
    * @param scheduleIds The token IDs of the schedules for which to retrieve details.
    * @return Returns an array of `ScheduleSummary` structs containing the summary of the schedules.
    */
-  function batchGetScheduleSummaries(uint256[] calldata scheduleIds)
-    external
-    view
-    returns (ScheduleSummary[] memory)
-  {
+  function batchGetScheduleSummaries(
+    uint256[] calldata scheduleIds
+  ) external view returns (ScheduleSummary[] memory) {
     ScheduleSummary[] memory scheduleSummaries = new ScheduleSummary[](
       scheduleIds.length
     );
@@ -664,11 +657,9 @@ contract RestrictedNORI is
    * @param scheduleId The token ID of the schedule for which to retrieve details.
    * @return Returns the claimable amount for the schedule.
    */
-  function claimableBalanceForSchedule(uint256 scheduleId)
-    external
-    view
-    returns (uint256)
-  {
+  function claimableBalanceForSchedule(
+    uint256 scheduleId
+  ) external view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
       schedule.claimableBalanceForSchedule({
@@ -704,11 +695,9 @@ contract RestrictedNORI is
    * @param scheduleId The schedule ID for which to revoke tokens.
    * @return Returns the number of revocable tokens for a given schedule at the current block timestamp.
    */
-  function revocableQuantityForSchedule(uint256 scheduleId)
-    external
-    view
-    returns (uint256)
-  {
+  function revocableQuantityForSchedule(
+    uint256 scheduleId
+  ) external view returns (uint256) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     return
       schedule.revocableQuantityForSchedule({
@@ -757,11 +746,9 @@ contract RestrictedNORI is
    * @param scheduleId The token ID of the schedule for which to retrieve details.
    * @return Returns the schedule summary.
    */
-  function getScheduleSummary(uint256 scheduleId)
-    public
-    view
-    returns (ScheduleSummary memory)
-  {
+  function getScheduleSummary(
+    uint256 scheduleId
+  ) public view returns (ScheduleSummary memory) {
     Schedule storage schedule = _scheduleIdToScheduleStruct[scheduleId];
     uint256 numberOfTokenHolders = schedule.tokenHolders.length();
     address[] memory tokenHoldersArray = new address[](numberOfTokenHolders);
@@ -796,7 +783,9 @@ contract RestrictedNORI is
    * @param interfaceId The interface ID to check for support.
    * @return Returns true if the interface is supported, false otherwise.
    */
-  function supportsInterface(bytes4 interfaceId)
+  function supportsInterface(
+    bytes4 interfaceId
+  )
     public
     view
     override(ERC1155Upgradeable, AccessControlEnumerableUpgradeable)
@@ -958,10 +947,10 @@ contract RestrictedNORI is
    * @param startTime The schedule start time in seconds since the unix epoch.
    * @param restrictionDuration The duration of the schedule in seconds since the unix epoch.
    */
-  function _validateSchedule(uint256 startTime, uint256 restrictionDuration)
-    internal
-    pure
-  {
+  function _validateSchedule(
+    uint256 startTime,
+    uint256 restrictionDuration
+  ) internal pure {
     require(startTime != 0, "rNORI: Invalid start time");
     require(restrictionDuration != 0, "rNORI: duration not set");
   }
