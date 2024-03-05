@@ -11,7 +11,7 @@ using AddressArrayLib for address[];
 // todo fuzz RemovalIdLib
 // todo test that checks Removal.consign can happen using multi call with mix-match project IDs
 
-contract Removal_migrate_revertsIfRemovalBalanceSumDifferentFromCertificateAmount is
+contract Removal_retire_revertsIfRemovalBalanceSumDifferentFromCertificateAmount is
   UpgradeableMarket
 {
   /*//////////////////////////////////////////////////////////////
@@ -34,7 +34,7 @@ contract Removal_migrate_revertsIfRemovalBalanceSumDifferentFromCertificateAmoun
   address[] suppliers;
 
   function setUp() external {
-    // todo reuse setup in Removal_migrate_gasLimit
+    // todo reuse setup in Removal_retire_gasLimit
     _removal.grantRole({
       role: _removal.CONSIGNOR_ROLE(),
       account: _namedAccounts.admin
@@ -67,7 +67,7 @@ contract Removal_migrate_revertsIfRemovalBalanceSumDifferentFromCertificateAmoun
   function test() external {
     vm.prank(_namedAccounts.admin);
     vm.expectRevert("Incorrect supply allocation");
-    _removal.migrate({
+    _removal.retire({
       ids: idsForAllSuppliers,
       amounts: amountsForAllSuppliers,
       certificateRecipient: _namedAccounts.buyer,
@@ -135,7 +135,7 @@ contract Removal_consign_revertsForSoldRemovals is UpgradeableMarket {
   }
 }
 
-contract Removal_migrate is UpgradeableMarket {
+contract Removal_retire is UpgradeableMarket {
   /*//////////////////////////////////////////////////////////////
                                 INPUTS
     //////////////////////////////////////////////////////////////*/
@@ -156,7 +156,7 @@ contract Removal_migrate is UpgradeableMarket {
   address[] suppliers;
 
   function setUp() external {
-    // todo reuse setup in Removal_migrate_gasLimit
+    // todo reuse setup in Removal_retire_gasLimit
     _removal.grantRole({
       role: _removal.CONSIGNOR_ROLE(),
       account: _namedAccounts.admin
@@ -186,7 +186,7 @@ contract Removal_migrate is UpgradeableMarket {
     }
   }
 
-  event Migrate(
+  event Retire(
     address indexed certificateRecipient,
     uint256 indexed certificateAmount,
     uint256 indexed certificateId,
@@ -197,7 +197,7 @@ contract Removal_migrate is UpgradeableMarket {
   function test() external {
     vm.prank(_namedAccounts.admin);
     vm.recordLogs();
-    _removal.migrate({
+    _removal.retire({
       ids: idsForAllSuppliers,
       amounts: amountsForAllSuppliers,
       certificateRecipient: _namedAccounts.buyer,
@@ -215,7 +215,7 @@ contract Removal_migrate is UpgradeableMarket {
     assertEq(entries.length, 4);
     assertEq(
       entries[0].topics[0],
-      keccak256("Migrate(address,uint256,uint256,uint256[],uint256[])") // todo if we move contract events to interfaces we can use IRemoval.Migrate.selector instead
+      keccak256("Retire(address,uint256,uint256,uint256[],uint256[])") // todo if we move contract events to interfaces we can use IRemoval.Retire.selector instead
     );
     assertEq(entries[0].topics.length, 4);
     assertEq(
@@ -233,7 +233,7 @@ contract Removal_migrate is UpgradeableMarket {
   }
 }
 
-contract Removal_migrate_gasLimit is UpgradeableMarket {
+contract Removal_retire_gasLimit is UpgradeableMarket {
   /*//////////////////////////////////////////////////////////////
                                 INPUTS
     //////////////////////////////////////////////////////////////*/
@@ -286,7 +286,7 @@ contract Removal_migrate_gasLimit is UpgradeableMarket {
   function test() external {
     vm.prank(_namedAccounts.admin);
     uint256 initialGas = gasleft();
-    _removal.migrate({
+    _removal.retire({
       ids: idsForAllSuppliers,
       amounts: amountsForAllSuppliers,
       certificateRecipient: _namedAccounts.buyer,
