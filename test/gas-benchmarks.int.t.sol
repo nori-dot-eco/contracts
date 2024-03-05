@@ -29,7 +29,7 @@ contract GasBenchmark_buyingFromManyRemovals_singleSupplier is GasBenchmark {
   uint256 numberOfRemovals;
 
   function setUp() external {
-    numberOfRemovals = 250;
+    numberOfRemovals = 320;
     _removalIdArray = new uint256[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       _removalIdArray[i] = _seedAndListRemoval({
