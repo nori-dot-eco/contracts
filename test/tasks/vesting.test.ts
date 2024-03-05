@@ -139,7 +139,7 @@ const MOCK_GITHUB_VESTING_GRANTS = [
     '0xBd6E6A75c7A51cfdf08DDf2f538ceB221835839b',
     'daf2922b-c96d-442e-a267-e977758961f1',
     '50000',
-    '2023-03-03T00:00:00Z',
+    dateLessThanOneYearAgoFromTodayISOString,
     '2027-03-03T00:00:00Z',
     '2028-03-03T00:00:00Z',
     '2024-03-03T00:00:00Z',
@@ -171,7 +171,7 @@ const MOCK_GITHUB_VESTING_GRANTS = [
     '0x6029424b26feFfe2879E88C62e8130dC418e64D9',
     '6a36b897-b38d-4938-9537-32a5ee4f33b8',
     '52000',
-    '2023-03-10T00:00:00Z',
+    dateLessThanOneYearAgoFromTodayISOString,
     '2028-03-10T00:00:00Z',
     '2029-03-10T00:00:00Z',
     '2025-03-10T00:00:00Z',
@@ -980,7 +980,10 @@ describe('vesting task', () => {
           },
           '0xBd6E6A75c7A51cfdf08DDf2f538ceB221835839b': {
             vestEndTime: { __old: 0, __new: 1_804_032_000 },
-            startTime: { __old: 0, __new: 1_677_801_600 },
+            startTime: {
+              __old: 0,
+              __new: utcToEvmTime(dateLessThanOneYearAgoFromTodayUnix),
+            },
             originalAmount: {
               __old: '0',
               __new: '50000000000000000000000',
@@ -1028,7 +1031,10 @@ describe('vesting task', () => {
           },
           '0x6029424b26feFfe2879E88C62e8130dC418e64D9': {
             vestEndTime: { __old: 0, __new: 1_836_259_200 },
-            startTime: { __old: 0, __new: 1_678_406_400 },
+            startTime: {
+              __old: 0,
+              __new: utcToEvmTime(dateLessThanOneYearAgoFromTodayUnix),
+            },
             originalAmount: {
               __old: '0',
               __new: '52000000000000000000000',
