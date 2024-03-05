@@ -77,6 +77,9 @@ contract GasBenchmark_buyingFromManyRemovals_singleSupplier is GasBenchmark {
       supplier: _namedAccounts.supplier,
       vintages: new uint256[](0)
     });
+    // These assertions can be uncommented to check correctness, but omitted to get a more
+    // accurate gas measurement for the logic we care about
+    //
     // _assertExpectedBalances(address(_market), 0, false, 0);
     // _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     // assertEq(

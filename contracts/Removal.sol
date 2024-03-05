@@ -150,6 +150,11 @@ contract Removal is
   mapping(uint256 => uint256) private _removalIdToProjectId;
 
   /**
+   * @dev Deprecated. This storage gap remains to maintain the storage layout of the contract.
+   */
+  mapping(uint256 => uint8) private _storageGap;
+
+  /**
    * @notice Maps from an address to an EnumerableSet of the token IDs for which that address has a non-zero balance.
    */
   mapping(address => EnumerableSetUpgradeable.UintSet)

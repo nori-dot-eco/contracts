@@ -141,6 +141,7 @@ contract Market is
 
   /**
    * @notice Deprecated. Previously the address of the RestrictedNORI contract.
+   * This storage gap remains to maintain the storage layout of the contract.
    */
   address private _storageGap;
 
@@ -1097,12 +1098,11 @@ contract Market is
     address[] memory suppliers
   ) internal {
     bool isTransferSuccessful;
-    uint256 unrestrictedSupplierFee;
+    uint256 supplierPayment;
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
-      unrestrictedSupplierFee = this
-        .convertRemovalDecimalsToPurchasingTokenDecimals(
-          amounts[i].mulDiv({y: _priceMultiple, denominator: 100})
-        );
+      supplierPayment = this.convertRemovalDecimalsToPurchasingTokenDecimals(
+        amounts[i].mulDiv({y: _priceMultiple, denominator: 100})
+      );
       if (chargeFee) {
         isTransferSuccessful = _purchasingToken.transferFrom({
           from: from,
@@ -1116,7 +1116,7 @@ contract Market is
       isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
-        amount: unrestrictedSupplierFee
+        amount: supplierPayment
       });
       if (!isTransferSuccessful) {
         revert ERC20TransferFailed();

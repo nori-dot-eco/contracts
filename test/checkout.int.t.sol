@@ -901,99 +901,96 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
   }
 }
 
-// contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
-//   uint256 private _customFee = 5;
-//   uint256 private _certificateAmount = 1 ether;
-//   uint256 private _customPriceMultiple = 1800; // $18.00 -- test below the default price multiple of $20.00
-//   uint256[] private _vintages = new uint256[](0);
-//   uint256 private _holdbackPercentage = 0;
-//   uint256 private _priceMultipleScale = 100;
+contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
+  uint256 private _customFee = 5;
+  uint256 private _certificateAmount = 1 ether;
+  uint256 private _customPriceMultiple = 1800; // $18.00 -- test below the default price multiple of $20.00
+  uint256[] private _vintages = new uint256[](0);
+  uint256 private _priceMultipleScale = 100;
 
-//   function setUp() external {
-//     _removalIds = _seedRemovals({
-//       to: _namedAccounts.supplier,
-//       count: 1,
-//       list: true
-//     });
-//     uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
-//       amount: _certificateAmount,
-//       priceMultiple: _customPriceMultiple
-//     });
-//     _market.grantRole({
-//       role: _market.MARKET_ADMIN_ROLE(),
-//       account: _namedAccounts.buyer
-//     });
-//     vm.prank(_namedAccounts.admin);
-//     _bpNori.deposit(_namedAccounts.buyer, abi.encode(purchaseAmount));
-//     vm.prank(_namedAccounts.buyer);
-//     _bpNori.approve(address(_market), purchaseAmount);
-//   }
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: _certificateAmount,
+      priceMultiple: _customPriceMultiple
+    });
+    _market.grantRole({
+      role: _market.MARKET_ADMIN_ROLE(),
+      account: _namedAccounts.buyer
+    });
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(_namedAccounts.buyer, abi.encode(purchaseAmount));
+    vm.prank(_namedAccounts.buyer);
+    _bpNori.approve(address(_market), purchaseAmount);
+  }
 
-//   function test() external {
-//     vm.prank(_namedAccounts.buyer);
-//     vm.recordLogs();
-//     _market.swapWithoutFeeSpecialOrder({
-//       recipient: _namedAccounts.buyer,
-//       purchaser: _namedAccounts.buyer,
-//       amount: _certificateAmount,
-//       customFee: _customFee,
-//       customPriceMultiple: _customPriceMultiple,
-//       supplier: address(0),
-//       vintages: _vintages
-//     });
+  function test() external {
+    vm.prank(_namedAccounts.buyer);
+    vm.recordLogs();
+    _market.swapWithoutFeeSpecialOrder({
+      recipient: _namedAccounts.buyer,
+      purchaser: _namedAccounts.buyer,
+      amount: _certificateAmount,
+      customFee: _customFee,
+      customPriceMultiple: _customPriceMultiple,
+      supplier: address(0),
+      vintages: _vintages
+    });
 
-//     Vm.Log[] memory entries = vm.getRecordedLogs();
-//     uint256 createCertificateEventIndex;
-//     for (uint256 i = 0; i < entries.length; ++i) {
-//       if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
-//         createCertificateEventIndex = i;
-//         break;
-//       }
-//     }
-//     assertEq(
-//       entries[createCertificateEventIndex].topics[0],
-//       CREATE_CERTIFICATE_EVENT_SELECTOR
-//     );
-//     assertEq(
-//       entries[createCertificateEventIndex].topics[1],
-//       bytes32(uint256(uint160(address(_namedAccounts.buyer))))
-//     );
-//     assertEq(
-//       entries[createCertificateEventIndex].topics[2],
-//       bytes32(uint256(uint256(0)))
-//     );
-//     assertEq(
-//       entries[createCertificateEventIndex].topics[3],
-//       bytes32(uint256(uint160(address(_bpNori))))
-//     );
-//     (
-//       address from,
-//       uint256 eventCertificateAmount,
-//       uint256[] memory removalIds,
-//       uint256[] memory removalAmounts,
-//       uint256 priceMultiple,
-//       uint256 noriFeePercentage
-//     ) = abi.decode(
-//         entries[createCertificateEventIndex].data,
-//         (address, uint256, uint256[], uint256[], uint256, uint256)
-//       );
-//     assertEq(from, address(_removal));
-//     assertEq(eventCertificateAmount, _certificateAmount);
-//     assertEq(priceMultiple, _customPriceMultiple);
-//     assertEq(noriFeePercentage, _customFee);
-//     assertEq(removalIds.length, 1);
-//     assertEq(removalAmounts.length, 1);
-//     assertEq(removalIds[0], _removalIds[0]);
-//     assertEq(removalAmounts[0], _certificateAmount);
-//     assertEq(
-//       _bpNori.balanceOf(_namedAccounts.supplier),
-//       ((_certificateAmount * _customPriceMultiple) * _holdbackPercentage) /
-//         _priceMultipleScale /
-//         100
-//     );
-//     assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
-//   }
-// }
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    uint256 createCertificateEventIndex;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
+        createCertificateEventIndex = i;
+        break;
+      }
+    }
+    assertEq(
+      entries[createCertificateEventIndex].topics[0],
+      CREATE_CERTIFICATE_EVENT_SELECTOR
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[1],
+      bytes32(uint256(uint160(address(_namedAccounts.buyer))))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[2],
+      bytes32(uint256(uint256(0)))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[3],
+      bytes32(uint256(uint160(address(_bpNori))))
+    );
+    (
+      address from,
+      uint256 eventCertificateAmount,
+      uint256[] memory removalIds,
+      uint256[] memory removalAmounts,
+      uint256 priceMultiple,
+      uint256 noriFeePercentage
+    ) = abi.decode(
+        entries[createCertificateEventIndex].data,
+        (address, uint256, uint256[], uint256[], uint256, uint256)
+      );
+    assertEq(from, address(_removal));
+    assertEq(eventCertificateAmount, _certificateAmount);
+    assertEq(priceMultiple, _customPriceMultiple);
+    assertEq(noriFeePercentage, _customFee);
+    assertEq(removalIds.length, 1);
+    assertEq(removalAmounts.length, 1);
+    assertEq(removalIds[0], _removalIds[0]);
+    assertEq(removalAmounts[0], _certificateAmount);
+    assertEq(
+      _bpNori.balanceOf(_namedAccounts.supplier),
+      ((_certificateAmount * _customPriceMultiple)) / _priceMultipleScale
+    );
+    assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
+  }
+}
 
 contract Checkout_swapWithoutFeeSpecialOrder_specificVintages is Checkout {
   uint256 private _customFee = 5;
@@ -1140,112 +1137,109 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificVintages is Checkout {
   }
 }
 
-// contract Checkout_swapWithoutFeeSpecialOrder_specificSupplier is Checkout {
-//   uint256 private _customFee = 5;
-//   uint256 private _certificateAmount = 1 ether;
-//   uint256 private _customPriceMultiple = 2500; // $25.00 -- test above the default price multiple of $20.00
-//   address private _nonexistentSupplier = account("nonexistent supplier");
-//   uint256 private _holdbackPercentage = 0;
-//   uint256 private _priceMultipleScale = 100;
+contract Checkout_swapWithoutFeeSpecialOrder_specificSupplier is Checkout {
+  uint256 private _customFee = 5;
+  uint256 private _certificateAmount = 1 ether;
+  uint256 private _customPriceMultiple = 2500; // $25.00 -- test above the default price multiple of $20.00
+  address private _nonexistentSupplier = account("nonexistent supplier");
+  uint256 private _priceMultipleScale = 100;
 
-//   function setUp() external {
-//     _removalIds = _seedRemovals({
-//       to: _namedAccounts.supplier,
-//       count: 1,
-//       list: true
-//     });
-//     uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
-//       amount: _certificateAmount,
-//       priceMultiple: _customPriceMultiple
-//     });
-//     _market.grantRole({
-//       role: _market.MARKET_ADMIN_ROLE(),
-//       account: _namedAccounts.buyer
-//     });
-//     vm.prank(_namedAccounts.admin);
-//     _bpNori.deposit(_namedAccounts.buyer, abi.encode(purchaseAmount));
-//     vm.prank(_namedAccounts.buyer);
-//     _bpNori.approve(address(_market), purchaseAmount);
-//   }
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    uint256 purchaseAmount = _market.calculateCheckoutTotalWithoutFee({
+      amount: _certificateAmount,
+      priceMultiple: _customPriceMultiple
+    });
+    _market.grantRole({
+      role: _market.MARKET_ADMIN_ROLE(),
+      account: _namedAccounts.buyer
+    });
+    vm.prank(_namedAccounts.admin);
+    _bpNori.deposit(_namedAccounts.buyer, abi.encode(purchaseAmount));
+    vm.prank(_namedAccounts.buyer);
+    _bpNori.approve(address(_market), purchaseAmount);
+  }
 
-//   function test() external {
-//     vm.prank(_namedAccounts.buyer);
-//     vm.recordLogs();
-//     _market.swapWithoutFeeSpecialOrder({
-//       recipient: _namedAccounts.buyer,
-//       purchaser: _namedAccounts.buyer,
-//       amount: _certificateAmount,
-//       customFee: _customFee,
-//       customPriceMultiple: _customPriceMultiple,
-//       supplier: _namedAccounts.supplier,
-//       vintages: new uint256[](0)
-//     });
-//     Vm.Log[] memory entries = vm.getRecordedLogs();
-//     uint256 createCertificateEventIndex;
-//     for (uint256 i = 0; i < entries.length; ++i) {
-//       if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
-//         createCertificateEventIndex = i;
-//         break;
-//       }
-//     }
-//     assertEq(
-//       entries[createCertificateEventIndex].topics[0],
-//       CREATE_CERTIFICATE_EVENT_SELECTOR
-//     );
-//     assertEq(
-//       entries[createCertificateEventIndex].topics[1],
-//       bytes32(uint256(uint160(address(_namedAccounts.buyer))))
-//     );
-//     assertEq(
-//       entries[createCertificateEventIndex].topics[2],
-//       bytes32(uint256(uint256(0)))
-//     );
-//     assertEq(
-//       entries[createCertificateEventIndex].topics[3],
-//       bytes32(uint256(uint160(address(_bpNori))))
-//     );
-//     (
-//       address from,
-//       uint256 eventCertificateAmount,
-//       uint256[] memory removalIds,
-//       uint256[] memory removalAmounts,
-//       uint256 priceMultiple,
-//       uint256 noriFeePercentage
-//     ) = abi.decode(
-//         entries[createCertificateEventIndex].data,
-//         (address, uint256, uint256[], uint256[], uint256, uint256)
-//       );
-//     assertEq(from, address(_removal));
-//     assertEq(eventCertificateAmount, _certificateAmount);
-//     assertEq(priceMultiple, _customPriceMultiple);
-//     assertEq(noriFeePercentage, _customFee);
-//     assertEq(removalIds.length, 1);
-//     assertEq(removalAmounts.length, 1);
-//     assertEq(removalIds[0], _removalIds[0]);
-//     assertEq(removalAmounts[0], _certificateAmount);
-//     assertEq(
-//       _bpNori.balanceOf(_namedAccounts.supplier),
-//       ((_certificateAmount * _customPriceMultiple) * _holdbackPercentage) /
-//         _priceMultipleScale /
-//         100
-//     );
-//     assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
-//   }
+  function test() external {
+    vm.prank(_namedAccounts.buyer);
+    vm.recordLogs();
+    _market.swapWithoutFeeSpecialOrder({
+      recipient: _namedAccounts.buyer,
+      purchaser: _namedAccounts.buyer,
+      amount: _certificateAmount,
+      customFee: _customFee,
+      customPriceMultiple: _customPriceMultiple,
+      supplier: _namedAccounts.supplier,
+      vintages: new uint256[](0)
+    });
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    uint256 createCertificateEventIndex;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
+        createCertificateEventIndex = i;
+        break;
+      }
+    }
+    assertEq(
+      entries[createCertificateEventIndex].topics[0],
+      CREATE_CERTIFICATE_EVENT_SELECTOR
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[1],
+      bytes32(uint256(uint160(address(_namedAccounts.buyer))))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[2],
+      bytes32(uint256(uint256(0)))
+    );
+    assertEq(
+      entries[createCertificateEventIndex].topics[3],
+      bytes32(uint256(uint160(address(_bpNori))))
+    );
+    (
+      address from,
+      uint256 eventCertificateAmount,
+      uint256[] memory removalIds,
+      uint256[] memory removalAmounts,
+      uint256 priceMultiple,
+      uint256 noriFeePercentage
+    ) = abi.decode(
+        entries[createCertificateEventIndex].data,
+        (address, uint256, uint256[], uint256[], uint256, uint256)
+      );
+    assertEq(from, address(_removal));
+    assertEq(eventCertificateAmount, _certificateAmount);
+    assertEq(priceMultiple, _customPriceMultiple);
+    assertEq(noriFeePercentage, _customFee);
+    assertEq(removalIds.length, 1);
+    assertEq(removalAmounts.length, 1);
+    assertEq(removalIds[0], _removalIds[0]);
+    assertEq(removalAmounts[0], _certificateAmount);
+    assertEq(
+      _bpNori.balanceOf(_namedAccounts.supplier),
+      ((_certificateAmount * _customPriceMultiple)) / _priceMultipleScale
+    );
+    assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
+  }
 
-//   function test_revertsWhenSupplierDoesNotExistInMarket() external {
-//     vm.prank(_namedAccounts.buyer);
-//     vm.expectRevert(InsufficientSupply.selector);
-//     _market.swapWithoutFeeSpecialOrder({
-//       recipient: _namedAccounts.buyer,
-//       purchaser: _namedAccounts.buyer,
-//       amount: _certificateAmount,
-//       customFee: _customFee,
-//       customPriceMultiple: _customPriceMultiple,
-//       supplier: _nonexistentSupplier,
-//       vintages: new uint256[](0)
-//     });
-//   }
-// }
+  function test_revertsWhenSupplierDoesNotExistInMarket() external {
+    vm.prank(_namedAccounts.buyer);
+    vm.expectRevert(InsufficientSupply.selector);
+    _market.swapWithoutFeeSpecialOrder({
+      recipient: _namedAccounts.buyer,
+      purchaser: _namedAccounts.buyer,
+      amount: _certificateAmount,
+      customFee: _customFee,
+      customPriceMultiple: _customPriceMultiple,
+      supplier: _nonexistentSupplier,
+      vintages: new uint256[](0)
+    });
+  }
+}
 
 contract Checkout_swapWithoutFeeSpecialOrder_specificVintagesSpecificSupplier is
   Checkout
