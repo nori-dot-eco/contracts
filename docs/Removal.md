@@ -169,6 +169,24 @@ Emitted on releasing a removal from a supplier, the market, or a certificate.
 | amount | uint256 | The amount that was released. |
 
 
+### Migrate
+
+```solidity
+event Migrate(address certificateRecipient, uint256 certificateAmount, uint256 certificateId, uint256[] removalIds, uint256[] removalAmounts)
+```
+
+Emitted when legacy removals are minted and then immediately used to migrate a legacy certificate.
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| certificateRecipient | address | The recipient of the certificate to mint via migration. |
+| certificateAmount | uint256 | The total amount of the certificate to mint via migration (denominated in NRTs). |
+| certificateId | uint256 | The ID of the certificate to mint via migration. |
+| removalIds | uint256[] | The removal IDs to use to mint the certificate via migration. |
+| removalAmounts | uint256[] | The amounts for each corresponding removal ID to use to mint the certificate via migration. |
+
+
 ### Retire
 
 ```solidity
