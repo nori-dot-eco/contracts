@@ -619,7 +619,7 @@ contract Removal is
    *
    * ##### Requirements:
    *
-   * - Can only be called by the Market contract.
+   * - Can only be called by the Market contract or an account with the `CONSIGNOR_ROLE`.
    * - `ids` and `amounts` must have the same length.
    * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
    * acceptance magic value.
@@ -636,7 +636,9 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) public override {
-    if (_msgSender() != address(_market)) {
+    if (
+      _msgSender() != address(_market) && !hasRole(CONSIGNOR_ROLE, _msgSender())
+    ) {
       revert ForbiddenTransfer();
     }
     super.safeBatchTransferFrom({

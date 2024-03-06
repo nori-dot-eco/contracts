@@ -1330,35 +1330,7 @@ contract Removal__beforeTokenTransfer is NonUpgradeableRemoval {
   }
 }
 
-contract Removal_safeTransferFrom_reverts_ForbiddenTransfer is
-  UpgradeableMarket
-{
-  uint256[] private _removalIds;
-
-  function setUp() external {
-    _removalIds = _seedRemovals({
-      to: _namedAccounts.supplier,
-      count: 1,
-      list: false
-    });
-  }
-
-  function test() external {
-    vm.expectRevert(ForbiddenTransfer.selector);
-    vm.prank(_namedAccounts.supplier);
-    _removal.safeTransferFrom({
-      from: _namedAccounts.supplier,
-      to: _namedAccounts.supplier2,
-      id: _removalIds[0],
-      amount: 1 ether,
-      data: ""
-    });
-  }
-}
-
-contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
-  UpgradeableMarket
-{
+contract Removal_safeBatchTransferFrom is UpgradeableMarket {
   uint256[] private _removalIds;
 
   function setUp() external {
@@ -1369,7 +1341,7 @@ contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
     });
   }
 
-  function test() external {
+  function test_reverts_ForbiddenTransfer() external {
     vm.expectRevert(ForbiddenTransfer.selector);
     vm.prank(_namedAccounts.supplier);
     _removal.safeBatchTransferFrom({
@@ -1379,6 +1351,32 @@ contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
       amounts: new uint256[](2).fill(1 ether),
       data: ""
     });
+  }
+
+  function test_isCallableByConsignor() external {
+    vm.expectRevert(ForbiddenTransfer.selector);
+    vm.prank(_namedAccounts.admin);
+    _removal.safeBatchTransferFrom({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.admin,
+      ids: _removalIds,
+      amounts: new uint256[](2).fill(1 ether),
+      data: ""
+    });
+    _removal.grantRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: _namedAccounts.admin
+    });
+    vm.prank(_namedAccounts.admin);
+    _removal.safeBatchTransferFrom({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.admin,
+      ids: _removalIds,
+      amounts: new uint256[](2).fill(1 ether),
+      data: ""
+    });
+    assertEq(_removal.balanceOf(_namedAccounts.admin, _removalIds[0]), 1 ether);
+    assertEq(_removal.balanceOf(_namedAccounts.admin, _removalIds[1]), 1 ether);
   }
 }
 
