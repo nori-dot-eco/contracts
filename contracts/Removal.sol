@@ -619,7 +619,7 @@ contract Removal is
    *
    * ##### Requirements:
    *
-   * - Can only be called by the Market contract or an account with the `CONSIGNOR_ROLE`.
+   * - Can only be called by the Market contract.
    * - `ids` and `amounts` must have the same length.
    * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
    * acceptance magic value.
@@ -636,9 +636,7 @@ contract Removal is
     uint256[] memory amounts,
     bytes memory data
   ) public override {
-    if (
-      _msgSender() != address(_market) && !hasRole(CONSIGNOR_ROLE, _msgSender())
-    ) {
+    if (_msgSender() != address(_market)) {
       revert ForbiddenTransfer();
     }
     super.safeBatchTransferFrom({
@@ -647,6 +645,36 @@ contract Removal is
       ids: ids,
       amounts: amounts,
       data: data
+    });
+  }
+
+  /**
+   * @notice Permissioned version of `safeTransferFrom`.
+   * @dev Emits a `TransferBatch` event.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be called by an address with the `CONSIGNOR_ROLE`.
+   * - `ids` and `amounts` must have the same length.
+   * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
+   * acceptance magic value.
+   * @param from The address to transfer from.
+   * @param to The address to transfer to.
+   * @param ids The removal IDs to transfer.
+   * @param amounts The amounts of removals to transfer.
+   */
+  function consignorBatchTransfer(
+    address from,
+    address to,
+    uint256[] memory ids,
+    uint256[] memory amounts
+  ) public onlyRole(CONSIGNOR_ROLE) {
+    super._safeBatchTransferFrom({
+      from: from,
+      to: to,
+      ids: ids,
+      amounts: amounts,
+      data: ""
     });
   }
 
