@@ -615,6 +615,37 @@ contract Removal is
   }
 
   /**
+   * @notice Allows an address with the `CONSIGNOR_ROLE` to transfer tokens.
+   * @dev Emits a `TransferBatch` event.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be called by an address with the `CONSIGNOR_ROLE`.
+   * - Respects the rules of `Removal._beforeTokenTransfer`.
+   * - `ids` and `amounts` must have the same length.
+   * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
+   * acceptance magic value.
+   * @param from The address to transfer from.
+   * @param to The address to transfer to.
+   * @param ids The removal IDs to transfer.
+   * @param amounts The amounts of removals to transfer.
+   */
+  function consignorBatchTransfer(
+    address from,
+    address to,
+    uint256[] memory ids,
+    uint256[] memory amounts
+  ) public onlyRole(CONSIGNOR_ROLE) {
+    super._safeBatchTransferFrom({
+      from: from,
+      to: to,
+      ids: ids,
+      amounts: amounts,
+      data: ""
+    });
+  }
+
+  /**
    * @notice Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`.
    * @dev Emits an `ApprovalForAll` event.
    *

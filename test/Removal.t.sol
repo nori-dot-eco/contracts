@@ -1250,6 +1250,70 @@ contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
   }
 }
 
+contract Removal_consignorBatchTransfer is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 2,
+      list: false
+    });
+  }
+
+  function test() external {
+    _removal.grantRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: _namedAccounts.admin
+    });
+    assert(_removal.hasRole(_removal.CONSIGNOR_ROLE(), _namedAccounts.admin));
+    vm.prank(_namedAccounts.admin);
+    _removal.consignorBatchTransfer({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.admin,
+      ids: _removalIds,
+      amounts: new uint256[](2).fill(1 ether)
+    });
+    assertEq(_removal.balanceOf(_namedAccounts.admin, _removalIds[0]), 1 ether);
+    assertEq(_removal.balanceOf(_namedAccounts.admin, _removalIds[1]), 1 ether);
+  }
+
+  function test_reverts_whenSenderIsNotConsignor() external {
+    assert(!_removal.hasRole(_removal.CONSIGNOR_ROLE(), _namedAccounts.admin));
+    vm.expectRevert(
+      bytes(
+        string.concat(
+          "AccessControl: account 0x05127efcd2fc6a781bfed49188da1081670b22d8 is missing role ",
+          "0xa269776b75ac4c5fa422bb11bec3ed3cee626848d07687372583174b209261fb"
+        )
+      )
+    );
+    vm.prank(_namedAccounts.admin);
+    _removal.consignorBatchTransfer({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.admin,
+      ids: _removalIds,
+      amounts: new uint256[](2).fill(1 ether)
+    });
+  }
+
+  function test_reverts_whenReceiverIsNotConsignor() external {
+    _removal.grantRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: _namedAccounts.admin
+    });
+    assert(_removal.hasRole(_removal.CONSIGNOR_ROLE(), _namedAccounts.admin));
+    vm.expectRevert(ForbiddenTransfer.selector);
+    vm.prank(_namedAccounts.admin);
+    _removal.consignorBatchTransfer({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.supplier2,
+      ids: _removalIds,
+      amounts: new uint256[](2).fill(1 ether)
+    });
+  }
+}
+
 contract Removal_grantRole is UpgradeableMarket {
   function setUp() external {
     _removal.pause();

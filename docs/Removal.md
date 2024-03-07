@@ -552,6 +552,32 @@ acceptance magic value.</i>
 | data | bytes | The data to pass to the receiver contract. |
 
 
+### consignorBatchTransfer
+
+```solidity
+function consignorBatchTransfer(address from, address to, uint256[] ids, uint256[] amounts) public
+```
+
+Allows an address with the `CONSIGNOR_ROLE` to transfer tokens.
+
+<i>Emits a `TransferBatch` event.
+
+##### Requirements:
+
+- Can only be called by an address with the `CONSIGNOR_ROLE`.
+- Respects the rules of `Removal._beforeTokenTransfer`.
+- `ids` and `amounts` must have the same length.
+- If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
+acceptance magic value.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| from | address | The address to transfer from. |
+| to | address | The address to transfer to. |
+| ids | uint256[] | The removal IDs to transfer. |
+| amounts | uint256[] | The amounts of removals to transfer. |
+
+
 ### setApprovalForAll
 
 ```solidity
