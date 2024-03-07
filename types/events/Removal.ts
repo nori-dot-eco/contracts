@@ -5,6 +5,7 @@ import type {
   ApprovalForAllEvent,
   InitializedEvent,
   MigrateEvent,
+  RetireEvent,
   PausedEvent,
   ReleaseRemovalEvent,
   RoleAdminChangedEvent,
@@ -32,6 +33,10 @@ export interface RemovalEventMap {
   Migrate: {
     name: 'Migrate';
     args: MigrateEvent['args'];
+  };
+  Retire: {
+    name: 'Retire';
+    args: RetireEvent['args'];
   };
   Paused: {
     name: 'Paused';
