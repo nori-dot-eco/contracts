@@ -11,8 +11,8 @@ Each of these certificates is a non-transferrable, non-fungible token that owns 
 and token balances that comprise the specific certificate for the amount purchased.
 
 The market maintains a "priority restricted threshold", which is a configurable threshold of supply that is
-always reserved to sell only to buyers who have the `PRIORITY_ALLOWLIST_ROLE`.  Purchases that would drop supply below
-this threshold will revert without the correct role.
+always reserved to sell only to buyers who have the `PRIORITY_ALLOWLIST_ROLE`.
+Purchases that would drop supply below this threshold will revert without the correct role.
 
 ###### Additional behaviors and features
 
@@ -216,7 +216,7 @@ Emitted on setting of `_priceMultiple`.
 ### RegisterContractAddresses
 
 ```solidity
-event RegisterContractAddresses(contract Removal removal, contract Certificate certificate, contract IERC20WithPermit purchasingToken, contract RestrictedNORI restrictedNORI)
+event RegisterContractAddresses(contract Removal removal, contract Certificate certificate, contract IERC20WithPermit purchasingToken)
 ```
 
 Emitted on updating the addresses for contracts.
@@ -227,7 +227,6 @@ Emitted on updating the addresses for contracts.
 | removal | contract Removal | The address of the new Removal contract. |
 | certificate | contract Certificate | The address of the new Certificate contract. |
 | purchasingToken | contract IERC20WithPermit | The address of the new IERC20WithPermit contract. |
-| restrictedNORI | contract RestrictedNORI | The address of the new RestrictedNORI contract. |
 
 
 ### UpdateNoriFeeWalletAddress
@@ -305,41 +304,6 @@ Emitted when a removal is added to `_listedSupply`.
 | supplierAddress | address | The address of the supplier for the removal. |
 
 
-### RestrictedNORIMintFailure
-
-```solidity
-event RestrictedNORIMintFailure(uint256 amount, uint256 removalId)
-```
-
-Emitted when the call to RestrictedNORI.mint fails during a purchase.
-For example, due to sending to a contract address that is not an ERC1155Receiver.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| amount | uint256 | The amount of RestrictedNORI in the mint attempt. |
-| removalId | uint256 | The removal id in the mint attempt. |
-
-
-### SkipRestrictedNORIERC20Transfer
-
-```solidity
-event SkipRestrictedNORIERC20Transfer(uint256 amount, uint256 removalId, uint256 currentHoldbackPercentage, address rNoriUnderlyingToken, address purchasingTokenAddress)
-```
-
-Emitted when the ERC20 token that would be transferred to the RestrictedNORI contract is not the token
-address that RestrictedNORI was configured to wrap.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| amount | uint256 | The amount of _purchasingToken currency in the failed transfer attempt. |
-| removalId | uint256 | The removal id being processed during the transfer attempt. |
-| currentHoldbackPercentage | uint256 | The holdback percentage for this removal id's project at the time of this event emission. |
-| rNoriUnderlyingToken | address | The address of the token contract that RestrictedNORI was configured to wrap. |
-| purchasingTokenAddress | address | The address of the ERC20 token that would have been transferred to RestrictedNORI. |
-
-
 ### UpdateCertificate
 
 ```solidity
@@ -375,7 +339,7 @@ Locks the contract, preventing any future re-initialization.
 ### initialize
 
 ```solidity
-function initialize(contract Removal removal, contract IERC20WithPermit purchasingToken, contract Certificate certificate, contract RestrictedNORI restrictedNori, address noriFeeWalletAddress, uint256 noriFeePercentage_, uint256 priceMultiple_) external
+function initialize(contract Removal removal, contract IERC20WithPermit purchasingToken, contract Certificate certificate, address noriFeeWalletAddress, uint256 noriFeePercentage_, uint256 priceMultiple_) external
 ```
 
 Initializes the Market contract.
@@ -387,7 +351,6 @@ Initializes the Market contract.
 | removal | contract Removal | The address of the Removal contract. |
 | purchasingToken | contract IERC20WithPermit | The address of the IERC20WithPermit token used to purchase from this market. |
 | certificate | contract Certificate | The address of the Certificate contract. |
-| restrictedNori | contract RestrictedNORI | The address of the RestrictedNORI contract. |
 | noriFeeWalletAddress | address | The address for Nori's fee wallet. |
 | noriFeePercentage_ | uint256 | The percentage to take from every transaction. This fee is sent to the address specified by `noriFeeWalletAddress`. |
 | priceMultiple_ | uint256 | The number of base tokens required to purchase one NRT. |
@@ -445,12 +408,12 @@ market.</i>
 ### registerContractAddresses
 
 ```solidity
-function registerContractAddresses(contract Removal removal, contract Certificate certificate, contract IERC20WithPermit purchasingToken, contract RestrictedNORI restrictedNORI) external
+function registerContractAddresses(contract Removal removal, contract Certificate certificate, contract IERC20WithPermit purchasingToken) external
 ```
 
 Register the market contract's asset addresses.
 
-<i>Register the Removal, Certificate, IERC20WithPermit, and RestrictedNORI contracts so that they
+<i>Register the Removal, Certificate, and IERC20WithPermit contracts so that they
 can be referenced in this contract. Called as part of the market contract system deployment process.
 
 Emits a `RegisterContractAddresses` event.
@@ -465,7 +428,6 @@ Emits a `RegisterContractAddresses` event.
 | removal | contract Removal | The address of the Removal contract. |
 | certificate | contract Certificate | The address of the Certificate contract. |
 | purchasingToken | contract IERC20WithPermit | The address of the IERC20WithPermit token used to purchase from this market. |
-| restrictedNORI | contract RestrictedNORI | The address of the market contract. |
 
 
 ### setPurchasingTokenAndPriceMultiple
@@ -627,8 +589,7 @@ certificate. Relies on the EIP-2612 permit extension to facilitate ERC20 token t
 <i>See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
 The message sender must sign and present a valid permit to this contract to temporarily authorize this market
 to transfer their ERC20 to complete the purchase. A certificate is minted in the Certificate contract
-to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals,
-to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
+to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
 to Nori Inc. as a market operator fee.
 
 ##### Requirements:
@@ -659,9 +620,8 @@ certificate. Relies on pre-approval of this market by the transaction sender to 
 for more.
 The sender must have granted approval to this contract to authorize this market to transfer their
 supported ERC20 to complete the purchase. A certificate is minted in the Certificate contract
-to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removals,
-to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
-to Nori Inc. as a market operator fee.
+to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removals
+and to Nori Inc. as a market operator fee.
 
 ##### Requirements:
 
@@ -689,8 +649,7 @@ off-chain.
 for more.
 The purchaser must have granted approval to this contract to authorize this market to transfer their
 supported ERC20 to complete the purchase. A certificate is minted in the Certificate
-contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
-potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
+contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals.
 
 ##### Requirements:
 
@@ -928,20 +887,6 @@ Get the Removal contract address.
 | ---- | ---- | ----------- |
 | [0] | address | Returns the address of the Removal contract. |
 
-### getRestrictedNoriAddress
-
-```solidity
-function getRestrictedNoriAddress() external view returns (address)
-```
-
-Get the RestrictedNORI contract address.
-
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | address | Returns the address of the RestrictedNORI contract. |
-
 ### getCertificateAddress
 
 ```solidity
@@ -1057,8 +1002,7 @@ purchase 1 NRT. The minimum value for the price multiple is 100, to avoid loss o
 function _transferFunds(bool chargeFee, address from, uint256 countOfRemovalsAllocated, uint256[] ids, uint256[] amounts, address[] suppliers) internal
 ```
 
-Pays the suppliers for the removals being purchased, routes funds to the RestrictedNORI contract if
-necessary, and pays a fee to Nori if `chargeFee` is true.
+Pays the suppliers for the removals being purchased and pays a fee to Nori if `chargeFee` is true.
 
 
 | Name | Type | Description |
@@ -1079,7 +1023,7 @@ function _fulfillOrder(struct Market.FulfillOrderData orderData) internal
 
 Fulfill an order.
 
-<i>This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
+<i>This function is responsible for paying suppliers, paying Nori
 the order fee, updating accounting, and minting the Certificate.</i>
 
 | Name | Type | Description |

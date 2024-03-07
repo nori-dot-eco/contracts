@@ -5,7 +5,6 @@ import type {
   NORI,
   BridgedPolygonNORI,
   Certificate,
-  RestrictedNORI,
 } from '../typechain-types/index';
 import type { Contracts } from '../contracts';
 
@@ -15,7 +14,6 @@ import type { NORIEvents } from './NORI';
 import type { LockedNORIEvents } from './LockedNORI';
 import type { MarketEvents } from './Market';
 import type { CertificateEvents } from './Certificate';
-import type { RestrictedNORIEvents } from './RestrictedNORI';
 
 export type ContractWithEvents = Contracts[keyof Contracts];
 
@@ -32,8 +30,6 @@ export type ContractEventInterface<TInterface extends ContractWithEvents> =
     ? BridgedPolygonNORIEvents
     : TInterface extends Certificate
     ? CertificateEvents
-    : TInterface extends RestrictedNORI
-    ? RestrictedNORIEvents
     : never;
 
 export type ContractEventNames<TInterface extends ContractWithEvents> =

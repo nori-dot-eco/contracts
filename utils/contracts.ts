@@ -5,7 +5,6 @@ import type {
   Certificate,
   Market,
   LockedNORI,
-  RestrictedNORI,
   NORI,
   Removal,
   RemovalTestHarness,
@@ -87,19 +86,6 @@ export const getLockedNORI = ({
     signer,
   });
 
-export const getRestrictedNORI = ({
-  hre,
-  signer,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-  signer?: ConstructorParameters<typeof Contract>[2];
-}): Promise<RestrictedNORI> =>
-  getContract({
-    contractName: 'RestrictedNORI',
-    hre,
-    signer,
-  });
-
 export const getCertificate = async ({
   hre,
   signer,
@@ -163,9 +149,6 @@ export const getContractsFromDeployments = async (
       : undefined,
     LockedNORI: deployments.LockedNORI?.address
       ? await getLockedNORI({ hre })
-      : undefined,
-    RestrictedNORI: deployments.RestrictedNORI?.address
-      ? await getRestrictedNORI({ hre })
       : undefined,
     Market: deployments.Market?.address ? await getMarket({ hre }) : undefined,
     Removal: deployments.Removal?.address
