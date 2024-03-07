@@ -3,7 +3,6 @@ import { BigNumber } from 'ethers';
 import { defaultRemovalTokenIdFixture } from './fixtures/removal';
 
 import { sum } from '@/utils/math';
-import { SECONDS_IN_10_YEARS } from '@/test/helpers/restricted-nori';
 import { Zero, AddressZero } from '@/constants/units';
 import { createBatchMintData, expect, setupTest } from '@/test/helpers';
 import { formatTokenAmount } from '@/utils/units';
@@ -90,7 +89,7 @@ describe('Removal', () => {
         const marketTotalSupply = await removal.getMarketBalance();
         expect(marketTotalSupply).to.equal(Zero);
       });
-      it('should mint and list a batch of removals in the same transaction and create restriction schedules', async () => {
+      it('should mint and list a batch of removals in the same transaction', async () => {
         const { market, removal, removalTestHarness } = await setupTest();
         const removalBalances = [100, 200, 300, 400].map((balance) =>
           formatTokenAmount(balance)
@@ -141,9 +140,8 @@ describe('Removal', () => {
         }
         expect(await removal.getMarketBalance()).to.equal(expectedMarketSupply);
       });
-      it('should list pre-minted removals for sale in the atomic marketplace and create restriction schedules', async () => {
-        const { market, removal, rNori, removalTestHarness } =
-          await setupTest();
+      it('should list pre-minted removals for sale in the market', async () => {
+        const { market, removal, removalTestHarness } = await setupTest();
         const { namedAccounts } = hre;
         const removalBalances = [100, 200, 300].map((balance) =>
           formatTokenAmount(balance)
@@ -177,12 +175,6 @@ describe('Removal', () => {
             namedAccounts.supplier,
             tokenIds,
             removalBalances
-          )
-          .to.emit(rNori, 'ScheduleCreated')
-          .withArgs(
-            data.projectId,
-            data.scheduleStartTime,
-            BigNumber.from(data.scheduleStartTime).add(SECONDS_IN_10_YEARS)
           );
         await expect(
           removal.multicall(

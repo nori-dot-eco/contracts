@@ -906,7 +906,6 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
   uint256 private _certificateAmount = 1 ether;
   uint256 private _customPriceMultiple = 1800; // $18.00 -- test below the default price multiple of $20.00
   uint256[] private _vintages = new uint256[](0);
-  uint256 private _holdbackPercentage = 50;
   uint256 private _priceMultipleScale = 100;
 
   function setUp() external {
@@ -943,7 +942,13 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
     });
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    uint256 createCertificateEventIndex = 8;
+    uint256 createCertificateEventIndex;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
+        createCertificateEventIndex = i;
+        break;
+      }
+    }
     assertEq(
       entries[createCertificateEventIndex].topics[0],
       CREATE_CERTIFICATE_EVENT_SELECTOR
@@ -981,9 +986,7 @@ contract Checkout_swapWithoutFeeSpecialOrder is Checkout {
     assertEq(removalAmounts[0], _certificateAmount);
     assertEq(
       _bpNori.balanceOf(_namedAccounts.supplier),
-      ((_certificateAmount * _customPriceMultiple) * _holdbackPercentage) /
-        _priceMultipleScale /
-        100
+      ((_certificateAmount * _customPriceMultiple)) / _priceMultipleScale
     );
     assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
   }
@@ -1139,7 +1142,6 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificSupplier is Checkout {
   uint256 private _certificateAmount = 1 ether;
   uint256 private _customPriceMultiple = 2500; // $25.00 -- test above the default price multiple of $20.00
   address private _nonexistentSupplier = account("nonexistent supplier");
-  uint256 private _holdbackPercentage = 50;
   uint256 private _priceMultipleScale = 100;
 
   function setUp() external {
@@ -1175,7 +1177,13 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificSupplier is Checkout {
       vintages: new uint256[](0)
     });
     Vm.Log[] memory entries = vm.getRecordedLogs();
-    uint256 createCertificateEventIndex = 8;
+    uint256 createCertificateEventIndex;
+    for (uint256 i = 0; i < entries.length; ++i) {
+      if (entries[i].topics[0] == CREATE_CERTIFICATE_EVENT_SELECTOR) {
+        createCertificateEventIndex = i;
+        break;
+      }
+    }
     assertEq(
       entries[createCertificateEventIndex].topics[0],
       CREATE_CERTIFICATE_EVENT_SELECTOR
@@ -1213,9 +1221,7 @@ contract Checkout_swapWithoutFeeSpecialOrder_specificSupplier is Checkout {
     assertEq(removalAmounts[0], _certificateAmount);
     assertEq(
       _bpNori.balanceOf(_namedAccounts.supplier),
-      ((_certificateAmount * _customPriceMultiple) * _holdbackPercentage) /
-        _priceMultipleScale /
-        100
+      ((_certificateAmount * _customPriceMultiple)) / _priceMultipleScale
     );
     assertEq(_bpNori.balanceOf(_namedAccounts.feeWallet), 0);
   }

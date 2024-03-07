@@ -29,7 +29,6 @@ import {
 import {IMarket} from "./IMarket.sol";
 import {ICertificate} from "./ICertificate.sol";
 import {IRemoval} from "./IRemoval.sol";
-import {IRestrictedNORI} from "./IRestrictedNORI.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
 
 /**
@@ -47,9 +46,7 @@ import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
  * ###### Minting
  * - Only accounts with the CONSIGNOR_ROLE can mint removal tokens, which should only be account(s) controlled by Nori.
  * - When removal tokens are minted, additional data about those removals are stored in a mapping keyed by the token ID,
- * such as a project ID and a holdback percentage (which determines the percentage of the sale proceeds from the token
- * that will be routed to the RestrictedNORI contract). A restriction schedule is created per `projectId` (if necessary)
- * in RestrictedNORI (see the [RestrictedNORI docs](../docs/RestrictedNORI.md)).
+ * such as a project ID.
  * - Minting reverts when attempting to mint a token ID that already exists.
  * - The function `addBalance` can be used to mint additional balance to a token ID that already exists.
  *
@@ -148,15 +145,14 @@ contract Removal is
   ICertificate private _certificate;
 
   /**
-   * @dev Maps from a given project ID to the holdback percentage that will be used to determine what percentage of
-   * proceeds are routed to the RestrictedNORI contract when removals from this project are sold.
-   */
-  mapping(uint256 => uint8) private _projectIdToHoldbackPercentage;
-
-  /**
    * @dev Maps from a removal ID to the project ID it belongs to.
    */
   mapping(uint256 => uint256) private _removalIdToProjectId;
+
+  /**
+   * @dev Deprecated. This storage gap remains to maintain the storage layout of the contract.
+   */
+  mapping(uint256 => uint8) private _storageGap;
 
   /**
    * @notice Maps from an address to an EnumerableSet of the token IDs for which that address has a non-zero balance.
@@ -277,27 +273,6 @@ contract Removal is
   }
 
   /**
-   * @notice Update the holdback percentage value for a project.
-   * @dev Emits a `SetHoldbackPercentage` event.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
-   * - Can only be used when this contract is not paused.
-   * @param projectId The id of the project for which to update the holdback percentage.
-   * @param holdbackPercentage The new holdback percentage.
-   */
-  function setHoldbackPercentage(
-    uint256 projectId,
-    uint8 holdbackPercentage
-  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
-    _setHoldbackPercentage({
-      projectId: projectId,
-      holdbackPercentage: holdbackPercentage
-    });
-  }
-
-  /**
    * @notice Mints multiple removals at once (for a single supplier).
    * @dev If `to` is the market address, the removals are listed for sale in the market.
    *
@@ -326,22 +301,7 @@ contract Removal is
       removals: removals,
       projectId: projectId
     });
-    _setHoldbackPercentage({
-      projectId: projectId,
-      holdbackPercentage: holdbackPercentage
-    });
     _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
-    IRestrictedNORI _restrictedNORI = IRestrictedNORI(
-      _market.getRestrictedNoriAddress()
-    );
-    if (!_restrictedNORI.scheduleExists({scheduleId: projectId})) {
-      _restrictedNORI.createSchedule({
-        projectId: projectId,
-        startTime: scheduleStartTime,
-        methodology: removals[0].methodology,
-        methodologyVersion: removals[0].methodologyVersion
-      });
-    }
   }
 
   /**
@@ -529,21 +489,12 @@ contract Removal is
   }
 
   /**
-   * @notice Get the project ID (which is the removal's schedule ID in RestrictedNORI) for a given removal ID.
+   * @notice Get the project ID for a given removal ID.
    * @param id The removal token ID for which to retrieve the project ID.
    * @return The project ID for the removal token ID.
    */
   function getProjectId(uint256 id) external view override returns (uint256) {
     return _removalIdToProjectId[id];
-  }
-
-  /**
-   * @notice Gets the holdback percentage for a removal.
-   * @param id The removal token ID for which to retrieve the holdback percentage.
-   * @return The holdback percentage for the removal token ID.
-   */
-  function getHoldbackPercentage(uint256 id) external view returns (uint8) {
-    return _projectIdToHoldbackPercentage[_removalIdToProjectId[id]];
   }
 
   /**
@@ -704,28 +655,6 @@ contract Removal is
     returns (bool)
   {
     return super.supportsInterface({interfaceId: interfaceId});
-  }
-
-  /**
-   * @notice Update the holdback percentage value for a project.
-   * @dev Emits a `SetHoldbackPercentage` event.
-   * @param projectId The id of the project for which to update the holdback percentage.
-   * @param holdbackPercentage The new holdback percentage.
-   */
-  function _setHoldbackPercentage(
-    uint256 projectId,
-    uint8 holdbackPercentage
-  ) internal {
-    if (holdbackPercentage > 100) {
-      revert InvalidHoldbackPercentage({
-        holdbackPercentage: holdbackPercentage
-      });
-    }
-    _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
-    emit SetHoldbackPercentage({
-      projectId: projectId,
-      holdbackPercentage: holdbackPercentage
-    });
   }
 
   /**

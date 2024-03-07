@@ -32,7 +32,6 @@ deploy.dependencies = [
   'Removal',
   'Certificate',
   'BridgedPolygonNORI',
-  'RestrictedNORI',
 ];
 if (hre.network.name !== 'polygon') {
   deploy.dependencies = [...deploy.dependencies];

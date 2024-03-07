@@ -6,7 +6,6 @@ import type {
   NORI,
   BridgedPolygonNORI,
   Certificate,
-  RestrictedNORI,
 } from './typechain-types/index';
 
 export interface Contracts {
@@ -15,6 +14,5 @@ export interface Contracts {
   BridgedPolygonNORI: BridgedPolygonNORI;
   Market: Market;
   LockedNORI: LockedNORI;
-  RestrictedNORI: RestrictedNORI;
   Certificate: Certificate;
 }

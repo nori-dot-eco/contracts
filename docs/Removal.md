@@ -13,9 +13,7 @@ carbon removed.
 ###### Minting
 - Only accounts with the CONSIGNOR_ROLE can mint removal tokens, which should only be account(s) controlled by Nori.
 - When removal tokens are minted, additional data about those removals are stored in a mapping keyed by the token ID,
-such as a project ID and a holdback percentage (which determines the percentage of the sale proceeds from the token
-that will be routed to the RestrictedNORI contract). A restriction schedule is created per `projectId` (if necessary)
-in RestrictedNORI (see the [RestrictedNORI docs](../docs/RestrictedNORI.md)).
+such as a project ID.
 - Minting reverts when attempting to mint a token ID that already exists.
 - The function `addBalance` can be used to mint additional balance to a token ID that already exists.
 
@@ -253,27 +251,6 @@ Called as part of the market contract system deployment process.
 | certificate | contract ICertificate | The address of the Certificate contract. |
 
 
-### setHoldbackPercentage
-
-```solidity
-function setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage) external
-```
-
-Update the holdback percentage value for a project.
-
-<i>Emits a `SetHoldbackPercentage` event.
-
-##### Requirements:
-
-- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
-- Can only be used when this contract is not paused.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| projectId | uint256 | The id of the project for which to update the holdback percentage. |
-| holdbackPercentage | uint8 | The new holdback percentage. |
-
-
 ### mintBatch
 
 ```solidity
@@ -441,7 +418,7 @@ Get the address of the Certificate contract.
 function getProjectId(uint256 id) external view returns (uint256)
 ```
 
-Get the project ID (which is the removal's schedule ID in RestrictedNORI) for a given removal ID.
+Get the project ID for a given removal ID.
 
 
 | Name | Type | Description |
@@ -451,23 +428,6 @@ Get the project ID (which is the removal's schedule ID in RestrictedNORI) for a 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | uint256 | The project ID for the removal token ID. |
-
-### getHoldbackPercentage
-
-```solidity
-function getHoldbackPercentage(uint256 id) external view returns (uint8)
-```
-
-Gets the holdback percentage for a removal.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| id | uint256 | The removal token ID for which to retrieve the holdback percentage. |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint8 | The holdback percentage for the removal token ID. |
 
 ### getMarketBalance
 
@@ -634,22 +594,6 @@ This function call must use less than 30,000 gas.</i>
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | bool | True if this contract implements the interface defined by &#x60;interfaceId&#x60;, otherwise false. |
-
-### _setHoldbackPercentage
-
-```solidity
-function _setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage) internal
-```
-
-Update the holdback percentage value for a project.
-
-<i>Emits a `SetHoldbackPercentage` event.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| projectId | uint256 | The id of the project for which to update the holdback percentage. |
-| holdbackPercentage | uint8 | The new holdback percentage. |
-
 
 ### _createRemovals
 

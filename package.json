@@ -15,7 +15,6 @@
     "./artifacts/contracts/Certificate.sol/Certificate.json": "./dist/artifacts/contracts/Certificate.sol/Certificate.json",
     "./artifacts/contracts/Market.sol/Market.json": "./dist/artifacts/contracts/Market.sol/Market.json",
     "./artifacts/contracts/LockedNORI.sol/LockedNORI.json": "./dist/artifacts/contracts/LockedNORI.sol/LockedNORI.json",
-    "./artifacts/contracts/RestrictedNORI.sol/RestrictedNORI.json": "./dist/artifacts/contracts/RestrictedNORI.sol/RestrictedNORI.json",
     "./artifacts/contracts/NORI.sol/NORI.json": "./dist/artifacts/contracts/NORI.sol/NORI.json",
     "./types/typechain-types/artifacts/contracts/*": "./dist/types/typechain-types/artifacts/contracts/*",
     "./test/fixtures/*": "./dist/test/fixtures/*"

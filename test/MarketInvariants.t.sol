@@ -335,8 +335,6 @@ contract MarketInvariantTest is StdInvariant, Global {
   // - removal tokens should only be held by the specific subset of addresses that are allowed to hold them
   // - the nrtDeficit in the certificate contract should never exceed the number of NRTs that were released
   // - the active suppliers in the market should only come from the set of addresses used to mint removal batches
-  // - the amount of bpNori held by the RestrictedNORI contract should never exceed the total supply all schedule 1155s
-  //    combined
   // - all kinds of contract-specific invariants that could examine things like permissions and roles etc.
   //    (consider writing contract-specific handlers for this with minimal setup)
 
