@@ -208,6 +208,22 @@ contract Removal is
   );
 
   /**
+   * @notice Emitted when removals are directly retired into a certificate by Nori.
+   * @param certificateRecipient The recipient of the certificate.
+   * @param certificateAmount The total amount of the certificate to mint (denominated in RTs).
+   * @param certificateId The ID of the certificate being minted.
+   * @param removalIds The removal IDs to use to mint the certificate.
+   * @param removalAmounts The amounts to retire from each corresponding removal ID.
+   */
+  event Retire(
+    address indexed certificateRecipient,
+    uint256 indexed certificateAmount,
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] removalAmounts
+  );
+
+  /**
    * @notice Locks the contract, preventing any future re-initialization.
    * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
    * @custom:oz-upgrades-unsafe-allow constructor
@@ -341,19 +357,18 @@ contract Removal is
 
   /**
    * @notice Transfers the provided `amounts` (denominated in NRTs) of the specified removal `ids` directly to the
-   * Certificate contract to mint a legacy certificate. This function provides Nori the ability to execute a one-off
-   * migration of legacy certificates and removals (legacy certificates and removals are those which existed prior to
-   * our deployment to Polygon and covers all historic issuances and purchases up until the date that we start using the
-   * Market contract).
+   * Certificate contract to mint a certificate. This function provides Nori the ability to retire removals directly
+   * into the Certificate contract and to specify exactly which removals will be retired.
    * @dev The Certificate contract implements `onERC1155BatchReceived`, which is invoked upon receipt of a batch of
-   * removals (triggered via `_safeBatchTransferFrom`). This function circumvents the market contract's lifecycle by
+   * removals (triggered via `_safeBatchTransferFrom`). This function circumvents the market contract by
    * transferring the removals from an account with the `CONSIGNOR_ROLE` role.
+   * Emits a `Retire` event.
    *
    * It is necessary that the consignor holds the removals because of the following:
    * - `ids` can be composed of a list of removal IDs that belong to one or more suppliers.
    * - `_safeBatchTransferFrom` only accepts one `from` address.
    * - `Certificate.onERC1155BatchReceived` will mint a *new* certificate every time an additional batch is received, so
-   * we must ensure that all the removals comprising the certificate to be migrated come from a single batch.
+   * we must ensure that all the removals comprising the certificate come from a single batch.
    *
    * ##### Requirements:
    * - The caller must have the `CONSIGNOR_ROLE` role.
@@ -367,13 +382,13 @@ contract Removal is
    * @param certificateRecipient The recipient of the certificate to be minted.
    * @param certificateAmount The total amount of the certificate.
    */
-  function migrate(
+  function retire(
     uint256[] calldata ids,
     uint256[] calldata amounts,
     address certificateRecipient,
     uint256 certificateAmount
   ) external onlyRole(CONSIGNOR_ROLE) {
-    emit Migrate({
+    emit Retire({
       certificateRecipient: certificateRecipient,
       certificateAmount: certificateAmount,
       certificateId: _certificate.totalMinted(),
