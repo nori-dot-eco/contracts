@@ -781,19 +781,22 @@ contract Market is
   }
 
   /**
-   * @notice Withdraws a removal to the supplier.
-   * @dev Withdraws a removal to the supplier address encoded in the removal ID.
+   * @notice Withdraws a removal from the Market.
+   * @dev Withdraws a removal to the specified address, which much be the supplier of the removal
+   * or have the `Removal.CONSIGNOR_ROLE`.
    *
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
+   * - Can only withdraw to the supplier of the removal or an address with the `Removal.CONSIGNOR_ROLE`.
    * @param removalId The ID of the removal to withdraw from the market.
+   * @param to The address to which the removal will be transferred.
    */
-  function withdraw(uint256 removalId) external whenNotPaused {
+  function withdraw(uint256 removalId, address to) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress({
       removalId: removalId
     });
-    if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
+    if (_isAuthorizedWithdrawal({supplier: supplierAddress, to: to})) {
       _removeActiveRemoval({
         removalId: removalId,
         supplierAddress: supplierAddress
@@ -1349,16 +1352,26 @@ contract Market is
   }
 
   /**
-   * @dev Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
-   * does not have the role `MARKET_ADMIN_ROLE`.
-   * @param owner The owner of the removal.
-   * @return Returns true if the caller is the owner, an approved spender, or has the role `MARKET_ADMIN_ROLE`,
-   * false otherwise.
+   * @dev Authorizes withdrawal for the removal. Reverts if the caller is not the supplier of the removal and
+   * does not have the role `MARKET_ADMIN_ROLE`, or if the recipient of the removal is either not the supplier
+   * of the removal or does not have the `Removal.CONSIGNOR_ROLE`.
+   * @param supplier The supplier of the removal.
+   * @return Returns true if the caller is the supplier, an approved spender, or has the role `MARKET_ADMIN_ROLE`,
+   * and the recipient is the removal supplier or has the `Removal.CONSIGNOR_ROLE`, false otherwise.
    */
-  function _isAuthorizedWithdrawal(address owner) internal view returns (bool) {
-    return (_msgSender() == owner ||
-      hasRole({role: MARKET_ADMIN_ROLE, account: _msgSender()}) ||
-      _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
+  function _isAuthorizedWithdrawal(
+    address supplier,
+    address to
+  ) internal view returns (bool) {
+    return
+      (_msgSender() == supplier ||
+        hasRole({role: MARKET_ADMIN_ROLE, account: _msgSender()}) ||
+        _removal.isApprovedForAll({
+          account: supplier,
+          operator: _msgSender()
+        })) &&
+      (_removal.hasRole({role: _removal.CONSIGNOR_ROLE(), account: to}) ||
+        supplier == to);
   }
 
   /**
