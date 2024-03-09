@@ -782,7 +782,7 @@ contract Market is
 
   /**
    * @notice Withdraws a removal from the Market.
-   * @dev Withdraws a removal to the specified address, which much be the supplier of the removal
+   * @dev Withdraws a removal to the specified address, which must be the supplier of the removal
    * or have the `Removal.CONSIGNOR_ROLE`.
    *
    * ##### Requirements:

@@ -614,6 +614,38 @@ contract Market_withdraw_2x1_back is MarketBalanceTestHelper {
   }
 }
 
+contract Market_withdraw_to_CONSIGNOR_ROLE is MarketBalanceTestHelper {
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    _suppliers = new address[](1).fill(_namedAccounts.supplier);
+    _expectedRemovalBalances = [0];
+    _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
+    _expectedTokenCount.set(_namedAccounts.supplier, 0);
+    _expectedTokenCount.set(address(_market), 1);
+    _assertCorrectStates();
+    _removal.grantRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: _namedAccounts.supplier3
+    });
+    assert(
+      _removal.hasRole(_removal.CONSIGNOR_ROLE(), _namedAccounts.supplier3)
+    );
+  }
+
+  function test() external {
+    _market.withdraw({removalId: _removalIds[0], to: _namedAccounts.supplier3});
+    _expectedRemovalBalances = [_amountPerRemoval];
+    _expectedMarketSupply = 0;
+    _expectedTokenCount.set(_namedAccounts.supplier, 1);
+    _expectedTokenCount.set(address(_market), 0);
+    _assertCorrectStates();
+  }
+}
+
 contract Market_ALLOWLIST_ROLE is UpgradeableMarket {
   function test() external {
     assertEq(

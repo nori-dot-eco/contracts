@@ -671,20 +671,23 @@ contract to the specified recipient and the ERC20 is distributed to the supplier
 ### withdraw
 
 ```solidity
-function withdraw(uint256 removalId) external
+function withdraw(uint256 removalId, address to) external
 ```
 
-Withdraws a removal to the supplier.
+Withdraws a removal from the Market.
 
-<i>Withdraws a removal to the supplier address encoded in the removal ID.
+<i>Withdraws a removal to the specified address, which must be the supplier of the removal
+or have the `Removal.CONSIGNOR_ROLE`.
 
 ##### Requirements:
 
-- Can only be used when this contract is not paused.</i>
+- Can only be used when this contract is not paused.
+- Can only withdraw to the supplier of the removal or an address with the `Removal.CONSIGNOR_ROLE`.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | removalId | uint256 | The ID of the removal to withdraw from the market. |
+| to | address | The address to which the removal will be transferred. |
 
 
 ### getPriceMultiple
@@ -1165,20 +1168,22 @@ Validates that the listed supply is enough to fulfill the purchase given the pri
 ### _isAuthorizedWithdrawal
 
 ```solidity
-function _isAuthorizedWithdrawal(address owner) internal view returns (bool)
+function _isAuthorizedWithdrawal(address supplier, address to) internal view returns (bool)
 ```
 
 
-<i>Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
-does not have the role `MARKET_ADMIN_ROLE`.</i>
+<i>Authorizes withdrawal for the removal. Reverts if the caller is not the supplier of the removal and
+does not have the role `MARKET_ADMIN_ROLE`, or if the recipient of the removal is either not the supplier
+of the removal or does not have the `Removal.CONSIGNOR_ROLE`.</i>
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| owner | address | The owner of the removal. |
+| supplier | address | The supplier of the removal. |
+| to | address |  |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | bool | Returns true if the caller is the owner, an approved spender, or has the role &#x60;MARKET_ADMIN_ROLE&#x60;, false otherwise. |
+| [0] | bool | Returns true if the caller is the supplier, an approved spender, or has the role &#x60;MARKET_ADMIN_ROLE&#x60;, and the recipient is the removal supplier or has the &#x60;Removal.CONSIGNOR_ROLE&#x60;, false otherwise. |
 
 ### _validateReplacementAmounts
 
