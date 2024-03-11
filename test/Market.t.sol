@@ -1097,6 +1097,16 @@ contract Market__setPriceMultiple is NonUpgradeableMarket {
     assertEq(abi.decode(entries[0].data, (uint256)), newPriceMultiple);
   }
 
+  function test_canBeZero() external {
+    vm.recordLogs();
+    uint256 newPriceMultiple = 0;
+    _setPriceMultiple({priceMultiple: newPriceMultiple});
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 1);
+    assertEq(entries[0].topics[0], keccak256("SetPriceMultiple(uint256)"));
+    assertEq(abi.decode(entries[0].data, (uint256)), newPriceMultiple);
+  }
+
   function test_revertsWhenSetBelow100() external {
     vm.recordLogs();
     uint256 newPriceMultiple = 20;
