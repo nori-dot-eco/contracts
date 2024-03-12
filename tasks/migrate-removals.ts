@@ -44,8 +44,6 @@ interface Project {
   amounts: number[];
   removals: RemovalData[];
   projectId: number;
-  scheduleStartTime: number;
-  holdbackPercentage: number;
   txReceipt?: TransactionReceipt;
   tokenIds?: string[];
   error?: any;
@@ -55,8 +53,6 @@ interface InputData {
   amounts: number[];
   removals: RemovalData[];
   projectId: number;
-  scheduleStartTime: number;
-  holdbackPercentage: number;
 }
 
 type Projects = Project[];
@@ -310,8 +306,6 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
                   amounts,
                   removals,
                   project.projectId,
-                  project.scheduleStartTime,
-                  project.holdbackPercentage,
                   { gasPrice }
                 ),
               TIMEOUT_DURATION
@@ -324,9 +318,7 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
                   signerAddress, // mint to the consignor
                   amounts,
                   removals,
-                  project.projectId,
-                  project.scheduleStartTime,
-                  project.holdbackPercentage
+                  project.projectId
                 ),
               TIMEOUT_DURATION
             );

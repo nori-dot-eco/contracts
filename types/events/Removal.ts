@@ -11,7 +11,6 @@ import type {
   RoleAdminChangedEvent,
   RoleGrantedEvent,
   RoleRevokedEvent,
-  SetHoldbackPercentageEvent,
   TransferBatchEvent,
   TransferSingleEvent,
   URIEvent,
@@ -61,10 +60,6 @@ export interface RemovalEventMap {
   RoleRevoked: {
     name: 'RoleRevoked';
     args: RoleRevokedEvent['args'];
-  };
-  SetHoldbackPercentage: {
-    name: 'SetHoldbackPercentage';
-    args: SetHoldbackPercentageEvent['args'];
   };
   TransferBatch: {
     name: 'TransferBatch';

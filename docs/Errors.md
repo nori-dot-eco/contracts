@@ -316,17 +316,6 @@ Thrown when the caller specifies the zero address for the Nori fee wallet.
 
 
 
-## InvalidHoldbackPercentage
-
-```solidity
-error InvalidHoldbackPercentage(uint8 holdbackPercentage)
-```
-
-Thrown when a holdback percentage greater than 100 is submitted to `mintBatch`.
-
-
-
-
 ## InvalidPurchasingTokenDecimals
 
 ```solidity

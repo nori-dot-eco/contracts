@@ -58,8 +58,6 @@ contract MarketHandler is UpgradeableMarket {
    * - the supplier is chosen randomly from a predefined set of possible suppliers
    * - the amounts are chosen randomly between 0 and 1 ether-
    * - the projectId is between 1 and 1 billion
-   * - the scheduleStartTime is between 1 and intMax minus 10 years (avoid overflow when calculating end time for schedules)
-   * - the holdbackPercentage is between 0 and 100
    * - other ID fields are hardcoded
    */
   function mintRemovalBatchMinimizeReverts(uint256 fuzz) external {
@@ -92,9 +90,7 @@ contract MarketHandler is UpgradeableMarket {
       to: supplierAddress,
       amounts: amounts,
       removals: removals,
-      projectId: (fuzz % 1_000_000_000) + 1,
-      scheduleStartTime: (fuzz % (type(uint256).max - 315_569_520)) + 1,
-      holdbackPercentage: uint8(fuzz % 100)
+      projectId: (fuzz % 1_000_000_000) + 1
     });
   }
 

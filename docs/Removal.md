@@ -136,21 +136,6 @@ Emitted on updating the addresses for contracts.
 | certificate | contract ICertificate | The address of the new certificate contract. |
 
 
-### SetHoldbackPercentage
-
-```solidity
-event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage)
-```
-
-Emitted when the holdback percentage is updated for a project.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| projectId | uint256 | The ID of the project. |
-| holdbackPercentage | uint8 | The new holdback percentage for the project. |
-
-
 ### ReleaseRemoval
 
 ```solidity
@@ -254,7 +239,7 @@ Called as part of the market contract system deployment process.
 ### mintBatch
 
 ```solidity
-function mintBatch(address to, uint256[] amounts, struct DecodedRemovalIdV0[] removals, uint256 projectId, uint256 scheduleStartTime, uint8 holdbackPercentage) external
+function mintBatch(address to, uint256[] amounts, struct DecodedRemovalIdV0[] removals, uint256 projectId) external
 ```
 
 Mints multiple removals at once (for a single supplier).
@@ -273,8 +258,6 @@ Mints multiple removals at once (for a single supplier).
 | amounts | uint256[] | Each removal's tonnes of CO2 formatted. |
 | removals | struct DecodedRemovalIdV0[] | The removals to mint (represented as an array of `DecodedRemovalIdV0`). These removals are used to encode the removal IDs. |
 | projectId | uint256 | The project ID for this batch of removals. |
-| scheduleStartTime | uint256 | The start time of the schedule for this batch of removals. |
-| holdbackPercentage | uint8 | The holdback percentage for this batch of removals. |
 
 
 ### addBalance
