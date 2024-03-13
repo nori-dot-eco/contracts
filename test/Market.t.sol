@@ -408,7 +408,7 @@ contract Market_withdraw_as_supplier is MarketBalanceTestHelper {
 
   function test() external {
     vm.prank(_namedAccounts.supplier);
-    _market.withdraw(_removalIds[0]);
+    _market.withdraw({removalId: _removalIds[0], to: _namedAccounts.supplier});
     _expectedRemovalBalances = [_amountPerRemoval];
     _expectedMarketSupply = 0;
     _expectedTokenCount.set(_namedAccounts.supplier, 1);
@@ -441,7 +441,7 @@ contract Market_withdraw_as_operator is MarketBalanceTestHelper {
 
   function test() external {
     vm.prank(_namedAccounts.supplier2);
-    _market.withdraw(_removalIds[0]);
+    _market.withdraw({removalId: _removalIds[0], to: _namedAccounts.supplier});
     _expectedRemovalBalances = [_amountPerRemoval];
     _expectedMarketSupply = 0;
     _expectedTokenCount.set(_namedAccounts.supplier, 1);
@@ -466,7 +466,7 @@ contract Market_withdraw_as_DEFAULT_ADMIN_ROLE is MarketBalanceTestHelper {
   }
 
   function test() external {
-    _market.withdraw(_removalIds[0]);
+    _market.withdraw({removalId: _removalIds[0], to: _namedAccounts.supplier});
     _expectedRemovalBalances = [_amountPerRemoval];
     _expectedMarketSupply = 0;
     _expectedTokenCount.set(_namedAccounts.supplier, 1);
@@ -493,7 +493,7 @@ contract Market_withdraw_reverts is MarketBalanceTestHelper {
   function test() external {
     vm.prank(_namedAccounts.supplier2);
     vm.expectRevert(UnauthorizedWithdrawal.selector);
-    _market.withdraw(_removalIds[0]);
+    _market.withdraw({removalId: _removalIds[0], to: _namedAccounts.supplier2});
     _assertCorrectStates();
   }
 }
@@ -515,7 +515,7 @@ contract Market_withdraw_1x3_center is MarketBalanceTestHelper {
 
   function test() external {
     vm.prank(_namedAccounts.supplier);
-    _market.withdraw(_removalIds[1]);
+    _market.withdraw({removalId: _removalIds[1], to: _namedAccounts.supplier});
     _expectedRemovalBalances = [0, _amountPerRemoval, 0];
     _expectedMarketSupply = _amountPerRemoval * (_removalIds.length - 1);
     _expectedTokenCount.set(_namedAccounts.supplier, 1);
@@ -541,7 +541,7 @@ contract Market_withdraw_2x1_front is MarketBalanceTestHelper {
 
   function test() external {
     vm.prank(_namedAccounts.supplier);
-    _market.withdraw(_removalIds[0]);
+    _market.withdraw({removalId: _removalIds[0], to: _namedAccounts.supplier});
     _expectedRemovalBalances = [_amountPerRemoval, 0];
     _expectedMarketSupply = _amountPerRemoval * (_removalIds.length - 1);
     _expectedTokenCount.set(_namedAccounts.supplier, 1);
@@ -568,7 +568,7 @@ contract Market_withdraw_2x1_front_relist is MarketBalanceTestHelper {
     ];
     _assertListedState();
     vm.prank(_namedAccounts.supplier);
-    _market.withdraw(_removalIds[0]);
+    _market.withdraw({removalId: _removalIds[0], to: _namedAccounts.supplier});
     _expectedRemovalBalances = [_amountPerRemoval, 0];
     _expectedMarketSupply = _amountPerRemoval * (_removalIds.length - 1);
     _expectedTokenCount.set(_namedAccounts.supplier, 1);
@@ -604,12 +604,44 @@ contract Market_withdraw_2x1_back is MarketBalanceTestHelper {
 
   function test() external {
     vm.prank(_namedAccounts.supplier2);
-    _market.withdraw(_removalIds[1]);
+    _market.withdraw({removalId: _removalIds[1], to: _namedAccounts.supplier2});
     _expectedRemovalBalances = [0, _amountPerRemoval];
     _expectedMarketSupply = _amountPerRemoval * (_removalIds.length - 1);
     _expectedTokenCount.set(_namedAccounts.supplier, 0);
     _expectedTokenCount.set(_namedAccounts.supplier2, 1);
     _expectedTokenCount.set(address(_market), _removalIds.length - 1);
+    _assertCorrectStates();
+  }
+}
+
+contract Market_withdraw_to_CONSIGNOR_ROLE is MarketBalanceTestHelper {
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 1,
+      list: true
+    });
+    _suppliers = new address[](1).fill(_namedAccounts.supplier);
+    _expectedRemovalBalances = [0];
+    _expectedMarketSupply = _amountPerRemoval * _removalIds.length;
+    _expectedTokenCount.set(_namedAccounts.supplier, 0);
+    _expectedTokenCount.set(address(_market), 1);
+    _assertCorrectStates();
+    _removal.grantRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: _namedAccounts.supplier3
+    });
+    assert(
+      _removal.hasRole(_removal.CONSIGNOR_ROLE(), _namedAccounts.supplier3)
+    );
+  }
+
+  function test() external {
+    _market.withdraw({removalId: _removalIds[0], to: _namedAccounts.supplier3});
+    _expectedRemovalBalances = [_amountPerRemoval];
+    _expectedMarketSupply = 0;
+    _expectedTokenCount.set(_namedAccounts.supplier, 1);
+    _expectedTokenCount.set(address(_market), 0);
     _assertCorrectStates();
   }
 }
@@ -629,50 +661,83 @@ contract Market_SANCTION_ALLOWLIST_ROLE is UpgradeableMarket {
   }
 }
 
-contract Market__isAuthorizedWithdrawal_true is NonUpgradeableMarket {
+contract Market__isAuthorizedWithdrawal_true is
+  NonUpgradeableMarket,
+  UpgradeableRemoval
+{
+  Removal private _mockRemoval;
+
   function setUp() external {
+    _mockRemoval = _deployRemoval();
+
     vm.store(
       address(this),
-      bytes32(uint256(301)), // sets the _removal storage slot to the market contract to enable mock calls
-      bytes32(uint256(uint160(address(this))))
+      bytes32(uint256(301)), // sets the _removal storage slot in the market contract to enable mock calls
+      bytes32(uint256(uint160(address(_mockRemoval))))
     );
   }
 
   function test_returnsTrueWhenMsgSenderEqualsOwner() external {
-    assertEq(_isAuthorizedWithdrawal({owner: _msgSender()}), true);
+    assertEq(
+      _isAuthorizedWithdrawal({supplier: _msgSender(), to: _msgSender()}),
+      true
+    );
   }
 
   function test_returnsTrueWhenMsgSenderHasDefaultAdminRole() external {
     _grantRole({role: MARKET_ADMIN_ROLE, account: _msgSender()});
-    assertEq(_isAuthorizedWithdrawal({owner: _namedAccounts.supplier}), true);
+    assertEq(
+      _isAuthorizedWithdrawal({
+        supplier: _namedAccounts.supplier,
+        to: _namedAccounts.supplier
+      }),
+      true
+    );
   }
 
   function test_returnsTrueWhenMsgSenderIsApprovedForAll() external {
     vm.mockCall(
-      address(this),
-      abi.encodeWithSelector(IERC1155Upgradeable.isApprovedForAll.selector),
+      address(_mockRemoval),
+      abi.encodeWithSelector(_mockRemoval.isApprovedForAll.selector),
       abi.encode(true)
     );
-    assertEq(_isAuthorizedWithdrawal({owner: address(0)}), true);
+    assertEq(
+      _isAuthorizedWithdrawal({supplier: address(1), to: address(1)}),
+      true
+    );
   }
 }
 
-contract Market__isAuthorizedWithdrawal_false is NonUpgradeableMarket {
+contract Market__isAuthorizedWithdrawal_false is
+  NonUpgradeableMarket,
+  UpgradeableRemoval
+{
+  Removal private _mockRemoval;
+
   function setUp() external {
+    _mockRemoval = _deployRemoval();
+
     vm.store(
       address(this),
-      bytes32(uint256(301)), // sets the _removal storage slot to the market contract to enable mock calls
-      bytes32(uint256(uint160(address(this))))
+      bytes32(uint256(301)), // sets the _removal storage slot in the market contract to enable mock calls
+      bytes32(uint256(uint160(address(_mockRemoval))))
     );
+
     vm.mockCall(
       address(this),
-      abi.encodeWithSelector(IERC1155Upgradeable.isApprovedForAll.selector),
+      abi.encodeWithSelector(_mockRemoval.isApprovedForAll.selector),
       abi.encode(false)
     );
   }
 
   function test_returnsFalseWhenAllConditionsAreFalse() external {
-    assertEq(_isAuthorizedWithdrawal({owner: _namedAccounts.supplier}), false);
+    assertEq(
+      _isAuthorizedWithdrawal({
+        supplier: _namedAccounts.supplier,
+        to: _namedAccounts.supplier
+      }),
+      false
+    );
   }
 }
 

@@ -1135,7 +1135,7 @@ contract Removal_getMarketBalance is UpgradeableMarket {
       signedPermit.s
     );
     assertEq(_removal.getMarketBalance(), amountToList - amountToSell);
-    _market.withdraw(_removalIds[0]);
+    _market.withdraw({removalId: _removalIds[0], to: _namedAccounts.supplier});
     assertEq(_removal.getMarketBalance(), 0);
   }
 }
