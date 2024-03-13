@@ -1356,6 +1356,7 @@ contract Market is
    * does not have the role `MARKET_ADMIN_ROLE`, or if the recipient of the removal is either not the supplier
    * of the removal or does not have the `Removal.CONSIGNOR_ROLE`.
    * @param supplier The supplier of the removal.
+   * @param to The recipient of the removal.
    * @return Returns true if the caller is the supplier, an approved spender, or has the role `MARKET_ADMIN_ROLE`,
    * and the recipient is the removal supplier or has the `Removal.CONSIGNOR_ROLE`, false otherwise.
    */
@@ -1363,15 +1364,14 @@ contract Market is
     address supplier,
     address to
   ) internal view returns (bool) {
-    return
-      (_msgSender() == supplier ||
-        hasRole({role: MARKET_ADMIN_ROLE, account: _msgSender()}) ||
-        _removal.isApprovedForAll({
-          account: supplier,
-          operator: _msgSender()
-        })) &&
-      (_removal.hasRole({role: _removal.CONSIGNOR_ROLE(), account: to}) ||
-        supplier == to);
+    bool isApprovedCaller = _msgSender() == supplier ||
+      hasRole({role: MARKET_ADMIN_ROLE, account: _msgSender()}) ||
+      _removal.isApprovedForAll({account: supplier, operator: _msgSender()});
+    bool isApprovedRecipient = _removal.hasRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: to
+    }) || supplier == to;
+    return isApprovedCaller && isApprovedRecipient;
   }
 
   /**

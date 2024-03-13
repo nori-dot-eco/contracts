@@ -708,16 +708,24 @@ contract Market__isAuthorizedWithdrawal_true is
   }
 }
 
-contract Market__isAuthorizedWithdrawal_false is NonUpgradeableMarket {
+contract Market__isAuthorizedWithdrawal_false is
+  NonUpgradeableMarket,
+  UpgradeableRemoval
+{
+  Removal private _mockRemoval;
+
   function setUp() external {
+    _mockRemoval = _deployRemoval();
+
     vm.store(
       address(this),
-      bytes32(uint256(301)), // sets the _removal storage slot to the market contract to enable mock calls
-      bytes32(uint256(uint160(address(this))))
+      bytes32(uint256(301)), // sets the _removal storage slot in the market contract to enable mock calls
+      bytes32(uint256(uint160(address(_mockRemoval))))
     );
+
     vm.mockCall(
       address(this),
-      abi.encodeWithSelector(IERC1155Upgradeable.isApprovedForAll.selector),
+      abi.encodeWithSelector(_mockRemoval.isApprovedForAll.selector),
       abi.encode(false)
     );
   }

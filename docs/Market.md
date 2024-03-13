@@ -1179,7 +1179,7 @@ of the removal or does not have the `Removal.CONSIGNOR_ROLE`.</i>
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | supplier | address | The supplier of the removal. |
-| to | address |  |
+| to | address | The recipient of the removal. |
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
