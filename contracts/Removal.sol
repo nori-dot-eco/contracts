@@ -22,7 +22,6 @@ import {
   RemovalAlreadySoldOrConsigned,
   ForbiddenTransfer,
   ForbiddenTransfer,
-  InvalidHoldbackPercentage,
   ForbiddenTransfer,
   InvalidData
 } from "./Errors.sol";
@@ -173,13 +172,6 @@ contract Removal is
   event RegisterContractAddresses(IMarket market, ICertificate certificate);
 
   /**
-   * @notice Emitted when the holdback percentage is updated for a project.
-   * @param projectId The ID of the project.
-   * @param holdbackPercentage The new holdback percentage for the project.
-   */
-  event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage);
-
-  /**
    * @notice Emitted on releasing a removal from a supplier, the market, or a certificate.
    * @param id The id of the removal that was released.
    * @param fromAddress The address the removal was released from.
@@ -286,16 +278,12 @@ contract Removal is
    * @param removals The removals to mint (represented as an array of `DecodedRemovalIdV0`). These removals are used
    * to encode the removal IDs.
    * @param projectId The project ID for this batch of removals.
-   * @param scheduleStartTime The start time of the schedule for this batch of removals.
-   * @param holdbackPercentage The holdback percentage for this batch of removals.
    */
   function mintBatch(
     address to,
     uint256[] calldata amounts,
     DecodedRemovalIdV0[] calldata removals,
-    uint256 projectId,
-    uint256 scheduleStartTime,
-    uint8 holdbackPercentage
+    uint256 projectId
   ) external onlyRole(CONSIGNOR_ROLE) {
     uint256[] memory ids = _createRemovals({
       removals: removals,

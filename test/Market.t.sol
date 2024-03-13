@@ -1394,9 +1394,7 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
       address(_market),
       new uint256[](1).fill(2 ether),
       removals,
-      1_234_567_890,
-      block.timestamp,
-      uint8(0)
+      1_234_567_890
     );
   }
 
