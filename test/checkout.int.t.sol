@@ -709,8 +709,7 @@ contract Checkout_buyingWithAlternateERC20 is Checkout {
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
-      list: true,
-      holdbackPercentage: 0
+      list: true
     });
     _market.grantRole(_market.SWAP_ALLOWLIST_ROLE(), _owner);
   }
@@ -820,8 +819,7 @@ contract Checkout_buyingWithAlternateERC20_floatingPointPriceMultiple is
     _removalIds = _seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
-      list: true,
-      holdbackPercentage: 0
+      list: true
     });
     assertEq(_removal.getMarketBalance(), 1 ether);
     assertEq(_removal.numberOfTokensOwnedByAddress(address(_market)), 1);

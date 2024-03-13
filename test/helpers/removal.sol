@@ -107,42 +107,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       to: list ? _marketAddress : to,
       amounts: new uint256[](count).fill(1 ether),
       removals: removals,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
-    });
-    return _removalIds;
-  }
-
-  function _seedRemovals(
-    address to,
-    uint32 count,
-    bool list,
-    uint8 holdbackPercentage
-  ) internal returns (uint256[] memory) {
-    uint256[] memory _removalIds = new uint256[](count);
-    DecodedRemovalIdV0[] memory removals = new DecodedRemovalIdV0[](count);
-    for (uint32 i = 0; i < count; i++) {
-      DecodedRemovalIdV0 memory removalData = DecodedRemovalIdV0({
-        idVersion: 0,
-        methodology: 1,
-        methodologyVersion: 0,
-        vintage: 2018,
-        country: "AA",
-        subdivision: "ZZ",
-        supplierAddress: to,
-        subIdentifier: count + i
-      });
-      removals[i] = removalData;
-      _removalIds[i] = RemovalIdLib.createRemovalId(removalData);
-    }
-    _removal.mintBatch({
-      to: list ? _marketAddress : to,
-      amounts: new uint256[](count).fill(1 ether),
-      removals: removals,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: holdbackPercentage
+      projectId: 1_234_567_890
     });
     return _removalIds;
   }
@@ -172,9 +137,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       list ? _marketAddress : to,
       new uint256[](count).fill(1 ether),
       _removals,
-      1_234_567_890,
-      block.timestamp,
-      50
+      1_234_567_890
     );
     return _removalIds;
   }
@@ -204,9 +167,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       consignor,
       new uint256[](count).fill(1 ether),
       _removals,
-      1_234_567_890,
-      block.timestamp,
-      50
+      1_234_567_890
     );
     return _removalIds;
   }
@@ -234,9 +195,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       mintTo,
       new uint256[](1).fill(removalAmount),
       _removals,
-      1_234_567_890,
-      block.timestamp,
-      50
+      1_234_567_890
     );
     return _removalIds;
   }
@@ -263,9 +222,7 @@ abstract contract UpgradeableRemoval is Upgradeable {
       to: _marketAddress, // list on market
       amounts: new uint256[](1).fill(amount),
       removals: removalsData,
-      projectId: 1_234_567_890, // projectId
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890 // projectId
     });
     return removalId;
   }
@@ -313,9 +270,7 @@ contract NonUpgradeableRemoval is Removal, Global {
       list ? address(_market) : to,
       new uint256[](count).fill(1 ether),
       _removals,
-      1_234_567_890,
-      block.timestamp,
-      50
+      1_234_567_890
     );
     return _removalIds;
   }

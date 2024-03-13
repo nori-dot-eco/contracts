@@ -1154,6 +1154,16 @@ contract Market__setPriceMultiple is NonUpgradeableMarket {
     assertEq(abi.decode(entries[0].data, (uint256)), newPriceMultiple);
   }
 
+  function test_canBeZero() external {
+    vm.recordLogs();
+    uint256 newPriceMultiple = 0;
+    _setPriceMultiple({priceMultiple: newPriceMultiple});
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 1);
+    assertEq(entries[0].topics[0], keccak256("SetPriceMultiple(uint256)"));
+    assertEq(abi.decode(entries[0].data, (uint256)), newPriceMultiple);
+  }
+
   function test_revertsWhenSetBelow100() external {
     vm.recordLogs();
     uint256 newPriceMultiple = 20;
@@ -1441,9 +1451,7 @@ contract Market_USDC_swap_respects_decimal_mismatch is UpgradeableUSDCMarket {
       address(_market),
       new uint256[](1).fill(2 ether),
       removals,
-      1_234_567_890,
-      block.timestamp,
-      uint8(0)
+      1_234_567_890
     );
   }
 

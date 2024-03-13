@@ -350,9 +350,7 @@ contract Removal_mintBatch_list_sequential is UpgradeableMarket {
       to: address(_market),
       amounts: new uint256[](1).fill(1 ether),
       removals: ids,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
   }
 }
@@ -375,9 +373,7 @@ contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
       to: _namedAccounts.supplier2, // not the supplier encoded in the removal ID
       amounts: new uint256[](1).fill(1 ether),
       removals: ids,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
   }
 }
@@ -399,9 +395,7 @@ contract Removal_mintBatch_zero_amount_removal is UpgradeableMarket {
       to: _namedAccounts.supplier,
       amounts: new uint256[](1).fill(0 ether),
       removals: ids,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
   }
 }
@@ -426,9 +420,7 @@ contract Removal_mintBatch_zero_amount_removal_to_market_reverts is
       to: address(_market),
       amounts: new uint256[](1).fill(0 ether),
       removals: ids,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
   }
 }
@@ -574,9 +566,7 @@ contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
       to: _marketAddress,
       amounts: _asSingletonUintArray(_REMOVAL_AMOUNT),
       removals: _REMOVAL_FIXTURES,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
@@ -770,9 +760,7 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
       to: address(_market),
       amounts: new uint256[](1).fill(100 ether),
       removals: _REMOVAL_FIXTURES,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
     uint256 ownerPrivateKey = 0xA11CE; // todo use named accounts
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
@@ -831,9 +819,7 @@ contract Removal_release_listed is UpgradeableMarket {
       to: _marketAddress,
       amounts: _asSingletonUintArray(_REMOVAL_AMOUNT),
       removals: _REMOVAL_FIXTURES,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),

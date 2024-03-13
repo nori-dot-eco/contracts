@@ -57,14 +57,7 @@ describe('Removal', () => {
           hre,
         });
         await expect(
-          removal.mintBatch(
-            supplier,
-            removalBalances,
-            tokenIds,
-            data.projectId,
-            data.scheduleStartTime,
-            data.holdbackPercentage
-          )
+          removal.mintBatch(supplier, removalBalances, tokenIds, data.projectId)
         )
           .to.emit(removal, 'TransferBatch')
           .withArgs(
@@ -95,7 +88,7 @@ describe('Removal', () => {
           formatTokenAmount(balance)
         );
         const expectedMarketSupply = sum(removalBalances);
-        const { supplier, admin } = hre.namedAccounts;
+        const { admin } = hre.namedAccounts;
         const defaultStartingVintage = 2016;
         const tokenIds = await Promise.all(
           removalBalances.map((_, index) => {
@@ -113,9 +106,7 @@ describe('Removal', () => {
             market.address,
             removalBalances,
             tokenIds,
-            data.projectId,
-            data.scheduleStartTime,
-            data.holdbackPercentage
+            data.projectId
           )
         )
           .to.emit(removal, 'TransferBatch')
@@ -163,9 +154,7 @@ describe('Removal', () => {
             namedAccounts.supplier,
             removalBalances,
             removals,
-            data.projectId,
-            data.scheduleStartTime,
-            data.holdbackPercentage
+            data.projectId
           )
         )
           .to.emit(removal, 'TransferBatch')

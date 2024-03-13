@@ -1072,11 +1072,11 @@ contract Market is
    * @notice Set the price multiple, which is the number of base tokens required to purchase one NRT.
    * @dev This value is scaled by 100 to allow for decimal precision. For example, a value of 100 means
    * that 1 base token is required to purchase 1 NRT, while a value of 1995 means that 19.95 base tokens
-   * purchase 1 NRT. The minimum value for the price multiple is 100, to avoid loss of decimal precision.
+   * purchase 1 NRT. The minimum non-zero value for the price multiple is 100, to avoid loss of decimal precision.
    * @param priceMultiple The new price multiple.
    */
   function _setPriceMultiple(uint256 priceMultiple) internal {
-    if (priceMultiple < 100) {
+    if (priceMultiple != 0 && priceMultiple < 100) {
       revert InvalidPriceMultiple();
     }
     _priceMultiple = priceMultiple;
