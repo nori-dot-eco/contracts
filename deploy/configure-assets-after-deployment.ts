@@ -68,13 +68,13 @@ export const deploy: DeployFunction = async (environment) => {
       priceMultiple: 100,
       feePercentage: 25,
       purchaseTokenAddress: bpNori.address,
-      feeWalletAddress: hre.namedAccounts.noriWallet,
+      feeWalletAddress: hre?.namedAccounts?.noriWallet,
     },
     hardhat: {
       priceMultiple: 100,
       feePercentage: 25,
       purchaseTokenAddress: bpNori.address,
-      feeWalletAddress: hre.namedAccounts.noriWallet,
+      feeWalletAddress: hre?.namedAccounts?.noriWallet,
     },
   };
 
@@ -139,7 +139,7 @@ export const deploy: DeployFunction = async (environment) => {
 export default deploy;
 deploy.tags = ['configure'];
 // TODO is there a way to remove this 'Market' dependency?
-deploy.dependencies = ['Market'];
+deploy.dependencies = ['Market', 'Removal', 'market'];
 deploy.skip = async (hre) =>
   Promise.resolve(
     !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
