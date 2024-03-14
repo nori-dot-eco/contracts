@@ -17,6 +17,13 @@ import {
   getRemoval,
 } from '@/utils/contracts';
 
+interface NetworkMarketConfig {
+  priceMultiple: number;
+  feePercentage: number;
+  purchaseTokenAddress: string;
+  feeWalletAddress: string;
+}
+
 export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   const CONFIRMATIONS =
@@ -44,23 +51,41 @@ export const deploy: DeployFunction = async (environment) => {
   const removal = await getRemoval({ hre, signer });
   const bpNori = await getBridgedPolygonNori({ hre, signer });
 
+  const networkMarketConfig: Record<string, NetworkMarketConfig> = {
+    polygon: {
+      priceMultiple: 0,
+      feePercentage: 0,
+      purchaseTokenAddress: PROD_USDC_TOKEN_ADDRESS,
+      feeWalletAddress: PROD_NORI_FEE_WALLET_ADDRESS,
+    },
+    mumbai: {
+      priceMultiple: 0,
+      feePercentage: 0,
+      purchaseTokenAddress: STAGING_USDC_TOKEN_ADDRESS,
+      feeWalletAddress: STAGING_NORI_FEE_WALLET_ADDRESS,
+    },
+    localhost: {
+      priceMultiple: 100,
+      feePercentage: 25,
+      purchaseTokenAddress: bpNori.address,
+      feeWalletAddress: hre.namedAccounts.noriWallet,
+    },
+    hardhat: {
+      priceMultiple: 100,
+      feePercentage: 25,
+      purchaseTokenAddress: bpNori.address,
+      feeWalletAddress: hre.namedAccounts.noriWallet,
+    },
+  };
+
   // SW: Leaving the default local configuration as bridged polygon NORI
   // for the purchase token to minimize test breakage.
-  let purchaseTokenAddress = bpNori.address;
-  let priceMultiple = BigNumber.from(100);
-  if (hre.network.name === 'polygon') {
-    purchaseTokenAddress = PROD_USDC_TOKEN_ADDRESS;
-    priceMultiple = BigNumber.from(2000);
-  } else if (hre.network.name === 'mumbai') {
-    purchaseTokenAddress = STAGING_USDC_TOKEN_ADDRESS;
-    priceMultiple = BigNumber.from(2000);
-  }
-  const restrictionScheduleDuration = 315_569_520; // seconds in 10 years
-  const feeWalletAddress = ['hardhat', 'localhost'].includes(hre.network.name)
-    ? hre.namedAccounts.noriWallet
-    : hre.network.name === 'polygon'
-    ? PROD_NORI_FEE_WALLET_ADDRESS
-    : STAGING_NORI_FEE_WALLET_ADDRESS;
+  const purchaseTokenAddress =
+    networkMarketConfig[hre.network.name].purchaseTokenAddress;
+  const priceMultiple = networkMarketConfig[hre.network.name].priceMultiple;
+  const feePercentage = networkMarketConfig[hre.network.name].feePercentage;
+  const feeWalletAddress =
+    networkMarketConfig[hre.network.name].feeWalletAddress;
   let txn: ContractTransaction;
   if ((await certificate.getRemovalAddress()) !== removal.address) {
     hre.trace('Setting removal address in Certificate contract...');
@@ -85,7 +110,7 @@ export const deploy: DeployFunction = async (environment) => {
 
   if (
     (await market.getPurchasingTokenAddress()) !== purchaseTokenAddress ||
-    (await market.getPriceMultiple()) !== priceMultiple
+    (await market.getPriceMultiple()) !== BigNumber.from(priceMultiple)
   ) {
     txn = await market.setPurchasingTokenAndPriceMultiple(
       purchaseTokenAddress,
@@ -98,11 +123,10 @@ export const deploy: DeployFunction = async (environment) => {
       } as purchase token with price multiple of ${priceMultiple}`
     );
   }
-  // TODO: Configure the purchasing token and fee percentage somewhere more global
-  if ((await market.getNoriFeePercentage()) !== BigNumber.from(25)) {
-    txn = await market.setNoriFeePercentage(25);
+  if ((await market.getNoriFeePercentage()) !== BigNumber.from(feePercentage)) {
+    txn = await market.setNoriFeePercentage(feePercentage);
     await txn.wait(CONFIRMATIONS);
-    hre.trace('Set fee percentage to 25');
+    hre.trace(`Set fee percentage to ${feePercentage}`);
   }
 
   if ((await market.getNoriFeeWallet()) !== feeWalletAddress) {

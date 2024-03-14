@@ -143,7 +143,7 @@ contract Market is
    * @notice Deprecated. Previously the address of the RestrictedNORI contract.
    * This storage gap remains to maintain the storage layout of the contract.
    */
-  address private _storageGap;
+  address private _restrictedNORI;
 
   /**
    * @notice The number of base tokens required to purchase one NRT.
