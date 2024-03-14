@@ -53,14 +53,14 @@ export const deploy: DeployFunction = async (environment) => {
 
   const networkMarketConfig: Record<string, NetworkMarketConfig> = {
     polygon: {
-      priceMultiple: 0,
-      feePercentage: 0,
+      priceMultiple: 2000,
+      feePercentage: 25,
       purchaseTokenAddress: PROD_USDC_TOKEN_ADDRESS,
       feeWalletAddress: PROD_NORI_FEE_WALLET_ADDRESS,
     },
     mumbai: {
-      priceMultiple: 0,
-      feePercentage: 0,
+      priceMultiple: 2000,
+      feePercentage: 25,
       purchaseTokenAddress: STAGING_USDC_TOKEN_ADDRESS,
       feeWalletAddress: STAGING_NORI_FEE_WALLET_ADDRESS,
     },
