@@ -22,14 +22,12 @@ import {
   RemovalAlreadySoldOrConsigned,
   ForbiddenTransfer,
   ForbiddenTransfer,
-  InvalidHoldbackPercentage,
   ForbiddenTransfer,
   InvalidData
 } from "./Errors.sol";
 import {IMarket} from "./IMarket.sol";
 import {ICertificate} from "./ICertificate.sol";
 import {IRemoval} from "./IRemoval.sol";
-import {IRestrictedNORI} from "./IRestrictedNORI.sol";
 import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
 
 /**
@@ -47,9 +45,7 @@ import {RemovalIdLib, DecodedRemovalIdV0} from "./RemovalIdLib.sol";
  * ###### Minting
  * - Only accounts with the CONSIGNOR_ROLE can mint removal tokens, which should only be account(s) controlled by Nori.
  * - When removal tokens are minted, additional data about those removals are stored in a mapping keyed by the token ID,
- * such as a project ID and a holdback percentage (which determines the percentage of the sale proceeds from the token
- * that will be routed to the RestrictedNORI contract). A restriction schedule is created per `projectId` (if necessary)
- * in RestrictedNORI (see the [RestrictedNORI docs](../docs/RestrictedNORI.md)).
+ * such as a project ID.
  * - Minting reverts when attempting to mint a token ID that already exists.
  * - The function `addBalance` can be used to mint additional balance to a token ID that already exists.
  *
@@ -148,8 +144,7 @@ contract Removal is
   ICertificate private _certificate;
 
   /**
-   * @dev Maps from a given project ID to the holdback percentage that will be used to determine what percentage of
-   * proceeds are routed to the RestrictedNORI contract when removals from this project are sold.
+   * @dev Deprecated. This storage gap remains to maintain the storage layout of the contract.
    */
   mapping(uint256 => uint8) private _projectIdToHoldbackPercentage;
 
@@ -177,13 +172,6 @@ contract Removal is
   event RegisterContractAddresses(IMarket market, ICertificate certificate);
 
   /**
-   * @notice Emitted when the holdback percentage is updated for a project.
-   * @param projectId The ID of the project.
-   * @param holdbackPercentage The new holdback percentage for the project.
-   */
-  event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage);
-
-  /**
    * @notice Emitted on releasing a removal from a supplier, the market, or a certificate.
    * @param id The id of the removal that was released.
    * @param fromAddress The address the removal was released from.
@@ -204,6 +192,22 @@ contract Removal is
    * @param removalAmounts The amounts for each corresponding removal ID to use to mint the certificate via migration.
    */
   event Migrate(
+    address indexed certificateRecipient,
+    uint256 indexed certificateAmount,
+    uint256 indexed certificateId,
+    uint256[] removalIds,
+    uint256[] removalAmounts
+  );
+
+  /**
+   * @notice Emitted when removals are directly retired into a certificate by Nori.
+   * @param certificateRecipient The recipient of the certificate.
+   * @param certificateAmount The total amount of the certificate to mint (denominated in RTs).
+   * @param certificateId The ID of the certificate being minted.
+   * @param removalIds The removal IDs to use to mint the certificate.
+   * @param removalAmounts The amounts to retire from each corresponding removal ID.
+   */
+  event Retire(
     address indexed certificateRecipient,
     uint256 indexed certificateAmount,
     uint256 indexed certificateId,
@@ -261,27 +265,6 @@ contract Removal is
   }
 
   /**
-   * @notice Update the holdback percentage value for a project.
-   * @dev Emits a `SetHoldbackPercentage` event.
-   *
-   * ##### Requirements:
-   *
-   * - Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
-   * - Can only be used when this contract is not paused.
-   * @param projectId The id of the project for which to update the holdback percentage.
-   * @param holdbackPercentage The new holdback percentage.
-   */
-  function setHoldbackPercentage(
-    uint256 projectId,
-    uint8 holdbackPercentage
-  ) external whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
-    _setHoldbackPercentage({
-      projectId: projectId,
-      holdbackPercentage: holdbackPercentage
-    });
-  }
-
-  /**
    * @notice Mints multiple removals at once (for a single supplier).
    * @dev If `to` is the market address, the removals are listed for sale in the market.
    *
@@ -295,37 +278,18 @@ contract Removal is
    * @param removals The removals to mint (represented as an array of `DecodedRemovalIdV0`). These removals are used
    * to encode the removal IDs.
    * @param projectId The project ID for this batch of removals.
-   * @param scheduleStartTime The start time of the schedule for this batch of removals.
-   * @param holdbackPercentage The holdback percentage for this batch of removals.
    */
   function mintBatch(
     address to,
     uint256[] calldata amounts,
     DecodedRemovalIdV0[] calldata removals,
-    uint256 projectId,
-    uint256 scheduleStartTime,
-    uint8 holdbackPercentage
+    uint256 projectId
   ) external onlyRole(CONSIGNOR_ROLE) {
     uint256[] memory ids = _createRemovals({
       removals: removals,
       projectId: projectId
     });
-    _setHoldbackPercentage({
-      projectId: projectId,
-      holdbackPercentage: holdbackPercentage
-    });
     _mintBatch({to: to, ids: ids, amounts: amounts, data: ""});
-    IRestrictedNORI _restrictedNORI = IRestrictedNORI(
-      _market.getRestrictedNoriAddress()
-    );
-    if (!_restrictedNORI.scheduleExists({scheduleId: projectId})) {
-      _restrictedNORI.createSchedule({
-        projectId: projectId,
-        startTime: scheduleStartTime,
-        methodology: removals[0].methodology,
-        methodologyVersion: removals[0].methodologyVersion
-      });
-    }
   }
 
   /**
@@ -381,19 +345,18 @@ contract Removal is
 
   /**
    * @notice Transfers the provided `amounts` (denominated in NRTs) of the specified removal `ids` directly to the
-   * Certificate contract to mint a legacy certificate. This function provides Nori the ability to execute a one-off
-   * migration of legacy certificates and removals (legacy certificates and removals are those which existed prior to
-   * our deployment to Polygon and covers all historic issuances and purchases up until the date that we start using the
-   * Market contract).
+   * Certificate contract to mint a certificate. This function provides Nori the ability to retire removals directly
+   * into the Certificate contract and to specify exactly which removals will be retired.
    * @dev The Certificate contract implements `onERC1155BatchReceived`, which is invoked upon receipt of a batch of
-   * removals (triggered via `_safeBatchTransferFrom`). This function circumvents the market contract's lifecycle by
+   * removals (triggered via `_safeBatchTransferFrom`). This function circumvents the market contract by
    * transferring the removals from an account with the `CONSIGNOR_ROLE` role.
+   * Emits a `Retire` event.
    *
    * It is necessary that the consignor holds the removals because of the following:
    * - `ids` can be composed of a list of removal IDs that belong to one or more suppliers.
    * - `_safeBatchTransferFrom` only accepts one `from` address.
    * - `Certificate.onERC1155BatchReceived` will mint a *new* certificate every time an additional batch is received, so
-   * we must ensure that all the removals comprising the certificate to be migrated come from a single batch.
+   * we must ensure that all the removals comprising the certificate come from a single batch.
    *
    * ##### Requirements:
    * - The caller must have the `CONSIGNOR_ROLE` role.
@@ -407,13 +370,13 @@ contract Removal is
    * @param certificateRecipient The recipient of the certificate to be minted.
    * @param certificateAmount The total amount of the certificate.
    */
-  function migrate(
+  function retire(
     uint256[] calldata ids,
     uint256[] calldata amounts,
     address certificateRecipient,
     uint256 certificateAmount
   ) external onlyRole(CONSIGNOR_ROLE) {
-    emit Migrate({
+    emit Retire({
       certificateRecipient: certificateRecipient,
       certificateAmount: certificateAmount,
       certificateId: _certificate.totalMinted(),
@@ -514,21 +477,12 @@ contract Removal is
   }
 
   /**
-   * @notice Get the project ID (which is the removal's schedule ID in RestrictedNORI) for a given removal ID.
+   * @notice Get the project ID for a given removal ID.
    * @param id The removal token ID for which to retrieve the project ID.
    * @return The project ID for the removal token ID.
    */
   function getProjectId(uint256 id) external view override returns (uint256) {
     return _removalIdToProjectId[id];
-  }
-
-  /**
-   * @notice Gets the holdback percentage for a removal.
-   * @param id The removal token ID for which to retrieve the holdback percentage.
-   * @return The holdback percentage for the removal token ID.
-   */
-  function getHoldbackPercentage(uint256 id) external view returns (uint8) {
-    return _projectIdToHoldbackPercentage[_removalIdToProjectId[id]];
   }
 
   /**
@@ -649,6 +603,37 @@ contract Removal is
   }
 
   /**
+   * @notice Allows an address with the `CONSIGNOR_ROLE` to transfer tokens.
+   * @dev Emits a `TransferBatch` event.
+   *
+   * ##### Requirements:
+   *
+   * - Can only be called by an address with the `CONSIGNOR_ROLE`.
+   * - Respects the rules of `Removal._beforeTokenTransfer`.
+   * - `ids` and `amounts` must have the same length.
+   * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
+   * acceptance magic value.
+   * @param from The address to transfer from.
+   * @param to The address to transfer to.
+   * @param ids The removal IDs to transfer.
+   * @param amounts The amounts of removals to transfer.
+   */
+  function consignorBatchTransfer(
+    address from,
+    address to,
+    uint256[] memory ids,
+    uint256[] memory amounts
+  ) public onlyRole(CONSIGNOR_ROLE) {
+    super._safeBatchTransferFrom({
+      from: from,
+      to: to,
+      ids: ids,
+      amounts: amounts,
+      data: ""
+    });
+  }
+
+  /**
    * @notice Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`.
    * @dev Emits an `ApprovalForAll` event.
    *
@@ -689,28 +674,6 @@ contract Removal is
     returns (bool)
   {
     return super.supportsInterface({interfaceId: interfaceId});
-  }
-
-  /**
-   * @notice Update the holdback percentage value for a project.
-   * @dev Emits a `SetHoldbackPercentage` event.
-   * @param projectId The id of the project for which to update the holdback percentage.
-   * @param holdbackPercentage The new holdback percentage.
-   */
-  function _setHoldbackPercentage(
-    uint256 projectId,
-    uint8 holdbackPercentage
-  ) internal {
-    if (holdbackPercentage > 100) {
-      revert InvalidHoldbackPercentage({
-        holdbackPercentage: holdbackPercentage
-      });
-    }
-    _projectIdToHoldbackPercentage[projectId] = holdbackPercentage;
-    emit SetHoldbackPercentage({
-      projectId: projectId,
-      holdbackPercentage: holdbackPercentage
-    });
   }
 
   /**

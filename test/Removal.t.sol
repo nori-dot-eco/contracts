@@ -11,7 +11,7 @@ using AddressArrayLib for address[];
 // todo fuzz RemovalIdLib
 // todo test that checks Removal.consign can happen using multi call with mix-match project IDs
 
-contract Removal_migrate_revertsIfRemovalBalanceSumDifferentFromCertificateAmount is
+contract Removal_retire_revertsIfRemovalBalanceSumDifferentFromCertificateAmount is
   UpgradeableMarket
 {
   /*//////////////////////////////////////////////////////////////
@@ -34,7 +34,7 @@ contract Removal_migrate_revertsIfRemovalBalanceSumDifferentFromCertificateAmoun
   address[] suppliers;
 
   function setUp() external {
-    // todo reuse setup in Removal_migrate_gasLimit
+    // todo reuse setup in Removal_retire_gasLimit
     _removal.grantRole({
       role: _removal.CONSIGNOR_ROLE(),
       account: _namedAccounts.admin
@@ -67,7 +67,7 @@ contract Removal_migrate_revertsIfRemovalBalanceSumDifferentFromCertificateAmoun
   function test() external {
     vm.prank(_namedAccounts.admin);
     vm.expectRevert("Incorrect supply allocation");
-    _removal.migrate({
+    _removal.retire({
       ids: idsForAllSuppliers,
       amounts: amountsForAllSuppliers,
       certificateRecipient: _namedAccounts.buyer,
@@ -135,7 +135,7 @@ contract Removal_consign_revertsForSoldRemovals is UpgradeableMarket {
   }
 }
 
-contract Removal_migrate is UpgradeableMarket {
+contract Removal_retire is UpgradeableMarket {
   /*//////////////////////////////////////////////////////////////
                                 INPUTS
     //////////////////////////////////////////////////////////////*/
@@ -156,7 +156,7 @@ contract Removal_migrate is UpgradeableMarket {
   address[] suppliers;
 
   function setUp() external {
-    // todo reuse setup in Removal_migrate_gasLimit
+    // todo reuse setup in Removal_retire_gasLimit
     _removal.grantRole({
       role: _removal.CONSIGNOR_ROLE(),
       account: _namedAccounts.admin
@@ -186,7 +186,7 @@ contract Removal_migrate is UpgradeableMarket {
     }
   }
 
-  event Migrate(
+  event Retire(
     address indexed certificateRecipient,
     uint256 indexed certificateAmount,
     uint256 indexed certificateId,
@@ -197,7 +197,7 @@ contract Removal_migrate is UpgradeableMarket {
   function test() external {
     vm.prank(_namedAccounts.admin);
     vm.recordLogs();
-    _removal.migrate({
+    _removal.retire({
       ids: idsForAllSuppliers,
       amounts: amountsForAllSuppliers,
       certificateRecipient: _namedAccounts.buyer,
@@ -215,7 +215,7 @@ contract Removal_migrate is UpgradeableMarket {
     assertEq(entries.length, 4);
     assertEq(
       entries[0].topics[0],
-      keccak256("Migrate(address,uint256,uint256,uint256[],uint256[])") // todo if we move contract events to interfaces we can use IRemoval.Migrate.selector instead
+      keccak256("Retire(address,uint256,uint256,uint256[],uint256[])") // todo if we move contract events to interfaces we can use IRemoval.Retire.selector instead
     );
     assertEq(entries[0].topics.length, 4);
     assertEq(
@@ -233,7 +233,7 @@ contract Removal_migrate is UpgradeableMarket {
   }
 }
 
-contract Removal_migrate_gasLimit is UpgradeableMarket {
+contract Removal_retire_gasLimit is UpgradeableMarket {
   /*//////////////////////////////////////////////////////////////
                                 INPUTS
     //////////////////////////////////////////////////////////////*/
@@ -286,7 +286,7 @@ contract Removal_migrate_gasLimit is UpgradeableMarket {
   function test() external {
     vm.prank(_namedAccounts.admin);
     uint256 initialGas = gasleft();
-    _removal.migrate({
+    _removal.retire({
       ids: idsForAllSuppliers,
       amounts: amountsForAllSuppliers,
       certificateRecipient: _namedAccounts.buyer,
@@ -350,9 +350,7 @@ contract Removal_mintBatch_list_sequential is UpgradeableMarket {
       to: address(_market),
       amounts: new uint256[](1).fill(1 ether),
       removals: ids,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
   }
 }
@@ -375,9 +373,7 @@ contract Removal_mintBatch_reverts_mint_to_wrong_address is UpgradeableMarket {
       to: _namedAccounts.supplier2, // not the supplier encoded in the removal ID
       amounts: new uint256[](1).fill(1 ether),
       removals: ids,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
   }
 }
@@ -399,9 +395,7 @@ contract Removal_mintBatch_zero_amount_removal is UpgradeableMarket {
       to: _namedAccounts.supplier,
       amounts: new uint256[](1).fill(0 ether),
       removals: ids,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
   }
 }
@@ -426,43 +420,7 @@ contract Removal_mintBatch_zero_amount_removal_to_market_reverts is
       to: address(_market),
       amounts: new uint256[](1).fill(0 ether),
       removals: ids,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
-    });
-  }
-}
-
-contract Removal_mintBatch_revertsInvalidHoldbackPercentage is
-  UpgradeableMarket
-{
-  function test() external {
-    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
-    ids[0] = DecodedRemovalIdV0({
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "IA",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier
-    });
-    uint256 removalId = RemovalIdLib.createRemovalId(ids[0]);
-    uint8 holdbackPercentage = 110;
-    vm.expectRevert(
-      abi.encodeWithSelector(
-        InvalidHoldbackPercentage.selector,
-        holdbackPercentage
-      )
-    );
-    _removal.mintBatch({
-      to: address(_market),
-      amounts: new uint256[](1).fill(0 ether),
-      removals: ids,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: holdbackPercentage
+      projectId: 1_234_567_890
     });
   }
 }
@@ -600,104 +558,6 @@ contract Removal__validateRemoval is NonUpgradeableRemoval {
   }
 }
 
-contract Removal_batchGetHoldbackPercentages_singleId is UpgradeableMarket {
-  uint256[] private _removalIds;
-  uint8[] private _holdbackPercentages;
-  uint8[] private _retrievedHoldbackPercentages;
-
-  function setUp() external {
-    DecodedRemovalIdV0[] memory removalBatch = new DecodedRemovalIdV0[](1);
-    removalBatch[0] = REMOVAL_DATA_FIXTURE;
-    _removal.mintBatch({
-      to: _namedAccounts.supplier,
-      amounts: _asSingletonUintArray(1 ether),
-      removals: removalBatch,
-      scheduleStartTime: block.timestamp,
-      projectId: 1_234_567_890,
-      holdbackPercentage: 50
-    });
-    _removalIds = [REMOVAL_ID_FIXTURE];
-    _holdbackPercentages = [50];
-    uint256 numberOfRemovalIds = _removalIds.length;
-    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovalIds);
-    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
-      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
-        _removal.getHoldbackPercentage.selector,
-        _removalIds[i]
-      );
-    }
-    bytes[] memory results = _removal.multicall(getHoldbackPercentageCalls);
-    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
-      _retrievedHoldbackPercentages.push(uint8(uint256(bytes32(results[i]))));
-    }
-  }
-
-  function test() external {
-    assertEq(_holdbackPercentages, _retrievedHoldbackPercentages);
-  }
-}
-
-contract Removal_batchGetHoldbackPercentages_multipleIds is UpgradeableMarket {
-  uint8 private constant _secondHoldbackPercentage = 10;
-  uint8 private constant _firstHoldbackPercentage = 50;
-  uint256[] private _removalIds;
-  uint8[] private _holdbackPercentages;
-  uint256 private _secondRemovalId;
-  uint8[] private _retrievedHoldbackPercentages;
-
-  function setUp() external {
-    DecodedRemovalIdV0[]
-      memory firstRemovalBatchFixture = new DecodedRemovalIdV0[](1);
-    firstRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1 ether),
-      firstRemovalBatchFixture,
-      1_234_567_890,
-      block.timestamp,
-      _firstHoldbackPercentage
-    );
-    DecodedRemovalIdV0[]
-      memory secondRemovalBatchFixture = new DecodedRemovalIdV0[](1);
-    secondRemovalBatchFixture[0] = REMOVAL_DATA_FIXTURE;
-    secondRemovalBatchFixture[0].subIdentifier =
-      REMOVAL_DATA_FIXTURE.subIdentifier +
-      1;
-    _secondRemovalId = RemovalIdLib.createRemovalId(
-      secondRemovalBatchFixture[0]
-    );
-    _removal.mintBatch(
-      _namedAccounts.supplier,
-      _asSingletonUintArray(1 ether),
-      secondRemovalBatchFixture,
-      1_234_567_891,
-      block.timestamp,
-      _secondHoldbackPercentage
-    );
-    _removalIds = [REMOVAL_ID_FIXTURE, _secondRemovalId];
-    _holdbackPercentages = [
-      _firstHoldbackPercentage,
-      _secondHoldbackPercentage
-    ];
-    uint256 numberOfRemovalIds = _removalIds.length;
-    bytes[] memory getHoldbackPercentageCalls = new bytes[](numberOfRemovalIds);
-    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
-      getHoldbackPercentageCalls[i] = abi.encodeWithSelector(
-        _removal.getHoldbackPercentage.selector,
-        _removalIds[i]
-      );
-    }
-    bytes[] memory results = _removal.multicall(getHoldbackPercentageCalls);
-    for (uint256 i = 0; i < numberOfRemovalIds; i++) {
-      _retrievedHoldbackPercentages.push(uint8(uint256(bytes32(results[i]))));
-    }
-  }
-
-  function test() external {
-    assertEq(_holdbackPercentages, _retrievedHoldbackPercentages);
-  }
-}
-
 contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
   uint256 private constant _REMOVAL_AMOUNT = 1 ether;
 
@@ -706,9 +566,7 @@ contract Removal_release_listed_isRemovedFromMarket is UpgradeableMarket {
       to: _marketAddress,
       amounts: _asSingletonUintArray(_REMOVAL_AMOUNT),
       removals: _REMOVAL_FIXTURES,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
@@ -902,9 +760,7 @@ contract Removal_release_retired_oneHundredCertificates is UpgradeableMarket {
       to: address(_market),
       amounts: new uint256[](1).fill(100 ether),
       removals: _REMOVAL_FIXTURES,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
     uint256 ownerPrivateKey = 0xA11CE; // todo use named accounts
     address owner = vm.addr(ownerPrivateKey); // todo checkout helper function that accepts pk
@@ -963,9 +819,7 @@ contract Removal_release_listed is UpgradeableMarket {
       to: _marketAddress,
       amounts: _asSingletonUintArray(_REMOVAL_AMOUNT),
       removals: _REMOVAL_FIXTURES,
-      projectId: 1_234_567_890,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: 50
+      projectId: 1_234_567_890
     });
     assertEq(
       _removal.balanceOf(_namedAccounts.supplier, REMOVAL_ID_FIXTURE),
@@ -1281,7 +1135,7 @@ contract Removal_getMarketBalance is UpgradeableMarket {
       signedPermit.s
     );
     assertEq(_removal.getMarketBalance(), amountToList - amountToSell);
-    _market.withdraw(_removalIds[0]);
+    _market.withdraw({removalId: _removalIds[0], to: _namedAccounts.supplier});
     assertEq(_removal.getMarketBalance(), 0);
   }
 }
@@ -1378,6 +1232,70 @@ contract Removal_safeBatchTransferFrom_reverts_ForbiddenTransfer is
       ids: _removalIds,
       amounts: new uint256[](2).fill(1 ether),
       data: ""
+    });
+  }
+}
+
+contract Removal_consignorBatchTransfer is UpgradeableMarket {
+  uint256[] private _removalIds;
+
+  function setUp() external {
+    _removalIds = _seedRemovals({
+      to: _namedAccounts.supplier,
+      count: 2,
+      list: false
+    });
+  }
+
+  function test() external {
+    _removal.grantRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: _namedAccounts.admin
+    });
+    assert(_removal.hasRole(_removal.CONSIGNOR_ROLE(), _namedAccounts.admin));
+    vm.prank(_namedAccounts.admin);
+    _removal.consignorBatchTransfer({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.admin,
+      ids: _removalIds,
+      amounts: new uint256[](2).fill(1 ether)
+    });
+    assertEq(_removal.balanceOf(_namedAccounts.admin, _removalIds[0]), 1 ether);
+    assertEq(_removal.balanceOf(_namedAccounts.admin, _removalIds[1]), 1 ether);
+  }
+
+  function test_reverts_whenSenderIsNotConsignor() external {
+    assert(!_removal.hasRole(_removal.CONSIGNOR_ROLE(), _namedAccounts.admin));
+    vm.expectRevert(
+      bytes(
+        string.concat(
+          "AccessControl: account 0x05127efcd2fc6a781bfed49188da1081670b22d8 is missing role ",
+          "0xa269776b75ac4c5fa422bb11bec3ed3cee626848d07687372583174b209261fb"
+        )
+      )
+    );
+    vm.prank(_namedAccounts.admin);
+    _removal.consignorBatchTransfer({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.admin,
+      ids: _removalIds,
+      amounts: new uint256[](2).fill(1 ether)
+    });
+  }
+
+  function test_reverts_whenReceiverIsNotConsignor() external {
+    _removal.grantRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: _namedAccounts.admin
+    });
+    assert(_removal.hasRole(_removal.CONSIGNOR_ROLE(), _namedAccounts.admin));
+    vm.expectRevert(ForbiddenTransfer.selector);
+    vm.prank(_namedAccounts.admin);
+    _removal.consignorBatchTransfer({
+      from: _namedAccounts.supplier,
+      to: _namedAccounts.supplier2,
+      ids: _removalIds,
+      amounts: new uint256[](2).fill(1 ether)
     });
   }
 }
@@ -1480,85 +1398,6 @@ contract Removal_getOwnedTokenIds is UpgradeableMarket {
     for (uint256 i = 0; i < _removalIds.length; i++) {
       assertContains(retrievedMarketTokens, _removalIds[i]);
     }
-  }
-}
-
-contract Removal_setHoldbackPercentage is UpgradeableMarket {
-  event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage);
-
-  uint256 immutable projectId = 1234567890;
-  uint8 immutable originalHoldbackPercentage = 50;
-  uint256 removalTokenId;
-
-  function setUp() external {
-    DecodedRemovalIdV0[] memory ids = new DecodedRemovalIdV0[](1);
-    ids[0] = DecodedRemovalIdV0({
-      idVersion: 0,
-      methodology: 1,
-      methodologyVersion: 0,
-      vintage: 2018,
-      country: "US",
-      subdivision: "IA",
-      supplierAddress: _namedAccounts.supplier,
-      subIdentifier: _REMOVAL_FIXTURES[0].subIdentifier + 1
-    });
-    removalTokenId = RemovalIdLib.createRemovalId(ids[0]);
-    _removal.mintBatch({
-      to: address(_market),
-      amounts: new uint256[](1).fill(1 ether),
-      removals: ids,
-      projectId: projectId,
-      scheduleStartTime: block.timestamp,
-      holdbackPercentage: originalHoldbackPercentage
-    });
-    vm.recordLogs();
-  }
-
-  function test() external {
-    uint8 newHoldbackPercentage = 20;
-    assertEq(
-      _removal.getHoldbackPercentage(removalTokenId),
-      originalHoldbackPercentage
-    );
-    _removal.setHoldbackPercentage({
-      projectId: projectId,
-      holdbackPercentage: newHoldbackPercentage
-    });
-    Vm.Log[] memory entries = vm.getRecordedLogs();
-    assertEq(entries.length, 1);
-    assertEq(
-      entries[0].topics[0],
-      keccak256("SetHoldbackPercentage(uint256,uint8)")
-    );
-    (uint256 eventProjectId, uint8 eventHoldbackPercentage) = abi.decode(
-      entries[0].data,
-      (uint256, uint8)
-    );
-    assertEq(eventProjectId, projectId);
-    assertEq(eventHoldbackPercentage, newHoldbackPercentage);
-    assertEq(
-      _removal.getHoldbackPercentage(removalTokenId),
-      newHoldbackPercentage
-    );
-  }
-
-  function test_reverts_InvalidHoldbackPercentage() external {
-    uint8 newHoldbackPercentage = 120;
-
-    assertEq(
-      _removal.getHoldbackPercentage(removalTokenId),
-      originalHoldbackPercentage
-    );
-    vm.expectRevert(
-      abi.encodeWithSelector(
-        InvalidHoldbackPercentage.selector,
-        newHoldbackPercentage
-      )
-    );
-    _removal.setHoldbackPercentage({
-      projectId: projectId,
-      holdbackPercentage: newHoldbackPercentage
-    });
   }
 }
 

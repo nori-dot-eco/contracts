@@ -11,7 +11,6 @@ import "./Errors.sol";
 import "./IERC20WithPermit.sol";
 import "./IMarket.sol";
 import "./Removal.sol";
-import "./RestrictedNORI.sol";
 
 import {RemovalsByYearLib, RemovalsByYear} from "./RemovalsByYearLib.sol";
 import {RemovalIdLib} from "./RemovalIdLib.sol";
@@ -29,8 +28,8 @@ import {UInt256ArrayLib, AddressArrayLib} from "./ArrayLib.sol";
  * and token balances that comprise the specific certificate for the amount purchased.
  *
  * The market maintains a "priority restricted threshold", which is a configurable threshold of supply that is
- * always reserved to sell only to buyers who have the `PRIORITY_ALLOWLIST_ROLE`.  Purchases that would drop supply below
- * this threshold will revert without the correct role.
+ * always reserved to sell only to buyers who have the `PRIORITY_ALLOWLIST_ROLE`.
+ * Purchases that would drop supply below this threshold will revert without the correct role.
  *
  * ###### Additional behaviors and features
  *
@@ -141,9 +140,10 @@ contract Market is
   IERC20WithPermit private _purchasingToken;
 
   /**
-   * @notice The RestrictedNORI contract.
+   * @notice Deprecated. Previously the address of the RestrictedNORI contract.
+   * This storage gap remains to maintain the storage layout of the contract.
    */
-  RestrictedNORI private _restrictedNORI;
+  address private _restrictedNORI;
 
   /**
    * @notice The number of base tokens required to purchase one NRT.
@@ -230,13 +230,11 @@ contract Market is
    * @param removal The address of the new Removal contract.
    * @param certificate The address of the new Certificate contract.
    * @param purchasingToken The address of the new IERC20WithPermit contract.
-   * @param restrictedNORI The address of the new RestrictedNORI contract.
    */
   event RegisterContractAddresses(
     Removal removal,
     Certificate certificate,
-    IERC20WithPermit purchasingToken,
-    RestrictedNORI restrictedNORI
+    IERC20WithPermit purchasingToken
   );
 
   /**
@@ -284,35 +282,6 @@ contract Market is
   event AddRemoval(uint256 indexed id, address indexed supplierAddress);
 
   /**
-   * @notice Emitted when the call to RestrictedNORI.mint fails during a purchase.
-   * For example, due to sending to a contract address that is not an ERC1155Receiver.
-   * @param amount The amount of RestrictedNORI in the mint attempt.
-   * @param removalId The removal id in the mint attempt.
-   */
-  event RestrictedNORIMintFailure(
-    uint256 indexed amount,
-    uint256 indexed removalId
-  );
-
-  /**
-   * @notice Emitted when the ERC20 token that would be transferred to the RestrictedNORI contract is not the token
-   * address that RestrictedNORI was configured to wrap.
-   * @param amount The amount of _purchasingToken currency in the failed transfer attempt.
-   * @param currentHoldbackPercentage The holdback percentage for this removal id's project at the time of this event
-   * emission.
-   * @param removalId The removal id being processed during the transfer attempt.
-   * @param rNoriUnderlyingToken The address of the token contract that RestrictedNORI was configured to wrap.
-   * @param purchasingTokenAddress The address of the ERC20 token that would have been transferred to RestrictedNORI.
-   */
-  event SkipRestrictedNORIERC20Transfer(
-    uint256 indexed amount,
-    uint256 indexed removalId,
-    uint256 currentHoldbackPercentage,
-    address rNoriUnderlyingToken,
-    address purchasingTokenAddress
-  );
-
-  /**
    * @notice Emitted when replacement removals are sent to this contract on behalf of an existing certificate.
    * @param certificateId The certificate id that was updated.
    * @param removalIds The removal ids that were added to the certificate.
@@ -347,7 +316,6 @@ contract Market is
    * @param removal The address of the Removal contract.
    * @param purchasingToken The address of the IERC20WithPermit token used to purchase from this market.
    * @param certificate The address of the Certificate contract.
-   * @param restrictedNori The address of the RestrictedNORI contract.
    * @param noriFeeWalletAddress The address for Nori's fee wallet.
    * @param noriFeePercentage_ The percentage to take from every transaction. This fee is sent to the address
    * specified by `noriFeeWalletAddress`.
@@ -357,7 +325,6 @@ contract Market is
     Removal removal,
     IERC20WithPermit purchasingToken,
     Certificate certificate,
-    RestrictedNORI restrictedNori,
     address noriFeeWalletAddress,
     uint256 noriFeePercentage_,
     uint256 priceMultiple_
@@ -373,7 +340,6 @@ contract Market is
     __Multicall_init_unchained();
     _removal = removal;
     _certificate = certificate;
-    _restrictedNORI = restrictedNori;
     _noriFeePercentage = noriFeePercentage_;
     _noriFeeWallet = noriFeeWalletAddress;
     _priorityRestrictedThreshold = 0;
@@ -498,7 +464,7 @@ contract Market is
 
   /**
    * @notice Register the market contract's asset addresses.
-   * @dev Register the Removal, Certificate, IERC20WithPermit, and RestrictedNORI contracts so that they
+   * @dev Register the Removal, Certificate, and IERC20WithPermit contracts so that they
    * can be referenced in this contract. Called as part of the market contract system deployment process.
    *
    * Emits a `RegisterContractAddresses` event.
@@ -510,23 +476,19 @@ contract Market is
    * @param removal The address of the Removal contract.
    * @param certificate The address of the Certificate contract.
    * @param purchasingToken The address of the IERC20WithPermit token used to purchase from this market.
-   * @param restrictedNORI The address of the market contract.
    */
   function registerContractAddresses(
     Removal removal,
     Certificate certificate,
-    IERC20WithPermit purchasingToken,
-    RestrictedNORI restrictedNORI
+    IERC20WithPermit purchasingToken
   ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
     _removal = removal;
     _certificate = certificate;
     _purchasingToken = purchasingToken;
-    _restrictedNORI = restrictedNORI;
     emit RegisterContractAddresses({
       removal: _removal,
       certificate: _certificate,
-      purchasingToken: _purchasingToken,
-      restrictedNORI: _restrictedNORI
+      purchasingToken: _purchasingToken
     });
   }
 
@@ -676,8 +638,7 @@ contract Market is
    * @dev See [ERC20Permit](https://docs.openzeppelin.com/contracts/4.x/api/token/erc20#ERC20Permit) for more.
    * The message sender must sign and present a valid permit to this contract to temporarily authorize this market
    * to transfer their ERC20 to complete the purchase. A certificate is minted in the Certificate contract
-   * to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals,
-   * to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
+   * to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
    * to Nori Inc. as a market operator fee.
    *
    * ##### Requirements:
@@ -730,9 +691,8 @@ contract Market is
    * for more.
    * The sender must have granted approval to this contract to authorize this market to transfer their
    * supported ERC20 to complete the purchase. A certificate is minted in the Certificate contract
-   * to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removals,
-   * to the RestrictedNORI contract that controls any restricted tokens owed to the suppliers, and finally
-   * to Nori Inc. as a market operator fee.
+   * to the specified recipient and the ERC20 tokens are distributed to the supplier(s) of the carbon removals
+   * and to Nori Inc. as a market operator fee.
    *
    * ##### Requirements:
    *
@@ -770,8 +730,7 @@ contract Market is
    * for more.
    * The purchaser must have granted approval to this contract to authorize this market to transfer their
    * supported ERC20 to complete the purchase. A certificate is minted in the Certificate
-   * contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals, and
-   * potentially to the RestrictedNORI contract that controls any restricted portion of the ERC20 owed to each supplier.
+   * contract to the specified recipient and the ERC20 is distributed to the suppliers of the carbon removals.
    *
    * ##### Requirements:
    *
@@ -822,19 +781,22 @@ contract Market is
   }
 
   /**
-   * @notice Withdraws a removal to the supplier.
-   * @dev Withdraws a removal to the supplier address encoded in the removal ID.
+   * @notice Withdraws a removal from the Market.
+   * @dev Withdraws a removal to the specified address, which must be the supplier of the removal
+   * or have the `Removal.CONSIGNOR_ROLE`.
    *
    * ##### Requirements:
    *
    * - Can only be used when this contract is not paused.
+   * - Can only withdraw to the supplier of the removal or an address with the `Removal.CONSIGNOR_ROLE`.
    * @param removalId The ID of the removal to withdraw from the market.
+   * @param to The address to which the removal will be transferred.
    */
-  function withdraw(uint256 removalId) external whenNotPaused {
+  function withdraw(uint256 removalId, address to) external whenNotPaused {
     address supplierAddress = RemovalIdLib.supplierAddress({
       removalId: removalId
     });
-    if (_isAuthorizedWithdrawal({owner: supplierAddress})) {
+    if (_isAuthorizedWithdrawal({supplier: supplierAddress, to: to})) {
       _removeActiveRemoval({
         removalId: removalId,
         supplierAddress: supplierAddress
@@ -1018,14 +980,6 @@ contract Market is
   }
 
   /**
-   * @notice Get the RestrictedNORI contract address.
-   * @return Returns the address of the RestrictedNORI contract.
-   */
-  function getRestrictedNoriAddress() external view override returns (address) {
-    return address(_restrictedNORI);
-  }
-
-  /**
    * @notice Get the Certificate contract address.
    * @return Returns the address of the Certificate contract.
    */
@@ -1118,11 +1072,11 @@ contract Market is
    * @notice Set the price multiple, which is the number of base tokens required to purchase one NRT.
    * @dev This value is scaled by 100 to allow for decimal precision. For example, a value of 100 means
    * that 1 base token is required to purchase 1 NRT, while a value of 1995 means that 19.95 base tokens
-   * purchase 1 NRT. The minimum value for the price multiple is 100, to avoid loss of decimal precision.
+   * purchase 1 NRT. The minimum non-zero value for the price multiple is 100, to avoid loss of decimal precision.
    * @param priceMultiple The new price multiple.
    */
   function _setPriceMultiple(uint256 priceMultiple) internal {
-    if (priceMultiple < 100) {
+    if (priceMultiple != 0 && priceMultiple < 100) {
       revert InvalidPriceMultiple();
     }
     _priceMultiple = priceMultiple;
@@ -1130,8 +1084,7 @@ contract Market is
   }
 
   /**
-   * @notice Pays the suppliers for the removals being purchased, routes funds to the RestrictedNORI contract if
-   * necessary, and pays a fee to Nori if `chargeFee` is true.
+   * @notice Pays the suppliers for the removals being purchased and pays a fee to Nori if `chargeFee` is true.
    * @param chargeFee Whether to charge a transaction fee for Nori.
    * @param from The address of the spender.
    * @param countOfRemovalsAllocated The number of removals being purchased.
@@ -1148,68 +1101,11 @@ contract Market is
     address[] memory suppliers
   ) internal {
     bool isTransferSuccessful;
-    uint8 holdbackPercentage;
-    uint256 restrictedSupplierFee;
-    uint256 unrestrictedSupplierFee;
+    uint256 supplierPayment;
     for (uint256 i = 0; i < countOfRemovalsAllocated; ++i) {
-      holdbackPercentage = _removal.getHoldbackPercentage({id: ids[i]});
-      unrestrictedSupplierFee = this
-        .convertRemovalDecimalsToPurchasingTokenDecimals(
-          amounts[i].mulDiv({y: _priceMultiple, denominator: 100})
-        );
-      if (holdbackPercentage > 0) {
-        restrictedSupplierFee = this
-          .convertRemovalDecimalsToPurchasingTokenDecimals(
-            amounts[i].mulDiv({
-              y: _priceMultiple * holdbackPercentage,
-              denominator: 10_000
-            })
-          );
-        unrestrictedSupplierFee -= restrictedSupplierFee;
-        if (
-          _restrictedNORI.getUnderlyingTokenAddress() !=
-          address(_purchasingToken)
-        ) {
-          emit SkipRestrictedNORIERC20Transfer({
-            amount: restrictedSupplierFee,
-            removalId: ids[i],
-            currentHoldbackPercentage: holdbackPercentage,
-            rNoriUnderlyingToken: _restrictedNORI.getUnderlyingTokenAddress(),
-            purchasingTokenAddress: address(_purchasingToken)
-          });
-          unrestrictedSupplierFee =
-            unrestrictedSupplierFee +
-            restrictedSupplierFee; // transfer all purchasing token to supplier
-        } else {
-          try
-            _restrictedNORI.mint({
-              amount: restrictedSupplierFee,
-              removalId: ids[i]
-            })
-          {
-            {
-              // solhint-disable-previous-line no-empty-blocks, Nothing should happen here.
-            }
-          } catch {
-            emit RestrictedNORIMintFailure({
-              amount: restrictedSupplierFee,
-              removalId: ids[i]
-            });
-            _restrictedNORI.incrementDeficitForSupplier({
-              amount: restrictedSupplierFee,
-              originalSupplier: suppliers[i]
-            });
-          }
-          isTransferSuccessful = _purchasingToken.transferFrom({
-            from: from,
-            to: address(_restrictedNORI),
-            amount: restrictedSupplierFee
-          });
-          if (!isTransferSuccessful) {
-            revert ERC20TransferFailed();
-          }
-        }
-      }
+      supplierPayment = this.convertRemovalDecimalsToPurchasingTokenDecimals(
+        amounts[i].mulDiv({y: _priceMultiple, denominator: 100})
+      );
       if (chargeFee) {
         isTransferSuccessful = _purchasingToken.transferFrom({
           from: from,
@@ -1223,7 +1119,7 @@ contract Market is
       isTransferSuccessful = _purchasingToken.transferFrom({
         from: from,
         to: suppliers[i],
-        amount: unrestrictedSupplierFee
+        amount: supplierPayment
       });
       if (!isTransferSuccessful) {
         revert ERC20TransferFailed();
@@ -1233,7 +1129,7 @@ contract Market is
 
   /**
    * @notice Fulfill an order.
-   * @dev This function is responsible for paying suppliers, routing tokens to the RestrictedNORI contract, paying Nori
+   * @dev This function is responsible for paying suppliers, paying Nori
    * the order fee, updating accounting, and minting the Certificate.
    * @param orderData The order fulfillment data.
    */
@@ -1456,16 +1352,26 @@ contract Market is
   }
 
   /**
-   * @dev Authorizes withdrawal for the removal. Reverts if the caller is not the owner of the removal and
-   * does not have the role `MARKET_ADMIN_ROLE`.
-   * @param owner The owner of the removal.
-   * @return Returns true if the caller is the owner, an approved spender, or has the role `MARKET_ADMIN_ROLE`,
-   * false otherwise.
+   * @dev Authorizes withdrawal for the removal. Reverts if the caller is not the supplier of the removal and
+   * does not have the role `MARKET_ADMIN_ROLE`, or if the recipient of the removal is either not the supplier
+   * of the removal or does not have the `Removal.CONSIGNOR_ROLE`.
+   * @param supplier The supplier of the removal.
+   * @param to The recipient of the removal.
+   * @return Returns true if the caller is the supplier, an approved spender, or has the role `MARKET_ADMIN_ROLE`,
+   * and the recipient is the removal supplier or has the `Removal.CONSIGNOR_ROLE`, false otherwise.
    */
-  function _isAuthorizedWithdrawal(address owner) internal view returns (bool) {
-    return (_msgSender() == owner ||
+  function _isAuthorizedWithdrawal(
+    address supplier,
+    address to
+  ) internal view returns (bool) {
+    bool isApprovedCaller = _msgSender() == supplier ||
       hasRole({role: MARKET_ADMIN_ROLE, account: _msgSender()}) ||
-      _removal.isApprovedForAll({account: owner, operator: _msgSender()}));
+      _removal.isApprovedForAll({account: supplier, operator: _msgSender()});
+    bool isApprovedRecipient = _removal.hasRole({
+      role: _removal.CONSIGNOR_ROLE(),
+      account: to
+    }) || supplier == to;
+    return isApprovedCaller && isApprovedRecipient;
   }
 
   /**

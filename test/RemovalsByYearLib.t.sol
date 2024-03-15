@@ -19,22 +19,12 @@ contract RemovalQueue_getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
     );
     vm.store(
       address(this),
-      bytes32(uint256(304)), // sets the markets _restrictedNORI storage slot to this contract to enable mock calls
-      bytes32(uint256(uint160(address(this))))
-    );
-    vm.store(
-      address(this),
       bytes32(uint256(301)), // sets the markets _removal storage slot to allow receiving 1155
       bytes32(uint256(uint160(address(_removal))))
     );
   }
 
   function setUp() external {
-    vm.mockCall(
-      address(this),
-      abi.encodeWithSelector(RestrictedNORI.scheduleExists.selector),
-      abi.encode(true)
-    );
     _removal.seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,
@@ -55,11 +45,9 @@ contract RemovalQueue_getTotalBalanceFromRemovalQueue is NonUpgradeableMarket {
     });
   }
 
-  function getTotalBalance(RemovalsByYear storage collection)
-    internal
-    view
-    returns (uint256)
-  {
+  function getTotalBalance(
+    RemovalsByYear storage collection
+  ) internal view returns (uint256) {
     uint256[] memory removalIds = collection.getAllRemovalIds();
     return
       _removal
@@ -103,19 +91,9 @@ contract RemovalQueue_insertRemovalByVintage is NonUpgradeableMarket {
       bytes32(uint256(401)), // sets the Removal._market storage slot to this contract to enable mock calls
       bytes32(uint256(uint160(address(this))))
     );
-    vm.store(
-      address(this),
-      bytes32(uint256(304)), // sets the markets _restrictedNORI storage slot to this contract to enable mock calls
-      bytes32(uint256(uint160(address(this))))
-    );
   }
 
   function setUp() external {
-    vm.mockCall(
-      address(this),
-      abi.encodeWithSelector(RestrictedNORI.scheduleExists.selector),
-      abi.encode(true)
-    );
     _removalIds = _removal.seedRemovals({
       to: _namedAccounts.supplier,
       count: 1,

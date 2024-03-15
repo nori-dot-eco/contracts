@@ -52,7 +52,6 @@ of `swap` that does not require permit arguments. Note that this previously publ
 The ERC20 tokens transferred from the buyer to this contract are distributed as follows:
 
 - A configurable market fee percentage to Nori's fee wallet (currently 25%).
-- If the supported ERC20 is _NORI_, a configurable percentage of the sale proceeds due to the supplier(s) are forwarded to the _RestrictedNORI_ contract to be withheld for insurance purposes and released over the life of their NRT agreement(s). (Configured on each _Removal_).
 - The balance of the proceeds of the sale are forwarded to the supplier(s) address.
 
 ##### Withdrawal Mechanism
@@ -97,10 +96,6 @@ The logic for encoding and decoding removal IDs, which contain information about
 
 The queuing mechanism used by the _Market_ contract to maintain an ordered list of _Removal_ tokens by year listed for sale on behalf of a given supplier.
 
-#### [_RestrictedNORILib_](RestrictedNORILib.md)
-
-The schedule logic used in _RestrictedNORI_.
-
 ### Deprecated
 
 #### ERC777PresetPausablePermissioned
@@ -135,8 +130,6 @@ When a supplier's listed NRTs are sold, the supplier gets paid in _NORI_ tokens 
 
 [_NORI_ on Etherscan](https://etherscan.io/token/0xFAdEDFe89B5A530C0a7f69bE442E190751a13093)
 
-Furthermore, when NRTs are sold, a percentage of the supplier's proceeds of each swap is held in an insurance reserve and released linearly over the supplier's ten-year contract with Nori.[^1] _RestrictedNORI_ implements this restriction and scheduled release mechanism within a transferable [ERC1155 compatible](https://github.com/ethereum/ethereum-org-website/blob/b17088f97b805dbc947e629d3ae5358ed27ac076/src/content/developers/docs/standards/tokens/erc-1155/index.md) token contract[^2].
-
 #### [_BridgedPolygonNORI_](BridgedPolygonNORI.md)
 
 _BridgedPolygonNORI_ is the [_$NORI_](NORI.md) token bridged to Polygon PoS.
@@ -158,13 +151,3 @@ V2 of this contract was updated to support the new [ERC20Permit](https://github.
 > Investors and employees have received _NORI_ token grants bound by vesting and lockup terms. These grants are implemented by _LockedNORI_ which does not currently support transfer of locked tokens and allows a maximum of one grant schedule per wallet address.
 
 [_LockedNORI_ on PolygonScan](https://polygonscan.com/token/0xccfffa6c2a030821331cc113b63babdc60bff82a)
-
-#### [_RestrictedNORI_](RestrictedNORI.md)
-
-A contract managing supplier insurance holdbacks.
-
-Operates similarly to _LockedNORI_ by acting as a wrapper token that governs the scheduled release of the underlying _BridgedPolygonNori_ asset. Implemented as an ERC1155, each token ID has its own schedule parameters that control the linear release of the underlying assets over the duration of the schedule. It is possible to create more than one schedule per owner address. It is not currently
-possible to transfer restricted balances between addresses, though this feature may be implemented in a future release.
-
-[^1]: This mechanism will be enabled once the marketplace is configured to receive _NORI_ as payment instead of _USDC_.
-[^2]: Initially, _RestrictedNORI_ is non-transferrable.

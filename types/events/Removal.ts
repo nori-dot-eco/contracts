@@ -5,12 +5,12 @@ import type {
   ApprovalForAllEvent,
   InitializedEvent,
   MigrateEvent,
+  RetireEvent,
   PausedEvent,
   ReleaseRemovalEvent,
   RoleAdminChangedEvent,
   RoleGrantedEvent,
   RoleRevokedEvent,
-  SetHoldbackPercentageEvent,
   TransferBatchEvent,
   TransferSingleEvent,
   URIEvent,
@@ -32,6 +32,10 @@ export interface RemovalEventMap {
   Migrate: {
     name: 'Migrate';
     args: MigrateEvent['args'];
+  };
+  Retire: {
+    name: 'Retire';
+    args: RetireEvent['args'];
   };
   Paused: {
     name: 'Paused';
@@ -56,10 +60,6 @@ export interface RemovalEventMap {
   RoleRevoked: {
     name: 'RoleRevoked';
     args: RoleRevokedEvent['args'];
-  };
-  SetHoldbackPercentage: {
-    name: 'SetHoldbackPercentage';
-    args: SetHoldbackPercentageEvent['args'];
   };
   TransferBatch: {
     name: 'TransferBatch';
