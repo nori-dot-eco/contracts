@@ -13,9 +13,7 @@ carbon removed.
 ###### Minting
 - Only accounts with the CONSIGNOR_ROLE can mint removal tokens, which should only be account(s) controlled by Nori.
 - When removal tokens are minted, additional data about those removals are stored in a mapping keyed by the token ID,
-such as a project ID and a holdback percentage (which determines the percentage of the sale proceeds from the token
-that will be routed to the RestrictedNORI contract). A restriction schedule is created per `projectId` (if necessary)
-in RestrictedNORI (see the [RestrictedNORI docs](../docs/RestrictedNORI.md)).
+such as a project ID.
 - Minting reverts when attempting to mint a token ID that already exists.
 - The function `addBalance` can be used to mint additional balance to a token ID that already exists.
 
@@ -138,21 +136,6 @@ Emitted on updating the addresses for contracts.
 | certificate | contract ICertificate | The address of the new certificate contract. |
 
 
-### SetHoldbackPercentage
-
-```solidity
-event SetHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage)
-```
-
-Emitted when the holdback percentage is updated for a project.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| projectId | uint256 | The ID of the project. |
-| holdbackPercentage | uint8 | The new holdback percentage for the project. |
-
-
 ### ReleaseRemoval
 
 ```solidity
@@ -185,6 +168,24 @@ Emitted when legacy removals are minted and then immediately used to migrate a l
 | certificateId | uint256 | The ID of the certificate to mint via migration. |
 | removalIds | uint256[] | The removal IDs to use to mint the certificate via migration. |
 | removalAmounts | uint256[] | The amounts for each corresponding removal ID to use to mint the certificate via migration. |
+
+
+### Retire
+
+```solidity
+event Retire(address certificateRecipient, uint256 certificateAmount, uint256 certificateId, uint256[] removalIds, uint256[] removalAmounts)
+```
+
+Emitted when removals are directly retired into a certificate by Nori.
+
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| certificateRecipient | address | The recipient of the certificate. |
+| certificateAmount | uint256 | The total amount of the certificate to mint (denominated in RTs). |
+| certificateId | uint256 | The ID of the certificate being minted. |
+| removalIds | uint256[] | The removal IDs to use to mint the certificate. |
+| removalAmounts | uint256[] | The amounts to retire from each corresponding removal ID. |
 
 
 ### constructor
@@ -235,31 +236,10 @@ Called as part of the market contract system deployment process.
 | certificate | contract ICertificate | The address of the Certificate contract. |
 
 
-### setHoldbackPercentage
-
-```solidity
-function setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage) external
-```
-
-Update the holdback percentage value for a project.
-
-<i>Emits a `SetHoldbackPercentage` event.
-
-##### Requirements:
-
-- Can only be used when the caller has the `DEFAULT_ADMIN_ROLE` role.
-- Can only be used when this contract is not paused.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| projectId | uint256 | The id of the project for which to update the holdback percentage. |
-| holdbackPercentage | uint8 | The new holdback percentage. |
-
-
 ### mintBatch
 
 ```solidity
-function mintBatch(address to, uint256[] amounts, struct DecodedRemovalIdV0[] removals, uint256 projectId, uint256 scheduleStartTime, uint8 holdbackPercentage) external
+function mintBatch(address to, uint256[] amounts, struct DecodedRemovalIdV0[] removals, uint256 projectId) external
 ```
 
 Mints multiple removals at once (for a single supplier).
@@ -278,8 +258,6 @@ Mints multiple removals at once (for a single supplier).
 | amounts | uint256[] | Each removal's tonnes of CO2 formatted. |
 | removals | struct DecodedRemovalIdV0[] | The removals to mint (represented as an array of `DecodedRemovalIdV0`). These removals are used to encode the removal IDs. |
 | projectId | uint256 | The project ID for this batch of removals. |
-| scheduleStartTime | uint256 | The start time of the schedule for this batch of removals. |
-| holdbackPercentage | uint8 | The holdback percentage for this batch of removals. |
 
 
 ### addBalance
@@ -323,27 +301,26 @@ this contract, and handles the mechanics of listing this token for sale.</i>
 | amount | uint256 | The balance of this token ID to transfer to the Market contract |
 
 
-### migrate
+### retire
 
 ```solidity
-function migrate(uint256[] ids, uint256[] amounts, address certificateRecipient, uint256 certificateAmount) external
+function retire(uint256[] ids, uint256[] amounts, address certificateRecipient, uint256 certificateAmount) external
 ```
 
 Transfers the provided `amounts` (denominated in NRTs) of the specified removal `ids` directly to the
-Certificate contract to mint a legacy certificate. This function provides Nori the ability to execute a one-off
-migration of legacy certificates and removals (legacy certificates and removals are those which existed prior to
-our deployment to Polygon and covers all historic issuances and purchases up until the date that we start using the
-Market contract).
+Certificate contract to mint a certificate. This function provides Nori the ability to retire removals directly
+into the Certificate contract and to specify exactly which removals will be retired.
 
 <i>The Certificate contract implements `onERC1155BatchReceived`, which is invoked upon receipt of a batch of
-removals (triggered via `_safeBatchTransferFrom`). This function circumvents the market contract's lifecycle by
+removals (triggered via `_safeBatchTransferFrom`). This function circumvents the market contract by
 transferring the removals from an account with the `CONSIGNOR_ROLE` role.
+Emits a `Retire` event.
 
 It is necessary that the consignor holds the removals because of the following:
 - `ids` can be composed of a list of removal IDs that belong to one or more suppliers.
 - `_safeBatchTransferFrom` only accepts one `from` address.
 - `Certificate.onERC1155BatchReceived` will mint a *new* certificate every time an additional batch is received, so
-we must ensure that all the removals comprising the certificate to be migrated come from a single batch.
+we must ensure that all the removals comprising the certificate come from a single batch.
 
 ##### Requirements:
 - The caller must have the `CONSIGNOR_ROLE` role.
@@ -424,7 +401,7 @@ Get the address of the Certificate contract.
 function getProjectId(uint256 id) external view returns (uint256)
 ```
 
-Get the project ID (which is the removal's schedule ID in RestrictedNORI) for a given removal ID.
+Get the project ID for a given removal ID.
 
 
 | Name | Type | Description |
@@ -434,23 +411,6 @@ Get the project ID (which is the removal's schedule ID in RestrictedNORI) for a 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | uint256 | The project ID for the removal token ID. |
-
-### getHoldbackPercentage
-
-```solidity
-function getHoldbackPercentage(uint256 id) external view returns (uint8)
-```
-
-Gets the holdback percentage for a removal.
-
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| id | uint256 | The removal token ID for which to retrieve the holdback percentage. |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint8 | The holdback percentage for the removal token ID. |
 
 ### getMarketBalance
 
@@ -575,6 +535,32 @@ acceptance magic value.</i>
 | data | bytes | The data to pass to the receiver contract. |
 
 
+### consignorBatchTransfer
+
+```solidity
+function consignorBatchTransfer(address from, address to, uint256[] ids, uint256[] amounts) public
+```
+
+Allows an address with the `CONSIGNOR_ROLE` to transfer tokens.
+
+<i>Emits a `TransferBatch` event.
+
+##### Requirements:
+
+- Can only be called by an address with the `CONSIGNOR_ROLE`.
+- Respects the rules of `Removal._beforeTokenTransfer`.
+- `ids` and `amounts` must have the same length.
+- If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
+acceptance magic value.</i>
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| from | address | The address to transfer from. |
+| to | address | The address to transfer to. |
+| ids | uint256[] | The removal IDs to transfer. |
+| amounts | uint256[] | The amounts of removals to transfer. |
+
+
 ### setApprovalForAll
 
 ```solidity
@@ -617,22 +603,6 @@ This function call must use less than 30,000 gas.</i>
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | bool | True if this contract implements the interface defined by &#x60;interfaceId&#x60;, otherwise false. |
-
-### _setHoldbackPercentage
-
-```solidity
-function _setHoldbackPercentage(uint256 projectId, uint8 holdbackPercentage) internal
-```
-
-Update the holdback percentage value for a project.
-
-<i>Emits a `SetHoldbackPercentage` event.</i>
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| projectId | uint256 | The id of the project for which to update the holdback percentage. |
-| holdbackPercentage | uint8 | The new holdback percentage. |
-
 
 ### _createRemovals
 

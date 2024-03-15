@@ -121,10 +121,6 @@ error RemovalNotYetMinted(uint256 tokenId);
  */
 error NoriFeeWalletZeroAddress();
 /**
- * @notice Thrown when a holdback percentage greater than 100 is submitted to `mintBatch`.
- */
-error InvalidHoldbackPercentage(uint8 holdbackPercentage);
-/**
  * @notice Thrown when a purchasing token decimals value is not between 6 and 18.
  * @param decimals The purchasing token decimals value that is invalid.
  */

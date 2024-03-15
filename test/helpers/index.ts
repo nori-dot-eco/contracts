@@ -12,7 +12,6 @@ import type {
   Certificate,
   Market,
   LockedNORI,
-  RestrictedNORI,
   NORI,
   BridgedPolygonNORI,
   RemovalTestHarness,
@@ -33,7 +32,6 @@ interface ContractInstances {
   certificate: Certificate;
   market: Market;
   lNori: LockedNORI;
-  rNori: RestrictedNORI;
   removalTestHarness: RemovalTestHarness;
 }
 
@@ -107,25 +105,14 @@ type TestEnvironment<TOptions extends SetupTestOptions = SetupTestOptions> =
 export const createBatchMintData = async ({
   hre,
   projectId = 1_234_567_890,
-  scheduleStartTime,
-  holdbackPercentage = Zero,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   projectId?: number;
-  scheduleStartTime?: number;
-  holdbackPercentage?: BigNumber;
 }): Promise<{
   projectId: Parameters<Removal['mintBatch']>[3];
-  scheduleStartTime: Parameters<Removal['mintBatch']>[4];
-  holdbackPercentage: Parameters<Removal['mintBatch']>[5];
 }> => {
-  const actualScheduleStartTime = BigNumber.from(
-    scheduleStartTime ?? (await getLatestBlockTime({ hre }))
-  );
   return {
     projectId: BigNumber.from(projectId),
-    scheduleStartTime: actualScheduleStartTime,
-    holdbackPercentage,
   };
 };
 
@@ -137,22 +124,16 @@ interface RemovalDataFromListing {
   totalAmountOfRemovals: number;
   removalAmounts: BigNumber[];
   projectId: number;
-  scheduleStartTime: number;
-  holdbackPercentage: BigNumber;
 }
 
 // todo helpers/removal.ts
 export interface RemovalDataForListing {
   projectId?: number;
-  scheduleStartTime?: number;
-  holdbackPercentage?: BigNumber;
   listNow?: boolean;
   removals: (Partial<DecodedRemovalIdV0Struct> & {
     tokenId?: BigNumber;
     amount: BigNumber;
     projectId?: number;
-    scheduleStartTime?: number;
-    holdbackPercentage?: number;
   })[];
 }
 
@@ -179,13 +160,8 @@ export const batchMintAndListRemovalsForSale = async (options: {
   removalDataToList: RemovalDataForListing;
 }): Promise<RemovalDataFromListing> => {
   const { removal, hre, removalDataToList, market } = options;
-  const { projectId, scheduleStartTime, holdbackPercentage } = {
-    projectId: removalDataToList.projectId ?? 1_234_567_890,
-    scheduleStartTime:
-      removalDataToList.scheduleStartTime ??
-      (await getLatestBlockTime({ hre })),
-    holdbackPercentage: removalDataToList.holdbackPercentage ?? Zero,
-  };
+  const projectId = removalDataToList.projectId ?? 1_234_567_890;
+
   const { supplier } = hre.namedAccounts;
   const defaultStartingVintage = 2016;
   const removals: DecodedRemovalIdV0Struct[] = [];
@@ -207,9 +183,7 @@ export const batchMintAndListRemovalsForSale = async (options: {
       : market.address,
     removalAmounts,
     removals,
-    projectId,
-    scheduleStartTime,
-    holdbackPercentage
+    projectId
   );
   const totalAmountOfSupply = sum(removalAmounts);
   const totalAmountOfSuppliers = getTotalAmountOfSuppliers(removalDataToList);
@@ -221,8 +195,6 @@ export const batchMintAndListRemovalsForSale = async (options: {
     totalAmountOfRemovals,
     removalAmounts,
     projectId,
-    scheduleStartTime,
-    holdbackPercentage,
   };
 };
 
@@ -231,7 +203,7 @@ export const setupTest = global.hre.deployments.createFixture(
   async (
     hre: CustomHardHatRuntimeEnvironment,
     options?: SetupTestOptions
-  ): Promise<TestEnvironment<SetupTestOptions>> => {
+  ): Promise<TestEnvironment> => {
     const userFixtures: UserFixtures = {
       ...options?.userFixtures,
       buyer: {
@@ -268,8 +240,6 @@ export const setupTest = global.hre.deployments.createFixture(
     let totalAmountOfSuppliers = 0;
     let totalAmountOfRemovals = 0;
     let projectId = 0;
-    let scheduleStartTime = 0;
-    let holdbackPercentage = Zero;
     let removalAmounts: BigNumber[] = [];
     for (const [k, v] of Object.entries(userFixtures) as [
       keyof typeof namedAccounts,
@@ -309,8 +279,6 @@ export const setupTest = global.hre.deployments.createFixture(
         totalAmountOfRemovals =
           mintResultData.totalAmountOfRemovals + totalAmountOfRemovals;
         projectId = mintResultData.projectId; // todo allow multiple schedules/projects/percentages per fixture
-        scheduleStartTime = mintResultData.scheduleStartTime; // todo allow multiple schedules/projects/percentages per fixture
-        holdbackPercentage = mintResultData.holdbackPercentage; // todo allow multiple schedules/projects/percentages per fixture
       }
       if (v.bpBalance !== undefined) {
         // eslint-disable-next-line no-await-in-loop -- these need to run serially
@@ -344,7 +312,6 @@ export const setupTest = global.hre.deployments.createFixture(
       certificate: contracts.Certificate,
       market: contracts.Market,
       lNori: contracts.LockedNORI,
-      rNori: contracts.RestrictedNORI,
       removalTestHarness: contracts.RemovalTestHarness,
       userFixtures,
       contractFixtures,
@@ -353,9 +320,7 @@ export const setupTest = global.hre.deployments.createFixture(
       totalAmountOfSuppliers,
       totalAmountOfRemovals,
       projectId,
-      scheduleStartTime,
-      holdbackPercentage,
       removalAmounts,
-    } as TestEnvironment<SetupTestOptions>;
+    } as TestEnvironment;
   }
 );

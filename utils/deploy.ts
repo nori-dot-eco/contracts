@@ -6,8 +6,6 @@ import type { Address } from 'hardhat-deploy/types';
 import type {
   LockedNORI,
   LockedNORI__factory,
-  RestrictedNORI,
-  RestrictedNORI__factory,
   Certificate,
   Certificate__factory,
   Market,
@@ -194,29 +192,13 @@ export const deployMarketContract = async ({
       deployments.Removal.address,
       deployments.BridgedPolygonNORI.address,
       deployments.Certificate.address,
-      deployments.RestrictedNORI.address,
       feeWallet,
       feePercentage,
       priceMultiple,
     ],
     options: {
       initializer:
-        'initialize(address,address,address,address,address,uint256,uint256)',
-      unsafeAllow: ['delegatecall'],
-    },
-  });
-};
-
-export const deployRestrictedNORI = async ({
-  hre,
-}: {
-  hre: CustomHardHatRuntimeEnvironment;
-}): Promise<InstanceOfContract<RestrictedNORI>> => {
-  return hre.deployOrUpgradeProxy<RestrictedNORI, RestrictedNORI__factory>({
-    contractName: 'RestrictedNORI',
-    args: [],
-    options: {
-      initializer: 'initialize()',
+        'initialize(address,address,address,address,uint256,uint256)',
       unsafeAllow: ['delegatecall'],
     },
   });

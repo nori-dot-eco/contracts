@@ -6,7 +6,6 @@ import {
   expect,
   batchMintAndListRemovalsForSale,
 } from '@/test/helpers';
-import { compareScheduleSummaryStructs } from '@/test/helpers/restricted-nori';
 import { formatTokenAmount } from '@/utils/units';
 
 describe('Market', () => {
@@ -1004,103 +1003,6 @@ describe('Market', () => {
   //   //   expect(await certificate.balanceOf(buyer.address, 0)).to.equal(0);
   //   // });
   // }); // todo
-  describe('restricted tokens', () => {
-    it('should correctly route restricted tokens to the RestrictedNORI contract', async () => {
-      const projectId1 = 1_111_111_111;
-      const projectId2 = 2_222_222_222;
-      const project1HoldbackPercentage = BigNumber.from(30);
-      const project2HoldbackPercentage = BigNumber.from(40);
-      const removalAmount = formatTokenAmount(100);
-      const testSetup = await setupTest({
-        userFixtures: {
-          supplier: {
-            removalDataToList: {
-              projectId: projectId1,
-              holdbackPercentage: project1HoldbackPercentage,
-              removals: [{ amount: removalAmount }],
-            },
-          },
-        },
-      });
-      await batchMintAndListRemovalsForSale({
-        ...testSetup,
-        removalDataToList: {
-          removals: [{ amount: removalAmount }],
-          projectId: projectId2,
-          holdbackPercentage: project2HoldbackPercentage,
-        },
-      });
-      const { bpNori, market, rNori, hre, userFixtures } = testSetup;
-      const { supplier, buyer, noriWallet } = hre.namedSigners;
-      const purchaseAmount = formatTokenAmount(200);
-      const fee = await market.calculateNoriFee(purchaseAmount);
-      const value = await market.calculateCheckoutTotal(purchaseAmount);
-      const supplierInitialNoriBalance = formatTokenAmount(0);
-      const noriInitialNoriBalance = formatTokenAmount(0);
-      const { v, r, s } = await buyer.permit({
-        verifyingContract: bpNori,
-        spender: market.address,
-        value,
-      });
-      await market.grantRole(
-        hre.ethers.utils.id('SWAP_ALLOWLIST_ROLE'),
-        buyer.address
-      );
-      await market
-        .connect(buyer)
-        ['swap(address,uint256,uint256,uint8,bytes32,bytes32)'](
-          buyer.address,
-          purchaseAmount,
-          MaxUint256,
-          v,
-          r,
-          s
-        );
-      const scheduleSummaries = await rNori.batchGetScheduleSummaries([
-        projectId1,
-        projectId2,
-      ]);
-      const buyerFinalNoriBalance = await bpNori.balanceOf(buyer.address);
-      const supplierFinalNoriBalance = await bpNori.balanceOf(supplier.address);
-      const noriFinalNoriBalance = await bpNori.balanceOf(noriWallet.address);
-      expect(buyerFinalNoriBalance).to.equal(
-        userFixtures.buyer.bpBalance?.sub(value)
-      );
-      expect(supplierFinalNoriBalance).to.equal(
-        supplierInitialNoriBalance
-          .add(
-            value.sub(
-              value
-                .sub(fee)
-                .div(2)
-                .mul(project1HoldbackPercentage)
-                .div(100)
-                .add(
-                  value.sub(fee).div(2).mul(project2HoldbackPercentage).div(100)
-                )
-            )
-          )
-          .sub(fee)
-      );
-      expect(noriFinalNoriBalance).to.equal(noriInitialNoriBalance.add(fee));
-      compareScheduleSummaryStructs(scheduleSummaries[0], {
-        totalSupply: value
-          .sub(fee)
-          .div(2)
-          .mul(project1HoldbackPercentage)
-          .div(100),
-        tokenHolders: [supplier.address],
-      });
-      compareScheduleSummaryStructs(scheduleSummaries[1], {
-        totalSupply: value
-          .sub(fee)
-          .div(2)
-          .mul(project2HoldbackPercentage)
-          .div(100),
-        tokenHolders: [supplier.address],
-      });
-    });
-  });
   describe('swap', () => {
     it('should be able to purchase removals', async () => {
       const { bpNori, market, hre, userFixtures } = await setupTest({

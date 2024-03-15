@@ -29,7 +29,7 @@ contract GasBenchmark_buyingFromManyRemovals_singleSupplier is GasBenchmark {
   uint256 numberOfRemovals;
 
   function setUp() external {
-    numberOfRemovals = 250;
+    numberOfRemovals = 320;
     _removalIdArray = new uint256[](numberOfRemovals);
     for (uint256 i = 0; i < numberOfRemovals; i++) {
       _removalIdArray[i] = _seedAndListRemoval({
@@ -77,6 +77,9 @@ contract GasBenchmark_buyingFromManyRemovals_singleSupplier is GasBenchmark {
       supplier: _namedAccounts.supplier,
       vintages: new uint256[](0)
     });
+    // These assertions can be uncommented to check correctness, but omitted to get a more
+    // accurate gas measurement for the logic we care about
+    //
     // _assertExpectedBalances(address(_market), 0, false, 0);
     // _assertExpectedBalances(_namedAccounts.supplier, 0, false, 0);
     // assertEq(

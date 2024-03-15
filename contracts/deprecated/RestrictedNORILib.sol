@@ -2,7 +2,7 @@
 pragma solidity =0.8.17;
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
-import "./Errors.sol";
+import "../Errors.sol";
 
 /**
  * @notice The internal governing parameters and data for a RestrictedNORI schedule.
@@ -95,11 +95,10 @@ library RestrictedNORILib {
    * @param totalSupply The total supply of tokens for the schedule.
    * @return The true total of the schedule.
    */
-  function scheduleTrueTotal(Schedule storage schedule, uint256 totalSupply)
-    internal
-    view
-    returns (uint256)
-  {
+  function scheduleTrueTotal(
+    Schedule storage schedule,
+    uint256 totalSupply
+  ) internal view returns (uint256) {
     return schedule.totalClaimedAmount + totalSupply;
   }
 

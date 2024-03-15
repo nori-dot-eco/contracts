@@ -123,7 +123,7 @@ const validateMigrateEvents = ({
   }[] = parseTransactionLogs({
     contractInstance: removalContract,
     txReceipt: txResult,
-    eventNames: ['Migrate'],
+    eventNames: ['Retire'],
   }).map((log) => ({
     certificateId: log.args.certificateId.toNumber(),
     removalAmounts: log.args.removalAmounts.map((a: BigNumber) =>
@@ -503,7 +503,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
           )
             .div(1_000_000)
             .toString();
-          return removalContract.interface.encodeFunctionData('migrate', [
+          return removalContract.interface.encodeFunctionData('retire', [
             ids,
             amounts,
             recipient,
@@ -588,7 +588,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
             tokenIds = parseTransactionLogs({
               contractInstance: removalContract,
               txReceipt,
-              eventNames: ['Migrate'],
+              eventNames: ['Retire'],
             }).map((log) => log.args.certificateId.toNumber());
             if (tokenIds.length !== batch.length) {
               throw new Error(

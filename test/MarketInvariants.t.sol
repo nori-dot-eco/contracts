@@ -58,8 +58,6 @@ contract MarketHandler is UpgradeableMarket {
    * - the supplier is chosen randomly from a predefined set of possible suppliers
    * - the amounts are chosen randomly between 0 and 1 ether-
    * - the projectId is between 1 and 1 billion
-   * - the scheduleStartTime is between 1 and intMax minus 10 years (avoid overflow when calculating end time for schedules)
-   * - the holdbackPercentage is between 0 and 100
    * - other ID fields are hardcoded
    */
   function mintRemovalBatchMinimizeReverts(uint256 fuzz) external {
@@ -92,9 +90,7 @@ contract MarketHandler is UpgradeableMarket {
       to: supplierAddress,
       amounts: amounts,
       removals: removals,
-      projectId: (fuzz % 1_000_000_000) + 1,
-      scheduleStartTime: (fuzz % (type(uint256).max - 315_569_520)) + 1,
-      holdbackPercentage: uint8(fuzz % 100)
+      projectId: (fuzz % 1_000_000_000) + 1
     });
   }
 
@@ -335,8 +331,6 @@ contract MarketInvariantTest is StdInvariant, Global {
   // - removal tokens should only be held by the specific subset of addresses that are allowed to hold them
   // - the nrtDeficit in the certificate contract should never exceed the number of NRTs that were released
   // - the active suppliers in the market should only come from the set of addresses used to mint removal batches
-  // - the amount of bpNori held by the RestrictedNORI contract should never exceed the total supply all schedule 1155s
-  //    combined
   // - all kinds of contract-specific invariants that could examine things like permissions and roles etc.
   //    (consider writing contract-specific handlers for this with minimal setup)
 
