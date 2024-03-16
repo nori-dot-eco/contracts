@@ -2,7 +2,6 @@
 
 import { BigNumber, FixedNumber } from 'ethers';
 import { task } from 'hardhat/config';
-
 import { getMarket, getRemoval } from '@/utils/contracts';
 import { Alchemy, Network, Utils } from 'alchemy-sdk';
 
@@ -151,6 +150,43 @@ const swapWithoutFeeSpecialOrderTransaction = async () => {
   console.log('RESPONSE', response);
 };
 
+const checkRoles = async (polygonRelayerAddress: string) => {
+  const [signer] = await hre.getSigners();
+  const marketContract = await getMarket({
+    hre,
+    signer,
+  });
+  const removalContract = await getRemoval({
+    hre,
+    signer,
+  });
+  const hasMarketDefaultAdminRole = await marketContract.hasRole(
+    marketContract.DEFAULT_ADMIN_ROLE(),
+    polygonRelayerAddress
+  );
+  console.log(
+    'SIGNER HAS `Market.DEFAULT_ADMIN_ROLE`? ',
+    hasMarketDefaultAdminRole
+  );
+  const hasMarketAdminRole = await marketContract.hasRole(
+    marketContract.MARKET_ADMIN_ROLE(),
+    polygonRelayerAddress
+  );
+  console.log('SIGNER HAS `Market.MARKET_ADMIN_ROLE`? ', hasMarketAdminRole);
+
+  const hasRemovalAdminRole = await removalContract.hasRole(
+    removalContract.DEFAULT_ADMIN_ROLE(),
+    polygonRelayerAddress
+  );
+  console.log('SIGNER HAS `Removal.DEFAULT_ADMIN_ROLE`? ', hasRemovalAdminRole);
+
+  const hasConsignorRole = await removalContract.hasRole(
+    removalContract.CONSIGNOR_ROLE(),
+    polygonRelayerAddress
+  );
+  console.log('SIGNER HAS `Removal.CONSIGNOR_ROLE`? ', hasConsignorRole);
+};
+
 export const GET_SIMULATE_TXN_TASK = () =>
   ({
     name: 'simulate-txn',
@@ -159,6 +195,18 @@ export const GET_SIMULATE_TXN_TASK = () =>
       options: {},
       _: CustomHardHatRuntimeEnvironment
     ): Promise<void> => {
+      const CERTIFICATE_SIZE_TONNES = 10000;
+      const CERTIFICATE_SIZE_WEI = ethers.utils.parseUnits(
+        CERTIFICATE_SIZE_TONNES.toString(),
+        18
+      );
+      const NUMBER_OF_CERTIFICATES = 10;
+
+      const SUPPLIER_WALLET_ADDRESS =
+        '0xdca851dE155B20CC534b887bD2a1D780D0DEc077';
+
+      const RECIPIENT = '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450'; // amie's random address
+
       const network = hre.network.name;
       if (![`localhost`, `mumbai`, `polygon`].includes(network)) {
         throw new Error(
@@ -166,13 +214,11 @@ export const GET_SIMULATE_TXN_TASK = () =>
         );
       }
       const [signer] = await hre.getSigners();
-      const recipient = '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450'; // amie's random address
 
       const settings = {
         apiKey: process.env.ALCHEMY_API_KEY,
         network: Network.MATIC_MAINNET,
       };
-
       const alchemy = new Alchemy(settings);
 
       const marketContract = await getMarket({
@@ -185,116 +231,12 @@ export const GET_SIMULATE_TXN_TASK = () =>
       });
       console.log('MARKET CONTRACT ADDRESS', marketContract.address);
 
-      // const polygonRelayerAddress =
-      //   '0x6fcF5C3E43bE33F4B14BB25B550adb6887C1E48c';
       const polygonRelayerAddress = await signer.getAddress();
       console.log('SIGNER ADDRESS', polygonRelayerAddress);
 
-      const supplierWalletAddress =
-        '0xdca851dE155B20CC534b887bD2a1D780D0DEc077';
-      // const hasMarketDefaultAdminRole = await marketContract.hasRole(
-      //   marketContract.DEFAULT_ADMIN_ROLE(),
-      //   polygonRelayerAddress
-      // );
-      // console.log(
-      //   'SIGNER HAS `Market.DEFAULT_ADMIN_ROLE`? ',
-      //   hasMarketDefaultAdminRole
-      // );
-      // const hasMarketAdminRole = await marketContract.hasRole(
-      //   marketContract.MARKET_ADMIN_ROLE(),
-      //   polygonRelayerAddress
-      // );
-      // console.log(
-      //   'SIGNER HAS `Market.MARKET_ADMIN_ROLE`? ',
-      //   hasMarketAdminRole
-      // );
+      // await checkRoles(polygonRelayerAddress);
 
-      // const hasRemovalAdminRole = await removalContract.hasRole(
-      //   removalContract.DEFAULT_ADMIN_ROLE(),
-      //   polygonRelayerAddress
-      // );
-      // console.log(
-      //   'SIGNER HAS `Removal.DEFAULT_ADMIN_ROLE`? ',
-      //   hasRemovalAdminRole
-      // );
-
-      // const hasConsignorRole = await removalContract.hasRole(
-      //   removalContract.CONSIGNOR_ROLE(),
-      //   polygonRelayerAddress
-      // );
-      // console.log('SIGNER HAS `Removal.CONSIGNOR_ROLE`? ', hasConsignorRole);
-
-      const bayerMintedTokens = await removalContract.getOwnedTokenIds(
-        supplierWalletAddress
-      );
-      console.log(`Bayer has ${bayerMintedTokens.length} minted tokens`);
-      console.log('Preview: ', bayerMintedTokens.slice(0, 5));
-
-      const bayerMintedTokenBalances = await removalContract.balanceOfBatch(
-        new Array(bayerMintedTokens.length).fill(supplierWalletAddress),
-        bayerMintedTokens
-      );
-
-      const bayerMintedBalance = bayerMintedTokenBalances.reduce(
-        (acc, curr) => acc.add(curr),
-        BigNumber.from(0)
-      );
-
-      console.log(
-        'BAYER MINTED TOKEN BALANCE(TONNES): ',
-        FixedNumber.fromValue(bayerMintedBalance, 18).toString()
-      );
-
-      const directRetirementSizeTonnes = 10000;
-      const directRetirementSizeWei = ethers.utils.parseUnits(
-        directRetirementSizeTonnes.toString(),
-        18
-      );
-
-      const removalIdsForRetirement = [];
-      const balancesForRetirement = [];
-      let remainingRetirementSizeWei = directRetirementSizeWei;
-      // move through available bayermintedTokens and assemble list of token id and corresponding balance of token ID to retire
-      // then break when we've reached the directRetirementSizeWei
-      for (let i = 0; i < bayerMintedTokens.length; i++) {
-        const tokenId = bayerMintedTokens[i];
-        const balance = bayerMintedTokenBalances[i];
-        // skip tokens that were minted with 0 balance!
-        if (balance.eq(0)) {
-          continue;
-        }
-        if (remainingRetirementSizeWei.gt(balance)) {
-          remainingRetirementSizeWei = remainingRetirementSizeWei.sub(balance);
-          removalIdsForRetirement.push(tokenId);
-          balancesForRetirement.push(balance);
-        } else {
-          removalIdsForRetirement.push(tokenId);
-          balancesForRetirement.push(remainingRetirementSizeWei);
-          break;
-        }
-      }
-
-      const sumOfBalancesForRetirement = balancesForRetirement.reduce(
-        (acc, curr) => acc.add(curr),
-        BigNumber.from(0)
-      );
-      if (!sumOfBalancesForRetirement.eq(directRetirementSizeWei)) {
-        throw new Error(
-          `Sum of balances for retirement ${FixedNumber.fromValue(
-            sumOfBalancesForRetirement,
-            18
-          ).toString()} does not equal direct retirement size ${FixedNumber.fromValue(
-            directRetirementSizeWei,
-            18
-          ).toString()}`
-        );
-      }
-
-      console.log(
-        'SUM OF BALANCES FOR RETIREMENT (TONNES): ',
-        FixedNumber.fromValue(sumOfBalancesForRetirement, 18).toString()
-      );
-
+      // Gas stuff ==========================
       const latestBlock = await hre.ethers.provider.getBlock('latest');
       const latestBlockGasLimit = Utils.hexStripZeros(
         latestBlock.gasLimit.toHexString()
@@ -306,123 +248,202 @@ export const GET_SIMULATE_TXN_TASK = () =>
       // console.log('LATEST BLOCK GAS LIMIT: ', latestBlockGasLimit);
       // console.log('LATEST FAST GAS PRICE: ', fastGasPriceHexString);
 
-      console.log('ReMOVAL IDS FOR RETIREMENT', removalIdsForRetirement);
-      console.log('BALANCES FOR RETIREMENT', balancesForRetirement);
-      const consignorBatchTransferTransactionData =
-        removalContract.interface.encodeFunctionData(`consignorBatchTransfer`, [
-          supplierWalletAddress,
-          polygonRelayerAddress,
-          removalIdsForRetirement,
-          balancesForRetirement,
-        ]);
-      const consignorBatchTransferTransactionInfo = {
-        /** The address the transaction is directed to. */
-        to: removalContract.address,
-        /** The address the transaction is sent from. (This is what's spoofed) */
-        from: polygonRelayerAddress,
-        /** The gas provided for the transaction execution, as a hex string. */
-        gas: latestBlockGasLimit,
-        // gas: '0x1e8480', // 2,000,000
-        // gas: '0x1312D00', // 20,000,000
-        /** The gas price to use as a hex string. */
-        gasPrice: fastGasPriceHexString,
-        /** The value associated with the transaction as a hex string. */
-        value: '0x0',
-        /** The data associated with the transaction. */
-        data: consignorBatchTransferTransactionData,
-      };
-      const alchemyGasEstimationTransfer = await alchemy.transact.estimateGas(
-        consignorBatchTransferTransactionInfo
+      // certificate retirement stuff ==========================
+      let bayerMintedTokens = await removalContract.getOwnedTokenIds(
+        SUPPLIER_WALLET_ADDRESS
+      );
+      console.log(`Bayer has ${bayerMintedTokens.length} minted tokens`);
+
+      let bayerMintedTokenBalances = await removalContract.balanceOfBatch(
+        new Array(bayerMintedTokens.length).fill(SUPPLIER_WALLET_ADDRESS),
+        bayerMintedTokens
+      );
+
+      const bayerMintedBalance = bayerMintedTokenBalances.reduce(
+        (acc, curr) => acc.add(curr),
+        BigNumber.from(0)
       );
       console.log(
-        'TRANSFER GAS ESTIMATION',
-        alchemyGasEstimationTransfer.toString()
+        'BAYER MINTED TOKEN BALANCE(TONNES): ',
+        FixedNumber.fromValue(bayerMintedBalance, 18).toString()
       );
-      // const batchTransferResponse = await alchemy.transact.simulateExecution(
-      //   consignorBatchTransferTransactionInfo
-      // );
-      // console.log('BATCH TRANSFER SIM RESPONSE', batchTransferResponse);
-      console.log('='.repeat(50));
 
-      const retireTransactionData =
-        removalContract.interface.encodeFunctionData('retire', [
+      const batchesForRetirement = [];
+
+      for (
+        let certificateIndex = 0;
+        certificateIndex < NUMBER_OF_CERTIFICATES;
+        certificateIndex++
+      ) {
+        const removalIdsForRetirement = [];
+        const balancesForRetirement = [];
+        let remainingRetirementSizeWei = CERTIFICATE_SIZE_WEI;
+        // move through available bayermintedTokens and assemble list of token id and corresponding balance of token ID to retire
+        // then break when we've reached the directRetirementSizeWei
+        for (let i = 0; i < bayerMintedTokens.length; i++) {
+          const tokenId = bayerMintedTokens[i];
+          const balance = bayerMintedTokenBalances[i];
+          // skip tokens that were minted with 0 balance!
+          if (balance.eq(0)) {
+            continue;
+          }
+          if (remainingRetirementSizeWei.gt(balance)) {
+            remainingRetirementSizeWei =
+              remainingRetirementSizeWei.sub(balance);
+            removalIdsForRetirement.push(tokenId);
+            balancesForRetirement.push(balance);
+          } else {
+            removalIdsForRetirement.push(tokenId);
+            balancesForRetirement.push(remainingRetirementSizeWei);
+            // slice down the bayerMintedTokens and bayerMintedTokenBalances arrays so we don't use what we've pulled
+            bayerMintedTokens = bayerMintedTokens.slice(i + 1);
+            bayerMintedTokenBalances = bayerMintedTokenBalances.slice(i + 1);
+            break;
+          }
+        }
+
+        const sumOfBalancesForRetirement = balancesForRetirement.reduce(
+          (acc, curr) => acc.add(curr),
+          BigNumber.from(0)
+        );
+        if (!sumOfBalancesForRetirement.eq(CERTIFICATE_SIZE_WEI)) {
+          throw new Error(
+            `Sum of balances for retirement ${FixedNumber.fromValue(
+              sumOfBalancesForRetirement,
+              18
+            ).toString()} does not equal direct retirement size ${FixedNumber.fromValue(
+              CERTIFICATE_SIZE_WEI,
+              18
+            ).toString()}`
+          );
+        }
+
+        console.log(
+          'SUM OF BALANCES FOR RETIREMENT (TONNES): ',
+          FixedNumber.fromValue(sumOfBalancesForRetirement, 18).toString()
+        );
+
+        batchesForRetirement.push({
           removalIdsForRetirement,
           balancesForRetirement,
-          recipient, // recipient
-          directRetirementSizeWei,
-        ]);
+        });
+      }
 
-      const retireTransactionInfo = {
-        /** The address the transaction is directed to. */
-        to: removalContract.address,
-        /** The address the transaction is sent from. (This is what's spoofed) */
-        from: polygonRelayerAddress,
-        /** The gas provided for the transaction execution, as a hex string. */
-        gas: latestBlockGasLimit,
-        // gas: '0x1e8480', // 2,000,000
-        // gas: '0x1312D00', // 20,000,000
-        /** The gas price to use as a hex string. */
-        gasPrice: fastGasPriceHexString,
-        /** The value associated with the transaction as a hex string. */
-        value: '0x0',
-        /** The data associated with the transaction. */
-        data: retireTransactionData,
-      };
+      const firstRemovalOfEachBatch = batchesForRetirement.map(
+        (batch) => batch.removalIdsForRetirement[0]
+      );
+      console.log('FIRST REMOVAL OF EACH BATCH', firstRemovalOfEachBatch);
 
-      const multicallData = removalContract.interface.encodeFunctionData(
-        'multicall',
-        [[consignorBatchTransferTransactionData, retireTransactionData]]
+      const consignorTransferTxnDataArray = batchesForRetirement.map(
+        (batch) => {
+          return removalContract.interface.encodeFunctionData(
+            `consignorBatchTransfer`,
+            [
+              SUPPLIER_WALLET_ADDRESS,
+              polygonRelayerAddress,
+              batch.removalIdsForRetirement,
+              batch.balancesForRetirement,
+            ]
+          );
+        }
       );
 
-      const multicallTransactionInfo = {
-        /** The address the transaction is directed to. */
-        to: removalContract.address,
-        /** The address the transaction is sent from. (This is what's spoofed) */
-        from: polygonRelayerAddress,
-        /** The gas provided for the transaction execution, as a hex string. */
-        gas: latestBlockGasLimit,
-        // gas: '0x1e8480', // 2,000,000
-        // gas: '0x1312D00', // 20,000,000
-        /** The gas price to use as a hex string. */
-        gasPrice: fastGasPriceHexString,
-        /** The value associated with the transaction as a hex string. */
-        value: '0x0',
-        /** The data associated with the transaction. */
-        data: multicallData,
-      };
+      const consignorTransferTxnInfoArray = consignorTransferTxnDataArray.map(
+        (data, index) => {
+          return {
+            /** The address the transaction is directed to. */
+            to: removalContract.address,
+            /** The address the transaction is sent from. (This is what's spoofed) */
+            from: polygonRelayerAddress,
+            /** The gas provided for the transaction execution, as a hex string. */
+            gas: latestBlockGasLimit,
+            // gas: '0x1e8480', // 2,000,000
+            // gas: '0x1312D00', // 20,000,000
+            /** The gas price to use as a hex string. */
+            gasPrice: fastGasPriceHexString,
+            /** The value associated with the transaction as a hex string. */
+            value: '0x0',
+            /** The data associated with the transaction. */
+            data: consignorTransferTxnDataArray[index],
+          };
+        }
+      );
+      const consignorTransferGasEstimates = await Promise.all(
+        consignorTransferTxnInfoArray.map(async (txnInfo) => {
+          return await alchemy.transact.estimateGas(txnInfo);
+        })
+      );
+      console.log(
+        'CONSIGNOR TRANSFER GAS ESTIMATES',
+        consignorTransferGasEstimates
+      );
+
+      console.log('='.repeat(50));
+
+      const retireTxnDataArray = batchesForRetirement.map((batch) => {
+        return removalContract.interface.encodeFunctionData('retire', [
+          batch.removalIdsForRetirement,
+          batch.balancesForRetirement,
+          RECIPIENT, // recipient
+          CERTIFICATE_SIZE_WEI,
+        ]);
+      });
+
+      const retireTxnInfoArray = retireTxnDataArray.map((data, index) => {
+        return {
+          to: removalContract.address,
+          from: polygonRelayerAddress,
+          gas: latestBlockGasLimit,
+          gasPrice: fastGasPriceHexString,
+          value: '0x0',
+          data: retireTxnDataArray[index],
+        };
+      });
+
+      const multicallTxnDataArray = retireTxnDataArray.map(
+        (retireTxnData, index) => {
+          return removalContract.interface.encodeFunctionData('multicall', [
+            [consignorTransferTxnDataArray[index], retireTxnData],
+          ]);
+        }
+      );
+
+      const multicallTxnInfoArray = multicallTxnDataArray.map((data, index) => {
+        return {
+          to: removalContract.address,
+          from: polygonRelayerAddress,
+          gas: latestBlockGasLimit,
+          gasPrice: fastGasPriceHexString,
+          value: '0x0',
+          data: multicallTxnDataArray[index],
+        };
+      });
 
       // const response = await alchemy.transact.simulateExecutionBundle([
       //   consignorBatchTransferTransactionInfo,
       //   retireTransactionInfo,
       // ]);
 
-      const response = await alchemy.transact.simulateExecution(
-        multicallTransactionInfo
+      const multicallGasEstimates = await Promise.all(
+        multicallTxnInfoArray.map(async (txnInfo) => {
+          return await alchemy.transact.estimateGas(txnInfo);
+        })
       );
 
-      // const response = await alchemy.transact.simulateAssetChanges({
-      //   /** The address the transaction is directed to. */
-      //   to: marketContract.address,
-      //   /** The address the transaction is sent from. (This is what's spoofed) */
-      //   from: polygonRelayerAddress,
-      //   /** The gas provided for the transaction execution, as a hex string. */
-      //   // gas: latestBlockGasLimit,
-      //   // gas: '0x1e8480', // 2,000,000
-      //   gas: '0x1312D00', // 20,000,000
-      //   /** The gas price to use as a hex string. */
-      //   gasPrice: fastGasPriceHexString,
-      //   /** The value associated with the transaction as a hex string. */
-      //   value: '0x0',
-      //   /** The data associated with the transaction. */
-      //   data: transactionData,
-      // });
+      console.log('MULTICALL GAS ESTIMATES', multicallGasEstimates);
 
+      const gasDiffs = multicallGasEstimates.map((gasEstimate, index) => {
+        return gasEstimate.sub(consignorTransferGasEstimates[index]);
+      });
+      const commaFormattedGasDiffs = gasDiffs
+        .map((gasDiff) => gasDiff.toString())
+        .map((numberString) => Number(numberString).toLocaleString());
+
+      console.log('GAS DIFFS', commaFormattedGasDiffs);
+      // const response = await alchemy.transact.simulateExecution(
+      //   multicallTransactionInfo
+      // );
       // console.log('RESPONSE', response);
-
-      const alchemyGasEstimation = await alchemy.transact.estimateGas(
-        multicallTransactionInfo
-      );
-      console.log('ALCHEMY GAS ESTIMATION', alchemyGasEstimation.toString());
     },
   } as const);
 
