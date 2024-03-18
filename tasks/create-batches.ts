@@ -1,10 +1,8 @@
-/* eslint-disable no-await-in-loop */
 /* eslint-disable no-restricted-syntax */
-import type { ContractTransaction } from 'ethers';
 import { BigNumber, FixedNumber } from 'ethers';
 import { task } from 'hardhat/config';
 import { Alchemy, Network, Utils } from 'alchemy-sdk';
-import { readFileSync, readJsonSync, writeJsonSync } from 'fs-extra';
+import { readFileSync, writeJsonSync } from 'fs-extra';
 
 import { getMarket, getRemoval } from '@/utils/contracts';
 
@@ -45,26 +43,24 @@ const checkRoles = async (signerAddress: string) => {
   console.log('SIGNER HAS `Removal.CONSIGNOR_ROLE`?', hasConsignorRole);
 };
 
-export const GET_SIMULATE_TXN_TASK = () =>
+export const GET_CREATE_BATCHES_TASK = () =>
   ({
-    name: 'simulate-txn',
-    description: 'Utility to simulate a transaction with the Alchemy API',
+    name: 'create-batches',
+    description:
+      'Utility to create batches for Bayer retirement and simulate gas requirements.',
     run: async (
       options: {
         simulateonly: boolean;
-        aggregateremovals: boolean;
-        doretirement: boolean;
       },
       _: CustomHardHatRuntimeEnvironment
     ): Promise<void> => {
-      const { simulateonly, doretirement, aggregateremovals } = options;
+      const { simulateonly } = options;
       const CERTIFICATE_SIZE_TONNES = 10_000;
       const CERTIFICATE_SIZE_WEI = ethers.utils.parseUnits(
         CERTIFICATE_SIZE_TONNES.toString(),
         18
       );
       const NUMBER_OF_CERTIFICATES = 10;
-      const BLOCK_CONFIRMATIONS = 5;
       const SUPPLIER_WALLET_ADDRESS =
         '0xdca851dE155B20CC534b887bD2a1D780D0DEc077'; // Bayer
 
@@ -371,120 +367,14 @@ export const GET_SIMULATE_TXN_TASK = () =>
         //   multicallTransactionInfo
         // );
         // console.log('RESPONSE', response);
-      } else if (aggregateremovals) {
-        // Aggregate removals with consignor ========================
-        const aggregationOutputFilename = `aggregation_txn_receipts_${timestamp}.json`;
-        const aggregationTransactionOutput = [];
-        let pendingTx;
-        let maybePendingTx;
-        let txReceipt;
-        for (let i = 0; i < batchesForRetirement.length; i++) {
-          maybePendingTx =
-            await removalContract.callStatic.consignorBatchTransfer(
-              SUPPLIER_WALLET_ADDRESS,
-              signerAddress,
-              batchesForRetirement[i].removalIdsForRetirement,
-              batchesForRetirement[i].balancesForRetirement,
-              {
-                gasPrice: fastGasPriceHexString,
-              }
-            );
-          if (maybePendingTx === undefined) {
-            throw new Error(`No pending transaction returned`);
-          } else {
-            pendingTx = maybePendingTx;
-          }
-          if (pendingTx !== undefined) {
-            console.info(
-              `📝 Awaiting aggregation transaction ${i}/${batchesForRetirement.length}: ${pendingTx.hash}`
-            );
-            const txResult = await pendingTx.wait(BLOCK_CONFIRMATIONS);
-            console.info('Getting txReceipt...');
-            txReceipt = await removalContract.provider.getTransactionReceipt(
-              txResult.transactionHash
-            );
-            aggregationTransactionOutput.push(txReceipt);
-            if (txReceipt.status !== 1) {
-              console.error(
-                `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
-              );
-              writeJsonSync(
-                aggregationOutputFilename,
-                aggregationTransactionOutput
-              );
-              throw new Error(
-                'Transaction failed with unsuccessful status - exiting early'
-              );
-            }
-          }
-        }
-        console.log(
-          'Successfully aggregated all batches of removals to consignor! Writing transaction receipts to file...'
-        );
-        writeJsonSync(aggregationOutputFilename, aggregationTransactionOutput);
-      } else if (doretirement) {
-        // Do the retirement ========================================
-        const retirementOutputFilename = `retirement_txn_receipts${timestamp}.json`;
-        const retirementTransactionOutput = [];
-        let pendingTx;
-        let maybePendingTx;
-        let txReceipt;
-        for (let i = 0; i < batchesForRetirement.length; i++) {
-          maybePendingTx = await removalContract.callStatic.retire(
-            batchesForRetirement[i].removalIdsForRetirement,
-            batchesForRetirement[i].balancesForRetirement,
-            RECIPIENT, // recipient
-            CERTIFICATE_SIZE_WEI,
-            {
-              gasPrice: fastGasPriceHexString,
-            }
-          );
-          if (maybePendingTx === undefined) {
-            throw new Error(`No pending transaction returned`);
-          } else {
-            pendingTx = maybePendingTx;
-          }
-          if (pendingTx !== undefined) {
-            console.info(
-              `📝 Awaiting retire transaction ${i}/${batchesForRetirement.length}
-              }: ${pendingTx.hash}`
-            );
-            const txResult = await pendingTx.wait(BLOCK_CONFIRMATIONS);
-            console.info('Getting txReceipt...');
-            txReceipt = await removalContract.provider.getTransactionReceipt(
-              txResult.transactionHash
-            );
-            retirementTransactionOutput.push(txReceipt);
-            if (txReceipt.status !== 1) {
-              console.error(
-                `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
-              );
-              writeJsonSync(
-                retirementOutputFilename,
-                retirementTransactionOutput
-              );
-              throw new Error(
-                'Transaction failed with unsuccessful status - exiting early'
-              );
-            }
-          }
-        }
-        console.log(
-          'Successfully aggregated all batches of removals to consignor! Writing transaction receipts to file...'
-        );
-        writeJsonSync(retirementOutputFilename, retirementTransactionOutput);
-      } else {
-        console.log(
-          'At least one flag required, "simulateonly" or "doretirement"'
-        );
       }
     },
   } as const);
 
 (() => {
-  const { name, description, run } = GET_SIMULATE_TXN_TASK();
-  task(name, description, run)
-    .addFlag('simulateonly', 'Simulate everything and get gas diffs')
-    .addFlag('aggregateremovals', 'Aggregate removals to consignor')
-    .addFlag('doretirement', 'Actually execute the retirement');
+  const { name, description, run } = GET_CREATE_BATCHES_TASK();
+  task(name, description, run).addFlag(
+    'simulateonly',
+    'Simulate everything and get gas diffs'
+  );
 })();
