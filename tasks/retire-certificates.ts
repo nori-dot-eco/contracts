@@ -11,17 +11,12 @@ export const GET_RETIRE_CERTIFICATES_TASK = () =>
     description: 'Utility to retire large Bayer certificates',
     run: async (
       options: {
-        doretirement: boolean;
-        batchfilename: string;
-        batchIndex: number;
+        batchindex: number;
       },
       _: CustomHardHatRuntimeEnvironment
     ): Promise<void> => {
-      const {
-        doretirement,
-        batchfilename = 'bayer_batches_for_retirement.csv',
-        batchIndex = 0,
-      } = options;
+      const { batchindex = 0 } = options;
+      const batchfilename = 'bayer_batches_for_retirement.csv';
       const CERTIFICATE_SIZE_TONNES = 10_000;
       const CERTIFICATE_SIZE_WEI = ethers.utils.parseUnits(
         CERTIFICATE_SIZE_TONNES.toString(),
@@ -58,7 +53,6 @@ export const GET_RETIRE_CERTIFICATES_TASK = () =>
       );
 
       const rawBatchData = readJsonSync(batchfilename);
-      console.log('RAW BATCH DATA', rawBatchData.slice(0, 5));
 
       const batches = rawBatchData.map((batch) => {
         return {
@@ -70,79 +64,58 @@ export const GET_RETIRE_CERTIFICATES_TASK = () =>
           }),
         };
       });
-      console.log('BATCH DATA', batches);
 
-      if (doretirement) {
-        const timestamp = new Date().toISOString();
-        // Do the retirement ========================================
-        const retirementOutputFilename = `${batchIndex}_retirement_txn_receipt_${timestamp}.json`;
-        const retirementTransactionOutput = [];
-        let pendingTx;
-        let maybePendingTx;
-        let txReceipt;
-        maybePendingTx = await removalContract.callStatic.retire(
-          batches[batchIndex].removalIdsForRetirement,
-          batches[batchIndex].balancesForRetirement,
-          RECIPIENT, // recipient
-          CERTIFICATE_SIZE_WEI,
-          {
-            gasPrice: fastGasPriceHexString,
-          }
-        );
-        if (maybePendingTx === undefined) {
-          throw new Error(`No pending transaction returned`);
-        } else {
-          pendingTx = maybePendingTx;
+      const timestamp = new Date().toISOString();
+      // Do the retirement ========================================
+      const retirementOutputFilename = `${batchindex}_retirement_txn_receipt_${timestamp}.json`;
+      let pendingTx;
+      let maybePendingTx;
+      let txReceipt;
+      maybePendingTx = await removalContract.retire(
+        batches[batchindex].removalIdsForRetirement,
+        batches[batchindex].balancesForRetirement,
+        RECIPIENT, // recipient
+        CERTIFICATE_SIZE_WEI,
+        {
+          gasPrice: fastGasPriceHexString,
         }
-        if (pendingTx !== undefined) {
-          console.info(
-            `📝 Awaiting retire transaction for batch ${batchIndex}
-              }: ${pendingTx.hash}`
-          );
-          const txResult = await pendingTx.wait(BLOCK_CONFIRMATIONS);
-          console.info('Getting txReceipt...');
-          txReceipt = await removalContract.provider.getTransactionReceipt(
-            txResult.transactionHash
-          );
-          retirementTransactionOutput.push(txReceipt);
-          if (txReceipt.status !== 1) {
-            console.error(
-              `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
-            );
-            writeJsonSync(
-              retirementOutputFilename,
-              retirementTransactionOutput
-            );
-            throw new Error(
-              'Transaction failed with unsuccessful status - exiting early'
-            );
-          }
-        }
-
-        console.log(
-          'Successfully aggregated all batches of removals to consignor! Writing transaction receipts to file...'
-        );
-        writeJsonSync(retirementOutputFilename, retirementTransactionOutput);
+      );
+      if (maybePendingTx === undefined) {
+        throw new Error(`No pending transaction returned`);
+      } else {
+        pendingTx = maybePendingTx;
       }
+      if (pendingTx !== undefined) {
+        console.info(
+          `📝 Awaiting retire transaction for batch ${batchindex}
+              }: ${pendingTx.hash}`
+        );
+        const txResult = await pendingTx.wait(BLOCK_CONFIRMATIONS);
+        console.info('Getting txReceipt...');
+        txReceipt = await removalContract.provider.getTransactionReceipt(
+          txResult.transactionHash
+        );
+        if (txReceipt.status !== 1) {
+          console.error(
+            `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
+          );
+          writeJsonSync(retirementOutputFilename, txReceipt);
+          throw new Error(
+            'Transaction failed with unsuccessful status - exiting early'
+          );
+        }
+      }
+      writeJsonSync(retirementOutputFilename, txReceipt);
     },
   } as const);
 
 (() => {
   const { name, description, run } = GET_RETIRE_CERTIFICATES_TASK();
-  task(name, description, run)
-    .addFlag('doretirement', 'Actually execute the retirement')
-    .addParam(
-      'batchfilename',
-      'Path to the file containing the batch data',
-      undefined,
-      types.string,
-      false
-    )
-    .addParam(
-      'batchIndex',
-      'which batch to retire',
-      undefined,
-      types.int,
-      false
-    );
+  task(name, description, run).addParam(
+    'batchindex',
+    'which batch to retire',
+    undefined,
+    types.int,
+    false
+  );
 })();

@@ -12,16 +12,10 @@ export const GET_AGGREGATE_REMOVALS_TASK = () =>
     name: 'aggregate-removals',
     description: 'Utility to aggregate removals to a consignor',
     run: async (
-      options: {
-        aggregateremovals: boolean;
-        batchfilename: string;
-      },
+      options: {},
       _: CustomHardHatRuntimeEnvironment
     ): Promise<void> => {
-      const {
-        aggregateremovals,
-        batchfilename = 'bayer_batches_for_retirement.csv',
-      } = options;
+      const batchfilename = 'bayer_batches_for_retirement.csv';
       const BLOCK_CONFIRMATIONS = 5;
       const SUPPLIER_WALLET_ADDRESS =
         '0xdca851dE155B20CC534b887bD2a1D780D0DEc077'; // Bayer
@@ -64,7 +58,7 @@ export const GET_AGGREGATE_REMOVALS_TASK = () =>
       // console.log(`Bayer has ${bayerMintedTokens.length} minted tokens`);
 
       const rawBatchData = readJsonSync(batchfilename);
-      console.log('RAW BATCH DATA', rawBatchData.slice(0, 5));
+      // console.log('RAW BATCH DATA', rawBatchData.slice(0, 5));
 
       const batches = rawBatchData.map((batch) => {
         return {
@@ -76,54 +70,51 @@ export const GET_AGGREGATE_REMOVALS_TASK = () =>
           }),
         };
       });
-      console.log('BATCH DATA', batches);
+      // console.log('BATCH DATA', batches);
 
-      if (aggregateremovals) {
-        const timestamp = new Date().toISOString();
-        // Aggregate removals with consignor ========================
-        const aggregationOutputFilename = `aggregation_txn_receipts_${timestamp}.json`;
-        const aggregationTransactionOutput = [];
-        let pendingTx;
-        let maybePendingTx;
-        let txReceipt;
-        for (let i = 0; i < batches.length; i++) {
-          maybePendingTx =
-            await removalContract.callStatic.consignorBatchTransfer(
-              SUPPLIER_WALLET_ADDRESS,
-              signerAddress,
-              batches[i].removalIdsForRetirement,
-              batches[i].balancesForRetirement,
-              {
-                gasPrice: fastGasPriceHexString,
-              }
-            );
-          if (maybePendingTx === undefined) {
-            throw new Error(`No pending transaction returned`);
-          } else {
-            pendingTx = maybePendingTx;
+      const timestamp = new Date().toISOString();
+      // Aggregate removals with consignor ========================
+      const aggregationOutputFilename = `aggregation_txn_receipts_${timestamp}.json`;
+      const aggregationTransactionOutput = [];
+      let pendingTx;
+      let maybePendingTx;
+      let txReceipt;
+      for (let i = 0; i < batches.length; i++) {
+        maybePendingTx = await removalContract.consignorBatchTransfer(
+          SUPPLIER_WALLET_ADDRESS,
+          signerAddress,
+          batches[i].removalIdsForRetirement,
+          batches[i].balancesForRetirement,
+          {
+            gasPrice: fastGasPriceHexString,
           }
-          if (pendingTx !== undefined) {
-            console.info(
-              `📝 Awaiting aggregation transaction ${i}/${batches.length}: ${pendingTx.hash}`
+        );
+        if (maybePendingTx === undefined) {
+          throw new Error(`No pending transaction returned`);
+        } else {
+          pendingTx = maybePendingTx;
+        }
+        if (pendingTx !== undefined) {
+          console.info(
+            `📝 Awaiting aggregation transaction ${i}/${batches.length}: ${pendingTx.hash}`
+          );
+          const txResult = await pendingTx.wait(BLOCK_CONFIRMATIONS);
+          console.info('Getting txReceipt...');
+          txReceipt = await removalContract.provider.getTransactionReceipt(
+            txResult.transactionHash
+          );
+          aggregationTransactionOutput.push(txReceipt);
+          if (txReceipt.status !== 1) {
+            console.error(
+              `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
             );
-            const txResult = await pendingTx.wait(BLOCK_CONFIRMATIONS);
-            console.info('Getting txReceipt...');
-            txReceipt = await removalContract.provider.getTransactionReceipt(
-              txResult.transactionHash
+            writeJsonSync(
+              aggregationOutputFilename,
+              aggregationTransactionOutput
             );
-            aggregationTransactionOutput.push(txReceipt);
-            if (txReceipt.status !== 1) {
-              console.error(
-                `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
-              );
-              writeJsonSync(
-                aggregationOutputFilename,
-                aggregationTransactionOutput
-              );
-              throw new Error(
-                'Transaction failed with unsuccessful status - exiting early'
-              );
-            }
+            throw new Error(
+              'Transaction failed with unsuccessful status - exiting early'
+            );
           }
         }
         console.log(
@@ -136,13 +127,5 @@ export const GET_AGGREGATE_REMOVALS_TASK = () =>
 
 (() => {
   const { name, description, run } = GET_AGGREGATE_REMOVALS_TASK();
-  task(name, description, run)
-    .addFlag('aggregateremovals', 'Aggregate removals to consignor')
-    .addParam(
-      'batchfilename',
-      'Path to the file containing the batch data',
-      undefined,
-      types.string,
-      false
-    );
+  task(name, description, run);
 })();
