@@ -1,9 +1,12 @@
-/* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
-
+/* eslint-disable no-await-in-loop */
+/* eslint-disable no-restricted-syntax */
+import type { ContractTransaction } from 'ethers';
 import { BigNumber, FixedNumber } from 'ethers';
 import { task } from 'hardhat/config';
-import { getMarket, getRemoval } from '@/utils/contracts';
 import { Alchemy, Network, Utils } from 'alchemy-sdk';
+import { readFileSync, readJsonSync, writeJsonSync } from 'fs-extra';
+
+import { getMarket, getRemoval } from '@/utils/contracts';
 
 const swapWithoutFeeSpecialOrderTransaction = async () => {
   const network = hre.network.name;
@@ -37,14 +40,14 @@ const swapWithoutFeeSpecialOrderTransaction = async () => {
   const marketBalance = await removalContract.getMarketBalance();
   const marketBalanceInEth = FixedNumber.fromValue(marketBalance, 18);
   console.log(
-    'CURRENT MARKET BALANCE (TONNES): ',
+    'CURRENT MARKET BALANCE (TONNES):',
     marketBalanceInEth.toString()
   );
   const hasRole = await marketContract.hasRole(
     marketContract.MARKET_ADMIN_ROLE(),
     polygonRelayerAddress
   );
-  console.log('RELAYER HAS `MARKET_ADMIN_ROLE`? ', hasRole);
+  console.log('RELAYER HAS `MARKET_ADMIN_ROLE`?', hasRole);
   const latestBlock = await hre.ethers.provider.getBlock('latest');
   const latestBlockGasLimit = Utils.hexStripZeros(
     latestBlock.gasLimit.toHexString()
@@ -53,14 +56,16 @@ const swapWithoutFeeSpecialOrderTransaction = async () => {
   const fastGasPriceHexString = Utils.hexStripZeros(
     latestFastGasPrice.toHexString()
   );
-  console.log('LATEST BLOCK GAS LIMIT: ', latestBlockGasLimit);
-  console.log('LATEST FAST GAS PRICE: ', fastGasPriceHexString);
+  console.log('LATEST BLOCK GAS LIMIT:', latestBlockGasLimit);
+  console.log('LATEST FAST GAS PRICE:', fastGasPriceHexString);
 
   const bayerTokens = await marketContract.getRemovalIdsForSupplier(
     supplierWalletAddress
   );
   const bayerMarketBalances = await removalContract.balanceOfBatch(
-    new Array(bayerTokens.length).fill(marketContract.address),
+    Array.from({ length: bayerTokens.length }).fill(
+      marketContract.address
+    ) as string[],
     bayerTokens
   );
   const bayerListedBalance = bayerMarketBalances.reduce(
@@ -68,7 +73,7 @@ const swapWithoutFeeSpecialOrderTransaction = async () => {
     BigNumber.from(0)
   );
   console.log(
-    'BAYER MARKET BALANCE (TONNES): ',
+    'BAYER MARKET BALANCE (TONNES):',
     FixedNumber.fromValue(bayerListedBalance, 18).toString()
   );
 
@@ -77,8 +82,8 @@ const swapWithoutFeeSpecialOrderTransaction = async () => {
     purchaseAmountEth.toString(),
     18
   );
-  console.log('PURCHASE AMOUNT (ETH): ', purchaseAmountEth);
-  console.log('PURCHASE AMOUNT (WEI): ', purchaseAmountWei);
+  console.log('PURCHASE AMOUNT (ETH):', purchaseAmountEth);
+  console.log('PURCHASE AMOUNT (WEI):', purchaseAmountWei);
   const gasEstimation =
     await marketContract.estimateGas.swapWithoutFeeSpecialOrder(
       signerAddress, // recipient
@@ -165,26 +170,26 @@ const checkRoles = async (polygonRelayerAddress: string) => {
     polygonRelayerAddress
   );
   console.log(
-    'SIGNER HAS `Market.DEFAULT_ADMIN_ROLE`? ',
+    'SIGNER HAS `Market.DEFAULT_ADMIN_ROLE`?',
     hasMarketDefaultAdminRole
   );
   const hasMarketAdminRole = await marketContract.hasRole(
     marketContract.MARKET_ADMIN_ROLE(),
     polygonRelayerAddress
   );
-  console.log('SIGNER HAS `Market.MARKET_ADMIN_ROLE`? ', hasMarketAdminRole);
+  console.log('SIGNER HAS `Market.MARKET_ADMIN_ROLE`?', hasMarketAdminRole);
 
   const hasRemovalAdminRole = await removalContract.hasRole(
     removalContract.DEFAULT_ADMIN_ROLE(),
     polygonRelayerAddress
   );
-  console.log('SIGNER HAS `Removal.DEFAULT_ADMIN_ROLE`? ', hasRemovalAdminRole);
+  console.log('SIGNER HAS `Removal.DEFAULT_ADMIN_ROLE`?', hasRemovalAdminRole);
 
   const hasConsignorRole = await removalContract.hasRole(
     removalContract.CONSIGNOR_ROLE(),
     polygonRelayerAddress
   );
-  console.log('SIGNER HAS `Removal.CONSIGNOR_ROLE`? ', hasConsignorRole);
+  console.log('SIGNER HAS `Removal.CONSIGNOR_ROLE`?', hasConsignorRole);
 };
 
 export const GET_SIMULATE_TXN_TASK = () =>
@@ -192,20 +197,25 @@ export const GET_SIMULATE_TXN_TASK = () =>
     name: 'simulate-txn',
     description: 'Utility to simulate a transaction with the Alchemy API',
     run: async (
-      options: {},
+      options: {
+        simulateonly: boolean;
+        doretirement: boolean;
+        aggregateremovals: boolean;
+      },
       _: CustomHardHatRuntimeEnvironment
     ): Promise<void> => {
-      const CERTIFICATE_SIZE_TONNES = 10000;
+      const { simulateonly, doretirement, aggregateremovals } = options;
+      const CERTIFICATE_SIZE_TONNES = 10_000;
       const CERTIFICATE_SIZE_WEI = ethers.utils.parseUnits(
         CERTIFICATE_SIZE_TONNES.toString(),
         18
       );
       const NUMBER_OF_CERTIFICATES = 10;
-
+      const BLOCK_CONFIRMATIONS = 5;
       const SUPPLIER_WALLET_ADDRESS =
-        '0xdca851dE155B20CC534b887bD2a1D780D0DEc077';
+        '0xdca851dE155B20CC534b887bD2a1D780D0DEc077'; // Bayer
 
-      const RECIPIENT = '0x2D893743B2A94Ac1695b5bB38dA965C49cf68450'; // amie's random address
+      const RECIPIENT = '0xFD2F3314886914d87Ba7F22802601a0031c78d4f'; // Default certificate recipient
 
       const network = hre.network.name;
       if (![`localhost`, `mumbai`, `polygon`].includes(network)) {
@@ -248,41 +258,95 @@ export const GET_SIMULATE_TXN_TASK = () =>
       // console.log('LATEST BLOCK GAS LIMIT: ', latestBlockGasLimit);
       // console.log('LATEST FAST GAS PRICE: ', fastGasPriceHexString);
 
-      // certificate retirement stuff ==========================
-      let bayerMintedTokens = await removalContract.getOwnedTokenIds(
-        SUPPLIER_WALLET_ADDRESS
-      );
-      console.log(`Bayer has ${bayerMintedTokens.length} minted tokens`);
+      // Get token data =============================================
+      // const bayerMintedTokens = await removalContract.getOwnedTokenIds(
+      //   SUPPLIER_WALLET_ADDRESS
+      // );
+      // console.log(`Bayer has ${bayerMintedTokens.length} minted tokens`);
 
-      let bayerMintedTokenBalances = await removalContract.balanceOfBatch(
-        new Array(bayerMintedTokens.length).fill(SUPPLIER_WALLET_ADDRESS),
-        bayerMintedTokens
+      const rawTokenIdData = readFileSync(
+        './bayer_candidate_removals.csv',
+        'utf-8'
       );
+
+      // split bayerCandidateRemovals into an array of tokenIds on newlines
+      const bayerCandidateRemovals = rawTokenIdData.split('\r\n').map((id) => {
+        return BigNumber.from(id);
+      });
+      console.log(
+        'BAYER CANDIDATE REMOVALS',
+        bayerCandidateRemovals.slice(0, 5)
+      );
+      let bayerMintedTokenBalances = await removalContract.balanceOfBatch(
+        Array.from({ length: bayerCandidateRemovals.length }).fill(
+          SUPPLIER_WALLET_ADDRESS
+        ) as string[],
+        bayerCandidateRemovals
+      );
+
+      const multicallData = bayerCandidateRemovals.map((tokenId) => {
+        return removalContract.interface.encodeFunctionData(
+          'decodeRemovalIdV0',
+          [tokenId]
+        );
+      });
+      const multicallResponse = await removalContract.callStatic.multicall(
+        multicallData
+      );
+
+      const decodedRemovalIds = multicallResponse.map((response) => {
+        return removalContract.interface.decodeFunctionResult(
+          'decodeRemovalIdV0',
+          response
+        )[0];
+      });
 
       const bayerMintedBalance = bayerMintedTokenBalances.reduce(
         (acc, curr) => acc.add(curr),
         BigNumber.from(0)
       );
       console.log(
-        'BAYER MINTED TOKEN BALANCE(TONNES): ',
+        'BAYER MINTED TOKEN BALANCE(TONNES):',
         FixedNumber.fromValue(bayerMintedBalance, 18).toString()
       );
 
+      const zippedBayerMintedTokens = await Promise.all(
+        bayerCandidateRemovals.map(async (tokenId, index) => {
+          return {
+            tokenId,
+            vintage: decodedRemovalIds[index].vintage,
+            balance: bayerMintedTokenBalances[index],
+          };
+        })
+      );
+
+      let sortedZippedBayerMintedTokens = zippedBayerMintedTokens.sort(
+        (a, b) => {
+          return a.vintage - b.vintage;
+        }
+      );
+
+      // Assemble batches =============================================
       const batchesForRetirement = [];
 
       for (
         let certificateIndex = 0;
         certificateIndex < NUMBER_OF_CERTIFICATES;
-        certificateIndex++
+        certificateIndex += 1
       ) {
         const removalIdsForRetirement = [];
         const balancesForRetirement = [];
+        const vintagesForRetirement = [];
         let remainingRetirementSizeWei = CERTIFICATE_SIZE_WEI;
         // move through available bayermintedTokens and assemble list of token id and corresponding balance of token ID to retire
         // then break when we've reached the directRetirementSizeWei
-        for (let i = 0; i < bayerMintedTokens.length; i++) {
-          const tokenId = bayerMintedTokens[i];
-          const balance = bayerMintedTokenBalances[i];
+        for (const [
+          i,
+          sortedZippedBayerMintedToken,
+        ] of sortedZippedBayerMintedTokens.entries()) {
+          const tokenId = sortedZippedBayerMintedToken.tokenId;
+          const balance = sortedZippedBayerMintedToken.balance;
+          const vintage = sortedZippedBayerMintedToken.vintage;
           // skip tokens that were minted with 0 balance!
           if (balance.eq(0)) {
             continue;
@@ -292,11 +356,15 @@ export const GET_SIMULATE_TXN_TASK = () =>
               remainingRetirementSizeWei.sub(balance);
             removalIdsForRetirement.push(tokenId);
             balancesForRetirement.push(balance);
+            vintagesForRetirement.push(vintage);
           } else {
             removalIdsForRetirement.push(tokenId);
             balancesForRetirement.push(remainingRetirementSizeWei);
-            // slice down the bayerMintedTokens and bayerMintedTokenBalances arrays so we don't use what we've pulled
-            bayerMintedTokens = bayerMintedTokens.slice(i + 1);
+            vintagesForRetirement.push(vintage);
+            // slice down the array as we consume it so we don't use what we've pulled
+            sortedZippedBayerMintedTokens = sortedZippedBayerMintedTokens.slice(
+              i + 1
+            );
             bayerMintedTokenBalances = bayerMintedTokenBalances.slice(i + 1);
             break;
           }
@@ -319,135 +387,251 @@ export const GET_SIMULATE_TXN_TASK = () =>
         }
 
         console.log(
-          'SUM OF BALANCES FOR RETIREMENT (TONNES): ',
+          'SUM OF BALANCES FOR RETIREMENT (TONNES):',
           FixedNumber.fromValue(sumOfBalancesForRetirement, 18).toString()
         );
 
         batchesForRetirement.push({
           removalIdsForRetirement,
           balancesForRetirement,
+          vintagesForRetirement,
         });
       }
 
-      const firstRemovalOfEachBatch = batchesForRetirement.map(
-        (batch) => batch.removalIdsForRetirement[0]
+      const firstVintageOfEachBach = batchesForRetirement.map(
+        (batch) => batch.vintagesForRetirement[0]
       );
-      console.log('FIRST REMOVAL OF EACH BATCH', firstRemovalOfEachBatch);
+      console.log('FIRST VINTAGE OF EACH BATCH', firstVintageOfEachBach);
 
-      const consignorTransferTxnDataArray = batchesForRetirement.map(
-        (batch) => {
-          return removalContract.interface.encodeFunctionData(
-            `consignorBatchTransfer`,
-            [
+      // write the batch data to an output file, titled "bayer_batches_for_retirement.json" but include a timestamp so we don't overwrite:
+      const outputData = batchesForRetirement.map((batch) => {
+        return {
+          removalIds: batch.removalIdsForRetirement.map((id) => id.toString()),
+          balances: batch.balancesForRetirement.map((balance) =>
+            FixedNumber.fromValue(balance, 18).toString()
+          ),
+        };
+      });
+      const timestamp = new Date().toISOString();
+      const outputFilename = `bayer_batches_for_retirement_${timestamp}.json`;
+      writeJsonSync(outputFilename, outputData);
+
+      // Transaction simulation ==========================
+      if (simulateonly) {
+        const consignorTransferTxnDataArray = batchesForRetirement.map(
+          (batch) => {
+            return removalContract.interface.encodeFunctionData(
+              `consignorBatchTransfer`,
+              [
+                SUPPLIER_WALLET_ADDRESS,
+                polygonRelayerAddress,
+                batch.removalIdsForRetirement,
+                batch.balancesForRetirement,
+              ]
+            );
+          }
+        );
+
+        const consignorTransferTxnInfoArray = consignorTransferTxnDataArray.map(
+          (data, index) => {
+            return {
+              /** The address the transaction is directed to. */
+              to: removalContract.address,
+              /** The address the transaction is sent from. (This is what's spoofed) */
+              from: polygonRelayerAddress,
+              /** The gas provided for the transaction execution, as a hex string. */
+              gas: latestBlockGasLimit,
+              // gas: '0x1e8480', // 2,000,000
+              // gas: '0x1312D00', // 20,000,000
+              /** The gas price to use as a hex string. */
+              gasPrice: fastGasPriceHexString,
+              /** The value associated with the transaction as a hex string. */
+              value: '0x0',
+              /** The data associated with the transaction. */
+              data: consignorTransferTxnDataArray[index],
+            };
+          }
+        );
+        const consignorTransferGasEstimates = await Promise.all(
+          consignorTransferTxnInfoArray.map(async (txnInfo) => {
+            return await alchemy.transact.estimateGas(txnInfo);
+          })
+        );
+        console.log(
+          'CONSIGNOR TRANSFER GAS ESTIMATES',
+          consignorTransferGasEstimates
+        );
+        console.log('='.repeat(50));
+
+        const retireTxnDataArray = batchesForRetirement.map((batch) => {
+          return removalContract.interface.encodeFunctionData('retire', [
+            batch.removalIdsForRetirement,
+            batch.balancesForRetirement,
+            RECIPIENT, // recipient
+            CERTIFICATE_SIZE_WEI,
+          ]);
+        });
+
+        const multicallTxnDataArray = retireTxnDataArray.map(
+          (retireTxnData, index) => {
+            return removalContract.interface.encodeFunctionData('multicall', [
+              [consignorTransferTxnDataArray[index], retireTxnData],
+            ]);
+          }
+        );
+
+        const multicallTxnInfoArray = multicallTxnDataArray.map(
+          (data, index) => {
+            return {
+              to: removalContract.address,
+              from: polygonRelayerAddress,
+              gas: latestBlockGasLimit,
+              gasPrice: fastGasPriceHexString,
+              value: '0x0',
+              data: multicallTxnDataArray[index],
+            };
+          }
+        );
+
+        // const response = await alchemy.transact.simulateExecutionBundle([
+        //   consignorBatchTransferTransactionInfo,
+        //   retireTransactionInfo,
+        // ]);
+
+        const multicallGasEstimates = await Promise.all(
+          multicallTxnInfoArray.map(async (txnInfo) => {
+            return await alchemy.transact.estimateGas(txnInfo);
+          })
+        );
+
+        console.log('MULTICALL GAS ESTIMATES', multicallGasEstimates);
+
+        const gasDiffs = multicallGasEstimates.map((gasEstimate, index) => {
+          return gasEstimate.sub(consignorTransferGasEstimates[index]);
+        });
+        const commaFormattedGasDiffs = gasDiffs
+          .map((gasDiff) => gasDiff.toString())
+          .map((numberString) => Number(numberString).toLocaleString());
+
+        console.log('GAS DIFFS', commaFormattedGasDiffs);
+        // const response = await alchemy.transact.simulateExecution(
+        //   multicallTransactionInfo
+        // );
+        // console.log('RESPONSE', response);
+      } else if (aggregateremovals) {
+        // Aggregate removals with consignor ========================
+        const aggregationOutputFilename = `aggregation_txn_receipts_${timestamp}.json`;
+        const aggregationTransactionOutput = [];
+        let pendingTx;
+        let maybePendingTx;
+        let txReceipt;
+        for (let i = 0; i < batchesForRetirement.length; i++) {
+          maybePendingTx =
+            await removalContract.callStatic.consignorBatchTransfer(
               SUPPLIER_WALLET_ADDRESS,
               polygonRelayerAddress,
-              batch.removalIdsForRetirement,
-              batch.balancesForRetirement,
-            ]
+              batchesForRetirement[i].removalIdsForRetirement,
+              batchesForRetirement[i].balancesForRetirement,
+              {
+                gasPrice: fastGasPriceHexString,
+              }
+            );
+          if (maybePendingTx === undefined) {
+            throw new Error(`No pending transaction returned`);
+          } else {
+            pendingTx = maybePendingTx;
+          }
+          if (pendingTx !== undefined) {
+            console.info(
+              `📝 Awaiting aggregation transaction ${i}/${batchesForRetirement.length}: ${pendingTx.hash}`
+            );
+            const txResult = await pendingTx.wait(BLOCK_CONFIRMATIONS);
+            console.info('Getting txReceipt...');
+            txReceipt = await removalContract.provider.getTransactionReceipt(
+              txResult.transactionHash
+            );
+            aggregationTransactionOutput.push(txReceipt);
+            if (txReceipt.status !== 1) {
+              console.error(
+                `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
+              );
+              writeJsonSync(
+                aggregationOutputFilename,
+                aggregationTransactionOutput
+              );
+              throw new Error(
+                'Transaction failed with unsuccessful status - exiting early'
+              );
+            }
+          }
+        }
+        console.log(
+          'Successfully aggregated all batches of removals to consignor! Writing transaction receipts to file...'
+        );
+        writeJsonSync(aggregationOutputFilename, aggregationTransactionOutput);
+      } else if (doretirement) {
+        // Do the retirement ========================================
+        const retirementOutputFilename = `retirement_txn_receipts${timestamp}.json`;
+        const retirementTransactionOutput = [];
+        let pendingTx;
+        let maybePendingTx;
+        let txReceipt;
+        for (let i = 0; i < batchesForRetirement.length; i++) {
+          maybePendingTx = await removalContract.callStatic.retire(
+            batchesForRetirement[i].removalIdsForRetirement,
+            batchesForRetirement[i].balancesForRetirement,
+            RECIPIENT, // recipient
+            CERTIFICATE_SIZE_WEI,
+            {
+              gasPrice: fastGasPriceHexString,
+            }
           );
+          if (maybePendingTx === undefined) {
+            throw new Error(`No pending transaction returned`);
+          } else {
+            pendingTx = maybePendingTx;
+          }
+          if (pendingTx !== undefined) {
+            console.info(
+              `📝 Awaiting retire transaction ${i}/${batchesForRetirement.length}
+              }: ${pendingTx.hash}`
+            );
+            const txResult = await pendingTx.wait(BLOCK_CONFIRMATIONS);
+            console.info('Getting txReceipt...');
+            txReceipt = await removalContract.provider.getTransactionReceipt(
+              txResult.transactionHash
+            );
+            retirementTransactionOutput.push(txReceipt);
+            if (txReceipt.status !== 1) {
+              console.error(
+                `❌ Transaction ${pendingTx.hash} failed with failure status ${txReceipt.status} - exiting early`
+              );
+              writeJsonSync(
+                retirementOutputFilename,
+                retirementTransactionOutput
+              );
+              throw new Error(
+                'Transaction failed with unsuccessful status - exiting early'
+              );
+            }
+          }
         }
-      );
-
-      const consignorTransferTxnInfoArray = consignorTransferTxnDataArray.map(
-        (data, index) => {
-          return {
-            /** The address the transaction is directed to. */
-            to: removalContract.address,
-            /** The address the transaction is sent from. (This is what's spoofed) */
-            from: polygonRelayerAddress,
-            /** The gas provided for the transaction execution, as a hex string. */
-            gas: latestBlockGasLimit,
-            // gas: '0x1e8480', // 2,000,000
-            // gas: '0x1312D00', // 20,000,000
-            /** The gas price to use as a hex string. */
-            gasPrice: fastGasPriceHexString,
-            /** The value associated with the transaction as a hex string. */
-            value: '0x0',
-            /** The data associated with the transaction. */
-            data: consignorTransferTxnDataArray[index],
-          };
-        }
-      );
-      const consignorTransferGasEstimates = await Promise.all(
-        consignorTransferTxnInfoArray.map(async (txnInfo) => {
-          return await alchemy.transact.estimateGas(txnInfo);
-        })
-      );
-      console.log(
-        'CONSIGNOR TRANSFER GAS ESTIMATES',
-        consignorTransferGasEstimates
-      );
-
-      console.log('='.repeat(50));
-
-      const retireTxnDataArray = batchesForRetirement.map((batch) => {
-        return removalContract.interface.encodeFunctionData('retire', [
-          batch.removalIdsForRetirement,
-          batch.balancesForRetirement,
-          RECIPIENT, // recipient
-          CERTIFICATE_SIZE_WEI,
-        ]);
-      });
-
-      const retireTxnInfoArray = retireTxnDataArray.map((data, index) => {
-        return {
-          to: removalContract.address,
-          from: polygonRelayerAddress,
-          gas: latestBlockGasLimit,
-          gasPrice: fastGasPriceHexString,
-          value: '0x0',
-          data: retireTxnDataArray[index],
-        };
-      });
-
-      const multicallTxnDataArray = retireTxnDataArray.map(
-        (retireTxnData, index) => {
-          return removalContract.interface.encodeFunctionData('multicall', [
-            [consignorTransferTxnDataArray[index], retireTxnData],
-          ]);
-        }
-      );
-
-      const multicallTxnInfoArray = multicallTxnDataArray.map((data, index) => {
-        return {
-          to: removalContract.address,
-          from: polygonRelayerAddress,
-          gas: latestBlockGasLimit,
-          gasPrice: fastGasPriceHexString,
-          value: '0x0',
-          data: multicallTxnDataArray[index],
-        };
-      });
-
-      // const response = await alchemy.transact.simulateExecutionBundle([
-      //   consignorBatchTransferTransactionInfo,
-      //   retireTransactionInfo,
-      // ]);
-
-      const multicallGasEstimates = await Promise.all(
-        multicallTxnInfoArray.map(async (txnInfo) => {
-          return await alchemy.transact.estimateGas(txnInfo);
-        })
-      );
-
-      console.log('MULTICALL GAS ESTIMATES', multicallGasEstimates);
-
-      const gasDiffs = multicallGasEstimates.map((gasEstimate, index) => {
-        return gasEstimate.sub(consignorTransferGasEstimates[index]);
-      });
-      const commaFormattedGasDiffs = gasDiffs
-        .map((gasDiff) => gasDiff.toString())
-        .map((numberString) => Number(numberString).toLocaleString());
-
-      console.log('GAS DIFFS', commaFormattedGasDiffs);
-      // const response = await alchemy.transact.simulateExecution(
-      //   multicallTransactionInfo
-      // );
-      // console.log('RESPONSE', response);
+        console.log(
+          'Successfully aggregated all batches of removals to consignor! Writing transaction receipts to file...'
+        );
+        writeJsonSync(retirementOutputFilename, retirementTransactionOutput);
+      } else {
+        console.log(
+          'At least one flag required, "simulateonly" or "doretirement"'
+        );
+      }
     },
   } as const);
 
 (() => {
   const { name, description, run } = GET_SIMULATE_TXN_TASK();
-  task(name, description, run);
+  task(name, description, run)
+    .addFlag('simulateonly', 'Simulate everything and get gas diffs')
+    .addFlag('aggregateremovals', 'Aggregate removals to consignor')
+    .addFlag('doretirement', 'Actually execute the retirement');
 })();
