@@ -18,6 +18,9 @@ import "./ERC20Preset.sol";
  * - [ERC20Preset](../docs/ERC20Preset.md)
  */
 contract NORI is ERC20Preset {
+
+  uint256 public initCount = 0;
+
   /**
    * @notice Locks the contract, preventing any future re-initialization.
    * @dev See more [here](https://docs.openzeppelin.com/contracts/4.x/api/proxy#Initializable-_disableInitializers--).
@@ -43,5 +46,6 @@ contract NORI is ERC20Preset {
     __ERC20Preset_init_unchained();
     __Multicall_init_unchained();
     _mint({account: _msgSender(), amount: 500_000_000 ether});
+    initCount = 1;
   }
 }
