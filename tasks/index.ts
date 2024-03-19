@@ -29,6 +29,7 @@ import { GET_LIST_MIGRATED_REMOVALS_TASK } from './list-remaining-migrated-remov
 import { TASK as FORCE_UPGRADE_TASK } from './force-ugrade';
 import { TASK as SIGN_MESSAGE_TASK } from './sign-message';
 import { TASK as TEST_SIGN_TYPED_TASK } from './test-sign-typed';
+import { GET_SIMULATE_TXN_TASK } from './simulate-txn-alchemy';
 
 export interface Task {
   run: ActionType<
@@ -88,4 +89,5 @@ export const TASKS = {
   [FORCE_UPGRADE_TASK.name]: { ...FORCE_UPGRADE_TASK },
   [SIGN_MESSAGE_TASK.name]: { ...SIGN_MESSAGE_TASK },
   [TEST_SIGN_TYPED_TASK.name]: { ...TEST_SIGN_TYPED_TASK },
+  [GET_SIMULATE_TXN_TASK().name]: { ...GET_SIMULATE_TXN_TASK() },
 } as const;
