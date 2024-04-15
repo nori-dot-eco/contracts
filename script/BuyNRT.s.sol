@@ -9,14 +9,14 @@ import "@/contracts/Market.sol";
 /**
  * @notice Example script demonstrating a purchase interaction with Nori's Market contract.
  *
- * Contextual information is bound in using environment variables, i.e. for Mumbai:
+ * Contextual information is bound in using environment variables, i.e. for Amoy:
  *
  * export PURCHASING_TOKEN_ADDRESS="0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97" # USDC
  * export NRTS=1
  * export MNEMONIC="..."
  * export RECIPIENT_ADDRESS="<0x00>"
- * export MUMBAI_RPC_URL="https://..."
- * export NETWORK_NAME="mumbai"
+ * export AMOY_RPC_URL="https://..."
+ * export NETWORK_NAME="amoy"
  *
  * forge script script/BuyNRT.s.sol:BuyNRT --rpc-url="$NETWORK_NAME" --mnemonics="$MNEMONIC" --broadcast -vvvv
  */
@@ -27,7 +27,7 @@ contract BuyNRT is Script {
     Market(
       vm.parseJsonAddress(
         vm.readFile(string.concat(vm.projectRoot(), "/contracts.json")),
-        ".mumbai.Market.proxyAddress"
+        ".amoy.Market.proxyAddress"
       )
     );
 

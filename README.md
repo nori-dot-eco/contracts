@@ -15,7 +15,7 @@ yarn add -D @nori-dot-com/contracts
 Then, in your solidity code, you can import the contracts you need:
 
 ```solidity
-import "@nori-dot-com/contracts/dist/solidity/Market.sol";
+import '@nori-dot-com/contracts/dist/solidity/Market.sol';
 ```
 
 ### Solidity
@@ -38,7 +38,7 @@ yarn add -D @nori-dot-com/contracts @openzeppelin/contracts-upgradeable@4.8.2 er
 Then, in your solidity code, you can import the contracts you need:
 
 ```solidity
-import "@nori-dot-com/contracts/dist/solidity/Market.sol";
+import '@nori-dot-com/contracts/dist/solidity/Market.sol';
 ```
 
 ## :notebook_with_decorative_cover: Documentation
@@ -152,14 +152,14 @@ hardhat NORI \
 
 <details>
 
-  <summary><b>Example: Deposit 100 bpNORI on mumbai</b></summary>
+  <summary><b>Example: Deposit 100 bpNORI on amoy</b></summary>
 
 ```bash
 hardhat BridgedPolygonNORI \
   --func deposit \
   0x6dc772f80495f47d8000530a59ee975b67b7c646 \
   "0x0000000000000000000000000000000000000000000000056bc75e2d63100000" \
-  --network mumbai
+  --network amoy
 ```
 
 > :information_source: Note that the final argument (`0x0000000000000000000000000000000000000000000000056bc75e2d63100000`) is a `uint256` bytes-encoded representation of 100 bpNORI.
@@ -226,22 +226,22 @@ For an overview, checkout the official tutorial [here](https://book.getfoundry.s
 For these scripts to work, the following environment variables must be set in your environment:
 
 ```
-MUMBAI_RPC_URL # The RPC URL for the mumbai network
+AMOY_RPC_URL # The RPC URL for the amoy network
 MNEMONIC # The mnemonic you want to use to sign your transaction with
 ```
 
 > :information_source: The first index of the `$MNEMONIC` HD path needs to be funded with MATIC, have the correct permissions to make the contract calls, etc.
 
-> :information_source: Our on-chain market on mumbai was deployed with a fireblocks signer, so we have been using the fireblocks signer from the command line with hardhat tasks to grant necessary permissions to other addresses that we may want to use.
+> :information_source: Our on-chain market on amoy was deployed with a fireblocks signer, so we have been using the fireblocks signer from the command line with hardhat tasks to grant necessary permissions to other addresses that we may want to use.
 
 Here is the hardhat command for granting the `CONSIGNOR_ROLE` to an address (hardhat is currently required to use a fireblocks signer):
 
 ```bash
 hardhat \
-  --network mumbai \
+  --network amoy \
   Removal \
   --func grantRole \
-  `cast call 0xa051E9EeaC803d2fCA1DbF415b78AD9BfEB723b0 "CONSIGNOR_ROLE()" --rpc-url mumbai` `# The bytes32 representation of the CONSIGNOR_ROLE` \
+  `cast call 0xa051E9EeaC803d2fCA1DbF415b78AD9BfEB723b0 "CONSIGNOR_ROLE()" --rpc-url amoy` `# The bytes32 representation of the CONSIGNOR_ROLE` \
   0x465d5a3fFeA4CD109043499Fa576c3E16f918463
 ```
 
@@ -253,18 +253,18 @@ A description of how to run some example scripts can be found in the examples be
 
 <details>
 
-  <summary><b>Example: Minting and listing new removals on mumbai</b></summary>
+  <summary><b>Example: Minting and listing new removals on amoy</b></summary>
 
 ```bash
 forge script \
   script/MintAndListRemovals.s.sol:MintAndListRemovals \
-  --rpc-url mumbai \
+  --rpc-url amoy \
   --mnemonics=$MNEMONIC \
   --broadcast \
   -vvvvv
 ```
 
-> :information_source: Transactions for minting removals have at times seemed really slow on mumbai (taking almost 15 minutes to get included).
+> :information_source: Transactions for minting removals have at times seemed really slow on amoy (taking almost 15 minutes to get included).
 
 </details>
 
@@ -275,7 +275,7 @@ forge script \
 ```bash
 forge script \
   script/MintBPNori.s.sol:MintBPNori.sol \
-  --rpc-url mumbai \
+  --rpc-url amoy \
   --mnemonics=$MNEMONIC \
   --broadcast \
   -vvvv
@@ -293,12 +293,12 @@ You can use `cast send` to send transactions and interact with deployed contract
 
   <summary><b>Example: Deposit/mint bpNORI</b></summary>
 
-The following deposits 100 bpNORI to `$TO_ADDRESS` on mumbai (the first account of the `$MNEMONIC` **must** have the `DEPOSITOR_ROLE` role).
+The following deposits 100 bpNORI to `$TO_ADDRESS` on amoy (the first account of the `$MNEMONIC` **must** have the `DEPOSITOR_ROLE` role).
 
 ```bash
 cast send \
   --mnemonic=$MNEMONIC
-  --rpc-url mumbai \
+  --rpc-url amoy \
   $TO_ADDRESS \
   "deposit(address,bytes)" \
   $BP_NORI_ADDRESS \

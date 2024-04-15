@@ -29,7 +29,7 @@ export const TASK = {
     const network = hre.network.name;
     if (
       !(
-        network === 'mumbai' ||
+        network === 'amoy' ||
         network === 'hardhat' ||
         network === 'polygon' ||
         network === 'localhost'

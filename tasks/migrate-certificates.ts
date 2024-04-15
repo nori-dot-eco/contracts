@@ -396,9 +396,9 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
       const outputFileName =
         dryRun === true ? `dryRun-${outputFile}` : outputFile;
       const network = await hre.network.name;
-      if (![`localhost`, `mumbai`, `polygon`].includes(network)) {
+      if (![`localhost`, `amoy`, `polygon`].includes(network)) {
         throw new Error(
-          `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
+          `Network ${network} is not supported. Please use localhost, amoy, or polygon.`
         );
       }
       const originalInputData: MigratedCertificates = readJsonSync(file);
@@ -616,7 +616,7 @@ export const GET_MIGRATE_CERTIFICATES_TASK = () =>
                 transactionHash: txReceipt?.transactionHash,
                 status: txReceipt?.status,
               },
-              tokenId: tokenIds![certificateIndex],
+              tokenId: tokenIds[certificateIndex],
             });
             certificateIndex += 1;
           }

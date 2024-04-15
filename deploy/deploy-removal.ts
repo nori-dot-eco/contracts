@@ -18,5 +18,5 @@ deploy.tags = ['Removal', 'market'];
 deploy.dependencies = ['preconditions'];
 deploy.skip = async (hre) =>
   Promise.resolve(
-    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+    !['polygon', 'amoy', 'localhost', 'hardhat'].includes(hre.network.name)
   );

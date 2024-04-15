@@ -7,7 +7,7 @@ import {
 } from '@/utils/deploy';
 import {
   POLYGON_CHILD_CHAIN_MANAGER_PROXY,
-  MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
+  AMOY_CHILD_CHAIN_MANAGER_PROXY,
 } from '@/constants/addresses';
 
 export const deploy: DeployFunction = async (environment) => {
@@ -17,7 +17,7 @@ export const deploy: DeployFunction = async (environment) => {
   const childChainManagerProxyAddress =
     hre.network.name === 'polygon'
       ? POLYGON_CHILD_CHAIN_MANAGER_PROXY
-      : MUMBAI_CHILD_CHAIN_MANAGER_PROXY;
+      : AMOY_CHILD_CHAIN_MANAGER_PROXY;
   const contract = await deployBridgedPolygonNORIContract({
     hre,
     childChainManagerProxyAddress,
@@ -33,5 +33,5 @@ deploy.tags = ['BridgedPolygonNORI', 'assets'];
 deploy.dependencies = ['preconditions'];
 deploy.skip = async (hre) =>
   Promise.resolve(
-    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+    !['polygon', 'amoy', 'localhost', 'hardhat'].includes(hre.network.name)
   );

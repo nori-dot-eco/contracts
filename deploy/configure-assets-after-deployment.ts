@@ -58,7 +58,7 @@ export const deploy: DeployFunction = async (environment) => {
       purchaseTokenAddress: PROD_USDC_TOKEN_ADDRESS,
       feeWalletAddress: PROD_NORI_FEE_WALLET_ADDRESS,
     },
-    mumbai: {
+    amoy: {
       priceMultiple: 2000,
       feePercentage: 25,
       purchaseTokenAddress: STAGING_USDC_TOKEN_ADDRESS,
@@ -142,5 +142,5 @@ deploy.tags = ['configure'];
 deploy.dependencies = ['Market', 'Removal', 'market'];
 deploy.skip = async (hre) =>
   Promise.resolve(
-    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+    !['polygon', 'amoy', 'localhost', 'hardhat'].includes(hre.network.name)
   );

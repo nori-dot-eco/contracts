@@ -30,7 +30,7 @@ export const TASK = {
     if (
       !(
         network === 'localhost' ||
-        network === 'mumbai' ||
+        network === 'amoy' ||
         network === 'hardhat' ||
         network === 'polygon'
       )

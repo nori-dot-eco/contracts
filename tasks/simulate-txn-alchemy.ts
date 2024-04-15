@@ -1,11 +1,9 @@
-/* eslint-disable no-await-in-loop -- need to submit transactions synchronously to avoid nonce collisions */
-
 import { BigNumber, FixedNumber } from 'ethers';
 import { task } from 'hardhat/config';
+import { Alchemy, Network, Utils } from 'alchemy-sdk';
 
 import { getLogger } from '@/utils/log';
 import { getMarket, getRemoval } from '@/utils/contracts';
-import { Alchemy, Network, Utils } from 'alchemy-sdk';
 
 export const GET_SIMULATE_TXN_TASK = () =>
   ({
@@ -20,9 +18,9 @@ export const GET_SIMULATE_TXN_TASK = () =>
         hre,
       });
       const network = hre.network.name;
-      if (![`localhost`, `mumbai`, `polygon`].includes(network)) {
+      if (![`localhost`, `amoy`, `polygon`].includes(network)) {
         throw new Error(
-          `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
+          `Network ${network} is not supported. Please use localhost, amoy, or polygon.`
         );
       }
       const [signer] = await hre.getSigners();
@@ -51,7 +49,7 @@ export const GET_SIMULATE_TXN_TASK = () =>
       const marketBalance = await removalContract.getMarketBalance();
       const marketBalanceInEth = FixedNumber.fromValue(marketBalance, 18);
       console.log(
-        'CURRENT MARKET BALANCE (TONNES): ',
+        'CURRENT MARKET BALANCE (TONNES):',
         marketBalanceInEth.toString()
       );
 
@@ -59,7 +57,7 @@ export const GET_SIMULATE_TXN_TASK = () =>
         marketContract.MARKET_ADMIN_ROLE(),
         polygonRelayerAddress
       );
-      console.log('RELAYER HAS `MARKET_ADMIN_ROLE`? ', hasRole);
+      console.log('RELAYER HAS `MARKET_ADMIN_ROLE`?', hasRole);
 
       const latestBlock = await hre.ethers.provider.getBlock('latest');
       const latestBlockGasLimit = Utils.hexStripZeros(
@@ -69,16 +67,16 @@ export const GET_SIMULATE_TXN_TASK = () =>
       const fastGasPriceHexString = Utils.hexStripZeros(
         latestFastGasPrice.toHexString()
       );
-      console.log('LATEST BLOCK GAS LIMIT: ', latestBlockGasLimit);
-      console.log('LATEST FAST GAS PRICE: ', fastGasPriceHexString);
+      console.log('LATEST BLOCK GAS LIMIT:', latestBlockGasLimit);
+      console.log('LATEST FAST GAS PRICE:', fastGasPriceHexString);
 
-      const purchaseAmountEth = 9_000;
+      const purchaseAmountEth = 9000;
       const purchaseAmountWei = ethers.utils.parseUnits(
         purchaseAmountEth.toString(),
         18
       );
-      console.log('PURCHASE AMOUNT (ETH): ', purchaseAmountEth);
-      console.log('PURCHASE AMOUNT (WEI): ', purchaseAmountWei);
+      console.log('PURCHASE AMOUNT (ETH):', purchaseAmountEth);
+      console.log('PURCHASE AMOUNT (WEI):', purchaseAmountWei);
       const gasEstimation =
         await marketContract.estimateGas.swapWithoutFeeSpecialOrder(
           signerAddress, // recipient

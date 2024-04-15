@@ -38,5 +38,5 @@ if (hre.network.name !== 'polygon') {
 }
 deploy.skip = async (hre) =>
   Promise.resolve(
-    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+    !['polygon', 'amoy', 'localhost', 'hardhat'].includes(hre.network.name)
   );
