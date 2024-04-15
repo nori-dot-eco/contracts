@@ -7,9 +7,12 @@ import {
 } from '@/utils/deploy';
 import {
   POLYGON_CHILD_CHAIN_MANAGER_PROXY,
-  AMOY_CHILD_CHAIN_MANAGER_PROXY,
+  MUMBAI_CHILD_CHAIN_MANAGER_PROXY,
 } from '@/constants/addresses';
 
+// TODO: we should remove this functionality, otherwise we have to set up
+// another bridge contract for the new amoy network via the polygon team, which
+// is wasted work until/unless the NORI token is back on the roadmap.
 export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
   Logger.setLogLevel(Logger.levels.DEBUG);
@@ -17,7 +20,7 @@ export const deploy: DeployFunction = async (environment) => {
   const childChainManagerProxyAddress =
     hre.network.name === 'polygon'
       ? POLYGON_CHILD_CHAIN_MANAGER_PROXY
-      : AMOY_CHILD_CHAIN_MANAGER_PROXY;
+      : MUMBAI_CHILD_CHAIN_MANAGER_PROXY;
   const contract = await deployBridgedPolygonNORIContract({
     hre,
     childChainManagerProxyAddress,
