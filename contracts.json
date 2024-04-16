@@ -77,20 +77,14 @@
     }
   },
   "amoy": {
-    "BridgedPolygonNORI": {
-      "proxyAddress": "0xcb5BC0f4395858edE282908B39D5041b9B925383"
-    },
     "Removal": {
-      "proxyAddress": "0x01864f61Bc74503348a848294296d0ac243A3107"
+      "proxyAddress": "0x1bFD3e01498abf464dD1918Cfb0571716775513C"
     },
     "Certificate": {
-      "proxyAddress": "0xA5c58e4e7372074bE7cc8315400CE66B97d0D15a"
+      "proxyAddress": "0x9A7833C90bB3577730Bbc5d5b669aF63bdB3cd46"
     },
     "Market": {
-      "proxyAddress": "0x9aE49b1B92aFE0d9405ECf1d4d7Aa19B8aADC55D"
-    },
-    "LockedNORI": {
-      "proxyAddress": "0x0"
+      "proxyAddress": "0xfC77384950DB6769e1815c88b26b3eB06B8621Be"
     }
   },
   "goerli": {

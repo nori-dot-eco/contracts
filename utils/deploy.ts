@@ -177,18 +177,20 @@ export const deployMarketContract = async ({
   feeWallet,
   feePercentage,
   priceMultiple,
+  purchasingTokenAddress,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   feeWallet: Address;
   feePercentage: number;
   priceMultiple: number;
+  purchasingTokenAddress: Address;
 }): Promise<InstanceOfContract<Market>> => {
   const deployments = await hre.deployments.all<Required<Contracts>>();
   return hre.deployOrUpgradeProxy<Market, Market__factory>({
     contractName: 'Market',
     args: [
       deployments.Removal.address,
-      deployments.BridgedPolygonNORI.address,
+      purchasingTokenAddress,
       deployments.Certificate.address,
       feeWallet,
       feePercentage,
