@@ -10,10 +10,6 @@ import {
   TASK_VERIFY_VERIFY,
   TASK_VERIFY_GET_LIBRARIES,
 } from '@nomiclabs/hardhat-etherscan/dist/src/constants';
-import {
-  TASK_VERIFY as TASK_VERIFY_OKLINK,
-  TASK_VERIFY_VERIFY as TASK_VERIFY_VERIFY_OKLINK,
-} from '@enjinstarter/hardhat-oklink-verify/dist/src/constants';
 
 import { TASK as ERC_1820_TASK } from './erc-1820';
 import { TASK as UPGRADE_TASK } from './upgrade';
@@ -71,8 +67,6 @@ export const TASKS = {
   [TASK_VERIFY_GET_CONTRACT_INFORMATION]: {} as Task,
   [TASK_VERIFY_VERIFY_MINIMUM_BUILD]: {} as Task,
   [TASK_VERIFY_GET_LIBRARIES]: {} as Task,
-  [TASK_VERIFY_OKLINK]: {} as Task,
-  [TASK_VERIFY_VERIFY_OKLINK]: {} as Task,
   [ERC_1820_TASK.name]: { ...ERC_1820_TASK },
   [ACCOUNTS_TASK.name]: { ...ACCOUNTS_TASK },
   [NCCR_V0_TASK.name]: { ...NCCR_V0_TASK },

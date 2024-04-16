@@ -69,21 +69,12 @@ export const verifyContracts = async ({
       Object.entries(contracts)
         .filter((_, value) => value !== undefined)
         .map(async ([_name, { address }]) => {
-          if (hre.network.name === 'amoy') {
-            // return hre.run('oklink-verify:verify', {
-            //   address: await hre.upgrades.erc1967.getImplementationAddress(
-            //     address
-            //   ),
-            //   constructorArguments: [],
-            // } as any);
-          } else {
-            return hre.run('verify:verify', {
-              address: await hre.upgrades.erc1967.getImplementationAddress(
-                address
-              ),
-              constructorArguments: [],
-            } as any);
-          }
+          return hre.run('verify:verify', {
+            address: await hre.upgrades.erc1967.getImplementationAddress(
+              address
+            ),
+            constructorArguments: [],
+          } as any);
         })
     );
     for (const { reason } of results.filter(

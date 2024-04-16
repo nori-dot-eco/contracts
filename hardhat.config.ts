@@ -5,7 +5,6 @@ import '@/plugins';
 import type { HardhatUserConfig } from 'hardhat/types';
 
 import { etherscan } from '@/config/etherscan';
-import { oklink } from '@/config/oklink';
 import { networks } from '@/config/networks';
 import { namedAccountIndices } from '@/config/accounts';
 import { defender } from '@/config/defender';
@@ -24,7 +23,6 @@ export const getConfig = (
     namedAccounts: namedAccountIndices,
     networks,
     etherscan,
-    oklink,
     defender,
     solidity,
     fireblocks,

@@ -9,7 +9,6 @@ import 'hardhat-ethernal';
 import 'hardhat-deploy';
 import '@typechain/hardhat';
 import '@nomiclabs/hardhat-etherscan';
-import '@enjinstarter/hardhat-oklink-verify';
 import 'solidity-docgen';
 import 'hardhat-tracer';
 import 'hardhat-contract-sizer';

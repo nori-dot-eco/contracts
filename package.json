@@ -21,7 +21,6 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@enjinstarter/hardhat-oklink-verify": "^0.2.0",
     "@ethersproject/abstract-signer": "5.7.0",
     "@ethersproject/properties": "5.7.0",
     "@ethersproject/providers": "5.7.2",

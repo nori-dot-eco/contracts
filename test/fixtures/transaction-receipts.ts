@@ -5,7 +5,7 @@ import { ethers } from 'ethers';
 /**
  * A fixture that matches the transaction receipt of a real `swap` transaction on the Mumbai testnet.
  *
- * @see https://amoy.polygonscan.com/tx/0xa4bfb9c9148b2c34bca8a496accc6cf2cb005a240d0458ada2bf7cfc82ac50b7
+ * @see https://mumbai.polygonscan.com/tx/0xa4bfb9c9148b2c34bca8a496accc6cf2cb005a240d0458ada2bf7cfc82ac50b7
  */
 export const marketSwapTransactionReceipt: ethers.providers.TransactionReceipt =
   {

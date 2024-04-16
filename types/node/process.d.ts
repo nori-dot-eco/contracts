@@ -11,7 +11,6 @@ declare namespace NodeJS {
     ETHERNAL: boolean;
     ETHERSCAN_API_KEY?: string;
     POLYGONSCAN_API_KEY?: string;
-    OKLINK_EXPLORER_API_KEY?: string;
     DEFENDER_API_KEY?: string;
     DEFENDER_API_SECRET?: string;
     GITHUB_PERSONAL_ACCESS_TOKEN?: string;
