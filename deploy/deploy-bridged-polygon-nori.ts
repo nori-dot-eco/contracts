@@ -12,6 +12,10 @@ import {
 
 export const deploy: DeployFunction = async (environment) => {
   const hre = environment as unknown as CustomHardHatRuntimeEnvironment;
+  if (['mainnet', 'polygon', 'amoy'].includes(hre.network.name)) {
+    hre.trace('Skipping BridgedPolygonNORI deployment on live network');
+    return;
+  }
   Logger.setLogLevel(Logger.levels.DEBUG);
   hre.trace(`deploy-bridged-polygon-nori`);
   const childChainManagerProxyAddress =
