@@ -76,21 +76,21 @@
       "proxyAddress": "0xFAdEDFe89B5A530C0a7f69bE442E190751a13093"
     }
   },
-  "mumbai": {
+  "amoy": {
     "BridgedPolygonNORI": {
-      "proxyAddress": "0xd768Df6475a853194dB4afF2dDbDC0ea29F05c66"
+      "proxyAddress": "0x0"
     },
     "Removal": {
-      "proxyAddress": "0x8a696730b53925d4118D96C45d53BC1Cf6925bB5"
+      "proxyAddress": "0x0"
     },
     "Certificate": {
-      "proxyAddress": "0xdE41AdFe4F369626925dD989b3ED0893088Fa2a4"
+      "proxyAddress": "0x0"
     },
     "Market": {
-      "proxyAddress": "0xE239B41B0B6e8da4E1910fF7FE573629efd5255e"
+      "proxyAddress": "0x0"
     },
     "LockedNORI": {
-      "proxyAddress": "0xCdcB43CB7B668F0C1cA04FE4b60DA7F8C62Be393"
+      "proxyAddress": "0x0"
     }
   },
   "goerli": {
