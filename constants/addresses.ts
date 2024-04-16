@@ -15,4 +15,4 @@ export const PROD_USDC_TOKEN_ADDRESS =
   '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
 // https://developers.circle.com/developer/docs/usdc-on-testnet#bridged-usdc-on-polygon-testnet
 export const STAGING_USDC_TOKEN_ADDRESS =
-  '0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97';
+  '0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582';

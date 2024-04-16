@@ -15,8 +15,8 @@ export const deploy: DeployFunction = async (environment) => {
 
 export default deploy;
 deploy.tags = ['LockedNORI'];
-deploy.dependencies = ['preconditions', 'BridgedPolygonNORI'];
+deploy.dependencies = ['BridgedPolygonNORI', 'preconditions'];
 deploy.skip = async (hre) =>
   Promise.resolve(
-    !['polygon', 'mumbai', 'localhost', 'hardhat'].includes(hre.network.name)
+    !['polygon', 'amoy', 'localhost', 'hardhat'].includes(hre.network.name)
   );

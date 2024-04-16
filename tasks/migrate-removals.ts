@@ -207,9 +207,9 @@ export const GET_MIGRATE_REMOVALS_TASK = () =>
       const outputFileName =
         dryRun === true ? `dryRun-${outputFile}` : outputFile;
       const network = hre.network.name;
-      if (![`localhost`, `mumbai`, `polygon`].includes(network)) {
+      if (![`localhost`, `amoy`, `polygon`].includes(network)) {
         throw new Error(
-          `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
+          `Network ${network} is not supported. Please use localhost, amoy, or polygon.`
         );
       }
       const fullInputData: InputData[] = readJsonSync(file);

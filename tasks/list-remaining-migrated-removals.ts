@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 import { task, types } from 'hardhat/config';
 import chalk from 'chalk';
@@ -35,9 +35,9 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
         dryRun,
       } = options as ParsedListMigratedRemovalsTaskOptions;
       const network = await hre.network.name;
-      if (![`localhost`, `mumbai`, `polygon`].includes(network)) {
+      if (![`localhost`, `amoy`, `polygon`].includes(network)) {
         throw new Error(
-          `Network ${network} is not supported. Please use localhost, mumbai, or polygon.`
+          `Network ${network} is not supported. Please use localhost, amoy, or polygon.`
         );
       }
 
@@ -188,7 +188,7 @@ export const GET_LIST_MIGRATED_REMOVALS_TASK = () =>
           if (maybePendingTx === undefined) {
             throw new Error(`No pending transaction returned`);
           } else {
-            pendingTx = maybePendingTx as ContractTransaction;
+            pendingTx = maybePendingTx;
           }
           hre.log(`txHash: ${chalk.green(pendingTx.hash)}`);
           hre.log(chalk.white('\n👷 Waiting for transaction to finalize...'));

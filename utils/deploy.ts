@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 
 import { readJsonSync, writeJsonSync } from 'fs-extra';
 import type { Address } from 'hardhat-deploy/types';
@@ -26,9 +26,7 @@ import type {
 import { formatTokenAmount } from '@/utils/units';
 import { mockDepositNoriToPolygon } from '@/test/helpers';
 
-interface ContractConfig {
-  [key: string]: { proxyAddress: string };
-}
+type ContractConfig = Record<string, { proxyAddress: string }>;
 
 export const readContractsConfig = (): Record<string, ContractConfig> => {
   return readJsonSync(path.join(__dirname, '../contracts.json'));
@@ -179,18 +177,20 @@ export const deployMarketContract = async ({
   feeWallet,
   feePercentage,
   priceMultiple,
+  purchasingTokenAddress,
 }: {
   hre: CustomHardHatRuntimeEnvironment;
   feeWallet: Address;
   feePercentage: number;
   priceMultiple: number;
+  purchasingTokenAddress: Address;
 }): Promise<InstanceOfContract<Market>> => {
   const deployments = await hre.deployments.all<Required<Contracts>>();
   return hre.deployOrUpgradeProxy<Market, Market__factory>({
     contractName: 'Market',
     args: [
       deployments.Removal.address,
-      deployments.BridgedPolygonNORI.address,
+      purchasingTokenAddress,
       deployments.Certificate.address,
       feeWallet,
       feePercentage,
@@ -258,9 +258,7 @@ export const deployNoriUSDC = async ({
 }: {
   hre: CustomHardHatRuntimeEnvironment;
 }): Promise<InstanceOfContract<NoriUSDC>> => {
-  const isTestnet = ['mumbai', 'localhost', 'hardhat'].includes(
-    hre.network.name
-  );
+  const isTestnet = ['amoy', 'localhost', 'hardhat'].includes(hre.network.name);
   if (!isTestnet) {
     throw new Error('Testnet USDC contract can only be deployed on testnets');
   }
@@ -281,7 +279,7 @@ export const deployTestContracts = async ({
   hre: CustomHardHatRuntimeEnvironment;
   contractNames: (keyof Contracts)[];
 }): Promise<Contracts> => {
-  const isTestnet = ['mumbai', 'goerli'].includes(hre.network.name);
+  const isTestnet = ['amoy', 'goerli'].includes(hre.network.name);
   const scheduleTestHarnessInstance =
     isTestnet !== null && contracts.includes('LockedNORILibTestHarness')
       ? await hre.deployNonUpgradeable<

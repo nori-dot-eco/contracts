@@ -14,7 +14,7 @@ export type SupportedNetworks = keyof typeof networks;
 const {
   ETHEREUM_RPC_URL,
   GOERLI_RPC_URL,
-  MUMBAI_RPC_URL,
+  AMOY_RPC_URL,
   POLYGON_RPC_URL,
   MNEMONIC,
   LOG_HARDHAT_NETWORK,
@@ -60,9 +60,9 @@ const goerli: NetworkUserConfig = {
   fireblocks,
 };
 
-const mumbai: NetworkUserConfig = {
-  chainId: 80_001,
-  url: MUMBAI_RPC_URL,
+const amoy: NetworkUserConfig = {
+  chainId: 80_002,
+  url: AMOY_RPC_URL,
   gasPrice: 35_000_000_000,
   live: true,
   tags: ['polygon', 'staging'],
@@ -87,14 +87,14 @@ const mainnet: NetworkUserConfig = {
   gasPrice: 50_000_000_000,
   live: true,
   tags: ['mainnet', 'prod'],
-  fireblocks
+  fireblocks,
 };
 
 export const networks = {
   hardhat,
   ...(Boolean(MNEMONIC) && { localhost }),
   ...(Boolean(GOERLI_RPC_URL) && { goerli }),
-  ...(Boolean(MUMBAI_RPC_URL) && { mumbai }),
+  ...(Boolean(AMOY_RPC_URL) && { amoy }),
   ...(Boolean(ETHEREUM_RPC_URL) && { mainnet }),
   ...(Boolean(POLYGON_RPC_URL) && { polygon }),
 } as const;

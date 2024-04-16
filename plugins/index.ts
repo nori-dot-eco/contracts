@@ -22,8 +22,8 @@ import { lazyFunction, lazyObject } from 'hardhat/plugins';
 import type { FactoryOptions } from '@nomiclabs/hardhat-ethers/types';
 import type { HardhatNetworkHDAccountsConfig } from 'hardhat/types';
 import { Wallet } from 'ethers';
-import type { FireblocksSigner } from 'plugins/fireblocks/fireblocks-signer';
 
+import type { FireblocksSigner } from 'plugins/fireblocks/fireblocks-signer';
 import { Eip2612Signer } from '@/signers/eip-26126';
 import { namedAccountIndices, namedAccounts } from '@/config/accounts';
 import { trace, log } from '@/utils/log';

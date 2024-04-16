@@ -21,7 +21,7 @@ const isDefenderNetwork = (network: string): network is Network => {
     'fantomtest',
     'moonbase',
     'matic',
-    'mumbai',
+    'amoy',
   ].includes(network);
 };
 
