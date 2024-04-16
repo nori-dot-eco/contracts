@@ -9,7 +9,6 @@ const apiKeysAreDefined =
 export const etherscan: HardhatUserConfig['etherscan'] = apiKeysAreDefined
   ? {
       apiKey: {
-        polygonMumbai: POLYGONSCAN_API_KEY,
         polygon: POLYGONSCAN_API_KEY,
         mainnet: ETHERSCAN_API_KEY,
         goerli: ETHERSCAN_API_KEY,

@@ -3,11 +3,15 @@ declare namespace NodeJS {
   interface ProcessEnv {
     MNEMONIC?: string;
     ALCHEMY_API_KEY?: string;
+    ETHEREUM_RPC_URL?: string;
+    AMOY_RPC_URL?: string;
+    POLYGON_RPC_URL?: string;
     ETHERNAL_EMAIL?: string;
     ETHERNAL_PASSWORD?: string;
     ETHERNAL: boolean;
     ETHERSCAN_API_KEY?: string;
     POLYGONSCAN_API_KEY?: string;
+    OKLINK_EXPLORER_API_KEY?: string;
     DEFENDER_API_KEY?: string;
     DEFENDER_API_SECRET?: string;
     GITHUB_PERSONAL_ACCESS_TOKEN?: string;
