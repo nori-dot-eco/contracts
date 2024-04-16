@@ -61,7 +61,7 @@ const goerli: NetworkUserConfig = {
 };
 
 const amoy: NetworkUserConfig = {
-  chainId: 80_001,
+  chainId: 80_002,
   url: AMOY_RPC_URL,
   gasPrice: 35_000_000_000,
   live: true,

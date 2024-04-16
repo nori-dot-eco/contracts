@@ -15,6 +15,5 @@ export const deploy = async (
 
 export default deploy;
 deploy.tags = ['NoriUSDC', 'assets'];
-deploy.dependencies = ['preconditions'];
 deploy.skip = async (hre: CustomHardHatRuntimeEnvironment) =>
   Promise.resolve(!['localhost', 'hardhat'].includes(hre.network.name));
