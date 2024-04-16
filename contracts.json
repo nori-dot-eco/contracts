@@ -85,6 +85,12 @@
     },
     "Market": {
       "proxyAddress": "0xfC77384950DB6769e1815c88b26b3eB06B8621Be"
+    },
+    "BridgedPolygonNORI": {
+      "proxyAddress": "0x0"
+    },
+    "LockedNORI": {
+      "proxyAddress": "0x0"
     }
   },
   "goerli": {
